@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { CustomerListView } from '@/modules/customers';
 import {CustomerDetailView} from "@/modules/customers/views/CustomerDetailView.tsx";
+import {AppointmentCreateView} from "@/modules/appointments";
 
 export const router = createBrowserRouter([
     {
@@ -18,5 +19,9 @@ export const router = createBrowserRouter([
     {
         path: '/customers/:customerId',
         element: <CustomerDetailView />,
+    },
+    {
+        path: '/appointments/create',
+        element: <AppointmentCreateView />,
     }
 ]);
