@@ -1,0 +1,380 @@
+# Automotive CRM - Architecture & Development Guidelines
+
+## 1. System Philosophy
+
+The Automotive CRM is built on a modular architecture where each business function is an isolated entity. The highest priority is the Single Responsibility Principle (SRP), ensuring that every component, hook, and module is responsible for exactly one functionality.
+
+## 2. Core Architectural Principles
+
+- **Modular Vertical Slices**: Business logic is encapsulated within self-contained modules.
+- **SRP Enforcement**: Components only render UI, hooks manage logic/state, and API layers handle server communication.
+- **Dynamic Theme Engine**: CSS variables are utilized for full administrator-level branding configuration.
+- **Mobile-First Responsiveness**: All components must be fully responsive, ensuring a premium experience from mobile devices to ultra-wide desktop monitors.
+- **Zero-Comment Policy**: The codebase must be self-describing through clean naming and structure; comments are prohibited.
+- **Internationalization-Ready**: All user-facing strings must be externalized to translation files.
+
+## 3. API Security & Multi-Tenancy
+
+The application employs a Stateful Session-based Authentication model. This architecture ensures immediate access revocation and strict multi-tenant data isolation.
+
+### 3.1. Authentication Flow
+
+1. **Credentials Submission**: Client sends credentials via HTTPS.
+2. **Session Persistence**: Server validates credentials against PostgreSQL and stores the UserPrincipal in Redis.
+3. **Secure Cookie**: Server issues a Set-Cookie header with HttpOnly, Secure, and SameSite=Strict flags containing the Session ID.
+4. **Context Propagation**: For every request, the backend retrieves session data from Redis to populate the SecurityContext.
+
+### 3.2. Multi-Tenant Isolation
+
+- **Contextual Headers**: Every API request is scoped to a specific tenant ID derived from the session.
+- **Global Interceptors**: The API client (apiClient) automatically handles 401 (Unauthorized) responses by clearing the local session state and redirecting to the login view.
+
+### 3.3. Data Operations
+
+- **Sorting**: All sorting operations MUST be performed on the backend. Frontend only sends sortBy and sortDirection parameters.
+- **Pagination**: Backend handles pagination. Frontend sends page and limit parameters.
+- **Filtering**: Search and filter operations are processed server-side.
+
+## 4. Directory Structure
+```
+src/
+├── common/                    # Shared UI primitives and global utilities
+│   ├── components/            # Atomic components (Button, Input, Table)
+│   ├── hooks/                 # Stateless generic hooks (useDebounce, useBreakpoint)
+│   ├── utils/                 # Pure helpers (formatters, validators)
+│   ├── theme/                 # Theme provider, breakpoints, and CSS variables
+│   │   ├── breakpoints.ts
+│   │   ├── theme.ts
+│   │   ├── ThemeProvider.tsx
+│   │   └── index.ts
+│   └── i18n/                  # Internationalization
+│       ├── types.ts           # Translation type definitions
+│       ├── pl.ts              # Polish translations (default)
+│       └── index.ts           # Translation exports and utilities
+├── modules/                   # Business Domain Slices
+│   └── [module-name]/         # Isolated feature module
+│       ├── api/               # Data fetching (TanStack Query) + Mocks
+│       ├── components/        # Feature-specific UI components
+│       ├── hooks/             # Business logic and state transformations
+│       ├── utils/             # Module-specific mappers and validators
+│       ├── views/             # Page layouts and route entries
+│       ├── types.ts           # Module-specific TypeScript interfaces
+│       └── index.ts           # Public module API
+└── core/                      # App-level config (Auth, API Client, Router)
+    ├── apiClient.ts
+    ├── router.tsx
+    └── index.ts
+```
+
+## 5. Internationalization (i18n)
+
+### 5.1. Structure
+
+All user-facing strings MUST be externalized to translation files. Default language is Polish.
+```typescript
+// src/common/i18n/types.ts
+export interface TranslationKeys {
+    common: {
+        loading: string;
+        error: string;
+        retry: string;
+        cancel: string;
+        save: string;
+        // ... other common keys
+    };
+    [moduleName: string]: {
+        // Module-specific translations
+    };
+}
+```
+
+### 5.2. Usage
+```typescript
+import { t, interpolate } from '@/common/i18n';
+
+// Simple usage
+{t.customers.title}
+
+// With interpolation
+
+    {interpolate(t.customers.emptySearch.description, { search: searchTerm })}
+
+```
+
+### 5.3. Translation File Pattern
+```typescript
+// src/common/i18n/pl.ts
+export const pl: TranslationKeys = {
+    common: {
+        loading: 'Ładowanie...',
+        error: 'Wystąpił błąd',
+        // ...
+    },
+    customers: {
+        title: 'Klienci',
+        subtitle: 'Zarządzaj bazą klientów',
+        // ...
+    },
+};
+```
+
+## 6. Technical Standards
+
+### 6.1. Secure API Client
+```typescript
+import axios from 'axios';
+
+export const apiClient = axios.create({
+    baseURL: import.meta.env.VITE_API_URL,
+    withCredentials: true,
+    headers: {
+        'Content-Type': 'application/json'
+    }
+});
+
+apiClient.interceptors.response.use(
+    response => response,
+    error => {
+        if (error.response?.status === 401) {
+            window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+);
+```
+
+### 6.2. API Layer with Mocks
+
+Each module's API layer must support mock data for development:
+```typescript
+const USE_MOCKS = true;
+
+export const moduleApi = {
+    getItems: async (filters: Filters): Promise => {
+        if (USE_MOCKS) {
+            return mockGetItems(filters);
+        }
+        const response = await apiClient.get(`${BASE_PATH}?${params}`);
+        return response.data;
+    },
+};
+```
+
+### 6.3. Filter Interface Pattern
+
+All list endpoints must support:
+```typescript
+interface ListFilters {
+    search: string;
+    page: number;
+    limit: number;
+    sortBy?: SortField;        // Sorting handled by backend
+    sortDirection?: 'asc' | 'desc';
+}
+```
+
+### 6.4. Theme System
+```typescript
+// CSS Variables for dynamic branding
+:root {
+    --brand-primary: #0ea5e9;
+    --brand-primary-dark: #0284c7;
+    --brand-primary-light: #38bdf8;
+}
+
+// Theme object structure
+export const theme = {
+    breakpoints: { xs, sm, md, lg, xl, xxl },
+    colors: { background, surface, text, border, error, success },
+    spacing: { xs, sm, md, lg, xl, xxl },
+    fontSizes: { xs, sm, md, lg, xl, xxl },
+    radii: { sm, md, lg, xl, full },
+    shadows: { sm, md, lg, xl },
+};
+```
+
+### 6.5. Responsive Breakpoints
+```typescript
+export const breakpoints = {
+    xs: '0px',
+    sm: '640px',
+    md: '768px',
+    lg: '1024px',
+    xl: '1280px',
+    xxl: '1536px',
+};
+```
+
+### 6.6. Hook Pattern - useBreakpoint
+```typescript
+const isDesktop = useBreakpoint('lg');
+
+// In view component
+{isDesktop ?  : }
+```
+
+## 7. Component Standards
+
+### 7.1. Modern UI Requirements
+
+- **Animations**: Smooth transitions using cubic-bezier easing
+- **Gradients**: Subtle gradients for depth (backgrounds, buttons)
+- **Shadows**: Multi-layered, realistic shadows
+- **Icons**: SVG icons with proper sizing and colors
+- **Focus States**: Visible focus rings for accessibility
+- **Loading States**: Animated spinners and skeleton loaders
+- **Error States**: Clear, visually distinct error messages
+
+### 7.2. Form Components
+```typescript
+// Toggle Switch instead of checkbox for boolean options
+
+
+
+        {title}
+        {description}
+
+
+
+// Expandable sections with animation
+
+    {children}
+
+```
+
+### 7.3. Modal/Dialog Pattern
+
+- Backdrop blur effect
+- Slide-in animation (mobile: from right, desktop: scale from center)
+- Structured header with title, subtitle, and close button
+- Scrollable body with custom scrollbar
+- Sticky footer with action buttons
+- Loading state in submit button
+
+### 7.4. Section Headers with Icons
+```typescript
+
+
+
+
+
+        {title}
+        {subtitle}
+
+
+```
+
+## 8. Validation
+
+### 8.1. Zod Schema Pattern
+```typescript
+import { z } from 'zod';
+import { t } from '@/common/i18n';
+
+export const createEntitySchema = z.object({
+    name: z.string().min(2, t.module.validation.nameMin),
+    email: z.string().email(t.module.validation.emailInvalid),
+    // Polish-specific validators
+    nip: z.string().refine(validatePolishNip, t.module.validation.nipInvalid),
+    regon: z.string().refine(validatePolishRegon, t.module.validation.regonInvalid),
+});
+```
+
+### 8.2. Polish Validators
+```typescript
+// NIP validation with checksum
+export const validatePolishNip = (nip: string): boolean => { /* ... */ };
+
+// REGON validation (9 or 14 digits)
+export const validatePolishRegon = (regon: string): boolean => { /* ... */ };
+
+// Postal code format: XX-XXX
+export const isValidPolishPostalCode = (code: string): boolean => /^\d{2}-\d{3}$/.test(code);
+
+// Phone format: +48 XXX XXX XXX
+export const isValidPolishPhone = (phone: string): boolean => { /* ... */ };
+```
+
+## 9. Data Display Patterns
+
+### 9.1. Table Cell with Stacked Content
+```typescript
+
+
+        {primaryValue}
+        {secondaryValue}
+
+
+```
+
+### 9.2. Revenue Display (Net/Gross)
+```typescript
+
+
+        {t.customers.table.revenueNet}:
+        {formatCurrency(revenue.netAmount, revenue.currency)}
+
+
+        {t.customers.table.revenueGross}:
+        {formatCurrency(revenue.grossAmount, revenue.currency)}
+
+
+```
+
+### 9.3. Formatters
+```typescript
+// Currency formatting (Polish locale)
+export const formatCurrency = (amount: number, currency = 'PLN'): string =>
+    new Intl.NumberFormat('pl-PL', { style: 'currency', currency }).format(amount);
+
+// Date formatting
+export const formatDate = (date: string | null): string =>
+    date ? new Intl.DateTimeFormat('pl-PL').format(new Date(date)) : '—';
+
+// Phone formatting
+export const formatPhoneNumber = (phone: string): string =>
+    `+48 ${clean.slice(0, 3)} ${clean.slice(3, 6)} ${clean.slice(6)}`;
+```
+
+## 10. SRP & Security Checklist
+
+- [ ] Session Integrity: Never store sensitive user data in local storage; rely exclusively on HttpOnly cookies.
+- [ ] Mobile-First: Styles must be written for mobile initially, using min-width for enhancements.
+- [ ] Data Isolation: Ensure every API hook includes tenant-specific keys in the queryKey.
+- [ ] Component Responsibility: Decompose any component exceeding 50 lines of JSX.
+- [ ] View Layer Isolation: Views handle layout and responsive behavior; components remain agnostic.
+- [ ] No Comments: Code must be self-explanatory.
+- [ ] All Strings Externalized: No hardcoded user-facing strings in components.
+- [ ] Backend Sorting: Never sort data on frontend; always delegate to API.
+- [ ] Mock Support: All API functions must support USE_MOCKS flag for development.
+
+## 11. File Naming Conventions
+
+- Components: `PascalCase.tsx` (e.g., `CustomerTable.tsx`)
+- Hooks: `camelCase.ts` with `use` prefix (e.g., `useCustomers.ts`)
+- Utils: `camelCase.ts` (e.g., `customerMappers.ts`)
+- Types: `types.ts` in module root
+- Translations: `{locale}.ts` (e.g., `pl.ts`)
+- API: `{module}Api.ts` (e.g., `customerApi.ts`)
+
+## 12. Import Aliases
+```typescript
+// tsconfig.json paths
+{
+    "@/*": ["src/*"]
+}
+
+// Usage
+import { useDebounce } from '@/common/hooks';
+import { t } from '@/common/i18n';
+import { CustomerListView } from '@/modules/customers';
+```
+
+## 13. Module Public API Pattern
+```typescript
+// src/modules/customers/index.ts
+export { CustomerListView } from './views/CustomerListView';
+export { useCustomers } from './hooks/useCustomers';
+export { customerApi } from './api/customerApi';
+export type { Customer, CustomerFilters } from './types';
+```
