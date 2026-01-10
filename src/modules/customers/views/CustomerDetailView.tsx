@@ -62,50 +62,6 @@ const HeaderActions = styled.div`
     align-items: center;
 `;
 
-const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' }>`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: ${props => props.theme.spacing.xs};
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    border: none;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-
-    ${({ $variant }) => $variant === 'primary' ? `
-        background: linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 90%, black) 100%);
-        color: white;
-        box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
-
-        &:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
-        }
-    ` : `
-        background: white;
-        color: ${props => props.theme.colors.text};
-        border: 1px solid ${props => props.theme.colors.border};
-
-        &:hover {
-            border-color: var(--brand-primary);
-            color: var(--brand-primary);
-        }
-    `}
-
-    &:active {
-        transform: translateY(0);
-    }
-
-    svg {
-        width: 16px;
-        height: 16px;
-    }
-`;
-
 const TabsContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -147,9 +103,9 @@ const TabButton = styled.button<{ $isActive: boolean }>`
     border: none;
     border-radius: ${props => props.theme.radii.md};
     background: ${props => props.$isActive
-            ? 'linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 90%, black) 100%)'
-            : 'transparent'
-    };
+    ? 'linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 90%, black) 100%)'
+    : 'transparent'
+};
     font-size: ${props => props.theme.fontSizes.sm};
     font-weight: 500;
     color: ${props => props.$isActive ? 'white' : props.theme.colors.textMuted};
@@ -160,9 +116,9 @@ const TabButton = styled.button<{ $isActive: boolean }>`
 
     &:hover {
         background: ${props => props.$isActive
-                ? 'linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 90%, black) 100%)'
-                : props.theme.colors.surfaceHover
-        };
+    ? 'linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 90%, black) 100%)'
+    : props.theme.colors.surfaceHover
+};
         color: ${props => props.$isActive ? 'white' : props.theme.colors.text};
     }
 
@@ -216,14 +172,49 @@ const InfoSection = styled.div`
     border: 1px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.lg};
     padding: ${props => props.theme.spacing.lg};
+    position: relative;
+`;
+
+const SectionHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: ${props => props.theme.spacing.md};
 `;
 
 const SectionTitle = styled.h3`
-    margin: 0 0 ${props => props.theme.spacing.md};
+    margin: 0;
     font-size: ${props => props.theme.fontSizes.md};
     font-weight: 700;
     color: ${props => props.theme.colors.text};
     letter-spacing: -0.01em;
+`;
+
+const SectionEditButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: white;
+    color: ${props => props.theme.colors.textSecondary};
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.md};
+    font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        border-color: var(--brand-primary);
+        color: var(--brand-primary);
+        background: #f0f9ff;
+    }
+
+    svg {
+        width: 14px;
+        height: 14px;
+    }
 `;
 
 const InfoGrid = styled.div`
@@ -390,14 +381,6 @@ export const CustomerDetailView = () => {
                     </svg>
                     {t.common.backToList}
                 </BackButton>
-
-                <ActionButton $variant="primary" onClick={() => setIsEditModalOpen(true)}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
-                    {t.common.edit}
-                </ActionButton>
             </HeaderActions>
 
             <CustomerHeader data={customerDetail} />
@@ -441,7 +424,16 @@ export const CustomerDetailView = () => {
                         <ContentGrid>
                             <div>
                                 <InfoSection>
-                                    <SectionTitle>{t.customers.detail.personalInfo.title}</SectionTitle>
+                                    <SectionHeader>
+                                        <SectionTitle>{t.customers.detail.personalInfo.title}</SectionTitle>
+                                        <SectionEditButton onClick={() => setIsEditModalOpen(true)}>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                            </svg>
+                                            {t.common.edit}
+                                        </SectionEditButton>
+                                    </SectionHeader>
                                     <InfoGrid>
                                         <InfoItem>
                                             <InfoLabel>{t.customers.detail.personalInfo.fullName}</InfoLabel>
@@ -470,7 +462,16 @@ export const CustomerDetailView = () => {
 
                                 {customer.company && (
                                     <InfoSection style={{ marginTop: '24px' }}>
-                                        <SectionTitle>{t.customers.detail.companyInfo.title}</SectionTitle>
+                                        <SectionHeader>
+                                            <SectionTitle>{t.customers.detail.companyInfo.title}</SectionTitle>
+                                            <SectionEditButton onClick={() => setIsEditCompanyModalOpen(true)}>
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                </svg>
+                                                {t.common.edit}
+                                            </SectionEditButton>
+                                        </SectionHeader>
                                         <InfoGrid>
                                             <InfoItem>
                                                 <InfoLabel>{t.customers.detail.companyInfo.companyName}</InfoLabel>
@@ -491,31 +492,24 @@ export const CustomerDetailView = () => {
                                                 </InfoValue>
                                             </InfoItem>
                                         </InfoGrid>
-                                        <div style={{ marginTop: '16px' }}>
-                                            <ActionButton onClick={() => setIsEditCompanyModalOpen(true)}>
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                                </svg>
-                                                Edytuj firmę
-                                            </ActionButton>
-                                        </div>
                                     </InfoSection>
                                 )}
 
                                 {!customer.company && (
                                     <InfoSection style={{ marginTop: '24px' }}>
-                                        <SectionTitle>{t.customers.detail.companyInfo.title}</SectionTitle>
-                                        <InfoValue style={{ marginBottom: '16px' }}>
+                                        <SectionHeader>
+                                            <SectionTitle>{t.customers.detail.companyInfo.title}</SectionTitle>
+                                            <SectionEditButton onClick={() => setIsEditCompanyModalOpen(true)}>
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <line x1="12" y1="5" x2="12" y2="19"/>
+                                                    <line x1="5" y1="12" x2="19" y2="12"/>
+                                                </svg>
+                                                Dodaj
+                                            </SectionEditButton>
+                                        </SectionHeader>
+                                        <InfoValue>
                                             Ten klient nie ma przypisanych danych firmowych.
                                         </InfoValue>
-                                        <ActionButton onClick={() => setIsEditCompanyModalOpen(true)}>
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <line x1="12" y1="5" x2="12" y2="19"/>
-                                                <line x1="5" y1="12" x2="19" y2="12"/>
-                                            </svg>
-                                            Dodaj dane firmy
-                                        </ActionButton>
                                     </InfoSection>
                                 )}
 
