@@ -19,6 +19,7 @@ export interface TranslationKeys {
         no: string;
         confirm: string;
         close: string;
+        backToList: string;
     };
     customers: {
         title: string;
@@ -49,12 +50,115 @@ export interface TranslationKeys {
             createFailed: string;
             updateFailed: string;
             deleteFailed: string;
+            detailLoadFailed: string;
         };
         card: {
             vehicles: string;
             lastVisit: string;
             totalVisits: string;
             revenue: string;
+        };
+        detail: {
+            overview: string;
+            vehicles: string;
+            activity: string;
+            settings: string;
+            totalRevenue: string;
+            totalRevenueGross: string;
+            numberOfVisits: string;
+            lastVisitDate: string;
+            vehiclesCount: string;
+            inDatabase: string;
+            customerSince: string;
+            lastContact: string;
+            loyaltyTier: {
+                bronze: string;
+                silver: string;
+                gold: string;
+                platinum: string;
+            };
+            personalInfo: {
+                title: string;
+                fullName: string;
+                email: string;
+                phone: string;
+                homeAddress: string;
+            };
+            companyInfo: {
+                title: string;
+                companyName: string;
+                nip: string;
+                regon: string;
+                companyAddress: string;
+            };
+            notes: {
+                title: string;
+            };
+            consents: {
+                title: string;
+                subtitle: string;
+                email: string;
+                sms: string;
+                phone: string;
+                postal: string;
+                granted: string;
+                revoked: string;
+                never: string;
+            };
+            vehicleCard: {
+                year: string;
+                vin: string;
+                licensePlate: string;
+                color: string;
+                engine: string;
+                mileage: string;
+                inspection: string;
+                service: string;
+                status: {
+                    active: string;
+                    sold: string;
+                    archived: string;
+                };
+                engineType: {
+                    gasoline: string;
+                    diesel: string;
+                    hybrid: string;
+                    electric: string;
+                };
+                noVehicles: string;
+            };
+            timeline: {
+                title: string;
+                subtitle: string;
+                events: string;
+                event: string;
+                empty: string;
+                visitType: {
+                    service: string;
+                    repair: string;
+                    inspection: string;
+                    consultation: string;
+                };
+                visitStatus: {
+                    completed: string;
+                    inProgress: string;
+                    scheduled: string;
+                    cancelled: string;
+                };
+                commType: {
+                    email: string;
+                    phone: string;
+                    sms: string;
+                    meeting: string;
+                };
+                commDirection: {
+                    inbound: string;
+                    outbound: string;
+                };
+                technician: string;
+                performedBy: string;
+            };
+            settingsPlaceholder: string;
         };
         form: {
             title: string;
