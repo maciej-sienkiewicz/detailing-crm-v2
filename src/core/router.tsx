@@ -4,6 +4,7 @@ import { CustomerListView } from '@/modules/customers';
 import { CustomerDetailView } from '@/modules/customers/views/CustomerDetailView';
 import { AppointmentCreateView } from '@/modules/appointments';
 import {VehicleDetailView, VehicleListView} from "@/modules/vehicles";
+import {OperationListView} from "@/modules/operations";
 
 export const router = createBrowserRouter([
     {
@@ -29,6 +30,10 @@ export const router = createBrowserRouter([
     {
         path: 'vehicles/:vehicleId',
         element: <Layout><VehicleDetailView /></Layout>,
+    },
+    {
+        path: 'operations',
+        element: <Layout><OperationListView /></Layout>,
     },
     {
         path: '*',

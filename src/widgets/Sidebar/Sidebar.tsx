@@ -21,7 +21,7 @@ const menuSections: MenuSection[] = [
         title: 'Główne',
         items: [
             { path: '/dashboard', label: 'Dashboard', icon: '◉' },
-            { path: '/appointments', label: 'Wizyty', icon: '◷', badge: '3' },
+            { path: '/operations', label: 'Wizyty', icon: '◷', badge: '3' },
             { path: '/customers', label: 'Klienci', icon: '◈' },
         ],
     },
