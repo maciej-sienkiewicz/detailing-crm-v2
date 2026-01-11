@@ -20,4 +20,5 @@ export type {
     OperationFilters,
     OperationListResponse,
     LastModification,
+    FilterStatus,
 } from './types';

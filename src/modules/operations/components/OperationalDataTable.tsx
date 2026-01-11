@@ -202,10 +202,10 @@ const Skeleton = styled.div<{ $width?: string; $height?: string }>`
     width: ${props => props.$width || '100%'};
     height: ${props => props.$height || '16px'};
     background: linear-gradient(
-        90deg,
-        #f1f5f9 0%,
-        #e2e8f0 50%,
-        #f1f5f9 100%
+            90deg,
+            #f1f5f9 0%,
+            #e2e8f0 50%,
+            #f1f5f9 100%
     );
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
@@ -395,7 +395,8 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
                                             <AmountRow>
                                                 <AmountLabel>Brutto:</AmountLabel>
                                                 <AmountValue $isPrimary>
-                                                    {formatCurrency(operation.financials.grossAmount,
+                                                    {formatCurrency(
+                                                        operation.financials.grossAmount,
                                                         operation.financials.currency
                                                     )}
                                                 </AmountValue>
@@ -443,6 +444,7 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
                     </TableBody>
                 </Table>
             </TableContainer>
+
             <DeleteOperationModal
                 isOpen={deleteModalState.isOpen}
                 onClose={handleDeleteCancel}

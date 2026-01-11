@@ -9,6 +9,8 @@ export type OperationStatus =
 
 export type OperationType = 'VISIT' | 'RESERVATION';
 
+export type FilterStatus = OperationStatus | 'RESERVATIONS';
+
 export interface OperationVehicle {
     brand: string;
     model: string;

@@ -65,29 +65,36 @@ export const OperationListView = () => {
     const { searchInput, debouncedSearch, handleSearchChange } = useOperationSearch();
     const { page, limit, goToPage, resetPagination } = useOperationPagination();
     const {
-        selectedType,
-        selectedStatus,
-        handleTypeChange,
-        handleStatusChange,
+        selectedFilter,
+        handleFilterChange,
         clearFilters,
+        getApiFilters,
     } = useOperationFilters();
+
+    const apiFilters = getApiFilters();
 
     const filters = useMemo(
         () => ({
             search: debouncedSearch,
             page,
             limit,
-            type: selectedType,
-            status: selectedStatus,
+            type: apiFilters.type,
+            status: apiFilters.status,
             sortBy: 'startDateTime' as const,
             sortDirection: 'desc' as const,
         }),
-        [debouncedSearch, page, limit, selectedType, selectedStatus]
+        [debouncedSearch, page, limit, apiFilters.type, apiFilters.status]
     );
 
     const { pagination } = useOperations(filters);
 
-    const handleFilterChange = () => {
+    const handleFilterChangeWithReset = (filter: typeof selectedFilter) => {
+        handleFilterChange(filter);
+        resetPagination();
+    };
+
+    const handleClearFiltersWithReset = () => {
+        clearFilters();
         resetPagination();
     };
 
@@ -107,28 +114,17 @@ export const OperationListView = () => {
 
             <ContentSection>
                 <OperationFilterBar
-                    selectedType={selectedType}
-                    selectedStatus={selectedStatus}
-                    onTypeChange={(type) => {
-                        handleTypeChange(type);
-                        handleFilterChange();
-                    }}
-                    onStatusChange={(status) => {
-                        handleStatusChange(status);
-                        handleFilterChange();
-                    }}
-                    onClearFilters={() => {
-                        clearFilters();
-                        handleFilterChange();
-                    }}
+                    selectedFilter={selectedFilter}
+                    onFilterChange={handleFilterChangeWithReset}
+                    onClearFilters={handleClearFiltersWithReset}
                 />
 
                 <OperationalDataTable
                     search={debouncedSearch}
                     page={page}
                     limit={limit}
-                    type={selectedType}
-                    status={selectedStatus}
+                    type={apiFilters.type}
+                    status={apiFilters.status}
                 />
 
                 {pagination && pagination.totalPages > 1 && (

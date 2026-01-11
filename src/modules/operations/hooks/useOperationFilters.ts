@@ -1,30 +1,35 @@
 // src/modules/operations/hooks/useOperationFilters.ts
 
 import { useState, useCallback } from 'react';
-import type { OperationType, OperationStatus } from '../types';
+import type { FilterStatus, OperationType, OperationStatus } from '../types';
 
 export const useOperationFilters = () => {
-    const [selectedType, setSelectedType] = useState<OperationType | undefined>(undefined);
-    const [selectedStatus, setSelectedStatus] = useState<OperationStatus | undefined>(undefined);
+    const [selectedFilter, setSelectedFilter] = useState<FilterStatus | undefined>(undefined);
 
-    const handleTypeChange = useCallback((type: OperationType | undefined) => {
-        setSelectedType(type);
-    }, []);
-
-    const handleStatusChange = useCallback((status: OperationStatus | undefined) => {
-        setSelectedStatus(status);
+    const handleFilterChange = useCallback((filter: FilterStatus | undefined) => {
+        setSelectedFilter(filter);
     }, []);
 
     const clearFilters = useCallback(() => {
-        setSelectedType(undefined);
-        setSelectedStatus(undefined);
+        setSelectedFilter(undefined);
     }, []);
 
+    const getApiFilters = useCallback(() => {
+        if (!selectedFilter) {
+            return { type: undefined, status: undefined };
+        }
+
+        if (selectedFilter === 'RESERVATIONS') {
+            return { type: 'RESERVATION' as OperationType, status: undefined };
+        }
+
+        return { type: undefined, status: selectedFilter as OperationStatus };
+    }, [selectedFilter]);
+
     return {
-        selectedType,
-        selectedStatus,
-        handleTypeChange,
-        handleStatusChange,
+        selectedFilter,
+        handleFilterChange,
         clearFilters,
+        getApiFilters,
     };
 };

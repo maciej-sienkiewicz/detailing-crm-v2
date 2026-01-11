@@ -1,7 +1,7 @@
 // src/modules/operations/components/OperationFilterBar.tsx
 
 import styled from 'styled-components';
-import type { OperationType, OperationStatus } from '../types';
+import type { FilterStatus } from '../types';
 
 const FilterBarContainer = styled.div`
     display: flex;
@@ -14,25 +14,8 @@ const FilterBarContainer = styled.div`
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         flex-direction: row;
         align-items: center;
+        justify-content: space-between;
     }
-`;
-
-const FilterGroup = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-
-    @media (min-width: ${props => props.theme.breakpoints.sm}) {
-        flex-direction: row;
-        align-items: center;
-    }
-`;
-
-const FilterLabel = styled.span`
-    font-size: 14px;
-    font-weight: 600;
-    color: #0f172a;
-    white-space: nowrap;
 `;
 
 const FilterButtons = styled.div`
@@ -78,73 +61,41 @@ const ClearButton = styled.button`
 `;
 
 interface OperationFilterBarProps {
-    selectedType?: OperationType;
-    selectedStatus?: OperationStatus;
-    onTypeChange: (type: OperationType | undefined) => void;
-    onStatusChange: (status: OperationStatus | undefined) => void;
+    selectedFilter?: FilterStatus;
+    onFilterChange: (filter: FilterStatus | undefined) => void;
     onClearFilters: () => void;
 }
 
 export const OperationFilterBar = ({
-                                       selectedType,
-                                       selectedStatus,
-                                       onTypeChange,
-                                       onStatusChange,
+                                       selectedFilter,
+                                       onFilterChange,
                                        onClearFilters,
                                    }: OperationFilterBarProps) => {
-    const hasActiveFilters = selectedType || selectedStatus;
+    const filters: { value: FilterStatus; label: string }[] = [
+        { value: 'RESERVATIONS', label: 'Rezerwacje' },
+        { value: 'IN_PROGRESS', label: 'W realizacji' },
+        { value: 'READY_FOR_PICKUP', label: 'Do odbioru' },
+        { value: 'SCHEDULED', label: 'Zaplanowane' },
+        { value: 'COMPLETED', label: 'Zakończone' },
+    ];
 
     return (
         <FilterBarContainer>
-            <FilterGroup>
-                <FilterLabel>Typ:</FilterLabel>
-                <FilterButtons>
+            <FilterButtons>
+                {filters.map(filter => (
                     <FilterButton
-                        $isActive={selectedType === 'VISIT'}
-                        onClick={() => onTypeChange(selectedType === 'VISIT' ? undefined : 'VISIT')}
+                        key={filter.value}
+                        $isActive={selectedFilter === filter.value}
+                        onClick={() =>
+                            onFilterChange(selectedFilter === filter.value ? undefined : filter.value)
+                        }
                     >
-                        Wizyty
+                        {filter.label}
                     </FilterButton>
-                    <FilterButton
-                        $isActive={selectedType === 'RESERVATION'}
-                        onClick={() => onTypeChange(selectedType === 'RESERVATION' ? undefined : 'RESERVATION')}
-                    >
-                        Rezerwacje
-                    </FilterButton>
-                </FilterButtons>
-            </FilterGroup>
+                ))}
+            </FilterButtons>
 
-            <FilterGroup>
-                <FilterLabel>Status:</FilterLabel>
-                <FilterButtons>
-                    <FilterButton
-                        $isActive={selectedStatus === 'IN_PROGRESS'}
-                        onClick={() => onStatusChange(selectedStatus === 'IN_PROGRESS' ? undefined : 'IN_PROGRESS')}
-                    >
-                        W realizacji
-                    </FilterButton>
-                    <FilterButton
-                        $isActive={selectedStatus === 'READY_FOR_PICKUP'}
-                        onClick={() => onStatusChange(selectedStatus === 'READY_FOR_PICKUP' ? undefined : 'READY_FOR_PICKUP')}
-                    >
-                        Do odbioru
-                    </FilterButton>
-                    <FilterButton
-                        $isActive={selectedStatus === 'SCHEDULED'}
-                        onClick={() => onStatusChange(selectedStatus === 'SCHEDULED' ? undefined : 'SCHEDULED')}
-                    >
-                        Zaplanowane
-                    </FilterButton>
-                    <FilterButton
-                        $isActive={selectedStatus === 'COMPLETED'}
-                        onClick={() => onStatusChange(selectedStatus === 'COMPLETED' ? undefined : 'COMPLETED')}
-                    >
-                        Zakończone
-                    </FilterButton>
-                </FilterButtons>
-            </FilterGroup>
-
-            {hasActiveFilters && (
+            {selectedFilter && (
                 <ClearButton onClick={onClearFilters}>
                     Wyczyść filtry
                 </ClearButton>

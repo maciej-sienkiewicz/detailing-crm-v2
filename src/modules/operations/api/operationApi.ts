@@ -75,15 +75,15 @@ const mockOperations: OperationListResponse = {
                 model: 'C-Class',
                 licensePlate: 'GD 11111',
             },
-            startDateTime: '2026-01-13T10:00:00Z',
-            endDateTime: '2026-01-13T13:00:00Z',
+            startDateTime: '2026-01-10T10:00:00Z',
+            endDateTime: '2026-01-10T13:00:00Z',
             financials: {
                 netAmount: 2601.63,
                 grossAmount: 3200.00,
                 currency: 'PLN',
             },
             lastModification: {
-                timestamp: '2026-01-11T09:15:00Z',
+                timestamp: '2026-01-10T12:15:00Z',
                 performedBy: {
                     firstName: 'Marek',
                     lastName: 'Serwisant',
@@ -117,11 +117,65 @@ const mockOperations: OperationListResponse = {
                 },
             },
         },
+        {
+            id: '5',
+            type: 'RESERVATION',
+            customerFirstName: 'Tomasz',
+            customerLastName: 'Lewandowski',
+            customerPhone: '+48 777 888 999',
+            status: 'CANCELLED',
+            vehicle: {
+                brand: 'Volkswagen',
+                model: 'Golf',
+                licensePlate: 'WR 33333',
+            },
+            startDateTime: '2026-01-15T10:00:00Z',
+            endDateTime: '2026-01-15T12:00:00Z',
+            financials: {
+                netAmount: 0,
+                grossAmount: 0,
+                currency: 'PLN',
+            },
+            lastModification: {
+                timestamp: '2026-01-08T14:20:00Z',
+                performedBy: {
+                    firstName: 'Piotr',
+                    lastName: 'Kowalczyk',
+                },
+            },
+        },
+        {
+            id: '6',
+            type: 'RESERVATION',
+            customerFirstName: 'Magdalena',
+            customerLastName: 'Krawczyk',
+            customerPhone: '+48 888 999 000',
+            status: 'SCHEDULED',
+            vehicle: {
+                brand: 'Ford',
+                model: 'Focus',
+                licensePlate: 'GD 44444',
+            },
+            startDateTime: '2026-01-14T09:00:00Z',
+            endDateTime: '2026-01-14T11:00:00Z',
+            financials: {
+                netAmount: 1219.51,
+                grossAmount: 1500.00,
+                currency: 'PLN',
+            },
+            lastModification: {
+                timestamp: '2026-01-11T08:00:00Z',
+                performedBy: {
+                    firstName: 'Anna',
+                    lastName: 'Mechanik',
+                },
+            },
+        },
     ],
     pagination: {
         currentPage: 1,
         totalPages: 1,
-        totalItems: 4,
+        totalItems: 6,
         itemsPerPage: 20,
     },
 };
