@@ -10,8 +10,7 @@ import { AppointmentActions } from '../components/AppointmentActions';
 import { CustomerModal } from '../components/CustomerModal';
 import { VehicleModal } from '../components/VehicleModal';
 import { InvoiceSummary } from '../components/InvoiceSummary';
-import { LoadingSkeleton } from '../components/common/LoadingSkeleton';
-import { t } from '@/common/i18n';
+import {LoadingSkeleton} from "@/modules/appointments/components/common";
 
 const Container = styled.div`
     min-height: 100vh;

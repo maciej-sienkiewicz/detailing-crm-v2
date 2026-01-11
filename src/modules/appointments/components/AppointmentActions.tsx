@@ -1,57 +1,7 @@
-// src/modules/appointments/components/AppointmentActions.tsx
-import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import { Button, ButtonGroup } from '@/common/components/Button';
 import { t } from '@/common/i18n';
-import { ErrorDisplay } from './common/ErrorDisplay';
-
-const ButtonGroup = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.md};
-    flex-direction: column;
-
-    @media (min-width: ${props => props.theme.breakpoints.sm}) {
-        flex-direction: row;
-    }
-`;
-
-const Button = styled.button<{ $variant?: 'primary' | 'secondary' }>`
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    cursor: pointer;
-    transition: all ${props => props.theme.transitions.normal};
-    border: none;
-    flex: 1;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.xl};
-    }
-
-    ${props => props.$variant === 'primary' ? `
-        background: linear-gradient(135deg, ${props.theme.colors.primary} 0%, #0284c7 100%);
-        color: white;
-        box-shadow: ${props.theme.shadows.md};
-
-        &:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: ${props.theme.shadows.lg};
-        }
-
-        &:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-    ` : `
-        background-color: ${props.theme.colors.surface};
-        color: ${props.theme.colors.text};
-        border: 1px solid ${props.theme.colors.border};
-
-        &:hover:not(:disabled) {
-            background-color: ${props.theme.colors.surfaceHover};
-        }
-    `}
-`;
+import {ErrorDisplay} from "@/modules/appointments/components/common/ErrorDisplay.tsx";
 
 interface AppointmentActionsProps {
     onSubmit: () => void;

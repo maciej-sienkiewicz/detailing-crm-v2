@@ -1,8 +1,10 @@
 // src/modules/appointments/components/ServiceItem.tsx
-import styled from 'styled-components';
 import { useState, useEffect, useRef } from 'react';
+import styled from 'styled-components';
 import { formatMoneyAmount } from '../hooks/usePriceCalculator';
 import { useServicePricing } from '../hooks/useServicePricing';
+import { FieldGroup, Label, Input, Select, TextArea } from '@/common/components/Form';
+import { Badge } from '@/common/components/Badge';
 import { t } from '@/common/i18n';
 import type { ServiceLineItem, AdjustmentType } from '../types';
 
@@ -155,19 +157,6 @@ const MenuItem = styled.button<{ $variant?: 'danger' }>`
     }
 `;
 
-const DiscountBadge = styled.div`
-    display: inline-flex;
-    align-items: center;
-    gap: ${props => props.theme.spacing.xs};
-    background: linear-gradient(135deg, ${props => props.theme.colors.primary} 0%, #0284c7 100%);
-    color: white;
-    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
-    border-radius: ${props => props.theme.radii.full};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    margin-top: ${props => props.theme.spacing.xs};
-`;
-
 const PriceBreakdown = styled.div`
     display: flex;
     gap: ${props => props.theme.spacing.sm};
@@ -232,69 +221,10 @@ const DiscountGrid = styled.div`
     }
 `;
 
-const FieldGroup = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.xs};
-`;
-
-const FieldLabel = styled.label`
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    color: ${props => props.theme.colors.text};
+const FieldLabel = styled(Label)`
     text-transform: uppercase;
     letter-spacing: 0.5px;
-`;
-
-const Select = styled.select`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    border: 2px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    background-color: white;
-    cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
-
-    &:focus {
-        outline: none;
-        border-color: ${props => props.theme.colors.primary};
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-    }
-`;
-
-const Input = styled.input`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    border: 2px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    transition: all ${props => props.theme.transitions.fast};
-
-    &:focus {
-        outline: none;
-        border-color: ${props => props.theme.colors.primary};
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-    }
-`;
-
-const TextArea = styled.textarea`
-    padding: ${props => props.theme.spacing.md};
-    border: 2px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-family: inherit;
-    resize: vertical;
-    min-height: 80px;
-    transition: all ${props => props.theme.transitions.fast};
-
-    &:focus {
-        outline: none;
-        border-color: ${props => props.theme.colors.primary};
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-    }
-
-    &::placeholder {
-        color: ${props => props.theme.colors.textMuted};
-    }
+    font-size: ${props => props.theme.fontSizes.xs};
 `;
 
 const ActionButtons = styled.div`
@@ -384,7 +314,11 @@ export const ServiceItem = ({
                 <ItemNameSection>
                     <ItemName>{item.serviceName}</ItemName>
                     {item.note && <ItemNote>{item.note}</ItemNote>}
-                    {pricing.hasDiscount && <DiscountBadge>{pricing.discountLabel}</DiscountBadge>}
+                    {pricing.hasDiscount && (
+                        <Badge $variant="primary" style={{ marginTop: '8px' }}>
+                            {pricing.discountLabel}
+                        </Badge>
+                    )}
                 </ItemNameSection>
                 <MenuSection ref={menuRef}>
                     <MenuButton onClick={handleMenuToggle}>

@@ -1,10 +1,12 @@
 // src/modules/appointments/components/InvoiceSummary.tsx
-import styled from 'styled-components';
 import { useState } from 'react';
+import styled from 'styled-components';
 import { useDebounce } from '@/common/hooks';
 import { formatMoneyAmount } from '../hooks/usePriceCalculator';
 import { useServicePricing } from '../hooks/useServicePricing';
 import { useInvoiceManagement } from '../hooks/useInvoiceManagement';
+import { EmptyState } from '@/common/components/EmptyState';
+import { Input } from '@/common/components/Form';
 import { t } from '@/common/i18n';
 import { ServiceItem } from './ServiceItem';
 import type { ServiceLineItem, Service } from '../types';
@@ -64,22 +66,12 @@ const SearchLabel = styled.div`
     margin-bottom: ${props => props.theme.spacing.sm};
 `;
 
-const SearchInput = styled.input`
+const SearchInput = styled(Input)`
     width: 100%;
-    padding: ${props => props.theme.spacing.md};
-    border: 2px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.md};
-    transition: all ${props => props.theme.transitions.fast};
+    border-width: 2px;
 
     &:focus {
-        outline: none;
-        border-color: ${props => props.theme.colors.primary};
         box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
-    }
-
-    &::placeholder {
-        color: ${props => props.theme.colors.textMuted};
     }
 `;
 
@@ -202,21 +194,6 @@ const FinalTotal = styled.div`
     }
 `;
 
-const EmptyState = styled.div`
-    text-align: center;
-    padding: ${props => props.theme.spacing.xl};
-    color: ${props => props.theme.colors.textMuted};
-    font-size: ${props => props.theme.fontSizes.sm};
-    background-color: ${props => props.theme.colors.surfaceAlt};
-    border-radius: ${props => props.theme.radii.md};
-    border: 2px dashed ${props => props.theme.colors.border};
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.xxl};
-        font-size: ${props => props.theme.fontSizes.md};
-    }
-`;
-
 interface InvoiceSummaryProps {
     services: ServiceLineItem[];
     availableServices: Service[];
@@ -289,7 +266,10 @@ export const InvoiceSummary = ({ services, availableServices, onChange }: Invoic
                 </SearchSection>
 
                 {services.length === 0 ? (
-                    <EmptyState>{t.appointments.invoiceSummary.emptyState}</EmptyState>
+                    <EmptyState
+                        icon="📝"
+                        title={t.appointments.invoiceSummary.emptyState}
+                    />
                 ) : (
                     <>
                         <ItemsList>

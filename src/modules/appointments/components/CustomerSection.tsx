@@ -1,59 +1,17 @@
 // src/modules/appointments/components/CustomerSection.tsx
 import styled from 'styled-components';
+import { Card, CardHeader, CardTitle } from '@/common/components/Card';
+import { Button } from '@/common/components/Button';
+import { Badge } from '@/common/components/Badge';
 import { t } from '@/common/i18n';
 import type { SelectedCustomer } from '../types';
 
-const Card = styled.div`
-    background-color: ${props => props.theme.colors.surface};
-    border-radius: ${props => props.theme.radii.lg};
-    padding: ${props => props.theme.spacing.lg};
-    box-shadow: ${props => props.theme.shadows.md};
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.xl};
-    }
-`;
-
-const SectionHeader = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${props => props.theme.spacing.md};
-    padding-bottom: ${props => props.theme.spacing.md};
-    border-bottom: 2px solid ${props => props.theme.colors.border};
-    margin-bottom: ${props => props.theme.spacing.lg};
-`;
-
-const SectionTitle = styled.h2`
-    font-size: ${props => props.theme.fontSizes.lg};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    color: ${props => props.theme.colors.text};
-    margin: 0;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes.xl};
-    }
-`;
-
-const SelectButton = styled.button`
+const SelectButton = styled(Button)`
     width: 100%;
-    padding: ${props => props.theme.spacing.lg};
-    background: linear-gradient(135deg, ${props => props.theme.colors.primary} 0%, #0284c7 100%);
-    color: white;
-    border: none;
-    border-radius: ${props => props.theme.radii.md};
     font-size: ${props => props.theme.fontSizes.md};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    cursor: pointer;
-    transition: all ${props => props.theme.transitions.normal};
-    box-shadow: ${props => props.theme.shadows.md};
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         font-size: ${props => props.theme.fontSizes.lg};
-    }
-
-    &:hover {
-        transform: translateY(-2px);
-        box-shadow: ${props => props.theme.shadows.lg};
     }
 `;
 
@@ -125,19 +83,6 @@ const SelectedName = styled.div`
     }
 `;
 
-const SelectedBadge = styled.span`
-    display: inline-flex;
-    align-items: center;
-    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
-    background-color: ${props => props.theme.colors.successLight};
-    color: ${props => props.theme.colors.success};
-    border-radius: ${props => props.theme.radii.full};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
 const SelectedDetails = styled.div`
     display: grid;
     gap: ${props => props.theme.spacing.md};
@@ -178,33 +123,12 @@ const DetailValue = styled.span`
     }
 `;
 
-const ChangeButton = styled.button`
+const ChangeButton = styled(Button)`
     width: 100%;
-    padding: ${props => props.theme.spacing.md};
-    background-color: ${props => props.theme.colors.surface};
-    color: ${props => props.theme.colors.text};
-    border: 2px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
     display: flex;
     align-items: center;
     justify-content: center;
     gap: ${props => props.theme.spacing.sm};
-
-    &:hover {
-        background-color: ${props => props.theme.colors.surfaceHover};
-        border-color: ${props => props.theme.colors.primary};
-        color: ${props => props.theme.colors.primary};
-        transform: translateY(-1px);
-        box-shadow: ${props => props.theme.shadows.sm};
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
 `;
 
 interface CustomerSectionProps {
@@ -215,12 +139,12 @@ interface CustomerSectionProps {
 export const CustomerSection = ({ selectedCustomer, onOpenModal }: CustomerSectionProps) => {
     return (
         <Card>
-            <SectionHeader>
-                <SectionTitle>{t.appointments.createView.customerSection}</SectionTitle>
-            </SectionHeader>
+            <CardHeader>
+                <CardTitle>{t.appointments.createView.customerSection}</CardTitle>
+            </CardHeader>
 
             {!selectedCustomer ? (
-                <SelectButton onClick={onOpenModal}>
+                <SelectButton $variant="primary" onClick={onOpenModal}>
                     {t.appointments.createView.addOrSearchCustomer}
                 </SelectButton>
             ) : (
@@ -233,11 +157,11 @@ export const CustomerSection = ({ selectedCustomer, onOpenModal }: CustomerSecti
                             <SelectedName>
                                 {selectedCustomer.firstName} {selectedCustomer.lastName}
                             </SelectedName>
-                            <SelectedBadge>
+                            <Badge $variant={selectedCustomer.isNew ? 'primary' : 'success'}>
                                 {selectedCustomer.isNew
                                     ? t.appointments.selectedCustomer.newBadge
                                     : t.appointments.selectedCustomer.existingBadge}
-                            </SelectedBadge>
+                            </Badge>
                         </SelectedTitle>
                     </SelectedHeader>
                     <SelectedDetails>
@@ -260,7 +184,7 @@ export const CustomerSection = ({ selectedCustomer, onOpenModal }: CustomerSecti
                             </DetailValue>
                         </DetailItem>
                     </SelectedDetails>
-                    <ChangeButton onClick={onOpenModal}>
+                    <ChangeButton $variant="secondary" onClick={onOpenModal}>
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
