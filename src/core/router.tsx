@@ -1,10 +1,12 @@
+// src/core/router.tsx
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Layout } from '@/widgets/Layout';
 import { CustomerListView } from '@/modules/customers';
 import { CustomerDetailView } from '@/modules/customers/views/CustomerDetailView';
 import { AppointmentCreateView } from '@/modules/appointments';
-import {VehicleDetailView, VehicleListView} from "@/modules/vehicles";
-import {OperationListView} from "@/modules/operations";
+import { VehicleDetailView, VehicleListView } from '@/modules/vehicles';
+import { OperationListView } from '@/modules/operations';
+import { VisitDetailView } from '@/modules/visits';
 
 export const router = createBrowserRouter([
     {
@@ -24,16 +26,20 @@ export const router = createBrowserRouter([
         element: <Layout><AppointmentCreateView /></Layout>,
     },
     {
-        path: 'vehicles',
+        path: '/vehicles',
         element: <Layout><VehicleListView /></Layout>,
     },
     {
-        path: 'vehicles/:vehicleId',
+        path: '/vehicles/:vehicleId',
         element: <Layout><VehicleDetailView /></Layout>,
     },
     {
-        path: 'operations',
+        path: '/operations',
         element: <Layout><OperationListView /></Layout>,
+    },
+    {
+        path: '/visits/:visitId',
+        element: <Layout><VisitDetailView /></Layout>,
     },
     {
         path: '*',
