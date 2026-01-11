@@ -1,7 +1,38 @@
+// src/modules/appointments/components/AppointmentActions.tsx
+import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { Button, ButtonGroup } from '@/common/components/Button';
+import { Button } from '@/common/components/Button';
 import { t } from '@/common/i18n';
 import {ErrorDisplay} from "@/modules/appointments/components/common/ErrorDisplay.tsx";
+
+const ActionsContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${props => props.theme.spacing.lg};
+    width: 100%;
+`;
+
+const CenteredButtonGroup = styled.div`
+    display: flex;
+    gap: ${props => props.theme.spacing.md};
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+
+    @media (min-width: ${props => props.theme.breakpoints.sm}) {
+        flex-direction: row;
+    }
+`;
+
+const StyledButton = styled(Button)`
+    width: 100%;
+
+    @media (min-width: ${props => props.theme.breakpoints.sm}) {
+        width: auto;
+        min-width: 180px;
+    }
+`;
 
 interface AppointmentActionsProps {
     onSubmit: () => void;
@@ -19,16 +50,16 @@ export const AppointmentActions = ({
     const navigate = useNavigate();
 
     return (
-        <>
-            <ButtonGroup>
-                <Button
+        <ActionsContainer>
+            <CenteredButtonGroup>
+                <StyledButton
                     $variant="secondary"
                     onClick={() => navigate('/appointments')}
                     disabled={isSubmitting}
                 >
                     {t.common.cancel}
-                </Button>
-                <Button
+                </StyledButton>
+                <StyledButton
                     $variant="primary"
                     onClick={onSubmit}
                     disabled={!canSubmit || isSubmitting}
@@ -36,12 +67,12 @@ export const AppointmentActions = ({
                     {isSubmitting
                         ? t.appointments.createView.submitting
                         : t.appointments.createView.submitButton}
-                </Button>
-            </ButtonGroup>
+                </StyledButton>
+            </CenteredButtonGroup>
 
             {hasError && (
                 <ErrorDisplay message={t.appointments.createView.createError} />
             )}
-        </>
+        </ActionsContainer>
     );
 };

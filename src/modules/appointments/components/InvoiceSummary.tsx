@@ -39,7 +39,6 @@ const Title = styled.h2`
 `;
 
 const Body = styled.div`
-    padding: ${props => props.theme.spacing.lg};
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         padding-left: ${props => props.theme.spacing.xl};
