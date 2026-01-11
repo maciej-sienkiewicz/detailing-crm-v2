@@ -64,10 +64,10 @@ const OwnerTag = styled.span<{ $role: string }>`
     font-weight: 500;
 
     ${props => {
-    if (props.$role === 'PRIMARY') return 'background: #dcfce7; color: #166534;';
-    if (props.$role === 'COMPANY') return 'background: #dbeafe; color: #1e40af;';
-    return 'background: #f3f4f6; color: #6b7280;';
-}}
+        if (props.$role === 'PRIMARY') return 'background: #dcfce7; color: #166534;';
+        if (props.$role === 'COMPANY') return 'background: #dbeafe; color: #1e40af;';
+        return 'background: #f3f4f6; color: #6b7280;';
+    }}
 `;
 
 const StatsGrid = styled.div`

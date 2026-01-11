@@ -362,12 +362,13 @@ export interface TranslationKeys {
         addVehicle: string;
         searchPlaceholder: string;
         table: {
+            licensePlate: string;
             vehicle: string;
             owners: string;
             lastVisit: string;
             visits: string;
-            totalSpent: string;
-            status: string;
+            totalRevenue: string;
+            actions: string;
         };
         empty: {
             title: string;

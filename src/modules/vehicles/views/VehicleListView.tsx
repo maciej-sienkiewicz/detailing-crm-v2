@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { useVehicles } from '../hooks/useVehicles';
 import { useVehicleSearch } from '../hooks/useVehicleSearch';
 import { useVehiclePagination } from '../hooks/useVehiclePagination';
+import { useDeleteVehicle } from '../hooks/useDeleteVehicle';
 import { useBreakpoint } from '@/common/hooks/useBreakpoint';
 import { VehicleTable } from '../components/VehicleTable';
 import { VehicleGrid } from '../components/VehicleGrid';
@@ -180,6 +181,7 @@ export const VehicleListView = () => {
     const navigate = useNavigate();
     const { searchInput, debouncedSearch, handleSearchChange } = useVehicleSearch();
     const { page, limit, goToPage, resetPagination } = useVehiclePagination();
+    const { deleteVehicle, isDeleting } = useDeleteVehicle();
     const isDesktop = useBreakpoint('lg');
 
     const filters = useMemo(
@@ -202,6 +204,10 @@ export const VehicleListView = () => {
     const handleAddVehicle = useCallback(() => {
         navigate('/vehicles/new');
     }, [navigate]);
+
+    const handleDelete = useCallback((vehicleId: string) => {
+        deleteVehicle(vehicleId);
+    }, [deleteVehicle]);
 
     const renderContent = () => {
         if (isLoading) {
@@ -242,7 +248,11 @@ export const VehicleListView = () => {
         return (
             <DataContainer>
                 {isDesktop ? (
-                    <VehicleTable vehicles={vehicles} onRowClick={handleRowClick} />
+                    <VehicleTable
+                        vehicles={vehicles}
+                        onRowClick={handleRowClick}
+                        onDelete={handleDelete}
+                    />
                 ) : (
                     <VehicleGrid vehicles={vehicles} onCardClick={handleRowClick} />
                 )}

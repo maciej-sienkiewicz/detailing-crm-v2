@@ -360,18 +360,21 @@ export const pl: TranslationKeys = {
     },
     // src/common/i18n/pl.ts - Dodaj do istniejącego pliku w sekcji vehicles
 
+    // src/common/i18n/pl.ts - Dodaj do istniejącego pliku w sekcji vehicles
+
     vehicles: {
         title: 'Pojazdy',
         subtitle: 'Zarządzaj flotą pojazdów warsztatowych',
         addVehicle: 'Dodaj pojazd',
         searchPlaceholder: 'Szukaj po rejestracji, marce lub właścicielu...',
         table: {
+            licensePlate: 'Rejestracja',
             vehicle: 'Pojazd',
             owners: 'Właściciele',
             lastVisit: 'Ostatnia wizyta',
             visits: 'Wizyty',
-            totalSpent: 'Suma wydatków',
-            status: 'Status',
+            totalRevenue: 'Przychód',
+            actions: 'Akcje',
         },
         empty: {
             title: 'Brak pojazdów',
