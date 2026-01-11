@@ -1,5 +1,7 @@
+// src/modules/appointments/components/VehicleModal.tsx
 import styled from 'styled-components';
 import { useState } from 'react';
+import { t } from '@/common/i18n';
 import type { Vehicle, SelectedVehicle } from '../types';
 
 const Overlay = styled.div`
@@ -11,7 +13,11 @@ const Overlay = styled.div`
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    padding: ${props => props.theme.spacing.lg};
+    padding: ${props => props.theme.spacing.md};
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        padding: ${props => props.theme.spacing.lg};
+    }
 `;
 
 const ModalContainer = styled.div`
@@ -38,29 +44,41 @@ const ModalContainer = styled.div`
 `;
 
 const ModalHeader = styled.div`
-    padding: ${props => props.theme.spacing.xl};
+    padding: ${props => props.theme.spacing.lg};
     border-bottom: 1px solid ${props => props.theme.colors.border};
     display: flex;
     justify-content: space-between;
     align-items: center;
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        padding: ${props => props.theme.spacing.xl};
+    }
 `;
 
 const ModalTitle = styled.h2`
-    font-size: ${props => props.theme.fontSizes.xxl};
+    font-size: ${props => props.theme.fontSizes.xl};
     font-weight: ${props => props.theme.fontWeights.bold};
     color: ${props => props.theme.colors.text};
     margin: 0;
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        font-size: ${props => props.theme.fontSizes.xxl};
+    }
 `;
 
 const CloseButton = styled.button`
     background: none;
     border: none;
-    font-size: ${props => props.theme.fontSizes.xxl};
+    font-size: ${props => props.theme.fontSizes.xl};
     color: ${props => props.theme.colors.textMuted};
     cursor: pointer;
     padding: ${props => props.theme.spacing.sm};
     line-height: 1;
     transition: color ${props => props.theme.transitions.fast};
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        font-size: ${props => props.theme.fontSizes.xxl};
+    }
 
     &:hover {
         color: ${props => props.theme.colors.text};
@@ -68,9 +86,13 @@ const CloseButton = styled.button`
 `;
 
 const ModalBody = styled.div`
-    padding: ${props => props.theme.spacing.xl};
+    padding: ${props => props.theme.spacing.lg};
     overflow-y: auto;
     flex: 1;
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        padding: ${props => props.theme.spacing.xl};
+    }
 `;
 
 const VehicleGrid = styled.div`
@@ -95,16 +117,24 @@ const VehicleCard = styled.div`
 `;
 
 const VehicleName = styled.div`
-    font-size: ${props => props.theme.fontSizes.lg};
+    font-size: ${props => props.theme.fontSizes.md};
     font-weight: ${props => props.theme.fontWeights.semibold};
     color: ${props => props.theme.colors.text};
     margin-bottom: ${props => props.theme.spacing.sm};
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        font-size: ${props => props.theme.fontSizes.lg};
+    }
 `;
 
 const VehicleDetails = styled.div`
     display: flex;
-    gap: ${props => props.theme.spacing.md};
+    gap: ${props => props.theme.spacing.sm};
     flex-wrap: wrap;
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        gap: ${props => props.theme.spacing.md};
+    }
 `;
 
 const VehicleDetail = styled.span`
@@ -116,10 +146,15 @@ const ButtonGroup = styled.div`
     display: flex;
     gap: ${props => props.theme.spacing.md};
     margin-top: ${props => props.theme.spacing.lg};
+    flex-direction: column;
+
+    @media (min-width: ${props => props.theme.breakpoints.sm}) {
+        flex-direction: row;
+    }
 `;
 
 const Button = styled.button<{ $variant?: 'primary' | 'secondary' }>`
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.xl};
+    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
     border-radius: ${props => props.theme.radii.md};
     font-size: ${props => props.theme.fontSizes.md};
     font-weight: ${props => props.theme.fontWeights.semibold};
@@ -127,6 +162,10 @@ const Button = styled.button<{ $variant?: 'primary' | 'secondary' }>`
     transition: all ${props => props.theme.transitions.normal};
     border: none;
     flex: 1;
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.xl};
+    }
 
     ${props => props.$variant === 'primary' ? `
         background: linear-gradient(135deg, ${props.theme.colors.primary} 0%, #0284c7 100%);
@@ -225,10 +264,10 @@ export const VehicleModal = ({ isOpen, vehicles, onClose, onSelect, allowSkip = 
         const newErrors: Record<string, string> = {};
 
         if (!formData.brand || formData.brand.length < 2) {
-            newErrors.brand = 'Marka musi mieć minimum 2 znaki';
+            newErrors.brand = t.appointments.validation.brandMinLength;
         }
         if (!formData.model || formData.model.length < 1) {
-            newErrors.model = 'Model jest wymagany';
+            newErrors.model = t.appointments.validation.modelRequired;
         }
 
         setErrors(newErrors);
@@ -261,7 +300,7 @@ export const VehicleModal = ({ isOpen, vehicles, onClose, onSelect, allowSkip = 
             <ModalContainer onClick={(e) => e.stopPropagation()}>
                 <ModalHeader>
                     <ModalTitle>
-                        {showNewForm ? 'Dodaj nowy pojazd' : 'Wybierz pojazd'}
+                        {showNewForm ? t.appointments.vehicleModal.titleNew : t.appointments.vehicleModal.titleSelect}
                     </ModalTitle>
                     <CloseButton onClick={onClose}>×</CloseButton>
                 </ModalHeader>
@@ -281,7 +320,7 @@ export const VehicleModal = ({ isOpen, vehicles, onClose, onSelect, allowSkip = 
                                                     {vehicle.brand} {vehicle.model}
                                                 </VehicleName>
                                                 <VehicleDetails>
-                                                    <VehicleDetail>Rok: {vehicle.year}</VehicleDetail>
+                                                    <VehicleDetail>{t.appointments.vehicleModal.year}: {vehicle.year}</VehicleDetail>
                                                     <VehicleDetail>•</VehicleDetail>
                                                     <VehicleDetail>{vehicle.licensePlate}</VehicleDetail>
                                                 </VehicleDetails>
@@ -294,11 +333,11 @@ export const VehicleModal = ({ isOpen, vehicles, onClose, onSelect, allowSkip = 
 
                             <ButtonGroup>
                                 <Button $variant="primary" onClick={() => setShowNewForm(true)}>
-                                    Dodaj nowy pojazd
+                                    {t.appointments.vehicleModal.addNewButton}
                                 </Button>
                                 {allowSkip && (
                                     <Button $variant="secondary" onClick={handleSkip}>
-                                        Pomiń
+                                        {t.appointments.vehicleModal.skip}
                                     </Button>
                                 )}
                             </ButtonGroup>
@@ -307,25 +346,25 @@ export const VehicleModal = ({ isOpen, vehicles, onClose, onSelect, allowSkip = 
                         <>
                             <FormGrid>
                                 <FieldGroup>
-                                    <Label>Marka</Label>
+                                    <Label>{t.appointments.vehicleModal.brand}</Label>
                                     <Input
                                         value={formData.brand}
                                         onChange={(e) =>
                                             setFormData({ ...formData, brand: e.target.value })
                                         }
-                                        placeholder="Audi"
+                                        placeholder={t.appointments.vehicleModal.brandPlaceholder}
                                     />
                                     {errors.brand && <ErrorMessage>{errors.brand}</ErrorMessage>}
                                 </FieldGroup>
 
                                 <FieldGroup>
-                                    <Label>Model</Label>
+                                    <Label>{t.appointments.vehicleModal.model}</Label>
                                     <Input
                                         value={formData.model}
                                         onChange={(e) =>
                                             setFormData({ ...formData, model: e.target.value })
                                         }
-                                        placeholder="A5"
+                                        placeholder={t.appointments.vehicleModal.modelPlaceholder}
                                     />
                                     {errors.model && <ErrorMessage>{errors.model}</ErrorMessage>}
                                 </FieldGroup>
@@ -333,10 +372,10 @@ export const VehicleModal = ({ isOpen, vehicles, onClose, onSelect, allowSkip = 
 
                             <ButtonGroup>
                                 <Button $variant="secondary" onClick={() => setShowNewForm(false)}>
-                                    Anuluj
+                                    {t.appointments.vehicleModal.cancelButton}
                                 </Button>
                                 <Button $variant="primary" onClick={handleSubmitNew}>
-                                    Zatwierdź
+                                    {t.appointments.vehicleModal.confirmButton}
                                 </Button>
                             </ButtonGroup>
                         </>

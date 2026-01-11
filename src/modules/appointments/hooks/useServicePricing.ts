@@ -1,5 +1,7 @@
-import { dinero, add, subtract, multiply, allocate, toDecimal } from 'dinero.js';
+// src/modules/appointments/hooks/useServicePricing.ts
+import { dinero, add, subtract, toDecimal } from 'dinero.js';
 import { PLN } from '@dinero.js/currencies';
+import { interpolate, t } from '@/common/i18n';
 import type { ServiceLineItem, MoneyAmount } from '../types';
 
 export interface PricingResult {
@@ -15,7 +17,8 @@ export interface PricingResult {
 const createMoney = (amount: MoneyAmount) => dinero({ amount, currency: PLN });
 
 const toMoneyAmount = (money: ReturnType<typeof dinero>): MoneyAmount => {
-    return money.toJSON().amount;
+    const json = money.toJSON();
+    return json.amount;
 };
 
 export const useServicePricing = () => {
@@ -138,23 +141,29 @@ const getDiscountLabel = (adjustment: ServiceLineItem['adjustment'], hasDiscount
     if (!hasDiscount) return '';
 
     switch (adjustment.type) {
-        case 'PERCENT':
-            return `${adjustment.value > 0 ? '+' : ''}${adjustment.value}%`;
+        case 'PERCENT': {
+            const value = adjustment.value > 0 ? `+${adjustment.value}` : `${adjustment.value}`;
+            return interpolate(t.appointments.invoiceSummary.discountLabels.percent, { value });
+        }
         case 'FIXED_NET': {
             const money = createMoney(Math.abs(adjustment.value));
-            return `Rabat ${toDecimal(money)} PLN netto`;
+            const value = toDecimal(money);
+            return interpolate(t.appointments.invoiceSummary.discountLabels.discountNet, { value });
         }
         case 'FIXED_GROSS': {
             const money = createMoney(Math.abs(adjustment.value));
-            return `Rabat ${toDecimal(money)} PLN brutto`;
+            const value = toDecimal(money);
+            return interpolate(t.appointments.invoiceSummary.discountLabels.discountGross, { value });
         }
         case 'SET_NET': {
             const money = createMoney(adjustment.value);
-            return `Cena ustalona ${toDecimal(money)} PLN netto`;
+            const value = toDecimal(money);
+            return interpolate(t.appointments.invoiceSummary.discountLabels.setPriceNet, { value });
         }
         case 'SET_GROSS': {
             const money = createMoney(adjustment.value);
-            return `Cena ustalona ${toDecimal(money)} PLN brutto`;
+            const value = toDecimal(money);
+            return interpolate(t.appointments.invoiceSummary.discountLabels.setPriceGross, { value });
         }
         default:
             return '';

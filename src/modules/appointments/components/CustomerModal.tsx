@@ -1,7 +1,9 @@
+// src/modules/appointments/components/CustomerModal.tsx
 import styled from 'styled-components';
 import { useState } from 'react';
 import { useDebounce } from '@/common/hooks';
 import { useCustomerSearch } from '../hooks/useAppointmentForm';
+import { t } from '@/common/i18n';
 import type { Customer, SelectedCustomer } from '../types';
 
 const Overlay = styled.div`
@@ -13,7 +15,11 @@ const Overlay = styled.div`
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    padding: ${props => props.theme.spacing.lg};
+    padding: ${props => props.theme.spacing.md};
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        padding: ${props => props.theme.spacing.lg};
+    }
 `;
 
 const ModalContainer = styled.div`
@@ -40,29 +46,41 @@ const ModalContainer = styled.div`
 `;
 
 const ModalHeader = styled.div`
-    padding: ${props => props.theme.spacing.xl};
+    padding: ${props => props.theme.spacing.lg};
     border-bottom: 1px solid ${props => props.theme.colors.border};
     display: flex;
     justify-content: space-between;
     align-items: center;
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        padding: ${props => props.theme.spacing.xl};
+    }
 `;
 
 const ModalTitle = styled.h2`
-    font-size: ${props => props.theme.fontSizes.xxl};
+    font-size: ${props => props.theme.fontSizes.xl};
     font-weight: ${props => props.theme.fontWeights.bold};
     color: ${props => props.theme.colors.text};
     margin: 0;
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        font-size: ${props => props.theme.fontSizes.xxl};
+    }
 `;
 
 const CloseButton = styled.button`
     background: none;
     border: none;
-    font-size: ${props => props.theme.fontSizes.xxl};
+    font-size: ${props => props.theme.fontSizes.xl};
     color: ${props => props.theme.colors.textMuted};
     cursor: pointer;
     padding: ${props => props.theme.spacing.sm};
     line-height: 1;
     transition: color ${props => props.theme.transitions.fast};
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        font-size: ${props => props.theme.fontSizes.xxl};
+    }
 
     &:hover {
         color: ${props => props.theme.colors.text};
@@ -70,9 +88,13 @@ const CloseButton = styled.button`
 `;
 
 const ModalBody = styled.div`
-    padding: ${props => props.theme.spacing.xl};
+    padding: ${props => props.theme.spacing.lg};
     overflow-y: auto;
     flex: 1;
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        padding: ${props => props.theme.spacing.xl};
+    }
 `;
 
 const SearchInput = styled.input`
@@ -99,12 +121,17 @@ const CustomerTable = styled.div`
 
 const CustomerRow = styled.div`
     display: grid;
-    grid-template-columns: 2fr 2fr 1fr;
-    gap: ${props => props.theme.spacing.md};
+    grid-template-columns: 1fr;
+    gap: ${props => props.theme.spacing.sm};
     padding: ${props => props.theme.spacing.md};
     border-bottom: 1px solid ${props => props.theme.colors.border};
     cursor: pointer;
     transition: background-color ${props => props.theme.transitions.fast};
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        grid-template-columns: 2fr 2fr 1fr;
+        gap: ${props => props.theme.spacing.md};
+    }
 
     &:hover {
         background-color: ${props => props.theme.colors.surfaceHover};
@@ -112,10 +139,6 @@ const CustomerRow = styled.div`
 
     &:last-child {
         border-bottom: none;
-    }
-
-    @media (max-width: ${props => props.theme.breakpoints.md}) {
-        grid-template-columns: 1fr;
     }
 `;
 
@@ -149,10 +172,15 @@ const ButtonGroup = styled.div`
     display: flex;
     gap: ${props => props.theme.spacing.md};
     margin-top: ${props => props.theme.spacing.lg};
+    flex-direction: column;
+
+    @media (min-width: ${props => props.theme.breakpoints.sm}) {
+        flex-direction: row;
+    }
 `;
 
 const Button = styled.button<{ $variant?: 'primary' | 'secondary' }>`
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.xl};
+    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
     border-radius: ${props => props.theme.radii.md};
     font-size: ${props => props.theme.fontSizes.md};
     font-weight: ${props => props.theme.fontWeights.semibold};
@@ -160,6 +188,10 @@ const Button = styled.button<{ $variant?: 'primary' | 'secondary' }>`
     transition: all ${props => props.theme.transitions.normal};
     border: none;
     flex: 1;
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.xl};
+    }
 
     ${props => props.$variant === 'primary' ? `
         background: linear-gradient(135deg, ${props.theme.colors.primary} 0%, #0284c7 100%);
@@ -183,8 +215,12 @@ const Button = styled.button<{ $variant?: 'primary' | 'secondary' }>`
 
 const EmptyState = styled.div`
     text-align: center;
-    padding: ${props => props.theme.spacing.xxl};
+    padding: ${props => props.theme.spacing.xl};
     color: ${props => props.theme.colors.textMuted};
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        padding: ${props => props.theme.spacing.xxl};
+    }
 `;
 
 const FormGrid = styled.div`
@@ -248,7 +284,7 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
     const debouncedQuery = useDebounce(searchQuery, 200);
     const { data: customers, isLoading } = useCustomerSearch(debouncedQuery);
 
-    const handleCustomerClick = (customer: Customer) => {
+    const handleCustomerClick =(customer: Customer) => {
         onSelect({
             id: customer.id,
             firstName: customer.firstName,
@@ -259,21 +295,20 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
         });
         onClose();
     };
-
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};
 
         if (!formData.firstName || formData.firstName.length < 2) {
-            newErrors.firstName = 'Imię musi mieć minimum 2 znaki';
+            newErrors.firstName = t.appointments.validation.firstNameMinLength;
         }
         if (!formData.lastName || formData.lastName.length < 2) {
-            newErrors.lastName = 'Nazwisko musi mieć minimum 2 znaki';
+            newErrors.lastName = t.appointments.validation.lastNameMinLength;
         }
         if (!formData.phone || !/^(\+48)?\d{9}$/.test(formData.phone.replace(/[\s-]/g, ''))) {
-            newErrors.phone = 'Nieprawidłowy numer telefonu';
+            newErrors.phone = t.appointments.validation.phoneInvalid;
         }
         if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            newErrors.email = 'Nieprawidłowy adres email';
+            newErrors.email = t.appointments.validation.emailInvalid;
         }
 
         setErrors(newErrors);
@@ -297,7 +332,7 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
             <ModalContainer onClick={(e) => e.stopPropagation()}>
                 <ModalHeader>
                     <ModalTitle>
-                        {showNewForm ? 'Dodaj nowego klienta' : 'Wybierz klienta'}
+                        {showNewForm ? t.appointments.customerModal.titleNew : t.appointments.customerModal.titleSelect}
                     </ModalTitle>
                     <CloseButton onClick={onClose}>×</CloseButton>
                 </ModalHeader>
@@ -307,18 +342,18 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
                         <>
                             <SearchInput
                                 type="text"
-                                placeholder="Szukaj po nazwisku, emailu lub telefonie..."
+                                placeholder={t.appointments.customerModal.searchPlaceholder}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
 
                             {isLoading ? (
-                                <EmptyState>Wyszukiwanie...</EmptyState>
+                                <EmptyState>{t.appointments.customerModal.searching}</EmptyState>
                             ) : customers && customers.length > 0 ? (
                                 <CustomerTable>
                                     <CustomerHeader>
-                                        <div>Klient</div>
-                                        <div>Kontakt</div>
+                                        <div>{t.customers.table.customer}</div>
+                                        <div>{t.customers.table.contact}</div>
                                         <div></div>
                                     </CustomerHeader>
                                     {customers.map((customer) => (
@@ -342,14 +377,14 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
                             ) : (
                                 <EmptyState>
                                     {searchQuery
-                                        ? 'Nie znaleziono klientów'
-                                        : 'Wprowadź frazę wyszukiwania'}
+                                        ? t.appointments.customerModal.noResults
+                                        : t.appointments.customerModal.enterSearch}
                                 </EmptyState>
                             )}
 
                             <ButtonGroup>
                                 <Button $variant="primary" onClick={() => setShowNewForm(true)}>
-                                    Dodaj nowego klienta
+                                    {t.appointments.customerModal.addNewButton}
                                 </Button>
                             </ButtonGroup>
                         </>
@@ -357,49 +392,49 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
                         <>
                             <FormGrid>
                                 <FieldGroup>
-                                    <Label>Imię</Label>
+                                    <Label>{t.appointments.customerModal.firstName}</Label>
                                     <Input
                                         value={formData.firstName}
                                         onChange={(e) =>
                                             setFormData({ ...formData, firstName: e.target.value })
                                         }
-                                        placeholder="Jan"
+                                        placeholder={t.appointments.customerModal.firstNamePlaceholder}
                                     />
                                     {errors.firstName && <ErrorMessage>{errors.firstName}</ErrorMessage>}
                                 </FieldGroup>
 
                                 <FieldGroup>
-                                    <Label>Nazwisko</Label>
+                                    <Label>{t.appointments.customerModal.lastName}</Label>
                                     <Input
                                         value={formData.lastName}
                                         onChange={(e) =>
                                             setFormData({ ...formData, lastName: e.target.value })
                                         }
-                                        placeholder="Kowalski"
+                                        placeholder={t.appointments.customerModal.lastNamePlaceholder}
                                     />
                                     {errors.lastName && <ErrorMessage>{errors.lastName}</ErrorMessage>}
                                 </FieldGroup>
 
                                 <FieldGroup>
-                                    <Label>Telefon</Label>
+                                    <Label>{t.appointments.customerModal.phone}</Label>
                                     <Input
                                         value={formData.phone}
                                         onChange={(e) =>
                                             setFormData({ ...formData, phone: e.target.value })
                                         }
-                                        placeholder="+48 123 456 789"
+                                        placeholder={t.appointments.customerModal.phonePlaceholder}
                                     />
                                     {errors.phone && <ErrorMessage>{errors.phone}</ErrorMessage>}
                                 </FieldGroup>
 
                                 <FieldGroup>
-                                    <Label>Email</Label>
+                                    <Label>{t.appointments.customerModal.email}</Label>
                                     <Input
                                         value={formData.email}
                                         onChange={(e) =>
                                             setFormData({ ...formData, email: e.target.value })
                                         }
-                                        placeholder="jan.kowalski@example.com"
+                                        placeholder={t.appointments.customerModal.emailPlaceholder}
                                     />
                                     {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
                                 </FieldGroup>
@@ -407,10 +442,10 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
 
                             <ButtonGroup>
                                 <Button $variant="secondary" onClick={() => setShowNewForm(false)}>
-                                    Wróć do wyszukiwania
+                                    {t.appointments.customerModal.backToSearch}
                                 </Button>
                                 <Button $variant="primary" onClick={handleSubmitNew}>
-                                    Zatwierdź
+                                    {t.appointments.customerModal.confirmButton}
                                 </Button>
                             </ButtonGroup>
                         </>

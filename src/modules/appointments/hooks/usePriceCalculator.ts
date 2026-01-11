@@ -1,3 +1,4 @@
+// src/modules/appointments/hooks/usePriceCalculator.ts
 import { dinero, toDecimal } from 'dinero.js';
 import { PLN } from '@dinero.js/currencies';
 import type { MoneyAmount } from '../types';

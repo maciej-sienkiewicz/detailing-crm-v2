@@ -1,29 +1,30 @@
 import { z } from 'zod';
-import { isValidPolishPhone, isValidEmail } from '@/common/utils';
+import { isValidPolishPhone, isValidEmail, validatePolishNip, validatePolishRegon } from '@/common/utils';
+import { t } from '@/common/i18n';
 
 const customerNewDataSchema = z.object({
-    firstName: z.string().min(2, 'Imię musi mieć minimum 2 znaki'),
-    lastName: z.string().min(2, 'Nazwisko musi mieć minimum 2 znaki'),
-    phone: z.string().refine(isValidPolishPhone, 'Nieprawidłowy numer telefonu'),
-    email: z.string().refine(isValidEmail, 'Nieprawidłowy adres email'),
+    firstName: z.string().min(2, t.appointments.validation.firstNameMinLength),
+    lastName: z.string().min(2, t.appointments.validation.lastNameMinLength),
+    phone: z.string().refine(isValidPolishPhone, t.appointments.validation.phoneInvalid),
+    email: z.string().refine(isValidEmail, t.appointments.validation.emailInvalid),
     company: z.object({
-        name: z.string().min(2, 'Nazwa firmy musi mieć minimum 2 znaki'),
-        nip: z.string().regex(/^\d{10}$/, 'NIP musi składać się z 10 cyfr'),
-        regon: z.string().regex(/^\d{9}(\d{5})?$/, 'REGON musi składać się z 9 lub 14 cyfr').optional(),
-        address: z.string().min(5, 'Adres musi mieć minimum 5 znaków'),
+        name: z.string().min(2, t.customers.validation.companyNameMin),
+        nip: z.string().refine(validatePolishNip, t.customers.validation.nipInvalid),
+        regon: z.string().refine(validatePolishRegon, t.customers.validation.regonInvalid).optional(),
+        address: z.string().min(5, t.customers.validation.streetRequired),
     }).optional(),
 });
 
 const vehicleNewDataSchema = z.object({
-    brand: z.string().min(2, 'Marka musi mieć minimum 2 znaki'),
-    model: z.string().min(1, 'Model jest wymagany'),
+    brand: z.string().min(2, t.appointments.validation.brandMinLength),
+    model: z.string().min(1, t.appointments.validation.modelRequired),
 });
 
 export const appointmentSchema = z.object({
     customer: z.discriminatedUnion('mode', [
         z.object({
             mode: z.literal('EXISTING'),
-            id: z.string().min(1, 'Wybierz klienta'),
+            id: z.string().min(1, t.appointments.validation.customerRequired),
         }),
         z.object({
             mode: z.literal('NEW'),
@@ -33,7 +34,7 @@ export const appointmentSchema = z.object({
     vehicle: z.discriminatedUnion('mode', [
         z.object({
             mode: z.literal('EXISTING'),
-            id: z.string().min(1, 'Wybierz pojazd'),
+            id: z.string().min(1, t.appointments.validation.vehicleRequired),
         }),
         z.object({
             mode: z.literal('NEW'),
@@ -43,22 +44,26 @@ export const appointmentSchema = z.object({
             mode: z.literal('NONE'),
         }),
     ]),
-    service: z.object({
-        id: z.string().min(1, 'Wybierz usługę'),
-        basePriceNet: z.number().min(0, 'Cena musi być większa od 0'),
-        vatRate: z.number().min(0).max(100, 'VAT musi być między 0 a 100'),
+    services: z.array(z.object({
+        id: z.string(),
+        serviceId: z.string().min(1, t.appointments.validation.serviceRequired),
+        serviceName: z.string(),
+        basePriceNet: z.number().min(0, t.appointments.validation.basePricePositive),
+        vatRate: z.number().min(0).max(100, t.appointments.validation.vatRange),
         adjustment: z.object({
             type: z.enum(['PERCENT', 'FIXED_NET', 'FIXED_GROSS', 'SET_NET', 'SET_GROSS']),
             value: z.number(),
         }),
-        note: z.string().max(500, 'Notatka może mieć maksymalnie 500 znaków').optional(),
-    }),
+        note: z.string().max(500, t.appointments.validation.noteMaxLength).optional(),
+    })),
     schedule: z.object({
         isAllDay: z.boolean(),
-        startDateTime: z.string().min(1, 'Data rozpoczęcia jest wymagana'),
-        endDateTime: z.string().min(1, 'Data zakończenia jest wymagana'),
+        startDateTime: z.string().min(1, t.appointments.validation.startDateRequired),
+        endDateTime: z.string().min(1, t.appointments.validation.endDateRequired),
     }).refine(
         data => new Date(data.startDateTime) < new Date(data.endDateTime),
-        'Data zakończenia musi być późniejsza niż data rozpoczęcia'
+        t.appointments.validation.endAfterStart
     ),
+    appointmentTitle: z.string().optional(),
+    appointmentColorId: z.string().min(1, t.appointments.validation.colorRequired),
 });

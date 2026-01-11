@@ -1,3 +1,4 @@
+// src/modules/appointments/types.ts
 export type MoneyAmount = number;
 
 export type AdjustmentType = 'PERCENT' | 'FIXED_NET' | 'FIXED_GROSS' | 'SET_NET' | 'SET_GROSS';
@@ -31,16 +32,6 @@ export interface VehicleIdentity {
         brand: string;
         model: string;
     };
-}
-
-export interface ServiceLineItem {
-    id: string;
-    serviceId: string;
-    serviceName: string;
-    basePriceNet: MoneyAmount;
-    vatRate: number;
-    adjustment: PriceAdjustment;
-    note?: string;
 }
 
 export interface ServiceLineItem {
@@ -90,13 +81,10 @@ export interface Vehicle {
     licensePlate: string;
 }
 
-export interface PriceCalculation {
-    basePriceNet: MoneyAmount;
-    vatRate: number;
-    adjustment: PriceAdjustment;
-    finalPriceNet: MoneyAmount;
-    vatAmount: MoneyAmount;
-    finalPriceGross: MoneyAmount;
+export interface AppointmentColor {
+    id: string;
+    name: string;
+    hexColor: string;
 }
 
 export interface SelectedCustomer {

@@ -1,3 +1,4 @@
+// src/common/i18n/types.ts
 export interface TranslationKeys {
     common: {
         loading: string;
@@ -231,6 +232,128 @@ export interface TranslationKeys {
             cityRequired: string;
             countryRequired: string;
             companyNameMin: string;
+        };
+    };
+    appointments: {
+        createView: {
+            title: string;
+            subtitle: string;
+            reservationDetails: string;
+            appointmentNameLabel: string;
+            appointmentNamePlaceholder: string;
+            colorLabel: string;
+            customerSection: string;
+            addOrSearchCustomer: string;
+            changeCustomer: string;
+            vehicleSection: string;
+            selectOrAddVehicle: string;
+            changeVehicle: string;
+            scheduleSection: string;
+            allDayToggle: string;
+            startDateTime: string;
+            endDate: string;
+            submitButton: string;
+            submitting: string;
+            createError: string;
+        };
+        customerModal: {
+            titleSelect: string;
+            titleNew: string;
+            searchPlaceholder: string;
+            searching: string;
+            noResults: string;
+            enterSearch: string;
+            addNewButton: string;
+            backToSearch: string;
+            confirmButton: string;
+            firstName: string;
+            firstNamePlaceholder: string;
+            lastName: string;
+            lastNamePlaceholder: string;
+            phone: string;
+            phonePlaceholder: string;
+            email: string;
+            emailPlaceholder: string;
+        };
+        vehicleModal: {
+            titleSelect: string;
+            titleNew: string;
+            year: string;
+            skip: string;
+            addNewButton: string;
+            cancelButton: string;
+            confirmButton: string;
+            brand: string;
+            brandPlaceholder: string;
+            model: string;
+            modelPlaceholder: string;
+        };
+        invoiceSummary: {
+            title: string;
+            addService: string;
+            searchPlaceholder: string;
+            emptyState: string;
+            hideDiscount: string;
+            applyDiscount: string;
+            hideNote: string;
+            addNote: string;
+            remove: string;
+            discountType: string;
+            discountValue: string;
+            confirm: string;
+            noteLabel: string;
+            notePlaceholder: string;
+            beforeNet: string;
+            net: string;
+            vat: string;
+            beforeGross: string;
+            gross: string;
+            totalBeforeDiscount: string;
+            totalNet: string;
+            totalVat: string;
+            totalToPay: string;
+            discountTypes: {
+                percent: string;
+                fixedNet: string;
+                fixedGross: string;
+                setNet: string;
+                setGross: string;
+            };
+            discountLabels: {
+                percent: string;
+                discountNet: string;
+                discountGross: string;
+                setPriceNet: string;
+                setPriceGross: string;
+            };
+        };
+        selectedCustomer: {
+            newBadge: string;
+            existingBadge: string;
+            emailLabel: string;
+            phoneLabel: string;
+        };
+        selectedVehicle: {
+            newBadge: string;
+            existingBadge: string;
+        };
+        validation: {
+            customerRequired: string;
+            vehicleRequired: string;
+            brandMinLength: string;
+            modelRequired: string;
+            firstNameMinLength: string;
+            lastNameMinLength: string;
+            phoneInvalid: string;
+            emailInvalid: string;
+            serviceRequired: string;
+            basePricePositive: string;
+            vatRange: string;
+            noteMaxLength: string;
+            startDateRequired: string;
+            endDateRequired: string;
+            endAfterStart: string;
+            colorRequired: string;
         };
     };
 }

@@ -1,7 +1,7 @@
 import { apiClient } from '@/core';
 import type { AppointmentCreateRequest, Service, Customer, Vehicle, AppointmentColor } from '../types';
 
-const USE_MOCKS = true;
+const USE_MOCKS = true
 
 const mockServices: Service[] = [
     { id: '1', name: 'Przegląd okresowy', basePriceNet: 25000, vatRate: 23, category: 'Serwis' },
@@ -17,11 +17,6 @@ const mockCustomers: Customer[] = [
     { id: '3', firstName: 'Piotr', lastName: 'Wiśniewski', phone: '+48 555 666 777', email: 'piotr.wisniewski@example.com' },
     { id: '4', firstName: 'Maria', lastName: 'Wójcik', phone: '+48 601 234 567', email: 'maria.wojcik@example.com' },
     { id: '5', firstName: 'Tomasz', lastName: 'Kamiński', phone: '+48 602 345 678', email: 'tomasz.kaminski@example.com' },
-    { id: '6', firstName: 'Katarzyna', lastName: 'Lewandowska', phone: '+48 603 456 789', email: 'katarzyna.lewandowska@example.com' },
-    { id: '7', firstName: 'Michał', lastName: 'Zieliński', phone: '+48 604 567 890', email: 'michal.zielinski@example.com' },
-    { id: '8', firstName: 'Magdalena', lastName: 'Szymańska', phone: '+48 605 678 901', email: 'magdalena.szymanska@example.com' },
-    { id: '9', firstName: 'Paweł', lastName: 'Woźniak', phone: '+48 606 789 012', email: 'pawel.wozniak@example.com' },
-    { id: '10', firstName: 'Agnieszka', lastName: 'Dąbrowska', phone: '+48 607 890 123', email: 'agnieszka.dabrowska@example.com' },
 ];
 
 const mockVehicles: Vehicle[] = [
@@ -40,7 +35,6 @@ const mockAppointmentColors: AppointmentColor[] = [
 
 const mockCreateAppointment = async (data: AppointmentCreateRequest): Promise<{ id: string }> => {
     await new Promise(resolve => setTimeout(resolve, 800));
-    console.log('Mock: Creating appointment', data);
     return { id: `appointment-${Date.now()}` };
 };
 
@@ -60,9 +54,9 @@ const mockSearchCustomers = async (query: string): Promise<Customer[]> => {
     );
 };
 
-const mockGetCustomerVehicles = async (customerId: string): Promise<Vehicle[]> => {
+const mockGetCustomerVehicles = async (_customerId: string): Promise<Vehicle[]> => {
     await new Promise(resolve => setTimeout(resolve, 300));
-    return mockVehicles.filter((_, i) => i < 2);
+    return mockVehicles.slice(0, 2);
 };
 
 const mockGetAppointmentColors = async (): Promise<AppointmentColor[]> => {

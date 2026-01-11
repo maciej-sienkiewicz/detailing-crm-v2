@@ -1,3 +1,4 @@
+// src/modules/appointments/hooks/useAppointmentForm.ts
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -15,20 +16,14 @@ export const useAppointmentForm = () => {
             vehicle: {
                 mode: 'EXISTING',
             },
-            service: {
-                id: '',
-                basePriceNet: 0,
-                vatRate: 23,
-                adjustment: {
-                    type: 'PERCENT',
-                    value: 0,
-                },
-            },
+            services: [],
             schedule: {
                 isAllDay: false,
                 startDateTime: '',
                 endDateTime: '',
             },
+            appointmentTitle: '',
+            appointmentColorId: '',
         },
     });
 
@@ -45,32 +40,36 @@ export const useAppointmentForm = () => {
     };
 };
 
-export const useServices = () => {
+export const useAppointmentServices = () => {
     return useQuery({
-        queryKey: ['services'],
+        queryKey: ['appointments', 'services'],
         queryFn: appointmentApi.getServices,
+        staleTime: 300_000,
     });
 };
 
 export const useCustomerSearch = (query: string) => {
     return useQuery({
-        queryKey: ['customers', 'search', query],
+        queryKey: ['appointments', 'customers', 'search', query],
         queryFn: () => appointmentApi.searchCustomers(query),
         enabled: query.length >= 0,
+        staleTime: 60_000,
     });
 };
 
 export const useCustomerVehicles = (customerId: string | undefined) => {
     return useQuery({
-        queryKey: ['customers', customerId, 'vehicles'],
+        queryKey: ['appointments', 'customers', customerId, 'vehicles'],
         queryFn: () => appointmentApi.getCustomerVehicles(customerId!),
         enabled: !!customerId,
+        staleTime: 120_000,
     });
 };
 
 export const useAppointmentColors = () => {
     return useQuery({
-        queryKey: ['appointment-colors'],
+        queryKey: ['appointments', 'colors'],
         queryFn: appointmentApi.getAppointmentColors,
+        staleTime: 600_000,
     });
 };
