@@ -3,6 +3,7 @@ import { Layout } from '@/widgets/Layout';
 import { CustomerListView } from '@/modules/customers';
 import { CustomerDetailView } from '@/modules/customers/views/CustomerDetailView';
 import { AppointmentCreateView } from '@/modules/appointments';
+import {VehicleDetailView, VehicleListView} from "@/modules/vehicles";
 
 export const router = createBrowserRouter([
     {
@@ -20,6 +21,14 @@ export const router = createBrowserRouter([
     {
         path: '/appointments/create',
         element: <Layout><AppointmentCreateView /></Layout>,
+    },
+    {
+        path: 'vehicles',
+        element: <Layout><VehicleListView /></Layout>,
+    },
+    {
+        path: 'vehicles/:vehicleId',
+        element: <Layout><VehicleDetailView /></Layout>,
     },
     {
         path: '*',

@@ -356,6 +356,188 @@ export interface TranslationKeys {
             colorRequired: string;
         };
     };
+    vehicles: {
+        title: string;
+        subtitle: string;
+        addVehicle: string;
+        searchPlaceholder: string;
+        table: {
+            vehicle: string;
+            owners: string;
+            lastVisit: string;
+            visits: string;
+            totalSpent: string;
+            status: string;
+        };
+        empty: {
+            title: string;
+            description: string;
+        };
+        emptySearch: {
+            title: string;
+            description: string;
+        };
+        error: {
+            loadFailed: string;
+            createFailed: string;
+            updateFailed: string;
+            deleteFailed: string;
+            detailLoadFailed: string;
+        };
+        card: {
+            owners: string;
+            lastVisit: string;
+            totalVisits: string;
+            totalSpent: string;
+        };
+        detail: {
+            overview: string;
+            visits: string;
+            changes: string;
+            documents: string;
+            photos: string;
+            settings: string;
+            technicalInfo: {
+                title: string;
+                licensePlate: string;
+                vin: string;
+                brand: string;
+                model: string;
+                year: string;
+                color: string;
+                paintType: string;
+                engineType: string;
+                mileage: string;
+            };
+            owners: {
+                title: string;
+                subtitle: string;
+                addOwner: string;
+                removeOwner: string;
+                confirmRemove: string;
+                role: {
+                    PRIMARY: string;
+                    CO_OWNER: string;
+                    COMPANY: string;
+                };
+            };
+            notes: {
+                title: string;
+                subtitle: string;
+                placeholder: string;
+                save: string;
+            };
+            stats: {
+                totalVisits: string;
+                totalSpent: string;
+                averageCost: string;
+                lastVisit: string;
+            };
+            engineType: {
+                gasoline: string;
+                diesel: string;
+                hybrid: string;
+                electric: string;
+            };
+            status: {
+                active: string;
+                sold: string;
+                archived: string;
+            };
+            activity: {
+                title: string;
+                subtitle: string;
+                types: {
+                    registration_changed: string;
+                    owner_added: string;
+                    owner_removed: string;
+                    photo_added: string;
+                    visit_completed: string;
+                    notes_updated: string;
+                    mileage_updated: string;
+                };
+            };
+            photoGallery: {
+                title: string;
+                subtitle: string;
+                uploadPhoto: string;
+                noPhotos: string;
+            };
+            documentList: {
+                title: string;
+                subtitle: string;
+                uploadDocument: string;
+                noDocuments: string;
+                category: {
+                    protocols: string;
+                    invoices: string;
+                    photos: string;
+                    technical: string;
+                    other: string;
+                };
+            };
+        };
+        form: {
+            title: string;
+            basicInfo: string;
+            licensePlate: string;
+            licensePlatePlaceholder: string;
+            brand: string;
+            brandPlaceholder: string;
+            model: string;
+            modelPlaceholder: string;
+            vin: string;
+            vinPlaceholder: string;
+            year: string;
+            yearPlaceholder: string;
+            color: string;
+            colorPlaceholder: string;
+            paintType: string;
+            paintTypePlaceholder: string;
+            engineType: string;
+            engineTypePlaceholder: string;
+            mileage: string;
+            mileagePlaceholder: string;
+            owners: {
+                title: string;
+                subtitle: string;
+                addOwner: string;
+                searchPlaceholder: string;
+            };
+            notes: {
+                title: string;
+                placeholder: string;
+            };
+            submit: string;
+            submitting: string;
+        };
+        validation: {
+            licensePlateRequired: string;
+            licensePlateFormat: string;
+            brandRequired: string;
+            brandMin: string;
+            modelRequired: string;
+            modelMin: string;
+            vinFormat: string;
+            yearRequired: string;
+            yearRange: string;
+            colorRequired: string;
+            engineTypeRequired: string;
+            mileagePositive: string;
+            notesMax: string;
+        };
+        pagination: {
+            showing: string;
+            of: string;
+            vehicles: string;
+        };
+        deleteConfirm: {
+            title: string;
+            message: string;
+            confirm: string;
+            cancel: string;
+        };
+    };
 }
 
 export type TranslationKey = keyof TranslationKeys;
