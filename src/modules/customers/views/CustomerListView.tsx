@@ -16,13 +16,17 @@ const ViewContainer = styled.main`
     display: flex;
     flex-direction: column;
     gap: ${props => props.theme.spacing.lg};
-    padding: ${props => props.theme.spacing.md};
-    max-width: 1440px;
+    padding: ${props => props.theme.spacing.lg};
+    max-width: 1600px;
     margin: 0 auto;
     width: 100%;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         padding: ${props => props.theme.spacing.xl};
+    }
+
+    @media (min-width: ${props => props.theme.breakpoints.xl}) {
+        padding: ${props => props.theme.spacing.xxl};
     }
 `;
 
@@ -140,8 +144,6 @@ const RetryButton = styled.button`
 `;
 
 const DataContainer = styled.div`
-    padding: ${props => props.theme.spacing.md};
-
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
         padding: 0;
     }
