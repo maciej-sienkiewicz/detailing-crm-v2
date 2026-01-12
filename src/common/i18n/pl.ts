@@ -358,10 +358,6 @@ export const pl: TranslationKeys = {
             colorRequired: 'Wybierz kolor rezerwacji',
         },
     },
-    // src/common/i18n/pl.ts - Dodaj do istniejącego pliku w sekcji vehicles
-
-    // src/common/i18n/pl.ts - Dodaj do istniejącego pliku w sekcji vehicles
-
     vehicles: {
         title: 'Pojazdy',
         subtitle: 'Zarządzaj flotą pojazdów warsztatowych',
@@ -545,8 +541,6 @@ export const pl: TranslationKeys = {
             cancel: 'Anuluj',
         },
     },
-    // src/common/i18n/pl.ts - Dodaj do sekcji checkin
-
     checkin: {
         title: 'Przyjęcie do warsztatu',
         subtitle: 'Rozpocznij wizytę serwisową',
@@ -685,4 +679,65 @@ export const pl: TranslationKeys = {
             refreshPhotosFailed: 'Nie udało się odświeżyć zdjęć',
         }
     },
-};
+    auth: {
+        login: {
+            title: 'Zaloguj się',
+            subtitle: 'Witaj ponownie w DetailingPro',
+            emailLabel: 'Adres email',
+            emailPlaceholder: 'twoj@email.com',
+            passwordLabel: 'Hasło',
+            passwordPlaceholder: 'Wprowadź hasło',
+            rememberMe: 'Zapamiętaj mnie',
+            forgotPassword: 'Zapomniałeś hasła?',
+            submitButton: 'Zaloguj się',
+            submitting: 'Logowanie...',
+            noAccount: 'Nie masz konta?',
+            signupLink: 'Zarejestruj swoje studio',
+        },
+        signup: {
+            title: 'Załóż konto',
+            subtitle: 'Rozpocznij 14-dniowy bezpłatny okres próbny',
+            firstNameLabel: 'Imię',
+            firstNamePlaceholder: 'Jan',
+            lastNameLabel: 'Nazwisko',
+            lastNamePlaceholder: 'Kowalski',
+            emailLabel: 'Adres email',
+            emailPlaceholder: 'twoj@email.com',
+            passwordLabel: 'Hasło',
+            passwordPlaceholder: 'Minimum 8 znaków',
+            confirmPasswordLabel: 'Potwierdź hasło',
+            confirmPasswordPlaceholder: 'Wprowadź hasło ponownie',
+            acceptTerms: 'Akceptuję',
+            termsLink: 'Regulamin',
+            and: 'oraz',
+            privacyLink: 'Politykę Prywatności',
+            submitButton: 'Załóż konto i rozpocznij okres próbny',
+            submitting: 'Tworzenie konta...',
+            hasAccount: 'Masz już konto?',
+            loginLink: 'Zaloguj się',
+            passwordStrength: {
+                weak: 'Słabe hasło',
+                medium: 'Średnie hasło',
+                strong: 'Silne hasło',
+            },
+        },
+        validation: {
+            emailRequired: 'Adres email jest wymagany',
+            emailInvalid: 'Nieprawidłowy format adresu email',
+            passwordRequired: 'Hasło jest wymagane',
+            passwordMin: 'Hasło musi mieć minimum 8 znaków',
+            passwordMismatch: 'Hasła nie są identyczne',
+            firstNameRequired: 'Imię jest wymagane',
+            firstNameMin: 'Imię musi mieć minimum 2 znaki',
+            lastNameRequired: 'Nazwisko jest wymagane',
+            lastNameMin: 'Nazwisko musi mieć minimum 2 znaki',
+            termsRequired: 'Musisz zaakceptować Regulamin i Politykę Prywatności',
+        },
+        errors: {
+            invalidCredentials: 'Nieprawidłowy email lub hasło',
+            accountExists: 'Konto z tym adresem email już istnieje',
+            serverError: 'Wystąpił błąd serwera. Spróbuj ponownie później',
+            networkError: 'Błąd połączenia. Sprawdź połączenie z internetem',
+        },
+    }
+}

@@ -22,6 +22,67 @@ export interface TranslationKeys {
         close: string;
         backToList: string;
     };
+    auth: {
+        login: {
+            title: string;
+            subtitle: string;
+            emailLabel: string;
+            emailPlaceholder: string;
+            passwordLabel: string;
+            passwordPlaceholder: string;
+            rememberMe: string;
+            forgotPassword: string;
+            submitButton: string;
+            submitting: string;
+            noAccount: string;
+            signupLink: string;
+        };
+        signup: {
+            title: string;
+            subtitle: string;
+            firstNameLabel: string;
+            firstNamePlaceholder: string;
+            lastNameLabel: string;
+            lastNamePlaceholder: string;
+            emailLabel: string;
+            emailPlaceholder: string;
+            passwordLabel: string;
+            passwordPlaceholder: string;
+            confirmPasswordLabel: string;
+            confirmPasswordPlaceholder: string;
+            acceptTerms: string;
+            termsLink: string;
+            and: string;
+            privacyLink: string;
+            submitButton: string;
+            submitting: string;
+            hasAccount: string;
+            loginLink: string;
+            passwordStrength: {
+                weak: string;
+                medium: string;
+                strong: string;
+            };
+        };
+        validation: {
+            emailRequired: string;
+            emailInvalid: string;
+            passwordRequired: string;
+            passwordMin: string;
+            passwordMismatch: string;
+            firstNameRequired: string;
+            firstNameMin: string;
+            lastNameRequired: string;
+            lastNameMin: string;
+            termsRequired: string;
+        };
+        errors: {
+            invalidCredentials: string;
+            accountExists: string;
+            serverError: string;
+            networkError: string;
+        };
+    };
     customers: {
         title: string;
         subtitle: string;
@@ -538,7 +599,7 @@ export interface TranslationKeys {
             confirm: string;
             cancel: string;
         };
-    },
+    };
     checkin: {
         title: string;
         subtitle: string;
