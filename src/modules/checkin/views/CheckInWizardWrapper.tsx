@@ -1,0 +1,252 @@
+import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import styled from 'styled-components';
+import { CheckInWizardView } from './CheckInWizardView';
+import { t } from '@/common/i18n';
+
+const LoadingContainer = styled.div`
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: ${props => props.theme.colors.background};
+`;
+
+const Spinner = styled.div`
+    width: 48px;
+    height: 48px;
+    border: 4px solid ${props => props.theme.colors.border};
+    border-top-color: ${props => props.theme.colors.primary};
+    border-radius: ${props => props.theme.radii.full};
+    animation: spin 0.8s linear infinite;
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+`;
+
+const LoadingText = styled.p`
+    margin-top: ${props => props.theme.spacing.lg};
+    font-size: ${props => props.theme.fontSizes.lg};
+    font-weight: ${props => props.theme.fontWeights.medium};
+    color: ${props => props.theme.colors.text};
+`;
+
+const ErrorContainer = styled.div`
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: ${props => props.theme.colors.background};
+    padding: ${props => props.theme.spacing.xl};
+    text-align: center;
+`;
+
+const ErrorIcon = styled.div`
+    width: 80px;
+    height: 80px;
+    border-radius: ${props => props.theme.radii.full};
+    background-color: ${props => props.theme.colors.errorLight};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: ${props => props.theme.spacing.lg};
+
+    svg {
+        width: 40px;
+        height: 40px;
+        color: ${props => props.theme.colors.error};
+    }
+`;
+
+const ErrorTitle = styled.h1`
+    font-size: ${props => props.theme.fontSizes.xl};
+    font-weight: ${props => props.theme.fontWeights.bold};
+    color: ${props => props.theme.colors.text};
+    margin: 0 0 ${props => props.theme.spacing.sm} 0;
+`;
+
+const ErrorMessage = styled.p`
+    font-size: ${props => props.theme.fontSizes.md};
+    color: ${props => props.theme.colors.textSecondary};
+    margin: 0;
+`;
+
+interface ReservationResponse {
+    id: string;
+    customer: {
+        id: string;
+        firstName: string;
+        lastName: string;
+        phone: string;
+        email: string;
+        homeAddress?: {
+            street: string;
+            city: string;
+            postalCode: string;
+            country: string;
+        };
+        company?: {
+            name: string;
+            nip: string;
+            regon: string;
+            address: {
+                street: string;
+                city: string;
+                postalCode: string;
+                country: string;
+            };
+        };
+    };
+    vehicle: {
+        id: string;
+        brand: string;
+        model: string;
+        licensePlate: string;
+        vin?: string;
+    };
+    services: Array<{
+        id: string;
+        serviceId: string;
+        serviceName: string;
+        basePriceNet: number;
+        vatRate: number;
+        adjustment: {
+            type: 'PERCENT' | 'FIXED_NET' | 'FIXED_GROSS' | 'SET_NET' | 'SET_GROSS';
+            value: number;
+        };
+        note?: string;
+    }>;
+    status: string;
+}
+
+const mockFetchReservation = async (reservationId: string): Promise<ReservationResponse> => {
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    return {
+        id: reservationId,
+        customer: {
+            id: 'cust_123',
+            firstName: 'Jan',
+            lastName: 'Kowalski',
+            phone: '+48 123 456 789',
+            email: 'jan.kowalski@example.com',
+        },
+        vehicle: {
+            id: 'veh_456',
+            brand: 'BMW',
+            model: 'X5',
+            licensePlate: 'WA 12345',
+            vin: 'WBAFR9C50BC000001',
+        },
+        services: [
+            {
+                id: 'line_1',
+                serviceId: 'srv_ppf',
+                serviceName: 'Oklejanie PPF - cały przód',
+                basePriceNet: 350000,
+                vatRate: 23,
+                adjustment: { type: 'PERCENT', value: -10 },
+                note: 'Dodatkowa warstwa na maskę',
+            },
+            {
+                id: 'line_2',
+                serviceId: 'srv_ceramic',
+                serviceName: 'Powłoka ceramiczna',
+                basePriceNet: 180000,
+                vatRate: 23,
+                adjustment: { type: 'FIXED_NET', value: 0 },
+            },
+        ],
+        status: 'CONFIRMED',
+    };
+};
+
+export const CheckInWizardWrapper = () => {
+    const { reservationId } = useParams<{ reservationId: string }>();
+    const navigate = useNavigate();
+
+    const { data: reservation, isLoading, error } = useQuery({
+        queryKey: ['reservations', reservationId],
+        queryFn: () => mockFetchReservation(reservationId!),
+        enabled: !!reservationId,
+        retry: 1,
+    });
+
+    const handleComplete = (visitId: string) => {
+        navigate(`/visits/${visitId}`);
+    };
+
+    if (isLoading) {
+        return (
+            <LoadingContainer>
+                <Spinner />
+                <LoadingText>{t.common.loading}</LoadingText>
+            </LoadingContainer>
+        );
+    }
+
+    if (error || !reservation) {
+        return (
+            <ErrorContainer>
+                <ErrorIcon>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </ErrorIcon>
+                <ErrorTitle>{t.checkin.errors.loadReservationFailed}</ErrorTitle>
+                <ErrorMessage>
+                    {error instanceof Error ? error.message : 'Nie znaleziono rezerwacji'}
+                </ErrorMessage>
+            </ErrorContainer>
+        );
+    }
+
+    if (reservation.status !== 'CONFIRMED' && reservation.status !== 'SCHEDULED') {
+        return (
+            <ErrorContainer>
+                <ErrorIcon>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </ErrorIcon>
+                <ErrorTitle>Nieprawidłowy status rezerwacji</ErrorTitle>
+                <ErrorMessage>
+                    Rezerwacja musi być w statusie POTWIERDZONA lub ZAPLANOWANA aby rozpocząć wizytę
+                </ErrorMessage>
+            </ErrorContainer>
+        );
+    }
+
+    const initialData = {
+        customerData: {
+            id: reservation.customer.id,
+            firstName: reservation.customer.firstName,
+            lastName: reservation.customer.lastName,
+            phone: reservation.customer.phone,
+            email: reservation.customer.email,
+        },
+        vehicleData: {
+            id: reservation.vehicle.id,
+            brand: reservation.vehicle.brand,
+            model: reservation.vehicle.model,
+            licensePlate: reservation.vehicle.licensePlate,
+            vin: reservation.vehicle.vin || '',
+        },
+        homeAddress: reservation.customer.homeAddress || null,
+        company: reservation.customer.company || null,
+        services: reservation.services,
+    };
+
+    return (
+        <CheckInWizardView
+            reservationId={reservationId!}
+            initialData={initialData}
+            onComplete={handleComplete}
+        />
+    );
+};

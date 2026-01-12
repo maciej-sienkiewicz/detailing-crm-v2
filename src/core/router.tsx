@@ -7,6 +7,8 @@ import { AppointmentCreateView } from '@/modules/appointments';
 import { VehicleDetailView, VehicleListView } from '@/modules/vehicles';
 import { OperationListView } from '@/modules/operations';
 import { VisitDetailView } from '@/modules/visits';
+import {CheckInWizardWrapper} from "@/modules/checkin/views/CheckInWizardWrapper.tsx";
+import {MobilePhotoUploadWrapper} from "@/modules/checkin/views/MobilePhotoUploadWrapper.tsx";
 
 export const router = createBrowserRouter([
     {
@@ -40,6 +42,18 @@ export const router = createBrowserRouter([
     {
         path: '/visits/:visitId',
         element: <Layout><VisitDetailView /></Layout>,
+    },
+    {
+        path: '/reservations/:reservationId/checkin',
+        element: (
+            <Layout>
+                <CheckInWizardWrapper />
+            </Layout>
+        ),
+    },
+    {
+        path: '/checkin/mobile/:sessionId',
+        element: <MobilePhotoUploadWrapper />,
     },
     {
         path: '*',

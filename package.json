@@ -23,7 +23,8 @@
     "styled-components": "^6.3.1",
     "zod": "^4.3.5",
     "@dinero.js/currencies": "^2.0.0-alpha.14",
-    "dinero.js": "^2.0.0-alpha.14"
+    "dinero.js": "^2.0.0-alpha.14",
+    "qrcode.react": "^4.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

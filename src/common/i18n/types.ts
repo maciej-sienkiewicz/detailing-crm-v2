@@ -538,6 +538,144 @@ export interface TranslationKeys {
             confirm: string;
             cancel: string;
         };
+    },
+    checkin: {
+        title: string;
+        subtitle: string;
+        steps: {
+            verification: string;
+            technical: string;
+            photos: string;
+            summary: string;
+        };
+        verification: {
+            title: string;
+            subtitle: string;
+            customerSection: string;
+            vehicleSection: string;
+            firstName: string;
+            lastName: string;
+            phone: string;
+            email: string;
+            brand: string;
+            model: string;
+            licensePlate: string;
+            vin: string;
+            vinPlaceholder: string;
+            vinRequired: string;
+            vinFormat: string;
+        };
+        technical: {
+            title: string;
+            subtitle: string;
+            mileage: string;
+            mileagePlaceholder: string;
+            mileageRequired: string;
+            mileagePositive: string;
+            fuelLevel: string;
+            fuelLevels: {
+                0: string;
+                25: string;
+                50: string;
+                75: string;
+                100: string;
+            };
+            deposit: string;
+            depositItems: {
+                keys: string;
+                registrationDocument: string;
+                other: string;
+            };
+            inspectionNotes: string;
+            inspectionNotesPlaceholder: string;
+            isVeryDirty: string;
+            dirtyWarning: string;
+        };
+        photos: {
+            title: string;
+            subtitle: string;
+            required: string;
+            optional: string;
+            qrCodeTitle: string;
+            qrCodeDescription: string;
+            refreshPhotos: string;
+            requiredSlots: {
+                front: string;
+                rear: string;
+                left_side: string;
+                right_side: string;
+            };
+            damageSlots: {
+                damage_front: string;
+                damage_rear: string;
+                damage_left: string;
+                damage_right: string;
+                damage_other: string;
+            };
+            photoUploaded: string;
+            photoMissing: string;
+            allRequiredUploaded: string;
+            missingRequired: string;
+        };
+        mobile: {
+            title: string;
+            subtitle: string;
+            takePhoto: string;
+            retakePhoto: string;
+            uploadPhoto: string;
+            uploading: string;
+            uploadSuccess: string;
+            uploadError: string;
+            retryUpload: string;
+            addDescription: string;
+            descriptionPlaceholder: string;
+            sessionExpired: string;
+            invalidSession: string;
+            compressionInfo: string;
+        };
+        summary: {
+            title: string;
+            subtitle: string;
+            customerInfo: string;
+            vehicleInfo: string;
+            technicalInfo: string;
+            photosInfo: string;
+            servicesInfo: string;
+            depositInfo: string;
+            mileageLabel: string;
+            fuelLevelLabel: string;
+            inspectionNotesLabel: string;
+            photosCount: string;
+            servicesCount: string;
+            estimatedCost: string;
+            estimatedCompletion: string;
+            createVisit: string;
+            creating: string;
+            dirtyVehicleNote: string;
+        };
+        actions: {
+            nextStep: string;
+            previousStep: string;
+            saveAsDraft: string;
+            savingDraft: string;
+            draftSaved: string;
+            draftError: string;
+            cancel: string;
+        };
+        validation: {
+            requiredPhotos: string;
+            customerDataRequired: string;
+            vehicleDataRequired: string;
+            vinRequired: string;
+            mileageRequired: string;
+        };
+        errors: {
+            createFailed: string;
+            loadReservationFailed: string;
+            sessionExpired: string;
+            uploadFailed: string;
+            refreshPhotosFailed: string;
+        };
     };
 }
 
