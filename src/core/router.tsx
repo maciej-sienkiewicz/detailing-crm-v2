@@ -10,6 +10,7 @@ import { VisitDetailView } from '@/modules/visits';
 import { CheckInWizardWrapper } from '@/modules/checkin/views/CheckInWizardWrapper';
 import { MobilePhotoUploadWrapper } from '@/modules/checkin/views/MobilePhotoUploadWrapper';
 import { LoginView, SignupView } from '@/modules/auth';
+import {ServiceListView} from "@/modules/services";
 
 export const router = createBrowserRouter([
     {
@@ -67,5 +68,9 @@ export const router = createBrowserRouter([
     {
         path: '*',
         element: <Layout><Navigate to="/customers" replace /></Layout>,
+    },
+    {
+        path: '/services',
+        element: <Layout><ServiceListView /></Layout>,
     },
 ]);

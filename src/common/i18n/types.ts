@@ -738,6 +738,77 @@ export interface TranslationKeys {
             refreshPhotosFailed: string;
         };
     };
+    // src/common/i18n/types.ts - Dodaj do interface TranslationKeys
+
+    services: {
+        title: string;
+        subtitle: string;
+        addService: string;
+        editService: string;
+        searchPlaceholder: string;
+        showInactive: string;
+        table: {
+            name: string;
+            priceNet: string;
+            vat: string;
+            priceGross: string;
+            status: string;
+            actions: string;
+        };
+        status: {
+            active: string;
+            archived: string;
+        };
+        empty: {
+            title: string;
+            description: string;
+        };
+        emptySearch: {
+            title: string;
+            description: string;
+        };
+        form: {
+            title: string;
+            nameLabel: string;
+            namePlaceholder: string;
+            vatLabel: string;
+            priceNetLabel: string;
+            priceGrossLabel: string;
+            vatAmount: string;
+            submit: string;
+            submitting: string;
+            cancel: string;
+        };
+        vatRates: {
+            23: string;
+            8: string;
+            5: string;
+            0: string;
+            '-1': string;
+        };
+        validation: {
+            nameRequired: string;
+            nameMin: string;
+            nameMax: string;
+            priceRequired: string;
+            pricePositive: string;
+            vatRequired: string;
+        };
+        error: {
+            loadFailed: string;
+            createFailed: string;
+            updateFailed: string;
+        };
+        success: {
+            created: string;
+            updated: string;
+        };
+        pagination: {
+            showing: string;
+            of: string;
+            services: string;
+        };
+    };
 }
 
 export type TranslationKey = keyof TranslationKeys;

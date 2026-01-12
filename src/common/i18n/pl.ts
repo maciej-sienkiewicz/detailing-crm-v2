@@ -739,5 +739,76 @@ export const pl: TranslationKeys = {
             serverError: 'Wystąpił błąd serwera. Spróbuj ponownie później',
             networkError: 'Błąd połączenia. Sprawdź połączenie z internetem',
         },
+    },
+    // src/common/i18n/pl.ts - Dodaj sekcję services do istniejącego obiektu
+
+    services: {
+        title: 'Katalog usług',
+        subtitle: 'Zarządzaj cenami i dostępnością usług',
+        addService: 'Dodaj usługę',
+        editService: 'Edytuj usługę',
+        searchPlaceholder: 'Szukaj po nazwie usługi...',
+        showInactive: 'Pokaż zarchiwizowane',
+        table: {
+            name: 'Nazwa usługi',
+            priceNet: 'Cena netto',
+            vat: 'VAT',
+            priceGross: 'Cena brutto',
+            status: 'Status',
+            actions: 'Akcje',
+        },
+        status: {
+            active: 'Aktywna',
+            archived: 'Zarchiwizowana',
+        },
+        empty: {
+            title: 'Brak usług',
+            description: 'Dodaj pierwszą usługę do katalogu.',
+        },
+        emptySearch: {
+            title: 'Nie znaleziono usług',
+            description: 'Brak usług pasujących do "{search}". Spróbuj innej frazy.',
+        },
+        form: {
+            title: 'Podstawowe informacje',
+            nameLabel: 'Nazwa usługi',
+            namePlaceholder: 'np. Mycie ręczne premium',
+            vatLabel: 'Stawka VAT',
+            priceNetLabel: 'Cena netto',
+            priceGrossLabel: 'Cena brutto',
+            vatAmount: 'Kwota VAT',
+            submit: 'Zapisz usługę',
+            submitting: 'Zapisywanie...',
+            cancel: 'Anuluj',
+        },
+        vatRates: {
+            23: '23%',
+            8: '8%',
+            5: '5%',
+            0: '0%',
+            '-1': 'zw.',
+        },
+        validation: {
+            nameRequired: 'Nazwa usługi jest wymagana',
+            nameMin: 'Nazwa musi mieć minimum 3 znaki',
+            nameMax: 'Nazwa może mieć maksymalnie 100 znaków',
+            priceRequired: 'Cena jest wymagana',
+            pricePositive: 'Cena musi być większa od 0',
+            vatRequired: 'Stawka VAT jest wymagana',
+        },
+        error: {
+            loadFailed: 'Nie udało się załadować listy usług. Spróbuj ponownie.',
+            createFailed: 'Nie udało się utworzyć usługi. Spróbuj ponownie.',
+            updateFailed: 'Nie udało się zaktualizować usługi. Spróbuj ponownie.',
+        },
+        success: {
+            created: 'Usługa została utworzona pomyślnie',
+            updated: 'Utworzono nową wersję usługi. Stara wersja została zarchiwizowana',
+        },
+        pagination: {
+            showing: 'Wyświetlanie',
+            of: 'z',
+            services: 'usług',
+        },
     }
 }
