@@ -16,7 +16,7 @@ import type {
 } from '../types';
 
 const BASE_PATH = '/api/v1/vehicles';
-const USE_MOCKS = true;
+const USE_MOCKS = false;
 
 const mockVehicles: VehicleListItem[] = [
     {
