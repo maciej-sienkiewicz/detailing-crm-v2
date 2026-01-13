@@ -1,5 +1,6 @@
 import { apiClient } from '@/core';
 import type { AppointmentCreateRequest, Service, Customer, Vehicle, AppointmentColor } from '../types';
+import type { Customer as CustomerFull, CustomerListResponse } from '@/modules/customers/types';
 
 const USE_MOCKS = false
 
@@ -85,8 +86,22 @@ export const appointmentApi = {
         if (USE_MOCKS) {
             return mockSearchCustomers(query);
         }
-        const response = await apiClient.get('/api/v1/customers/search', { params: { q: query } });
-        return response.data;
+        const response = await apiClient.get<CustomerListResponse>('/api/v1/customers', {
+            params: {
+                search: query,
+                page: 1,
+                limit: 50
+            }
+        });
+
+        // Mapuj pełny Customer z backendu na prosty Customer dla appointments
+        return response.data.data.map((customer: CustomerFull) => ({
+            id: customer.id,
+            firstName: customer.firstName,
+            lastName: customer.lastName,
+            phone: customer.contact.phone,
+            email: customer.contact.email,
+        }));
     },
 
     getCustomerVehicles: async (customerId: string): Promise<Vehicle[]> => {
