@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import { useOperations } from '../hooks/useOperations';
 import { useOperationSearch } from '../hooks/useOperationSearch';
 import { useOperationPagination } from '../hooks/useOperationPagination';
@@ -8,6 +9,7 @@ import { OperationalDataTable } from '../components/OperationalDataTable';
 import { OperationSearchFilter } from '../components/OperationSearchFilter';
 import { OperationFilterBar } from '../components/OperationFilterBar';
 import { OperationPagination } from '../components/OperationPagination';
+import { Button } from '@/common/components/Button';
 
 const ViewContainer = styled.main`
     display: flex;
@@ -35,11 +37,13 @@ const ViewHeader = styled.header`
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         flex-direction: row;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
     }
 `;
 
-const TitleSection = styled.div``;
+const TitleSection = styled.div`
+    flex: 1;
+`;
 
 const PageTitle = styled.h1`
     margin: 0;
@@ -54,6 +58,18 @@ const PageSubtitle = styled.p`
     color: #64748b;
 `;
 
+const HeaderActions = styled.div`
+    display: flex;
+    gap: ${props => props.theme.spacing.md};
+    align-items: center;
+    flex-wrap: wrap;
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        width: 100%;
+        flex-direction: column;
+    }
+`;
+
 const ContentSection = styled.section`
     background: white;
     border-radius: 12px;
@@ -62,6 +78,7 @@ const ContentSection = styled.section`
 `;
 
 export const OperationListView = () => {
+    const navigate = useNavigate();
     const { searchInput, debouncedSearch, handleSearchChange } = useOperationSearch();
     const { page, limit, goToPage, resetPagination } = useOperationPagination();
     const {
@@ -106,10 +123,18 @@ export const OperationListView = () => {
                     <PageSubtitle>Zarządzaj aktywnymi operacjami w warsztacie</PageSubtitle>
                 </TitleSection>
 
-                <OperationSearchFilter
-                    value={searchInput}
-                    onChange={handleSearchChange}
-                />
+                <HeaderActions>
+                    <OperationSearchFilter
+                        value={searchInput}
+                        onChange={handleSearchChange}
+                    />
+                    <Button
+                        $variant="primary"
+                        onClick={() => navigate('/appointments/create')}
+                    >
+                        Stwórz rezerwację
+                    </Button>
+                </HeaderActions>
             </ViewHeader>
 
             <ContentSection>
