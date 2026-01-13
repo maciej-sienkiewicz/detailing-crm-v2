@@ -56,7 +56,7 @@ export const createVehicleSchema = z.object({
 
     ownerIds: z
         .array(z.string())
-        .min(1),
+        .min(1, t.vehicles.validation.ownerRequired),
 });
 
 export type CreateVehicleFormData = z.infer<typeof createVehicleSchema>;

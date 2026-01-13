@@ -10,6 +10,7 @@ import { VehicleTable } from '../components/VehicleTable';
 import { VehicleGrid } from '../components/VehicleGrid';
 import { VehicleSearchFilter } from '../components/VehicleSearchFilter';
 import { VehiclePagination } from '../components/VehiclePagination';
+import { CreateVehicleModal } from '../components/CreateVehicleModal';
 import { t, interpolate } from '@/common/i18n';
 
 const ViewContainer = styled.main`
@@ -179,6 +180,7 @@ const DataContainer = styled.div`
 
 export const VehicleListView = () => {
     const navigate = useNavigate();
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const { searchInput, debouncedSearch, handleSearchChange } = useVehicleSearch();
     const { page, limit, goToPage, resetPagination } = useVehiclePagination();
     const { deleteVehicle, isDeleting } = useDeleteVehicle();
@@ -202,8 +204,16 @@ export const VehicleListView = () => {
     }, [navigate]);
 
     const handleAddVehicle = useCallback(() => {
-        navigate('/vehicles/new');
-    }, [navigate]);
+        setIsCreateModalOpen(true);
+    }, []);
+
+    const handleCloseModal = useCallback(() => {
+        setIsCreateModalOpen(false);
+    }, []);
+
+    const handleCreateSuccess = useCallback(() => {
+        resetPagination();
+    }, [resetPagination]);
 
     const handleDelete = useCallback((vehicleId: string) => {
         deleteVehicle(vehicleId);
@@ -290,6 +300,12 @@ export const VehicleListView = () => {
                     />
                 )}
             </ContentSection>
+
+            <CreateVehicleModal
+                isOpen={isCreateModalOpen}
+                onClose={handleCloseModal}
+                onSuccess={handleCreateSuccess}
+            />
         </ViewContainer>
     );
 };
