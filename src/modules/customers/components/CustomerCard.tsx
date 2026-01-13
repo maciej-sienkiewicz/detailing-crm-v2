@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import type { Customer } from '../types';
 import { formatDate, formatPhoneNumber, getFullName, formatCurrency } from '../utils/customerMappers';
 import { t } from '@/common/i18n';
@@ -9,6 +10,7 @@ const Card = styled.article`
   border-left: 4px solid var(--brand-primary);
   padding: ${props => props.theme.spacing.md};
   transition: box-shadow 0.2s ease;
+  cursor: pointer;
 
   &:hover {
     box-shadow: ${props => props.theme.shadows.md};
@@ -109,51 +111,59 @@ interface CustomerCardProps {
     customer: Customer;
 }
 
-export const CustomerCard = ({ customer }: CustomerCardProps) => (
-    <Card>
-        <CardHeader>
-            <div>
-                <CustomerName>{getFullName(customer)}</CustomerName>
-                {customer.company && (
-                    <CompanyName>{customer.company.name}</CompanyName>
-                )}
-            </div>
-            <VehicleBadge>
-                {customer.vehicleCount} {t.customers.card.vehicles}
-            </VehicleBadge>
-        </CardHeader>
+export const CustomerCard = ({ customer }: CustomerCardProps) => {
+    const navigate = useNavigate();
 
-        <ContactInfo>
-            <span>{customer.contact.email}</span>
-            <span>{formatPhoneNumber(customer.contact.phone)}</span>
-        </ContactInfo>
+    const handleCardClick = () => {
+        navigate(`/customers/${customer.id}`);
+    };
 
-        <StatsGrid>
-            <StatItem>
-                <StatLabel>{t.customers.card.lastVisit}</StatLabel>
-                <StatValue>{formatDate(customer.lastVisitDate)}</StatValue>
-            </StatItem>
-            <StatItem>
-                <StatLabel>{t.customers.card.totalVisits}</StatLabel>
-                <StatValue>{customer.totalVisits}</StatValue>
-            </StatItem>
-            <RevenueItem>
-                <StatLabel>{t.customers.card.revenue}</StatLabel>
-                <RevenueValues>
-                    <RevenueRow>
-                        <RevenueLabel>{t.customers.table.revenueNet}:</RevenueLabel>
-                        <RevenueValue>
-                            {formatCurrency(customer.totalRevenue.netAmount, customer.totalRevenue.currency)}
-                        </RevenueValue>
-                    </RevenueRow>
-                    <RevenueRow>
-                        <RevenueLabel>{t.customers.table.revenueGross}:</RevenueLabel>
-                        <RevenueValue>
-                            {formatCurrency(customer.totalRevenue.grossAmount, customer.totalRevenue.currency)}
-                        </RevenueValue>
-                    </RevenueRow>
-                </RevenueValues>
-            </RevenueItem>
-        </StatsGrid>
-    </Card>
-);
+    return (
+        <Card onClick={handleCardClick}>
+            <CardHeader>
+                <div>
+                    <CustomerName>{getFullName(customer)}</CustomerName>
+                    {customer.company && (
+                        <CompanyName>{customer.company.name}</CompanyName>
+                    )}
+                </div>
+                <VehicleBadge>
+                    {customer.vehicleCount} {t.customers.card.vehicles}
+                </VehicleBadge>
+            </CardHeader>
+
+            <ContactInfo>
+                <span>{customer.contact.email}</span>
+                <span>{formatPhoneNumber(customer.contact.phone)}</span>
+            </ContactInfo>
+
+            <StatsGrid>
+                <StatItem>
+                    <StatLabel>{t.customers.card.lastVisit}</StatLabel>
+                    <StatValue>{formatDate(customer.lastVisitDate)}</StatValue>
+                </StatItem>
+                <StatItem>
+                    <StatLabel>{t.customers.card.totalVisits}</StatLabel>
+                    <StatValue>{customer.totalVisits}</StatValue>
+                </StatItem>
+                <RevenueItem>
+                    <StatLabel>{t.customers.card.revenue}</StatLabel>
+                    <RevenueValues>
+                        <RevenueRow>
+                            <RevenueLabel>{t.customers.table.revenueNet}:</RevenueLabel>
+                            <RevenueValue>
+                                {formatCurrency(customer.totalRevenue.netAmount, customer.totalRevenue.currency)}
+                            </RevenueValue>
+                        </RevenueRow>
+                        <RevenueRow>
+                            <RevenueLabel>{t.customers.table.revenueGross}:</RevenueLabel>
+                            <RevenueValue>
+                                {formatCurrency(customer.totalRevenue.grossAmount, customer.totalRevenue.currency)}
+                            </RevenueValue>
+                        </RevenueRow>
+                    </RevenueValues>
+                </RevenueItem>
+            </StatsGrid>
+        </Card>
+    );
+};

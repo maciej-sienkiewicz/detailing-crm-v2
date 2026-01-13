@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import type { Customer } from '../types';
 import { formatDate, formatPhoneNumber, getFullName, formatCurrency } from '../utils/customerMappers';
 import { formatNip } from '../utils/polishValidators';
@@ -39,6 +40,7 @@ const TableBody = styled.tbody``;
 const TableRow = styled.tr`
   border-bottom: 1px solid ${props => props.theme.colors.border};
   transition: background-color 0.15s ease;
+  cursor: pointer;
 
   &:last-child {
     border-bottom: none;
@@ -96,70 +98,78 @@ interface CustomerTableProps {
     customers: Customer[];
 }
 
-export const CustomerTable = ({ customers }: CustomerTableProps) => (
-    <TableWrapper>
-        <Table>
-            <TableHead>
-                <tr>
-                    <TableHeaderCell>{t.customers.table.customer}</TableHeaderCell>
-                    <TableHeaderCell>{t.customers.table.contact}</TableHeaderCell>
-                    <TableHeaderCell>{t.customers.table.company}</TableHeaderCell>
-                    <TableHeaderCell>{t.customers.table.lastVisit}</TableHeaderCell>
-                    <TableHeaderCell>{t.customers.table.visits}</TableHeaderCell>
-                    <TableHeaderCell>{t.customers.table.vehicles}</TableHeaderCell>
-                    <TableHeaderCell>{t.customers.table.revenue}</TableHeaderCell>
-                </tr>
-            </TableHead>
-            <TableBody>
-                {customers.map(customer => (
-                    <TableRow key={customer.id}>
-                        <TableCell>
-                            <CellStack>
-                                <PrimaryText>{getFullName(customer)}</PrimaryText>
-                            </CellStack>
-                        </TableCell>
-                        <TableCell>
-                            <CellStack>
-                                <PrimaryText>{customer.contact.email}</PrimaryText>
-                                <SecondaryText>
-                                    {formatPhoneNumber(customer.contact.phone)}
-                                </SecondaryText>
-                            </CellStack>
-                        </TableCell>
-                        <TableCell>
-                            {customer.company ? (
+export const CustomerTable = ({ customers }: CustomerTableProps) => {
+    const navigate = useNavigate();
+
+    const handleRowClick = (customerId: string) => {
+        navigate(`/customers/${customerId}`);
+    };
+
+    return (
+        <TableWrapper>
+            <Table>
+                <TableHead>
+                    <tr>
+                        <TableHeaderCell>{t.customers.table.customer}</TableHeaderCell>
+                        <TableHeaderCell>{t.customers.table.contact}</TableHeaderCell>
+                        <TableHeaderCell>{t.customers.table.company}</TableHeaderCell>
+                        <TableHeaderCell>{t.customers.table.lastVisit}</TableHeaderCell>
+                        <TableHeaderCell>{t.customers.table.visits}</TableHeaderCell>
+                        <TableHeaderCell>{t.customers.table.vehicles}</TableHeaderCell>
+                        <TableHeaderCell>{t.customers.table.revenue}</TableHeaderCell>
+                    </tr>
+                </TableHead>
+                <TableBody>
+                    {customers.map(customer => (
+                        <TableRow key={customer.id} onClick={() => handleRowClick(customer.id)}>
+                            <TableCell>
                                 <CellStack>
-                                    <PrimaryText>{customer.company.name}</PrimaryText>
+                                    <PrimaryText>{getFullName(customer)}</PrimaryText>
+                                </CellStack>
+                            </TableCell>
+                            <TableCell>
+                                <CellStack>
+                                    <PrimaryText>{customer.contact.email}</PrimaryText>
                                     <SecondaryText>
-                                        NIP: {formatNip(customer.company.nip)}
+                                        {formatPhoneNumber(customer.contact.phone)}
                                     </SecondaryText>
                                 </CellStack>
-                            ) : (
-                                <SecondaryText>—</SecondaryText>
-                            )}
-                        </TableCell>
-                        <TableCell>{formatDate(customer.lastVisitDate)}</TableCell>
-                        <TableCell>
-                            <Badge>{customer.totalVisits}</Badge>
-                        </TableCell>
-                        <TableCell>
-                            <Badge>{customer.vehicleCount}</Badge>
-                        </TableCell>
-                        <TableCell>
-                            <CellStack>
-                                <PrimaryText>
-                                    <LabelText>{t.customers.table.revenueNet}:</LabelText>
-                                    {formatCurrency(customer.totalRevenue.netAmount, customer.totalRevenue.currency)}
-                                </PrimaryText>
-                                <SecondaryText>
-                                    <LabelText>{t.customers.table.revenueGross}:</LabelText>
-                                    {formatCurrency(customer.totalRevenue.grossAmount, customer.totalRevenue.currency)}
-                                </SecondaryText>
-                            </CellStack>
-                        </TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    </TableWrapper>
-);
+                            </TableCell>
+                            <TableCell>
+                                {customer.company ? (
+                                    <CellStack>
+                                        <PrimaryText>{customer.company.name}</PrimaryText>
+                                        <SecondaryText>
+                                            NIP: {formatNip(customer.company.nip)}
+                                        </SecondaryText>
+                                    </CellStack>
+                                ) : (
+                                    <SecondaryText>—</SecondaryText>
+                                )}
+                            </TableCell>
+                            <TableCell>{formatDate(customer.lastVisitDate)}</TableCell>
+                            <TableCell>
+                                <Badge>{customer.totalVisits}</Badge>
+                            </TableCell>
+                            <TableCell>
+                                <Badge>{customer.vehicleCount}</Badge>
+                            </TableCell>
+                            <TableCell>
+                                <CellStack>
+                                    <PrimaryText>
+                                        <LabelText>{t.customers.table.revenueNet}:</LabelText>
+                                        {formatCurrency(customer.totalRevenue.netAmount, customer.totalRevenue.currency)}
+                                    </PrimaryText>
+                                    <SecondaryText>
+                                        <LabelText>{t.customers.table.revenueGross}:</LabelText>
+                                        {formatCurrency(customer.totalRevenue.grossAmount, customer.totalRevenue.currency)}
+                                    </SecondaryText>
+                                </CellStack>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </TableWrapper>
+    );
+};
