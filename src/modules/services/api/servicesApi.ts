@@ -8,7 +8,7 @@ import type {
     UpdateServiceRequest,
 } from '../types';
 
-const USE_MOCKS = true;
+const USE_MOCKS = false;
 const BASE_PATH = '/api/v1/services';
 
 const mockServices: Service[] = [

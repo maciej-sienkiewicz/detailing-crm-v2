@@ -2,7 +2,7 @@
 import { apiClient } from '@/core';
 import type { LoginCredentials, SignupCredentials, AuthResponse } from '../types';
 
-const USE_MOCKS = true;
+const USE_MOCKS = false;
 
 const BASE_PATH = '/api/v1/auth';
 

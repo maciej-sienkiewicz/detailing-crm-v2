@@ -21,6 +21,8 @@ export interface TranslationKeys {
         confirm: string;
         close: string;
         backToList: string;
+        createdBy: string;
+        updatedBy: string;
     };
     auth: {
         login: {
@@ -753,6 +755,7 @@ export interface TranslationKeys {
             vat: string;
             priceGross: string;
             status: string;
+            createdBy: string;
             actions: string;
         };
         status: {

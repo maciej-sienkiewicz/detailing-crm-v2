@@ -23,6 +23,8 @@ export const pl: TranslationKeys = {
         confirm: 'Potwierdź',
         close: 'Zamknij',
         backToList: 'Powrót do listy',
+        createdBy: "Utworzono przez: ",
+        updatedBy: "Ostatnia aktualizacja: ",
     },
     customers: {
         title: 'Klienci',
@@ -755,6 +757,7 @@ export const pl: TranslationKeys = {
             vat: 'VAT',
             priceGross: 'Cena brutto',
             status: 'Status',
+            createdBy: 'Aktualizacje',
             actions: 'Akcje',
         },
         status: {

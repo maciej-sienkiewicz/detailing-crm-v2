@@ -10,6 +10,9 @@ export interface Service {
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
+    createdByFirstName: string;
+    createdByLastName: string;
+    updatedBy: string;
     replacesServiceId: string | null;
 }
 
