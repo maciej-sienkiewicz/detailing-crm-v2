@@ -530,6 +530,7 @@ export const pl: TranslationKeys = {
             engineTypeRequired: 'Typ silnika jest wymagany',
             mileagePositive: 'Przebieg musi być większy od 0',
             notesMax: 'Notatki mogą mieć maksymalnie 2000 znaków',
+            ownerRequired: 'Wybierz co najmniej jednego właściciela',
         },
         pagination: {
             showing: 'Wyświetlanie',
