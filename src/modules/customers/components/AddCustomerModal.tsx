@@ -346,7 +346,16 @@ export const AddCustomerModal = ({
     const [includeHomeAddress, setIncludeHomeAddress] = useState(false);
 
     const methods = useForm<CreateCustomerFormData>({
-        resolver: zodResolver(createCustomerSchema),
+        resolver: (values, context, options) => {
+            // Czyścimy dane przed walidacją: jeśli sekcja jest wyłączona, wymuszamy czysty null
+            const dataToValidate = {
+                ...values,
+                company: includeCompany ? values.company : null,
+                homeAddress: includeHomeAddress ? values.homeAddress : null,
+            };
+
+            return zodResolver(createCustomerSchema)(dataToValidate, context, options);
+        },
         defaultValues: {
             firstName: '',
             lastName: '',
@@ -370,14 +379,21 @@ export const AddCustomerModal = ({
         onSuccess: handleSuccess,
     });
 
-    const handleSubmit = methods.handleSubmit(data => {
-        const payload = mapFormDataToPayload({
-            ...data,
-            homeAddress: includeHomeAddress ? data.homeAddress : null,
-            company: includeCompany ? data.company : null,
-        });
-        createCustomer(payload);
-    });
+    const handleSubmit = methods.handleSubmit(
+        (data) => {
+            console.log("Dane poprawne, wysyłam:", data);
+            const payload = mapFormDataToPayload({
+                ...data,
+                homeAddress: includeHomeAddress ? data.homeAddress : null,
+                company: includeCompany ? data.company : null,
+            });
+            createCustomer(payload);
+        },
+        (errors) => {
+            // Jeśli to się pojawi w konsoli, znaczy że formularz jest niepoprawny
+            console.error("Błędy walidacji:", errors);
+        }
+    );
 
     const handleClose = useCallback(() => {
         methods.reset();

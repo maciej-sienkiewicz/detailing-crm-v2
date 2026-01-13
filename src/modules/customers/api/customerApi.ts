@@ -9,7 +9,7 @@ import type {
 } from '../types';
 
 const CUSTOMERS_BASE_PATH = '/api/v1/customers';
-const USE_MOCKS = true;
+const USE_MOCKS = false;
 
 const mockCustomers: Customer[] = [
     {
@@ -496,7 +496,7 @@ const mockCreateCustomer = async (payload: CreateCustomerPayload): Promise<Custo
             phone: payload.phone,
         },
         homeAddress: payload.homeAddress,
-        company: payload.company ? { id: `c${Date.now()}`, ...payload.company } : null,
+        company: payload.companyData ? { id: `c${Date.now()}`, ...payload.companyData } : null,
         notes: payload.notes,
         lastVisitDate: null,
         totalVisits: 0,
@@ -550,9 +550,9 @@ const mockUpdateCustomer = async (
             phone: payload.phone ?? existingCustomer.contact.phone,
         },
         homeAddress: payload.homeAddress !== undefined ? payload.homeAddress : existingCustomer.homeAddress,
-        company: payload.company !== undefined
-            ? payload.company
-                ? { id: existingCustomer.company?.id ?? `c${Date.now()}`, ...payload.company }
+        company: payload.companyData !== undefined
+            ? payload.companyData
+                ? { id: existingCustomer.company?.id ?? `c${Date.now()}`, ...payload.companyData }
                 : null
             : existingCustomer.company,
         notes: payload.notes ?? existingCustomer.notes,

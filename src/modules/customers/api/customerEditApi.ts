@@ -16,7 +16,7 @@ import type {
 
 const CUSTOMERS_BASE_PATH = '/api/v1/customers';
 const DOCUMENTS_BASE_PATH = '/api/v1/documents';
-const USE_MOCKS = true;
+const USE_MOCKS = false;
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 

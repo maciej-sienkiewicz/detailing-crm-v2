@@ -51,8 +51,8 @@ export const createCustomerSchema = z.object({
             /^(\+48)?[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{3}$/,
             t.customers.validation.phoneInvalid
         ),
-    homeAddress: homeAddressSchema.nullable(),
-    company: companyDetailsSchema.nullable(),
+    homeAddress: homeAddressSchema.nullable().optional(),
+    company: companyDetailsSchema.nullable().optional(),
     notes: z.string().max(1000, t.customers.validation.notesMax),
 });
 

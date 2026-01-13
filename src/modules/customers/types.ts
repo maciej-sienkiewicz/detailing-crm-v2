@@ -88,7 +88,7 @@ export interface CreateCustomerPayload {
     email: string;
     phone: string;
     homeAddress: HomeAddress | null;
-    company: Omit<CompanyDetails, 'id'> | null;
+    companyData: Omit<CompanyDetails, 'id'> | null;
     notes: string;
 }
 

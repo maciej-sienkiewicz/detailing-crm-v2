@@ -1,4 +1,4 @@
-import type { Customer, CustomerRevenue, CreateCustomerPayload } from '../types';
+import type {Customer, CustomerRevenue, CreateCustomerPayload} from '../types';
 import type { CreateCustomerFormData } from './customerValidation';
 
 export const formatCurrency = (amount: number, currency: string): string => {
@@ -40,7 +40,7 @@ export const mapFormDataToPayload = (
     lastName: data.lastName.trim(),
     email: data.email.trim().toLowerCase(),
     phone: data.phone.replace(/[\s-]/g, ''),
-    homeAddress: data.homeAddress,
-    company: data.company,
+    homeAddress: data.homeAddress ?? null,
+    companyData: data.company ?? null,
     notes: data.notes.trim(),
 });
