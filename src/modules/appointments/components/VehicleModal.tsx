@@ -12,31 +12,45 @@ const VehicleGrid = styled.div`
     display: grid;
     gap: ${props => props.theme.spacing.md};
     margin-bottom: ${props => props.theme.spacing.lg};
+    max-height: 400px;
+    overflow-y: auto;
+    padding: ${props => props.theme.spacing.xs};
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: ${props => props.theme.spacing.lg};
+    }
 `;
 
 const VehicleCard = styled.div`
-    padding: ${props => props.theme.spacing.lg};
+    padding: ${props => props.theme.spacing.lg} ${props => props.theme.spacing.xl};
     border: 2px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
+    border-radius: ${props => props.theme.radii.lg};
     cursor: pointer;
     transition: all ${props => props.theme.transitions.fast};
+    background: linear-gradient(to bottom right, ${props => props.theme.colors.surface} 0%, ${props => props.theme.colors.surfaceAlt} 100%);
 
     &:hover {
         border-color: ${props => props.theme.colors.primary};
-        background-color: ${props => props.theme.colors.surfaceHover};
-        transform: translateY(-2px);
-        box-shadow: ${props => props.theme.shadows.md};
+        background: linear-gradient(135deg, ${props => props.theme.colors.primary}10 0%, ${props => props.theme.colors.primary}05 100%);
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: ${props => props.theme.shadows.lg};
+    }
+
+    &:active {
+        transform: translateY(-2px) scale(1.01);
     }
 `;
 
 const VehicleName = styled.div`
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: ${props => props.theme.fontWeights.semibold};
+    font-size: ${props => props.theme.fontSizes.lg};
+    font-weight: ${props => props.theme.fontWeights.bold};
     color: ${props => props.theme.colors.text};
-    margin-bottom: ${props => props.theme.spacing.sm};
+    margin-bottom: ${props => props.theme.spacing.md};
+    letter-spacing: -0.02em;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes.lg};
+        font-size: ${props => props.theme.fontSizes.xl};
     }
 `;
 
@@ -44,6 +58,7 @@ const VehicleDetails = styled.div`
     display: flex;
     gap: ${props => props.theme.spacing.sm};
     flex-wrap: wrap;
+    align-items: center;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         gap: ${props => props.theme.spacing.md};
@@ -53,6 +68,11 @@ const VehicleDetails = styled.div`
 const VehicleDetail = styled.span`
     font-size: ${props => props.theme.fontSizes.sm};
     color: ${props => props.theme.colors.textSecondary};
+    font-weight: ${props => props.theme.fontWeights.medium};
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        font-size: ${props => props.theme.fontSizes.md};
+    }
 `;
 
 interface VehicleModalProps {

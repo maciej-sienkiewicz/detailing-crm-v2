@@ -1,7 +1,7 @@
 import { apiClient } from '@/core';
 import type { AppointmentCreateRequest, Service, Customer, Vehicle, AppointmentColor } from '../types';
 
-const USE_MOCKS = true
+const USE_MOCKS = false
 
 const mockServices: Service[] = [
     { id: '1', name: 'Przegląd okresowy', basePriceNet: 25000, vatRate: 23, category: 'Serwis' },
@@ -69,7 +69,7 @@ export const appointmentApi = {
         if (USE_MOCKS) {
             return mockCreateAppointment(data);
         }
-        const response = await apiClient.post('/api/appointments', data);
+        const response = await apiClient.post('/api/v1/appointments', data);
         return response.data;
     },
 
@@ -77,7 +77,7 @@ export const appointmentApi = {
         if (USE_MOCKS) {
             return mockGetServices();
         }
-        const response = await apiClient.get('/api/services');
+        const response = await apiClient.get('/api/v1/services');
         return response.data;
     },
 
@@ -85,7 +85,7 @@ export const appointmentApi = {
         if (USE_MOCKS) {
             return mockSearchCustomers(query);
         }
-        const response = await apiClient.get('/api/customers/search', { params: { q: query } });
+        const response = await apiClient.get('/api/v1/customers/search', { params: { q: query } });
         return response.data;
     },
 
@@ -93,7 +93,7 @@ export const appointmentApi = {
         if (USE_MOCKS) {
             return mockGetCustomerVehicles(customerId);
         }
-        const response = await apiClient.get(`/api/customers/${customerId}/vehicles`);
+        const response = await apiClient.get(`/api/v1/customers/${customerId}/vehicles`);
         return response.data;
     },
 
@@ -101,7 +101,7 @@ export const appointmentApi = {
         if (USE_MOCKS) {
             return mockGetAppointmentColors();
         }
-        const response = await apiClient.get('/api/appointment-colors');
+        const response = await apiClient.get('/api/v1/appointment-colors');
         return response.data;
     },
 };

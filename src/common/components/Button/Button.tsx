@@ -87,12 +87,28 @@ export const Button = styled.button<{
     }
 `;
 
-export const ButtonGroup = styled.div<{ $orientation?: 'horizontal' | 'vertical' }>`
+export const ButtonGroup = styled.div<{ $orientation?: 'horizontal' | 'vertical'; $justify?: 'start' | 'end' | 'center' | 'between' }>`
     display: flex;
     gap: ${props => props.theme.spacing.md};
-    flex-direction: ${props => props.$orientation === 'vertical' ? 'column' : 'column'};
+    flex-direction: ${props => props.$orientation === 'vertical' ? 'column' : 'row'};
+    justify-content: ${props => {
+        switch (props.$justify) {
+            case 'start': return 'flex-start';
+            case 'end': return 'flex-end';
+            case 'center': return 'center';
+            case 'between': return 'space-between';
+            default: return 'flex-end';
+        }
+    }};
+    align-items: ${props => props.$orientation === 'vertical' ? 'stretch' : 'center'};
+    flex-wrap: wrap;
+    margin-top: ${props => props.theme.spacing.lg};
 
-    @media (min-width: ${props => props.theme.breakpoints.sm}) {
-        flex-direction: ${props => props.$orientation === 'vertical' ? 'column' : 'row'};
+    @media (max-width: ${props => props.theme.breakpoints.sm}) {
+        flex-direction: column;
+
+        & > button {
+            width: 100%;
+        }
     }
 `;

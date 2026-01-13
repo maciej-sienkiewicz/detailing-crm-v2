@@ -12,22 +12,27 @@ import type { Customer, SelectedCustomer } from '../types';
 
 const SearchInput = styled(Input)`
     margin-bottom: ${props => props.theme.spacing.lg};
+    font-size: ${props => props.theme.fontSizes.md};
+    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
 `;
 
 const CustomerTable = styled.div`
     border: 1px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.md};
     overflow: hidden;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: ${props => props.theme.spacing.md};
 `;
 
 const CustomerRow = styled.div`
     display: grid;
     grid-template-columns: 1fr;
     gap: ${props => props.theme.spacing.sm};
-    padding: ${props => props.theme.spacing.md};
+    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
     border-bottom: 1px solid ${props => props.theme.colors.border};
     cursor: pointer;
-    transition: background-color ${props => props.theme.transitions.fast};
+    transition: all ${props => props.theme.transitions.fast};
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         grid-template-columns: 2fr 2fr 1fr;
@@ -36,6 +41,9 @@ const CustomerRow = styled.div`
 
     &:hover {
         background-color: ${props => props.theme.colors.surfaceHover};
+        transform: translateX(4px);
+        border-left: 3px solid ${props => props.theme.colors.primary};
+        padding-left: calc(${props => props.theme.spacing.lg} - 3px);
     }
 
     &:last-child {
