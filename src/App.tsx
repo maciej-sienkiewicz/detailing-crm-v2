@@ -4,6 +4,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ThemeProvider } from '@/common/theme';
 import { SidebarProvider } from '@/widgets/Sidebar/context/SidebarContext';
 import { router } from '@/core';
+import { AuthProvider } from '@/core/context/AuthContext';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -19,9 +20,11 @@ const App = () => {
     return (
         <QueryClientProvider client={queryClient}>
             <ThemeProvider>
-                <SidebarProvider>
-                    <RouterProvider router={router} />
-                </SidebarProvider>
+                <AuthProvider>
+                    <SidebarProvider>
+                        <RouterProvider router={router} />
+                    </SidebarProvider>
+                </AuthProvider>
             </ThemeProvider>
             <ReactQueryDevtools initialIsOpen={false} />
         </QueryClientProvider>

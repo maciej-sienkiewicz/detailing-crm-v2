@@ -39,6 +39,16 @@ const mockSignup = async (credentials: SignupCredentials): Promise<AuthResponse>
     });
 };
 
+const mockCheckAuth = async (): Promise<{ isAuthenticated: boolean }> => {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve({
+                isAuthenticated: true,
+            });
+        }, 300);
+    });
+};
+
 export const authApi = {
     login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
         if (USE_MOCKS) {
@@ -61,5 +71,13 @@ export const authApi = {
             return Promise.resolve();
         }
         await apiClient.post(`${BASE_PATH}/logout`);
+    },
+
+    checkAuth: async (): Promise<{ isAuthenticated: boolean }> => {
+        if (USE_MOCKS) {
+            return mockCheckAuth();
+        }
+        const response = await apiClient.get(`${BASE_PATH}/me`);
+        return response.data;
     },
 };

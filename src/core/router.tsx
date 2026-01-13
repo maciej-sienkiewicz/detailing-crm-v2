@@ -10,7 +10,8 @@ import { VisitDetailView } from '@/modules/visits';
 import { CheckInWizardWrapper } from '@/modules/checkin/views/CheckInWizardWrapper';
 import { MobilePhotoUploadWrapper } from '@/modules/checkin/views/MobilePhotoUploadWrapper';
 import { LoginView, SignupView } from '@/modules/auth';
-import {ServiceListView} from "@/modules/services";
+import { ServiceListView } from "@/modules/services";
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 export const router = createBrowserRouter([
     {
@@ -23,54 +24,100 @@ export const router = createBrowserRouter([
     },
     {
         path: '/',
-        element: <Layout><Navigate to="/customers" replace /></Layout>,
+        element: (
+            <ProtectedRoute>
+                <Layout><Navigate to="/customers" replace /></Layout>
+            </ProtectedRoute>
+        ),
     },
     {
         path: '/customers',
-        element: <Layout><CustomerListView /></Layout>,
+        element: (
+            <ProtectedRoute>
+                <Layout><CustomerListView /></Layout>
+            </ProtectedRoute>
+        ),
     },
     {
         path: '/customers/:customerId',
-        element: <Layout><CustomerDetailView /></Layout>,
+        element: (
+            <ProtectedRoute>
+                <Layout><CustomerDetailView /></Layout>
+            </ProtectedRoute>
+        ),
     },
     {
         path: '/appointments/create',
-        element: <Layout><AppointmentCreateView /></Layout>,
+        element: (
+            <ProtectedRoute>
+                <Layout><AppointmentCreateView /></Layout>
+            </ProtectedRoute>
+        ),
     },
     {
         path: '/vehicles',
-        element: <Layout><VehicleListView /></Layout>,
+        element: (
+            <ProtectedRoute>
+                <Layout><VehicleListView /></Layout>
+            </ProtectedRoute>
+        ),
     },
     {
         path: '/vehicles/:vehicleId',
-        element: <Layout><VehicleDetailView /></Layout>,
+        element: (
+            <ProtectedRoute>
+                <Layout><VehicleDetailView /></Layout>
+            </ProtectedRoute>
+        ),
     },
     {
         path: '/operations',
-        element: <Layout><OperationListView /></Layout>,
+        element: (
+            <ProtectedRoute>
+                <Layout><OperationListView /></Layout>
+            </ProtectedRoute>
+        ),
     },
     {
         path: '/visits/:visitId',
-        element: <Layout><VisitDetailView /></Layout>,
+        element: (
+            <ProtectedRoute>
+                <Layout><VisitDetailView /></Layout>
+            </ProtectedRoute>
+        ),
     },
     {
         path: '/reservations/:reservationId/checkin',
         element: (
-            <Layout>
-                <CheckInWizardWrapper />
-            </Layout>
+            <ProtectedRoute>
+                <Layout>
+                    <CheckInWizardWrapper />
+                </Layout>
+            </ProtectedRoute>
         ),
     },
     {
-        path: '/checkin/mobile/:sesżźćsionId',
-        element: <MobilePhotoUploadWrapper />,
-    },
-    {
-        path: '*',
-        element: <Layout><Navigate to="/customers" replace /></Layout>,
+        path: '/checkin/mobile/:sessionId',
+        element: (
+            <ProtectedRoute>
+                <MobilePhotoUploadWrapper />
+            </ProtectedRoute>
+        ),
     },
     {
         path: '/services',
-        element: <Layout><ServiceListView /></Layout>,
+        element: (
+            <ProtectedRoute>
+                <Layout><ServiceListView /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '*',
+        element: (
+            <ProtectedRoute>
+                <Layout><Navigate to="/customers" replace /></Layout>
+            </ProtectedRoute>
+        ),
     },
 ]);
