@@ -116,7 +116,7 @@ export const appointmentApi = {
         if (USE_MOCKS) {
             return mockGetAppointmentColors();
         }
-        const response = await apiClient.get('/api/v1/appointment-colors');
-        return response.data;
+        const response = await apiClient.get<{ colors: AppointmentColor[] }>('/api/v1/appointment-colors');
+        return response.data.colors;
     },
 };
