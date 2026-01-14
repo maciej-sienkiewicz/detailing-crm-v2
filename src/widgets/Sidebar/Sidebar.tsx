@@ -37,7 +37,7 @@ const menuSections: MenuSection[] = [
     {
         title: 'System',
         items: [
-            { path: '/settings', label: 'Ustawienia', icon: '◎' },
+            { path: '/consents', label: 'Zgody', icon: '◎' },
             { path: '/team', label: 'Zespół', icon: '◕' },
         ],
     },
