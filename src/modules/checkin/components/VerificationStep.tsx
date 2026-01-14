@@ -3,10 +3,10 @@ import styled from 'styled-components';
 import { Card, CardHeader, CardTitle } from '@/common/components/Card';
 import { FormGrid, FieldGroup, Label, Input, ErrorMessage } from '@/common/components/Form';
 import { Divider } from '@/common/components/Divider';
-import { Toggle } from '@/common/components/Toggle';
 import { Button } from '@/common/components/Button';
 import { EditableServicesTable } from './EditableServicesTable';
 import { CustomerModal } from '@/modules/appointments/components/CustomerModal';
+import { CustomerDetailsModal } from './CustomerDetailsModal';
 import type { SelectedCustomer } from '@/modules/appointments/types';
 import { t } from '@/common/i18n';
 import type { CheckInFormData, ServiceLineItem } from '../types';
@@ -76,6 +76,25 @@ const AliasInfo = styled.div`
     margin-bottom: ${props => props.theme.spacing.md};
 `;
 
+const ActionButtonsGroup = styled.div`
+    display: flex;
+    gap: ${props => props.theme.spacing.md};
+    margin-top: ${props => props.theme.spacing.md};
+    flex-wrap: wrap;
+`;
+
+const ActionButton = styled(Button)`
+    flex: 1;
+    min-width: 200px;
+    justify-content: center;
+
+    svg {
+        width: 18px;
+        height: 18px;
+        margin-right: 8px;
+    }
+`;
+
 interface VerificationStepProps {
     formData: CheckInFormData;
     errors: Record<string, string>;
@@ -84,9 +103,8 @@ interface VerificationStepProps {
 }
 
 export const VerificationStep = ({ formData, errors, onChange, onServicesChange }: VerificationStepProps) => {
-    const [includeHomeAddress, setIncludeHomeAddress] = useState(!!formData.homeAddress);
-    const [includeCompany, setIncludeCompany] = useState(!!formData.company);
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+    const [isCustomerDetailsModalOpen, setIsCustomerDetailsModalOpen] = useState(false);
 
     const handleCustomerChange = (field: string, value: string) => {
         onChange({
@@ -106,70 +124,13 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
         });
     };
 
-    const handleHomeAddressToggle = (enabled: boolean) => {
-        setIncludeHomeAddress(enabled);
-        if (!enabled) {
-            onChange({ homeAddress: null });
-        } else {
-            onChange({
-                homeAddress: {
-                    street: '',
-                    city: '',
-                    postalCode: '',
-                    country: 'Polska',
-                },
-            });
-        }
-    };
-
-    const handleHomeAddressChange = (field: string, value: string) => {
+    const handleCustomerDetailsSave = (data: {
+        homeAddress: CheckInFormData['homeAddress'];
+        company: CheckInFormData['company'];
+    }) => {
         onChange({
-            homeAddress: {
-                ...formData.homeAddress!,
-                [field]: value,
-            },
-        });
-    };
-
-    const handleCompanyToggle = (enabled: boolean) => {
-        setIncludeCompany(enabled);
-        if (!enabled) {
-            onChange({ company: null });
-        } else {
-            onChange({
-                company: {
-                    name: '',
-                    nip: '',
-                    regon: '',
-                    address: {
-                        street: '',
-                        city: '',
-                        postalCode: '',
-                        country: 'Polska',
-                    },
-                },
-            });
-        }
-    };
-
-    const handleCompanyChange = (field: string, value: string) => {
-        onChange({
-            company: {
-                ...formData.company!,
-                [field]: value,
-            },
-        });
-    };
-
-    const handleCompanyAddressChange = (field: string, value: string) => {
-        onChange({
-            company: {
-                ...formData.company!,
-                address: {
-                    ...formData.company!.address,
-                    [field]: value,
-                },
-            },
+            homeAddress: data.homeAddress,
+            company: data.company,
         });
     };
 
@@ -212,38 +173,60 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
                 </SectionTitle>
 
                 {formData.hasFullCustomerData ? (
-                    // Pełne dane klienta - pola nieedytowalne
-                    <FormGrid>
-                        <FieldGroup>
-                            <ReadOnlyField>
-                                <ReadOnlyLabel>{t.checkin.verification.firstName}</ReadOnlyLabel>
-                                <ReadOnlyValue>{formData.customerData.firstName}</ReadOnlyValue>
-                            </ReadOnlyField>
-                        </FieldGroup>
+                    <>
+                        <FormGrid>
+                            <FieldGroup>
+                                <ReadOnlyField>
+                                    <ReadOnlyLabel>{t.checkin.verification.firstName}</ReadOnlyLabel>
+                                    <ReadOnlyValue>{formData.customerData.firstName}</ReadOnlyValue>
+                                </ReadOnlyField>
+                            </FieldGroup>
 
-                        <FieldGroup>
-                            <ReadOnlyField>
-                                <ReadOnlyLabel>{t.checkin.verification.lastName}</ReadOnlyLabel>
-                                <ReadOnlyValue>{formData.customerData.lastName}</ReadOnlyValue>
-                            </ReadOnlyField>
-                        </FieldGroup>
+                            <FieldGroup>
+                                <ReadOnlyField>
+                                    <ReadOnlyLabel>{t.checkin.verification.lastName}</ReadOnlyLabel>
+                                    <ReadOnlyValue>{formData.customerData.lastName}</ReadOnlyValue>
+                                </ReadOnlyField>
+                            </FieldGroup>
 
-                        <FieldGroup>
-                            <ReadOnlyField>
-                                <ReadOnlyLabel>{t.checkin.verification.phone}</ReadOnlyLabel>
-                                <ReadOnlyValue>{formData.customerData.phone}</ReadOnlyValue>
-                            </ReadOnlyField>
-                        </FieldGroup>
+                            <FieldGroup>
+                                <ReadOnlyField>
+                                    <ReadOnlyLabel>{t.checkin.verification.phone}</ReadOnlyLabel>
+                                    <ReadOnlyValue>{formData.customerData.phone}</ReadOnlyValue>
+                                </ReadOnlyField>
+                            </FieldGroup>
 
-                        <FieldGroup>
-                            <ReadOnlyField>
-                                <ReadOnlyLabel>{t.checkin.verification.email}</ReadOnlyLabel>
-                                <ReadOnlyValue>{formData.customerData.email}</ReadOnlyValue>
-                            </ReadOnlyField>
-                        </FieldGroup>
-                    </FormGrid>
+                            <FieldGroup>
+                                <ReadOnlyField>
+                                    <ReadOnlyLabel>{t.checkin.verification.email}</ReadOnlyLabel>
+                                    <ReadOnlyValue>{formData.customerData.email}</ReadOnlyValue>
+                                </ReadOnlyField>
+                            </FieldGroup>
+                        </FormGrid>
+
+                        <ActionButtonsGroup>
+                            <ActionButton
+                                $variant="secondary"
+                                onClick={() => setIsCustomerDetailsModalOpen(true)}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Pokaż szczegółowe dane
+                            </ActionButton>
+
+                            <ActionButton
+                                $variant="secondary"
+                                onClick={() => setIsCustomerModalOpen(true)}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                </svg>
+                                Zmień klienta
+                            </ActionButton>
+                        </ActionButtonsGroup>
+                    </>
                 ) : (
-                    // Tylko alias - przycisk wyboru klienta
                     <>
                         {formData.customerAlias && (
                             <AliasInfo>
@@ -259,149 +242,6 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
                             </svg>
                             Dodaj lub wyszukaj klienta
                         </CustomerSelectButton>
-                    </>
-                )}
-
-                <Divider />
-
-                <Toggle
-                    checked={includeHomeAddress}
-                    onChange={handleHomeAddressToggle}
-                    label={t.customers.form.includeHomeAddress}
-                />
-
-                {includeHomeAddress && formData.homeAddress && (
-                    <>
-                        <SectionTitle>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                            </svg>
-                            {t.customers.form.homeAddress.title}
-                        </SectionTitle>
-
-                        <FormGrid>
-                            <FieldGroup style={{ gridColumn: '1 / -1' }}>
-                                <Label>{t.customers.form.homeAddress.street}</Label>
-                                <Input
-                                    value={formData.homeAddress.street}
-                                    onChange={(e) => handleHomeAddressChange('street', e.target.value)}
-                                    placeholder={t.customers.form.homeAddress.streetPlaceholder}
-                                />
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <Label>{t.customers.form.homeAddress.city}</Label>
-                                <Input
-                                    value={formData.homeAddress.city}
-                                    onChange={(e) => handleHomeAddressChange('city', e.target.value)}
-                                    placeholder={t.customers.form.homeAddress.cityPlaceholder}
-                                />
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <Label>{t.customers.form.homeAddress.postalCode}</Label>
-                                <Input
-                                    value={formData.homeAddress.postalCode}
-                                    onChange={(e) => handleHomeAddressChange('postalCode', e.target.value)}
-                                    placeholder={t.customers.form.homeAddress.postalCodePlaceholder}
-                                />
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <Label>{t.customers.form.homeAddress.country}</Label>
-                                <Input
-                                    value={formData.homeAddress.country}
-                                    onChange={(e) => handleHomeAddressChange('country', e.target.value)}
-                                    placeholder={t.customers.form.homeAddress.countryPlaceholder}
-                                />
-                            </FieldGroup>
-                        </FormGrid>
-                    </>
-                )}
-
-                <Divider />
-
-                <Toggle
-                    checked={includeCompany}
-                    onChange={handleCompanyToggle}
-                    label={t.customers.form.includeCompany}
-                />
-
-                {includeCompany && formData.company && (
-                    <>
-                        <SectionTitle>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                            {t.customers.form.company.title}
-                        </SectionTitle>
-
-                        <FormGrid>
-                            <FieldGroup style={{ gridColumn: '1 / -1' }}>
-                                <Label>{t.customers.form.company.name}</Label>
-                                <Input
-                                    value={formData.company.name}
-                                    onChange={(e) => handleCompanyChange('name', e.target.value)}
-                                    placeholder={t.customers.form.company.namePlaceholder}
-                                />
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <Label>{t.customers.form.company.nip}</Label>
-                                <Input
-                                    value={formData.company.nip}
-                                    onChange={(e) => handleCompanyChange('nip', e.target.value)}
-                                    placeholder={t.customers.form.company.nipPlaceholder}
-                                />
-                                {errors.nip && <ErrorMessage>{errors.nip}</ErrorMessage>}
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <Label>{t.customers.form.company.regon}</Label>
-                                <Input
-                                    value={formData.company.regon}
-                                    onChange={(e) => handleCompanyChange('regon', e.target.value)}
-                                    placeholder={t.customers.form.company.regonPlaceholder}
-                                />
-                                {errors.regon && <ErrorMessage>{errors.regon}</ErrorMessage>}
-                            </FieldGroup>
-
-                            <FieldGroup style={{ gridColumn: '1 / -1' }}>
-                                <Label>{t.customers.form.company.street}</Label>
-                                <Input
-                                    value={formData.company.address.street}
-                                    onChange={(e) => handleCompanyAddressChange('street', e.target.value)}
-                                    placeholder={t.customers.form.company.streetPlaceholder}
-                                />
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <Label>{t.customers.form.company.city}</Label>
-                                <Input
-                                    value={formData.company.address.city}
-                                    onChange={(e) => handleCompanyAddressChange('city', e.target.value)}
-                                    placeholder={t.customers.form.company.cityPlaceholder}
-                                />
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <Label>{t.customers.form.company.postalCode}</Label>
-                                <Input
-                                    value={formData.company.address.postalCode}
-                                    onChange={(e) => handleCompanyAddressChange('postalCode', e.target.value)}
-                                    placeholder={t.customers.form.company.postalCodePlaceholder}
-                                />
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <Label>{t.customers.form.company.country}</Label>
-                                <Input
-                                    value={formData.company.address.country}
-                                    onChange={(e) => handleCompanyAddressChange('country', e.target.value)}
-                                    placeholder={t.customers.form.company.countryPlaceholder}
-                                />
-                            </FieldGroup>
-                        </FormGrid>
                     </>
                 )}
 
@@ -470,6 +310,14 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
                 isOpen={isCustomerModalOpen}
                 onClose={() => setIsCustomerModalOpen(false)}
                 onSelect={handleCustomerSelect}
+            />
+
+            <CustomerDetailsModal
+                isOpen={isCustomerDetailsModalOpen}
+                onClose={() => setIsCustomerDetailsModalOpen(false)}
+                homeAddress={formData.homeAddress}
+                company={formData.company}
+                onSave={handleCustomerDetailsSave}
             />
         </StepContainer>
     );
