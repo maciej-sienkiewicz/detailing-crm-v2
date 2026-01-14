@@ -355,6 +355,13 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
         setReservationOptionsModalState({ isOpen: false, reservation: null });
     }, [reservationOptionsModalState.reservation]);
 
+    const handleStartVisitClick = useCallback(() => {
+        if (reservationOptionsModalState.reservation) {
+            navigate(`/reservations/${reservationOptionsModalState.reservation.id}/checkin`);
+            setReservationOptionsModalState({ isOpen: false, reservation: null });
+        }
+    }, [reservationOptionsModalState.reservation, navigate]);
+
     // Handlery dla modala zmiany daty
     const handleChangeDateClose = useCallback(() => {
         setChangeDateModalState({ isOpen: false, reservation: null });
@@ -564,6 +571,7 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
                 onEditServicesClick={handleEditServicesClick}
                 onEditDetailsClick={handleEditDetailsClick}
                 onCancelReservationClick={handleCancelReservationClick}
+                onStartVisitClick={handleStartVisitClick}
             />
 
             <ChangeDateModal

@@ -119,4 +119,9 @@ export const appointmentApi = {
         const response = await apiClient.get<{ colors: AppointmentColor[] }>('/api/v1/appointment-colors');
         return response.data.colors;
     },
+
+    getAppointment: async (appointmentId: string) => {
+        const response = await apiClient.get(`/api/v1/appointments/${appointmentId}`);
+        return response.data;
+    },
 };

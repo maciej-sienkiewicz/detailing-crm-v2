@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import { CheckInWizardView } from './CheckInWizardView';
 import { t } from '@/common/i18n';
+import { appointmentApi } from '@/modules/appointments';
 
 const LoadingContainer = styled.div`
     min-height: 100vh;
@@ -170,12 +171,43 @@ export const CheckInWizardWrapper = () => {
     const { reservationId } = useParams<{ reservationId: string }>();
     const navigate = useNavigate();
 
-    const { data: reservation, isLoading, error } = useQuery({
+    const { data: reservationData, isLoading, error } = useQuery({
         queryKey: ['reservations', reservationId],
-        queryFn: () => mockFetchReservation(reservationId!),
+        queryFn: () => appointmentApi.getAppointment(reservationId!),
         enabled: !!reservationId,
         retry: 1,
     });
+
+    // Mapowanie danych z backendu na format oczekiwany przez CheckInWizardView
+    const reservation: ReservationResponse | undefined = reservationData ? {
+        id: reservationData.id,
+        customer: {
+            id: reservationData.customerId,
+            firstName: reservationData.customer.firstName,
+            lastName: reservationData.customer.lastName,
+            phone: reservationData.customer.phone,
+            email: reservationData.customer.email,
+            homeAddress: reservationData.customer.homeAddress,
+            company: reservationData.customer.company,
+        },
+        vehicle: {
+            id: reservationData.vehicleId,
+            brand: reservationData.vehicle.brand,
+            model: reservationData.vehicle.model,
+            licensePlate: reservationData.vehicle.licensePlate,
+            vin: reservationData.vehicle.vin,
+        },
+        services: reservationData.services?.map((service: any) => ({
+            id: service.id,
+            serviceId: service.serviceId,
+            serviceName: service.serviceName || service.name,
+            basePriceNet: service.basePriceNet || service.priceNet || 0,
+            vatRate: service.vatRate || 23,
+            adjustment: service.adjustment || { type: 'PERCENT', value: 0 },
+            note: service.note,
+        })) || [],
+        status: reservationData.status,
+    } : undefined;
 
     const handleComplete = (visitId: string) => {
         navigate(`/visits/${visitId}`);

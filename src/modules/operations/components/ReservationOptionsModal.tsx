@@ -46,7 +46,7 @@ const OptionsList = styled.div`
     padding: 8px;
 `;
 
-const OptionButton = styled.button<{ $variant?: 'default' | 'danger' }>`
+const OptionButton = styled.button<{ $variant?: 'default' | 'danger' | 'primary' }>`
     width: 100%;
     padding: 16px 20px;
     background: white;
@@ -60,7 +60,11 @@ const OptionButton = styled.button<{ $variant?: 'default' | 'danger' }>`
     text-align: left;
 
     &:hover {
-        background-color: ${props => props.$variant === 'danger' ? '#fee2e2' : '#f8fafc'};
+        background-color: ${props => {
+            if (props.$variant === 'danger') return '#fee2e2';
+            if (props.$variant === 'primary') return '#dbeafe';
+            return '#f8fafc';
+        }};
     }
 
     &:active {
@@ -68,15 +72,23 @@ const OptionButton = styled.button<{ $variant?: 'default' | 'danger' }>`
     }
 `;
 
-const IconWrapper = styled.div<{ $variant?: 'default' | 'danger' }>`
+const IconWrapper = styled.div<{ $variant?: 'default' | 'danger' | 'primary' }>`
     width: 40px;
     height: 40px;
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: ${props => props.$variant === 'danger' ? '#fee2e2' : '#f1f5f9'};
-    color: ${props => props.$variant === 'danger' ? '#dc2626' : '#0f172a'};
+    background-color: ${props => {
+        if (props.$variant === 'danger') return '#fee2e2';
+        if (props.$variant === 'primary') return '#dbeafe';
+        return '#f1f5f9';
+    }};
+    color: ${props => {
+        if (props.$variant === 'danger') return '#dc2626';
+        if (props.$variant === 'primary') return '#0ea5e9';
+        return '#0f172a';
+    }};
     flex-shrink: 0;
 
     svg {
@@ -89,10 +101,14 @@ const OptionContent = styled.div`
     flex: 1;
 `;
 
-const OptionTitle = styled.div<{ $variant?: 'default' | 'danger' }>`
+const OptionTitle = styled.div<{ $variant?: 'default' | 'danger' | 'primary' }>`
     font-size: 15px;
     font-weight: 600;
-    color: ${props => props.$variant === 'danger' ? '#dc2626' : '#0f172a'};
+    color: ${props => {
+        if (props.$variant === 'danger') return '#dc2626';
+        if (props.$variant === 'primary') return '#0ea5e9';
+        return '#0f172a';
+    }};
     margin-bottom: 2px;
 `;
 
@@ -115,6 +131,7 @@ interface ReservationOptionsModalProps {
     onEditServicesClick: () => void;
     onEditDetailsClick: () => void;
     onCancelReservationClick: () => void;
+    onStartVisitClick: () => void;
 }
 
 export const ReservationOptionsModal = ({
@@ -125,6 +142,7 @@ export const ReservationOptionsModal = ({
     onEditServicesClick,
     onEditDetailsClick,
     onCancelReservationClick,
+    onStartVisitClick,
 }: ReservationOptionsModalProps) => {
     if (!isOpen || !reservation) return null;
 
@@ -176,6 +194,21 @@ export const ReservationOptionsModal = ({
                         <OptionContent>
                             <OptionTitle>Edytuj inne informacje</OptionTitle>
                             <OptionDescription>Zmień dane klienta lub pojazdu</OptionDescription>
+                        </OptionContent>
+                    </OptionButton>
+
+                    <Divider />
+
+                    <OptionButton onClick={onStartVisitClick} $variant="primary">
+                        <IconWrapper $variant="primary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                <path d="M9 12l2 2 4-4" />
+                            </svg>
+                        </IconWrapper>
+                        <OptionContent>
+                            <OptionTitle $variant="primary">Rozpocznij wizytę</OptionTitle>
+                            <OptionDescription>Przyjmij pojazd i rozpocznij obsługę</OptionDescription>
                         </OptionContent>
                     </OptionButton>
 
