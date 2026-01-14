@@ -214,13 +214,13 @@ const ModalHeader = styled.div`
 const ModalTitle = styled.h2`
     font-size: 1.5rem;
     font-weight: 600;
-    color: ${(props) => props.theme.colors.text.primary};
+    color: ${(props) => props.theme.colors.text};
     margin: 0 0 ${(props) => props.theme.spacing.xs} 0;
 `;
 
 const ModalSubtitle = styled.p`
     font-size: 0.875rem;
-    color: ${(props) => props.theme.colors.text.secondary};
+    color: ${(props) => props.theme.colors.textSecondary};
     margin: 0;
 `;
 
@@ -253,10 +253,10 @@ const FileSelectButton = styled.button<{ $hasError?: boolean }>`
     padding: ${(props) => props.theme.spacing.sm} ${(props) => props.theme.spacing.md};
     border: 2px dashed
         ${(props) =>
-            props.$hasError ? props.theme.colors.error : props.theme.colors.border.light};
-    border-radius: ${(props) => props.theme.radius.md};
-    background-color: ${(props) => props.theme.colors.surface.main};
-    color: ${(props) => props.theme.colors.text.primary};
+            props.$hasError ? props.theme.colors.error : props.theme.colors.border};
+    border-radius: ${(props) => props.theme.radii.md};
+    background-color: ${(props) => props.theme.colors.surface};
+    color: ${(props) => props.theme.colors.text};
     font-size: 0.875rem;
     cursor: pointer;
     transition: all ${(props) => props.theme.transitions.fast};
@@ -264,7 +264,7 @@ const FileSelectButton = styled.button<{ $hasError?: boolean }>`
 
     &:hover:not(:disabled) {
         border-color: ${(props) => props.theme.colors.primary};
-        background-color: ${(props) => props.theme.colors.surface.hover};
+        background-color: ${(props) => props.theme.colors.surfaceHover};
     }
 
     &:disabled {
@@ -275,7 +275,7 @@ const FileSelectButton = styled.button<{ $hasError?: boolean }>`
 
 const HintText = styled.span`
     font-size: 0.75rem;
-    color: ${(props) => props.theme.colors.text.secondary};
+    color: ${(props) => props.theme.colors.textSecondary};
     margin-top: ${(props) => props.theme.spacing.xs};
 `;
 
@@ -299,7 +299,7 @@ const Checkbox = styled.input`
 
 const CheckboxText = styled.span`
     font-size: 0.875rem;
-    color: ${(props) => props.theme.colors.text.primary};
+    color: ${(props) => props.theme.colors.text};
     font-weight: 500;
 `;
 
@@ -309,7 +309,7 @@ const WarningBox = styled.div`
     padding: ${(props) => props.theme.spacing.sm} ${(props) => props.theme.spacing.md};
     background-color: ${(props) => props.theme.colors.warning}15;
     border: 1px solid ${(props) => props.theme.colors.warning};
-    border-radius: ${(props) => props.theme.radius.md};
+    border-radius: ${(props) => props.theme.radii.md};
     margin-top: ${(props) => props.theme.spacing.sm};
 `;
 
@@ -320,7 +320,7 @@ const WarningIcon = styled.span`
 
 const WarningText = styled.span`
     font-size: 0.875rem;
-    color: ${(props) => props.theme.colors.text.primary};
+    color: ${(props) => props.theme.colors.text};
 `;
 
 const UploadProgress = styled.div`
@@ -328,14 +328,14 @@ const UploadProgress = styled.div`
     align-items: center;
     gap: ${(props) => props.theme.spacing.md};
     padding: ${(props) => props.theme.spacing.md};
-    background-color: ${(props) => props.theme.colors.surface.hover};
-    border-radius: ${(props) => props.theme.radius.md};
+    background-color: ${(props) => props.theme.colors.surfaceHover};
+    border-radius: ${(props) => props.theme.radii.md};
 `;
 
 const Spinner = styled.div`
     width: 20px;
     height: 20px;
-    border: 2px solid ${(props) => props.theme.colors.border.light};
+    border: 2px solid ${(props) => props.theme.colors.border};
     border-top-color: ${(props) => props.theme.colors.primary};
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -349,7 +349,7 @@ const Spinner = styled.div`
 
 const UploadText = styled.span`
     font-size: 0.875rem;
-    color: ${(props) => props.theme.colors.text.secondary};
+    color: ${(props) => props.theme.colors.textSecondary};
 `;
 
 const ModalActions = styled.div`

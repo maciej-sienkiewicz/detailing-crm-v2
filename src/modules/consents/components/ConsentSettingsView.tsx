@@ -101,7 +101,7 @@ export const ConsentSettingsView = () => {
 
 const Container = styled.div`
     min-height: 100vh;
-    background-color: ${(props) => props.theme.colors.background.main};
+    background-color: ${(props) => props.theme.colors.background};
     padding: ${(props) => props.theme.spacing.lg};
 
     @media (max-width: ${(props) => props.theme.breakpoints.sm}) {
@@ -134,7 +134,7 @@ const HeaderText = styled.div`
 const Title = styled.h1`
     font-size: 2rem;
     font-weight: 700;
-    color: ${(props) => props.theme.colors.text.primary};
+    color: ${(props) => props.theme.colors.text};
     margin: 0 0 ${(props) => props.theme.spacing.xs} 0;
 
     @media (max-width: ${(props) => props.theme.breakpoints.sm}) {
@@ -144,7 +144,7 @@ const Title = styled.h1`
 
 const Subtitle = styled.p`
     font-size: 1rem;
-    color: ${(props) => props.theme.colors.text.secondary};
+    color: ${(props) => props.theme.colors.textSecondary};
     margin: 0;
 `;
 
@@ -173,8 +173,8 @@ const EmptyState = styled.div`
     align-items: center;
     justify-content: center;
     padding: ${(props) => props.theme.spacing.xxl} ${(props) => props.theme.spacing.lg};
-    background-color: ${(props) => props.theme.colors.surface.main};
-    border-radius: ${(props) => props.theme.radius.lg};
+    background-color: ${(props) => props.theme.colors.surface};
+    border-radius: ${(props) => props.theme.radii.lg};
     text-align: center;
     min-height: 400px;
 `;
@@ -188,13 +188,13 @@ const EmptyIcon = styled.div`
 const EmptyTitle = styled.h3`
     font-size: 1.25rem;
     font-weight: 600;
-    color: ${(props) => props.theme.colors.text.primary};
+    color: ${(props) => props.theme.colors.text};
     margin: 0 0 ${(props) => props.theme.spacing.sm} 0;
 `;
 
 const EmptyDescription = styled.p`
     font-size: 1rem;
-    color: ${(props) => props.theme.colors.text.secondary};
+    color: ${(props) => props.theme.colors.textSecondary};
     margin: 0 0 ${(props) => props.theme.spacing.lg} 0;
 `;
 
@@ -204,8 +204,8 @@ const ErrorState = styled.div`
     align-items: center;
     justify-content: center;
     padding: ${(props) => props.theme.spacing.xxl} ${(props) => props.theme.spacing.lg};
-    background-color: ${(props) => props.theme.colors.surface.main};
-    border-radius: ${(props) => props.theme.radius.lg};
+    background-color: ${(props) => props.theme.colors.surface};
+    border-radius: ${(props) => props.theme.radii.lg};
     text-align: center;
     min-height: 400px;
 `;
@@ -218,13 +218,13 @@ const ErrorIcon = styled.div`
 const ErrorTitle = styled.h3`
     font-size: 1.25rem;
     font-weight: 600;
-    color: ${(props) => props.theme.colors.text.primary};
+    color: ${(props) => props.theme.colors.text};
     margin: 0 0 ${(props) => props.theme.spacing.sm} 0;
 `;
 
 const ErrorMessage = styled.p`
     font-size: 1rem;
-    color: ${(props) => props.theme.colors.text.secondary};
+    color: ${(props) => props.theme.colors.textSecondary};
     margin: 0 0 ${(props) => props.theme.spacing.lg} 0;
 `;
 
@@ -240,12 +240,12 @@ const LoadingSkeleton = styled.div`
         height: 200px;
         background: linear-gradient(
             90deg,
-            ${(props) => props.theme.colors.surface.main} 0%,
-            ${(props) => props.theme.colors.surface.hover} 50%,
-            ${(props) => props.theme.colors.surface.main} 100%
+            ${(props) => props.theme.colors.surface} 0%,
+            ${(props) => props.theme.colors.surfaceHover} 50%,
+            ${(props) => props.theme.colors.surface} 100%
         );
         background-size: 200% 100%;
-        border-radius: ${(props) => props.theme.radius.lg};
+        border-radius: ${(props) => props.theme.radii.lg};
         animation: shimmer 1.5s infinite;
     }
 

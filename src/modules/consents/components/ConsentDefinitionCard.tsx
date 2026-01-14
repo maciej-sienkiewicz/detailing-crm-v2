@@ -134,8 +134,8 @@ export const ConsentDefinitionCard = ({ definitionWithTemplate }: ConsentDefinit
 };
 
 const Card = styled.div`
-    background-color: ${(props) => props.theme.colors.surface.main};
-    border-radius: ${(props) => props.theme.radius.lg};
+    background-color: ${(props) => props.theme.colors.surface};
+    border-radius: ${(props) => props.theme.radii.lg};
     padding: ${(props) => props.theme.spacing.lg};
     box-shadow: ${(props) => props.theme.shadows.sm};
     transition: box-shadow ${(props) => props.theme.transitions.normal};
@@ -152,7 +152,7 @@ const CardHeader = styled.div`
     gap: ${(props) => props.theme.spacing.md};
     margin-bottom: ${(props) => props.theme.spacing.lg};
     padding-bottom: ${(props) => props.theme.spacing.md};
-    border-bottom: 1px solid ${(props) => props.theme.colors.border.light};
+    border-bottom: 1px solid ${(props) => props.theme.colors.border};
 `;
 
 const DefinitionInfo = styled.div`
@@ -162,7 +162,7 @@ const DefinitionInfo = styled.div`
 const DefinitionName = styled.h3`
     font-size: 1.25rem;
     font-weight: 600;
-    color: ${(props) => props.theme.colors.text.primary};
+    color: ${(props) => props.theme.colors.text};
     margin: 0 0 ${(props) => props.theme.spacing.sm} 0;
 `;
 
@@ -180,13 +180,13 @@ const MetaItem = styled.div`
 
 const MetaLabel = styled.span`
     font-size: 0.75rem;
-    color: ${(props) => props.theme.colors.text.secondary};
+    color: ${(props) => props.theme.colors.textSecondary};
     font-weight: 500;
 `;
 
 const MetaValue = styled.span`
     font-size: 0.875rem;
-    color: ${(props) => props.theme.colors.text.primary};
+    color: ${(props) => props.theme.colors.text};
 `;
 
 const HeaderActions = styled.div`
@@ -206,7 +206,7 @@ const TemplatesHeader = styled.div`
 const TemplatesTitle = styled.h4`
     font-size: 1rem;
     font-weight: 600;
-    color: ${(props) => props.theme.colors.text.primary};
+    color: ${(props) => props.theme.colors.text};
     margin: 0;
 `;
 
@@ -217,11 +217,11 @@ const ToggleButton = styled.button`
     font-size: 0.875rem;
     cursor: pointer;
     padding: ${(props) => props.theme.spacing.xs} ${(props) => props.theme.spacing.sm};
-    border-radius: ${(props) => props.theme.radius.md};
+    border-radius: ${(props) => props.theme.radii.md};
     transition: background-color ${(props) => props.theme.transitions.fast};
 
     &:hover {
-        background-color: ${(props) => props.theme.colors.surface.hover};
+        background-color: ${(props) => props.theme.colors.surfaceHover};
     }
 `;
 
@@ -242,7 +242,7 @@ const EmptyIcon = styled.div`
 
 const EmptyText = styled.p`
     font-size: 0.875rem;
-    color: ${(props) => props.theme.colors.text.secondary};
+    color: ${(props) => props.theme.colors.textSecondary};
     margin: 0;
 `;
 
@@ -258,15 +258,15 @@ const TemplateItem = styled.div<{ $isActive: boolean }>`
     align-items: center;
     padding: ${(props) => props.theme.spacing.md};
     background-color: ${(props) =>
-        props.$isActive ? props.theme.colors.surface.hover : props.theme.colors.background.main};
+        props.$isActive ? props.theme.colors.surfaceHover : props.theme.colors.background};
     border: 1px solid
         ${(props) =>
-            props.$isActive ? props.theme.colors.primary : props.theme.colors.border.light};
-    border-radius: ${(props) => props.theme.radius.md};
+            props.$isActive ? props.theme.colors.primary : props.theme.colors.border};
+    border-radius: ${(props) => props.theme.radii.md};
     transition: all ${(props) => props.theme.transitions.fast};
 
     &:hover {
-        background-color: ${(props) => props.theme.colors.surface.hover};
+        background-color: ${(props) => props.theme.colors.surfaceHover};
     }
 `;
 
@@ -280,7 +280,7 @@ const TemplateVersion = styled.div`
     gap: ${(props) => props.theme.spacing.sm};
     font-size: 0.875rem;
     font-weight: 600;
-    color: ${(props) => props.theme.colors.text.primary};
+    color: ${(props) => props.theme.colors.text};
     margin-bottom: ${(props) => props.theme.spacing.xs};
 `;
 
@@ -289,9 +289,9 @@ const ActiveBadge = styled.span`
     padding: 2px 8px;
     font-size: 0.75rem;
     font-weight: 600;
-    color: ${(props) => props.theme.colors.surface.main};
+    color: ${(props) => props.theme.colors.surface};
     background-color: ${(props) => props.theme.colors.success};
-    border-radius: ${(props) => props.theme.radius.sm};
+    border-radius: ${(props) => props.theme.radii.sm};
 `;
 
 const TemplateMeta = styled.div`
@@ -319,11 +319,11 @@ const ViewPdfButton = styled.a`
     color: ${(props) => props.theme.colors.primary};
     text-decoration: none;
     border: 1px solid ${(props) => props.theme.colors.primary};
-    border-radius: ${(props) => props.theme.radius.md};
+    border-radius: ${(props) => props.theme.radii.md};
     transition: all ${(props) => props.theme.transitions.fast};
 
     &:hover {
         background-color: ${(props) => props.theme.colors.primary};
-        color: ${(props) => props.theme.colors.surface.main};
+        color: ${(props) => props.theme.colors.surface};
     }
 `;
