@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Modal } from '@/common/components/Modal';
-import { FormGrid, FieldGroup, Label, Input, ErrorMessage } from '@/common/components/Form';
+import { FormGrid, FieldGroup, Label, Input } from '@/common/components/Form';
 import { Button } from '@/common/components/Button';
 import { Toggle } from '@/common/components/Toggle';
 import { t } from '@/common/i18n';
@@ -262,44 +262,44 @@ export const CustomerDetailsModal = ({
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
-                        {t.customers.form.basicInfo.title}
+                        {t.customers.form.title}
                     </SectionTitle>
 
                 <FormGrid>
                     <FieldGroup>
-                        <Label>{t.customers.form.basicInfo.firstName}</Label>
+                        <Label>{t.customers.form.firstName}</Label>
                         <Input
                             value={localCustomerData.firstName}
                             onChange={(e) => handleCustomerDataChange('firstName', e.target.value)}
-                            placeholder={t.customers.form.basicInfo.firstNamePlaceholder}
+                            placeholder={t.customers.form.firstNamePlaceholder}
                         />
                     </FieldGroup>
 
                     <FieldGroup>
-                        <Label>{t.customers.form.basicInfo.lastName}</Label>
+                        <Label>{t.customers.form.lastName}</Label>
                         <Input
                             value={localCustomerData.lastName}
                             onChange={(e) => handleCustomerDataChange('lastName', e.target.value)}
-                            placeholder={t.customers.form.basicInfo.lastNamePlaceholder}
+                            placeholder={t.customers.form.lastNamePlaceholder}
                         />
                     </FieldGroup>
 
                     <FieldGroup>
-                        <Label>{t.customers.form.basicInfo.email}</Label>
+                        <Label>{t.customers.form.email}</Label>
                         <Input
                             value={localCustomerData.email}
                             onChange={(e) => handleCustomerDataChange('email', e.target.value)}
-                            placeholder={t.customers.form.basicInfo.emailPlaceholder}
+                            placeholder={t.customers.form.emailPlaceholder}
                             type="email"
                         />
                     </FieldGroup>
 
                     <FieldGroup>
-                        <Label>{t.customers.form.basicInfo.phone}</Label>
+                        <Label>{t.customers.form.phone}</Label>
                         <Input
                             value={localCustomerData.phone}
                             onChange={(e) => handleCustomerDataChange('phone', e.target.value)}
-                            placeholder={t.customers.form.basicInfo.phonePlaceholder}
+                            placeholder={t.customers.form.phonePlaceholder}
                             type="tel"
                         />
                     </FieldGroup>
