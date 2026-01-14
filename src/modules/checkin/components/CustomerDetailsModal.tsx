@@ -38,6 +38,12 @@ const ButtonGroup = styled.div`
 interface CustomerDetailsModalProps {
     isOpen: boolean;
     onClose: () => void;
+    customerData: {
+        firstName: string;
+        lastName: string;
+        email: string;
+        phone: string;
+    };
     homeAddress: {
         street: string;
         city: string;
@@ -56,6 +62,12 @@ interface CustomerDetailsModalProps {
         };
     } | null;
     onSave: (data: {
+        customerData: {
+            firstName: string;
+            lastName: string;
+            email: string;
+            phone: string;
+        };
         homeAddress: {
             street: string;
             city: string;
@@ -79,12 +91,15 @@ interface CustomerDetailsModalProps {
 export const CustomerDetailsModal = ({
     isOpen,
     onClose,
+    customerData,
     homeAddress,
     company,
     onSave,
 }: CustomerDetailsModalProps) => {
     const [includeHomeAddress, setIncludeHomeAddress] = useState(!!homeAddress);
     const [includeCompany, setIncludeCompany] = useState(!!company);
+
+    const [localCustomerData, setLocalCustomerData] = useState(customerData);
 
     const [localHomeAddress, setLocalHomeAddress] = useState(
         homeAddress || {
@@ -109,6 +124,10 @@ export const CustomerDetailsModal = ({
         }
     );
 
+    const handleCustomerDataChange = (field: string, value: string) => {
+        setLocalCustomerData(prev => ({ ...prev, [field]: value }));
+    };
+
     const handleHomeAddressChange = (field: string, value: string) => {
         setLocalHomeAddress(prev => ({ ...prev, [field]: value }));
     };
@@ -126,6 +145,7 @@ export const CustomerDetailsModal = ({
 
     const handleSave = () => {
         onSave({
+            customerData: localCustomerData,
             homeAddress: includeHomeAddress ? localHomeAddress : null,
             company: includeCompany ? localCompany : null,
         });
@@ -133,8 +153,55 @@ export const CustomerDetailsModal = ({
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Szczegółowe dane klienta" size="lg">
+        <Modal isOpen={isOpen} onClose={onClose} title="Edytuj dane klienta" size="xl">
             <ModalContent>
+                <SectionTitle>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    {t.customers.form.basicInfo.title}
+                </SectionTitle>
+
+                <FormGrid>
+                    <FieldGroup>
+                        <Label>{t.customers.form.basicInfo.firstName}</Label>
+                        <Input
+                            value={localCustomerData.firstName}
+                            onChange={(e) => handleCustomerDataChange('firstName', e.target.value)}
+                            placeholder={t.customers.form.basicInfo.firstNamePlaceholder}
+                        />
+                    </FieldGroup>
+
+                    <FieldGroup>
+                        <Label>{t.customers.form.basicInfo.lastName}</Label>
+                        <Input
+                            value={localCustomerData.lastName}
+                            onChange={(e) => handleCustomerDataChange('lastName', e.target.value)}
+                            placeholder={t.customers.form.basicInfo.lastNamePlaceholder}
+                        />
+                    </FieldGroup>
+
+                    <FieldGroup>
+                        <Label>{t.customers.form.basicInfo.email}</Label>
+                        <Input
+                            value={localCustomerData.email}
+                            onChange={(e) => handleCustomerDataChange('email', e.target.value)}
+                            placeholder={t.customers.form.basicInfo.emailPlaceholder}
+                            type="email"
+                        />
+                    </FieldGroup>
+
+                    <FieldGroup>
+                        <Label>{t.customers.form.basicInfo.phone}</Label>
+                        <Input
+                            value={localCustomerData.phone}
+                            onChange={(e) => handleCustomerDataChange('phone', e.target.value)}
+                            placeholder={t.customers.form.basicInfo.phonePlaceholder}
+                            type="tel"
+                        />
+                    </FieldGroup>
+                </FormGrid>
+
                 <Toggle
                     checked={includeHomeAddress}
                     onChange={setIncludeHomeAddress}
@@ -277,7 +344,7 @@ export const CustomerDetailsModal = ({
                         Anuluj
                     </Button>
                     <Button $variant="primary" onClick={handleSave}>
-                        Zapisz
+                        Zapisz zmiany
                     </Button>
                 </ButtonGroup>
             </ModalContent>

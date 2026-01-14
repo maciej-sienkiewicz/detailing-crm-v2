@@ -37,6 +37,47 @@ const SectionTitle = styled.h3`
     }
 `;
 
+const SectionHeader = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: ${props => props.theme.spacing.md};
+    gap: ${props => props.theme.spacing.md};
+`;
+
+const SectionTitleWithActions = styled(SectionTitle)`
+    margin-bottom: 0;
+    flex: 1;
+`;
+
+const SubtleButtonGroup = styled.div`
+    display: flex;
+    gap: ${props => props.theme.spacing.sm};
+    align-items: center;
+`;
+
+const SubtleButton = styled.button`
+    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: ${props => props.theme.fontWeights.medium};
+    color: ${props => props.theme.colors.primary};
+    background: transparent;
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.md};
+    cursor: pointer;
+    transition: all ${props => props.theme.transitions.fast};
+    white-space: nowrap;
+
+    &:hover {
+        background: ${props => props.theme.colors.surfaceHover};
+        border-color: ${props => props.theme.colors.primary};
+    }
+
+    &:active {
+        transform: scale(0.98);
+    }
+`;
+
 const ReadOnlyField = styled.div`
     padding: ${props => props.theme.spacing.md};
     background-color: ${props => props.theme.colors.surfaceAlt};
@@ -76,25 +117,6 @@ const AliasInfo = styled.div`
     margin-bottom: ${props => props.theme.spacing.md};
 `;
 
-const ActionButtonsGroup = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.md};
-    margin-top: ${props => props.theme.spacing.md};
-    flex-wrap: wrap;
-`;
-
-const ActionButton = styled(Button)`
-    flex: 1;
-    min-width: 200px;
-    justify-content: center;
-
-    svg {
-        width: 18px;
-        height: 18px;
-        margin-right: 8px;
-    }
-`;
-
 interface VerificationStepProps {
     formData: CheckInFormData;
     errors: Record<string, string>;
@@ -125,10 +147,20 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
     };
 
     const handleCustomerDetailsSave = (data: {
+        customerData: {
+            firstName: string;
+            lastName: string;
+            email: string;
+            phone: string;
+        };
         homeAddress: CheckInFormData['homeAddress'];
         company: CheckInFormData['company'];
     }) => {
         onChange({
+            customerData: {
+                ...formData.customerData,
+                ...data.customerData,
+            },
             homeAddress: data.homeAddress,
             company: data.company,
         });
@@ -165,15 +197,25 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
                     <CardTitle>{t.checkin.verification.title}</CardTitle>
                 </CardHeader>
 
-                <SectionTitle>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    {t.checkin.verification.customerSection}
-                </SectionTitle>
-
                 {formData.hasFullCustomerData ? (
                     <>
+                        <SectionHeader>
+                            <SectionTitleWithActions>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                {t.checkin.verification.customerSection}
+                            </SectionTitleWithActions>
+                            <SubtleButtonGroup>
+                                <SubtleButton onClick={() => setIsCustomerDetailsModalOpen(true)}>
+                                    Pokaż szczegółowe dane
+                                </SubtleButton>
+                                <SubtleButton onClick={() => setIsCustomerModalOpen(true)}>
+                                    Zmień klienta
+                                </SubtleButton>
+                            </SubtleButtonGroup>
+                        </SectionHeader>
+
                         <FormGrid>
                             <FieldGroup>
                                 <ReadOnlyField>
@@ -203,31 +245,15 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
                                 </ReadOnlyField>
                             </FieldGroup>
                         </FormGrid>
-
-                        <ActionButtonsGroup>
-                            <ActionButton
-                                $variant="secondary"
-                                onClick={() => setIsCustomerDetailsModalOpen(true)}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                                Pokaż szczegółowe dane
-                            </ActionButton>
-
-                            <ActionButton
-                                $variant="secondary"
-                                onClick={() => setIsCustomerModalOpen(true)}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                                </svg>
-                                Zmień klienta
-                            </ActionButton>
-                        </ActionButtonsGroup>
                     </>
                 ) : (
                     <>
+                        <SectionTitle>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            {t.checkin.verification.customerSection}
+                        </SectionTitle>
                         {formData.customerAlias && (
                             <AliasInfo>
                                 Obecny alias: <strong>{formData.customerAlias}</strong>
@@ -315,6 +341,7 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
             <CustomerDetailsModal
                 isOpen={isCustomerDetailsModalOpen}
                 onClose={() => setIsCustomerDetailsModalOpen(false)}
+                customerData={formData.customerData}
                 homeAddress={formData.homeAddress}
                 company={formData.company}
                 onSave={handleCustomerDetailsSave}
