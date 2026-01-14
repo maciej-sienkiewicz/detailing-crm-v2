@@ -114,12 +114,13 @@ export const AppointmentCreateView = () => {
 
                 <MainContent>
                     <LeftColumn>
-                        <ReservationDetailsSection
-                            appointmentTitle={appointmentTitle}
-                            onAppointmentTitleChange={setAppointmentTitle}
-                            selectedColorId={selectedColorId}
-                            onColorChange={setSelectedColorId}
-                            colors={appointmentColors}
+                        <ScheduleSection
+                            isAllDay={isAllDay}
+                            onIsAllDayChange={setIsAllDay}
+                            startDateTime={startDateTime}
+                            onStartDateTimeChange={setStartDateTime}
+                            endDateTime={endDateTime}
+                            onEndDateTimeChange={setEndDateTime}
                         />
 
                         <CustomerSection
@@ -132,13 +133,12 @@ export const AppointmentCreateView = () => {
                             onOpenModal={() => setIsVehicleModalOpen(true)}
                         />
 
-                        <ScheduleSection
-                            isAllDay={isAllDay}
-                            onIsAllDayChange={setIsAllDay}
-                            startDateTime={startDateTime}
-                            onStartDateTimeChange={setStartDateTime}
-                            endDateTime={endDateTime}
-                            onEndDateTimeChange={setEndDateTime}
+                        <ReservationDetailsSection
+                            appointmentTitle={appointmentTitle}
+                            onAppointmentTitleChange={setAppointmentTitle}
+                            selectedColorId={selectedColorId}
+                            onColorChange={setSelectedColorId}
+                            colors={appointmentColors}
                         />
                     </LeftColumn>
 
