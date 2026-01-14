@@ -12,6 +12,7 @@ import { MobilePhotoUploadWrapper } from '@/modules/checkin/views/MobilePhotoUpl
 import { LoginView, SignupView } from '@/modules/auth';
 import { ServiceListView } from "@/modules/services";
 import { AppointmentColorListView } from "@/modules/appointment-colors";
+import { ConsentSettingsView } from "@/modules/consents";
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -126,6 +127,14 @@ export const router = createBrowserRouter([
         element: (
             <ProtectedRoute>
                 <Layout><AppointmentColorListView /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/consents',
+        element: (
+            <ProtectedRoute>
+                <Layout><ConsentSettingsView /></Layout>
             </ProtectedRoute>
         ),
     },
