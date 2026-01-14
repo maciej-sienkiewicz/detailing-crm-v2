@@ -254,14 +254,24 @@ export const CheckInWizardWrapper = () => {
         );
     }
 
+    // Sprawdzamy czy mamy pełne dane klienta czy tylko alias
+    const hasFullCustomerData = !!(
+        reservation.customer?.firstName &&
+        reservation.customer?.lastName &&
+        reservation.customer?.phone &&
+        reservation.customer?.email
+    );
+
     const initialData = {
         customerData: {
-            id: reservation.customer.id,
-            firstName: reservation.customer.firstName,
-            lastName: reservation.customer.lastName,
-            phone: reservation.customer.phone,
-            email: reservation.customer.email,
+            id: reservation.customer?.id || '',
+            firstName: reservation.customer?.firstName || '',
+            lastName: reservation.customer?.lastName || '',
+            phone: reservation.customer?.phone || '',
+            email: reservation.customer?.email || '',
         },
+        customerAlias: (reservationData as any).customerAlias,
+        hasFullCustomerData,
         vehicleData: {
             id: reservation.vehicle.id,
             brand: reservation.vehicle.brand,
@@ -269,8 +279,8 @@ export const CheckInWizardWrapper = () => {
             licensePlate: reservation.vehicle.licensePlate,
             vin: reservation.vehicle.vin || '',
         },
-        homeAddress: reservation.customer.homeAddress || null,
-        company: reservation.customer.company || null,
+        homeAddress: reservation.customer?.homeAddress || null,
+        company: reservation.customer?.company || null,
         services: reservation.services,
     };
 

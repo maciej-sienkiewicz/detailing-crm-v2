@@ -44,6 +44,8 @@ export interface CheckInFormData {
         phone: string;
         email: string;
     };
+    customerAlias?: string; // Jeśli klient to tylko alias
+    hasFullCustomerData: boolean; // Określa czy mamy pełne dane klienta czy tylko alias
     vehicleData: {
         id: string;
         brand: string;
@@ -81,8 +83,8 @@ export interface CheckInFormData {
 
 export interface ReservationToVisitPayload {
     reservationId: string;
-    customer: {
-        id: string;
+    customer?: {
+        id?: string;
         firstName: string;
         lastName: string;
         phone: string;
@@ -105,6 +107,7 @@ export interface ReservationToVisitPayload {
             };
         };
     };
+    customerAlias?: string; // Jeśli klient to tylko alias
     vehicle: {
         id: string;
         vin?: string; // VIN jest opcjonalny

@@ -4,7 +4,10 @@ import { Card, CardHeader, CardTitle } from '@/common/components/Card';
 import { FormGrid, FieldGroup, Label, Input, ErrorMessage } from '@/common/components/Form';
 import { Divider } from '@/common/components/Divider';
 import { Toggle } from '@/common/components/Toggle';
+import { Button } from '@/common/components/Button';
 import { EditableServicesTable } from './EditableServicesTable';
+import { CustomerModal } from '@/modules/appointments/components/CustomerModal';
+import type { SelectedCustomer } from '@/modules/appointments/types';
 import { t } from '@/common/i18n';
 import type { CheckInFormData, ServiceLineItem } from '../types';
 
@@ -34,6 +37,45 @@ const SectionTitle = styled.h3`
     }
 `;
 
+const ReadOnlyField = styled.div`
+    padding: ${props => props.theme.spacing.md};
+    background-color: ${props => props.theme.colors.surfaceAlt};
+    border-radius: ${props => props.theme.radii.md};
+    border: 1px solid ${props => props.theme.colors.border};
+`;
+
+const ReadOnlyLabel = styled.div`
+    font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: ${props => props.theme.fontWeights.medium};
+    color: ${props => props.theme.colors.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: ${props => props.theme.spacing.xs};
+`;
+
+const ReadOnlyValue = styled.div`
+    font-size: ${props => props.theme.fontSizes.md};
+    font-weight: ${props => props.theme.fontWeights.medium};
+    color: ${props => props.theme.colors.text};
+`;
+
+const CustomerSelectButton = styled(Button)`
+    width: 100%;
+    justify-content: center;
+    padding: ${props => props.theme.spacing.lg};
+    font-size: ${props => props.theme.fontSizes.md};
+`;
+
+const AliasInfo = styled.div`
+    padding: ${props => props.theme.spacing.md};
+    background-color: #fef3c7;
+    border: 1px solid #fbbf24;
+    border-radius: ${props => props.theme.radii.md};
+    font-size: ${props => props.theme.fontSizes.sm};
+    color: #92400e;
+    margin-bottom: ${props => props.theme.spacing.md};
+`;
+
 interface VerificationStepProps {
     formData: CheckInFormData;
     errors: Record<string, string>;
@@ -44,6 +86,7 @@ interface VerificationStepProps {
 export const VerificationStep = ({ formData, errors, onChange, onServicesChange }: VerificationStepProps) => {
     const [includeHomeAddress, setIncludeHomeAddress] = useState(!!formData.homeAddress);
     const [includeCompany, setIncludeCompany] = useState(!!formData.company);
+    const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
 
     const handleCustomerChange = (field: string, value: string) => {
         onChange({
@@ -130,6 +173,30 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
         });
     };
 
+    const handleCustomerSelect = (customer: SelectedCustomer) => {
+        if (customer.isAlias) {
+            // Ustawienie aliasu
+            onChange({
+                customerAlias: customer.alias,
+                hasFullCustomerData: false,
+            });
+        } else {
+            // Ustawienie pełnych danych klienta
+            onChange({
+                customerData: {
+                    id: customer.id || '',
+                    firstName: customer.firstName || '',
+                    lastName: customer.lastName || '',
+                    phone: customer.phone || '',
+                    email: customer.email || '',
+                },
+                customerAlias: undefined,
+                hasFullCustomerData: true,
+            });
+        }
+        setIsCustomerModalOpen(false);
+    };
+
     return (
         <StepContainer>
             <Card>
@@ -144,44 +211,56 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
                     {t.checkin.verification.customerSection}
                 </SectionTitle>
 
-                <FormGrid>
-                    <FieldGroup>
-                        <Label>{t.checkin.verification.firstName}</Label>
-                        <Input
-                            value={formData.customerData.firstName}
-                            onChange={(e) => handleCustomerChange('firstName', e.target.value)}
-                        />
-                        {errors.firstName && <ErrorMessage>{errors.firstName}</ErrorMessage>}
-                    </FieldGroup>
+                {formData.hasFullCustomerData ? (
+                    // Pełne dane klienta - pola nieedytowalne
+                    <FormGrid>
+                        <FieldGroup>
+                            <ReadOnlyField>
+                                <ReadOnlyLabel>{t.checkin.verification.firstName}</ReadOnlyLabel>
+                                <ReadOnlyValue>{formData.customerData.firstName}</ReadOnlyValue>
+                            </ReadOnlyField>
+                        </FieldGroup>
 
-                    <FieldGroup>
-                        <Label>{t.checkin.verification.lastName}</Label>
-                        <Input
-                            value={formData.customerData.lastName}
-                            onChange={(e) => handleCustomerChange('lastName', e.target.value)}
-                        />
-                        {errors.lastName && <ErrorMessage>{errors.lastName}</ErrorMessage>}
-                    </FieldGroup>
+                        <FieldGroup>
+                            <ReadOnlyField>
+                                <ReadOnlyLabel>{t.checkin.verification.lastName}</ReadOnlyLabel>
+                                <ReadOnlyValue>{formData.customerData.lastName}</ReadOnlyValue>
+                            </ReadOnlyField>
+                        </FieldGroup>
 
-                    <FieldGroup>
-                        <Label>{t.checkin.verification.phone}</Label>
-                        <Input
-                            value={formData.customerData.phone}
-                            onChange={(e) => handleCustomerChange('phone', e.target.value)}
-                        />
-                        {errors.phone && <ErrorMessage>{errors.phone}</ErrorMessage>}
-                    </FieldGroup>
+                        <FieldGroup>
+                            <ReadOnlyField>
+                                <ReadOnlyLabel>{t.checkin.verification.phone}</ReadOnlyLabel>
+                                <ReadOnlyValue>{formData.customerData.phone}</ReadOnlyValue>
+                            </ReadOnlyField>
+                        </FieldGroup>
 
-                    <FieldGroup>
-                        <Label>{t.checkin.verification.email}</Label>
-                        <Input
-                            type="email"
-                            value={formData.customerData.email}
-                            onChange={(e) => handleCustomerChange('email', e.target.value)}
-                        />
-                        {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
-                    </FieldGroup>
-                </FormGrid>
+                        <FieldGroup>
+                            <ReadOnlyField>
+                                <ReadOnlyLabel>{t.checkin.verification.email}</ReadOnlyLabel>
+                                <ReadOnlyValue>{formData.customerData.email}</ReadOnlyValue>
+                            </ReadOnlyField>
+                        </FieldGroup>
+                    </FormGrid>
+                ) : (
+                    // Tylko alias - przycisk wyboru klienta
+                    <>
+                        {formData.customerAlias && (
+                            <AliasInfo>
+                                Obecny alias: <strong>{formData.customerAlias}</strong>
+                            </AliasInfo>
+                        )}
+                        <CustomerSelectButton
+                            $variant="primary"
+                            onClick={() => setIsCustomerModalOpen(true)}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: '20px', height: '20px', marginRight: '8px' }}>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            Dodaj lub wyszukaj klienta
+                        </CustomerSelectButton>
+                    </>
+                )}
 
                 <Divider />
 
@@ -386,6 +465,12 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
                     onChange={onServicesChange}
                 />
             </Card>
+
+            <CustomerModal
+                isOpen={isCustomerModalOpen}
+                onClose={() => setIsCustomerModalOpen(false)}
+                onSelect={handleCustomerSelect}
+            />
         </StepContainer>
     );
 };

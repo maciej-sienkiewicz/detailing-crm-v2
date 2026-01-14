@@ -17,6 +17,8 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
             email: '',
             ...initialData.customerData,
         },
+        customerAlias: initialData.customerAlias,
+        hasFullCustomerData: initialData.hasFullCustomerData ?? true,
         vehicleData: {
             id: '',
             brand: '',
@@ -25,6 +27,8 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
             vin: '',
             ...initialData.vehicleData,
         },
+        homeAddress: initialData.homeAddress || null,
+        company: initialData.company || null,
         technicalState: {
             mileage: 0,
             fuelLevel: 50,
@@ -112,13 +116,19 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
     const submitCheckIn = async () => {
         const payload: ReservationToVisitPayload = {
             reservationId,
-            customer: {
-                id: formData.customerData.id,
-                firstName: formData.customerData.firstName,
-                lastName: formData.customerData.lastName,
-                phone: formData.customerData.phone,
-                email: formData.customerData.email,
-            },
+            ...(formData.hasFullCustomerData ? {
+                customer: {
+                    id: formData.customerData.id,
+                    firstName: formData.customerData.firstName,
+                    lastName: formData.customerData.lastName,
+                    phone: formData.customerData.phone,
+                    email: formData.customerData.email,
+                    homeAddress: formData.homeAddress || undefined,
+                    company: formData.company || undefined,
+                },
+            } : {
+                customerAlias: formData.customerAlias,
+            }),
             vehicle: {
                 id: formData.vehicleData.id,
                 vin: formData.vehicleData.vin,

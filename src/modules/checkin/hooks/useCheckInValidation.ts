@@ -8,18 +8,27 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
         const validationErrors: Record<string, string> = {};
 
         if (currentStep === 'verification') {
-            if (!formData.customerData.firstName || formData.customerData.firstName.length < 2) {
-                validationErrors.firstName = t.customers.validation.firstNameMin;
+            // Walidacja danych klienta - tylko jeśli hasFullCustomerData jest true
+            if (formData.hasFullCustomerData) {
+                if (!formData.customerData.firstName || formData.customerData.firstName.length < 2) {
+                    validationErrors.firstName = t.customers.validation.firstNameMin;
+                }
+                if (!formData.customerData.lastName || formData.customerData.lastName.length < 2) {
+                    validationErrors.lastName = t.customers.validation.lastNameMin;
+                }
+                if (!formData.customerData.email || !isValidEmail(formData.customerData.email)) {
+                    validationErrors.email = t.customers.validation.emailInvalid;
+                }
+                if (!formData.customerData.phone || !isValidPolishPhone(formData.customerData.phone)) {
+                    validationErrors.phone = t.customers.validation.phoneInvalid;
+                }
+            } else {
+                // Jeśli nie ma pełnych danych, musi być alias lub wybór klienta
+                if (!formData.customerAlias && !formData.customerData.id) {
+                    validationErrors.customer = 'Musisz wybrać klienta lub wprowadzić alias';
+                }
             }
-            if (!formData.customerData.lastName || formData.customerData.lastName.length < 2) {
-                validationErrors.lastName = t.customers.validation.lastNameMin;
-            }
-            if (!formData.customerData.email || !isValidEmail(formData.customerData.email)) {
-                validationErrors.email = t.customers.validation.emailInvalid;
-            }
-            if (!formData.customerData.phone || !isValidPolishPhone(formData.customerData.phone)) {
-                validationErrors.phone = t.customers.validation.phoneInvalid;
-            }
+
             // VIN jest opcjonalny - walidacja tylko jeśli został podany
             if (formData.vehicleData.vin && formData.vehicleData.vin.length > 0 && formData.vehicleData.vin.length !== 17) {
                 validationErrors.vin = t.checkin.verification.vinFormat;
