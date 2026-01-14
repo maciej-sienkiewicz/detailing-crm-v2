@@ -78,8 +78,8 @@ export const appointmentApi = {
         if (USE_MOCKS) {
             return mockGetServices();
         }
-        const response = await apiClient.get('/api/v1/services');
-        return response.data;
+        const response = await apiClient.get<{ services: Service[] }>('/api/v1/services');
+        return response.data.services;
     },
 
     searchCustomers: async (query: string): Promise<Customer[]> => {
