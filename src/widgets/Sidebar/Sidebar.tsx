@@ -31,7 +31,7 @@ const menuSections: MenuSection[] = [
             { path: '/vehicles', label: 'Pojazdy', icon: '▣' },
             { path: '/services', label: 'Usługi', icon: '◐' },
             { path: '/invoices', label: 'Faktury', icon: '◫' },
-            { path: '/reports', label: 'Raporty', icon: '◧' },
+            { path: '/appointment-colors', label: 'Raporty', icon: '◧' },
         ],
     },
     {
