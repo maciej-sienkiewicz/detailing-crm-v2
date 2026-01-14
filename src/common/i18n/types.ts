@@ -812,6 +812,101 @@ export interface TranslationKeys {
             services: string;
         };
     };
+    consents: {
+        title: string;
+        subtitle: string;
+        addDefinition: string;
+        uploadNewVersion: string;
+        viewPdf: string;
+        setAsActive: string;
+        empty: {
+            title: string;
+            description: string;
+        };
+        definition: {
+            title: string;
+            name: string;
+            slug: string;
+            description: string;
+            activeVersion: string;
+            noActiveVersion: string;
+            allVersions: string;
+        };
+        template: {
+            version: string;
+            requiresResign: string;
+            active: string;
+            inactive: string;
+            createdAt: string;
+            createdBy: string;
+        };
+        createDefinitionModal: {
+            title: string;
+            nameLabel: string;
+            namePlaceholder: string;
+            slugLabel: string;
+            slugPlaceholder: string;
+            descriptionLabel: string;
+            descriptionPlaceholder: string;
+            submit: string;
+            submitting: string;
+            cancel: string;
+        };
+        uploadTemplateModal: {
+            title: string;
+            fileLabel: string;
+            fileHint: string;
+            requiresResignLabel: string;
+            requiresResignHint: string;
+            setAsActiveLabel: string;
+            setAsActiveHint: string;
+            selectFile: string;
+            fileSelected: string;
+            upload: string;
+            uploading: string;
+            uploadingToS3: string;
+            cancel: string;
+        };
+        status: {
+            valid: string;
+            required: string;
+            outdated: string;
+        };
+        validation: {
+            nameRequired: string;
+            nameMin: string;
+            nameMax: string;
+            slugRequired: string;
+            slugPattern: string;
+            slugMin: string;
+            slugMax: string;
+            descriptionMax: string;
+            fileRequired: string;
+            filePdfOnly: string;
+        };
+        error: {
+            loadDefinitionsFailed: string;
+            createDefinitionFailed: string;
+            uploadTemplateFailed: string;
+            s3UploadFailed: string;
+            setActiveFailed: string;
+            forbidden: string;
+        };
+        success: {
+            definitionCreated: string;
+            templateUploaded: string;
+            templateActivated: string;
+        };
+        customer: {
+            title: string;
+            viewDocument: string;
+            sign: string;
+            signed: string;
+            signedAt: string;
+            currentVersion: string;
+            yourVersion: string;
+        };
+    };
 }
 
 export type TranslationKey = keyof TranslationKeys;
