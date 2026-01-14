@@ -144,15 +144,15 @@ export const CustomerDetailsModal = ({
         if (customerDetail) {
             // Użyj danych z API
             setLocalCustomerData({
-                firstName: customerDetail.customer.firstName,
-                lastName: customerDetail.customer.lastName,
-                email: customerDetail.customer.contact.email,
-                phone: customerDetail.customer.contact.phone,
+                firstName: customerDetail.firstName,
+                lastName: customerDetail.lastName,
+                email: customerDetail.contact.email,
+                phone: customerDetail.contact.phone,
             });
 
-            if (customerDetail.customer.homeAddress) {
+            if (customerDetail.homeAddress) {
                 setIncludeHomeAddress(true);
-                setLocalHomeAddress(customerDetail.customer.homeAddress);
+                setLocalHomeAddress(customerDetail.homeAddress);
             } else {
                 setIncludeHomeAddress(false);
                 setLocalHomeAddress({
@@ -163,9 +163,9 @@ export const CustomerDetailsModal = ({
                 });
             }
 
-            if (customerDetail.customer.company) {
+            if (customerDetail.company) {
                 setIncludeCompany(true);
-                setLocalCompany(customerDetail.customer.company);
+                setLocalCompany(customerDetail.company);
             } else {
                 setIncludeCompany(false);
                 setLocalCompany({
