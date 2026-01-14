@@ -311,4 +311,23 @@ export const operationApi = {
 
         await apiClient.delete(`${BASE_PATH}/${id}`);
     },
+
+    updateReservationDate: async (
+        reservationId: string,
+        startDateTime: string,
+        endDateTime: string
+    ): Promise<void> => {
+        await apiClient.patch(`/api/v1/appointments/${reservationId}`, {
+            schedule: {
+                startDateTime,
+                endDateTime,
+            },
+        });
+    },
+
+    cancelReservation: async (reservationId: string): Promise<void> => {
+        await apiClient.patch(`/api/v1/appointments/${reservationId}`, {
+            status: 'CANCELLED',
+        });
+    },
 };

@@ -3,7 +3,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Layout } from '@/widgets/Layout';
 import { CustomerListView } from '@/modules/customers';
 import { CustomerDetailView } from '@/modules/customers/views/CustomerDetailView';
-import { AppointmentCreateView } from '@/modules/appointments';
+import { AppointmentCreateView, AppointmentEditView } from '@/modules/appointments';
 import { VehicleDetailView, VehicleListView } from '@/modules/vehicles';
 import { OperationListView } from '@/modules/operations';
 import { VisitDetailView } from '@/modules/visits';
@@ -52,6 +52,14 @@ export const router = createBrowserRouter([
         element: (
             <ProtectedRoute>
                 <Layout><AppointmentCreateView /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/appointments/:appointmentId/edit',
+        element: (
+            <ProtectedRoute>
+                <Layout><AppointmentEditView /></Layout>
             </ProtectedRoute>
         ),
     },

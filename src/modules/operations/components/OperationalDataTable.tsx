@@ -5,8 +5,12 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { useOperations } from '../hooks/useOperations';
 import { useDeleteOperation } from '../hooks/useDeleteOperation';
+import { useUpdateReservationDate, useCancelReservation } from '../hooks/useReservationActions';
 import { OperationStatusBadge } from './OperationStatusBadge';
 import { DeleteOperationModal } from './DeleteOperationModal';
+import { ReservationOptionsModal } from './ReservationOptionsModal';
+import { ChangeDateModal } from './ChangeDateModal';
+import { CancelReservationModal } from './CancelReservationModal';
 import { formatCurrency, formatDateTime } from '@/common/utils';
 import type { Operation, OperationType, OperationStatus } from '../types';
 
@@ -255,6 +259,21 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
         operation: Operation | null;
     }>({ isOpen: false, operation: null });
 
+    const [reservationOptionsModalState, setReservationOptionsModalState] = useState<{
+        isOpen: boolean;
+        reservation: Operation | null;
+    }>({ isOpen: false, reservation: null });
+
+    const [changeDateModalState, setChangeDateModalState] = useState<{
+        isOpen: boolean;
+        reservation: Operation | null;
+    }>({ isOpen: false, reservation: null });
+
+    const [cancelModalState, setCancelModalState] = useState<{
+        isOpen: boolean;
+        reservation: Operation | null;
+    }>({ isOpen: false, reservation: null });
+
     const { operations, isLoading } = useOperations({
         search,
         page,
@@ -266,12 +285,20 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
     });
 
     const { deleteOperation, isDeleting } = useDeleteOperation();
+    const { updateDate, isUpdating } = useUpdateReservationDate();
+    const { cancelReservation, isCancelling } = useCancelReservation();
 
     const handleRowClick = useCallback((operation: Operation) => {
-        const path = operation.type === 'VISIT'
-            ? `/visit/${operation.id}`
-            : `/reservation/${operation.id}`;
-        navigate(path);
+        // Dla wizyt - przekieruj do widoku szczegółów
+        if (operation.type === 'VISIT') {
+            navigate(`/visit/${operation.id}`);
+            return;
+        }
+
+        // Dla rezerwacji - otwórz modal z opcjami
+        if (operation.type === 'RESERVATION') {
+            setReservationOptionsModalState({ isOpen: true, reservation: operation });
+        }
     }, [navigate]);
 
     const handleDeleteClick = useCallback((operation: Operation, e: React.MouseEvent) => {
@@ -292,6 +319,78 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
     const handleDeleteCancel = useCallback(() => {
         setDeleteModalState({ isOpen: false, operation: null });
     }, []);
+
+    // Handlery dla modala opcji rezerwacji
+    const handleReservationOptionsClose = useCallback(() => {
+        setReservationOptionsModalState({ isOpen: false, reservation: null });
+    }, []);
+
+    const handleChangeDateClick = useCallback(() => {
+        setChangeDateModalState({
+            isOpen: true,
+            reservation: reservationOptionsModalState.reservation,
+        });
+        setReservationOptionsModalState({ isOpen: false, reservation: null });
+    }, [reservationOptionsModalState.reservation]);
+
+    const handleEditServicesClick = useCallback(() => {
+        if (reservationOptionsModalState.reservation) {
+            navigate(`/appointments/${reservationOptionsModalState.reservation.id}/edit`);
+            setReservationOptionsModalState({ isOpen: false, reservation: null });
+        }
+    }, [reservationOptionsModalState.reservation, navigate]);
+
+    const handleEditDetailsClick = useCallback(() => {
+        if (reservationOptionsModalState.reservation) {
+            navigate(`/appointments/${reservationOptionsModalState.reservation.id}/edit`);
+            setReservationOptionsModalState({ isOpen: false, reservation: null });
+        }
+    }, [reservationOptionsModalState.reservation, navigate]);
+
+    const handleCancelReservationClick = useCallback(() => {
+        setCancelModalState({
+            isOpen: true,
+            reservation: reservationOptionsModalState.reservation,
+        });
+        setReservationOptionsModalState({ isOpen: false, reservation: null });
+    }, [reservationOptionsModalState.reservation]);
+
+    // Handlery dla modala zmiany daty
+    const handleChangeDateClose = useCallback(() => {
+        setChangeDateModalState({ isOpen: false, reservation: null });
+    }, []);
+
+    const handleChangeDateConfirm = useCallback((startDateTime: string, endDateTime: string) => {
+        if (changeDateModalState.reservation) {
+            updateDate(
+                {
+                    reservationId: changeDateModalState.reservation.id,
+                    startDateTime,
+                    endDateTime,
+                },
+                {
+                    onSuccess: () => {
+                        setChangeDateModalState({ isOpen: false, reservation: null });
+                    },
+                }
+            );
+        }
+    }, [changeDateModalState.reservation, updateDate]);
+
+    // Handlery dla modala anulowania
+    const handleCancelReservationClose = useCallback(() => {
+        setCancelModalState({ isOpen: false, reservation: null });
+    }, []);
+
+    const handleCancelReservationConfirm = useCallback(() => {
+        if (cancelModalState.reservation) {
+            cancelReservation(cancelModalState.reservation.id, {
+                onSuccess: () => {
+                    setCancelModalState({ isOpen: false, reservation: null });
+                },
+            });
+        }
+    }, [cancelModalState.reservation, cancelReservation]);
 
     const renderSkeletonRows = () => (
         <>
@@ -455,6 +554,32 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
                         ? `${deleteModalState.operation.customerFirstName} ${deleteModalState.operation.customerLastName}`
                         : ''
                 }
+            />
+
+            <ReservationOptionsModal
+                isOpen={reservationOptionsModalState.isOpen}
+                onClose={handleReservationOptionsClose}
+                reservation={reservationOptionsModalState.reservation}
+                onChangeDateClick={handleChangeDateClick}
+                onEditServicesClick={handleEditServicesClick}
+                onEditDetailsClick={handleEditDetailsClick}
+                onCancelReservationClick={handleCancelReservationClick}
+            />
+
+            <ChangeDateModal
+                isOpen={changeDateModalState.isOpen}
+                onClose={handleChangeDateClose}
+                reservation={changeDateModalState.reservation}
+                onConfirm={handleChangeDateConfirm}
+                isUpdating={isUpdating}
+            />
+
+            <CancelReservationModal
+                isOpen={cancelModalState.isOpen}
+                onClose={handleCancelReservationClose}
+                onConfirm={handleCancelReservationConfirm}
+                isCancelling={isCancelling}
+                reservation={cancelModalState.reservation}
             />
         </>
     );

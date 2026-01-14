@@ -1,5 +1,6 @@
 // src/modules/appointments/index.ts
 export { AppointmentCreateView } from './views/AppointmentCreateView';
+export { AppointmentEditView } from './views/AppointmentEditView';
 export { appointmentApi } from './api/appointmentApi';
 export {
     useAppointmentForm,
