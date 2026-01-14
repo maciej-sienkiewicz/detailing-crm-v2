@@ -5,7 +5,6 @@ import { Card, CardHeader, CardTitle } from '@/common/components/Card';
 import { Divider } from '@/common/components/Divider';
 import { formatPhoneNumber } from '@/common/utils';
 import { t } from '@/common/i18n';
-import { EditableServicesTable } from './EditableServicesTable';
 import type { CheckInFormData } from '../types';
 
 const StepContainer = styled.div`
@@ -94,10 +93,10 @@ const WarningText = styled.p`
 
 interface SummaryStepProps {
     formData: CheckInFormData;
-    onServicesChange: (services: CheckInFormData['services']) => void;
+    readOnly?: boolean;
 }
 
-export const SummaryStep = ({ formData, onServicesChange }: SummaryStepProps) => {
+export const SummaryStep = ({ formData, readOnly = false }: SummaryStepProps) => {
     const depositItems = [];
     if (formData.technicalState.deposit.keys) depositItems.push(t.checkin.technical.depositItems.keys);
     if (formData.technicalState.deposit.registrationDocument) depositItems.push(t.checkin.technical.depositItems.registrationDocument);
@@ -231,17 +230,6 @@ export const SummaryStep = ({ formData, onServicesChange }: SummaryStepProps) =>
                         </WarningBox>
                     )}
                 </SummarySection>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>{t.checkin.summary.servicesInfo}</CardTitle>
-                </CardHeader>
-
-                <EditableServicesTable
-                    services={formData.services}
-                    onChange={onServicesChange}
-                />
             </Card>
         </StepContainer>
     );

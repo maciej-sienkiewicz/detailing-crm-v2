@@ -144,14 +144,7 @@ export const CheckInWizardView = ({ reservationId, initialData, onComplete }: Ch
                         formData={formData}
                         errors={errors}
                         onChange={updateFormData}
-                    />
-                );
-            case 'technical':
-                return (
-                    <TechnicalStateStep
-                        formData={formData}
-                        errors={errors}
-                        onChange={updateFormData}
+                        onServicesChange={handleServicesChange}
                     />
                 );
             case 'photos':
@@ -162,11 +155,19 @@ export const CheckInWizardView = ({ reservationId, initialData, onComplete }: Ch
                         onChange={updateFormData}
                     />
                 );
+            case 'technical':
+                return (
+                    <TechnicalStateStep
+                        formData={formData}
+                        errors={errors}
+                        onChange={updateFormData}
+                    />
+                );
             case 'summary':
                 return (
                     <SummaryStep
                         formData={formData}
-                        onServicesChange={handleServicesChange}
+                        readOnly={true}
                     />
                 );
             default:

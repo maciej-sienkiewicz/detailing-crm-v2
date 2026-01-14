@@ -20,7 +20,8 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
             if (!formData.customerData.phone || !isValidPolishPhone(formData.customerData.phone)) {
                 validationErrors.phone = t.customers.validation.phoneInvalid;
             }
-            if (!formData.vehicleData.vin || formData.vehicleData.vin.length !== 17) {
+            // VIN jest opcjonalny - walidacja tylko jeśli został podany
+            if (formData.vehicleData.vin && formData.vehicleData.vin.length > 0 && formData.vehicleData.vin.length !== 17) {
                 validationErrors.vin = t.checkin.verification.vinFormat;
             }
         }

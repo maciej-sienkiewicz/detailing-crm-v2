@@ -42,9 +42,9 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
     });
 
     const steps: Array<{ id: CheckInStep; label: string }> = [
-        { id: 'verification', label: 'Weryfikacja' },
-        { id: 'technical', label: 'Stan techniczny' },
-        { id: 'photos', label: 'Dokumentacja' },
+        { id: 'verification', label: 'Weryfikacja danych i usług' },
+        { id: 'photos', label: 'Dokumentacja fotograficzna' },
+        { id: 'technical', label: 'Stan pojazdu' },
         { id: 'summary', label: 'Podsumowanie' },
     ];
 

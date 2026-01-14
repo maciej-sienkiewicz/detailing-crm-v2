@@ -107,7 +107,7 @@ export interface ReservationToVisitPayload {
     };
     vehicle: {
         id: string;
-        vin: string;
+        vin?: string; // VIN jest opcjonalny
     };
     technicalState: {
         mileage: number;
