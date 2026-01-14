@@ -47,6 +47,10 @@ const Body = styled.div`
     }
 `;
 
+const EmptyStateWrapper = styled.div`
+    padding-bottom: ${props => props.theme.spacing.xl};
+`;
+
 const SearchSection = styled.div`
     margin-bottom: ${props => props.theme.spacing.lg};
     padding-bottom: ${props => props.theme.spacing.lg};
@@ -265,10 +269,12 @@ export const InvoiceSummary = ({ services, availableServices, onChange }: Invoic
                 </SearchSection>
 
                 {services.length === 0 ? (
-                    <EmptyState
-                        icon="📝"
-                        title={t.appointments.invoiceSummary.emptyState}
-                    />
+                    <EmptyStateWrapper>
+                        <EmptyState
+                            icon="📝"
+                            title={t.appointments.invoiceSummary.emptyState}
+                        />
+                    </EmptyStateWrapper>
                 ) : (
                     <>
                         <ItemsList>

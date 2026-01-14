@@ -9,8 +9,9 @@ export interface PriceAdjustment {
 }
 
 export interface CustomerIdentity {
-    mode: 'EXISTING' | 'NEW';
+    mode: 'EXISTING' | 'NEW' | 'ALIAS';
     id?: string;
+    alias?: string;
     newData?: {
         firstName: string;
         lastName: string;
@@ -89,11 +90,13 @@ export interface AppointmentColor {
 
 export interface SelectedCustomer {
     id?: string;
-    firstName: string;
-    lastName: string;
-    phone: string;
-    email: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    email?: string;
+    alias?: string;
     isNew: boolean;
+    isAlias: boolean;
 }
 
 export interface SelectedVehicle {
