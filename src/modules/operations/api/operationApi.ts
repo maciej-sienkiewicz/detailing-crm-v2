@@ -12,7 +12,7 @@ const BASE_PATH = '/api/operations';
 interface AppointmentResponse {
     id: string;
     customerId: string;
-    vehicleId: string;
+    vehicleId: string | null;
     customer: {
         firstName: string;
         lastName: string;
@@ -24,7 +24,7 @@ interface AppointmentResponse {
         model: string;
         year: number;
         licensePlate: string;
-    };
+    } | null;
     schedule: {
         isAllDay: boolean;
         startDateTime: string;
@@ -69,11 +69,11 @@ const mapAppointmentToOperation = (appointment: AppointmentResponse): Operation 
         customerLastName: appointment.customer.lastName,
         customerPhone: appointment.customer.phone,
         status: mapStatus(appointment.status),
-        vehicle: {
+        vehicle: appointment.vehicle ? {
             brand: appointment.vehicle.brand,
             model: appointment.vehicle.model,
             licensePlate: appointment.vehicle.licensePlate,
-        },
+        } : null,
         startDateTime: appointment.schedule.startDateTime,
         endDateTime: appointment.schedule.endDateTime,
         financials: {
@@ -186,7 +186,7 @@ const mockGetVisits = async (filters: OperationFilters): Promise<OperationListRe
         filteredData = filteredData.filter(op =>
             op.customerLastName.toLowerCase().includes(searchLower) ||
             op.customerPhone.includes(filters.search) ||
-            op.vehicle.licensePlate.toLowerCase().includes(searchLower)
+            (op.vehicle?.licensePlate?.toLowerCase().includes(searchLower) ?? false)
         );
     }
 

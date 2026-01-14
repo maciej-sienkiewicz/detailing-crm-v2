@@ -152,7 +152,8 @@ export const ReservationOptionsModal = ({
                 <ModalHeader>
                     <ModalTitle>Opcje rezerwacji</ModalTitle>
                     <ModalSubtitle>
-                        {reservation.customerFirstName} {reservation.customerLastName} • {reservation.vehicle.brand} {reservation.vehicle.model}
+                        {reservation.customerFirstName} {reservation.customerLastName}
+                        {reservation.vehicle && ` • ${reservation.vehicle.brand} ${reservation.vehicle.model}`}
                     </ModalSubtitle>
                 </ModalHeader>
 

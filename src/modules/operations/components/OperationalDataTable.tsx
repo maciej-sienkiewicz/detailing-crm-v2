@@ -476,12 +476,20 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
                                     </TableCell>
                                     <TableCell>
                                         <VehicleCell>
-                                            <VehicleName>
-                                                {operation.vehicle.brand} {operation.vehicle.model}
-                                            </VehicleName>
-                                            <LicensePlateBadge>
-                                                {operation.vehicle.licensePlate}
-                                            </LicensePlateBadge>
+                                            {operation.vehicle ? (
+                                                <>
+                                                    <VehicleName>
+                                                        {operation.vehicle.brand} {operation.vehicle.model}
+                                                    </VehicleName>
+                                                    <LicensePlateBadge>
+                                                        {operation.vehicle.licensePlate}
+                                                    </LicensePlateBadge>
+                                                </>
+                                            ) : (
+                                                <VehicleName style={{ color: '#94a3b8', fontStyle: 'italic' }}>
+                                                    Brak pojazdu
+                                                </VehicleName>
+                                            )}
                                         </VehicleCell>
                                     </TableCell>
                                     <TableCell>

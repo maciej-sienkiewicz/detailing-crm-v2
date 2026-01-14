@@ -38,7 +38,7 @@ export interface Operation {
     customerLastName: string;
     customerPhone: string;
     status: OperationStatus;
-    vehicle: OperationVehicle;
+    vehicle: OperationVehicle | null;
     startDateTime: string;
     endDateTime: string;
     financials: OperationFinancials;
