@@ -117,6 +117,6 @@ export const appointmentApi = {
             return mockGetAppointmentColors();
         }
         const response = await apiClient.get('/api/v1/appointment-colors');
-        return response.data;
+        return response.data.colors;
     },
 };
