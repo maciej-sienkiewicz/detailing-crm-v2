@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Modal } from '@/common/components/Modal';
 import { FormGrid, FieldGroup, Label, Input, ErrorMessage } from '@/common/components/Form';
 import { Button } from '@/common/components/Button';
 import { Toggle } from '@/common/components/Toggle';
 import { t } from '@/common/i18n';
+import { useCustomerDetail } from '@/modules/customers/hooks/useCustomerDetail';
 
 const ModalContent = styled.div`
     display: flex;
@@ -35,32 +36,41 @@ const ButtonGroup = styled.div`
     margin-top: ${props => props.theme.spacing.lg};
 `;
 
+const LoadingContainer = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: ${props => props.theme.spacing.xl};
+    color: ${props => props.theme.colors.textMuted};
+`;
+
 interface CustomerDetailsModalProps {
     isOpen: boolean;
     onClose: () => void;
-    customerData: {
+    customerId: string | null;
+    fallbackData?: {
         firstName: string;
         lastName: string;
         email: string;
         phone: string;
-    };
-    homeAddress: {
-        street: string;
-        city: string;
-        postalCode: string;
-        country: string;
-    } | null;
-    company: {
-        name: string;
-        nip: string;
-        regon: string;
-        address: {
+        homeAddress: {
             street: string;
             city: string;
             postalCode: string;
             country: string;
-        };
-    } | null;
+        } | null;
+        company: {
+            name: string;
+            nip: string;
+            regon: string;
+            address: {
+                street: string;
+                city: string;
+                postalCode: string;
+                country: string;
+            };
+        } | null;
+    };
     onSave: (data: {
         customerData: {
             firstName: string;
@@ -91,38 +101,126 @@ interface CustomerDetailsModalProps {
 export const CustomerDetailsModal = ({
     isOpen,
     onClose,
-    customerData,
-    homeAddress,
-    company,
+    customerId,
+    fallbackData,
     onSave,
 }: CustomerDetailsModalProps) => {
-    const [includeHomeAddress, setIncludeHomeAddress] = useState(!!homeAddress);
-    const [includeCompany, setIncludeCompany] = useState(!!company);
+    // Pobierz dane z API jeśli customerId istnieje
+    const { customerDetail, isLoading } = useCustomerDetail(customerId || '');
 
-    const [localCustomerData, setLocalCustomerData] = useState(customerData);
+    const [includeHomeAddress, setIncludeHomeAddress] = useState(false);
+    const [includeCompany, setIncludeCompany] = useState(false);
 
-    const [localHomeAddress, setLocalHomeAddress] = useState(
-        homeAddress || {
+    const [localCustomerData, setLocalCustomerData] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+    });
+
+    const [localHomeAddress, setLocalHomeAddress] = useState({
+        street: '',
+        city: '',
+        postalCode: '',
+        country: 'Polska',
+    });
+
+    const [localCompany, setLocalCompany] = useState({
+        name: '',
+        nip: '',
+        regon: '',
+        address: {
             street: '',
             city: '',
             postalCode: '',
             country: 'Polska',
-        }
-    );
+        },
+    });
 
-    const [localCompany, setLocalCompany] = useState(
-        company || {
-            name: '',
-            nip: '',
-            regon: '',
-            address: {
-                street: '',
-                city: '',
-                postalCode: '',
-                country: 'Polska',
-            },
+    // Inicjalizuj dane gdy modal się otwiera
+    useEffect(() => {
+        if (!isOpen) return;
+
+        if (customerDetail) {
+            // Użyj danych z API
+            setLocalCustomerData({
+                firstName: customerDetail.customer.firstName,
+                lastName: customerDetail.customer.lastName,
+                email: customerDetail.customer.contact.email,
+                phone: customerDetail.customer.contact.phone,
+            });
+
+            if (customerDetail.customer.homeAddress) {
+                setIncludeHomeAddress(true);
+                setLocalHomeAddress(customerDetail.customer.homeAddress);
+            } else {
+                setIncludeHomeAddress(false);
+                setLocalHomeAddress({
+                    street: '',
+                    city: '',
+                    postalCode: '',
+                    country: 'Polska',
+                });
+            }
+
+            if (customerDetail.customer.company) {
+                setIncludeCompany(true);
+                setLocalCompany(customerDetail.customer.company);
+            } else {
+                setIncludeCompany(false);
+                setLocalCompany({
+                    name: '',
+                    nip: '',
+                    regon: '',
+                    address: {
+                        street: '',
+                        city: '',
+                        postalCode: '',
+                        country: 'Polska',
+                    },
+                });
+            }
+        } else if (fallbackData) {
+            // Użyj danych fallback dla nowo dodanych klientów
+            setLocalCustomerData({
+                firstName: fallbackData.firstName,
+                lastName: fallbackData.lastName,
+                email: fallbackData.email,
+                phone: fallbackData.phone,
+            });
+
+            if (fallbackData.homeAddress) {
+                setIncludeHomeAddress(true);
+                setLocalHomeAddress(fallbackData.homeAddress);
+            } else {
+                setIncludeHomeAddress(false);
+                setLocalHomeAddress({
+                    street: '',
+                    city: '',
+                    postalCode: '',
+                    country: 'Polska',
+                });
+            }
+
+            if (fallbackData.company) {
+                setIncludeCompany(true);
+                setLocalCompany(fallbackData.company);
+            } else {
+                setIncludeCompany(false);
+                setLocalCompany({
+                    name: '',
+                    nip: '',
+                    regon: '',
+                    address: {
+                        street: '',
+                        city: '',
+                        postalCode: '',
+                        country: 'Polska',
+                    },
+                });
+            }
         }
-    );
+    }, [isOpen, customerDetail, fallbackData]);
 
     const handleCustomerDataChange = (field: string, value: string) => {
         setLocalCustomerData(prev => ({ ...prev, [field]: value }));
@@ -154,13 +252,18 @@ export const CustomerDetailsModal = ({
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Edytuj dane klienta" size="xl">
-            <ModalContent>
-                <SectionTitle>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    {t.customers.form.basicInfo.title}
-                </SectionTitle>
+            {isLoading ? (
+                <LoadingContainer>
+                    Ładowanie danych klienta...
+                </LoadingContainer>
+            ) : (
+                <ModalContent>
+                    <SectionTitle>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        {t.customers.form.basicInfo.title}
+                    </SectionTitle>
 
                 <FormGrid>
                     <FieldGroup>
@@ -339,15 +442,16 @@ export const CustomerDetailsModal = ({
                     </>
                 )}
 
-                <ButtonGroup>
-                    <Button $variant="secondary" onClick={onClose}>
-                        Anuluj
-                    </Button>
-                    <Button $variant="primary" onClick={handleSave}>
-                        Zapisz zmiany
-                    </Button>
-                </ButtonGroup>
-            </ModalContent>
+                    <ButtonGroup>
+                        <Button $variant="secondary" onClick={onClose}>
+                            Anuluj
+                        </Button>
+                        <Button $variant="primary" onClick={handleSave}>
+                            Zapisz zmiany
+                        </Button>
+                    </ButtonGroup>
+                </ModalContent>
+            )}
         </Modal>
     );
 };

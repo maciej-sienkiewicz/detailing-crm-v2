@@ -341,9 +341,15 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
             <CustomerDetailsModal
                 isOpen={isCustomerDetailsModalOpen}
                 onClose={() => setIsCustomerDetailsModalOpen(false)}
-                customerData={formData.customerData}
-                homeAddress={formData.homeAddress}
-                company={formData.company}
+                customerId={formData.customerData.id || null}
+                fallbackData={{
+                    firstName: formData.customerData.firstName,
+                    lastName: formData.customerData.lastName,
+                    email: formData.customerData.email,
+                    phone: formData.customerData.phone,
+                    homeAddress: formData.homeAddress,
+                    company: formData.company,
+                }}
                 onSave={handleCustomerDetailsSave}
             />
         </StepContainer>
