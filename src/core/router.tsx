@@ -11,6 +11,7 @@ import { CheckInWizardWrapper } from '@/modules/checkin/views/CheckInWizardWrapp
 import { MobilePhotoUploadWrapper } from '@/modules/checkin/views/MobilePhotoUploadWrapper';
 import { LoginView, SignupView } from '@/modules/auth';
 import { ServiceListView } from "@/modules/services";
+import { AppointmentColorListView } from "@/modules/appointment-colors";
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -109,6 +110,14 @@ export const router = createBrowserRouter([
         element: (
             <ProtectedRoute>
                 <Layout><ServiceListView /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/appointment-colors',
+        element: (
+            <ProtectedRoute>
+                <Layout><AppointmentColorListView /></Layout>
             </ProtectedRoute>
         ),
     },
