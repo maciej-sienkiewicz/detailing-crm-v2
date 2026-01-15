@@ -4,9 +4,7 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { formatCurrency } from '@/common/utils';
 import { Select, Input } from '@/common/components/Form';
-import { Badge } from '@/common/components/Badge';
-import { Button } from '@/common/components/Button';
-import { AddServiceModal } from './AddServiceModal';
+import { ServiceAutocomplete } from './ServiceAutocomplete';
 import type { ServiceLineItem, AdjustmentType } from '../types';
 import type { Service } from '@/modules/services/types';
 
@@ -170,12 +168,6 @@ const TotalValue = styled(Td)`
     }
 `;
 
-const AddServiceButton = styled(Button)`
-    margin-bottom: ${props => props.theme.spacing.md};
-    width: 100%;
-    justify-content: center;
-`;
-
 const NoteInput = styled(Input)`
     margin-top: ${props => props.theme.spacing.xs};
     font-size: ${props => props.theme.fontSizes.sm};
@@ -210,7 +202,6 @@ interface EditableServicesTableProps {
 export const EditableServicesTable = ({ services, onChange }: EditableServicesTableProps) => {
     const [editingPrices, setEditingPrices] = useState<Record<string, boolean>>({});
     const [editingNotes, setEditingNotes] = useState<Record<string, boolean>>({});
-    const [isAddServiceModalOpen, setIsAddServiceModalOpen] = useState(false);
 
     const calculateServicePrice = (service: ServiceLineItem) => {
         const { basePriceNet, vatRate, adjustment } = service;
@@ -364,15 +355,7 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
 
     return (
         <>
-            <AddServiceButton
-                $variant="primary"
-                onClick={() => setIsAddServiceModalOpen(true)}
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: '20px', height: '20px', marginRight: '8px' }}>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Dodaj usługę
-            </AddServiceButton>
+            <ServiceAutocomplete onSelect={handleAddService} />
 
             <TableContainer>
                 <Table>
@@ -520,12 +503,6 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                 </Tbody>
             </Table>
         </TableContainer>
-
-        <AddServiceModal
-            isOpen={isAddServiceModalOpen}
-            onClose={() => setIsAddServiceModalOpen(false)}
-            onSelect={handleAddService}
-        />
     </>
     );
 };
