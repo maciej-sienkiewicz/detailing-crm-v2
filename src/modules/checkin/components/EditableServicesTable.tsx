@@ -116,6 +116,17 @@ const DiscountCell = styled.div`
     gap: ${props => props.theme.spacing.sm};
 `;
 
+const DiscountAmount = styled.div`
+    font-size: ${props => props.theme.fontSizes.sm};
+    color: ${props => props.theme.colors.success};
+    font-weight: ${props => props.theme.fontWeights.medium};
+    padding: ${props => props.theme.spacing.xs};
+    background-color: ${props => props.theme.colors.successLight || '#f0fdf4'};
+    border-radius: ${props => props.theme.radii.sm};
+    text-align: center;
+    font-feature-settings: 'tnum';
+`;
+
 const ActionButton = styled.button`
     padding: ${props => props.theme.spacing.sm};
     background-color: transparent;
@@ -239,11 +250,18 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
         const vatAmount = Math.round((finalPriceNet * vatRate) / 100);
         const finalPriceGross = finalPriceNet + vatAmount;
 
+        // Oblicz kwotę rabatu
+        const basePriceGross = basePriceNet + Math.round((basePriceNet * vatRate) / 100);
+        const discountAmountNet = basePriceNet - finalPriceNet;
+        const discountAmountGross = basePriceGross - finalPriceGross;
+
         return {
             finalPriceNet,
             finalPriceGross,
             vatAmount,
-            hasDiscount: adjustment.type !== 'FIXED_NET' || adjustment.value !== 0,
+            discountAmountNet,
+            discountAmountGross,
+            hasDiscount: discountAmountNet !== 0,
         };
     };
 
@@ -436,6 +454,16 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                                             onChange={(e) => handleDiscountValueChange(service.id, e.target.value)}
                                             placeholder="0.00"
                                         />
+                                        {pricing.discountAmountGross > 0 && (
+                                            <DiscountAmount>
+                                                Oszczędność: {formatCurrency(pricing.discountAmountGross / 100)}
+                                            </DiscountAmount>
+                                        )}
+                                        {pricing.discountAmountGross < 0 && (
+                                            <DiscountAmount style={{ color: '#dc2626', backgroundColor: '#fee' }}>
+                                                Dopłata: {formatCurrency(Math.abs(pricing.discountAmountGross) / 100)}
+                                            </DiscountAmount>
+                                        )}
                                     </DiscountCell>
                                 </Td>
 
