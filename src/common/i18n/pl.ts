@@ -340,6 +340,10 @@ export const pl: TranslationKeys = {
         selectedVehicle: {
             newBadge: '✨ Nowy pojazd',
             existingBadge: '✓ Z bazy',
+            yearLabel: 'Rok',
+            licensePlateLabel: 'Rejestracja',
+            showDetails: 'Pokaż szczegółowe dane',
+            changeVehicleButton: 'Zmień pojazd',
         },
         validation: {
             customerRequired: 'Wybierz klienta',

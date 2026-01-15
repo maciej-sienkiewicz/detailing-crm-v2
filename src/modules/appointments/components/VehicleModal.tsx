@@ -96,6 +96,8 @@ export const VehicleModal = ({ isOpen, vehicles, onClose, onSelect, allowSkip = 
             id: vehicle.id,
             brand: vehicle.brand,
             model: vehicle.model,
+            year: vehicle.year,
+            licensePlate: vehicle.licensePlate,
             isNew: false,
         });
         onClose();

@@ -103,5 +103,7 @@ export interface SelectedVehicle {
     id?: string;
     brand: string;
     model: string;
+    year?: number;
+    licensePlate?: string;
     isNew: boolean;
 }

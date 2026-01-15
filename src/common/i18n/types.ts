@@ -399,6 +399,10 @@ export interface TranslationKeys {
         selectedVehicle: {
             newBadge: string;
             existingBadge: string;
+            yearLabel: string;
+            licensePlateLabel: string;
+            showDetails: string;
+            changeVehicleButton: string;
         };
         validation: {
             customerRequired: string;
