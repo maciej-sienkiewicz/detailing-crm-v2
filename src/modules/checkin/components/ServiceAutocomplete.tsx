@@ -10,10 +10,12 @@ import type { Service } from '@/modules/services/types';
 
 const AutocompleteContainer = styled.div`
     position: relative;
+    width: 100%;
     margin-bottom: ${props => props.theme.spacing.md};
 `;
 
 const StyledInput = styled(Input)`
+    width: 100%;
     font-size: ${props => props.theme.fontSizes.md};
     padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
 `;
