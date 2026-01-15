@@ -5,7 +5,10 @@ import styled from 'styled-components';
 import { formatCurrency } from '@/common/utils';
 import { Select, Input } from '@/common/components/Form';
 import { Badge } from '@/common/components/Badge';
+import { Button } from '@/common/components/Button';
+import { AddServiceModal } from './AddServiceModal';
 import type { ServiceLineItem, AdjustmentType } from '../types';
+import type { Service } from '@/modules/services/types';
 
 const TableContainer = styled.div`
     background-color: ${props => props.theme.colors.surface};
@@ -167,6 +170,38 @@ const TotalValue = styled(Td)`
     }
 `;
 
+const AddServiceButton = styled(Button)`
+    margin-bottom: ${props => props.theme.spacing.md};
+    width: 100%;
+    justify-content: center;
+`;
+
+const NoteInput = styled(Input)`
+    margin-top: ${props => props.theme.spacing.xs};
+    font-size: ${props => props.theme.fontSizes.sm};
+`;
+
+const NoteDisplay = styled.div`
+    margin-top: ${props => props.theme.spacing.xs};
+    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
+    background-color: ${props => props.theme.colors.surfaceAlt};
+    border-radius: ${props => props.theme.radii.sm};
+    font-size: ${props => props.theme.fontSizes.sm};
+    color: ${props => props.theme.colors.textSecondary};
+    cursor: pointer;
+    transition: background-color ${props => props.theme.transitions.fast};
+
+    &:hover {
+        background-color: ${props => props.theme.colors.surfaceHover};
+    }
+
+    &:empty::before {
+        content: 'Kliknij aby dodać notatkę...';
+        color: ${props => props.theme.colors.textMuted};
+        font-style: italic;
+    }
+`;
+
 interface EditableServicesTableProps {
     services: ServiceLineItem[];
     onChange: (services: ServiceLineItem[]) => void;
@@ -174,6 +209,8 @@ interface EditableServicesTableProps {
 
 export const EditableServicesTable = ({ services, onChange }: EditableServicesTableProps) => {
     const [editingPrices, setEditingPrices] = useState<Record<string, boolean>>({});
+    const [editingNotes, setEditingNotes] = useState<Record<string, boolean>>({});
+    const [isAddServiceModalOpen, setIsAddServiceModalOpen] = useState(false);
 
     const calculateServicePrice = (service: ServiceLineItem) => {
         const { basePriceNet, vatRate, adjustment } = service;
@@ -291,6 +328,32 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
         onChange(updatedServices);
     };
 
+    const handleAddService = (service: Service) => {
+        const newServiceLine: ServiceLineItem = {
+            id: `${service.id}_${Date.now()}`,
+            serviceId: service.id,
+            serviceName: service.name,
+            basePriceNet: service.basePriceNet,
+            vatRate: service.vatRate,
+            adjustment: {
+                type: 'PERCENT',
+                value: 0,
+            },
+            note: '',
+        };
+        onChange([...services, newServiceLine]);
+    };
+
+    const handleNoteChange = (serviceId: string, note: string) => {
+        const updatedServices = services.map(s => {
+            if (s.id === serviceId) {
+                return { ...s, note };
+            }
+            return s;
+        });
+        onChange(updatedServices);
+    };
+
     const handleRemoveService = (serviceId: string) => {
         onChange(services.filter(s => s.id !== serviceId));
     };
@@ -300,8 +363,19 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
     const formatMoneyInput = (amount: number) => (amount / 100).toFixed(2);
 
     return (
-        <TableContainer>
-            <Table>
+        <>
+            <AddServiceButton
+                $variant="primary"
+                onClick={() => setIsAddServiceModalOpen(true)}
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: '20px', height: '20px', marginRight: '8px' }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Dodaj usługę
+            </AddServiceButton>
+
+            <TableContainer>
+                <Table>
                 <Thead>
                     <tr>
                         <Th>Nazwa usługi</Th>
@@ -314,16 +388,28 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                 <Tbody>
                     {services.map(service => {
                         const pricing = calculateServicePrice(service);
-                        const isEditing = editingPrices[service.id];
+                        const isEditingPrice = editingPrices[service.id];
+                        const isEditingNote = editingNotes[service.id];
 
                         return (
                             <Tr key={service.id}>
                                 <Td>
                                     <ServiceName>{service.serviceName}</ServiceName>
-                                    {service.note && (
-                                        <Badge $variant="info" style={{ marginTop: '4px' }}>
+                                    {isEditingNote ? (
+                                        <NoteInput
+                                            type="text"
+                                            value={service.note || ''}
+                                            onChange={(e) => handleNoteChange(service.id, e.target.value)}
+                                            onBlur={() => setEditingNotes({ ...editingNotes, [service.id]: false })}
+                                            placeholder="Dodaj notatkę..."
+                                            autoFocus
+                                        />
+                                    ) : (
+                                        <NoteDisplay
+                                            onClick={() => setEditingNotes({ ...editingNotes, [service.id]: true })}
+                                        >
                                             {service.note}
-                                        </Badge>
+                                        </NoteDisplay>
                                     )}
                                 </Td>
 
@@ -374,7 +460,7 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                                     <PriceCell>
                                         <div>
                                             <PriceLabel>Netto</PriceLabel>
-                                            {isEditing ? (
+                                            {isEditingPrice ? (
                                                 <PriceInput
                                                     type="number"
                                                     step="0.01"
@@ -434,5 +520,12 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                 </Tbody>
             </Table>
         </TableContainer>
+
+        <AddServiceModal
+            isOpen={isAddServiceModalOpen}
+            onClose={() => setIsAddServiceModalOpen(false)}
+            onSelect={handleAddService}
+        />
+    </>
     );
 };
