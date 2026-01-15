@@ -350,7 +350,7 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
                             <FieldGroup>
                                 <ReadOnlyField>
                                     <ReadOnlyLabel>Rok produkcji</ReadOnlyLabel>
-                                    <ReadOnlyValue>{formData.vehicleData.yearOfProduction}</ReadOnlyValue>
+                                    <ReadOnlyValue>{formData.vehicleData.yearOfProduction || '-'}</ReadOnlyValue>
                                 </ReadOnlyField>
                             </FieldGroup>
 
@@ -358,13 +358,6 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
                                 <ReadOnlyField>
                                     <ReadOnlyLabel>{t.checkin.verification.licensePlate}</ReadOnlyLabel>
                                     <ReadOnlyValue>{formData.vehicleData.licensePlate || '-'}</ReadOnlyValue>
-                                </ReadOnlyField>
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <ReadOnlyField>
-                                    <ReadOnlyLabel>{t.checkin.verification.vin}</ReadOnlyLabel>
-                                    <ReadOnlyValue>{formData.vehicleData.vin || '-'}</ReadOnlyValue>
                                 </ReadOnlyField>
                             </FieldGroup>
 
