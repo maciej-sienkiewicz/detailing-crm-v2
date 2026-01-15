@@ -7,9 +7,12 @@ import { Button } from '@/common/components/Button';
 import { EditableServicesTable } from './EditableServicesTable';
 import { CustomerModal } from '@/modules/appointments/components/CustomerModal';
 import { CustomerDetailsModal } from './CustomerDetailsModal';
-import type { SelectedCustomer } from '@/modules/appointments/types';
+import { VehicleModal } from '@/modules/appointments/components/VehicleModal';
+import { VehicleDetailsModal } from './VehicleDetailsModal';
+import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/types';
 import { t } from '@/common/i18n';
 import type { CheckInFormData, ServiceLineItem } from '../types';
+import { useCustomerVehicles } from '@/modules/customers/hooks/useCustomerVehicles';
 
 const StepContainer = styled.div`
     display: flex;
@@ -127,6 +130,11 @@ interface VerificationStepProps {
 export const VerificationStep = ({ formData, errors, onChange, onServicesChange }: VerificationStepProps) => {
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isCustomerDetailsModalOpen, setIsCustomerDetailsModalOpen] = useState(false);
+    const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
+    const [isVehicleDetailsModalOpen, setIsVehicleDetailsModalOpen] = useState(false);
+
+    // Pobierz pojazdy klienta jeśli klient jest wybrany
+    const { vehicles: customerVehicles } = useCustomerVehicles(formData.customerData.id || '');
 
     const handleCustomerChange = (field: string, value: string) => {
         onChange({
@@ -188,6 +196,35 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
             });
         }
         setIsCustomerModalOpen(false);
+    };
+
+    const handleVehicleSelect = (vehicle: SelectedVehicle) => {
+        onChange({
+            vehicleData: {
+                id: vehicle.id || '',
+                brand: vehicle.brand,
+                model: vehicle.model,
+                licensePlate: formData.vehicleData.licensePlate,
+                vin: formData.vehicleData.vin,
+            },
+        });
+        setIsVehicleModalOpen(false);
+    };
+
+    const handleVehicleDetailsSave = (data: {
+        vehicleData: {
+            brand: string;
+            model: string;
+            licensePlate: string;
+            vin: string;
+        };
+    }) => {
+        onChange({
+            vehicleData: {
+                ...formData.vehicleData,
+                ...data.vehicleData,
+            },
+        });
     };
 
     return (
@@ -273,49 +310,74 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
 
                 <Divider />
 
-                <SectionTitle>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-                    </svg>
-                    {t.checkin.verification.vehicleSection}
-                </SectionTitle>
+                {formData.vehicleData.id ? (
+                    <>
+                        <SectionHeader>
+                            <SectionTitleWithActions>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                                </svg>
+                                {t.checkin.verification.vehicleSection}
+                            </SectionTitleWithActions>
+                            <SubtleButtonGroup>
+                                <SubtleButton onClick={() => setIsVehicleDetailsModalOpen(true)}>
+                                    Pokaż szczegółowe dane
+                                </SubtleButton>
+                                <SubtleButton onClick={() => setIsVehicleModalOpen(true)}>
+                                    Zmień pojazd
+                                </SubtleButton>
+                            </SubtleButtonGroup>
+                        </SectionHeader>
 
-                <FormGrid>
-                    <FieldGroup>
-                        <Label>{t.checkin.verification.brand}</Label>
-                        <Input
-                            value={formData.vehicleData.brand}
-                            onChange={(e) => handleVehicleChange('brand', e.target.value)}
-                        />
-                    </FieldGroup>
+                        <FormGrid>
+                            <FieldGroup>
+                                <ReadOnlyField>
+                                    <ReadOnlyLabel>{t.checkin.verification.brand}</ReadOnlyLabel>
+                                    <ReadOnlyValue>{formData.vehicleData.brand}</ReadOnlyValue>
+                                </ReadOnlyField>
+                            </FieldGroup>
 
-                    <FieldGroup>
-                        <Label>{t.checkin.verification.model}</Label>
-                        <Input
-                            value={formData.vehicleData.model}
-                            onChange={(e) => handleVehicleChange('model', e.target.value)}
-                        />
-                    </FieldGroup>
+                            <FieldGroup>
+                                <ReadOnlyField>
+                                    <ReadOnlyLabel>{t.checkin.verification.model}</ReadOnlyLabel>
+                                    <ReadOnlyValue>{formData.vehicleData.model}</ReadOnlyValue>
+                                </ReadOnlyField>
+                            </FieldGroup>
 
-                    <FieldGroup>
-                        <Label>{t.checkin.verification.licensePlate}</Label>
-                        <Input
-                            value={formData.vehicleData.licensePlate}
-                            onChange={(e) => handleVehicleChange('licensePlate', e.target.value)}
-                        />
-                    </FieldGroup>
+                            <FieldGroup>
+                                <ReadOnlyField>
+                                    <ReadOnlyLabel>{t.checkin.verification.licensePlate}</ReadOnlyLabel>
+                                    <ReadOnlyValue>{formData.vehicleData.licensePlate}</ReadOnlyValue>
+                                </ReadOnlyField>
+                            </FieldGroup>
 
-                    <FieldGroup>
-                        <Label>{t.checkin.verification.vin}</Label>
-                        <Input
-                            value={formData.vehicleData.vin}
-                            onChange={(e) => handleVehicleChange('vin', e.target.value.toUpperCase())}
-                            placeholder={t.checkin.verification.vinPlaceholder}
-                            maxLength={17}
-                        />
-                        {errors.vin && <ErrorMessage>{errors.vin}</ErrorMessage>}
-                    </FieldGroup>
-                </FormGrid>
+                            <FieldGroup>
+                                <ReadOnlyField>
+                                    <ReadOnlyLabel>{t.checkin.verification.vin}</ReadOnlyLabel>
+                                    <ReadOnlyValue>{formData.vehicleData.vin || '-'}</ReadOnlyValue>
+                                </ReadOnlyField>
+                            </FieldGroup>
+                        </FormGrid>
+                    </>
+                ) : (
+                    <>
+                        <SectionTitle>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                            </svg>
+                            {t.checkin.verification.vehicleSection}
+                        </SectionTitle>
+                        <CustomerSelectButton
+                            $variant="primary"
+                            onClick={() => setIsVehicleModalOpen(true)}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: '20px', height: '20px', marginRight: '8px' }}>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                            </svg>
+                            Dodaj lub wyszukaj pojazd
+                        </CustomerSelectButton>
+                    </>
+                )}
 
                 <Divider />
 
@@ -351,6 +413,26 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
                     company: formData.company,
                 }}
                 onSave={handleCustomerDetailsSave}
+            />
+
+            <VehicleModal
+                isOpen={isVehicleModalOpen}
+                vehicles={customerVehicles || []}
+                onClose={() => setIsVehicleModalOpen(false)}
+                onSelect={handleVehicleSelect}
+            />
+
+            <VehicleDetailsModal
+                isOpen={isVehicleDetailsModalOpen}
+                onClose={() => setIsVehicleDetailsModalOpen(false)}
+                vehicleId={formData.vehicleData.id || null}
+                fallbackData={{
+                    brand: formData.vehicleData.brand,
+                    model: formData.vehicleData.model,
+                    licensePlate: formData.vehicleData.licensePlate,
+                    vin: formData.vehicleData.vin,
+                }}
+                onSave={handleVehicleDetailsSave}
             />
         </StepContainer>
     );
