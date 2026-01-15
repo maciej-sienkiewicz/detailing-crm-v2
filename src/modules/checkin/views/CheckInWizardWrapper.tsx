@@ -107,8 +107,11 @@ interface ReservationResponse {
         id: string;
         brand: string;
         model: string;
+        yearOfProduction: number;
         licensePlate: string;
         vin?: string;
+        color?: string;
+        paintType?: string;
     } | null;
     services: Array<{
         id: string;
@@ -141,8 +144,11 @@ const mockFetchReservation = async (reservationId: string): Promise<ReservationR
             id: 'veh_456',
             brand: 'BMW',
             model: 'X5',
+            yearOfProduction: 2021,
             licensePlate: 'WA 12345',
             vin: 'WBAFR9C50BC000001',
+            color: 'Czarny metalik',
+            paintType: 'Lakier bazowy + lakier',
         },
         services: [
             {
@@ -276,8 +282,11 @@ export const CheckInWizardWrapper = () => {
             id: reservation.vehicle.id,
             brand: reservation.vehicle.brand,
             model: reservation.vehicle.model,
+            yearOfProduction: reservation.vehicle.yearOfProduction,
             licensePlate: reservation.vehicle.licensePlate,
             vin: reservation.vehicle.vin || '',
+            color: reservation.vehicle.color,
+            paintType: reservation.vehicle.paintType,
         } : null,
         homeAddress: reservation.customer?.homeAddress || null,
         company: reservation.customer?.company || null,

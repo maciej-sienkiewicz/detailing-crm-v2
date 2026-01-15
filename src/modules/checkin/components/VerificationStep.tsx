@@ -7,9 +7,9 @@ import { Button } from '@/common/components/Button';
 import { EditableServicesTable } from './EditableServicesTable';
 import { CustomerModal } from '@/modules/appointments/components/CustomerModal';
 import { CustomerDetailsModal } from './CustomerDetailsModal';
-import { VehicleModal } from '@/modules/appointments/components/VehicleModal';
+import { VehicleSearchModal, type SelectedVehicle } from './VehicleSearchModal';
 import { VehicleDetailsModal } from './VehicleDetailsModal';
-import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/types';
+import type { SelectedCustomer } from '@/modules/appointments/types';
 import { t } from '@/common/i18n';
 import type { CheckInFormData, ServiceLineItem } from '../types';
 import { useCustomerVehicles } from '@/modules/customers/hooks/useCustomerVehicles';
@@ -204,8 +204,11 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
                 id: vehicle.id || '',
                 brand: vehicle.brand,
                 model: vehicle.model,
-                licensePlate: formData.vehicleData.licensePlate,
-                vin: formData.vehicleData.vin,
+                yearOfProduction: vehicle.yearOfProduction,
+                licensePlate: vehicle.licensePlate || '',
+                vin: '',
+                color: vehicle.color,
+                paintType: vehicle.paintType,
             },
         });
         setIsVehicleModalOpen(false);
@@ -310,7 +313,7 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
 
                 <Divider />
 
-                {formData.vehicleData.id ? (
+                {formData.vehicleData ? (
                     <>
                         <SectionHeader>
                             <SectionTitleWithActions>
@@ -346,8 +349,15 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
 
                             <FieldGroup>
                                 <ReadOnlyField>
+                                    <ReadOnlyLabel>Rok produkcji</ReadOnlyLabel>
+                                    <ReadOnlyValue>{formData.vehicleData.yearOfProduction}</ReadOnlyValue>
+                                </ReadOnlyField>
+                            </FieldGroup>
+
+                            <FieldGroup>
+                                <ReadOnlyField>
                                     <ReadOnlyLabel>{t.checkin.verification.licensePlate}</ReadOnlyLabel>
-                                    <ReadOnlyValue>{formData.vehicleData.licensePlate}</ReadOnlyValue>
+                                    <ReadOnlyValue>{formData.vehicleData.licensePlate || '-'}</ReadOnlyValue>
                                 </ReadOnlyField>
                             </FieldGroup>
 
@@ -355,6 +365,20 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
                                 <ReadOnlyField>
                                     <ReadOnlyLabel>{t.checkin.verification.vin}</ReadOnlyLabel>
                                     <ReadOnlyValue>{formData.vehicleData.vin || '-'}</ReadOnlyValue>
+                                </ReadOnlyField>
+                            </FieldGroup>
+
+                            <FieldGroup>
+                                <ReadOnlyField>
+                                    <ReadOnlyLabel>Kolor</ReadOnlyLabel>
+                                    <ReadOnlyValue>{formData.vehicleData.color || '-'}</ReadOnlyValue>
+                                </ReadOnlyField>
+                            </FieldGroup>
+
+                            <FieldGroup>
+                                <ReadOnlyField>
+                                    <ReadOnlyLabel>Typ lakieru</ReadOnlyLabel>
+                                    <ReadOnlyValue>{formData.vehicleData.paintType || '-'}</ReadOnlyValue>
                                 </ReadOnlyField>
                             </FieldGroup>
                         </FormGrid>
@@ -415,22 +439,22 @@ export const VerificationStep = ({ formData, errors, onChange, onServicesChange 
                 onSave={handleCustomerDetailsSave}
             />
 
-            <VehicleModal
+            <VehicleSearchModal
                 isOpen={isVehicleModalOpen}
-                vehicles={customerVehicles || []}
                 onClose={() => setIsVehicleModalOpen(false)}
                 onSelect={handleVehicleSelect}
+                customerId={formData.customerData.id}
             />
 
             <VehicleDetailsModal
                 isOpen={isVehicleDetailsModalOpen}
                 onClose={() => setIsVehicleDetailsModalOpen(false)}
-                vehicleId={formData.vehicleData.id || null}
+                vehicleId={formData.vehicleData?.id || null}
                 fallbackData={{
-                    brand: formData.vehicleData.brand,
-                    model: formData.vehicleData.model,
-                    licensePlate: formData.vehicleData.licensePlate,
-                    vin: formData.vehicleData.vin,
+                    brand: formData.vehicleData?.brand || '',
+                    model: formData.vehicleData?.model || '',
+                    licensePlate: formData.vehicleData?.licensePlate || '',
+                    vin: formData.vehicleData?.vin || '',
                 }}
                 onSave={handleVehicleDetailsSave}
             />

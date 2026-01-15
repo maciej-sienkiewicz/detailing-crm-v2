@@ -19,14 +19,7 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
         },
         customerAlias: initialData.customerAlias,
         hasFullCustomerData: initialData.hasFullCustomerData ?? true,
-        vehicleData: {
-            id: '',
-            brand: '',
-            model: '',
-            licensePlate: '',
-            vin: '',
-            ...initialData.vehicleData,
-        },
+        vehicleData: initialData.vehicleData || null,
         homeAddress: initialData.homeAddress || null,
         company: initialData.company || null,
         technicalState: {
@@ -129,10 +122,10 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
             } : {
                 customerAlias: formData.customerAlias,
             }),
-            vehicle: {
+            vehicle: formData.vehicleData ? {
                 id: formData.vehicleData.id,
                 vin: formData.vehicleData.vin,
-            },
+            } : { id: '', vin: '' },
             technicalState: formData.technicalState,
             photoIds: formData.photos.map(p => p.fileId!),
             services: formData.services,

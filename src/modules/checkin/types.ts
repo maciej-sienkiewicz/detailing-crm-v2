@@ -50,9 +50,12 @@ export interface CheckInFormData {
         id: string;
         brand: string;
         model: string;
+        yearOfProduction: number;
         licensePlate: string;
         vin: string;
-    };
+        color?: string;
+        paintType?: string;
+    } | null;
     homeAddress: {
         street: string;
         city: string;
