@@ -109,7 +109,7 @@ interface ReservationResponse {
         model: string;
         licensePlate: string;
         vin?: string;
-    };
+    } | null;
     services: Array<{
         id: string;
         serviceId: string;
@@ -190,13 +190,13 @@ export const CheckInWizardWrapper = () => {
             homeAddress: reservationData.customer.homeAddress,
             company: reservationData.customer.company,
         },
-        vehicle: {
+        vehicle: reservationData.vehicle ? {
             id: reservationData.vehicleId,
             brand: reservationData.vehicle.brand,
             model: reservationData.vehicle.model,
             licensePlate: reservationData.vehicle.licensePlate,
             vin: reservationData.vehicle.vin,
-        },
+        } : null,
         services: reservationData.services?.map((service: any) => ({
             id: service.id,
             serviceId: service.serviceId,
@@ -272,13 +272,13 @@ export const CheckInWizardWrapper = () => {
         },
         customerAlias: (reservationData as any).customerAlias,
         hasFullCustomerData,
-        vehicleData: {
+        vehicleData: reservation.vehicle ? {
             id: reservation.vehicle.id,
             brand: reservation.vehicle.brand,
             model: reservation.vehicle.model,
             licensePlate: reservation.vehicle.licensePlate,
             vin: reservation.vehicle.vin || '',
-        },
+        } : null,
         homeAddress: reservation.customer?.homeAddress || null,
         company: reservation.customer?.company || null,
         services: reservation.services,
