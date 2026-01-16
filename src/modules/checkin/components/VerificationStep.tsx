@@ -127,7 +127,7 @@ interface VerificationStepProps {
     onServicesChange: (services: ServiceLineItem[]) => void;
 }
 
-export const VerificationStep = ({ formData, errors, onChange, onServicesChange }: VerificationStepProps) => {
+export const VerificationStep    = ({ formData, errors, onChange, onServicesChange }: VerificationStepProps) => {
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isCustomerDetailsModalOpen, setIsCustomerDetailsModalOpen] = useState(false);
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);

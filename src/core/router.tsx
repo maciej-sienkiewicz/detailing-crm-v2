@@ -43,9 +43,7 @@ export const router = createBrowserRouter([
     {
         path: '/customers/:customerId',
         element: (
-            <ProtectedRoute>
                 <Layout><CustomerDetailView /></Layout>
-            </ProtectedRoute>
         ),
     },
     {
@@ -59,9 +57,7 @@ export const router = createBrowserRouter([
     {
         path: '/appointments/:appointmentId/edit',
         element: (
-            <ProtectedRoute>
                 <Layout><AppointmentEditView /></Layout>
-            </ProtectedRoute>
         ),
     },
     {
