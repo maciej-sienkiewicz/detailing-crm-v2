@@ -12,7 +12,7 @@ const mockLogin = async (credentials: LoginCredentials): Promise<AuthResponse> =
             if (credentials.email === 'test@example.com' && credentials.password === 'password123') {
                 resolve({
                     success: true,
-                    redirectUrl: '/dashboard',
+                    redirectUrl: '/customers',
                 });
             } else {
                 reject({
