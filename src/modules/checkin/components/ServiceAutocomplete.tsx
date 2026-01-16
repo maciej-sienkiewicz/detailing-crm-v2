@@ -99,7 +99,6 @@ export const ServiceAutocomplete = ({ onSelect }: ServiceAutocompleteProps) => {
             limit: 50,
             showInactive: false,
         }),
-        enabled: debouncedQuery.length > 0,
     });
 
     const services = servicesResponse?.services || [];
@@ -117,7 +116,7 @@ export const ServiceAutocomplete = ({ onSelect }: ServiceAutocompleteProps) => {
 
     const handleInputChange = (value: string) => {
         setSearchQuery(value);
-        setIsOpen(value.length > 0);
+        setIsOpen(true);
     };
 
     const handleServiceSelect = (service: Service) => {
@@ -127,7 +126,7 @@ export const ServiceAutocomplete = ({ onSelect }: ServiceAutocompleteProps) => {
         inputRef.current?.focus();
     };
 
-    const showDropdown = isOpen && searchQuery.length > 0;
+    const showDropdown = isOpen;
 
     return (
         <AutocompleteContainer ref={containerRef}>
@@ -137,7 +136,7 @@ export const ServiceAutocomplete = ({ onSelect }: ServiceAutocompleteProps) => {
                 placeholder="Wpisz nazwę usługi, aby dodać..."
                 value={searchQuery}
                 onChange={(e) => handleInputChange(e.target.value)}
-                onFocus={() => searchQuery.length > 0 && setIsOpen(true)}
+                onFocus={() => setIsOpen(true)}
             />
 
             {showDropdown && (
