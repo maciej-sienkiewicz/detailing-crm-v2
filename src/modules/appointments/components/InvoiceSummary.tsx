@@ -129,6 +129,31 @@ const ServicePrice = styled.span`
     }
 `;
 
+const PriceInfo = styled.div`
+    display: flex;
+    gap: ${props => props.theme.spacing.md};
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-feature-settings: 'tnum';
+`;
+
+const PriceItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: ${props => props.theme.spacing.xs};
+`;
+
+const PriceLabel = styled.span`
+    font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: ${props => props.theme.fontWeights.medium};
+    opacity: 0.8;
+`;
+
+const PriceValue = styled.span`
+    font-weight: ${props => props.theme.fontWeights.bold};
+    font-feature-settings: 'tnum';
+`;
+
 const ItemsList = styled.div`
     display: flex;
     flex-direction: column;
@@ -255,15 +280,29 @@ export const InvoiceSummary = ({ services, availableServices, onChange }: Invoic
                     />
                     {showResults && filteredServices.length > 0 && (
                         <SearchResults>
-                            {filteredServices.map((service) => (
-                                <SearchResultItem
-                                    key={service.id}
-                                    onClick={() => handleAddService(service)}
-                                >
-                                    <ServiceName>{service.name}</ServiceName>
-                                    <ServicePrice>{formatMoneyAmount(service.basePriceNet)} PLN</ServicePrice>
-                                </SearchResultItem>
-                            ))}
+                            {filteredServices.map((service) => {
+                                const priceNet = service.basePriceNet;
+                                const priceGross = Math.round((service.basePriceNet * (100 + service.vatRate)) / 100);
+
+                                return (
+                                    <SearchResultItem
+                                        key={service.id}
+                                        onClick={() => handleAddService(service)}
+                                    >
+                                        <ServiceName>{service.name}</ServiceName>
+                                        <PriceInfo>
+                                            <PriceItem>
+                                                <PriceLabel>Netto</PriceLabel>
+                                                <PriceValue>{formatMoneyAmount(priceNet)} PLN</PriceValue>
+                                            </PriceItem>
+                                            <PriceItem>
+                                                <PriceLabel>Brutto</PriceLabel>
+                                                <PriceValue>{formatMoneyAmount(priceGross)} PLN</PriceValue>
+                                            </PriceItem>
+                                        </PriceInfo>
+                                    </SearchResultItem>
+                                );
+                            })}
                         </SearchResults>
                     )}
                 </SearchSection>
