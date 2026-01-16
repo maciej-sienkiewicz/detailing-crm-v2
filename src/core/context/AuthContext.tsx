@@ -21,10 +21,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const checkAuth = async () => {
     try {
       setIsLoading(true);
+      console.log('[AuthContext] Sprawdzanie autentykacji...');
       // Wywołaj endpoint sprawdzający sesję
       const result = await authApi.checkAuth();
+      console.log('[AuthContext] Wynik sprawdzenia:', result);
       setIsAuthenticated(result.isAuthenticated);
     } catch (error) {
+      console.error('[AuthContext] Błąd podczas sprawdzania autentykacji:', error);
       setIsAuthenticated(false);
     } finally {
       setIsLoading(false);

@@ -18,15 +18,27 @@ apiClient.interceptors.request.use(
 );
 
 apiClient.interceptors.response.use(
-    response => response,
+    response => {
+        console.log('[apiClient] Response:', response.config.url, response.status);
+        return response;
+    },
     error => {
+        console.error('[apiClient] Request failed:', {
+            url: error.config?.url,
+            status: error.response?.status,
+            data: error.response?.data,
+            headers: error.response?.headers
+        });
+
         if (error.response?.status === 401) {
+            console.warn('[apiClient] Otrzymano 401 - nieautoryzowany dostęp');
             // Unikaj przekierowania na /login jeśli już jesteśmy na publicznej stronie
             // aby zapobiec nieskończonej pętli wywołań /me endpoint
             const currentPath = window.location.pathname;
             const publicPaths = ['/login', '/signup', '/forgot-password'];
 
             if (!publicPaths.includes(currentPath)) {
+                console.warn('[apiClient] Przekierowanie na /login');
                 window.location.href = '/login';
             }
         }
