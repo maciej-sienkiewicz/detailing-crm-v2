@@ -31,3 +31,19 @@ export interface PasswordStrength {
     label: 'weak' | 'medium' | 'strong';
     color: string;
 }
+
+export interface User {
+    userId: string;
+    studioId: string;
+    email: string;
+    role: string;
+    subscriptionStatus: string;
+    trialDaysRemaining: number;
+}
+
+export interface CheckAuthResponse {
+    success: boolean;
+    message?: string | null;
+    redirectUrl?: string | null;
+    user: User | null;
+}

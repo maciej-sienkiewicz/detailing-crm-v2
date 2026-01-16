@@ -1,6 +1,6 @@
 // src/modules/auth/api/authApi.ts
 import { apiClient } from '@/core';
-import type { LoginCredentials, SignupCredentials, AuthResponse } from '../types';
+import type { LoginCredentials, SignupCredentials, AuthResponse, CheckAuthResponse } from '../types';
 
 const USE_MOCKS = false;
 
@@ -77,7 +77,11 @@ export const authApi = {
         if (USE_MOCKS) {
             return mockCheckAuth();
         }
-        const response = await apiClient.get(`${BASE_PATH}/me`);
-        return response.data;
+        const response = await apiClient.get<CheckAuthResponse>(`${BASE_PATH}/me`);
+        // Backend zwraca { success, user }, przekształć na { isAuthenticated }
+        // Użytkownik jest zalogowany jeśli success=true i user nie jest null
+        return {
+            isAuthenticated: response.data.success && response.data.user !== null
+        };
     },
 };
