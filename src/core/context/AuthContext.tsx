@@ -23,8 +23,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsLoading(true);
       // Wywołaj endpoint sprawdzający sesję
       const result = await authApi.checkAuth();
+      console.log('[AuthContext] checkAuth result:', result);
       setIsAuthenticated(result.isAuthenticated);
     } catch (error) {
+      console.log('[AuthContext] checkAuth error:', error);
       setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
@@ -38,6 +40,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Sprawdź autentykację przy pierwszym załadowaniu
   useEffect(() => {
     checkAuth();
+  }, []);
+
+  // Nasłuchuj na event unauthorized z interceptora
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      console.log('[AuthContext] Received unauthorized event, setting isAuthenticated to false');
+      setIsAuthenticated(false);
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    };
   }, []);
 
   return (

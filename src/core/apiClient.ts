@@ -27,7 +27,9 @@ apiClient.interceptors.response.use(
             const publicPaths = ['/login', '/signup', '/forgot-password'];
 
             if (!publicPaths.includes(currentPath)) {
-                window.location.href = '/login';
+                // Zamiast hard reload, wyślij event który AuthContext może nasłuchiwać
+                // To pozwoli na soft redirect przez ProtectedRoute
+                window.dispatchEvent(new CustomEvent('auth:unauthorized'));
             }
         }
 
