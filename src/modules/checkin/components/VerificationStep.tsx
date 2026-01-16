@@ -180,6 +180,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
             onChange({
                 customerAlias: customer.alias,
                 hasFullCustomerData: false,
+                isNewCustomer: false,
             });
         } else {
             // Ustawienie pełnych danych klienta
@@ -193,6 +194,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                 },
                 customerAlias: undefined,
                 hasFullCustomerData: true,
+                isNewCustomer: customer.isNew || false,
             });
         }
         setIsCustomerModalOpen(false);
@@ -210,6 +212,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                 color: vehicle.color,
                 paintType: vehicle.paintType,
             },
+            isNewVehicle: vehicle.isNew || false,
         });
         setIsVehicleModalOpen(false);
     };

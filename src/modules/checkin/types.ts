@@ -46,6 +46,7 @@ export interface CheckInFormData {
     };
     customerAlias?: string; // Jeśli klient to tylko alias
     hasFullCustomerData: boolean; // Określa czy mamy pełne dane klienta czy tylko alias
+    isNewCustomer: boolean; // Czy klient został utworzony teraz podczas check-in
     vehicleData: {
         id: string;
         brand: string;
@@ -56,6 +57,7 @@ export interface CheckInFormData {
         color?: string;
         paintType?: string;
     } | null;
+    isNewVehicle: boolean; // Czy pojazd został utworzony teraz podczas check-in
     homeAddress: {
         street: string;
         city: string;
@@ -109,11 +111,19 @@ export interface ReservationToVisitPayload {
                 country: string;
             };
         };
+        isNew: boolean; // Czy klient został utworzony teraz podczas check-in
     };
     customerAlias?: string; // Jeśli klient to tylko alias
     vehicle: {
-        id: string;
-        vin?: string; // VIN jest opcjonalny
+        id?: string; // Opcjonalne - puste dla nowego pojazdu
+        brand: string;
+        model: string;
+        yearOfProduction: number;
+        licensePlate?: string;
+        vin?: string;
+        color?: string;
+        paintType?: string;
+        isNew: boolean; // Czy pojazd został utworzony teraz podczas check-in
     };
     technicalState: {
         mileage: number;

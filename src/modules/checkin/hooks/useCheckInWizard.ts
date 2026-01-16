@@ -19,7 +19,9 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
         },
         customerAlias: initialData.customerAlias,
         hasFullCustomerData: initialData.hasFullCustomerData ?? true,
+        isNewCustomer: initialData.isNewCustomer ?? false,
         vehicleData: initialData.vehicleData || null,
+        isNewVehicle: initialData.isNewVehicle ?? false,
         homeAddress: initialData.homeAddress || null,
         company: initialData.company || null,
         technicalState: {
@@ -107,27 +109,40 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
     };
 
     const submitCheckIn = async () => {
+        // Walidacja - musi być pojazd
+        if (!formData.vehicleData) {
+            throw new Error('Pojazd jest wymagany do utworzenia wizyty');
+        }
+
         const payload: ReservationToVisitPayload = {
             reservationId,
             ...(formData.hasFullCustomerData ? {
                 customer: {
-                    id: formData.customerData.id,
+                    id: formData.isNewCustomer ? undefined : formData.customerData.id,
                     firstName: formData.customerData.firstName,
                     lastName: formData.customerData.lastName,
                     phone: formData.customerData.phone,
                     email: formData.customerData.email,
                     homeAddress: formData.homeAddress || undefined,
                     company: formData.company || undefined,
+                    isNew: formData.isNewCustomer,
                 },
             } : {
                 customerAlias: formData.customerAlias,
             }),
-            vehicle: formData.vehicleData ? {
-                id: formData.vehicleData.id,
-                vin: formData.vehicleData.vin,
-            } : { id: '', vin: '' },
+            vehicle: {
+                id: formData.isNewVehicle ? undefined : formData.vehicleData.id,
+                brand: formData.vehicleData.brand,
+                model: formData.vehicleData.model,
+                yearOfProduction: formData.vehicleData.yearOfProduction,
+                licensePlate: formData.vehicleData.licensePlate || undefined,
+                vin: formData.vehicleData.vin || undefined,
+                color: formData.vehicleData.color,
+                paintType: formData.vehicleData.paintType,
+                isNew: formData.isNewVehicle,
+            },
             technicalState: formData.technicalState,
-            photoIds: formData.photos.map(p => p.fileId!),
+            photoIds: formData.photos.map(p => p.fileId!).filter(Boolean),
             services: formData.services,
         };
 

@@ -281,6 +281,7 @@ export const CheckInWizardWrapper = () => {
         },
         customerAlias: (reservationData as any).customerAlias,
         hasFullCustomerData,
+        isNewCustomer: false, // Dane z rezerwacji - klient już istnieje
         vehicleData: reservation.vehicle ? {
             id: reservation.vehicle.id,
             brand: reservation.vehicle.brand,
@@ -291,6 +292,7 @@ export const CheckInWizardWrapper = () => {
             color: reservation.vehicle.color,
             paintType: reservation.vehicle.paintType,
         } : null,
+        isNewVehicle: false, // Dane z rezerwacji - pojazd już istnieje
         homeAddress: reservation.customer?.homeAddress || null,
         company: reservation.customer?.company || null,
         services: reservation.services,
