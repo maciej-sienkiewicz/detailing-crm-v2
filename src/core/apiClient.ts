@@ -21,7 +21,14 @@ apiClient.interceptors.response.use(
     response => response,
     error => {
         if (error.response?.status === 401) {
-            window.location.href = '/login';
+            // Unikaj przekierowania na /login jeśli już jesteśmy na publicznej stronie
+            // aby zapobiec nieskończonej pętli wywołań /me endpoint
+            const currentPath = window.location.pathname;
+            const publicPaths = ['/login', '/signup', '/forgot-password'];
+
+            if (!publicPaths.includes(currentPath)) {
+                window.location.href = '/login';
+            }
         }
 
         if (error.response?.status === 403) {
