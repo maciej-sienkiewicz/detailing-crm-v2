@@ -85,21 +85,22 @@ export const VehicleDetailsModal = ({
     useEffect(() => {
         if (!isOpen) return;
 
-        if (vehicleDetail) {
-            // Użyj danych z API
-            setLocalVehicleData({
-                brand: vehicleDetail.vehicle.brand,
-                model: vehicleDetail.vehicle.model,
-                licensePlate: vehicleDetail.vehicle.licensePlate,
-                vin: vehicleDetail.vehicle.vin || '',
-            });
-        } else if (fallbackData) {
-            // Użyj danych fallback dla nowo dodanych pojazdów
+        // Preferuj fallbackData (dane z rezerwacji) nad danymi z API
+        if (fallbackData) {
+            // Użyj danych z rezerwacji
             setLocalVehicleData({
                 brand: fallbackData.brand,
                 model: fallbackData.model,
                 licensePlate: fallbackData.licensePlate,
                 vin: fallbackData.vin,
+            });
+        } else if (vehicleDetail) {
+            // Użyj danych z API jako fallback
+            setLocalVehicleData({
+                brand: vehicleDetail.vehicle.brand,
+                model: vehicleDetail.vehicle.model,
+                licensePlate: vehicleDetail.vehicle.licensePlate,
+                vin: vehicleDetail.vehicle.vin || '',
             });
         }
     }, [isOpen, vehicleDetail, fallbackData]);

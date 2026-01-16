@@ -200,8 +200,11 @@ export const CheckInWizardWrapper = () => {
             id: reservationData.vehicleId,
             brand: reservationData.vehicle.brand,
             model: reservationData.vehicle.model,
+            yearOfProduction: reservationData.vehicle.year,
             licensePlate: reservationData.vehicle.licensePlate,
             vin: reservationData.vehicle.vin,
+            color: reservationData.vehicle.color,
+            paintType: reservationData.vehicle.paintType,
         } : null,
         services: reservationData.services?.map((service: any) => ({
             id: service.id,
