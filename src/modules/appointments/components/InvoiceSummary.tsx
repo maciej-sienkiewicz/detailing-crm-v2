@@ -224,7 +224,7 @@ export const InvoiceSummary = ({ services, availableServices, onChange }: Invoic
         ? availableServices.filter(s =>
             s.name.toLowerCase().includes(debouncedQuery.toLowerCase())
         )
-        : [];
+        : availableServices;
 
     const handleAddService = (service: Service) => {
         addService(service);
