@@ -254,6 +254,7 @@ export const pl: TranslationKeys = {
             changeVehicle: 'Zmień pojazd',
             scheduleSection: 'Harmonogram',
             allDayToggle: 'Wizyta całodniowa',
+            date: 'Data',
             startDateTime: 'Data i godzina rozpoczęcia',
             endDate: 'Data zakończenia',
             submitButton: 'Utwórz zgłoszenie',

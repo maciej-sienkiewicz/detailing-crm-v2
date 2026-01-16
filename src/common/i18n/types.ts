@@ -313,6 +313,7 @@ export interface TranslationKeys {
             changeVehicle: string;
             scheduleSection: string;
             allDayToggle: string;
+            date: string;
             startDateTime: string;
             endDate: string;
             submitButton: string;

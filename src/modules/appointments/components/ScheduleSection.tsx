@@ -72,7 +72,7 @@ export const ScheduleSection = ({
 
             <FormGrid>
                 <FieldGroup>
-                    <Label>{t.appointments.createView.startDateTime}</Label>
+                    <Label>{isAllDay ? t.appointments.createView.date : t.appointments.createView.startDateTime}</Label>
                     <Input
                         type={isAllDay ? 'date' : 'datetime-local'}
                         value={startDateTime}
@@ -80,16 +80,18 @@ export const ScheduleSection = ({
                     />
                 </FieldGroup>
 
-                <FieldGroup>
-                    <Label>{t.appointments.createView.endDate}</Label>
-                    <Input
-                        type="date"
-                        value={endDateTime.split('T')[0] || ''}
-                        onChange={(e) => {
-                            onEndDateTimeChange(isAllDay ? `${e.target.value}T23:59:59` : `${e.target.value}T23:59:59`);
-                        }}
-                    />
-                </FieldGroup>
+                {!isAllDay && (
+                    <FieldGroup>
+                        <Label>{t.appointments.createView.endDate}</Label>
+                        <Input
+                            type="date"
+                            value={endDateTime.split('T')[0] || ''}
+                            onChange={(e) => {
+                                onEndDateTimeChange(isAllDay ? `${e.target.value}T23:59:59` : `${e.target.value}T23:59:59`);
+                            }}
+                        />
+                    </FieldGroup>
+                )}
             </FormGrid>
         </Card>
     );
