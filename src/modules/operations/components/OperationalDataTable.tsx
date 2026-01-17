@@ -295,8 +295,8 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
             return;
         }
 
-        // Dla rezerwacji - otwórz modal z opcjami
-        if (operation.type === 'RESERVATION') {
+        // Dla rezerwacji - otwórz modal z opcjami tylko dla statusu CREATED
+        if (operation.type === 'RESERVATION' && operation.status === 'CREATED') {
             setReservationOptionsModalState({ isOpen: true, reservation: operation });
         }
     }, [navigate]);

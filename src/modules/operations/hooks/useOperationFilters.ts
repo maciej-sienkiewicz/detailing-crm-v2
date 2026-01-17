@@ -1,7 +1,7 @@
 // src/modules/operations/hooks/useOperationFilters.ts
 
 import { useState, useCallback } from 'react';
-import type { FilterStatus, OperationType, OperationStatus } from '../types';
+import type { FilterStatus, OperationType, VisitStatus } from '../types';
 
 export const useOperationFilters = () => {
     const [selectedFilter, setSelectedFilter] = useState<FilterStatus | undefined>(undefined);
@@ -23,7 +23,7 @@ export const useOperationFilters = () => {
             return { type: 'RESERVATION' as OperationType, status: undefined };
         }
 
-        return { type: 'VISIT' as OperationType, status: selectedFilter as OperationStatus };
+        return { type: 'VISIT' as OperationType, status: selectedFilter as VisitStatus };
     }, [selectedFilter]);
 
     return {

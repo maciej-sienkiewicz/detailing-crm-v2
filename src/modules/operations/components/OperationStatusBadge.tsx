@@ -15,6 +15,7 @@ const StyledBadge = styled.span<{ $status: OperationStatus }>`
 
     ${props => {
         switch (props.$status) {
+            // Statusy wizyt
             case 'IN_PROGRESS':
                 return `
                     background-color: ${props.theme.colors.successLight};
@@ -40,16 +41,43 @@ const StyledBadge = styled.span<{ $status: OperationStatus }>`
                     background-color: #f3f4f6;
                     color: #6b7280;
                 `;
+            // Statusy rezerwacji
+            case 'CREATED':
+                return `
+                    background-color: #dbeafe;
+                    color: #1e40af;
+                `;
+            case 'ABANDONED':
+                return `
+                    background-color: #fef3c7;
+                    color: #92400e;
+                `;
+            case 'CANCELLED':
+                return `
+                    background-color: ${props.theme.colors.errorLight};
+                    color: ${props.theme.colors.error};
+                `;
+            case 'CONVERTED':
+                return `
+                    background-color: ${props.theme.colors.successLight};
+                    color: ${props.theme.colors.success};
+                `;
         }
     }}
 `;
 
 const statusLabels: Record<OperationStatus, string> = {
+    // Statusy wizyt
     IN_PROGRESS: 'W realizacji',
     READY_FOR_PICKUP: 'Do odbioru',
     COMPLETED: 'Zakończona',
     REJECTED: 'Odrzucona',
     ARCHIVED: 'Zarchiwizowana',
+    // Statusy rezerwacji
+    CREATED: 'Zaplanowano',
+    ABANDONED: 'Porzucono',
+    CANCELLED: 'Anulowano',
+    CONVERTED: 'Rozpoczęto wizytę',
 };
 
 interface OperationStatusBadgeProps {

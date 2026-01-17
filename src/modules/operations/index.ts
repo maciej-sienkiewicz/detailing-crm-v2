@@ -16,6 +16,8 @@ export { operationApi } from './api/operationApi';
 export type {
     Operation,
     OperationStatus,
+    VisitStatus,
+    AppointmentStatus,
     OperationType,
     OperationFilters,
     OperationListResponse,

@@ -1,7 +1,7 @@
 // src/modules/operations/api/operationApi.ts
 
 import { apiClient } from '@/core';
-import type { OperationListResponse, OperationFilters, Operation } from '../types';
+import type { OperationListResponse, OperationFilters, Operation, AppointmentStatus, VisitStatus } from '../types';
 
 const USE_MOCKS_FOR_VISITS = false; // Wizyty nadal zamockowane
 const USE_MOCKS_FOR_RESERVATIONS = false; // Rezerwacje z serwera
@@ -92,7 +92,7 @@ const mapAppointmentToOperation = (appointment: AppointmentResponse): Operation 
         customerFirstName: appointment.customer.firstName,
         customerLastName: appointment.customer.lastName,
         customerPhone: appointment.customer.phone,
-        status: appointment.status as OperationStatus,
+        status: appointment.status as AppointmentStatus,
         vehicle: appointment.vehicle ? {
             brand: appointment.vehicle.brand,
             model: appointment.vehicle.model,
@@ -123,7 +123,7 @@ const mapVisitToOperation = (visit: VisitResponse): Operation => {
         customerFirstName: visit.customer.firstName,
         customerLastName: visit.customer.lastName,
         customerPhone: visit.customer.phone,
-        status: visit.status as OperationStatus,
+        status: visit.status as VisitStatus,
         vehicle: {
             brand: visit.vehicle.brand,
             model: visit.vehicle.model,
@@ -466,7 +466,7 @@ export const operationApi = {
 
     cancelReservation: async (reservationId: string): Promise<void> => {
         await apiClient.patch(`/api/v1/appointments/${reservationId}`, {
-            status: 'REJECTED',
+            status: 'CANCELLED',
         });
     },
 };

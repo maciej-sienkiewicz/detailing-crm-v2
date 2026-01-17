@@ -1,15 +1,25 @@
 // src/modules/operations/types.ts
 
-export type OperationStatus =
+// Statusy wizyt
+export type VisitStatus =
     | 'IN_PROGRESS'
     | 'READY_FOR_PICKUP'
     | 'COMPLETED'
     | 'REJECTED'
     | 'ARCHIVED';
 
+// Statusy rezerwacji
+export type AppointmentStatus =
+    | 'CREATED'
+    | 'ABANDONED'
+    | 'CANCELLED'
+    | 'CONVERTED';
+
+export type OperationStatus = VisitStatus | AppointmentStatus;
+
 export type OperationType = 'VISIT' | 'RESERVATION';
 
-export type FilterStatus = OperationStatus | 'RESERVATIONS';
+export type FilterStatus = VisitStatus | 'RESERVATIONS';
 
 export interface OperationVehicle {
     brand: string;
@@ -60,7 +70,7 @@ export interface OperationFilters {
     page: number;
     limit: number;
     type?: OperationType;
-    status?: OperationStatus;
+    status?: VisitStatus;
     sortBy?: 'startDateTime' | 'customerLastName' | 'grossAmount' | 'lastModification';
     sortDirection?: 'asc' | 'desc';
 }
