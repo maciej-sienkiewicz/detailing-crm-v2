@@ -8,13 +8,14 @@ import interactionPlugin from '@fullcalendar/interaction';
 import type { DateSelectArg, EventClickArg, DatesSetArg } from '@fullcalendar/core';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/core';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
-import { useEventCreation } from '../hooks/useEventCreation';
 import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
 import { QuickEventModal, type QuickEventFormData, type QuickEventModalRef } from './QuickEventModal';
-import type { DateRange, CalendarView as CalendarViewType, EventCreationData } from '../types';
+import { EventSummaryPopover } from './EventSummaryPopover';
+import { ReservationOptionsModal } from '@/modules/operations/components/ReservationOptionsModal';
+import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData } from '../types';
+import type { Operation } from '@/modules/operations/types';
 import '../calendar.css';
 
 const CalendarContainer = styled.div`
@@ -245,18 +246,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const [quickModalOpen, setQuickModalOpen] = useState(false);
     const [selectedEventData, setSelectedEventData] = useState<EventCreationData | null>(null);
 
-    const { createEvent } = useEventCreation();
+    // Popover state
+    const [popoverOpen, setPopoverOpen] = useState(false);
+    const [popoverEvent, setPopoverEvent] = useState<AppointmentEventData | VisitEventData | null>(null);
+    const [popoverPosition, setPopoverPosition] = useState({ x: 0, y: 0 });
+
+    // Reservation options modal state
+    const [optionsModalOpen, setOptionsModalOpen] = useState(false);
+    const [selectedReservation, setSelectedReservation] = useState<Operation | null>(null);
+
     const { createQuickEvent } = useQuickEventCreation();
     const { data: events = [], isLoading } = useCalendarEvents(dateRange);
-
-    // Fetch appointment colors for quick event creation
-    const { data: appointmentColors } = useQuery({
-        queryKey: ['appointment-colors'],
-        queryFn: async () => {
-            const response = await apiClient.get('/api/v1/appointment-colors');
-            return response.data.colors || [];
-        },
-    });
 
     /**
      * Handle date range changes (triggered when view changes or user navigates)
@@ -292,18 +292,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     }, []);
 
     /**
-     * Handle event click
+     * Handle event click - Show popover with event summary
      */
     const handleEventClick = useCallback((clickInfo: EventClickArg) => {
-        const eventType = clickInfo.event.extendedProps.type;
-        const eventId = clickInfo.event.id;
+        const eventData = clickInfo.event.extendedProps as AppointmentEventData | VisitEventData;
 
-        if (eventType === 'APPOINTMENT') {
-            navigate(`/appointments/${eventId}/edit`);
-        } else if (eventType === 'VISIT') {
-            navigate(`/visits/${eventId}`);
-        }
-    }, [navigate]);
+        // Calculate popover position near the clicked event
+        const rect = clickInfo.el.getBoundingClientRect();
+        const x = rect.right + 10; // 10px to the right of the event
+        const y = rect.top;
+
+        // Adjust if popover would go off screen
+        const adjustedX = x + 380 > window.innerWidth ? rect.left - 390 : x;
+        const adjustedY = y + 400 > window.innerHeight ? window.innerHeight - 420 : y;
+
+        setPopoverEvent(eventData);
+        setPopoverPosition({ x: adjustedX, y: adjustedY });
+        setPopoverOpen(true);
+    }, []);
 
     /**
      * Handle quick event save
@@ -325,6 +331,129 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const handleModalClose = useCallback(() => {
         setQuickModalOpen(false);
         setSelectedEventData(null);
+    }, []);
+
+    /**
+     * Handle popover close
+     */
+    const handlePopoverClose = useCallback(() => {
+        setPopoverOpen(false);
+        setPopoverEvent(null);
+    }, []);
+
+    /**
+     * Handle manage button click from popover
+     */
+    const handleManageClick = useCallback(async () => {
+        if (!popoverEvent || popoverEvent.type !== 'APPOINTMENT') return;
+
+        try {
+            // Fetch full appointment data to convert to Operation format
+            const response = await apiClient.get(`/api/v1/appointments/${popoverEvent.id}`);
+            const appointment = response.data;
+
+            // Convert to Operation format for ReservationOptionsModal
+            const operation: Operation = {
+                id: appointment.id,
+                type: 'RESERVATION',
+                customerFirstName: appointment.customer.firstName,
+                customerLastName: appointment.customer.lastName,
+                customerPhone: appointment.customer.phone,
+                status: appointment.status || 'CREATED',
+                vehicle: appointment.vehicle ? {
+                    brand: appointment.vehicle.brand,
+                    model: appointment.vehicle.model,
+                    licensePlate: appointment.vehicle.licensePlate || '',
+                } : null,
+                startDateTime: appointment.schedule.startDateTime,
+                endDateTime: appointment.schedule.endDateTime,
+                financials: {
+                    netAmount: appointment.totalNet || 0,
+                    grossAmount: appointment.totalGross || 0,
+                    currency: 'PLN',
+                },
+                lastModification: {
+                    timestamp: new Date().toISOString(),
+                    performedBy: {
+                        firstName: '',
+                        lastName: '',
+                    },
+                },
+            };
+
+            setSelectedReservation(operation);
+            setOptionsModalOpen(true);
+            setPopoverOpen(false);
+        } catch (error) {
+            console.error('Failed to fetch appointment details:', error);
+        }
+    }, [popoverEvent]);
+
+    /**
+     * Handle change date from options modal
+     */
+    const handleChangeDateClick = useCallback(() => {
+        if (!selectedReservation) return;
+        setOptionsModalOpen(false);
+        navigate(`/appointments/${selectedReservation.id}/edit`);
+    }, [selectedReservation, navigate]);
+
+    /**
+     * Handle edit services from options modal
+     */
+    const handleEditServicesClick = useCallback(() => {
+        if (!selectedReservation) return;
+        setOptionsModalOpen(false);
+        navigate(`/appointments/${selectedReservation.id}/edit`);
+    }, [selectedReservation, navigate]);
+
+    /**
+     * Handle edit details from options modal
+     */
+    const handleEditDetailsClick = useCallback(() => {
+        if (!selectedReservation) return;
+        setOptionsModalOpen(false);
+        navigate(`/appointments/${selectedReservation.id}/edit`);
+    }, [selectedReservation, navigate]);
+
+    /**
+     * Handle start visit from options modal
+     */
+    const handleStartVisitClick = useCallback(async () => {
+        if (!selectedReservation) return;
+
+        try {
+            const response = await apiClient.post(`/api/v1/appointments/${selectedReservation.id}/start-visit`);
+            const visitId = response.data.visitId;
+            setOptionsModalOpen(false);
+            navigate(`/visits/${visitId}`);
+        } catch (error) {
+            console.error('Failed to start visit:', error);
+        }
+    }, [selectedReservation, navigate]);
+
+    /**
+     * Handle cancel reservation from options modal
+     */
+    const handleCancelReservationClick = useCallback(async () => {
+        if (!selectedReservation) return;
+
+        try {
+            await apiClient.delete(`/api/v1/appointments/${selectedReservation.id}`);
+            setOptionsModalOpen(false);
+            // Refresh calendar events
+            // The useCalendarEvents hook should automatically refetch
+        } catch (error) {
+            console.error('Failed to cancel reservation:', error);
+        }
+    }, [selectedReservation]);
+
+    /**
+     * Handle options modal close
+     */
+    const handleOptionsModalClose = useCallback(() => {
+        setOptionsModalOpen(false);
+        setSelectedReservation(null);
     }, []);
 
     return (
@@ -407,6 +536,26 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 eventData={selectedEventData}
                 onClose={handleModalClose}
                 onSave={handleQuickSave}
+            />
+
+            {popoverOpen && popoverEvent && (
+                <EventSummaryPopover
+                    event={popoverEvent}
+                    position={popoverPosition}
+                    onClose={handlePopoverClose}
+                    onManageClick={handleManageClick}
+                />
+            )}
+
+            <ReservationOptionsModal
+                isOpen={optionsModalOpen}
+                onClose={handleOptionsModalClose}
+                reservation={selectedReservation}
+                onChangeDateClick={handleChangeDateClick}
+                onEditServicesClick={handleEditServicesClick}
+                onEditDetailsClick={handleEditDetailsClick}
+                onCancelReservationClick={handleCancelReservationClick}
+                onStartVisitClick={handleStartVisitClick}
             />
         </CalendarContainer>
     );
