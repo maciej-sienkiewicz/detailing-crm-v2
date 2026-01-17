@@ -273,33 +273,13 @@ export const operationApi = {
                 return mockGetVisits(filters);
             }
 
-            // Mapowanie statusu frontendu na backend dla wizyt
-            const mapStatusToBackend = (frontendStatus?: string) => {
-                if (!frontendStatus) return undefined;
-                switch (frontendStatus) {
-                    case 'IN_PROGRESS':
-                        return 'IN_PROGRESS';
-                    case 'READY_FOR_PICKUP':
-                        return 'READY';
-                    case 'COMPLETED':
-                        return 'COMPLETED';
-                    case 'REJECTED':
-                        return 'CANCELLED'; // Odrzucone mapujemy na anulowane w backendzie
-                    case 'ARCHIVED':
-                        return 'ARCHIVED';
-                    default:
-                        return undefined;
-                }
-            };
-
             const params = new URLSearchParams({
                 page: filters.page.toString(),
                 size: filters.limit.toString(),
             });
 
-            const backendStatus = mapStatusToBackend(filters.status);
-            if (backendStatus) {
-                params.append('status', backendStatus);
+            if (filters.status) {
+                params.append('status', filters.status);
             }
 
             const response = await apiClient.get<VisitsListResponse>(
@@ -486,7 +466,7 @@ export const operationApi = {
 
     cancelReservation: async (reservationId: string): Promise<void> => {
         await apiClient.patch(`/api/v1/appointments/${reservationId}`, {
-            status: 'CANCELLED',
+            status: 'REJECTED',
         });
     },
 };
