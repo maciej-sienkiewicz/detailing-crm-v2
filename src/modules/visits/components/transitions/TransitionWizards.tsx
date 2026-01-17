@@ -29,7 +29,7 @@ export const InProgressToReadyWizard = ({
         handleBack,
         updateWizardData,
         handleFinish,
-    } = useStateTransitionWizard(visit.id, 'in_progress_to_ready');
+    } = useStateTransitionWizard(visit.id, 'in_progress_to_ready', onClose);
 
     const handleQualityApprove = () => {
         handleNext();
@@ -130,7 +130,7 @@ export const ReadyToCompletedWizard = ({
         handleBack,
         updateWizardData,
         handleFinish,
-    } = useStateTransitionWizard(visit.id, 'ready_to_completed');
+    } = useStateTransitionWizard(visit.id, 'ready_to_completed', onClose);
 
     const { comments } = useVisitComments(visit.id);
 

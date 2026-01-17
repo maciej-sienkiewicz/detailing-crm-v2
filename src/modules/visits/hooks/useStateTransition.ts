@@ -16,7 +16,8 @@ interface WizardStep {
 
 export const useStateTransitionWizard = (
     visitId: string,
-    transitionType: TransitionType
+    transitionType: TransitionType,
+    onTransitionSuccess?: () => void
 ) => {
     const queryClient = useQueryClient();
     const [isOpen, setIsOpen] = useState(false);
@@ -38,6 +39,7 @@ export const useStateTransitionWizard = (
                 queryKey: visitDetailQueryKey(visitId),
             });
             handleClose();
+            onTransitionSuccess?.();
         },
     });
 
@@ -51,6 +53,7 @@ export const useStateTransitionWizard = (
                 queryKey: visitDetailQueryKey(visitId),
             });
             handleClose();
+            onTransitionSuccess?.();
         },
     });
 
