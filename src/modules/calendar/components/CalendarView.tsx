@@ -299,7 +299,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
 
                 // Initial view
-                initialView="timeGridWeek"
+                initialView="dayGridMonth"
 
                 // Header configuration
                 headerToolbar={{
