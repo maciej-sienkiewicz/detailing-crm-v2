@@ -442,17 +442,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     /**
      * Handle start visit from options modal
      */
-    const handleStartVisitClick = useCallback(async () => {
+    const handleStartVisitClick = useCallback(() => {
         if (!selectedReservation) return;
-
-        try {
-            const response = await apiClient.post(`/api/v1/appointments/${selectedReservation.id}/start-visit`);
-            const visitId = response.data.visitId;
-            setOptionsModalOpen(false);
-            navigate(`/visits/${visitId}`);
-        } catch (error) {
-            console.error('Failed to start visit:', error);
-        }
+        navigate(`/reservations/${selectedReservation.id}/checkin`);
+        setOptionsModalOpen(false);
     }, [selectedReservation, navigate]);
 
     /**
