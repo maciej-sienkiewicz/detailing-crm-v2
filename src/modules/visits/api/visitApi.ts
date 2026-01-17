@@ -2,8 +2,6 @@ import { apiClient } from '@/core';
 import type {
     VisitDetailResponse,
     UpdateVisitPayload,
-    CreateJournalEntryPayload,
-    JournalEntry,
     VisitDocument,
     UploadDocumentPayload,
 } from '../types';
@@ -80,32 +78,6 @@ const mockVisitDetail: VisitDetailResponse = {
         createdAt: '2025-01-10T14:30:00Z',
         updatedAt: '2025-01-15T11:20:00Z',
     },
-    journalEntries: [
-        {
-            id: 'entry_1',
-            type: 'internal_note',
-            content: 'Samochód przyjęty do warsztatu. Przebieg zgodny z deklaracją.',
-            createdBy: 'Marek Nowak',
-            createdAt: '2025-01-15T09:05:00Z',
-            isDeleted: false,
-        },
-        {
-            id: 'entry_2',
-            type: 'customer_communication',
-            content: 'Klient poinformowany o rozpoczęciu prac. Szacowany czas wykonania: 3 dni robocze.',
-            createdBy: 'Anna Kowalczyk',
-            createdAt: '2025-01-15T09:30:00Z',
-            isDeleted: false,
-        },
-        {
-            id: 'entry_3',
-            type: 'internal_note',
-            content: 'Rozpoczęto przygotowanie powierzchni lakieru pod oklejanie PPF.',
-            createdBy: 'Piotr Wiśniewski',
-            createdAt: '2025-01-15T10:15:00Z',
-            isDeleted: false,
-        },
-    ],
     documents: [
         {
             id: 'doc_1',
@@ -156,38 +128,6 @@ export const visitApi = {
             return;
         }
         await apiClient.patch(`${BASE_PATH}/${visitId}`, payload);
-    },
-
-    createJournalEntry: async (
-        payload: CreateJournalEntryPayload
-    ): Promise<JournalEntry> => {
-        if (USE_MOCKS) {
-            await new Promise(resolve => setTimeout(resolve, 400));
-            return {
-                id: `entry_${Date.now()}`,
-                type: payload.type,
-                content: payload.content,
-                createdBy: 'Aktualny Użytkownik',
-                createdAt: new Date().toISOString(),
-                isDeleted: false,
-            };
-        }
-        const response = await apiClient.post(
-            `${BASE_PATH}/${payload.visitId}/journal`,
-            payload
-        );
-        return response.data;
-    },
-
-    deleteJournalEntry: async (
-        visitId: string,
-        entryId: string
-    ): Promise<void> => {
-        if (USE_MOCKS) {
-            await new Promise(resolve => setTimeout(resolve, 300));
-            return;
-        }
-        await apiClient.delete(`${BASE_PATH}/${visitId}/journal/${entryId}`);
     },
 
     uploadDocument: async (

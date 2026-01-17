@@ -5,7 +5,8 @@ import { ClientBriefingStep } from './ClientBriefingStep';
 import { SignatureStep } from './SignatureStep';
 import { PaymentStep } from './PaymentStep';
 import { useStateTransitionWizard } from '../../hooks/useStateTransition';
-import type { Visit, JournalEntry } from '../../types';
+import { useVisitComments } from '../../hooks';
+import type { Visit } from '../../types';
 
 interface InProgressToReadyWizardProps {
     visit: Visit;
@@ -111,14 +112,12 @@ export const InProgressToReadyWizard = ({
 
 interface ReadyToCompletedWizardProps {
     visit: Visit;
-    journalEntries: JournalEntry[];
     isOpen: boolean;
     onClose: () => void;
 }
 
 export const ReadyToCompletedWizard = ({
                                            visit,
-                                           journalEntries,
                                            isOpen,
                                            onClose,
                                        }: ReadyToCompletedWizardProps) => {
@@ -133,6 +132,8 @@ export const ReadyToCompletedWizard = ({
         updateWizardData,
         handleFinish,
     } = useStateTransitionWizard(visit.id, 'ready_to_completed');
+
+    const { comments } = useVisitComments(visit.id);
 
     const handlePaymentComplete = (payment: any) => {
         updateWizardData({ payment });
@@ -198,7 +199,7 @@ export const ReadyToCompletedWizard = ({
             case 1:
                 return (
                     <ClientBriefingStep
-                        journalEntries={journalEntries}
+                        comments={comments.filter(c => c.type === 'FOR_CUSTOMER' && !c.isDeleted)}
                         onContinue={handleNext}
                     />
                 );

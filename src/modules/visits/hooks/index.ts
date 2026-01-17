@@ -3,7 +3,6 @@ import { visitApi } from '../api/visitApi';
 import { visitCommentApi } from '../api/visitCommentApi';
 import type {
     UpdateVisitPayload,
-    CreateJournalEntryPayload,
     UploadDocumentPayload,
     AddCommentPayload,
     UpdateCommentPayload,
@@ -42,44 +41,6 @@ export const useUpdateVisit = (visitId: string) => {
     return {
         updateVisit: mutate,
         isUpdating: isPending,
-    };
-};
-
-export const useCreateJournalEntry = (visitId: string) => {
-    const queryClient = useQueryClient();
-
-    const { mutate, isPending } = useMutation({
-        mutationFn: (payload: CreateJournalEntryPayload) =>
-            visitApi.createJournalEntry(payload),
-        onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: visitDetailQueryKey(visitId),
-            });
-        },
-    });
-
-    return {
-        createEntry: mutate,
-        isCreating: isPending,
-    };
-};
-
-export const useDeleteJournalEntry = (visitId: string) => {
-    const queryClient = useQueryClient();
-
-    const { mutate, isPending } = useMutation({
-        mutationFn: (entryId: string) =>
-            visitApi.deleteJournalEntry(visitId, entryId),
-        onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: visitDetailQueryKey(visitId),
-            });
-        },
-    });
-
-    return {
-        deleteEntry: mutate,
-        isDeleting: isPending,
     };
 };
 

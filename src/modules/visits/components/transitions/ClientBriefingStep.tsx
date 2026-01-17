@@ -1,7 +1,7 @@
 
 import styled from 'styled-components';
 import { formatDateTime } from '@/common/utils';
-import type { JournalEntry } from '../../types';
+import type { VisitComment } from '../../types';
 
 const Container = styled.div`
     display: flex;
@@ -141,20 +141,16 @@ const InfoText = styled.p`
 `;
 
 interface ClientBriefingStepProps {
-    journalEntries: JournalEntry[];
+    comments: VisitComment[];
     onContinue: () => void;
 }
 
-export const ClientBriefingStep = ({ journalEntries, onContinue }: ClientBriefingStepProps) => {
-    const customerNotes = journalEntries.filter(
-        entry => entry.type === 'customer_communication' && !entry.isDeleted
-    );
-
+export const ClientBriefingStep = ({ comments, onContinue }: ClientBriefingStepProps) => {
     return (
         <Container>
             <Description>
-                Przed wydaniem pojazdu zapoznaj się z wszystkimi notatkami dotyczącymi komunikacji
-                z klientem. Upewnij się, że przekazałeś wszystkie istotne informacje.
+                Przed wydaniem pojazdu zapoznaj się z wszystkimi komentarzami przeznaczonymi
+                dla klienta. Upewnij się, że przekazałeś wszystkie istotne informacje.
             </Description>
 
             <NotesSection>
@@ -163,28 +159,28 @@ export const ClientBriefingStep = ({ journalEntries, onContinue }: ClientBriefin
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                         </svg>
-                        Notatki dla klienta ({customerNotes.length})
+                        Komentarze dla klienta ({comments.length})
                     </SectionTitle>
                 </SectionHeader>
 
                 <NotesList>
-                    {customerNotes.length === 0 ? (
+                    {comments.length === 0 ? (
                         <EmptyState>
                             <EmptyIcon>📋</EmptyIcon>
                             <EmptyText>
-                                Brak notatek przeznaczonych do przekazania klientowi
+                                Brak komentarzy przeznaczonych do przekazania klientowi
                             </EmptyText>
                         </EmptyState>
                     ) : (
-                        customerNotes.map(note => (
-                            <NoteCard key={note.id}>
+                        comments.map(comment => (
+                            <NoteCard key={comment.id}>
                                 <NoteHeader>
-                                    <NoteAuthor>{note.createdBy}</NoteAuthor>
-                                    <NoteDate>{formatDateTime(note.createdAt)}</NoteDate>
+                                    <NoteAuthor>{comment.createdByName}</NoteAuthor>
+                                    <NoteDate>{formatDateTime(comment.createdAt)}</NoteDate>
                                 </NoteHeader>
-                                <NoteContent>{note.content}</NoteContent>
+                                <NoteContent>{comment.content}</NoteContent>
                                 <NoteTag>
-                                    💬 Komunikacja z klientem
+                                    👤 Dla klienta
                                 </NoteTag>
                             </NoteCard>
                         ))
@@ -192,7 +188,7 @@ export const ClientBriefingStep = ({ journalEntries, onContinue }: ClientBriefin
                 </NotesList>
             </NotesSection>
 
-            {customerNotes.length > 0 && (
+            {comments.length > 0 && (
                 <InfoBox>
                     <InfoIcon>💡</InfoIcon>
                     <InfoText>

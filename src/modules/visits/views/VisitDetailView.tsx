@@ -3,18 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { useVisitDetail } from '../hooks';
 import { useUpdateVisit } from '../hooks';
-import { useCreateJournalEntry, useDeleteJournalEntry } from '../hooks';
 import { useUploadDocument, useDeleteDocument } from '../hooks';
 import { useVisitComments } from '../hooks';
 import { VisitHeader } from '../components/VisitHeader';
 import { StatusStepper } from '../components/StatusStepper';
 import { VehicleInfoCard, CustomerInfoCard } from '../components/InfoCards';
 import { ServicesTable } from '../components/ServicesTable';
-import { CommunicationJournal } from '../components/CommunicationJournal';
 import { DocumentGallery } from '../components/DocumentGallery';
 import { VisitComments } from '../components/VisitComments';
 import { InProgressToReadyWizard, ReadyToCompletedWizard } from '../components/transitions/TransitionWizards';
-import type { JournalEntryType, DocumentType } from '../types';
+import type { DocumentType } from '../types';
 
 const ViewContainer = styled.main`
     display: flex;
@@ -163,7 +161,7 @@ const RetryButton = styled.button`
     }
 `;
 
-type TabValue = 'overview' | 'communication' | 'comments' | 'documentation';
+type TabValue = 'overview' | 'comments' | 'documentation';
 
 export const VisitDetailView = () => {
     const { visitId } = useParams<{ visitId: string }>();
@@ -175,8 +173,6 @@ export const VisitDetailView = () => {
 
     const { visitDetail, isLoading, isError, refetch } = useVisitDetail(visitId!);
     const { updateVisit, isUpdating } = useUpdateVisit(visitId!);
-    const { createEntry, isCreating } = useCreateJournalEntry(visitId!);
-    const { deleteEntry, isDeleting: isDeletingEntry } = useDeleteJournalEntry(visitId!);
     const { uploadDocument, isUploading } = useUploadDocument(visitId!);
     const { deleteDocument, isDeleting: isDeletingDoc } = useDeleteDocument(visitId!);
     const { comments, isLoading: isLoadingComments } = useVisitComments(visitId!);
@@ -212,7 +208,7 @@ export const VisitDetailView = () => {
         );
     }
 
-    const { visit, journalEntries, documents } = visitDetail;
+    const { visit, documents } = visitDetail;
 
     const handleCompleteVisit = () => {
         if (visit.status === 'in_progress') {
@@ -248,16 +244,6 @@ export const VisitDetailView = () => {
         updateVisit({ documentsHandedOver: checked });
     };
 
-    const handleAddEntry = (type: JournalEntryType, content: string) => {
-        createEntry({ visitId: visitId!, type, content });
-    };
-
-    const handleDeleteEntry = (entryId: string) => {
-        if (window.confirm('Czy na pewno chcesz usunąć ten wpis?')) {
-            deleteEntry(entryId);
-        }
-    };
-
     const handleUploadDocument = (file: File, type: DocumentType, category: string) => {
         uploadDocument({ visitId: visitId!, file, type, category });
     };
@@ -287,12 +273,6 @@ export const VisitDetailView = () => {
                             onClick={() => setActiveTab('overview')}
                         >
                             📋 Przegląd
-                        </TabButton>
-                        <TabButton
-                            $isActive={activeTab === 'communication'}
-                            onClick={() => setActiveTab('communication')}
-                        >
-                            💬 Komunikacja ({journalEntries.filter(e => !e.isDeleted).length})
                         </TabButton>
                         <TabButton
                             $isActive={activeTab === 'comments'}
@@ -332,17 +312,6 @@ export const VisitDetailView = () => {
                     </TabContent>
                 )}
 
-                {activeTab === 'communication' && (
-                    <TabContent>
-                        <CommunicationJournal
-                            entries={journalEntries}
-                            onAddEntry={handleAddEntry}
-                            onDeleteEntry={handleDeleteEntry}
-                            isAdding={isCreating}
-                        />
-                    </TabContent>
-                )}
-
                 {activeTab === 'comments' && (
                     <TabContent>
                         <VisitComments
@@ -379,7 +348,6 @@ export const VisitDetailView = () => {
             {transitionType === 'ready_to_completed' && (
                 <ReadyToCompletedWizard
                     visit={visit}
-                    journalEntries={journalEntries}
                     isOpen={isTransitionWizardOpen}
                     onClose={() => {
                         setIsTransitionWizardOpen(false);

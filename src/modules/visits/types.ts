@@ -1,7 +1,5 @@
 export type VisitStatus = 'IN_PROGRESS' | 'READY_FOR_PICKUP' | 'COMPLETED' | 'REJECTED' | 'ARCHIVED';
 
-export type JournalEntryType = 'internal_note' | 'customer_communication';
-
 export type DocumentType = 'photo' | 'pdf' | 'protocol';
 
 export type CommentType = 'INTERNAL' | 'FOR_CUSTOMER';
@@ -80,15 +78,6 @@ export interface CustomerInfo {
     };
 }
 
-export interface JournalEntry {
-    id: string;
-    type: JournalEntryType;
-    content: string;
-    createdBy: string;
-    createdAt: string;
-    isDeleted: boolean;
-}
-
 export interface VisitDocument {
     id: string;
     type: DocumentType;
@@ -119,7 +108,6 @@ export interface Visit {
 
 export interface VisitDetailResponse {
     visit: Visit;
-    journalEntries: JournalEntry[];
     documents: VisitDocument[];
 }
 
@@ -129,12 +117,6 @@ export interface UpdateVisitPayload {
     keysHandedOver?: boolean;
     documentsHandedOver?: boolean;
     technicalNotes?: string;
-}
-
-export interface CreateJournalEntryPayload {
-    visitId: string;
-    type: JournalEntryType;
-    content: string;
 }
 
 export interface UploadDocumentPayload {
