@@ -109,6 +109,11 @@ const mockVisitDetail: VisitDetailResponse = {
     ],
 };
 
+// Mapowanie statusu z backendu (snake_case lowercase) na frontend (SCREAMING_SNAKE_CASE)
+const mapVisitStatus = (backendStatus: string): string => {
+    return backendStatus.toUpperCase();
+};
+
 export const visitApi = {
     getVisitDetail: async (visitId: string): Promise<VisitDetailResponse> => {
         if (USE_MOCKS) {
@@ -116,7 +121,14 @@ export const visitApi = {
             return mockVisitDetail;
         }
         const response = await apiClient.get(`${BASE_PATH}/${visitId}`);
-        return response.data;
+        const data = response.data;
+
+        // Mapuj status z backendu na format frontendowy
+        if (data.visit && data.visit.status) {
+            data.visit.status = mapVisitStatus(data.visit.status);
+        }
+
+        return data;
     },
 
     updateVisit: async (
@@ -127,7 +139,14 @@ export const visitApi = {
             await new Promise(resolve => setTimeout(resolve, 600));
             return;
         }
-        await apiClient.patch(`${BASE_PATH}/${visitId}`, payload);
+
+        // Mapuj status z formatu frontendowego (SCREAMING_SNAKE_CASE) na backend (snake_case lowercase)
+        const backendPayload = { ...payload };
+        if (backendPayload.status) {
+            backendPayload.status = backendPayload.status.toLowerCase() as any;
+        }
+
+        await apiClient.patch(`${BASE_PATH}/${visitId}`, backendPayload);
     },
 
     uploadDocument: async (

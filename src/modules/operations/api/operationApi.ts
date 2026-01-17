@@ -92,7 +92,7 @@ const mapAppointmentToOperation = (appointment: AppointmentResponse): Operation 
         customerFirstName: appointment.customer.firstName,
         customerLastName: appointment.customer.lastName,
         customerPhone: appointment.customer.phone,
-        status: appointment.status as AppointmentStatus,
+        status: appointment.status.toUpperCase() as AppointmentStatus,
         vehicle: appointment.vehicle ? {
             brand: appointment.vehicle.brand,
             model: appointment.vehicle.model,
@@ -123,7 +123,7 @@ const mapVisitToOperation = (visit: VisitResponse): Operation => {
         customerFirstName: visit.customer.firstName,
         customerLastName: visit.customer.lastName,
         customerPhone: visit.customer.phone,
-        status: visit.status as VisitStatus,
+        status: visit.status.toUpperCase() as VisitStatus,
         vehicle: {
             brand: visit.vehicle.brand,
             model: visit.vehicle.model,
