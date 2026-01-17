@@ -46,18 +46,27 @@ export interface VisitEventData extends CalendarEventData {
  */
 export interface AppointmentResponse {
     id: string;
-    appointmentTitle?: string;
+    appointmentTitle?: string | null;
     customer: {
         firstName: string;
         lastName: string;
         phone: string;
+        email: string;
     };
     vehicle?: {
         brand: string;
         model: string;
+        year?: number;
+        licensePlate?: string;
     };
     services: Array<{
+        id: string;
+        serviceId: string;
         serviceName: string;
+        basePriceNet: number;
+        vatRate: number;
+        finalPriceNet: number;
+        finalPriceGross: number;
     }>;
     schedule: {
         isAllDay: boolean;
@@ -65,9 +74,14 @@ export interface AppointmentResponse {
         endDateTime: string;
     };
     appointmentColor: {
+        id: string;
+        name: string;
         hexColor: string;
     };
-    totalPriceNet?: number;
+    status: string;
+    totalNet: number;
+    totalGross: number;
+    totalVat: number;
 }
 
 /**

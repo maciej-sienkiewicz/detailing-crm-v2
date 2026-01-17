@@ -108,10 +108,10 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         customerPhone: appointment.customer.phone,
         vehicleInfo,
         colorHex: appointment.appointmentColor.hexColor,
-        appointmentTitle: appointment.appointmentTitle,
+        appointmentTitle: appointment.appointmentTitle || undefined,
         serviceNames,
         isAllDay: appointment.schedule.isAllDay,
-        totalPrice: appointment.totalPriceNet ? appointment.totalPriceNet / 100 : undefined,
+        totalPrice: appointment.totalNet ? appointment.totalNet / 100 : undefined,
         currency: 'PLN',
     };
 
@@ -232,19 +232,30 @@ export const calendarApi = {
      */
     getCalendarEvents: async (dateRange: DateRange): Promise<CalendarEvent[]> => {
         try {
+            console.log('[CalendarAPI] Fetching events for range:', dateRange);
+
             // Fetch both appointments and visits in parallel
             const [appointments, visits] = await Promise.all([
                 fetchAppointments(dateRange),
                 fetchVisits(dateRange),
             ]);
 
+            console.log('[CalendarAPI] Fetched appointments:', appointments);
+            console.log('[CalendarAPI] Fetched visits:', visits);
+
             // Transform and merge events
             const appointmentEvents = appointments.map(transformAppointment);
             const visitEvents = visits.map(transformVisit);
 
-            return [...appointmentEvents, ...visitEvents];
+            console.log('[CalendarAPI] Transformed appointment events:', appointmentEvents);
+            console.log('[CalendarAPI] Transformed visit events:', visitEvents);
+
+            const allEvents = [...appointmentEvents, ...visitEvents];
+            console.log('[CalendarAPI] All calendar events:', allEvents);
+
+            return allEvents;
         } catch (error) {
-            console.error('Error fetching calendar events:', error);
+            console.error('[CalendarAPI] Error fetching calendar events:', error);
             throw error;
         }
     },
