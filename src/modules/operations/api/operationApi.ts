@@ -3,12 +3,12 @@
 import { apiClient } from '@/core';
 import type { OperationListResponse, OperationFilters, Operation } from '../types';
 
-const USE_MOCKS_FOR_VISITS = true; // Wizyty nadal zamockowane
+const USE_MOCKS_FOR_VISITS = false; // Wizyty z prawdziwego API
 const USE_MOCKS_FOR_RESERVATIONS = false; // Rezerwacje z serwera
 
 const BASE_PATH = '/api/operations';
 
-// Typ dla odpowiedzi z backendu
+// Typ dla odpowiedzi z backendu - Rezerwacje
 interface AppointmentResponse {
     id: string;
     customerId: string;
@@ -42,7 +42,49 @@ interface AppointmentsListResponse {
     appointments: AppointmentResponse[];
 }
 
-// Funkcja mapująca dane z backendu na format frontend
+// Typ dla odpowiedzi z backendu - Wizyty
+interface VisitCustomerInfo {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email: string;
+    companyName: string | null;
+}
+
+interface VisitVehicleInfo {
+    brand: string;
+    model: string;
+    licensePlate: string;
+    yearOfProduction: number;
+}
+
+interface VisitResponse {
+    id: string;
+    visitNumber: string;
+    customerId: string;
+    vehicleId: string;
+    customer: VisitCustomerInfo;
+    vehicle: VisitVehicleInfo;
+    status: string; // ACCEPTED, IN_PROGRESS, READY, COMPLETED, CANCELLED
+    scheduledDate: string;
+    completedDate: string | null;
+    totalNet: number; // w groszach
+    totalGross: number; // w groszach
+    createdAt: string;
+    updatedAt: string;
+}
+
+interface VisitsListResponse {
+    visits: VisitResponse[];
+    pagination: {
+        total: number;
+        page: number;
+        pageSize: number;
+        totalPages: number;
+    };
+}
+
+// Funkcja mapująca dane z backendu na format frontend - Rezerwacje
 const mapAppointmentToOperation = (appointment: AppointmentResponse): Operation => {
     // Mapowanie statusu z backendu na frontend
     const mapStatus = (backendStatus: string) => {
@@ -83,6 +125,55 @@ const mapAppointmentToOperation = (appointment: AppointmentResponse): Operation 
         },
         lastModification: {
             timestamp: appointment.updatedAt,
+            performedBy: {
+                firstName: 'System', // Backend nie zwraca tej informacji
+                lastName: '',
+            },
+        },
+    };
+};
+
+// Funkcja mapująca dane z backendu na format frontend - Wizyty
+const mapVisitToOperation = (visit: VisitResponse): Operation => {
+    // Mapowanie statusu z backendu na frontend
+    const mapStatus = (backendStatus: string) => {
+        switch (backendStatus) {
+            case 'ACCEPTED':
+                return 'SCHEDULED';
+            case 'IN_PROGRESS':
+                return 'IN_PROGRESS';
+            case 'READY':
+                return 'READY_FOR_PICKUP';
+            case 'COMPLETED':
+                return 'COMPLETED';
+            case 'CANCELLED':
+                return 'CANCELLED';
+            default:
+                return 'SCHEDULED';
+        }
+    };
+
+    return {
+        id: visit.id,
+        type: 'VISIT',
+        customerFirstName: visit.customer.firstName,
+        customerLastName: visit.customer.lastName,
+        customerPhone: visit.customer.phone,
+        status: mapStatus(visit.status),
+        vehicle: {
+            brand: visit.vehicle.brand,
+            model: visit.vehicle.model,
+            licensePlate: visit.vehicle.licensePlate,
+        },
+        startDateTime: visit.scheduledDate,
+        endDateTime: visit.completedDate || visit.scheduledDate, // Użyj scheduledDate jako fallback
+        financials: {
+            netAmount: visit.totalNet / 100, // Konwersja z groszy na złotówki
+            grossAmount: visit.totalGross / 100, // Konwersja z groszy na złotówki
+            currency: 'PLN',
+        },
+        lastModification: {
+            timestamp: visit.updatedAt,
             performedBy: {
                 firstName: 'System', // Backend nie zwraca tej informacji
                 lastName: '',
@@ -212,17 +303,74 @@ const mockDeleteOperation = async (id: string): Promise<void> => {
 
 export const operationApi = {
     getOperations: async (filters: OperationFilters): Promise<OperationListResponse> => {
-        // Jeśli filtrujemy tylko wizyty - zwróć mocki
+        // Jeśli filtrujemy tylko wizyty - pobierz z /api/visits
         if (filters.type === 'VISIT') {
             if (USE_MOCKS_FOR_VISITS) {
                 return mockGetVisits(filters);
             }
+
+            // Mapowanie statusu frontendu na backend dla wizyt
+            const mapStatusToBackend = (frontendStatus?: string) => {
+                if (!frontendStatus) return undefined;
+                switch (frontendStatus) {
+                    case 'SCHEDULED':
+                        return 'ACCEPTED';
+                    case 'IN_PROGRESS':
+                        return 'IN_PROGRESS';
+                    case 'READY_FOR_PICKUP':
+                        return 'READY';
+                    case 'COMPLETED':
+                        return 'COMPLETED';
+                    case 'CANCELLED':
+                        return 'CANCELLED';
+                    default:
+                        return undefined;
+                }
+            };
+
+            const params = new URLSearchParams({
+                page: filters.page.toString(),
+                size: filters.limit.toString(),
+            });
+
+            const backendStatus = mapStatusToBackend(filters.status);
+            if (backendStatus) {
+                params.append('status', backendStatus);
+            }
+
+            const response = await apiClient.get<VisitsListResponse>(
+                `/api/visits?${params.toString()}`
+            );
+
+            // Mapuj dane z backendu na format frontend
+            const mappedData = response.data.visits.map(mapVisitToOperation);
+
+            // Filtruj po wyszukiwaniu lokalnie (backend nie wspiera tego parametru)
+            let filteredData = mappedData;
+            if (filters.search) {
+                const searchLower = filters.search.toLowerCase();
+                filteredData = mappedData.filter(op =>
+                    op.customerLastName.toLowerCase().includes(searchLower) ||
+                    op.customerFirstName.toLowerCase().includes(searchLower) ||
+                    op.customerPhone.includes(filters.search) ||
+                    (op.vehicle?.licensePlate?.toLowerCase().includes(searchLower) ?? false)
+                );
+            }
+
+            return {
+                data: filteredData,
+                pagination: {
+                    currentPage: response.data.pagination.page,
+                    totalPages: response.data.pagination.totalPages,
+                    totalItems: response.data.pagination.total,
+                    itemsPerPage: response.data.pagination.pageSize,
+                },
+            };
         }
 
-        // Jeśli filtrujemy tylko rezerwacje - pobierz z serwera
+        // Jeśli filtrujemy tylko rezerwacje - pobierz z /api/v1/appointments
         if (filters.type === 'RESERVATION') {
             if (USE_MOCKS_FOR_RESERVATIONS) {
-                // Teoretycznie można by tu dodać mocki dla rezerwacji
                 return { data: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 20 } };
             }
 
@@ -239,7 +387,6 @@ export const operationApi = {
                 `/api/v1/appointments?${params.toString()}`
             );
 
-            // Mapuj dane z backendu na format frontend
             const mappedData = response.data.appointments.map(mapAppointmentToOperation);
 
             return {
@@ -254,42 +401,90 @@ export const operationApi = {
         }
 
         // Jeśli brak filtru typu - pobierz oba źródła i połącz
-        const visitsPromise = USE_MOCKS_FOR_VISITS ? mockGetVisits(filters) : Promise.resolve({ data: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 20 } });
+        const fetchVisits = async (): Promise<OperationListResponse> => {
+            if (USE_MOCKS_FOR_VISITS) {
+                return mockGetVisits(filters);
+            }
 
-        const reservationsPromise = USE_MOCKS_FOR_RESERVATIONS
-            ? Promise.resolve({ data: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 20 } })
-            : (async () => {
-                const params = new URLSearchParams({
-                    ...(filters.search && { search: filters.search }),
-                    page: filters.page.toString(),
-                    limit: filters.limit.toString(),
-                    ...(filters.status && { status: filters.status }),
-                    ...(filters.sortBy && { sortBy: filters.sortBy }),
-                    ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
-                });
+            const params = new URLSearchParams({
+                page: filters.page.toString(),
+                size: filters.limit.toString(),
+            });
 
-                const response = await apiClient.get<AppointmentsListResponse>(
-                    `/api/v1/appointments?${params.toString()}`
-                );
+            const response = await apiClient.get<VisitsListResponse>(
+                `/api/visits?${params.toString()}`
+            );
 
-                // Mapuj dane z backendu na format frontend
-                const mappedData = response.data.appointments.map(mapAppointmentToOperation);
+            const mappedData = response.data.visits.map(mapVisitToOperation);
 
-                return {
-                    data: mappedData,
-                    pagination: {
-                        currentPage: 1,
-                        totalPages: 1,
-                        totalItems: mappedData.length,
-                        itemsPerPage: 20,
-                    },
-                };
-            })();
+            return {
+                data: mappedData,
+                pagination: {
+                    currentPage: response.data.pagination.page,
+                    totalPages: response.data.pagination.totalPages,
+                    totalItems: response.data.pagination.total,
+                    itemsPerPage: response.data.pagination.pageSize,
+                },
+            };
+        };
 
-        const [visitsResult, reservationsResult] = await Promise.all([visitsPromise, reservationsPromise]);
+        const fetchReservations = async (): Promise<OperationListResponse> => {
+            if (USE_MOCKS_FOR_RESERVATIONS) {
+                return { data: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 20 } };
+            }
+
+            const params = new URLSearchParams({
+                ...(filters.search && { search: filters.search }),
+                page: filters.page.toString(),
+                limit: filters.limit.toString(),
+                ...(filters.status && { status: filters.status }),
+                ...(filters.sortBy && { sortBy: filters.sortBy }),
+                ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
+            });
+
+            const response = await apiClient.get<AppointmentsListResponse>(
+                `/api/v1/appointments?${params.toString()}`
+            );
+
+            const mappedData = response.data.appointments.map(mapAppointmentToOperation);
+
+            return {
+                data: mappedData,
+                pagination: {
+                    currentPage: 1,
+                    totalPages: 1,
+                    totalItems: mappedData.length,
+                    itemsPerPage: 20,
+                },
+            };
+        };
+
+        const [visitsResult, reservationsResult] = await Promise.all([
+            fetchVisits(),
+            fetchReservations()
+        ]);
 
         // Połącz dane i posortuj po dacie
-        const combinedData = [...visitsResult.data, ...reservationsResult.data].sort((a, b) => {
+        let combinedData = [...visitsResult.data, ...reservationsResult.data];
+
+        // Filtruj po wyszukiwaniu
+        if (filters.search) {
+            const searchLower = filters.search.toLowerCase();
+            combinedData = combinedData.filter(op =>
+                op.customerLastName.toLowerCase().includes(searchLower) ||
+                op.customerFirstName.toLowerCase().includes(searchLower) ||
+                op.customerPhone.includes(filters.search) ||
+                (op.vehicle?.licensePlate?.toLowerCase().includes(searchLower) ?? false)
+            );
+        }
+
+        // Filtruj po statusie
+        if (filters.status) {
+            combinedData = combinedData.filter(op => op.status === filters.status);
+        }
+
+        // Sortuj po dacie
+        combinedData.sort((a, b) => {
             return new Date(b.startDateTime).getTime() - new Date(a.startDateTime).getTime();
         });
 
