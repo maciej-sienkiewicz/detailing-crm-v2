@@ -18,9 +18,12 @@ const PopoverContainer = styled.div<{ $x: number; $y: number }>`
     border-radius: 12px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
     width: 380px;
+    max-height: 600px;
     z-index: 1000;
     overflow: hidden;
     border: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
 `;
 
 const PopoverHeader = styled.div<{ $color: string }>`
@@ -47,6 +50,8 @@ const EventType = styled.div`
 
 const PopoverBody = styled.div`
     padding: 20px;
+    overflow-y: auto;
+    flex: 1;
 `;
 
 const Section = styled.div`

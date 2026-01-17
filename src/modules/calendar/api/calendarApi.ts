@@ -138,7 +138,7 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         appointmentTitle: appointment.appointmentTitle || undefined,
         serviceNames,
         isAllDay: appointment.schedule.isAllDay,
-        totalPrice: appointment.totalNet ? appointment.totalNet / 100 : undefined,
+        totalPrice: appointment.totalGross || undefined,
         currency: 'PLN',
     };
 
@@ -192,7 +192,7 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
         status,
         licensePlate: visit.vehicle.licensePlate,
         colorHex: statusColors[status],
-        totalPrice: visit.totalCost.grossAmount / 100,
+        totalPrice: visit.totalCost.grossAmount,
         currency: visit.totalCost.currency,
     };
 

@@ -299,15 +299,38 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
         // Calculate popover position near the clicked event
         const rect = clickInfo.el.getBoundingClientRect();
-        const x = rect.right + 10; // 10px to the right of the event
-        const y = rect.top;
+        const popoverWidth = 380;
+        const popoverMaxHeight = 600; // Estimated max height
+        const margin = 16; // Margin from screen edges
 
-        // Adjust if popover would go off screen
-        const adjustedX = x + 380 > window.innerWidth ? rect.left - 390 : x;
-        const adjustedY = y + 400 > window.innerHeight ? window.innerHeight - 420 : y;
+        // Try to position to the right of the event
+        let x = rect.right + 10;
+        let y = rect.top;
+
+        // Adjust X if popover would go off the right edge
+        if (x + popoverWidth + margin > window.innerWidth) {
+            // Try positioning to the left
+            x = rect.left - popoverWidth - 10;
+
+            // If still off screen (left edge), center it on screen
+            if (x < margin) {
+                x = Math.max(margin, (window.innerWidth - popoverWidth) / 2);
+            }
+        }
+
+        // Adjust Y if popover would go off the bottom edge
+        if (y + popoverMaxHeight + margin > window.innerHeight) {
+            // Position from bottom, aligned with bottom of screen
+            y = Math.max(margin, window.innerHeight - popoverMaxHeight - margin);
+        }
+
+        // Ensure popover doesn't go above the top edge
+        if (y < margin) {
+            y = margin;
+        }
 
         setPopoverEvent(eventData);
-        setPopoverPosition({ x: adjustedX, y: adjustedY });
+        setPopoverPosition({ x, y });
         setPopoverOpen(true);
     }, []);
 
