@@ -5,6 +5,9 @@ import styled, { keyframes, css } from 'styled-components';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/core';
 import type { EventCreationData } from '../types';
+import { CustomerModal } from '@/modules/appointments/components/CustomerModal';
+import { VehicleModal } from '@/modules/appointments/components/VehicleModal';
+import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/types';
 
 // --- ICONS (Inline SVG for professional look without external deps) ---
 const IconClock = () => (
@@ -319,25 +322,6 @@ const DropdownItem = styled.div<{ $highlighted?: boolean }>`
     }
 `;
 
-const AddButton = styled.button`
-    width: 100%;
-    padding: 10px;
-    margin-top: 8px;
-    background: white;
-    border: 1px dashed #cbd5e1;
-    border-radius: 6px;
-    color: #3b82f6;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-
-    &:hover {
-        background: #eff6ff;
-        border-color: #3b82f6;
-    }
-`;
-
 const Footer = styled.div`
     padding: 20px 32px;
     border-top: 1px solid #e2e8f0;
@@ -379,7 +363,7 @@ const Button = styled.button<{ $variant?: 'primary' | 'secondary' }>`
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    
+
     ${props => props.$variant === 'primary' ? `
         background: #0f172a; // Enterprise Dark
         color: white;
@@ -401,6 +385,76 @@ const Button = styled.button<{ $variant?: 'primary' | 'secondary' }>`
             border-color: #94a3b8;
         }
     `}
+`;
+
+// Placeholder button similar to Google Calendar's "Add guests"
+const PlaceholderButton = styled.button<{ $hasValue?: boolean }>`
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 14px;
+    background: #ffffff;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 42px;
+
+    color: ${props => props.$hasValue ? '#0f172a' : '#94a3b8'};
+    font-weight: ${props => props.$hasValue ? '500' : '400'};
+
+    &:hover {
+        border-color: #94a3b8;
+        background: #f8fafc;
+    }
+
+    &:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+
+        &:hover {
+            border-color: #cbd5e1;
+            background: #ffffff;
+        }
+    }
+`;
+
+const PlaceholderIcon = styled.span`
+    display: flex;
+    align-items: center;
+    color: #64748b;
+    flex-shrink: 0;
+`;
+
+const PlaceholderText = styled.span`
+    flex: 1;
+`;
+
+const RemoveButton = styled.button`
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+
+    &:hover {
+        background: #fee2e2;
+        color: #ef4444;
+    }
 `;
 
 // --- TYPES ---
@@ -435,17 +489,12 @@ export const QuickEventModal: React.FC<QuickEventModalProps> = ({
                                                                 }) => {
     // State initialization
     const [title, setTitle] = useState('');
-    const [customerSearch, setCustomerSearch] = useState('');
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>();
     const [selectedCustomerName, setSelectedCustomerName] = useState('');
+    const [selectedCustomer, setSelectedCustomer] = useState<SelectedCustomer | null>(null);
     const [selectedVehicleId, setSelectedVehicleId] = useState<string>();
     const [selectedVehicleName, setSelectedVehicleName] = useState('');
-    const [vehicleSearch, setVehicleSearch] = useState('');
-    const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
-    const [showAddVehicle, setShowAddVehicle] = useState(false);
-    const [newVehicleBrand, setNewVehicleBrand] = useState('');
-    const [newVehicleModel, setNewVehicleModel] = useState('');
-    const [newVehiclePlate, setNewVehiclePlate] = useState('');
+    const [selectedVehicle, setSelectedVehicle] = useState<SelectedVehicle | null>(null);
     const [startDateTime, setStartDateTime] = useState('');
     const [endDateTime, setEndDateTime] = useState('');
     const [isAllDay, setIsAllDay] = useState(false);
@@ -456,17 +505,11 @@ export const QuickEventModal: React.FC<QuickEventModalProps> = ({
     const [selectedColorId, setSelectedColorId] = useState('');
     const [notes, setNotes] = useState('');
 
-    // Queries
-    const { data: customers = [] } = useQuery({
-        queryKey: ['customers-search', customerSearch],
-        queryFn: async () => {
-            if (!customerSearch || customerSearch.length < 2) return [];
-            const response = await apiClient.get(`/api/v1/customers/search`, { params: { query: customerSearch } });
-            return response.data.customers || [];
-        },
-        enabled: customerSearch.length >= 2,
-    });
+    // Modal states
+    const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+    const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
 
+    // Queries
     const { data: vehicles = [] } = useQuery({
         queryKey: ['customer-vehicles', selectedCustomerId],
         queryFn: async () => {
@@ -555,21 +598,44 @@ export const QuickEventModal: React.FC<QuickEventModalProps> = ({
         });
     };
 
-    const handleCustomerSelect = (customer: any) => {
-        setSelectedCustomerId(customer.id);
-        setSelectedCustomerName(`${customer.firstName} ${customer.lastName}`);
-        setCustomerSearch(`${customer.firstName} ${customer.lastName}`);
+    const handleCustomerSelect = (customer: SelectedCustomer) => {
+        setSelectedCustomer(customer);
+        if (customer.isAlias) {
+            setSelectedCustomerName(customer.alias || '');
+        } else {
+            setSelectedCustomerId(customer.id);
+            setSelectedCustomerName(`${customer.firstName} ${customer.lastName}`);
+        }
         // Reset vehicle on customer change
         setSelectedVehicleId(undefined);
         setSelectedVehicleName('');
-        setVehicleSearch('');
+        setSelectedVehicle(null);
     };
 
-    const handleVehicleSelect = (vehicle: any) => {
-        setSelectedVehicleId(vehicle.id);
+    const handleVehicleSelect = (vehicle: SelectedVehicle) => {
+        setSelectedVehicle(vehicle);
+        if (!vehicle.isNew && vehicle.id) {
+            setSelectedVehicleId(vehicle.id);
+        }
         setSelectedVehicleName(`${vehicle.brand} ${vehicle.model}`);
-        setVehicleSearch(`${vehicle.brand} ${vehicle.model} (${vehicle.licensePlate})`);
-        setShowVehicleDropdown(false);
+    };
+
+    const handleRemoveCustomer = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setSelectedCustomer(null);
+        setSelectedCustomerId(undefined);
+        setSelectedCustomerName('');
+        // Also reset vehicle
+        setSelectedVehicleId(undefined);
+        setSelectedVehicleName('');
+        setSelectedVehicle(null);
+    };
+
+    const handleRemoveVehicle = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setSelectedVehicle(null);
+        setSelectedVehicleId(undefined);
+        setSelectedVehicleName('');
     };
 
     const addService = (service: any) => {
@@ -636,97 +702,53 @@ export const QuickEventModal: React.FC<QuickEventModalProps> = ({
                         <Grid $cols={2}>
                             <div>
                                 <SectionTitle><IconUser /> Klient</SectionTitle>
-                                <FormGroup>
-                                    <Label>Wyszukaj Klienta</Label>
-                                    <Input
-                                        type="text"
-                                        placeholder="Nazwisko lub telefon..."
-                                        value={customerSearch}
-                                        onChange={(e) => setCustomerSearch(e.target.value)}
-                                    />
-                                    {customers.length > 0 && customerSearch !== selectedCustomerName && (
-                                        <Dropdown>
-                                            {customers.map((customer: any) => (
-                                                <DropdownItem
-                                                    key={customer.id}
-                                                    onClick={() => handleCustomerSelect(customer)}
-                                                    $highlighted={customer.id === selectedCustomerId}
-                                                >
-                                                    <div style={{ fontWeight: 500 }}>{customer.firstName} {customer.lastName}</div>
-                                                    <div style={{ fontSize: '12px', color: '#64748b' }}>{customer.phone}</div>
-                                                </DropdownItem>
-                                            ))}
-                                        </Dropdown>
+                                <PlaceholderButton
+                                    type="button"
+                                    $hasValue={!!selectedCustomer}
+                                    onClick={() => setIsCustomerModalOpen(true)}
+                                >
+                                    <PlaceholderIcon>
+                                        <IconUser />
+                                    </PlaceholderIcon>
+                                    <PlaceholderText>
+                                        {selectedCustomer
+                                            ? (selectedCustomer.isAlias
+                                                ? selectedCustomer.alias
+                                                : `${selectedCustomer.firstName} ${selectedCustomer.lastName}`)
+                                            : 'Dodaj klienta'}
+                                    </PlaceholderText>
+                                    {selectedCustomer && (
+                                        <RemoveButton onClick={handleRemoveCustomer}>
+                                            <IconX />
+                                        </RemoveButton>
                                     )}
-                                </FormGroup>
+                                </PlaceholderButton>
                             </div>
 
                             <div>
                                 <SectionTitle><IconCar /> Pojazd</SectionTitle>
-                                <FormGroup>
-                                    <Label>Wybierz Pojazd</Label>
-                                    <Input
-                                        type="text"
-                                        placeholder={selectedCustomerId ? "Wyszukaj pojazd..." : "Najpierw wybierz klienta"}
-                                        value={vehicleSearch}
-                                        onChange={(e) => {
-                                            setVehicleSearch(e.target.value);
-                                            setShowVehicleDropdown(true);
-                                        }}
-                                        disabled={!selectedCustomerId}
-                                        onFocus={() => setShowVehicleDropdown(true)}
-                                    />
-                                    {showVehicleDropdown && selectedCustomerId && vehicles.length > 0 && (
-                                        <Dropdown>
-                                            {vehicles
-                                                .filter((v: any) =>
-                                                    `${v.brand} ${v.model} ${v.licensePlate}`.toLowerCase().includes(vehicleSearch.toLowerCase())
-                                                )
-                                                .map((vehicle: any) => (
-                                                    <DropdownItem
-                                                        key={vehicle.id}
-                                                        onClick={() => handleVehicleSelect(vehicle)}
-                                                    >
-                                                        {vehicle.brand} {vehicle.model} <span style={{color: '#94a3b8'}}>({vehicle.licensePlate})</span>
-                                                    </DropdownItem>
-                                                ))}
-                                        </Dropdown>
+                                <PlaceholderButton
+                                    type="button"
+                                    $hasValue={!!selectedVehicle}
+                                    onClick={() => selectedCustomerId && setIsVehicleModalOpen(true)}
+                                    disabled={!selectedCustomerId}
+                                >
+                                    <PlaceholderIcon>
+                                        <IconCar />
+                                    </PlaceholderIcon>
+                                    <PlaceholderText>
+                                        {selectedVehicle
+                                            ? `${selectedVehicle.brand} ${selectedVehicle.model}`
+                                            : (selectedCustomerId ? 'Dodaj pojazd' : 'Najpierw wybierz klienta')}
+                                    </PlaceholderText>
+                                    {selectedVehicle && (
+                                        <RemoveButton onClick={handleRemoveVehicle}>
+                                            <IconX />
+                                        </RemoveButton>
                                     )}
-                                </FormGroup>
-                                {selectedCustomerId && !showAddVehicle && (
-                                    <AddButton type="button" onClick={() => setShowAddVehicle(true)}>
-                                        + Dodaj nowy pojazd
-                                    </AddButton>
-                                )}
+                                </PlaceholderButton>
                             </div>
                         </Grid>
-
-                        {/* New Vehicle Inline Form */}
-                        {showAddVehicle && (
-                            <CardStyle style={{ padding: '16px', marginBottom: '32px', background: '#f1f5f9', border: 'none' }}>
-                                <Grid $cols={2} style={{ marginBottom: '12px' }}>
-                                    <Input placeholder="Marka" value={newVehicleBrand} onChange={e => setNewVehicleBrand(e.target.value)} />
-                                    <Input placeholder="Model" value={newVehicleModel} onChange={e => setNewVehicleModel(e.target.value)} />
-                                </Grid>
-                                <Input
-                                    placeholder="Nr Rejestracyjny"
-                                    value={newVehiclePlate}
-                                    onChange={e => setNewVehiclePlate(e.target.value)}
-                                    style={{ marginBottom: '12px' }}
-                                />
-                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                    <Button type="button" $variant="secondary" onClick={() => setShowAddVehicle(false)} style={{ padding: '6px 12px', fontSize: '13px' }}>Anuluj</Button>
-                                    <Button type="button" $variant="primary" onClick={() => {
-                                        // Logic from original component
-                                        const tempId = `temp-${Date.now()}`;
-                                        setSelectedVehicleId(tempId);
-                                        setSelectedVehicleName(`${newVehicleBrand} ${newVehicleModel}`);
-                                        setVehicleSearch(`${newVehicleBrand} ${newVehicleModel} (${newVehiclePlate})`);
-                                        setShowAddVehicle(false);
-                                    }} style={{ padding: '6px 12px', fontSize: '13px' }}>Dodaj</Button>
-                                </div>
-                            </CardStyle>
-                        )}
 
 
                         {/* --- SERVICES SECTION --- */}
@@ -824,6 +846,22 @@ export const QuickEventModal: React.FC<QuickEventModalProps> = ({
                     </Footer>
                 </form>
             </ModalContainer>
+
+            {/* Customer Modal */}
+            <CustomerModal
+                isOpen={isCustomerModalOpen}
+                onClose={() => setIsCustomerModalOpen(false)}
+                onSelect={handleCustomerSelect}
+            />
+
+            {/* Vehicle Modal */}
+            <VehicleModal
+                isOpen={isVehicleModalOpen}
+                vehicles={vehicles}
+                onClose={() => setIsVehicleModalOpen(false)}
+                onSelect={handleVehicleSelect}
+                allowSkip={true}
+            />
         </Overlay>
     );
 };
