@@ -6,7 +6,7 @@ import type {
     SendNotificationResponse,
 } from '../types/stateTransitions';
 
-const USE_MOCKS = true;
+const USE_MOCKS = false;
 const BASE_PATH = '/api/visits';
 
 export const stateTransitionApi = {
