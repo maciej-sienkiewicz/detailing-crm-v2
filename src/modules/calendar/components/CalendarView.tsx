@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
 import { useEventCreation } from '../hooks/useEventCreation';
 import type { DateRange, CalendarView as CalendarViewType } from '../types';
+import '../calendar.css';
 
 const CalendarContainer = styled.div`
     height: 100%;

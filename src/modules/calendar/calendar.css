@@ -1,0 +1,353 @@
+/* FullCalendar Base Styles */
+/* Minimal required styles for FullCalendar structure */
+
+:root {
+  --fc-border-color: #ddd;
+  --fc-button-text-color: #fff;
+  --fc-button-bg-color: #2C3E50;
+  --fc-button-border-color: #2C3E50;
+  --fc-button-hover-bg-color: #1e2b37;
+  --fc-button-hover-border-color: #1a252f;
+  --fc-button-active-bg-color: #1e2b37;
+  --fc-button-active-border-color: #151e27;
+  --fc-event-bg-color: #3788d8;
+  --fc-event-border-color: #3788d8;
+  --fc-event-text-color: #fff;
+  --fc-event-selected-overlay-color: rgba(0, 0, 0, 0.25);
+  --fc-more-link-bg-color: #d0d0d0;
+  --fc-more-link-text-color: inherit;
+  --fc-event-resizer-thickness: 8px;
+  --fc-event-resizer-dot-total-width: 8px;
+  --fc-event-resizer-dot-border-width: 1px;
+  --fc-non-business-color: rgba(215, 215, 215, 0.3);
+  --fc-bg-event-color: rgb(143, 223, 130);
+  --fc-bg-event-opacity: 0.3;
+  --fc-highlight-color: rgba(188, 232, 241, 0.3);
+  --fc-today-bg-color: rgba(255, 220, 40, 0.15);
+  --fc-now-indicator-color: red;
+}
+
+.fc {
+  display: flex;
+  flex-direction: column;
+  font-size: 1em;
+}
+
+.fc *,
+.fc *:before,
+.fc *:after {
+  box-sizing: border-box;
+}
+
+.fc table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-size: 1em;
+}
+
+.fc th {
+  text-align: center;
+}
+
+.fc th,
+.fc td {
+  vertical-align: top;
+  padding: 0;
+}
+
+.fc a[data-navlink] {
+  cursor: pointer;
+}
+
+.fc a[data-navlink]:hover {
+  text-decoration: underline;
+}
+
+.fc-direction-ltr {
+  direction: ltr;
+  text-align: left;
+}
+
+.fc-direction-rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+.fc-theme-standard td,
+.fc-theme-standard th {
+  border: 1px solid var(--fc-border-color);
+}
+
+.fc-liquid-hack td,
+.fc-liquid-hack th {
+  position: relative;
+}
+
+.fc-scroller {
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.fc-scroller-liquid {
+  height: 100%;
+}
+
+.fc-scroller-liquid-absolute {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+}
+
+.fc-scroller-harness {
+  position: relative;
+  overflow: hidden;
+  direction: ltr;
+}
+
+.fc-scroller-harness-liquid {
+  height: 100%;
+}
+
+.fc-event {
+  position: relative;
+  display: block;
+  font-size: 0.85em;
+  line-height: 1.4;
+  border-radius: 3px;
+  border: 1px solid var(--fc-event-border-color);
+}
+
+.fc-event .fc-event-main {
+  position: relative;
+  z-index: 2;
+}
+
+.fc-event-dragging:not(.fc-event-selected) {
+  opacity: 0.75;
+}
+
+.fc-event-dragging.fc-event-selected {
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.3);
+}
+
+.fc-event .fc-event-resizer {
+  display: none;
+  position: absolute;
+  z-index: 4;
+}
+
+.fc-event-selected .fc-event-resizer,
+.fc-event:hover .fc-event-resizer {
+  display: block;
+}
+
+.fc-event-selected {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.fc-event-selected:before {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.fc-event-selected:after {
+  content: "";
+  background: var(--fc-event-selected-overlay-color);
+  position: absolute;
+  z-index: 1;
+  top: -1px;
+  right: -1px;
+  bottom: -1px;
+  left: -1px;
+}
+
+.fc-h-event {
+  display: block;
+  border: 1px solid var(--fc-event-border-color);
+  background-color: var(--fc-event-bg-color);
+}
+
+.fc-h-event .fc-event-main {
+  color: var(--fc-event-text-color);
+}
+
+.fc-h-event .fc-event-main-frame {
+  display: flex;
+}
+
+.fc-h-event .fc-event-time {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.fc-h-event .fc-event-title-container {
+  flex-grow: 1;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.fc-h-event .fc-event-title {
+  display: inline-block;
+  vertical-align: top;
+  left: 0;
+  right: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.fc-h-event.fc-event-selected:before {
+  top: -10px;
+  bottom: -10px;
+}
+
+.fc-direction-ltr .fc-daygrid-block-event:not(.fc-event-start),
+.fc-direction-rtl .fc-daygrid-block-event:not(.fc-event-end) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left-width: 0;
+}
+
+.fc-direction-ltr .fc-daygrid-block-event:not(.fc-event-end),
+.fc-direction-rtl .fc-daygrid-block-event:not(.fc-event-start) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right-width: 0;
+}
+
+.fc-daygrid-event-harness {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.fc-daygrid-event-harness-abs {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.fc-daygrid-bg-harness {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.fc-v-event {
+  display: block;
+  border: 1px solid var(--fc-event-border-color);
+  background-color: var(--fc-event-bg-color);
+}
+
+.fc-v-event .fc-event-main {
+  color: var(--fc-event-text-color);
+  height: 100%;
+}
+
+.fc-v-event .fc-event-main-frame {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.fc-v-event .fc-event-time {
+  flex-grow: 0;
+  flex-shrink: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.fc-v-event .fc-event-title-container {
+  flex-grow: 1;
+  flex-shrink: 1;
+  min-height: 0;
+}
+
+.fc-v-event .fc-event-title {
+  top: 0;
+  bottom: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.fc-v-event:not(.fc-event-start) {
+  border-top-width: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.fc-v-event:not(.fc-event-end) {
+  border-bottom-width: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.fc-v-event.fc-event-selected:before {
+  left: -10px;
+  right: -10px;
+}
+
+.fc-timegrid-event-harness {
+  position: absolute;
+}
+
+.fc-timegrid-event-harness > .fc-timegrid-event {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.fc-timegrid-event {
+  margin-bottom: 1px;
+}
+
+.fc-timegrid-now-indicator-line {
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  right: 0;
+  border-style: solid;
+  border-color: var(--fc-now-indicator-color);
+  border-width: 1px 0 0;
+}
+
+.fc-timegrid-now-indicator-arrow {
+  position: absolute;
+  z-index: 4;
+  margin-top: -5px;
+  border-style: solid;
+  border-color: var(--fc-now-indicator-color);
+}
+
+.fc-direction-ltr .fc-timegrid-now-indicator-arrow {
+  left: 0;
+  border-width: 5px 0 5px 6px;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+}
+
+.fc-direction-rtl .fc-timegrid-now-indicator-arrow {
+  right: 0;
+  border-width: 5px 6px 5px 0;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+}
+
+.fc-highlight {
+  background: var(--fc-highlight-color);
+}
+
+.fc-day-today {
+  background-color: var(--fc-today-bg-color);
+}
