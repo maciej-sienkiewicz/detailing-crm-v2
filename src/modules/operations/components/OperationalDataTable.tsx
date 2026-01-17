@@ -291,7 +291,7 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
     const handleRowClick = useCallback((operation: Operation) => {
         // Dla wizyt - przekieruj do widoku szczegółów
         if (operation.type === 'VISIT') {
-            navigate(`/visit/${operation.id}`);
+            navigate(`/visits/${operation.id}`);
             return;
         }
 
