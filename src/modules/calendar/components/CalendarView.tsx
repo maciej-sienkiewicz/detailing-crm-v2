@@ -8,9 +8,13 @@ import interactionPlugin from '@fullcalendar/interaction';
 import type { DateSelectArg, EventClickArg, DatesSetArg } from '@fullcalendar/core';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/core';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
 import { useEventCreation } from '../hooks/useEventCreation';
-import type { DateRange, CalendarView as CalendarViewType } from '../types';
+import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
+import { QuickEventModal, type QuickEventFormData } from './QuickEventModal';
+import type { DateRange, CalendarView as CalendarViewType, EventCreationData } from '../types';
 import '../calendar.css';
 
 const CalendarContainer = styled.div`
@@ -237,8 +241,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const navigate = useNavigate();
     const calendarRef = useRef<FullCalendar>(null);
     const [dateRange, setDateRange] = useState<DateRange | null>(null);
+    const [quickModalOpen, setQuickModalOpen] = useState(false);
+    const [selectedEventData, setSelectedEventData] = useState<EventCreationData | null>(null);
+
     const { createEvent } = useEventCreation();
+    const { createQuickEvent } = useQuickEventCreation();
     const { data: events = [], isLoading } = useCalendarEvents(dateRange);
+
+    // Fetch appointment colors for quick event creation
+    const { data: appointmentColors } = useQuery({
+        queryKey: ['appointment-colors'],
+        queryFn: async () => {
+            const response = await apiClient.get('/api/v1/appointment-colors');
+            return response.data.colors || [];
+        },
+    });
 
     /**
      * Handle date range changes (triggered when view changes or user navigates)
@@ -256,21 +273,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     }, [onViewChange]);
 
     /**
-     * Handle date selection (click or drag)
+     * Handle date selection (click or drag) - Open quick modal
      */
     const handleDateSelect = useCallback((selectInfo: DateSelectArg) => {
-        createEvent({
+        setSelectedEventData({
             start: selectInfo.start,
             end: selectInfo.end,
             allDay: selectInfo.allDay,
         });
+        setQuickModalOpen(true);
 
         // Clear selection
         const calendarApi = calendarRef.current?.getApi();
         if (calendarApi) {
             calendarApi.unselect();
         }
-    }, [createEvent]);
+    }, []);
 
     /**
      * Handle event click
@@ -285,6 +303,46 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
             navigate(`/visits/${eventId}`);
         }
     }, [navigate]);
+
+    /**
+     * Handle quick event save
+     */
+    const handleQuickSave = useCallback((data: QuickEventFormData) => {
+        if (!appointmentColors || appointmentColors.length === 0) {
+            console.error('No appointment colors available');
+            return;
+        }
+
+        // Use first color as default
+        const defaultColorId = appointmentColors[0].id;
+
+        createQuickEvent({
+            ...data,
+            colorId: defaultColorId,
+        });
+
+        setQuickModalOpen(false);
+        setSelectedEventData(null);
+    }, [appointmentColors, createQuickEvent]);
+
+    /**
+     * Handle "more options" - navigate to full form
+     */
+    const handleMoreOptions = useCallback((data: QuickEventFormData) => {
+        if (!selectedEventData) return;
+
+        createEvent(selectedEventData);
+        setQuickModalOpen(false);
+        setSelectedEventData(null);
+    }, [selectedEventData, createEvent]);
+
+    /**
+     * Handle modal close
+     */
+    const handleModalClose = useCallback(() => {
+        setQuickModalOpen(false);
+        setSelectedEventData(null);
+    }, []);
 
     return (
         <CalendarContainer>
@@ -358,6 +416,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 // Other options
                 height="100%"
                 expandRows={true}
+            />
+
+            <QuickEventModal
+                isOpen={quickModalOpen}
+                eventData={selectedEventData}
+                onClose={handleModalClose}
+                onSave={handleQuickSave}
+                onMoreOptions={handleMoreOptions}
             />
         </CalendarContainer>
     );
