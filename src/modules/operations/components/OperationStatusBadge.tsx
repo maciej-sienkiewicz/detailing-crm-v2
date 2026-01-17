@@ -20,11 +20,6 @@ const StyledBadge = styled.span<{ $status: OperationStatus }>`
                     background-color: ${props.theme.colors.successLight};
                     color: ${props.theme.colors.success};
                 `;
-            case 'SCHEDULED':
-                return `
-                    background-color: #dbeafe;
-                    color: #1e40af;
-                `;
             case 'READY_FOR_PICKUP':
                 return `
                     background-color: #fef3c7;
@@ -35,10 +30,15 @@ const StyledBadge = styled.span<{ $status: OperationStatus }>`
                     background-color: ${props.theme.colors.surfaceAlt};
                     color: ${props.theme.colors.textSecondary};
                 `;
-            case 'CANCELLED':
+            case 'REJECTED':
                 return `
                     background-color: ${props.theme.colors.errorLight};
                     color: ${props.theme.colors.error};
+                `;
+            case 'ARCHIVED':
+                return `
+                    background-color: #f3f4f6;
+                    color: #6b7280;
                 `;
         }
     }}
@@ -46,10 +46,10 @@ const StyledBadge = styled.span<{ $status: OperationStatus }>`
 
 const statusLabels: Record<OperationStatus, string> = {
     IN_PROGRESS: 'W realizacji',
-    SCHEDULED: 'Zaplanowana',
     READY_FOR_PICKUP: 'Do odbioru',
     COMPLETED: 'Zakończona',
-    CANCELLED: 'Anulowana',
+    REJECTED: 'Odrzucona',
+    ARCHIVED: 'Zarchiwizowana',
 };
 
 interface OperationStatusBadgeProps {

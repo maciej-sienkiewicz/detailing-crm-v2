@@ -1,7 +1,5 @@
 // src/modules/checkin/types.ts
 
-export type FuelLevel = 0 | 25 | 50 | 75 | 100;
-
 export type PhotoSlotType = 'front' | 'rear' | 'left_side' | 'right_side';
 
 export type DamagePhotoType = 'damage_front' | 'damage_rear' | 'damage_left' | 'damage_right' | 'damage_other';
@@ -77,10 +75,8 @@ export interface CheckInFormData {
     } | null;
     technicalState: {
         mileage: number;
-        fuelLevel: FuelLevel;
         deposit: DepositItem;
         inspectionNotes: string;
-        isVeryDirty: boolean;
     };
     photos: PhotoSlot[];
     services: ServiceLineItem[];
@@ -127,10 +123,8 @@ export interface ReservationToVisitPayload {
     };
     technicalState: {
         mileage: number;
-        fuelLevel: FuelLevel;
         deposit: DepositItem;
         inspectionNotes: string;
-        isVeryDirty: boolean;
     };
     photoIds: string[];
     services: ServiceLineItem[];

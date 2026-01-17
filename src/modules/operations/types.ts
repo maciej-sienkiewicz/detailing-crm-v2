@@ -2,10 +2,10 @@
 
 export type OperationStatus =
     | 'IN_PROGRESS'
-    | 'SCHEDULED'
     | 'READY_FOR_PICKUP'
     | 'COMPLETED'
-    | 'CANCELLED';
+    | 'REJECTED'
+    | 'ARCHIVED';
 
 export type OperationType = 'VISIT' | 'RESERVATION';
 

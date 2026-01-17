@@ -68,29 +68,6 @@ const InfoValue = styled.span`
     color: ${props => props.theme.colors.text};
 `;
 
-const WarningBox = styled.div`
-    padding: ${props => props.theme.spacing.md};
-    background: linear-gradient(135deg, rgba(217, 119, 6, 0.1) 0%, rgba(217, 119, 6, 0.05) 100%);
-    border-left: 4px solid ${props => props.theme.colors.warning};
-    border-radius: ${props => props.theme.radii.md};
-    display: flex;
-    align-items: start;
-    gap: ${props => props.theme.spacing.md};
-
-    svg {
-        flex-shrink: 0;
-        width: 20px;
-        height: 20px;
-        color: ${props => props.theme.colors.warning};
-    }
-`;
-
-const WarningText = styled.p`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.text};
-    margin: 0;
-`;
-
 interface SummaryStepProps {
     formData: CheckInFormData;
     readOnly?: boolean;
@@ -203,10 +180,6 @@ export const SummaryStep = ({ formData, readOnly = false }: SummaryStepProps) =>
                             <InfoValue>{formData.technicalState.mileage.toLocaleString('pl-PL')} km</InfoValue>
                         </InfoItem>
                         <InfoItem>
-                            <InfoLabel>{t.checkin.summary.fuelLevelLabel}</InfoLabel>
-                            <InfoValue>{t.checkin.technical.fuelLevels[formData.technicalState.fuelLevel]}</InfoValue>
-                        </InfoItem>
-                        <InfoItem>
                             <InfoLabel>{t.checkin.summary.depositInfo}</InfoLabel>
                             <InfoValue>{depositItems.join(', ') || '—'}</InfoValue>
                         </InfoItem>
@@ -221,15 +194,6 @@ export const SummaryStep = ({ formData, readOnly = false }: SummaryStepProps) =>
                             <InfoLabel>{t.checkin.summary.inspectionNotesLabel}</InfoLabel>
                             <InfoValue>{formData.technicalState.inspectionNotes}</InfoValue>
                         </InfoItem>
-                    )}
-
-                    {formData.technicalState.isVeryDirty && (
-                        <WarningBox>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                            <WarningText>{t.checkin.summary.dirtyVehicleNote}</WarningText>
-                        </WarningBox>
                     )}
                 </SummarySection>
             </Card>

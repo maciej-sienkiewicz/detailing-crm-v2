@@ -108,14 +108,13 @@ interface StatusStepperProps {
 }
 
 const steps = [
-    { status: 'accepted', label: 'Przyjęto', icon: '📋' },
-    { status: 'in_progress', label: 'W realizacji', icon: '🔧' },
-    { status: 'ready', label: 'Gotowe', icon: '✅' },
-    { status: 'completed', label: 'Wydano', icon: '🚗' },
+    { status: 'IN_PROGRESS', label: 'W realizacji', icon: '🔧' },
+    { status: 'READY_FOR_PICKUP', label: 'Do odbioru', icon: '✅' },
+    { status: 'COMPLETED', label: 'Zakończona', icon: '🚗' },
 ];
 
 const getStepIndex = (status: VisitStatus): number => {
-    if (status === 'cancelled') return -1;
+    if (status === 'REJECTED' || status === 'ARCHIVED') return -1;
     return steps.findIndex(step => step.status === status);
 };
 
@@ -129,16 +128,32 @@ export const StatusStepper = ({ currentStatus }: StatusStepperProps) => {
     const currentIndex = getStepIndex(currentStatus);
     const progress = calculateProgress(currentIndex);
 
-    if (currentStatus === 'cancelled') {
+    if (currentStatus === 'REJECTED') {
         return (
             <StepperContainer>
                 <div style={{ textAlign: 'center', padding: '20px' }}>
                     <span style={{ fontSize: '48px' }}>🚫</span>
                     <h3 style={{ margin: '16px 0 4px', fontSize: '18px', fontWeight: 600 }}>
-                        Wizyta anulowana
+                        Wizyta odrzucona
                     </h3>
                     <p style={{ margin: 0, fontSize: '14px', color: '#94a3b8' }}>
-                        Ta wizyta została anulowana i nie będzie kontynuowana
+                        Ta wizyta została odrzucona
+                    </p>
+                </div>
+            </StepperContainer>
+        );
+    }
+
+    if (currentStatus === 'ARCHIVED') {
+        return (
+            <StepperContainer>
+                <div style={{ textAlign: 'center', padding: '20px' }}>
+                    <span style={{ fontSize: '48px' }}>📦</span>
+                    <h3 style={{ margin: '16px 0 4px', fontSize: '18px', fontWeight: 600 }}>
+                        Wizyta zarchiwizowana
+                    </h3>
+                    <p style={{ margin: 0, fontSize: '14px', color: '#94a3b8' }}>
+                        Ta wizyta została przeniesiona do archiwum
                     </p>
                 </div>
             </StepperContainer>

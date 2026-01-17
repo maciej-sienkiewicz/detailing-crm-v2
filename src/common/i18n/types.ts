@@ -636,14 +636,6 @@ export interface TranslationKeys {
             mileagePlaceholder: string;
             mileageRequired: string;
             mileagePositive: string;
-            fuelLevel: string;
-            fuelLevels: {
-                0: string;
-                25: string;
-                50: string;
-                75: string;
-                100: string;
-            };
             deposit: string;
             depositItems: {
                 keys: string;
@@ -652,8 +644,6 @@ export interface TranslationKeys {
             };
             inspectionNotes: string;
             inspectionNotesPlaceholder: string;
-            isVeryDirty: string;
-            dirtyWarning: string;
         };
         photos: {
             title: string;
@@ -707,7 +697,6 @@ export interface TranslationKeys {
             servicesInfo: string;
             depositInfo: string;
             mileageLabel: string;
-            fuelLevelLabel: string;
             inspectionNotesLabel: string;
             photosCount: string;
             servicesCount: string;
@@ -715,7 +704,6 @@ export interface TranslationKeys {
             estimatedCompletion: string;
             createVisit: string;
             creating: string;
-            dirtyVehicleNote: string;
         };
         actions: {
             nextStep: string;

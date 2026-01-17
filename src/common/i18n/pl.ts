@@ -578,14 +578,6 @@ export const pl: TranslationKeys = {
             mileagePlaceholder: 'np. 45230',
             mileageRequired: 'Przebieg jest wymagany',
             mileagePositive: 'Przebieg musi być większy od 0',
-            fuelLevel: 'Poziom paliwa',
-            fuelLevels: {
-                0: 'Pusty (0%)',
-                25: 'Nisko (25%)',
-                50: 'Połowa (50%)',
-                75: 'Wysoki (75%)',
-                100: 'Pełny (100%)',
-            },
             deposit: 'Depozyty',
             depositItems: {
                 keys: 'Kluczyki',
@@ -594,8 +586,6 @@ export const pl: TranslationKeys = {
             },
             inspectionNotes: 'Notatki z oględzin',
             inspectionNotesPlaceholder: 'Opisz widoczne uszkodzenia, stan lakieru, itp.',
-            isVeryDirty: 'Pojazd bardzo brudny',
-            dirtyWarning: 'Zaznaczenie tej opcji doda informację o ograniczonej możliwości oceny lakieru',
         },
         photos: {
             title: 'Dokumentacja zdjęciowa',
@@ -649,7 +639,6 @@ export const pl: TranslationKeys = {
             servicesInfo: 'Zakres usług',
             depositInfo: 'Depozyty',
             mileageLabel: 'Przebieg',
-            fuelLevelLabel: 'Poziom paliwa',
             inspectionNotesLabel: 'Notatki',
             photosCount: '{count} zdjęć',
             servicesCount: '{count} usług',
@@ -657,7 +646,6 @@ export const pl: TranslationKeys = {
             estimatedCompletion: 'Planowane zakończenie',
             createVisit: 'Utwórz wizytę',
             creating: 'Tworzenie...',
-            dirtyVehicleNote: 'Uwaga: Pojazd oznaczony jako bardzo brudny - ograniczona ocena lakieru',
         },
         actions: {
             nextStep: 'Dalej',

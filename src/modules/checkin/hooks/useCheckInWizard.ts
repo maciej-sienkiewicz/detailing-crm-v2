@@ -26,14 +26,12 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
         company: initialData.company || null,
         technicalState: {
             mileage: 0,
-            fuelLevel: 50,
             deposit: {
                 keys: false,
                 registrationDocument: false,
                 other: false,
             },
             inspectionNotes: '',
-            isVeryDirty: false,
             ...initialData.technicalState,
         },
         photos: [],
