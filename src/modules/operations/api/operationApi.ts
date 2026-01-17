@@ -90,7 +90,8 @@ const mapAppointmentToOperation = (appointment: AppointmentResponse): Operation 
     const mapStatus = (backendStatus: string) => {
         switch (backendStatus) {
             case 'CREATED':
-                return 'SCHEDULED';
+            case 'SCHEDULED':
+                return 'IN_PROGRESS'; // Zaplanowane rezerwacje traktujemy jako w realizacji
             case 'IN_PROGRESS':
                 return 'IN_PROGRESS';
             case 'READY_FOR_PICKUP':
@@ -98,9 +99,9 @@ const mapAppointmentToOperation = (appointment: AppointmentResponse): Operation 
             case 'COMPLETED':
                 return 'COMPLETED';
             case 'CANCELLED':
-                return 'CANCELLED';
+                return 'REJECTED'; // Anulowane traktujemy jako odrzucone
             default:
-                return 'SCHEDULED';
+                return 'IN_PROGRESS';
         }
     };
 
@@ -139,17 +140,20 @@ const mapVisitToOperation = (visit: VisitResponse): Operation => {
     const mapStatus = (backendStatus: string) => {
         switch (backendStatus) {
             case 'ACCEPTED':
-                return 'SCHEDULED';
+                return 'IN_PROGRESS'; // Przyjęte wizyty traktujemy jako w realizacji
             case 'IN_PROGRESS':
                 return 'IN_PROGRESS';
             case 'READY':
+            case 'READY_FOR_PICKUP':
                 return 'READY_FOR_PICKUP';
             case 'COMPLETED':
                 return 'COMPLETED';
             case 'CANCELLED':
-                return 'CANCELLED';
+                return 'REJECTED'; // Anulowane traktujemy jako odrzucone
+            case 'ARCHIVED':
+                return 'ARCHIVED';
             default:
-                return 'SCHEDULED';
+                return 'IN_PROGRESS';
         }
     };
 
@@ -313,16 +317,16 @@ export const operationApi = {
             const mapStatusToBackend = (frontendStatus?: string) => {
                 if (!frontendStatus) return undefined;
                 switch (frontendStatus) {
-                    case 'SCHEDULED':
-                        return 'ACCEPTED';
                     case 'IN_PROGRESS':
                         return 'IN_PROGRESS';
                     case 'READY_FOR_PICKUP':
                         return 'READY';
                     case 'COMPLETED':
                         return 'COMPLETED';
-                    case 'CANCELLED':
-                        return 'CANCELLED';
+                    case 'REJECTED':
+                        return 'CANCELLED'; // Odrzucone mapujemy na anulowane w backendzie
+                    case 'ARCHIVED':
+                        return 'ARCHIVED';
                     default:
                         return undefined;
                 }

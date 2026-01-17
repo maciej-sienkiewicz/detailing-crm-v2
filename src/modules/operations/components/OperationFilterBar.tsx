@@ -75,8 +75,9 @@ export const OperationFilterBar = ({
         { value: 'RESERVATIONS', label: 'Rezerwacje' },
         { value: 'IN_PROGRESS', label: 'W realizacji' },
         { value: 'READY_FOR_PICKUP', label: 'Do odbioru' },
-        { value: 'SCHEDULED', label: 'Zaplanowane' },
         { value: 'COMPLETED', label: 'Zakończone' },
+        { value: 'REJECTED', label: 'Odrzucone' },
+        { value: 'ARCHIVED', label: 'Zarchiwizowane' },
     ];
 
     return (
