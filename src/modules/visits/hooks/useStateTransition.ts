@@ -29,8 +29,8 @@ export const useStateTransitionWizard = (
 
     const totalSteps = transitionType === 'in_progress_to_ready' ? 2 : 3;
 
-    const { mutate: transitionToReady, isPending: isTransitioningToReady } = useMutation({
-        mutationFn: () => stateTransitionApi.transitionToReady(visitId, {
+    const { mutate: markReadyForPickup, isPending: isMarkingReady } = useMutation({
+        mutationFn: () => stateTransitionApi.markReadyForPickup(visitId, {
             qualityApproved: true,
             qualityChecks: wizardData.qualityChecks || [],
             notifications: wizardData.notifications,
@@ -43,8 +43,8 @@ export const useStateTransitionWizard = (
         },
     });
 
-    const { mutate: transitionToCompleted, isPending: isTransitioningToCompleted } = useMutation({
-        mutationFn: () => stateTransitionApi.transitionToCompleted(visitId, {
+    const { mutate: complete, isPending: isCompleting } = useMutation({
+        mutationFn: () => stateTransitionApi.complete(visitId, {
             signatureObtained: true,
             payment: wizardData.payment!,
         }),
@@ -62,7 +62,7 @@ export const useStateTransitionWizard = (
             channels: wizardData.notifications!,
         }),
         onSuccess: () => {
-            transitionToReady();
+            markReadyForPickup();
         },
     });
 
@@ -99,10 +99,10 @@ export const useStateTransitionWizard = (
             if (wizardData.notifications?.sms || wizardData.notifications?.email) {
                 sendNotifications();
             } else {
-                transitionToReady();
+                markReadyForPickup();
             }
         } else {
-            transitionToCompleted();
+            complete();
         }
     };
 
@@ -111,7 +111,7 @@ export const useStateTransitionWizard = (
         currentStep,
         totalSteps,
         wizardData,
-        isProcessing: isTransitioningToReady || isTransitioningToCompleted || isSendingNotifications,
+        isProcessing: isMarkingReady || isCompleting || isSendingNotifications,
         handleOpen,
         handleClose,
         handleNext,

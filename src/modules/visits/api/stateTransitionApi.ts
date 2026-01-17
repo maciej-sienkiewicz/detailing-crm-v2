@@ -10,22 +10,22 @@ const USE_MOCKS = true;
 const BASE_PATH = '/api/visits';
 
 export const stateTransitionApi = {
-    transitionToReady: async (
+    markReadyForPickup: async (
         visitId: string,
         payload: TransitionToReadyPayload
     ): Promise<void> => {
         if (USE_MOCKS) {
             await new Promise(resolve => setTimeout(resolve, 800));
-            console.log('Mock: Transition to READY', { visitId, payload });
+            console.log('Mock: Transition to READY_FOR_PICKUP', { visitId, payload });
             return;
         }
         await apiClient.post(
-            `${BASE_PATH}/${visitId}/transitions/ready`,
+            `${BASE_PATH}/${visitId}/mark-ready-for-pickup`,
             payload
         );
     },
 
-    transitionToCompleted: async (
+    complete: async (
         visitId: string,
         payload: TransitionToCompletedPayload
     ): Promise<void> => {
@@ -35,9 +35,27 @@ export const stateTransitionApi = {
             return;
         }
         await apiClient.post(
-            `${BASE_PATH}/${visitId}/transitions/completed`,
+            `${BASE_PATH}/${visitId}/complete`,
             payload
         );
+    },
+
+    reject: async (visitId: string): Promise<void> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 800));
+            console.log('Mock: Transition to REJECTED', { visitId });
+            return;
+        }
+        await apiClient.post(`${BASE_PATH}/${visitId}/reject`);
+    },
+
+    archive: async (visitId: string): Promise<void> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 800));
+            console.log('Mock: Transition to ARCHIVED', { visitId });
+            return;
+        }
+        await apiClient.post(`${BASE_PATH}/${visitId}/archive`);
     },
 
     sendNotifications: async (
