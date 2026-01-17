@@ -9,7 +9,7 @@ import type {
     PhotoSlot,
 } from '../types';
 
-const USE_MOCKS = true;
+const USE_MOCKS = false;
 const BASE_PATH = '/api/checkin';
 
 const mockUploadSession: MobileUploadSession = {
