@@ -498,6 +498,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 views={{
                     dayGridMonth: {
                         titleFormat: { year: 'numeric', month: 'long' },
+                        // Force block display for all events (not dot style)
+                        dayMaxEventRows: false,
                     },
                     timeGridWeek: {
                         titleFormat: { year: 'numeric', month: 'long', day: 'numeric' },
@@ -506,6 +508,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                         titleFormat: { year: 'numeric', month: 'long', day: 'numeric' },
                     },
                 }}
+
+                // Force all events to display as blocks (not dots)
+                eventDisplay="block"
 
                 // Time configuration
                 slotMinTime="06:00:00"
