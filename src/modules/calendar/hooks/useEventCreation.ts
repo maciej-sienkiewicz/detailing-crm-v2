@@ -42,29 +42,34 @@ export const useEventCreation = () => {
     const createEvent = useCallback((eventData: EventCreationData) => {
         setIsCreating(true);
 
-        const isAllDay = eventData.allDay;
+        // Calculate days difference to determine if it's a single or multi-day selection
+        const timeDiff = eventData.end.getTime() - eventData.start.getTime();
+        const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+
+        // Only single-day selections should be all-day events
+        // Multi-day selections should allow time selection
+        const isAllDay = daysDiff === 1 && eventData.allDay;
+
         let startDateTime: string;
         let endDateTime: string;
 
         if (isAllDay) {
-            // For all-day events, use date format (YYYY-MM-DD)
+            // Single day all-day event - use date format (YYYY-MM-DD)
             startDateTime = formatDate(eventData.start);
+            endDateTime = `${startDateTime}T23:59:59`;
+        } else if (daysDiff > 1) {
+            // Multi-day selection - use datetime-local format with time selection enabled
+            // Set start to beginning of first day at 09:00
+            const startDate = new Date(eventData.start);
+            startDate.setHours(9, 0, 0, 0);
+            startDateTime = formatDateTimeLocal(startDate);
 
-            // Calculate days difference
-            const timeDiff = eventData.end.getTime() - eventData.start.getTime();
-            const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-
-            if (daysDiff > 1) {
-                // Multi-day selection - set end date
-                const endDate = new Date(eventData.end);
-                endDate.setDate(endDate.getDate() - 1); // FullCalendar's end is exclusive
-                endDateTime = `${formatDate(endDate)}T23:59:59`;
-            } else {
-                // Single day - leave end date empty or same as start
-                endDateTime = `${startDateTime}T23:59:59`;
-            }
+            // Set end to last day at 23:59:59
+            const endDate = new Date(eventData.end);
+            endDate.setDate(endDate.getDate() - 1); // FullCalendar's end is exclusive
+            endDateTime = `${formatDate(endDate)}T23:59:59`;
         } else {
-            // For timed events, use datetime-local format (YYYY-MM-DDTHH:mm)
+            // Single time slot selection - use datetime-local format
             startDateTime = formatDateTimeLocal(eventData.start);
             endDateTime = `${formatDate(eventData.end)}T23:59:59`;
         }
