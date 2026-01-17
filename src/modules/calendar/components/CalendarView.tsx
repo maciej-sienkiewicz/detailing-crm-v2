@@ -308,33 +308,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
      * Handle quick event save
      */
     const handleQuickSave = useCallback((data: QuickEventFormData) => {
-        if (!appointmentColors || appointmentColors.length === 0) {
-            console.error('No appointment colors available');
-            return;
-        }
-
-        // Use first color as default
-        const defaultColorId = appointmentColors[0].id;
-
-        createQuickEvent({
-            ...data,
-            colorId: defaultColorId,
-        });
-
+        createQuickEvent(data);
         setQuickModalOpen(false);
         setSelectedEventData(null);
-    }, [appointmentColors, createQuickEvent]);
-
-    /**
-     * Handle "more options" - navigate to full form
-     */
-    const handleMoreOptions = useCallback((data: QuickEventFormData) => {
-        if (!selectedEventData) return;
-
-        createEvent(selectedEventData);
-        setQuickModalOpen(false);
-        setSelectedEventData(null);
-    }, [selectedEventData, createEvent]);
+    }, [createQuickEvent]);
 
     /**
      * Handle modal close
@@ -423,7 +400,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 eventData={selectedEventData}
                 onClose={handleModalClose}
                 onSave={handleQuickSave}
-                onMoreOptions={handleMoreOptions}
             />
         </CalendarContainer>
     );
