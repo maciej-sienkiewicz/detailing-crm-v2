@@ -12,6 +12,29 @@ import type {
 
 const USE_MOCKS = false;
 
+/**
+ * Calculate text color (black or white) based on background luminance
+ * Uses WCAG formula for relative luminance
+ */
+const getContrastingTextColor = (hexColor: string): string => {
+    // Remove # if present
+    const hex = hexColor.replace('#', '');
+
+    // Convert to RGB
+    const r = parseInt(hex.substr(0, 2), 16) / 255;
+    const g = parseInt(hex.substr(2, 2), 16) / 255;
+    const b = parseInt(hex.substr(4, 2), 16) / 255;
+
+    // Apply gamma correction
+    const toLinear = (c: number) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+
+    // Calculate relative luminance
+    const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+
+    // Return black for light backgrounds, white for dark backgrounds
+    return luminance > 0.5 ? '#000000' : '#ffffff';
+};
+
 // Mock data for development
 const mockAppointments: AppointmentResponse[] = [
     {
@@ -101,13 +124,17 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         : 'Brak pojazdu';
     const serviceNames = appointment.services.map(s => s.serviceName);
 
+    // Fallback color if appointmentColor is missing
+    const colorHex = appointment.appointmentColor?.hexColor || '#94a3b8';
+    const textColor = getContrastingTextColor(colorHex);
+
     const eventData: AppointmentEventData = {
         id: appointment.id,
         type: 'APPOINTMENT',
         customerName,
         customerPhone: appointment.customer.phone,
         vehicleInfo,
-        colorHex: appointment.appointmentColor.hexColor,
+        colorHex,
         appointmentTitle: appointment.appointmentTitle || undefined,
         serviceNames,
         isAllDay: appointment.schedule.isAllDay,
@@ -121,9 +148,9 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         start: appointment.schedule.startDateTime,
         end: appointment.schedule.endDateTime,
         allDay: appointment.schedule.isAllDay,
-        backgroundColor: appointment.appointmentColor.hexColor,
+        backgroundColor: colorHex,
         borderColor: 'transparent',
-        textColor: '#ffffff',
+        textColor,
         extendedProps: eventData,
     };
 };
