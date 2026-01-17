@@ -86,32 +86,13 @@ interface VisitsListResponse {
 
 // Funkcja mapująca dane z backendu na format frontend - Rezerwacje
 const mapAppointmentToOperation = (appointment: AppointmentResponse): Operation => {
-    // Mapowanie statusu z backendu na frontend
-    const mapStatus = (backendStatus: string) => {
-        switch (backendStatus) {
-            case 'CREATED':
-            case 'SCHEDULED':
-                return 'IN_PROGRESS'; // Zaplanowane rezerwacje traktujemy jako w realizacji
-            case 'IN_PROGRESS':
-                return 'IN_PROGRESS';
-            case 'READY_FOR_PICKUP':
-                return 'READY_FOR_PICKUP';
-            case 'COMPLETED':
-                return 'COMPLETED';
-            case 'CANCELLED':
-                return 'REJECTED'; // Anulowane traktujemy jako odrzucone
-            default:
-                return 'IN_PROGRESS';
-        }
-    };
-
     return {
         id: appointment.id,
         type: 'RESERVATION',
         customerFirstName: appointment.customer.firstName,
         customerLastName: appointment.customer.lastName,
         customerPhone: appointment.customer.phone,
-        status: mapStatus(appointment.status),
+        status: appointment.status as OperationStatus,
         vehicle: appointment.vehicle ? {
             brand: appointment.vehicle.brand,
             model: appointment.vehicle.model,
@@ -136,34 +117,13 @@ const mapAppointmentToOperation = (appointment: AppointmentResponse): Operation 
 
 // Funkcja mapująca dane z backendu na format frontend - Wizyty
 const mapVisitToOperation = (visit: VisitResponse): Operation => {
-    // Mapowanie statusu z backendu na frontend
-    const mapStatus = (backendStatus: string) => {
-        switch (backendStatus) {
-            case 'ACCEPTED':
-                return 'IN_PROGRESS'; // Przyjęte wizyty traktujemy jako w realizacji
-            case 'IN_PROGRESS':
-                return 'IN_PROGRESS';
-            case 'READY':
-            case 'READY_FOR_PICKUP':
-                return 'READY_FOR_PICKUP';
-            case 'COMPLETED':
-                return 'COMPLETED';
-            case 'CANCELLED':
-                return 'REJECTED'; // Anulowane traktujemy jako odrzucone
-            case 'ARCHIVED':
-                return 'ARCHIVED';
-            default:
-                return 'IN_PROGRESS';
-        }
-    };
-
     return {
         id: visit.id,
         type: 'VISIT',
         customerFirstName: visit.customer.firstName,
         customerLastName: visit.customer.lastName,
         customerPhone: visit.customer.phone,
-        status: mapStatus(visit.status),
+        status: visit.status as OperationStatus,
         vehicle: {
             brand: visit.vehicle.brand,
             model: visit.vehicle.model,
