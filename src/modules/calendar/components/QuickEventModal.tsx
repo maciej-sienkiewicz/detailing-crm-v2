@@ -1,6 +1,6 @@
 // src/modules/calendar/components/QuickEventModal.tsx
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/core';
 import type { EventCreationData } from '../types';
@@ -91,13 +91,17 @@ export interface QuickEventFormData {
     notes?: string;
 }
 
+export interface QuickEventModalRef {
+    clearForm: () => void;
+}
+
 // --- COMPONENT ---
-export const QuickEventModal: React.FC<QuickEventModalProps> = ({
+export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalProps>(({
     isOpen,
     eventData,
     onClose,
     onSave,
-}) => {
+}, ref) => {
     // State initialization
     const [title, setTitle] = useState('');
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>();
@@ -204,6 +208,27 @@ export const QuickEventModal: React.FC<QuickEventModalProps> = ({
             setTimeout(() => titleInputRef.current?.focus(), 100);
         }
     }, [isOpen]);
+
+    // Clear form function
+    const clearForm = () => {
+        setTitle('');
+        setSelectedCustomerId(undefined);
+        setSelectedCustomerName('');
+        setSelectedCustomer(null);
+        setSelectedVehicleId(undefined);
+        setSelectedVehicleName('');
+        setSelectedVehicle(null);
+        setSelectedServiceIds([]);
+        setServicePrices({});
+        setServiceSearch('');
+        setNotes('');
+        // Keep color and dates from eventData
+    };
+
+    // Expose clearForm to parent via ref
+    useImperativeHandle(ref, () => ({
+        clearForm
+    }));
 
     // Handlers
     const handleSubmit = (e: React.FormEvent) => {
@@ -609,6 +634,14 @@ export const QuickEventModal: React.FC<QuickEventModalProps> = ({
                             <div className="flex items-center gap-3">
                                 <button
                                     type="button"
+                                    onClick={clearForm}
+                                    className="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-all"
+                                    title="Wyczyść wszystkie pola"
+                                >
+                                    Wyczyść wszystko
+                                </button>
+                                <button
+                                    type="button"
                                     onClick={onClose}
                                     className="px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-full transition-all"
                                 >
@@ -644,4 +677,6 @@ export const QuickEventModal: React.FC<QuickEventModalProps> = ({
             />
         </>
     );
-};
+});
+
+QuickEventModal.displayName = 'QuickEventModal';

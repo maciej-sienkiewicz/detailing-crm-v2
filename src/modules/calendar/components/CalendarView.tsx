@@ -13,7 +13,7 @@ import { apiClient } from '@/core';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
 import { useEventCreation } from '../hooks/useEventCreation';
 import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
-import { QuickEventModal, type QuickEventFormData } from './QuickEventModal';
+import { QuickEventModal, type QuickEventFormData, type QuickEventModalRef } from './QuickEventModal';
 import type { DateRange, CalendarView as CalendarViewType, EventCreationData } from '../types';
 import '../calendar.css';
 
@@ -240,6 +240,7 @@ interface CalendarViewProps {
 export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const navigate = useNavigate();
     const calendarRef = useRef<FullCalendar>(null);
+    const quickEventModalRef = useRef<QuickEventModalRef>(null);
     const [dateRange, setDateRange] = useState<DateRange | null>(null);
     const [quickModalOpen, setQuickModalOpen] = useState(false);
     const [selectedEventData, setSelectedEventData] = useState<EventCreationData | null>(null);
@@ -308,9 +309,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
      * Handle quick event save
      */
     const handleQuickSave = useCallback((data: QuickEventFormData) => {
-        createQuickEvent(data);
-        setQuickModalOpen(false);
-        setSelectedEventData(null);
+        createQuickEvent(data, {
+            onSuccess: () => {
+                // Clear form after successful save
+                quickEventModalRef.current?.clearForm();
+                setQuickModalOpen(false);
+                setSelectedEventData(null);
+            }
+        });
     }, [createQuickEvent]);
 
     /**
@@ -396,6 +402,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
             />
 
             <QuickEventModal
+                ref={quickEventModalRef}
                 isOpen={quickModalOpen}
                 eventData={selectedEventData}
                 onClose={handleModalClose}
