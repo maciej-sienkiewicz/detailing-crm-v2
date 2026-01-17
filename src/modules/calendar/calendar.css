@@ -172,11 +172,11 @@
 .fc-h-event {
   display: block;
   border: 1px solid var(--fc-event-border-color);
-  background-color: var(--fc-event-bg-color);
+  /* background-color removed - use inline styles from FullCalendar */
 }
 
 .fc-h-event .fc-event-main {
-  color: var(--fc-event-text-color);
+  /* color removed - use inline styles from FullCalendar */
 }
 
 .fc-h-event .fc-event-main-frame {
@@ -245,11 +245,11 @@
 .fc-v-event {
   display: block;
   border: 1px solid var(--fc-event-border-color);
-  background-color: var(--fc-event-bg-color);
+  /* background-color removed - use inline styles from FullCalendar */
 }
 
 .fc-v-event .fc-event-main {
-  color: var(--fc-event-text-color);
+  /* color removed - use inline styles from FullCalendar */
   height: 100%;
 }
 
