@@ -317,7 +317,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                         isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
                     }`}
                 >
-                    <form onSubmit={handleSubmit} className="flex flex-col h-full">
+                    <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
                         {/* Header - Minimalist with close button */}
                         <div className="relative px-8 pt-6 pb-2">
                             {/* Drag handle visual indicator */}
