@@ -23,7 +23,7 @@ export const useOperationFilters = () => {
             return { type: 'RESERVATION' as OperationType, status: undefined };
         }
 
-        return { type: undefined, status: selectedFilter as OperationStatus };
+        return { type: 'VISIT' as OperationType, status: selectedFilter as OperationStatus };
     }, [selectedFilter]);
 
     return {

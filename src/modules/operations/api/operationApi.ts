@@ -120,8 +120,8 @@ const mapAppointmentToOperation = (appointment: AppointmentResponse): Operation 
         startDateTime: appointment.schedule.startDateTime,
         endDateTime: appointment.schedule.endDateTime,
         financials: {
-            netAmount: appointment.totalNet,
-            grossAmount: appointment.totalGross,
+            netAmount: appointment.totalNet / 100, // Konwersja z groszy na złotówki
+            grossAmount: appointment.totalGross / 100, // Konwersja z groszy na złotówki
             currency: 'PLN',
         },
         lastModification: {
