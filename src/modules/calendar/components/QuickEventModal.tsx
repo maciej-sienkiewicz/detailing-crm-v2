@@ -1,10 +1,45 @@
 // src/modules/calendar/components/QuickEventModal.tsx
 
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/core';
 import type { EventCreationData } from '../types';
+
+// --- ICONS (Inline SVG for professional look without external deps) ---
+const IconClock = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+);
+const IconUser = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+);
+const IconCar = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>
+);
+const IconSettings = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+);
+const IconNote = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+);
+const IconTrash = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+);
+const IconX = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+);
+
+// --- STYLES ---
+
+const fadeIn = keyframes`
+    from { opacity: 0; }
+    to { opacity: 1; }
+`;
+
+const slideUp = keyframes`
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+`;
 
 const Overlay = styled.div<{ $isOpen: boolean }>`
     position: fixed;
@@ -12,365 +47,304 @@ const Overlay = styled.div<{ $isOpen: boolean }>`
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(15, 23, 42, 0.6); // Darker, more premium backdrop
+    backdrop-filter: blur(4px);
     display: ${props => props.$isOpen ? 'flex' : 'none'};
     align-items: center;
     justify-content: center;
     z-index: 1000;
     padding: 20px;
+    animation: ${fadeIn} 0.2s ease-out;
 `;
 
 const ModalContainer = styled.div`
     background: #ffffff;
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.04);
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     width: 100%;
-    max-width: 720px;
+    max-width: 800px; // Slightly wider for better grid layout
     max-height: 90vh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    animation: ${slideUp} 0.3s ease-out;
+    border: 1px solid #e2e8f0;
 `;
 
 const Header = styled.div`
-    padding: 24px 24px 0 24px;
-    border-bottom: none;
+    padding: 24px 32px 16px 32px;
+    border-bottom: 1px solid #f1f5f9;
+    background: #ffffff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 `;
 
 const CloseButton = styled.button`
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    background: none;
+    background: transparent;
     border: none;
-    font-size: 24px;
-    color: #5f6368;
+    color: #64748b;
     cursor: pointer;
     padding: 8px;
-    line-height: 1;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
 
     &:hover {
-        background-color: #f1f3f4;
+        background-color: #f1f5f9;
+        color: #0f172a;
     }
 `;
 
 const Content = styled.div`
-    padding: 0 24px 24px 24px;
+    padding: 32px;
     overflow-y: auto;
     flex: 1;
+    background-color: #f8fafc; // Very light gray background for form area
+
+    /* Custom Scrollbar */
+    &::-webkit-scrollbar {
+        width: 8px;
+    }
+    &::-webkit-scrollbar-track {
+        background: #f1f5f9;
+    }
+    &::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+    &::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
 `;
 
 const TitleInput = styled.input`
     width: 100%;
-    padding: 12px 0;
+    padding: 8px 0;
     border: none;
-    border-bottom: 1px solid transparent;
-    font-size: 22px;
-    font-weight: 400;
-    color: #3c4043;
+    font-size: 20px;
+    font-weight: 600;
+    color: #0f172a;
+    background: transparent;
     outline: none;
-    margin-bottom: 24px;
+    font-family: inherit;
 
     &::placeholder {
-        color: #80868b;
-    }
-
-    &:focus {
-        border-bottom-color: #1a73e8;
+        color: #94a3b8;
     }
 `;
 
-const FormSection = styled.div`
-    display: flex;
-    gap: 16px;
+const SectionTitle = styled.h3`
+    font-size: 14px;
+    font-weight: 600;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     margin-bottom: 16px;
-    align-items: flex-start;
-`;
-
-const IconContainer = styled.div`
-    width: 24px;
-    height: 24px;
-    margin-top: 12px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    color: #5f6368;
-    flex-shrink: 0;
+    gap: 8px;
+
+    svg {
+        color: #64748b;
+    }
 `;
 
-const FieldContainer = styled.div`
-    flex: 1;
+const Grid = styled.div<{ $cols?: number }>`
+    display: grid;
+    grid-template-columns: repeat(${props => props.$cols || 1}, 1fr);
+    gap: 20px;
+    margin-bottom: 32px;
+`;
+
+const FormGroup = styled.div`
     display: flex;
     flex-direction: column;
     gap: 8px;
+    position: relative;
 `;
 
 const Label = styled.label`
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
-    color: #5f6368;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+    color: #334155;
 `;
 
-const Input = styled.input`
-    padding: 12px 16px;
-    border: 1px solid #e0e0e0;
-    border-radius: 12px;
+const InputStyles = css`
+    padding: 10px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
     font-size: 14px;
-    color: #3c4043;
+    color: #0f172a;
+    background: #ffffff;
     transition: all 0.2s ease;
-    background: #fafafa;
+    width: 100%;
+    height: 42px;
 
     &:focus {
         outline: none;
-        border-color: #1a73e8;
-        box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
-        background: #ffffff;
+        border-color: #3b82f6; // Professional Blue
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
 
     &:hover:not(:focus) {
-        border-color: #bdbdbd;
+        border-color: #94a3b8;
+    }
+
+    &::placeholder {
+        color: #94a3b8;
     }
 `;
 
-const DateTimeRow = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+const Input = styled.input`
+    ${InputStyles}
 `;
 
-const Checkbox = styled.label`
+const TextArea = styled.textarea`
+    ${InputStyles}
+    height: auto;
+    min-height: 80px;
+    padding: 12px;
+`;
+
+const CheckboxContainer = styled.label`
     display: flex;
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    font-size: 14px;
-    color: #3c4043;
-    padding: 8px 0;
+    font-size: 13px;
+    color: #334155;
+    user-select: none;
 
     input {
+        width: 16px;
+        height: 16px;
+        accent-color: #3b82f6;
         cursor: pointer;
-        width: 18px;
-        height: 18px;
     }
 `;
 
-const ServiceItem = styled.div`
+const CardStyle = styled.div`
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+`;
+
+const ServiceItem = styled(CardStyle)`
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
-    background: #fafafa;
-    border-radius: 12px;
-    border: 1px solid #e8eaed;
-    transition: all 0.2s ease;
+    margin-bottom: 8px;
+    transition: border-color 0.2s;
 
     &:hover {
-        background: #f5f5f5;
-        border-color: #d0d0d0;
+        border-color: #cbd5e1;
     }
 `;
 
 const ServiceName = styled.span`
     flex: 1;
     font-size: 14px;
-    color: #3c4043;
-`;
-
-const ServicePrice = styled.span`
-    font-size: 14px;
-    color: #5f6368;
     font-weight: 500;
+    color: #0f172a;
 `;
 
 const PriceInput = styled.input`
     width: 100px;
     padding: 6px 10px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
     font-size: 13px;
-    color: #3c4043;
     text-align: right;
-    background: #ffffff;
-    transition: all 0.2s ease;
+    color: #0f172a;
+    font-weight: 500;
 
     &:focus {
         outline: none;
-        border-color: #1a73e8;
-        box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
-    }
-
-    &:hover:not(:focus) {
-        border-color: #bdbdbd;
+        border-color: #3b82f6;
     }
 `;
 
-const ServiceSearchContainer = styled.div`
-    position: relative;
-    margin-bottom: 12px;
-`;
-
-const ServiceDropdown = styled.div`
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    max-height: 200px;
-    overflow-y: auto;
-    background: white;
-    border: 1px solid #e0e0e0;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    z-index: 10;
-    margin-top: 4px;
-`;
-
-const ServiceDropdownItem = styled.div`
-    padding: 12px 16px;
-    cursor: pointer;
-    font-size: 14px;
-    color: #3c4043;
-    transition: all 0.2s ease;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    &:hover {
-        background: #f5f5f5;
-    }
-
-    &:not(:last-child) {
-        border-bottom: 1px solid #f1f3f4;
-    }
-
-    &:first-child {
-        border-top-left-radius: 12px;
-        border-top-right-radius: 12px;
-    }
-
-    &:last-child {
-        border-bottom-left-radius: 12px;
-        border-bottom-right-radius: 12px;
-    }
-`;
-
-const SelectedServicesList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 12px;
-`;
-
-const RemoveButton = styled.button`
-    background: none;
+const IconButton = styled.button`
+    background: transparent;
     border: none;
-    color: #5f6368;
+    color: #94a3b8;
     cursor: pointer;
-    padding: 4px;
+    padding: 6px;
+    border-radius: 4px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-    width: 24px;
-    height: 24px;
+    transition: all 0.2s;
 
     &:hover {
-        background: #f1f3f4;
-        color: #d93025;
+        background: #fee2e2;
+        color: #ef4444;
     }
 `;
 
-const VehicleSearchContainer = styled.div`
-    position: relative;
-`;
-
-const VehicleDropdown = styled.div`
+const Dropdown = styled.div`
     position: absolute;
-    top: 100%;
+    top: calc(100% + 4px);
     left: 0;
     right: 0;
-    max-height: 200px;
+    max-height: 240px;
     overflow-y: auto;
     background: white;
-    border: 1px solid #e0e0e0;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    z-index: 10;
-    margin-top: 4px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    z-index: 50;
 `;
 
-const VehicleDropdownItem = styled.div`
-    padding: 12px 16px;
+const DropdownItem = styled.div<{ $highlighted?: boolean }>`
+    padding: 10px 14px;
     cursor: pointer;
     font-size: 14px;
-    color: #3c4043;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: #f5f5f5;
-    }
-
-    &:not(:last-child) {
-        border-bottom: 1px solid #f1f3f4;
-    }
-
-    &:first-child {
-        border-top-left-radius: 12px;
-        border-top-right-radius: 12px;
-    }
+    color: #334155;
+    transition: background 0.1s;
+    background: ${props => props.$highlighted ? '#f1f5f9' : 'transparent'};
+    border-bottom: 1px solid #f8fafc;
 
     &:last-child {
-        border-bottom-left-radius: 12px;
-        border-bottom-right-radius: 12px;
+        border-bottom: none;
+    }
+
+    &:hover {
+        background: #f1f5f9;
+        color: #0f172a;
     }
 `;
 
-const AddNewButton = styled.button`
+const AddButton = styled.button`
     width: 100%;
-    padding: 12px 16px;
-    background: #f5f5f5;
-    border: 1px dashed #bdbdbd;
-    border-radius: 12px;
-    color: #1a73e8;
-    font-size: 14px;
+    padding: 10px;
+    margin-top: 8px;
+    background: white;
+    border: 1px dashed #cbd5e1;
+    border-radius: 6px;
+    color: #3b82f6;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
-    margin-top: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    transition: all 0.2s;
 
     &:hover {
-        background: #eeeeee;
-        border-color: #1a73e8;
+        background: #eff6ff;
+        border-color: #3b82f6;
     }
-`;
-
-const VehicleInputGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-top: 8px;
 `;
 
 const Footer = styled.div`
-    padding: 20px 24px;
-    border-top: 1px solid #f0f0f0;
+    padding: 20px 32px;
+    border-top: 1px solid #e2e8f0;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
+    background: #ffffff;
 `;
 
 const ColorPicker = styled.div`
@@ -379,14 +353,14 @@ const ColorPicker = styled.div`
 `;
 
 const ColorDot = styled.button<{ $color: string; $selected: boolean }>`
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     background-color: ${props => props.$color};
-    border: ${props => props.$selected ? '2px solid #1a73e8' : '2px solid transparent'};
+    border: 2px solid white;
+    box-shadow: 0 0 0 ${props => props.$selected ? '2px' : '1px'} ${props => props.$selected ? '#3b82f6' : '#cbd5e1'};
     cursor: pointer;
-    transition: transform 0.2s;
-    box-shadow: ${props => props.$selected ? '0 0 0 1px #1a73e8' : 'none'};
+    transition: all 0.2s;
 
     &:hover {
         transform: scale(1.1);
@@ -398,91 +372,38 @@ const ButtonRow = styled.div`
     gap: 12px;
 `;
 
-const Button = styled.button<{ $variant?: 'primary' | 'secondary' | 'text' }>`
-    padding: ${props => props.$variant === 'text' ? '10px 20px' : '12px 28px'};
-    border-radius: 12px;
+const Button = styled.button<{ $variant?: 'primary' | 'secondary' }>`
+    padding: 10px 24px;
+    border-radius: 6px;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    border: none;
+    
+    ${props => props.$variant === 'primary' ? `
+        background: #0f172a; // Enterprise Dark
+        color: white;
+        border: 1px solid #0f172a;
+        box-shadow: 0 2px 4px rgba(15, 23, 42, 0.1);
 
-    ${props => {
-        if (props.$variant === 'primary') {
-            return `
-                background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
-                color: #ffffff;
-                box-shadow: 0 2px 8px rgba(26, 115, 232, 0.25);
-                &:hover {
-                    transform: translateY(-1px);
-                    box-shadow: 0 4px 12px rgba(26, 115, 232, 0.35);
-                }
-                &:active {
-                    transform: translateY(0);
-                }
-            `;
-        } else if (props.$variant === 'text') {
-            return `
-                background: transparent;
-                color: #1a73e8;
-                &:hover {
-                    background: rgba(26, 115, 232, 0.08);
-                }
-            `;
-        } else {
-            return `
-                background: #f5f5f5;
-                color: #5f6368;
-                border: 1px solid #e0e0e0;
-                &:hover {
-                    background: #eeeeee;
-                    border-color: #bdbdbd;
-                }
-            `;
+        &:hover {
+            background: #1e293b;
+            transform: translateY(-1px);
         }
-    }}
+    ` : `
+        background: white;
+        color: #64748b;
+        border: 1px solid #cbd5e1;
+
+        &:hover {
+            background: #f8fafc;
+            color: #334155;
+            border-color: #94a3b8;
+        }
+    `}
 `;
 
-const SearchInput = styled(Input)`
-    margin-bottom: 8px;
-`;
-
-const CustomerList = styled.div`
-    max-height: 200px;
-    overflow-y: auto;
-    border: 1px solid #e0e0e0;
-    border-radius: 12px;
-    background: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-`;
-
-const CustomerItem = styled.div<{ $selected: boolean }>`
-    padding: 12px 16px;
-    cursor: pointer;
-    font-size: 14px;
-    background: ${props => props.$selected ? '#e8f0fe' : 'transparent'};
-    color: #3c4043;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${props => props.$selected ? '#d2e3fc' : '#f5f5f5'};
-    }
-
-    &:not(:last-child) {
-        border-bottom: 1px solid #f1f3f4;
-    }
-
-    &:first-child {
-        border-top-left-radius: 12px;
-        border-top-right-radius: 12px;
-    }
-
-    &:last-child {
-        border-bottom-left-radius: 12px;
-        border-bottom-right-radius: 12px;
-    }
-`;
-
+// --- TYPES ---
 interface QuickEventModalProps {
     isOpen: boolean;
     eventData: EventCreationData | null;
@@ -505,12 +426,14 @@ export interface QuickEventFormData {
     notes?: string;
 }
 
+// --- COMPONENT ---
 export const QuickEventModal: React.FC<QuickEventModalProps> = ({
-    isOpen,
-    eventData,
-    onClose,
-    onSave,
-}) => {
+                                                                    isOpen,
+                                                                    eventData,
+                                                                    onClose,
+                                                                    onSave,
+                                                                }) => {
+    // State initialization
     const [title, setTitle] = useState('');
     const [customerSearch, setCustomerSearch] = useState('');
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>();
@@ -533,20 +456,17 @@ export const QuickEventModal: React.FC<QuickEventModalProps> = ({
     const [selectedColorId, setSelectedColorId] = useState('');
     const [notes, setNotes] = useState('');
 
-    // Fetch customers
+    // Queries
     const { data: customers = [] } = useQuery({
         queryKey: ['customers-search', customerSearch],
         queryFn: async () => {
             if (!customerSearch || customerSearch.length < 2) return [];
-            const response = await apiClient.get(`/api/v1/customers/search`, {
-                params: { query: customerSearch },
-            });
+            const response = await apiClient.get(`/api/v1/customers/search`, { params: { query: customerSearch } });
             return response.data.customers || [];
         },
         enabled: customerSearch.length >= 2,
     });
 
-    // Fetch vehicles for selected customer
     const { data: vehicles = [] } = useQuery({
         queryKey: ['customer-vehicles', selectedCustomerId],
         queryFn: async () => {
@@ -557,7 +477,6 @@ export const QuickEventModal: React.FC<QuickEventModalProps> = ({
         enabled: !!selectedCustomerId,
     });
 
-    // Fetch services
     const { data: services = [] } = useQuery({
         queryKey: ['services'],
         queryFn: async () => {
@@ -566,7 +485,6 @@ export const QuickEventModal: React.FC<QuickEventModalProps> = ({
         },
     });
 
-    // Fetch appointment colors
     const { data: appointmentColors = [] } = useQuery({
         queryKey: ['appointment-colors'],
         queryFn: async () => {
@@ -575,24 +493,20 @@ export const QuickEventModal: React.FC<QuickEventModalProps> = ({
         },
     });
 
-    // Format helpers
-    const formatDateTimeLocal = (date: Date): string => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    // Helpers
+    const formatDateTimeLocal = (date: Date) => {
+        const d = new Date(date);
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     };
 
-    const formatDate = (date: Date): string => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+    const formatDate = (date: Date) => {
+        const d = new Date(date);
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     };
 
-    // Initialize form when eventData changes
+    // Effects
     useEffect(() => {
         if (eventData) {
             const timeDiff = eventData.end.getTime() - eventData.start.getTime();
@@ -617,16 +531,14 @@ export const QuickEventModal: React.FC<QuickEventModalProps> = ({
                 setEndDateTime(formatDateTimeLocal(eventData.end));
             }
         }
-
-        // Set default color if available
         if (appointmentColors.length > 0 && !selectedColorId) {
             setSelectedColorId(appointmentColors[0].id);
         }
     }, [eventData, appointmentColors, selectedColorId]);
 
+    // Handlers
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
         onSave({
             title,
             customerId: selectedCustomerId,
@@ -643,44 +555,14 @@ export const QuickEventModal: React.FC<QuickEventModalProps> = ({
         });
     };
 
-    const handleOverlayClick = (e: React.MouseEvent) => {
-        if (e.target === e.currentTarget) {
-            onClose();
-        }
-    };
-
-    const addService = (service: any) => {
-        if (!selectedServiceIds.includes(service.id)) {
-            setSelectedServiceIds(prev => [...prev, service.id]);
-            setServicePrices(prev => ({
-                ...prev,
-                [service.id]: service.basePriceNet / 100
-            }));
-        }
-        setServiceSearch('');
-        setShowServiceDropdown(false);
-    };
-
-    const removeService = (serviceId: string) => {
-        setSelectedServiceIds(prev => prev.filter(id => id !== serviceId));
-        setServicePrices(prev => {
-            const newPrices = { ...prev };
-            delete newPrices[serviceId];
-            return newPrices;
-        });
-    };
-
-    const updateServicePrice = (serviceId: string, price: number) => {
-        setServicePrices(prev => ({
-            ...prev,
-            [serviceId]: price
-        }));
-    };
-
     const handleCustomerSelect = (customer: any) => {
         setSelectedCustomerId(customer.id);
         setSelectedCustomerName(`${customer.firstName} ${customer.lastName}`);
         setCustomerSearch(`${customer.firstName} ${customer.lastName}`);
+        // Reset vehicle on customer change
+        setSelectedVehicleId(undefined);
+        setSelectedVehicleName('');
+        setVehicleSearch('');
     };
 
     const handleVehicleSelect = (vehicle: any) => {
@@ -690,298 +572,231 @@ export const QuickEventModal: React.FC<QuickEventModalProps> = ({
         setShowVehicleDropdown(false);
     };
 
-    const handleAddNewVehicle = () => {
-        if (!selectedCustomerId) {
-            alert('Wybierz najpierw klienta');
-            return;
+    const addService = (service: any) => {
+        if (!selectedServiceIds.includes(service.id)) {
+            setSelectedServiceIds(prev => [...prev, service.id]);
+            setServicePrices(prev => ({ ...prev, [service.id]: service.basePriceNet / 100 }));
         }
-        if (!newVehicleBrand || !newVehicleModel || !newVehiclePlate) {
-            alert('Wypełnij wszystkie pola pojazdu');
-            return;
-        }
-        // Symulacja dodania pojazdu - w rzeczywistości to powinno być API call
-        const tempVehicleId = `temp-${Date.now()}`;
-        setSelectedVehicleId(tempVehicleId);
-        setSelectedVehicleName(`${newVehicleBrand} ${newVehicleModel}`);
-        setVehicleSearch(`${newVehicleBrand} ${newVehicleModel} (${newVehiclePlate})`);
-        setShowAddVehicle(false);
-        setNewVehicleBrand('');
-        setNewVehicleModel('');
-        setNewVehiclePlate('');
+        setServiceSearch('');
+        setShowServiceDropdown(false);
     };
 
     if (!eventData) return null;
 
     return (
-        <Overlay $isOpen={isOpen} onClick={handleOverlayClick}>
+        <Overlay $isOpen={isOpen} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
             <ModalContainer>
-                <CloseButton onClick={onClose}>✕</CloseButton>
-
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                     <Header>
                         <TitleInput
                             type="text"
-                            placeholder="Dodaj tytuł"
+                            placeholder="Wpisz tytuł wizyty..."
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             autoFocus
                         />
+                        <CloseButton type="button" onClick={onClose}><IconX /></CloseButton>
                     </Header>
 
                     <Content>
-                        {/* Date and Time */}
-                        <FormSection>
-                            <IconContainer>🕐</IconContainer>
-                            <FieldContainer>
-                                <Checkbox>
-                                    <input
-                                        type="checkbox"
-                                        checked={isAllDay}
-                                        onChange={(e) => setIsAllDay(e.target.checked)}
-                                    />
-                                    Wizyta całodniowa
-                                </Checkbox>
-                                <DateTimeRow>
-                                    <div>
-                                        <Label>Początek</Label>
-                                        <Input
-                                            type={isAllDay ? 'date' : 'datetime-local'}
-                                            value={startDateTime}
-                                            onChange={(e) => setStartDateTime(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label>Koniec</Label>
-                                        <Input
-                                            type={isAllDay ? 'date' : 'datetime-local'}
-                                            value={endDateTime}
-                                            onChange={(e) => setEndDateTime(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                </DateTimeRow>
-                            </FieldContainer>
-                        </FormSection>
-
-                        {/* Customer */}
-                        <FormSection>
-                            <IconContainer>👤</IconContainer>
-                            <FieldContainer>
-                                <Label>Klient</Label>
-                                <SearchInput
-                                    type="text"
-                                    placeholder="Wyszukaj klienta..."
-                                    value={customerSearch}
-                                    onChange={(e) => setCustomerSearch(e.target.value)}
+                        {/* --- TIME SECTION --- */}
+                        <SectionTitle><IconClock /> Termin Wizyty</SectionTitle>
+                        <Grid $cols={2}>
+                            <FormGroup>
+                                <Label>Początek</Label>
+                                <Input
+                                    type={isAllDay ? 'date' : 'datetime-local'}
+                                    value={startDateTime}
+                                    onChange={(e) => setStartDateTime(e.target.value)}
+                                    required
                                 />
-                                {customers.length > 0 && (
-                                    <CustomerList>
-                                        {customers.map((customer: any) => (
-                                            <CustomerItem
-                                                key={customer.id}
-                                                $selected={customer.id === selectedCustomerId}
-                                                onClick={() => handleCustomerSelect(customer)}
-                                            >
-                                                {customer.firstName} {customer.lastName} - {customer.phone}
-                                            </CustomerItem>
-                                        ))}
-                                    </CustomerList>
-                                )}
-                            </FieldContainer>
-                        </FormSection>
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>Koniec</Label>
+                                <Input
+                                    type={isAllDay ? 'date' : 'datetime-local'}
+                                    value={endDateTime}
+                                    onChange={(e) => setEndDateTime(e.target.value)}
+                                    required
+                                />
+                            </FormGroup>
+                        </Grid>
+                        <div style={{ marginTop: '-20px', marginBottom: '32px' }}>
+                            <CheckboxContainer>
+                                <input
+                                    type="checkbox"
+                                    checked={isAllDay}
+                                    onChange={(e) => setIsAllDay(e.target.checked)}
+                                />
+                                Cały dzień
+                            </CheckboxContainer>
+                        </div>
 
-                        {/* Vehicle */}
-                        <FormSection>
-                            <IconContainer>🚗</IconContainer>
-                            <FieldContainer>
-                                <Label>Pojazd</Label>
-                                <VehicleSearchContainer>
-                                    <SearchInput
+                        {/* --- CUSTOMER & VEHICLE SECTION --- */}
+                        <Grid $cols={2}>
+                            <div>
+                                <SectionTitle><IconUser /> Klient</SectionTitle>
+                                <FormGroup>
+                                    <Label>Wyszukaj Klienta</Label>
+                                    <Input
                                         type="text"
-                                        placeholder="Wyszukaj pojazd..."
+                                        placeholder="Nazwisko lub telefon..."
+                                        value={customerSearch}
+                                        onChange={(e) => setCustomerSearch(e.target.value)}
+                                    />
+                                    {customers.length > 0 && customerSearch !== selectedCustomerName && (
+                                        <Dropdown>
+                                            {customers.map((customer: any) => (
+                                                <DropdownItem
+                                                    key={customer.id}
+                                                    onClick={() => handleCustomerSelect(customer)}
+                                                    $highlighted={customer.id === selectedCustomerId}
+                                                >
+                                                    <div style={{ fontWeight: 500 }}>{customer.firstName} {customer.lastName}</div>
+                                                    <div style={{ fontSize: '12px', color: '#64748b' }}>{customer.phone}</div>
+                                                </DropdownItem>
+                                            ))}
+                                        </Dropdown>
+                                    )}
+                                </FormGroup>
+                            </div>
+
+                            <div>
+                                <SectionTitle><IconCar /> Pojazd</SectionTitle>
+                                <FormGroup>
+                                    <Label>Wybierz Pojazd</Label>
+                                    <Input
+                                        type="text"
+                                        placeholder={selectedCustomerId ? "Wyszukaj pojazd..." : "Najpierw wybierz klienta"}
                                         value={vehicleSearch}
                                         onChange={(e) => {
                                             setVehicleSearch(e.target.value);
-                                            setShowVehicleDropdown(e.target.value.length > 0 && selectedCustomerId !== undefined);
+                                            setShowVehicleDropdown(true);
                                         }}
-                                        onFocus={() => vehicleSearch.length > 0 && selectedCustomerId && setShowVehicleDropdown(true)}
                                         disabled={!selectedCustomerId}
+                                        onFocus={() => setShowVehicleDropdown(true)}
                                     />
-                                    {showVehicleDropdown && selectedCustomerId && (
-                                        <VehicleDropdown>
+                                    {showVehicleDropdown && selectedCustomerId && vehicles.length > 0 && (
+                                        <Dropdown>
                                             {vehicles
-                                                .filter((vehicle: any) =>
-                                                    `${vehicle.brand} ${vehicle.model} ${vehicle.licensePlate}`
-                                                        .toLowerCase()
-                                                        .includes(vehicleSearch.toLowerCase())
+                                                .filter((v: any) =>
+                                                    `${v.brand} ${v.model} ${v.licensePlate}`.toLowerCase().includes(vehicleSearch.toLowerCase())
                                                 )
                                                 .map((vehicle: any) => (
-                                                    <VehicleDropdownItem
+                                                    <DropdownItem
                                                         key={vehicle.id}
                                                         onClick={() => handleVehicleSelect(vehicle)}
                                                     >
-                                                        {vehicle.brand} {vehicle.model} ({vehicle.licensePlate})
-                                                    </VehicleDropdownItem>
+                                                        {vehicle.brand} {vehicle.model} <span style={{color: '#94a3b8'}}>({vehicle.licensePlate})</span>
+                                                    </DropdownItem>
                                                 ))}
-                                            {vehicles.filter((vehicle: any) =>
-                                                `${vehicle.brand} ${vehicle.model} ${vehicle.licensePlate}`
-                                                    .toLowerCase()
-                                                    .includes(vehicleSearch.toLowerCase())
-                                            ).length === 0 && (
-                                                <VehicleDropdownItem style={{ cursor: 'default', color: '#9e9e9e' }}>
-                                                    Nie znaleziono pojazdów
-                                                </VehicleDropdownItem>
-                                            )}
-                                        </VehicleDropdown>
+                                        </Dropdown>
                                     )}
-                                </VehicleSearchContainer>
+                                </FormGroup>
                                 {selectedCustomerId && !showAddVehicle && (
-                                    <AddNewButton
-                                        type="button"
-                                        onClick={() => setShowAddVehicle(true)}
-                                    >
+                                    <AddButton type="button" onClick={() => setShowAddVehicle(true)}>
                                         + Dodaj nowy pojazd
-                                    </AddNewButton>
+                                    </AddButton>
                                 )}
-                                {showAddVehicle && (
-                                    <>
-                                        <VehicleInputGrid>
-                                            <Input
-                                                type="text"
-                                                placeholder="Marka"
-                                                value={newVehicleBrand}
-                                                onChange={(e) => setNewVehicleBrand(e.target.value)}
-                                            />
-                                            <Input
-                                                type="text"
-                                                placeholder="Model"
-                                                value={newVehicleModel}
-                                                onChange={(e) => setNewVehicleModel(e.target.value)}
-                                            />
-                                        </VehicleInputGrid>
-                                        <Input
-                                            type="text"
-                                            placeholder="Numer rejestracyjny"
-                                            value={newVehiclePlate}
-                                            onChange={(e) => setNewVehiclePlate(e.target.value)}
-                                            style={{ marginTop: '8px' }}
-                                        />
-                                        <ButtonRow style={{ marginTop: '8px' }}>
-                                            <Button
-                                                type="button"
-                                                onClick={() => {
-                                                    setShowAddVehicle(false);
-                                                    setNewVehicleBrand('');
-                                                    setNewVehicleModel('');
-                                                    setNewVehiclePlate('');
-                                                }}
-                                            >
-                                                Anuluj
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                $variant="primary"
-                                                onClick={handleAddNewVehicle}
-                                            >
-                                                Dodaj pojazd
-                                            </Button>
-                                        </ButtonRow>
-                                    </>
-                                )}
-                            </FieldContainer>
-                        </FormSection>
+                            </div>
+                        </Grid>
 
-                        {/* Services */}
-                        <FormSection>
-                            <IconContainer>⚙️</IconContainer>
-                            <FieldContainer>
-                                <Label>Usługi</Label>
-                                <ServiceSearchContainer>
-                                    <SearchInput
-                                        type="text"
-                                        placeholder="Wyszukaj i dodaj usługę..."
-                                        value={serviceSearch}
-                                        onChange={(e) => {
-                                            setServiceSearch(e.target.value);
-                                            setShowServiceDropdown(e.target.value.length > 0);
-                                        }}
-                                        onFocus={() => serviceSearch.length > 0 && setShowServiceDropdown(true)}
-                                    />
-                                    {showServiceDropdown && serviceSearch.length > 0 && (
-                                        <ServiceDropdown>
-                                            {services
-                                                .filter((service: any) =>
-                                                    service.name.toLowerCase().includes(serviceSearch.toLowerCase())
-                                                )
-                                                .map((service: any) => (
-                                                    <ServiceDropdownItem
-                                                        key={service.id}
-                                                        onClick={() => addService(service)}
-                                                    >
-                                                        <ServiceName>{service.name}</ServiceName>
-                                                        <ServicePrice>
-                                                            {(service.basePriceNet / 100).toFixed(2)} zł
-                                                        </ServicePrice>
-                                                    </ServiceDropdownItem>
-                                                ))}
-                                            {services.filter((service: any) =>
-                                                service.name.toLowerCase().includes(serviceSearch.toLowerCase())
-                                            ).length === 0 && (
-                                                <ServiceDropdownItem style={{ cursor: 'default', color: '#9e9e9e' }}>
-                                                    Nie znaleziono usług
-                                                </ServiceDropdownItem>
-                                            )}
-                                        </ServiceDropdown>
-                                    )}
-                                </ServiceSearchContainer>
-                                {selectedServiceIds.length > 0 && (
-                                    <SelectedServicesList>
-                                        {selectedServiceIds.map((serviceId) => {
-                                            const service = services.find((s: any) => s.id === serviceId);
-                                            if (!service) return null;
-                                            return (
-                                                <ServiceItem key={serviceId}>
-                                                    <ServiceName>{service.name}</ServiceName>
-                                                    <PriceInput
-                                                        type="number"
-                                                        step="0.01"
-                                                        min="0"
-                                                        value={servicePrices[serviceId] || (service.basePriceNet / 100)}
-                                                        onChange={(e) => updateServicePrice(serviceId, parseFloat(e.target.value) || 0)}
-                                                        placeholder="Cena"
-                                                    />
-                                                    <span style={{ fontSize: '13px', color: '#5f6368' }}>zł</span>
-                                                    <RemoveButton
-                                                        type="button"
-                                                        onClick={() => removeService(serviceId)}
-                                                        title="Usuń usługę"
-                                                    >
-                                                        ✕
-                                                    </RemoveButton>
-                                                </ServiceItem>
-                                            );
-                                        })}
-                                    </SelectedServicesList>
-                                )}
-                            </FieldContainer>
-                        </FormSection>
-
-                        {/* Notes */}
-                        <FormSection>
-                            <IconContainer>📝</IconContainer>
-                            <FieldContainer>
-                                <Label>Notatki</Label>
+                        {/* New Vehicle Inline Form */}
+                        {showAddVehicle && (
+                            <CardStyle style={{ padding: '16px', marginBottom: '32px', background: '#f1f5f9', border: 'none' }}>
+                                <Grid $cols={2} style={{ marginBottom: '12px' }}>
+                                    <Input placeholder="Marka" value={newVehicleBrand} onChange={e => setNewVehicleBrand(e.target.value)} />
+                                    <Input placeholder="Model" value={newVehicleModel} onChange={e => setNewVehicleModel(e.target.value)} />
+                                </Grid>
                                 <Input
-                                    as="textarea"
-                                    rows={3}
-                                    placeholder="Dodaj notatki..."
-                                    value={notes}
-                                    onChange={(e) => setNotes(e.target.value)}
-                                    style={{ resize: 'vertical', fontFamily: 'inherit' }}
+                                    placeholder="Nr Rejestracyjny"
+                                    value={newVehiclePlate}
+                                    onChange={e => setNewVehiclePlate(e.target.value)}
+                                    style={{ marginBottom: '12px' }}
                                 />
-                            </FieldContainer>
-                        </FormSection>
+                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                    <Button type="button" $variant="secondary" onClick={() => setShowAddVehicle(false)} style={{ padding: '6px 12px', fontSize: '13px' }}>Anuluj</Button>
+                                    <Button type="button" $variant="primary" onClick={() => {
+                                        // Logic from original component
+                                        const tempId = `temp-${Date.now()}`;
+                                        setSelectedVehicleId(tempId);
+                                        setSelectedVehicleName(`${newVehicleBrand} ${newVehicleModel}`);
+                                        setVehicleSearch(`${newVehicleBrand} ${newVehicleModel} (${newVehiclePlate})`);
+                                        setShowAddVehicle(false);
+                                    }} style={{ padding: '6px 12px', fontSize: '13px' }}>Dodaj</Button>
+                                </div>
+                            </CardStyle>
+                        )}
+
+
+                        {/* --- SERVICES SECTION --- */}
+                        <SectionTitle><IconSettings /> Usługi</SectionTitle>
+                        <FormGroup style={{ marginBottom: '16px' }}>
+                            <Input
+                                type="text"
+                                placeholder="Dodaj usługę (wpisz nazwę)..."
+                                value={serviceSearch}
+                                onChange={(e) => {
+                                    setServiceSearch(e.target.value);
+                                    setShowServiceDropdown(true);
+                                }}
+                            />
+                            {showServiceDropdown && serviceSearch.length > 0 && (
+                                <Dropdown>
+                                    {services
+                                        .filter((s: any) => s.name.toLowerCase().includes(serviceSearch.toLowerCase()))
+                                        .map((service: any) => (
+                                            <DropdownItem key={service.id} onClick={() => addService(service)}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>{service.name}</span>
+                                                    <span style={{ fontWeight: 600, color: '#3b82f6' }}>{(service.basePriceNet / 100).toFixed(2)} zł</span>
+                                                </div>
+                                            </DropdownItem>
+                                        ))}
+                                </Dropdown>
+                            )}
+                        </FormGroup>
+
+                        {selectedServiceIds.length > 0 && (
+                            <div style={{ marginBottom: '32px' }}>
+                                {selectedServiceIds.map(id => {
+                                    const service = services.find((s: any) => s.id === id);
+                                    if (!service) return null;
+                                    return (
+                                        <ServiceItem key={id}>
+                                            <ServiceName>{service.name}</ServiceName>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <PriceInput
+                                                    type="number"
+                                                    value={servicePrices[id] || 0}
+                                                    onChange={(e) => setServicePrices(prev => ({ ...prev, [id]: parseFloat(e.target.value) || 0 }))}
+                                                />
+                                                <span style={{ fontSize: '13px', color: '#64748b' }}>zł</span>
+                                                <IconButton
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedServiceIds(prev => prev.filter(i => i !== id));
+                                                        const newPrices = {...servicePrices};
+                                                        delete newPrices[id];
+                                                        setServicePrices(newPrices);
+                                                    }}
+                                                >
+                                                    <IconTrash />
+                                                </IconButton>
+                                            </div>
+                                        </ServiceItem>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {/* --- NOTES SECTION --- */}
+                        <SectionTitle><IconNote /> Notatki</SectionTitle>
+                        <TextArea
+                            placeholder="Wpisz dodatkowe uwagi..."
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                        />
                     </Content>
 
                     <Footer>
@@ -999,11 +814,11 @@ export const QuickEventModal: React.FC<QuickEventModalProps> = ({
                         </ColorPicker>
 
                         <ButtonRow>
-                            <Button type="button" onClick={onClose}>
+                            <Button type="button" $variant="secondary" onClick={onClose}>
                                 Anuluj
                             </Button>
                             <Button type="submit" $variant="primary">
-                                Zapisz
+                                Zapisz Wizytę
                             </Button>
                         </ButtonRow>
                     </Footer>
