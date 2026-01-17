@@ -10,21 +10,26 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@dinero.js/currencies": "^2.0.0-alpha.14",
+    "@fullcalendar/core": "^6.1.20",
+    "@fullcalendar/daygrid": "^6.1.20",
+    "@fullcalendar/interaction": "^6.1.20",
+    "@fullcalendar/react": "^6.1.20",
+    "@fullcalendar/timegrid": "^6.1.20",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-dialog": "^1.1.15",
     "@tailwindcss/postcss": "^4.1.18",
     "@tanstack/react-query": "^5.90.16",
     "@tanstack/react-query-devtools": "^5.91.2",
     "axios": "^1.13.2",
+    "dinero.js": "^2.0.0-alpha.14",
+    "qrcode.react": "^4.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.70.0",
     "react-router-dom": "^7.12.0",
     "styled-components": "^6.3.1",
-    "zod": "^4.3.5",
-    "@dinero.js/currencies": "^2.0.0-alpha.14",
-    "dinero.js": "^2.0.0-alpha.14",
-    "qrcode.react": "^4.1.0"
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

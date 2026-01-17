@@ -13,6 +13,7 @@ import { LoginView, SignupView } from '@/modules/auth';
 import { ServiceListView } from "@/modules/services";
 import { AppointmentColorListView } from "@/modules/appointment-colors";
 import { ConsentSettingsView } from "@/modules/consents";
+import { CalendarPageView } from "@/modules/calendar";
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -44,6 +45,14 @@ export const router = createBrowserRouter([
         path: '/customers/:customerId',
         element: (
                 <Layout><CustomerDetailView /></Layout>
+        ),
+    },
+    {
+        path: '/calendar',
+        element: (
+            <ProtectedRoute>
+                <Layout><CalendarPageView /></Layout>
+            </ProtectedRoute>
         ),
     },
     {

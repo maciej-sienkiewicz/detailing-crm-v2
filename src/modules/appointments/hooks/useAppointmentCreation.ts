@@ -1,21 +1,27 @@
 // src/modules/appointments/hooks/useAppointmentCreation.ts
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppointmentForm, useAppointmentServices, useAppointmentColors, useCustomerVehicles } from './useAppointmentForm';
 import type { SelectedCustomer, SelectedVehicle, ServiceLineItem } from '../types';
 
 export const useAppointmentCreation = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { createMutation } = useAppointmentForm();
     const { data: availableServices, isLoading: servicesLoading } = useAppointmentServices();
     const { data: appointmentColors, isLoading: colorsLoading } = useAppointmentColors();
 
+    // Get URL params for pre-filling
+    const startDateTimeParam = searchParams.get('startDateTime');
+    const endDateTimeParam = searchParams.get('endDateTime');
+    const isAllDayParam = searchParams.get('isAllDay') === 'true';
+
     const [selectedCustomer, setSelectedCustomer] = useState<SelectedCustomer | null>(null);
     const [selectedVehicle, setSelectedVehicle] = useState<SelectedVehicle | null>(null);
     const [serviceItems, setServiceItems] = useState<ServiceLineItem[]>([]);
-    const [isAllDay, setIsAllDay] = useState(false);
-    const [startDateTime, setStartDateTime] = useState('');
-    const [endDateTime, setEndDateTime] = useState('');
+    const [isAllDay, setIsAllDay] = useState(isAllDayParam);
+    const [startDateTime, setStartDateTime] = useState(startDateTimeParam || '');
+    const [endDateTime, setEndDateTime] = useState(endDateTimeParam || '');
     const [appointmentTitle, setAppointmentTitle] = useState('');
     const [selectedColorId, setSelectedColorId] = useState('');
 
