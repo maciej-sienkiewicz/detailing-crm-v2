@@ -146,16 +146,19 @@ export const VisitHeader = ({
                                 onPrintProtocol,
                                 onCancelVisit,
                             }: VisitHeaderProps) => {
-    const isCompleted = visit.status === 'completed';
-    const isCancelled = visit.status === 'cancelled';
-    const isInProgress = visit.status === 'in_progress';
-    const isReady = visit.status === 'ready';
+    const isCompleted = visit.status === 'COMPLETED';
+    const isRejected = visit.status === 'REJECTED';
+    const isArchived = visit.status === 'ARCHIVED';
+    const isInProgress = visit.status === 'IN_PROGRESS';
+    const isReady = visit.status === 'READY_FOR_PICKUP';
 
     const getCompleteButtonText = () => {
         if (isInProgress) return 'Oznacz jako gotowe';
         if (isReady) return 'Wydaj pojazd';
         return 'Zakończ wizytę';
     };
+
+    const isDisabled = isCompleted || isRejected || isArchived;
 
     return (
         <HeaderContainer>
@@ -172,7 +175,7 @@ export const VisitHeader = ({
                     <ActionButton
                         $variant="primary"
                         onClick={onCompleteVisit}
-                        disabled={isCompleted || isCancelled}
+                        disabled={isDisabled}
                     >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <polyline points="20 6 9 17 4 12"/>
@@ -192,13 +195,13 @@ export const VisitHeader = ({
                     <ActionButton
                         $variant="danger"
                         onClick={onCancelVisit}
-                        disabled={isCompleted || isCancelled}
+                        disabled={isDisabled}
                     >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <line x1="18" y1="6" x2="6" y2="18"/>
                             <line x1="6" y1="6" x2="18" y2="18"/>
                         </svg>
-                        Anuluj wizytę
+                        Odrzuć wizytę
                     </ActionButton>
                 </HeaderActions>
             </HeaderContent>

@@ -211,14 +211,14 @@ export const VisitDetailView = () => {
     const { visit, documents } = visitDetail;
 
     const handleCompleteVisit = () => {
-        if (visit.status === 'in_progress') {
+        if (visit.status === 'IN_PROGRESS') {
             setTransitionType('in_progress_to_ready');
             setIsTransitionWizardOpen(true);
-        } else if (visit.status === 'ready') {
+        } else if (visit.status === 'READY_FOR_PICKUP') {
             setTransitionType('ready_to_completed');
             setIsTransitionWizardOpen(true);
         } else if (window.confirm('Czy na pewno chcesz zakończyć tę wizytę?')) {
-            updateVisit({ status: 'completed' });
+            updateVisit({ status: 'COMPLETED' });
         }
     };
 
@@ -227,8 +227,8 @@ export const VisitDetailView = () => {
     };
 
     const handleCancelVisit = () => {
-        if (window.confirm('Czy na pewno chcesz anulować tę wizytę? Ta operacja jest nieodwracalna.')) {
-            updateVisit({ status: 'cancelled' });
+        if (window.confirm('Czy na pewno chcesz odrzucić tę wizytę? Ta operacja jest nieodwracalna.')) {
+            updateVisit({ status: 'REJECTED' });
         }
     };
 

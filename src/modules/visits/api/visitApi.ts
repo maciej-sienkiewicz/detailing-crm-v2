@@ -13,7 +13,7 @@ const mockVisitDetail: VisitDetailResponse = {
     visit: {
         id: 'visit_1',
         visitNumber: 'VIS-2025-00042',
-        status: 'ready',
+        status: 'READY_FOR_PICKUP',
         scheduledDate: '2025-01-15T09:00:00Z',
         vehicle: {
             id: 'veh_1',
