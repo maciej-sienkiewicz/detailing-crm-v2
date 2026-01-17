@@ -3,7 +3,7 @@
 import { apiClient } from '@/core';
 import type { OperationListResponse, OperationFilters, Operation } from '../types';
 
-const USE_MOCKS_FOR_VISITS = false; // Wizyty z prawdziwego API
+const USE_MOCKS_FOR_VISITS = false; // Wizyty nadal zamockowane
 const USE_MOCKS_FOR_RESERVATIONS = false; // Rezerwacje z serwera
 
 const BASE_PATH = '/api/operations';
