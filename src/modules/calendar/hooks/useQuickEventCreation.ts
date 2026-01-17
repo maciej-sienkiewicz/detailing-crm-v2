@@ -38,11 +38,25 @@ export const useQuickEventCreation = () => {
 
             // Build vehicle payload
             let vehiclePayload;
-            if (data.vehicleId) {
-                vehiclePayload = {
-                    mode: 'EXISTING' as const,
-                    id: data.vehicleId,
-                };
+            if (data.vehicle) {
+                if (data.vehicle.isNew) {
+                    vehiclePayload = {
+                        mode: 'NEW' as const,
+                        newData: {
+                            brand: data.vehicle.brand,
+                            model: data.vehicle.model,
+                        },
+                    };
+                } else if (data.vehicle.id) {
+                    vehiclePayload = {
+                        mode: 'EXISTING' as const,
+                        id: data.vehicle.id,
+                    };
+                } else {
+                    vehiclePayload = {
+                        mode: 'NONE' as const,
+                    };
+                }
             } else {
                 vehiclePayload = {
                     mode: 'NONE' as const,

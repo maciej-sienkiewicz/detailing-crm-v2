@@ -81,8 +81,7 @@ export interface QuickEventFormData {
     title: string;
     customerId?: string;
     customerName: string;
-    vehicleId?: string;
-    vehicleName: string;
+    vehicle: SelectedVehicle | null;
     startDateTime: string;
     endDateTime: string;
     isAllDay: boolean;
@@ -213,8 +212,7 @@ export const QuickEventModal: React.FC<QuickEventModalProps> = ({
             title,
             customerId: selectedCustomerId,
             customerName: selectedCustomerName,
-            vehicleId: selectedVehicleId,
-            vehicleName: selectedVehicleName,
+            vehicle: selectedVehicle,
             startDateTime,
             endDateTime,
             isAllDay,
