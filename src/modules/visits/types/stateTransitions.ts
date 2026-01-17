@@ -21,12 +21,8 @@ export interface PaymentDetails {
 }
 
 export interface TransitionToReadyPayload {
-    qualityApproved: boolean;
-    qualityChecks: QualityCheckItem[];
-    notifications?: {
-        sms: boolean;
-        email: boolean;
-    };
+    sms: boolean;
+    email: boolean;
 }
 
 export interface TransitionToCompletedPayload {

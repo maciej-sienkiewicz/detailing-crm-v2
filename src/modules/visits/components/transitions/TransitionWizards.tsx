@@ -31,8 +31,7 @@ export const InProgressToReadyWizard = ({
         handleFinish,
     } = useStateTransitionWizard(visit.id, 'in_progress_to_ready');
 
-    const handleQualityApprove = (checks: any[]) => {
-        updateWizardData({ qualityChecks: checks });
+    const handleQualityApprove = () => {
         handleNext();
     };
 

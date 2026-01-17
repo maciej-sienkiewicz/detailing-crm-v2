@@ -22,7 +22,6 @@ export const useStateTransitionWizard = (
     const [isOpen, setIsOpen] = useState(false);
     const [currentStep, setCurrentStep] = useState(1);
     const [wizardData, setWizardData] = useState<{
-        qualityChecks?: QualityCheckItem[];
         notifications?: NotificationChannels;
         payment?: PaymentDetails;
     }>({});
@@ -31,9 +30,8 @@ export const useStateTransitionWizard = (
 
     const { mutate: markReadyForPickup, isPending: isMarkingReady } = useMutation({
         mutationFn: () => stateTransitionApi.markReadyForPickup(visitId, {
-            qualityApproved: true,
-            qualityChecks: wizardData.qualityChecks || [],
-            notifications: wizardData.notifications,
+            sms: wizardData.notifications?.sms || false,
+            email: wizardData.notifications?.email || false,
         }),
         onSuccess: () => {
             queryClient.invalidateQueries({
@@ -56,15 +54,6 @@ export const useStateTransitionWizard = (
         },
     });
 
-    const { mutate: sendNotifications, isPending: isSendingNotifications } = useMutation({
-        mutationFn: () => stateTransitionApi.sendNotifications({
-            visitId,
-            channels: wizardData.notifications!,
-        }),
-        onSuccess: () => {
-            markReadyForPickup();
-        },
-    });
 
     const handleOpen = () => {
         setIsOpen(true);
@@ -96,11 +85,7 @@ export const useStateTransitionWizard = (
 
     const handleFinish = () => {
         if (transitionType === 'in_progress_to_ready') {
-            if (wizardData.notifications?.sms || wizardData.notifications?.email) {
-                sendNotifications();
-            } else {
-                markReadyForPickup();
-            }
+            markReadyForPickup();
         } else {
             complete();
         }
@@ -111,7 +96,7 @@ export const useStateTransitionWizard = (
         currentStep,
         totalSteps,
         wizardData,
-        isProcessing: isMarkingReady || isCompleting || isSendingNotifications,
+        isProcessing: isMarkingReady || isCompleting,
         handleOpen,
         handleClose,
         handleNext,

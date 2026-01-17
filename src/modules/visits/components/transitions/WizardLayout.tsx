@@ -233,19 +233,21 @@ export const WizardLayout = ({
                                 {backLabel}
                             </Button>
                         )}
-                        <Button
-                            onClick={handlePrimaryAction}
-                            disabled={disableNext || isProcessing}
-                            $variant="primary"
-                            $fullWidth={currentStep === 1}
-                        >
-                            {isProcessing
-                                ? 'Przetwarzanie...'
-                                : isLastStep
-                                    ? finishLabel
-                                    : nextLabel
-                            }
-                        </Button>
+                        {(onNext || onFinish) && (
+                            <Button
+                                onClick={handlePrimaryAction}
+                                disabled={disableNext || isProcessing}
+                                $variant="primary"
+                                $fullWidth={currentStep === 1}
+                            >
+                                {isProcessing
+                                    ? 'Przetwarzanie...'
+                                    : isLastStep
+                                        ? finishLabel
+                                        : nextLabel
+                                }
+                            </Button>
+                        )}
                     </ButtonGroup>
                 </WizardFooter>
             </WizardContainer>
