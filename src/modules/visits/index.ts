@@ -4,22 +4,25 @@ export {
     useVisitDetail,
     visitDetailQueryKey,
     useUpdateVisit,
-    useCreateJournalEntry,
-    useDeleteJournalEntry,
     useUploadDocument,
     useDeleteDocument,
+    useVisitComments,
+    useAddComment,
+    useUpdateComment,
+    useDeleteComment,
 } from './hooks';
 
 export { useStateTransitionWizard } from './hooks/useStateTransition';
 
 export { visitApi } from './api/visitApi';
+export { visitCommentApi } from './api/visitCommentApi';
 export { stateTransitionApi } from './api/stateTransitionApi';
 
 export { VisitHeader } from './components/VisitHeader';
 export { StatusStepper } from './components/StatusStepper';
 export { VehicleInfoCard, CustomerInfoCard } from './components/InfoCards';
 export { ServicesTable } from './components/ServicesTable';
-export { CommunicationJournal } from './components/CommunicationJournal';
+export { VisitComments } from './components/VisitComments';
 export { DocumentGallery } from './components/DocumentGallery';
 export { InProgressToReadyWizard, ReadyToCompletedWizard } from './components/transitions/TransitionWizards';
 export { WizardLayout } from './components/transitions/WizardLayout';
@@ -32,8 +35,9 @@ export { PaymentStep } from './components/transitions/PaymentStep';
 export type {
     Visit,
     VisitStatus,
-    JournalEntry,
-    JournalEntryType,
+    VisitComment,
+    CommentType,
+    CommentRevision,
     VisitDocument,
     DocumentType,
     VehicleInfo,
@@ -42,8 +46,10 @@ export type {
     MoneyAmount,
     VisitDetailResponse,
     UpdateVisitPayload,
-    CreateJournalEntryPayload,
     UploadDocumentPayload,
+    AddCommentPayload,
+    UpdateCommentPayload,
+    GetCommentsResponse,
 } from './types';
 
 export type {
