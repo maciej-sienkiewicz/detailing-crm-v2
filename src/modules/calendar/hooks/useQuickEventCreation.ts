@@ -49,15 +49,36 @@ export const useQuickEventCreation = () => {
                 };
             }
 
-            // Build services payload
-            const servicesPayload = data.serviceIds.map(serviceId => ({
-                serviceId,
-                adjustment: {
-                    type: 'FIXED_NET' as const,
-                    value: 0,
-                },
-                note: '',
-            }));
+            // Fetch service details to build proper ServiceLineItem objects
+            const servicesResponse = await apiClient.get('/api/v1/services');
+            const allServices = servicesResponse.data.services || [];
+
+            // Build services payload with all required fields
+            const servicesPayload = data.serviceIds.map((serviceId, index) => {
+                const service = allServices.find((s: any) => s.id === serviceId);
+                if (!service) {
+                    throw new Error(`Service with id ${serviceId} not found`);
+                }
+
+                // Use custom price if provided, otherwise use service base price
+                const customPrice = data.servicePrices?.[serviceId];
+                const basePriceNet = customPrice !== undefined
+                    ? customPrice * 100 // Convert to cents
+                    : service.basePriceNet;
+
+                return {
+                    id: `${Date.now()}-${index}`, // Generate unique line item ID
+                    serviceId: serviceId,
+                    serviceName: service.name,
+                    basePriceNet: basePriceNet,
+                    vatRate: service.vatRate,
+                    adjustment: {
+                        type: 'FIXED_NET' as const,
+                        value: 0,
+                    },
+                    note: '',
+                };
+            });
 
             const payload = {
                 customer: customerPayload,
