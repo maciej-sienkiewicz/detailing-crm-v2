@@ -5,12 +5,14 @@ import { useVisitDetail } from '../hooks';
 import { useUpdateVisit } from '../hooks';
 import { useCreateJournalEntry, useDeleteJournalEntry } from '../hooks';
 import { useUploadDocument, useDeleteDocument } from '../hooks';
+import { useVisitComments } from '../hooks';
 import { VisitHeader } from '../components/VisitHeader';
 import { StatusStepper } from '../components/StatusStepper';
 import { VehicleInfoCard, CustomerInfoCard } from '../components/InfoCards';
 import { ServicesTable } from '../components/ServicesTable';
 import { CommunicationJournal } from '../components/CommunicationJournal';
 import { DocumentGallery } from '../components/DocumentGallery';
+import { VisitComments } from '../components/VisitComments';
 import { InProgressToReadyWizard, ReadyToCompletedWizard } from '../components/transitions/TransitionWizards';
 import type { JournalEntryType, DocumentType } from '../types';
 
@@ -161,7 +163,7 @@ const RetryButton = styled.button`
     }
 `;
 
-type TabValue = 'overview' | 'communication' | 'documentation';
+type TabValue = 'overview' | 'communication' | 'comments' | 'documentation';
 
 export const VisitDetailView = () => {
     const { visitId } = useParams<{ visitId: string }>();
@@ -177,6 +179,7 @@ export const VisitDetailView = () => {
     const { deleteEntry, isDeleting: isDeletingEntry } = useDeleteJournalEntry(visitId!);
     const { uploadDocument, isUploading } = useUploadDocument(visitId!);
     const { deleteDocument, isDeleting: isDeletingDoc } = useDeleteDocument(visitId!);
+    const { comments, isLoading: isLoadingComments } = useVisitComments(visitId!);
 
     if (isLoading) {
         return (
@@ -292,6 +295,12 @@ export const VisitDetailView = () => {
                             💬 Komunikacja ({journalEntries.filter(e => !e.isDeleted).length})
                         </TabButton>
                         <TabButton
+                            $isActive={activeTab === 'comments'}
+                            onClick={() => setActiveTab('comments')}
+                        >
+                            💭 Komentarze ({comments.filter(c => !c.isDeleted).length})
+                        </TabButton>
+                        <TabButton
                             $isActive={activeTab === 'documentation'}
                             onClick={() => setActiveTab('documentation')}
                         >
@@ -330,6 +339,16 @@ export const VisitDetailView = () => {
                             onAddEntry={handleAddEntry}
                             onDeleteEntry={handleDeleteEntry}
                             isAdding={isCreating}
+                        />
+                    </TabContent>
+                )}
+
+                {activeTab === 'comments' && (
+                    <TabContent>
+                        <VisitComments
+                            visitId={visitId!}
+                            comments={comments}
+                            isLoading={isLoadingComments}
                         />
                     </TabContent>
                 )}

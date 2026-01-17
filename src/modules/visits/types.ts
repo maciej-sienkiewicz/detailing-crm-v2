@@ -4,6 +4,36 @@ export type JournalEntryType = 'internal_note' | 'customer_communication';
 
 export type DocumentType = 'photo' | 'pdf' | 'protocol';
 
+export type CommentType = 'INTERNAL' | 'FOR_CUSTOMER';
+
+export interface CommentRevision {
+    id: string;
+    commentId: string;
+    oldContent: string;
+    newContent: string;
+    changedBy: string;
+    changedByName: string;
+    changedAt: string;
+}
+
+export interface VisitComment {
+    id: string;
+    visitId: string;
+    type: CommentType;
+    content: string;
+    isDeleted: boolean;
+    createdBy: string;
+    createdByName: string;
+    createdAt: string;
+    updatedBy?: string;
+    updatedByName?: string;
+    updatedAt?: string;
+    deletedBy?: string;
+    deletedByName?: string;
+    deletedAt?: string;
+    revisions: CommentRevision[];
+}
+
 export interface MoneyAmount {
     netAmount: number;
     grossAmount: number;
@@ -112,4 +142,31 @@ export interface UploadDocumentPayload {
     file: File;
     type: DocumentType;
     category?: string;
+}
+
+export interface AddCommentPayload {
+    type: CommentType;
+    content: string;
+}
+
+export interface UpdateCommentPayload {
+    content: string;
+}
+
+export interface GetCommentsResponse {
+    comments: VisitComment[];
+}
+
+export interface AddCommentResponse {
+    commentId: string;
+}
+
+export interface UpdateCommentResponse {
+    commentId: string;
+    wasChanged: boolean;
+}
+
+export interface DeleteCommentResponse {
+    commentId: string;
+    wasDeleted: boolean;
 }
