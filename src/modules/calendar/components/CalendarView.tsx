@@ -154,6 +154,12 @@ const CalendarContainer = styled.div`
         transition: transform 0.1s, box-shadow 0.1s;
     }
 
+    /* Force inline background colors to override CSS variables from calendar.css */
+    .fc-h-event,
+    .fc-v-event {
+        background-color: inherit !important;
+    }
+
     .fc-event:hover {
         transform: translateY(-1px);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
