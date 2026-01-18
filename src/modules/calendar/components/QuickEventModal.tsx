@@ -432,13 +432,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 : 'Dodaj klienta'}
                                         </span>
                                         {selectedCustomer && (
-                                            <button
-                                                type="button"
+                                            <div
+                                                role="button"
                                                 onClick={handleRemoveCustomer}
-                                                className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                                                className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
                                             >
                                                 <IconX className="w-4 h-4" />
-                                            </button>
+                                            </div>
                                         )}
                                     </button>
                                 </div>
@@ -470,13 +470,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 : (selectedCustomer ? 'Dodaj pojazd' : 'Najpierw wybierz klienta')}
                                         </span>
                                         {selectedVehicle && (
-                                            <button
-                                                type="button"
+                                            <div
+                                                role="button"
                                                 onClick={handleRemoveVehicle}
-                                                className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                                                className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
                                             >
                                                 <IconX className="w-4 h-4" />
-                                            </button>
+                                            </div>
                                         )}
                                     </button>
                                 </div>
