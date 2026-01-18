@@ -1,0 +1,17 @@
+services:
+  detailing-crm-frontend:
+    image: ${ENV_DETAILING_CRM_FRONTEND_IMAGE}
+    container_name: ${DETAILING_CRM_FRONTEND_CONTAINER_NAME}
+    ports:
+      - '${ENV_DETAILING_CRM_FRONTEND_EXTERNAL_PORT}:80'
+
+    restart: always
+    networks:
+      - network
+
+
+networks:
+  network:
+    name: ${ENV_NETWORK}
+    external: true
+
