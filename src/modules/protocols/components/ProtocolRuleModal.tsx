@@ -5,6 +5,7 @@ import { Button, ButtonGroup } from '@/common/components/Button';
 import { Label, FieldGroup, ErrorMessage, Select } from '@/common/components/Form';
 import { Toggle } from '@/common/components/Toggle';
 import { useCreateProtocolRule, useUpdateProtocolRule } from '../api/useProtocols';
+import { useServices } from '@/modules/services/hooks/useServices';
 import type { ProtocolTemplate, ProtocolStage, ProtocolRule } from '../types';
 
 const Form = styled.form`
@@ -135,6 +136,14 @@ export const ProtocolRuleModal = ({
 
     const createMutation = useCreateProtocolRule();
     const updateMutation = useUpdateProtocolRule();
+
+    // Fetch active services for the service selector
+    const { services, isLoading: isLoadingServices } = useServices({
+        search: '',
+        page: 1,
+        limit: 100,
+        showInactive: false,
+    });
 
     useEffect(() => {
         if (isOpen) {
@@ -286,13 +295,16 @@ export const ProtocolRuleModal = ({
                         <Select
                             value={serviceId}
                             onChange={(e) => setServiceId(e.target.value)}
+                            disabled={isLoadingServices}
                         >
-                            <option value="">-- Wybierz usługę --</option>
-                            {/* Mock service options - in real app, fetch from services API */}
-                            <option value="service-1">Korekta lakieru</option>
-                            <option value="service-2">Powłoka ceramiczna</option>
-                            <option value="service-3">Detailing kompleksowy</option>
-                            <option value="service-4">Mycie premium</option>
+                            <option value="">
+                                {isLoadingServices ? 'Ładowanie usług...' : '-- Wybierz usługę --'}
+                            </option>
+                            {services.map(service => (
+                                <option key={service.id} value={service.id}>
+                                    {service.name}
+                                </option>
+                            ))}
                         </Select>
                         {errors.serviceId && (
                             <ErrorMessage>{errors.serviceId}</ErrorMessage>
