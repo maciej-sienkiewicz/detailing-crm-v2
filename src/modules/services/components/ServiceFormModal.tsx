@@ -227,7 +227,7 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
 
         if (!result.success) {
             const fieldErrors: Record<string, string> = {};
-            result.error.errors.forEach((err) => {
+            result.error?.errors?.forEach((err) => {
                 if (err.path[0]) {
                     fieldErrors[String(err.path[0])] = err.message;
                 }
