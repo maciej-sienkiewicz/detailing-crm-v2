@@ -17,8 +17,8 @@ import type {
     SignConsentResponse,
 } from '../types';
 
-const ADMIN_BASE_PATH = '/api/v1/admin/consents';
-const CUSTOMER_BASE_PATH = '/api/v1/customer/consents';
+const ADMIN_BASE_PATH = '/v1/admin/consents';
+const CUSTOMER_BASE_PATH = '/v1/customer/consents';
 
 // ===== Admin Operations =====
 

@@ -16,7 +16,7 @@ export const visitCommentApi = {
      */
     getComments: async (visitId: string): Promise<GetCommentsResponse> => {
         const response = await apiClient.get<GetCommentsResponse>(
-            `/api/visits/${visitId}/comments`
+            `/visits/${visitId}/comments`
         );
         return response.data;
     },
@@ -29,7 +29,7 @@ export const visitCommentApi = {
         payload: AddCommentPayload
     ): Promise<AddCommentResponse> => {
         const response = await apiClient.post<AddCommentResponse>(
-            `/api/visits/${visitId}/comments`,
+            `/visits/${visitId}/comments`,
             payload
         );
         return response.data;
@@ -44,7 +44,7 @@ export const visitCommentApi = {
         payload: UpdateCommentPayload
     ): Promise<UpdateCommentResponse> => {
         const response = await apiClient.put<UpdateCommentResponse>(
-            `/api/visits/${visitId}/comments/${commentId}`,
+            `/visits/${visitId}/comments/${commentId}`,
             payload
         );
         return response.data;
@@ -58,7 +58,7 @@ export const visitCommentApi = {
         commentId: string
     ): Promise<DeleteCommentResponse> => {
         const response = await apiClient.delete<DeleteCommentResponse>(
-            `/api/visits/${visitId}/comments/${commentId}`
+            `/visits/${visitId}/comments/${commentId}`
         );
         return response.data;
     },

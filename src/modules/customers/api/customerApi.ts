@@ -8,7 +8,7 @@ import type {
     SortDirection,
 } from '../types';
 
-const CUSTOMERS_BASE_PATH = '/api/v1/customers';
+const CUSTOMERS_BASE_PATH = '/v1/customers';
 const USE_MOCKS = false;
 
 const mockCustomers: Customer[] = [

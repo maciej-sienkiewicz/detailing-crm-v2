@@ -9,7 +9,7 @@ import type {
 } from '../types';
 
 const USE_MOCKS = false;
-const BASE_PATH = '/api/v1/services';
+const BASE_PATH = '/v1/services';
 
 const mockServices: Service[] = [
     {

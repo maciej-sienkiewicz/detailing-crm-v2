@@ -24,31 +24,31 @@ export const appointmentColorApi = {
         }
 
         const response = await apiClient.get<AppointmentColorListResponse>(
-            '/api/v1/appointment-colors',
+            '/v1/appointment-colors',
             { params }
         );
         return response.data;
     },
 
     getColorById: async (id: string): Promise<AppointmentColor> => {
-        const response = await apiClient.get<AppointmentColor>(`/api/v1/appointment-colors/${id}`);
+        const response = await apiClient.get<AppointmentColor>(`/v1/appointment-colors/${id}`);
         return response.data;
     },
 
     createColor: async (data: AppointmentColorCreateRequest): Promise<AppointmentColor> => {
-        const response = await apiClient.post<AppointmentColor>('/api/v1/appointment-colors', data);
+        const response = await apiClient.post<AppointmentColor>('/v1/appointment-colors', data);
         return response.data;
     },
 
     updateColor: async (id: string, data: AppointmentColorUpdateRequest): Promise<AppointmentColor> => {
         const response = await apiClient.put<AppointmentColor>(
-            `/api/v1/appointment-colors/${id}`,
+            `/v1/appointment-colors/${id}`,
             data
         );
         return response.data;
     },
 
     deleteColor: async (id: string): Promise<void> => {
-        await apiClient.delete(`/api/v1/appointment-colors/${id}`);
+        await apiClient.delete(`/v1/appointment-colors/${id}`);
     },
 };

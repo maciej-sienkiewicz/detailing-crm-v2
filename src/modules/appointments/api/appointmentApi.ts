@@ -70,7 +70,7 @@ export const appointmentApi = {
         if (USE_MOCKS) {
             return mockCreateAppointment(data);
         }
-        const response = await apiClient.post('/api/v1/appointments', data);
+        const response = await apiClient.post('/v1/appointments', data);
         return response.data;
     },
 
@@ -78,7 +78,7 @@ export const appointmentApi = {
         if (USE_MOCKS) {
             return mockGetServices();
         }
-        const response = await apiClient.get<{ services: Service[] }>('/api/v1/services');
+        const response = await apiClient.get<{ services: Service[] }>('/v1/services');
         return response.data.services;
     },
 
@@ -86,7 +86,7 @@ export const appointmentApi = {
         if (USE_MOCKS) {
             return mockSearchCustomers(query);
         }
-        const response = await apiClient.get<CustomerListResponse>('/api/v1/customers', {
+        const response = await apiClient.get<CustomerListResponse>('/v1/customers', {
             params: {
                 search: query,
                 page: 1,
@@ -108,7 +108,7 @@ export const appointmentApi = {
         if (USE_MOCKS) {
             return mockGetCustomerVehicles(customerId);
         }
-        const response = await apiClient.get(`/api/v1/customers/${customerId}/vehicles`);
+        const response = await apiClient.get(`/v1/customers/${customerId}/vehicles`);
         return response.data;
     },
 
@@ -116,12 +116,12 @@ export const appointmentApi = {
         if (USE_MOCKS) {
             return mockGetAppointmentColors();
         }
-        const response = await apiClient.get<{ colors: AppointmentColor[] }>('/api/v1/appointment-colors');
+        const response = await apiClient.get<{ colors: AppointmentColor[] }>('/v1/appointment-colors');
         return response.data.colors;
     },
 
     getAppointment: async (appointmentId: string) => {
-        const response = await apiClient.get(`/api/v1/appointments/${appointmentId}`);
+        const response = await apiClient.get(`/v1/appointments/${appointmentId}`);
         return response.data;
     },
 };

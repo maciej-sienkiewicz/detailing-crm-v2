@@ -4,7 +4,7 @@ import type { LoginCredentials, SignupCredentials, AuthResponse, CheckAuthRespon
 
 const USE_MOCKS = false;
 
-const BASE_PATH = '/api/v1/auth';
+const BASE_PATH = '/v1/auth';
 
 const mockLogin = async (credentials: LoginCredentials): Promise<AuthResponse> => {
     return new Promise((resolve, reject) => {

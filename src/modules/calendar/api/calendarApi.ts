@@ -255,7 +255,7 @@ const fetchAppointments = async (dateRange: DateRange): Promise<AppointmentRespo
     }
 
     const response = await apiClient.get<{ appointments: AppointmentResponse[] }>(
-        '/api/v1/appointments',
+        '/v1/appointments',
         {
             params: {
                 startDate: dateRange.start,
@@ -277,7 +277,7 @@ const fetchVisits = async (dateRange: DateRange): Promise<VisitResponse[]> => {
     }
 
     const response = await apiClient.get<{ visits: VisitResponse[] }>(
-        '/api/visits',
+        '/visits',
         {
             params: {
                 startDate: dateRange.start,

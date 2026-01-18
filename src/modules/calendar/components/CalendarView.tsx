@@ -372,7 +372,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
         try {
             // Fetch full appointment data to convert to Operation format
-            const response = await apiClient.get(`/api/v1/appointments/${popoverEvent.id}`);
+            const response = await apiClient.get(`/v1/appointments/${popoverEvent.id}`);
             const appointment = response.data;
 
             // Convert to Operation format for ReservationOptionsModal
@@ -455,7 +455,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         if (!selectedReservation) return;
 
         try {
-            await apiClient.delete(`/api/v1/appointments/${selectedReservation.id}`);
+            await apiClient.delete(`/v1/appointments/${selectedReservation.id}`);
             setOptionsModalOpen(false);
             // Refresh calendar events
             // The useCalendarEvents hook should automatically refetch
