@@ -157,10 +157,6 @@ export const SummaryStep = ({ formData, readOnly = false }: SummaryStepProps) =>
                                 <InfoLabel>{t.checkin.verification.licensePlate}</InfoLabel>
                                 <InfoValue>{formData.vehicleData.licensePlate}</InfoValue>
                             </InfoItem>
-                            <InfoItem>
-                                <InfoLabel>{t.checkin.verification.vin}</InfoLabel>
-                                <InfoValue>{formData.vehicleData.vin || '—'}</InfoValue>
-                            </InfoItem>
                         </InfoGrid>
                     </SummarySection>
                 )}

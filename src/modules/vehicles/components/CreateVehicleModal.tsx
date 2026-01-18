@@ -72,11 +72,9 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
             licensePlate: '',
             brand: '',
             model: '',
-            vin: '',
             yearOfProduction: new Date().getFullYear(),
             color: '',
             paintType: '',
-            engineType: 'gasoline',
             currentMileage: 0,
             technicalNotes: '',
             ownerIds: [],
@@ -90,9 +88,7 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
             model: data.model,
             yearOfProduction: data.yearOfProduction,
             color: data.color,
-            engineType: data.engineType,
             ownerIds: data.ownerIds,
-            ...(data.vin && { vin: data.vin }),
             ...(data.paintType && { paintType: data.paintType }),
             ...(data.currentMileage && { currentMileage: data.currentMileage }),
             ...(data.technicalNotes && { technicalNotes: data.technicalNotes }),
@@ -141,18 +137,6 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
                                 </FieldGroup>
 
                                 <FieldGroup>
-                                    <Label>{t.vehicles.form.vin}</Label>
-                                    <Input
-                                        {...register('vin')}
-                                        placeholder={t.vehicles.form.vinPlaceholder}
-                                        disabled={isCreating}
-                                    />
-                                    {errors.vin && (
-                                        <ErrorMessage>{errors.vin.message}</ErrorMessage>
-                                    )}
-                                </FieldGroup>
-
-                                <FieldGroup>
                                     <Label>{t.vehicles.form.brand}</Label>
                                     <Input
                                         {...register('brand')}
@@ -186,23 +170,6 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
                                     />
                                     {errors.yearOfProduction && (
                                         <ErrorMessage>{errors.yearOfProduction.message}</ErrorMessage>
-                                    )}
-                                </FieldGroup>
-
-                                <FieldGroup>
-                                    <Label>{t.vehicles.form.engineType}</Label>
-                                    <Select
-                                        {...register('engineType')}
-                                        disabled={isCreating}
-                                    >
-                                        <option value="">{t.vehicles.form.engineTypePlaceholder}</option>
-                                        <option value="gasoline">{t.vehicles.detail.engineType.gasoline}</option>
-                                        <option value="diesel">{t.vehicles.detail.engineType.diesel}</option>
-                                        <option value="hybrid">{t.vehicles.detail.engineType.hybrid}</option>
-                                        <option value="electric">{t.vehicles.detail.engineType.electric}</option>
-                                    </Select>
-                                    {errors.engineType && (
-                                        <ErrorMessage>{errors.engineType.message}</ErrorMessage>
                                     )}
                                 </FieldGroup>
 

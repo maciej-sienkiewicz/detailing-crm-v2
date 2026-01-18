@@ -109,10 +109,8 @@ export interface Vehicle {
     make: string;
     model: string;
     year: number;
-    vin: string;
     licensePlate: string;
     color: string;
-    engineType: 'gasoline' | 'diesel' | 'hybrid' | 'electric';
     mileage: number;
     nextInspectionDate: string | null;
     nextServiceDate: string | null;
@@ -178,10 +176,8 @@ export interface AddVehiclePayload {
     make: string;
     model: string;
     year: number;
-    vin: string;
     licensePlate: string;
     color: string;
-    engineType: 'gasoline' | 'diesel' | 'hybrid' | 'electric';
     mileage: number;
 }
 

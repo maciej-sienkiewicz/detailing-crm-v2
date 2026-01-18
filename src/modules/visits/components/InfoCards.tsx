@@ -148,15 +148,6 @@ export const VehicleInfoCard = ({
                     <InfoLabel>Kolor</InfoLabel>
                     <InfoValue>{vehicle.color}</InfoValue>
                 </InfoItem>
-                <InfoItem>
-                    <InfoLabel>Typ silnika</InfoLabel>
-                    <InfoValue>
-                        {vehicle.engineType === 'gasoline' && 'Benzyna'}
-                        {vehicle.engineType === 'diesel' && 'Diesel'}
-                        {vehicle.engineType === 'hybrid' && 'Hybryda'}
-                        {vehicle.engineType === 'electric' && 'Elektryczny'}
-                    </InfoValue>
-                </InfoItem>
             </InfoGrid>
 
             <div style={{ marginTop: '16px' }}>

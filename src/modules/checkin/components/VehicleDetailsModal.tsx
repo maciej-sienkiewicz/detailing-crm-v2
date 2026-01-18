@@ -52,14 +52,12 @@ interface VehicleDetailsModalProps {
         brand: string;
         model: string;
         licensePlate: string;
-        vin: string;
     };
     onSave: (data: {
         vehicleData: {
             brand: string;
             model: string;
             licensePlate: string;
-            vin: string;
         };
     }) => void;
 }
@@ -78,7 +76,6 @@ export const VehicleDetailsModal = ({
         brand: '',
         model: '',
         licensePlate: '',
-        vin: '',
     });
 
     // Inicjalizuj dane gdy modal się otwiera
@@ -92,7 +89,6 @@ export const VehicleDetailsModal = ({
                 brand: fallbackData.brand,
                 model: fallbackData.model,
                 licensePlate: fallbackData.licensePlate,
-                vin: fallbackData.vin,
             });
         } else if (vehicleDetail) {
             // Użyj danych z API jako fallback
@@ -100,7 +96,6 @@ export const VehicleDetailsModal = ({
                 brand: vehicleDetail.vehicle.brand,
                 model: vehicleDetail.vehicle.model,
                 licensePlate: vehicleDetail.vehicle.licensePlate,
-                vin: vehicleDetail.vehicle.vin || '',
             });
         }
     }, [isOpen, vehicleDetail, fallbackData]);
@@ -156,16 +151,6 @@ export const VehicleDetailsModal = ({
                                 value={localVehicleData.licensePlate}
                                 onChange={(e) => handleVehicleDataChange('licensePlate', e.target.value.toUpperCase())}
                                 placeholder="np. WW12345"
-                            />
-                        </FieldGroup>
-
-                        <FieldGroup>
-                            <Label>{t.checkin.verification.vin}</Label>
-                            <Input
-                                value={localVehicleData.vin}
-                                onChange={(e) => handleVehicleDataChange('vin', e.target.value.toUpperCase())}
-                                placeholder={t.checkin.verification.vinPlaceholder}
-                                maxLength={17}
                             />
                         </FieldGroup>
                     </FormGrid>

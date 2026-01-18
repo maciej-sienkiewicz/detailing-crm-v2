@@ -4,8 +4,6 @@ export type OwnershipRole = 'PRIMARY' | 'CO_OWNER' | 'COMPANY';
 
 export type VehicleStatus = 'active' | 'sold' | 'archived';
 
-export type EngineType = 'gasoline' | 'diesel' | 'hybrid' | 'electric';
-
 export type DocumentCategory =
     | 'protocols'
     | 'invoices'
@@ -49,11 +47,9 @@ export interface Vehicle {
     licensePlate: string;
     brand: string;
     model: string;
-    vin: string | null;
     yearOfProduction: number;
     color: string;
     paintType: string | null;
-    engineType: EngineType;
     currentMileage: number | null;
     status: VehicleStatus;
     technicalNotes: string;
@@ -110,11 +106,9 @@ export interface CreateVehiclePayload {
     licensePlate: string;
     brand: string;
     model: string;
-    vin?: string;
     yearOfProduction: number;
     color: string;
     paintType?: string;
-    engineType: EngineType;
     currentMileage?: number;
     technicalNotes?: string;
     ownerIds: string[];

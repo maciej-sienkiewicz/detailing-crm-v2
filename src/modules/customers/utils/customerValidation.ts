@@ -36,25 +36,56 @@ const companyDetailsSchema = z.object({
 export const createCustomerSchema = z.object({
     firstName: z
         .string()
-        .min(2, t.customers.validation.firstNameMin)
-        .max(50, t.customers.validation.firstNameMax),
+        .max(50, t.customers.validation.firstNameMax)
+        .optional()
+        .or(z.literal('')),
     lastName: z
         .string()
-        .min(2, t.customers.validation.lastNameMin)
-        .max(50, t.customers.validation.lastNameMax),
+        .max(50, t.customers.validation.lastNameMax)
+        .optional()
+        .or(z.literal('')),
     email: z
         .string()
-        .email(t.customers.validation.emailInvalid),
+        .refine(
+            (val) => !val || val === '' || z.string().email().safeParse(val).success,
+            { message: t.customers.validation.emailInvalid }
+        )
+        .optional()
+        .or(z.literal('')),
     phone: z
         .string()
-        .regex(
-            /^(\+48)?[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{3}$/,
-            t.customers.validation.phoneInvalid
-        ),
+        .refine(
+            (val) => !val || val === '' || /^(\+48)?[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{3}$/.test(val),
+            { message: t.customers.validation.phoneInvalid }
+        )
+        .optional()
+        .or(z.literal('')),
     homeAddress: homeAddressSchema.nullable().optional(),
     company: companyDetailsSchema.nullable().optional(),
     notes: z.string().max(1000, t.customers.validation.notesMax),
-});
+}).refine(
+    (data) => {
+        // Wymagane: Przynajmniej jedno z imienia lub nazwiska
+        const hasName = (data.firstName && data.firstName.trim().length >= 2) ||
+                        (data.lastName && data.lastName.trim().length >= 2);
+        return hasName;
+    },
+    {
+        message: 'Wymagane jest imię lub nazwisko (min. 2 znaki)',
+        path: ['firstName'], // Pokaż błąd przy polu firstName
+    }
+).refine(
+    (data) => {
+        // Wymagane: Przynajmniej jedno z telefonu lub emaila
+        const hasContact = (data.phone && data.phone.trim().length > 0) ||
+                          (data.email && data.email.trim().length > 0);
+        return hasContact;
+    },
+    {
+        message: 'Wymagany jest numer telefonu lub email',
+        path: ['phone'], // Pokaż błąd przy polu phone
+    }
+);
 
 export type CreateCustomerFormData = z.infer<typeof createCustomerSchema>;
 

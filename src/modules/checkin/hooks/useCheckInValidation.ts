@@ -32,11 +32,6 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
             // Walidacja pojazdu
             if (!formData.vehicleData) {
                 validationErrors.vehicle = 'Pojazd jest wymagany';
-            } else {
-                // VIN jest opcjonalny - walidacja tylko jeśli został podany
-                if (formData.vehicleData.vin && formData.vehicleData.vin.length > 0 && formData.vehicleData.vin.length !== 17) {
-                    validationErrors.vin = t.checkin.verification.vinFormat;
-                }
             }
         }
 

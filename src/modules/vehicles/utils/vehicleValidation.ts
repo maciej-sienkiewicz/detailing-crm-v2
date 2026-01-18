@@ -19,12 +19,6 @@ export const createVehicleSchema = z.object({
         .min(2, t.vehicles.validation.modelMin)
         .max(50),
 
-    vin: z
-        .string()
-        .regex(/^[A-HJ-NPR-Z0-9]{17}$/, t.vehicles.validation.vinFormat)
-        .optional()
-        .or(z.literal('')),
-
     yearOfProduction: z
         .number()
         .min(1900)
@@ -37,11 +31,6 @@ export const createVehicleSchema = z.object({
     paintType: z
         .string()
         .optional(),
-
-    engineType: z
-        .enum(['gasoline', 'diesel', 'hybrid', 'electric'], {
-            errorMap: () => ({ message: t.vehicles.validation.engineTypeRequired }),
-        }),
 
     currentMileage: z
         .number()
@@ -68,12 +57,6 @@ export const updateVehicleSchema = z.object({
         .regex(/^[A-Z0-9\s]{4,10}$/i, t.vehicles.validation.licensePlateFormat)
         .optional(),
 
-    vin: z
-        .string()
-        .regex(/^[A-HJ-NPR-Z0-9]{17}$/, t.vehicles.validation.vinFormat)
-        .optional()
-        .or(z.literal('')),
-
     brand: z
         .string()
         .min(2, t.vehicles.validation.brandMin)
@@ -99,10 +82,6 @@ export const updateVehicleSchema = z.object({
 
     paintType: z
         .string()
-        .optional(),
-
-    engineType: z
-        .enum(['gasoline', 'diesel', 'hybrid', 'electric'])
         .optional(),
 
     currentMileage: z

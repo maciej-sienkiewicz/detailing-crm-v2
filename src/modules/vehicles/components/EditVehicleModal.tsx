@@ -40,13 +40,11 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
         resolver: zodResolver(updateVehicleSchema),
         defaultValues: {
             licensePlate: vehicle.licensePlate,
-            vin: vehicle.vin || '',
             brand: vehicle.brand,
             model: vehicle.model,
             yearOfProduction: vehicle.yearOfProduction,
             color: vehicle.color,
             paintType: vehicle.paintType || '',
-            engineType: vehicle.engineType,
             currentMileage: vehicle.currentMileage || 0,
             technicalNotes: vehicle.technicalNotes,
         },
@@ -76,19 +74,6 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                             />
                             {errors.licensePlate && (
                                 <ErrorMessage>{errors.licensePlate.message}</ErrorMessage>
-                            )}
-                        </FieldGroup>
-
-                        <FieldGroup>
-                            <Label htmlFor="vin">VIN</Label>
-                            <Input
-                                id="vin"
-                                {...register('vin')}
-                                placeholder="WBAFR9C50BC000001"
-                                maxLength={17}
-                            />
-                            {errors.vin && (
-                                <ErrorMessage>{errors.vin.message}</ErrorMessage>
                             )}
                         </FieldGroup>
 
@@ -128,22 +113,6 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                             />
                             {errors.yearOfProduction && (
                                 <ErrorMessage>{errors.yearOfProduction.message}</ErrorMessage>
-                            )}
-                        </FieldGroup>
-
-                        <FieldGroup>
-                            <Label htmlFor="engineType">Typ silnika *</Label>
-                            <Select
-                                id="engineType"
-                                {...register('engineType')}
-                            >
-                                <option value="gasoline">{t.vehicles.detail.engineType.gasoline}</option>
-                                <option value="diesel">{t.vehicles.detail.engineType.diesel}</option>
-                                <option value="hybrid">{t.vehicles.detail.engineType.hybrid}</option>
-                                <option value="electric">{t.vehicles.detail.engineType.electric}</option>
-                            </Select>
-                            {errors.engineType && (
-                                <ErrorMessage>{errors.engineType.message}</ErrorMessage>
                             )}
                         </FieldGroup>
                     </FormGrid>

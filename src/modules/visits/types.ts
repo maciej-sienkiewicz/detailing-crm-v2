@@ -60,7 +60,6 @@ export interface VehicleInfo {
     model: string;
     yearOfProduction: number;
     color: string;
-    engineType: 'gasoline' | 'diesel' | 'hybrid' | 'electric';
     currentMileage?: number;
 }
 

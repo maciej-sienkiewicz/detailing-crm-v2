@@ -208,7 +208,6 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                 model: vehicle.model,
                 yearOfProduction: vehicle.yearOfProduction,
                 licensePlate: vehicle.licensePlate || '',
-                vin: '',
                 color: vehicle.color,
                 paintType: vehicle.paintType,
             },
@@ -222,7 +221,6 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
             brand: string;
             model: string;
             licensePlate: string;
-            vin: string;
         };
     }) => {
         onChange({
@@ -450,7 +448,6 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                     brand: formData.vehicleData?.brand || '',
                     model: formData.vehicleData?.model || '',
                     licensePlate: formData.vehicleData?.licensePlate || '',
-                    vin: formData.vehicleData?.vin || '',
                 }}
                 onSave={handleVehicleDetailsSave}
             />
