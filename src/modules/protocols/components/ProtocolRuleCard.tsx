@@ -1,7 +1,4 @@
-import { useState } from 'react';
 import styled from 'styled-components';
-import { useUpdateProtocolRule, useDeleteProtocolRule } from '../api/useProtocols';
-import { Toggle } from '@/common/components/Toggle';
 import type { ProtocolRule } from '../types';
 
 const Card = styled.div`
@@ -23,7 +20,6 @@ const CardHeader = styled.div`
     align-items: flex-start;
     justify-content: space-between;
     gap: ${props => props.theme.spacing.md};
-    margin-bottom: ${props => props.theme.spacing.md};
 `;
 
 const TitleSection = styled.div`
@@ -99,66 +95,6 @@ const Badge = styled.span<{ $variant: 'global' | 'service' | 'mandatory' | 'opti
     }
 `;
 
-const ActionsRow = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: ${props => props.theme.spacing.md};
-    margin-top: ${props => props.theme.spacing.md};
-    padding-top: ${props => props.theme.spacing.md};
-    border-top: 1px solid ${props => props.theme.colors.border};
-`;
-
-const ToggleWrapper = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${props => props.theme.spacing.sm};
-`;
-
-const ToggleLabel = styled.span`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
-    font-weight: 500;
-`;
-
-const ButtonGroup = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.xs};
-`;
-
-const IconButton = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border: 1px solid ${props => props.theme.colors.border};
-    background: transparent;
-    border-radius: ${props => props.theme.radii.md};
-    cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
-    color: ${props => props.theme.colors.textSecondary};
-
-    &:hover {
-        background: rgb(249, 250, 251); // gray-50
-        border-color: var(--brand-primary);
-        color: var(--brand-primary);
-    }
-
-    svg {
-        width: 16px;
-        height: 16px;
-    }
-`;
-
-const DeleteButton = styled(IconButton)`
-    &:hover {
-        background: rgb(254, 242, 242); // red-50
-        border-color: rgb(239, 68, 68); // red-500
-        color: rgb(239, 68, 68);
-    }
-`;
-
 // Icons
 const ShieldCheckIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -179,65 +115,22 @@ const WrenchIcon = () => (
     </svg>
 );
 
-const EditIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-    </svg>
-);
-
-const TrashIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-    </svg>
-);
-
 interface ProtocolRuleCardProps {
     rule: ProtocolRule;
-    onEdit: (rule: ProtocolRule) => void;
-    onRefresh: () => void;
+    onEdit?: (rule: ProtocolRule) => void; // Optional since rules are now immutable
+    onRefresh?: () => void; // Optional
 }
 
-export const ProtocolRuleCard = ({ rule, onEdit, onRefresh }: ProtocolRuleCardProps) => {
-    const [isMandatory, setIsMandatory] = useState(rule.isMandatory);
-    const updateMutation = useUpdateProtocolRule();
-    const deleteMutation = useDeleteProtocolRule();
-
-    const handleToggleMandatory = async (newValue: boolean) => {
-        setIsMandatory(newValue);
-        try {
-            await updateMutation.mutateAsync({
-                id: rule.id,
-                data: { isMandatory: newValue },
-            });
-            onRefresh();
-        } catch (error) {
-            console.error('Failed to update rule:', error);
-            setIsMandatory(!newValue);
-        }
-    };
-
-    const handleDelete = async () => {
-        if (!confirm(`Czy na pewno chcesz usunąć regułę dla "${rule.protocolTemplate?.name}"?`)) {
-            return;
-        }
-
-        try {
-            await deleteMutation.mutateAsync(rule.id);
-            onRefresh();
-        } catch (error) {
-            console.error('Failed to delete rule:', error);
-        }
-    };
+export const ProtocolRuleCard = ({ rule }: ProtocolRuleCardProps) => {
+    // Note: Backend does not support updating or deleting protocol rules
+    // Rules are immutable once created
 
     return (
-        <Card onClick={(e) => {
-            if ((e.target as HTMLElement).closest('button, input')) return;
-            onEdit(rule);
-        }}>
+        <Card>
             <CardHeader>
                 <TitleSection>
                     <DocumentName>
-                        {isMandatory && <MandatoryIcon>*</MandatoryIcon>}
+                        {rule.isMandatory && <MandatoryIcon>*</MandatoryIcon>}
                         {rule.protocolTemplate?.name || 'Nieznany protokół'}
                     </DocumentName>
                     {rule.protocolTemplate?.description && (
@@ -248,39 +141,13 @@ export const ProtocolRuleCard = ({ rule, onEdit, onRefresh }: ProtocolRuleCardPr
                             {rule.triggerType === 'GLOBAL_ALWAYS' ? <GlobeIcon /> : <WrenchIcon />}
                             {rule.triggerType === 'GLOBAL_ALWAYS' ? 'Globalny' : rule.serviceName || 'Specyficzny'}
                         </Badge>
-                        <Badge $variant={isMandatory ? 'mandatory' : 'optional'}>
-                            {isMandatory ? <ShieldCheckIcon /> : null}
-                            {isMandatory ? 'Obowiązkowy' : 'Opcjonalny'}
+                        <Badge $variant={rule.isMandatory ? 'mandatory' : 'optional'}>
+                            {rule.isMandatory ? <ShieldCheckIcon /> : null}
+                            {rule.isMandatory ? 'Obowiązkowy' : 'Opcjonalny'}
                         </Badge>
                     </BadgeGroup>
                 </TitleSection>
             </CardHeader>
-
-            <ActionsRow>
-                <ToggleWrapper>
-                    <Toggle
-                        checked={isMandatory}
-                        onChange={handleToggleMandatory}
-                        label=""
-                    />
-                    <ToggleLabel>Zawsze wymagany</ToggleLabel>
-                </ToggleWrapper>
-
-                <ButtonGroup>
-                    <IconButton onClick={(e) => {
-                        e.stopPropagation();
-                        onEdit(rule);
-                    }}>
-                        <EditIcon />
-                    </IconButton>
-                    <DeleteButton onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete();
-                    }}>
-                        <TrashIcon />
-                    </DeleteButton>
-                </ButtonGroup>
-            </ActionsRow>
         </Card>
     );
 };

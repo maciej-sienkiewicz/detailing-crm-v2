@@ -444,36 +444,23 @@ export const ProtocolTemplateModal = ({
         }
 
         try {
-            // In a real app, this would upload the file to a server
-            // For now, we'll simulate by creating a URL from the filename
-            let templateUrl = '';
-
-            if (selectedFile) {
-                // Simulate file upload - in production, use FormData and multipart/form-data
-                // const formData = new FormData();
-                // formData.append('file', selectedFile);
-                // const uploadResponse = await uploadFile(formData);
-                // templateUrl = uploadResponse.url;
-
-                templateUrl = `/uploads/protocols/${selectedFile.name}`;
-            } else if (editingTemplate) {
-                templateUrl = editingTemplate.templateUrl || '';
-            }
-
             if (editingTemplate) {
+                // Update existing template (no file upload on update)
                 await updateMutation.mutateAsync({
                     id: editingTemplate.id,
                     data: {
                         name: name.trim(),
                         description: description.trim() || undefined,
-                        templateUrl: selectedFile ? templateUrl : undefined,
                     },
                 });
             } else {
+                // Create new template with file upload
                 await createMutation.mutateAsync({
-                    name: name.trim(),
-                    description: description.trim() || undefined,
-                    templateUrl,
+                    data: {
+                        name: name.trim(),
+                        description: description.trim() || undefined,
+                    },
+                    file: selectedFile,
                 });
             }
             resetForm();

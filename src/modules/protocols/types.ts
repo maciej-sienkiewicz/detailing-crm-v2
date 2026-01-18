@@ -44,13 +44,16 @@ export interface VisitProtocol {
 export interface CreateProtocolTemplateDto {
   name: string;
   description?: string;
-  templateUrl?: string;
+}
+
+export interface CreateProtocolTemplateResponse {
+  template: ProtocolTemplate;
+  uploadUrl: string;
 }
 
 export interface UpdateProtocolTemplateDto {
   name?: string;
   description?: string;
-  templateUrl?: string;
   isActive?: boolean;
 }
 
@@ -60,15 +63,6 @@ export interface CreateProtocolRuleDto {
   stage: ProtocolStage;
   serviceId?: string;
   isMandatory: boolean;
-  displayOrder?: number;
-}
-
-export interface UpdateProtocolRuleDto {
-  protocolTemplateId?: string;
-  triggerType?: ProtocolTriggerType;
-  stage?: ProtocolStage;
-  serviceId?: string;
-  isMandatory?: boolean;
   displayOrder?: number;
 }
 
