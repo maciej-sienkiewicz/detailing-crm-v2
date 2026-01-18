@@ -455,8 +455,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 <div className="flex-1">
                                     <button
                                         type="button"
-                                        onClick={() => selectedCustomerId && setIsVehicleModalOpen(true)}
-                                        disabled={!selectedCustomerId}
+                                        onClick={() => selectedCustomer && setIsVehicleModalOpen(true)}
+                                        disabled={!selectedCustomer}
                                         className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 border border-transparent rounded-xl transition-all text-left group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-50"
                                         style={{
                                             borderColor: focusedField === 'vehicle' ? accentColor : undefined
@@ -467,7 +467,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         <span className={`flex-1 text-sm ${selectedVehicle ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
                                             {selectedVehicle
                                                 ? `${selectedVehicle.brand} ${selectedVehicle.model}`
-                                                : (selectedCustomerId ? 'Dodaj pojazd' : 'Najpierw wybierz klienta')}
+                                                : (selectedCustomer ? 'Dodaj pojazd' : 'Najpierw wybierz klienta')}
                                         </span>
                                         {selectedVehicle && (
                                             <button
