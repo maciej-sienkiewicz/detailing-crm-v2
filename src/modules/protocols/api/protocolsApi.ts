@@ -5,7 +5,6 @@ import type {
   ProtocolRule,
   VisitProtocol,
   CreateProtocolTemplateDto,
-  CreateProtocolTemplateResponse,
   UpdateProtocolTemplateDto,
   CreateProtocolRuleDto,
   SignProtocolDto,
@@ -24,13 +23,14 @@ class ProtocolsApi {
   }
 
   async createProtocolTemplate(data: CreateProtocolTemplateDto, file?: File): Promise<ProtocolTemplate> {
-    // Step 1: Create template and get upload URL
-    const response = await apiClient.post<CreateProtocolTemplateResponse>('/api/v1/protocol-templates', data);
-    const { template, uploadUrl } = response.data;
+    // Step 1: Create template and get presigned upload URL
+    const response = await apiClient.post<ProtocolTemplate>('/api/v1/protocol-templates', data);
+    const template = response.data;
 
     // Step 2: Upload file to S3 if provided
-    if (file && uploadUrl) {
-      await axios.put(uploadUrl, file, {
+    // The templateUrl contains the presigned URL for uploading
+    if (file && template.templateUrl) {
+      await axios.put(template.templateUrl, file, {
         headers: {
           'Content-Type': file.type,
         },

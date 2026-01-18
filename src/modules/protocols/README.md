@@ -370,14 +370,24 @@ const response = await POST('/api/v1/protocol-templates', {
   description: 'Opis...'
 });
 
-// Response: { template: {...}, uploadUrl: 'https://s3.amazonaws.com/...' }
+// Response: ProtocolTemplate with templateUrl containing presigned upload URL
+// {
+//   id: '...',
+//   name: 'Regulamin ogólny',
+//   description: 'Opis...',
+//   templateUrl: 'https://s3.amazonaws.com/...?presigned-params',  // <- Upload URL
+//   isActive: true,
+//   createdAt: '...',
+//   updatedAt: '...'
+// }
 
-// 2. Upload file directly to S3
-await axios.put(uploadUrl, file, {
+// 2. Upload file directly to S3 using templateUrl
+await axios.put(response.templateUrl, file, {
   headers: { 'Content-Type': file.type }
 });
 
-// 3. File is now accessible via template.templateUrl
+// 3. After upload, the same templateUrl becomes the download URL
+//    (without presigned params after expiration, backend generates new ones)
 ```
 
 **Backend implementation:**

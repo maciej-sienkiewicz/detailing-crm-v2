@@ -46,11 +46,6 @@ export interface CreateProtocolTemplateDto {
   description?: string;
 }
 
-export interface CreateProtocolTemplateResponse {
-  template: ProtocolTemplate;
-  uploadUrl: string;
-}
-
 export interface UpdateProtocolTemplateDto {
   name?: string;
   description?: string;
