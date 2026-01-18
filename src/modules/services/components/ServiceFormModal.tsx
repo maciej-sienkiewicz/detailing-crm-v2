@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { Modal } from '@/common/components/Modal';
 import { Button, ButtonGroup } from '@/common/components/Button';
 import { Input, Label, FieldGroup, ErrorMessage, Select } from '@/common/components/Form';
+import { Toggle } from '@/common/components/Toggle';
 import { PriceInput } from './PriceInput';
 import { useCreateService, useUpdateService } from '../hooks/useServices';
 import { serviceSchema } from '../utils/validators';
@@ -132,6 +133,30 @@ const EmptyProtocols = styled.div`
     font-size: ${props => props.theme.fontSizes.xs};
 `;
 
+const ToggleRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: ${props => props.theme.spacing.md};
+    background: rgb(249, 250, 251);
+    border-radius: ${props => props.theme.radii.md};
+    margin-bottom: ${props => props.theme.spacing.md};
+`;
+
+const ToggleLabel = styled.div``;
+
+const ToggleLabelText = styled.div`
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: 600;
+    color: ${props => props.theme.colors.text};
+    margin-bottom: 2px;
+`;
+
+const ToggleDescription = styled.div`
+    font-size: ${props => props.theme.fontSizes.xs};
+    color: ${props => props.theme.colors.textMuted};
+`;
+
 // Icons
 const InfoIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -153,6 +178,7 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [showToast, setShowToast] = useState(false);
     const [selectedProtocols, setSelectedProtocols] = useState<string[]>([]);
+    const [showProtocolSection, setShowProtocolSection] = useState(false);
 
     const createMutation = useCreateService();
     const updateMutation = useUpdateService();
@@ -163,23 +189,35 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
     // Fetch existing protocol rules for this service (if editing)
     const { data: existingRules = [] } = useProtocolRulesByService(service?.id || '');
 
+    // Reset form when modal opens/closes
     useEffect(() => {
         if (isOpen) {
             if (service) {
                 setName(service.name);
                 setBasePriceNet(service.basePriceNet);
                 setVatRate(service.vatRate);
-                // Populate selected protocols from existing rules
-                setSelectedProtocols(existingRules.map(rule => rule.protocolTemplateId));
             } else {
                 setName('');
                 setBasePriceNet(0);
                 setVatRate(23);
                 setSelectedProtocols([]);
+                setShowProtocolSection(false);
             }
             setErrors({});
         }
-    }, [isOpen, service, existingRules]);
+    }, [isOpen, service]);
+
+    // Separate effect for loading existing protocol rules (only when rules change)
+    useEffect(() => {
+        if (isOpen && service && existingRules.length > 0) {
+            const protocolIds = existingRules.map(rule => rule.protocolTemplateId);
+            setSelectedProtocols(protocolIds);
+            // Auto-expand section if there are existing protocols
+            if (protocolIds.length > 0) {
+                setShowProtocolSection(true);
+            }
+        }
+    }, [isOpen, service, existingRules.length]); // Use length instead of array reference
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -279,64 +317,81 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
                     <Divider />
 
                     <div>
-                        <SectionTitle>Wymagane dokumenty dla tej usługi</SectionTitle>
-                        <InfoBox>
-                            <InfoIcon />
-                            <div>
-                                Gdy ta usługa zostanie dodana do wizyty, system automatycznie poprosi klienta o podpis pod wybranymi dokumentami.
-                            </div>
-                        </InfoBox>
+                        <ToggleRow>
+                            <ToggleLabel>
+                                <ToggleLabelText>Wymagane dokumenty dla tej usługi</ToggleLabelText>
+                                <ToggleDescription>
+                                    Gdy ta usługa zostanie dodana do wizyty, klient będzie musiał podpisać wybrane dokumenty
+                                </ToggleDescription>
+                            </ToggleLabel>
+                            <Toggle
+                                checked={showProtocolSection}
+                                onChange={setShowProtocolSection}
+                                label=""
+                            />
+                        </ToggleRow>
 
-                        <FieldGroup>
-                            <Label>Wybierz protokoły</Label>
-                            {protocolTemplates.length === 0 ? (
-                                <EmptyProtocols>
-                                    Brak dostępnych protokołów. Dodaj szablony protokołów w Centrum Dokumentacji.
-                                </EmptyProtocols>
-                            ) : (
-                                <ProtocolCheckboxList>
-                                    {protocolTemplates
-                                        .filter(template => template.isActive)
-                                        .map(template => {
-                                            const isChecked = selectedProtocols.includes(template.id);
-                                            // Check if this is used in existing rules to determine stage
-                                            const existingRule = existingRules.find(r => r.protocolTemplateId === template.id);
+                        {showProtocolSection && (
+                            <>
+                                <InfoBox>
+                                    <InfoIcon />
+                                    <div>
+                                        Wybierz protokoły, które będą automatycznie dodawane do wizyt z tą usługą.
+                                    </div>
+                                </InfoBox>
 
-                                            return (
-                                                <ProtocolCheckbox key={template.id}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={isChecked}
-                                                        onChange={(e) => {
-                                                            if (e.target.checked) {
-                                                                setSelectedProtocols([...selectedProtocols, template.id]);
-                                                            } else {
-                                                                setSelectedProtocols(selectedProtocols.filter(id => id !== template.id));
-                                                            }
-                                                        }}
-                                                    />
-                                                    <ProtocolInfo>
-                                                        <ProtocolName>
-                                                            {template.name}
-                                                            {existingRule && (
-                                                                <>
-                                                                    {' '}
-                                                                    <ProtocolBadge $stage={existingRule.stage}>
-                                                                        {existingRule.stage === 'CHECK_IN' ? 'Przyjęcie' : 'Wydanie'}
-                                                                    </ProtocolBadge>
-                                                                </>
-                                                            )}
-                                                        </ProtocolName>
-                                                        {template.description && (
-                                                            <ProtocolDescription>{template.description}</ProtocolDescription>
-                                                        )}
-                                                    </ProtocolInfo>
-                                                </ProtocolCheckbox>
-                                            );
-                                        })}
-                                </ProtocolCheckboxList>
-                            )}
-                        </FieldGroup>
+                                <FieldGroup>
+                                    <Label>Wybierz protokoły</Label>
+                                    {protocolTemplates.length === 0 ? (
+                                        <EmptyProtocols>
+                                            Brak dostępnych protokołów. Dodaj szablony protokołów w Centrum Dokumentacji.
+                                        </EmptyProtocols>
+                                    ) : (
+                                        <ProtocolCheckboxList>
+                                            {protocolTemplates
+                                                .filter(template => template.isActive)
+                                                .map(template => {
+                                                    const isChecked = selectedProtocols.includes(template.id);
+                                                    // Check if this is used in existing rules to determine stage
+                                                    const existingRule = existingRules.find(r => r.protocolTemplateId === template.id);
+
+                                                    return (
+                                                        <ProtocolCheckbox key={template.id}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isChecked}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        setSelectedProtocols([...selectedProtocols, template.id]);
+                                                                    } else {
+                                                                        setSelectedProtocols(selectedProtocols.filter(id => id !== template.id));
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <ProtocolInfo>
+                                                                <ProtocolName>
+                                                                    {template.name}
+                                                                    {existingRule && (
+                                                                        <>
+                                                                            {' '}
+                                                                            <ProtocolBadge $stage={existingRule.stage}>
+                                                                                {existingRule.stage === 'CHECK_IN' ? 'Przyjęcie' : 'Wydanie'}
+                                                                            </ProtocolBadge>
+                                                                        </>
+                                                                    )}
+                                                                </ProtocolName>
+                                                                {template.description && (
+                                                                    <ProtocolDescription>{template.description}</ProtocolDescription>
+                                                                )}
+                                                            </ProtocolInfo>
+                                                        </ProtocolCheckbox>
+                                                    );
+                                                })}
+                                        </ProtocolCheckboxList>
+                                    )}
+                                </FieldGroup>
+                            </>
+                        )}
                     </div>
 
                     <ButtonGroup>
