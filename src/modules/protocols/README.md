@@ -361,35 +361,60 @@ For templates with uploaded files:
 
 ### Backend Integration
 
-**Note**: Current implementation simulates file upload for demo purposes.
-
-For production, implement actual file upload:
+The system uses **S3 presigned URLs** for secure file uploads:
 
 ```typescript
-// In ProtocolTemplateModal.tsx handleSubmit()
-const formData = new FormData();
-formData.append('file', selectedFile);
-formData.append('name', name);
-formData.append('description', description);
-
-const uploadResponse = await fetch('/api/v1/protocol-templates/upload', {
-  method: 'POST',
-  body: formData,
+// 1. Create template and get presigned URL
+const response = await POST('/api/v1/protocol-templates', {
+  name: 'Regulamin ogólny',
+  description: 'Opis...'
 });
 
-const { templateUrl } = await uploadResponse.json();
+// Response: { template: {...}, uploadUrl: 'https://s3.amazonaws.com/...' }
+
+// 2. Upload file directly to S3
+await axios.put(uploadUrl, file, {
+  headers: { 'Content-Type': file.type }
+});
+
+// 3. File is now accessible via template.templateUrl
 ```
 
-**Recommended backend setup:**
-- Store files in S3, Azure Blob, or similar
-- Generate unique filenames to prevent collisions
-- Return permanent URL after upload
-- Implement virus scanning for security
-- Add file cleanup for orphaned uploads
+**Backend implementation:**
+- Files stored in AWS S3
+- Presigned URLs for secure uploads
+- Automatic file cleanup for orphaned uploads
+- Download URLs generated on-demand
+
+## ⚠️ Backend Constraints
+
+The backend has intentional constraints for data integrity:
+
+### Protocol Rules are Immutable
+
+- ✅ **Supported**: Create new rules
+- ❌ **Not Supported**: Update existing rules
+- ❌ **Not Supported**: Delete existing rules
+- ❌ **Not Supported**: Reorder existing rules
+
+**Rationale**: Rules are audit-logged and should not be modified after creation to maintain compliance history.
+
+**Workaround**: Create a new rule with the desired configuration instead of modifying existing ones.
+
+### File Upload
+
+- ✅ **Supported**: Upload file when creating template
+- ❌ **Not Supported**: Replace file when updating template
+- ❌ **Not Supported**: Multiple files per template
+
+**Rationale**: Templates are versioned and files should remain immutable for audit purposes.
+
+**Workaround**: Create a new template version with the updated file.
 
 ## 🔮 Future Enhancements
 
-- [ ] Drag & drop reordering of protocol rules
+- [ ] Protocol template versioning UI
+- [ ] Rule archiving instead of deletion
 - [ ] Digital signature capture integration
 - [ ] PDF generation with filled templates
 - [ ] Email delivery of signed protocols
