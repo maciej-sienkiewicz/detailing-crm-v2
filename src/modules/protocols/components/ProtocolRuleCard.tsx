@@ -117,13 +117,12 @@ const WrenchIcon = () => (
 
 interface ProtocolRuleCardProps {
     rule: ProtocolRule;
-    onEdit?: (rule: ProtocolRule) => void; // Optional since rules are now immutable
-    onRefresh?: () => void; // Optional
+    onRefresh?: () => void; // Optional, for future use
 }
 
 export const ProtocolRuleCard = ({ rule }: ProtocolRuleCardProps) => {
     // Note: Backend does not support updating or deleting protocol rules
-    // Rules are immutable once created
+    // Rules are immutable once created for audit compliance
 
     return (
         <Card>

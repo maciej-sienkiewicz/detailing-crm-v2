@@ -249,7 +249,6 @@ const FileTextIcon = () => (
 export const ProtocolRulesView = () => {
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
-    const [editingRule, setEditingRule] = useState<ProtocolRule | undefined>();
     const [selectedStage, setSelectedStage] = useState<ProtocolStage>('CHECK_IN');
 
     const { data: rules = [], isLoading, isError, refetch } = useProtocolRules();
@@ -260,19 +259,11 @@ export const ProtocolRulesView = () => {
 
     const handleAddRule = (stage: ProtocolStage) => {
         setSelectedStage(stage);
-        setEditingRule(undefined);
-        setIsRuleModalOpen(true);
-    };
-
-    const handleEditRule = (rule: ProtocolRule) => {
-        setEditingRule(rule);
-        setSelectedStage(rule.stage);
         setIsRuleModalOpen(true);
     };
 
     const handleCloseRuleModal = () => {
         setIsRuleModalOpen(false);
-        setEditingRule(undefined);
     };
 
     if (isLoading) {
@@ -345,7 +336,6 @@ export const ProtocolRulesView = () => {
                                     <ProtocolRuleCard
                                         key={rule.id}
                                         rule={rule}
-                                        onEdit={handleEditRule}
                                         onRefresh={refetch}
                                     />
                                 ))
@@ -382,7 +372,6 @@ export const ProtocolRulesView = () => {
                                     <ProtocolRuleCard
                                         key={rule.id}
                                         rule={rule}
-                                        onEdit={handleEditRule}
                                         onRefresh={refetch}
                                     />
                                 ))
@@ -401,7 +390,6 @@ export const ProtocolRulesView = () => {
             <ProtocolRuleModal
                 isOpen={isRuleModalOpen}
                 onClose={handleCloseRuleModal}
-                rule={editingRule}
                 stage={selectedStage}
                 templates={templates}
                 onSuccess={refetch}

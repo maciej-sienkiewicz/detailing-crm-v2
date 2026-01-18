@@ -4,8 +4,8 @@ import { Modal } from '@/common/components/Modal';
 import { Button, ButtonGroup } from '@/common/components/Button';
 import { Label, FieldGroup, ErrorMessage, Select } from '@/common/components/Form';
 import { Toggle } from '@/common/components/Toggle';
-import { useCreateProtocolRule, useUpdateProtocolRule } from '../api/useProtocols';
-import type { ProtocolTemplate, ProtocolRule, ProtocolStage } from '../types';
+import { useCreateProtocolRule } from '../api/useProtocols';
+import type { ProtocolTemplate, ProtocolStage } from '../types';
 
 const Form = styled.form`
     display: flex;
@@ -113,7 +113,6 @@ const InfoIcon = () => (
 interface ProtocolRuleModalProps {
     isOpen: boolean;
     onClose: () => void;
-    rule?: ProtocolRule;
     stage: ProtocolStage;
     templates: ProtocolTemplate[];
     onSuccess?: () => void;
@@ -122,7 +121,6 @@ interface ProtocolRuleModalProps {
 export const ProtocolRuleModal = ({
     isOpen,
     onClose,
-    rule,
     stage,
     templates,
     onSuccess,
@@ -134,24 +132,20 @@ export const ProtocolRuleModal = ({
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const createMutation = useCreateProtocolRule();
-    const updateMutation = useUpdateProtocolRule();
+
+    // Note: Backend does not support updating protocol rules
+    // Rules are immutable once created for audit compliance
 
     useEffect(() => {
         if (isOpen) {
-            if (rule) {
-                setProtocolTemplateId(rule.protocolTemplateId);
-                setTriggerType(rule.triggerType);
-                setServiceId(rule.serviceId || '');
-                setIsMandatory(rule.isMandatory);
-            } else {
-                setProtocolTemplateId('');
-                setTriggerType('GLOBAL_ALWAYS');
-                setServiceId('');
-                setIsMandatory(true);
-            }
+            // Reset form when modal opens
+            setProtocolTemplateId('');
+            setTriggerType('GLOBAL_ALWAYS');
+            setServiceId('');
+            setIsMandatory(true);
             setErrors({});
         }
-    }, [isOpen, rule]);
+    }, [isOpen]);
 
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};
@@ -182,30 +176,26 @@ export const ProtocolRuleModal = ({
                 stage,
                 serviceId: triggerType === 'SERVICE_SPECIFIC' ? serviceId : undefined,
                 isMandatory,
-                displayOrder: rule?.displayOrder || 999,
+                displayOrder: 999, // New rules get default display order
             };
 
-            if (rule) {
-                await updateMutation.mutateAsync({ id: rule.id, data });
-            } else {
-                await createMutation.mutateAsync(data);
-            }
+            await createMutation.mutateAsync(data);
 
             onSuccess?.();
             onClose();
         } catch (error) {
-            console.error('Failed to save protocol rule:', error);
-            setErrors({ submit: 'Wystąpił błąd podczas zapisywania reguły' });
+            console.error('Failed to create protocol rule:', error);
+            setErrors({ submit: 'Wystąpił błąd podczas tworzenia reguły' });
         }
     };
 
-    const isSubmitting = createMutation.isPending || updateMutation.isPending;
+    const isSubmitting = createMutation.isPending;
 
     return (
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title={rule ? 'Edytuj regułę protokołu' : `Dodaj regułę protokołu (${stage === 'CHECK_IN' ? 'Przyjęcie' : 'Wydanie'})`}
+            title={`Dodaj regułę protokołu (${stage === 'CHECK_IN' ? 'Przyjęcie' : 'Wydanie'})`}
         >
             <Form onSubmit={handleSubmit}>
                 <InfoBox>
@@ -318,7 +308,7 @@ export const ProtocolRuleModal = ({
                         Anuluj
                     </Button>
                     <Button type="submit" $variant="primary" disabled={isSubmitting}>
-                        {isSubmitting ? 'Zapisywanie...' : rule ? 'Zapisz zmiany' : 'Dodaj regułę'}
+                        {isSubmitting ? 'Dodawanie...' : 'Dodaj regułę'}
                     </Button>
                 </ButtonGroup>
             </Form>
