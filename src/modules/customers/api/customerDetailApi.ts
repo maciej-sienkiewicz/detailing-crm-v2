@@ -99,7 +99,9 @@ const mockVehicles: Vehicle[] = [
         model: 'Golf GTI',
         year: 2021,
         licensePlate: 'WA 12345',
+        vin: 'WVWZZZ1K123456789',
         color: 'Czarny',
+        engineType: 'GASOLINE',
         mileage: 45000,
         nextInspectionDate: '2025-06-15',
         nextServiceDate: '2025-03-01',
@@ -112,7 +114,9 @@ const mockVehicles: Vehicle[] = [
         model: 'A4 Avant',
         year: 2019,
         licensePlate: 'WA 67890',
+        vin: 'WAUZZZ8K123456789',
         color: 'Biały',
+        engineType: 'DIESEL',
         mileage: 78000,
         nextInspectionDate: '2025-08-20',
         nextServiceDate: '2025-02-15',
@@ -125,7 +129,9 @@ const mockVehicles: Vehicle[] = [
         model: 'X5',
         year: 2023,
         licensePlate: 'WA 11111',
+        vin: 'WBAX5123456789012',
         color: 'Srebrny',
+        engineType: 'HYBRID',
         mileage: 12000,
         nextInspectionDate: '2026-01-10',
         nextServiceDate: '2025-04-20',
@@ -286,7 +292,7 @@ const mockGetCustomerDetail = async (customerId: string): Promise<CustomerDetail
     };
 };
 
-const mockGetCustomerVehicles = async (customerId: string): Promise<CustomerVehiclesResponse> => {
+const mockGetCustomerVehicles = async (_customerId: string): Promise<CustomerVehiclesResponse> => {
     await delay(300);
 
     return {
@@ -295,7 +301,7 @@ const mockGetCustomerVehicles = async (customerId: string): Promise<CustomerVehi
     };
 };
 
-const mockGetCustomerVisits = async (customerId: string): Promise<CustomerVisitsResponse> => {
+const mockGetCustomerVisits = async (_customerId: string): Promise<CustomerVisitsResponse> => {
     await delay(350);
 
     return {
@@ -311,7 +317,7 @@ const mockGetCustomerVisits = async (customerId: string): Promise<CustomerVisits
 };
 
 const mockUpdateConsent = async (
-    customerId: string,
+    _customerId: string,
     payload: UpdateConsentPayload
 ): Promise<MarketingConsent> => {
     await delay(200);
@@ -332,7 +338,7 @@ const mockUpdateConsent = async (
 };
 
 const mockAddVehicle = async (
-    customerId: string,
+    _customerId: string,
     payload: AddVehiclePayload
 ): Promise<Vehicle> => {
     await delay(500);
@@ -340,6 +346,8 @@ const mockAddVehicle = async (
     const newVehicle: Vehicle = {
         id: `v${Date.now()}`,
         ...payload,
+        vin: '—',
+        engineType: 'GASOLINE',
         nextInspectionDate: null,
         nextServiceDate: null,
         addedAt: new Date().toISOString(),

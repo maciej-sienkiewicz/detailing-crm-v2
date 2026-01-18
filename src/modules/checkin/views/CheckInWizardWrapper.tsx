@@ -128,50 +128,6 @@ interface ReservationResponse {
     status: string;
 }
 
-const mockFetchReservation = async (reservationId: string): Promise<ReservationResponse> => {
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    return {
-        id: reservationId,
-        customer: {
-            id: 'cust_123',
-            firstName: 'Jan',
-            lastName: 'Kowalski',
-            phone: '+48 123 456 789',
-            email: 'jan.kowalski@example.com',
-        },
-        vehicle: {
-            id: 'veh_456',
-            brand: 'BMW',
-            model: 'X5',
-            yearOfProduction: 2021,
-            licensePlate: 'WA 12345',
-            vin: 'WBAFR9C50BC000001',
-            color: 'Czarny metalik',
-            paintType: 'Lakier bazowy + lakier',
-        },
-        services: [
-            {
-                id: 'line_1',
-                serviceId: 'srv_ppf',
-                serviceName: 'Oklejanie PPF - cały przód',
-                basePriceNet: 350000,
-                vatRate: 23,
-                adjustment: { type: 'PERCENT', value: -10 },
-                note: 'Dodatkowa warstwa na maskę',
-            },
-            {
-                id: 'line_2',
-                serviceId: 'srv_ceramic',
-                serviceName: 'Powłoka ceramiczna',
-                basePriceNet: 180000,
-                vatRate: 23,
-                adjustment: { type: 'FIXED_NET', value: 0 },
-            },
-        ],
-        status: 'CONFIRMED',
-    };
-};
 
 export const CheckInWizardWrapper = () => {
     const { reservationId } = useParams<{ reservationId: string }>();

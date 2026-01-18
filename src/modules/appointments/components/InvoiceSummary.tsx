@@ -119,15 +119,6 @@ const ServiceName = styled.span`
     }
 `;
 
-const ServicePrice = styled.span`
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: ${props => props.theme.fontWeights.bold};
-    font-feature-settings: 'tnum';
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes.md};
-    }
-`;
 
 const PriceInfo = styled.div`
     display: flex;

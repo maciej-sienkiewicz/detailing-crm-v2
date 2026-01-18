@@ -26,29 +26,6 @@ const DepositItem = styled.div`
     border-radius: ${props => props.theme.radii.md};
 `;
 
-const WarningBox = styled.div`
-    padding: ${props => props.theme.spacing.md};
-    background: linear-gradient(135deg, rgba(217, 119, 6, 0.1) 0%, rgba(217, 119, 6, 0.05) 100%);
-    border-left: 4px solid ${props => props.theme.colors.warning};
-    border-radius: ${props => props.theme.radii.md};
-    display: flex;
-    align-items: start;
-    gap: ${props => props.theme.spacing.md};
-    margin-top: ${props => props.theme.spacing.md};
-
-    svg {
-        flex-shrink: 0;
-        width: 20px;
-        height: 20px;
-        color: ${props => props.theme.colors.warning};
-    }
-`;
-
-const WarningText = styled.p`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.text};
-    margin: 0;
-`;
 
 interface TechnicalStateStepProps {
     formData: CheckInFormData;

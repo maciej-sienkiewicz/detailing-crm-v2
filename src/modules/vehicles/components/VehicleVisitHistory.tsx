@@ -1,7 +1,6 @@
 import styled from 'styled-components';
 import type { VehicleVisitSummary } from '../types';
 import { formatDateTime, formatCurrency } from '@/common/utils';
-import { t } from '@/common/i18n';
 
 const HistoryContainer = styled.div`
     background: white;

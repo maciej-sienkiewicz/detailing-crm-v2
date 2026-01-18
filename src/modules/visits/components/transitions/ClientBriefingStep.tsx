@@ -145,7 +145,7 @@ interface ClientBriefingStepProps {
     onContinue: () => void;
 }
 
-export const ClientBriefingStep = ({ comments, onContinue }: ClientBriefingStepProps) => {
+export const ClientBriefingStep = ({ comments }: ClientBriefingStepProps) => {
     return (
         <Container>
             <Description>

@@ -151,9 +151,9 @@ export const AppointmentCreateView = () => {
 
                         <AppointmentActions
                             onSubmit={handleSubmit}
-                            canSubmit={canSubmit}
+                            canSubmit={!!canSubmit}
                             isSubmitting={isSubmitting}
-                            hasError={submitError}
+                            hasError={!!submitError}
                         />
                     </RightColumn>
                 </MainContent>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useVisitDetail } from '../hooks';
 import { useUpdateVisit } from '../hooks';
@@ -165,16 +165,15 @@ type TabValue = 'overview' | 'comments' | 'documentation';
 
 export const VisitDetailView = () => {
     const { visitId } = useParams<{ visitId: string }>();
-    const navigate = useNavigate();
 
     const [activeTab, setActiveTab] = useState<TabValue>('overview');
     const [isTransitionWizardOpen, setIsTransitionWizardOpen] = useState(false);
     const [transitionType, setTransitionType] = useState<'in_progress_to_ready' | 'ready_to_completed' | null>(null);
 
     const { visitDetail, isLoading, isError, refetch } = useVisitDetail(visitId!);
-    const { updateVisit, isUpdating } = useUpdateVisit(visitId!);
+    const { updateVisit } = useUpdateVisit(visitId!);
     const { uploadDocument, isUploading } = useUploadDocument(visitId!);
-    const { deleteDocument, isDeleting: isDeletingDoc } = useDeleteDocument(visitId!);
+    const { deleteDocument } = useDeleteDocument(visitId!);
     const { comments, isLoading: isLoadingComments } = useVisitComments(visitId!);
 
     if (isLoading) {

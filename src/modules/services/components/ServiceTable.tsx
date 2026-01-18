@@ -94,7 +94,6 @@ const GrossPrice = styled.div`
     font-size: ${props => props.theme.fontSizes.md};
 `;
 
-const ActionsCell = styled(TableCell)``;
 
 const EditButton = styled.button`
     padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
@@ -130,7 +129,6 @@ export const ServiceTable = ({ services, onEdit }: ServiceTableProps) => {
                         <TableHeaderCell $align="right">{t.services.table.vat}</TableHeaderCell>
                         <TableHeaderCell $align="right">{t.services.table.priceGross}</TableHeaderCell>
                         <TableHeaderCell $align="center">{t.services.table.status}</TableHeaderCell>
-                        <TableHeaderCell $align="center">{t.services.table.createdAt}</TableHeaderCell>
                         <TableHeaderCell $align="right">{t.services.table.actions}</TableHeaderCell>
                     </tr>
                 </TableHead>
@@ -160,9 +158,6 @@ export const ServiceTable = ({ services, onEdit }: ServiceTableProps) => {
                                     <Badge $variant={service.isActive ? 'success' : 'info'}>
                                         {service.isActive ? t.services.status.active : t.services.status.archived}
                                     </Badge>
-                                </TableCell>
-                                <TableCell $align="left">
-                                    <ServiceName>{t.common.createdBy} {service.createdByFirstName} {service.createdByLastName}</ServiceName>
                                 </TableCell>
                                 <TableCell $align="right">
                                     {service.isActive && (

@@ -9,9 +9,10 @@ export interface MenuSection {
 interface SidebarMenuProps {
     sections: MenuSection[];
     isCollapsed: boolean;
+    onNavigate?: () => void;
 }
 
-export const SidebarMenu = ({ sections, isCollapsed }: SidebarMenuProps) => {
+export const SidebarMenu = ({ sections, isCollapsed, onNavigate }: SidebarMenuProps) => {
     return (
         <MenuContainer>
             {sections.map((section, sectionIndex) => (
@@ -26,6 +27,7 @@ export const SidebarMenu = ({ sections, isCollapsed }: SidebarMenuProps) => {
                             key={itemIndex}
                             item={item}
                             isCollapsed={isCollapsed}
+                            onNavigate={onNavigate}
                         />
                     ))}
                 </MenuSection>

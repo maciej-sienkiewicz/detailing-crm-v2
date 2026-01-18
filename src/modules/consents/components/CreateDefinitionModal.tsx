@@ -92,7 +92,12 @@ export const CreateDefinitionModal = ({ isOpen, onClose }: CreateDefinitionModal
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={handleClose} maxWidth="600px">
+        <Modal
+            isOpen={isOpen}
+            onClose={handleClose}
+            maxWidth="600px"
+            title={t.consents.createDefinitionModal.title}
+        >
             <ModalHeader>
                 <ModalTitle>{t.consents.createDefinitionModal.title}</ModalTitle>
             </ModalHeader>

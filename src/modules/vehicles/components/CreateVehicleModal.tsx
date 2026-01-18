@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import styled from 'styled-components';
 import { Modal } from '@/common/components/Modal/Modal';
 import { Button, ButtonGroup } from '@/common/components/Button/Button';
-import { FormGrid, FieldGroup, Label, Input, Select, TextArea, ErrorMessage } from '@/common/components/Form/Form';
+import { FormGrid, FieldGroup, Label, Input, TextArea, ErrorMessage } from '@/common/components/Form/Form';
 import { useCreateVehicle } from '../hooks/useCreateVehicle';
 import { createVehicleSchema, type CreateVehicleFormData } from '../utils/vehicleValidation';
 import { OwnerSelect } from './OwnerSelect';

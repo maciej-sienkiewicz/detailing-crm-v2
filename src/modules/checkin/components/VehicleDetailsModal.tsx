@@ -5,7 +5,6 @@ import { FormGrid, FieldGroup, Label, Input } from '@/common/components/Form';
 import { Button } from '@/common/components/Button';
 import { t } from '@/common/i18n';
 import { useVehicleDetail } from '@/modules/vehicles/hooks/useVehicleDetail';
-import type { CheckInFormData } from '../types';
 
 const ModalContent = styled.div`
     display: flex;
@@ -112,7 +111,7 @@ export const VehicleDetailsModal = ({
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Edytuj dane pojazdu" size="lg">
+        <Modal isOpen={isOpen} onClose={onClose} title="Edytuj dane pojazdu" maxWidth="800px">
             {isLoading ? (
                 <LoadingContainer>
                     Ładowanie danych pojazdu...

@@ -28,7 +28,7 @@ const mockLogin = async (credentials: LoginCredentials): Promise<AuthResponse> =
     });
 };
 
-const mockSignup = async (credentials: SignupCredentials): Promise<AuthResponse> => {
+const mockSignup = async (_credentials: SignupCredentials): Promise<AuthResponse> => {
     return new Promise((resolve) => {
         setTimeout(() => {
             resolve({

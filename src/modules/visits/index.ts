@@ -53,6 +53,7 @@ export type {
 } from './types';
 
 export type {
+    WizardStep,
     TransitionType,
     PaymentMethod,
     InvoiceType,
@@ -63,4 +64,4 @@ export type {
     TransitionToCompletedPayload,
     SendNotificationPayload,
     SendNotificationResponse,
-} from './hooks/useStateTransition.ts';
+} from './hooks/useStateTransition';

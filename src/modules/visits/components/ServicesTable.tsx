@@ -95,11 +95,6 @@ const PriceValue = styled.div<{ $strikethrough?: boolean }>`
     `}
 `;
 
-const PriceLabel = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
-    margin-left: 4px;
-`;
 
 const DiscountBadge = styled.div`
     display: inline-flex;

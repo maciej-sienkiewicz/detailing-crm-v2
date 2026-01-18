@@ -147,7 +147,7 @@ export const CheckInWizardView = ({ reservationId, initialData, onComplete }: Ch
             setSigningModalState({
                 isOpen: true,
                 visitId: result.visitId,
-                visitNumber: result.visitNumber || `VIS-${result.visitId.slice(0, 8)}`,
+                visitNumber: `VIS-${result.visitId.slice(0, 8)}`,
             });
         } catch (error) {
             console.error('Check-in failed:', error);

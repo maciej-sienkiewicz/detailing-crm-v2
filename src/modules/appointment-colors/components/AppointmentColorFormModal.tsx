@@ -8,7 +8,6 @@ import {
     useCreateAppointmentColor,
     useUpdateAppointmentColor,
 } from '../hooks/useAppointmentColors';
-import { t } from '@/common/i18n';
 import type { AppointmentColor } from '../types';
 
 const Form = styled.form`

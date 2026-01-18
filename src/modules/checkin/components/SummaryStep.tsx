@@ -73,7 +73,7 @@ interface SummaryStepProps {
     readOnly?: boolean;
 }
 
-export const SummaryStep = ({ formData, readOnly = false }: SummaryStepProps) => {
+export const SummaryStep = ({ formData }: SummaryStepProps) => {
     const depositItems = [];
     if (formData.technicalState.deposit.keys) depositItems.push(t.checkin.technical.depositItems.keys);
     if (formData.technicalState.deposit.registrationDocument) depositItems.push(t.checkin.technical.depositItems.registrationDocument);

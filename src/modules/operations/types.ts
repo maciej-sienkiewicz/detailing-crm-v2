@@ -70,7 +70,7 @@ export interface OperationFilters {
     page: number;
     limit: number;
     type?: OperationType;
-    status?: VisitStatus;
+    status?: OperationStatus;
     sortBy?: 'startDateTime' | 'customerLastName' | 'grossAmount' | 'lastModification';
     sortDirection?: 'asc' | 'desc';
 }

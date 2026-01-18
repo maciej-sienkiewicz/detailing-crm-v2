@@ -85,7 +85,7 @@ export const uploadConsentTemplate = async (
 export const uploadFileToS3 = async (
     uploadUrl: string,
     file: File,
-    onProgress?: (progress: number) => void
+    _onProgress?: (progress: number) => void
 ): Promise<void> => {
     await fetch(uploadUrl, {
         method: 'PUT',

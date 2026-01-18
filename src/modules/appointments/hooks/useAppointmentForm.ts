@@ -12,9 +12,11 @@ export const useAppointmentForm = () => {
         defaultValues: {
             customer: {
                 mode: 'EXISTING',
+                id: '',
             },
             vehicle: {
                 mode: 'EXISTING',
+                id: '',
             },
             services: [],
             schedule: {

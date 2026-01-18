@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Modal } from '@/common/components/Modal';
 import { Button, ButtonGroup } from '@/common/components/Button';
-import { Input, Label, FieldGroup, ErrorMessage, TextArea } from '@/common/components/Form';
+import { Label, FieldGroup, ErrorMessage, TextArea } from '@/common/components/Form';
 import {
     useCreateProtocolTemplate,
     useUpdateProtocolTemplate,
@@ -477,7 +477,7 @@ export const ProtocolTemplateModal = ({
     const [editingTemplate, setEditingTemplate] = useState<ProtocolTemplate | null>(null);
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [selectedFile, setSelectedFile] = useState<File | undefined>(undefined);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -488,7 +488,7 @@ export const ProtocolTemplateModal = ({
     const resetForm = () => {
         setName('');
         setDescription('');
-        setSelectedFile(null);
+        setSelectedFile(undefined);
         setErrors({});
         setEditingTemplate(null);
         setIsCreating(false);
@@ -501,7 +501,7 @@ export const ProtocolTemplateModal = ({
         setEditingTemplate(template);
         setName(template.name);
         setDescription(template.description || '');
-        setSelectedFile(null);
+        setSelectedFile(undefined);
         setIsCreating(true);
     };
 
@@ -540,7 +540,7 @@ export const ProtocolTemplateModal = ({
     };
 
     const handleRemoveFile = () => {
-        setSelectedFile(null);
+        setSelectedFile(undefined);
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }

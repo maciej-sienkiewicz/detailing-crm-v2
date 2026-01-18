@@ -28,10 +28,13 @@ const mockUpdateCustomer = async (
 
     return {
         id: customerId,
-        firstName: payload.firstName,
-        lastName: payload.lastName,
-        contact: payload.contact,
-        homeAddress: payload.homeAddress,
+        firstName: payload.firstName || '',
+        lastName: payload.lastName || '',
+        contact: {
+            email: payload.contact?.email || '',
+            phone: payload.contact?.phone || '',
+        },
+        homeAddress: payload.homeAddress || null,
         company: null,
         notes: 'Updated customer',
         lastVisitDate: '2025-01-10',
@@ -48,7 +51,7 @@ const mockUpdateCustomer = async (
 };
 
 const mockUpdateCompany = async (
-    customerId: string,
+    _customerId: string,
     payload: UpdateCompanyPayload
 ): Promise<CompanyDetails> => {
     await delay(500);
@@ -62,12 +65,12 @@ const mockUpdateCompany = async (
     };
 };
 
-const mockDeleteCompany = async (customerId: string): Promise<void> => {
+const mockDeleteCompany = async (_customerId: string): Promise<void> => {
     await delay(400);
 };
 
 const mockUpdateNotes = async (
-    customerId: string,
+    _customerId: string,
     payload: UpdateNotesPayload
 ): Promise<{ notes: string; updatedAt: string }> => {
     await delay(300);

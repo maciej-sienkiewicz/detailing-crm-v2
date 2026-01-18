@@ -1,6 +1,6 @@
 // src/modules/customers/components/DocumentsManager.tsx
 
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
 import { useCustomerDocuments } from '../hooks/useCustomerDocuments';
 import { useDeleteDocument } from '../hooks/useDeleteDocument';

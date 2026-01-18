@@ -1,7 +1,7 @@
 // src/modules/vehicles/views/VehicleDetailView.tsx
 
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useVehicleDetail } from '../hooks/useVehicleDetail';
 import { useUpdateVehicle } from '../hooks/useUpdateVehicle';
@@ -31,31 +31,6 @@ const ViewContainer = styled.main`
     }
 `;
 
-const BackButton = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: ${props => props.theme.spacing.xs};
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
-    color: ${props => props.theme.colors.text};
-    cursor: pointer;
-    transition: all 0.2s ease;
-    width: fit-content;
-
-    &:hover {
-        border-color: var(--brand-primary);
-        color: var(--brand-primary);
-    }
-
-    svg {
-        width: 16px;
-        height: 16px;
-    }
-`;
 
 const TabsContainer = styled.div`
     display: flex;
@@ -339,9 +314,15 @@ const RetryButton = styled.button`
 
 type TabValue = 'overview' | 'visits' | 'changes' | 'photos' | 'settings';
 
+const engineTypeLabels: Record<string, string> = {
+    GASOLINE: 'Benzyna',
+    DIESEL: 'Diesel',
+    HYBRID: 'Hybryda',
+    ELECTRIC: 'Elektryczny',
+};
+
 export const VehicleDetailView = () => {
     const { vehicleId } = useParams<{ vehicleId: string }>();
-    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<TabValue>('overview');
     const [isEditingNotes, setIsEditingNotes] = useState(false);
     const [notes, setNotes] = useState('');
@@ -490,7 +471,7 @@ export const VehicleDetailView = () => {
                                         <InfoItem>
                                             <InfoLabel>{t.vehicles.detail.technicalInfo.engineType}</InfoLabel>
                                             <InfoValue>
-                                                {t.vehicles.detail.engineType[vehicle.engineType]}
+                                                {engineTypeLabels[vehicle.engineType]}
                                             </InfoValue>
                                         </InfoItem>
                                         {vehicle.currentMileage && (

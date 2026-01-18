@@ -5,7 +5,6 @@ import type {
     UpdateVisitPayload,
     UploadDocumentPayload,
     AddCommentPayload,
-    UpdateCommentPayload,
 } from '../types';
 
 export const visitDetailQueryKey = (visitId: string) => ['visit', visitId];

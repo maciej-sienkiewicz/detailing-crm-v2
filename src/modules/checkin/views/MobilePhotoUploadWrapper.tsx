@@ -1,7 +1,6 @@
 import { useParams, useSearchParams } from 'react-router-dom';
 import { MobilePhotoUploadView } from './MobilePhotoUploadView';
 import { ErrorScreen } from '../components/ErrorScreen';
-import { LoadingScreen } from '../components/LoadingScreen';
 import { t } from '@/common/i18n';
 
 export const MobilePhotoUploadWrapper = () => {

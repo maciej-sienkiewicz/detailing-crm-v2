@@ -98,10 +98,6 @@ const StepLabel = styled.span<{ $isActive: boolean }>`
     }
 `;
 
-const StepTime = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
-`;
 
 interface StatusStepperProps {
     currentStatus: VisitStatus;

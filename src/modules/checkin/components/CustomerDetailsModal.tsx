@@ -142,17 +142,18 @@ export const CustomerDetailsModal = ({
         if (!isOpen) return;
 
         if (customerDetail) {
+            const { customer } = customerDetail;
             // Użyj danych z API
             setLocalCustomerData({
-                firstName: customerDetail.firstName,
-                lastName: customerDetail.lastName,
-                email: customerDetail.contact.email,
-                phone: customerDetail.contact.phone,
+                firstName: customer.firstName,
+                lastName: customer.lastName,
+                email: customer.contact.email,
+                phone: customer.contact.phone,
             });
 
-            if (customerDetail.homeAddress) {
+            if (customer.homeAddress) {
                 setIncludeHomeAddress(true);
-                setLocalHomeAddress(customerDetail.homeAddress);
+                setLocalHomeAddress(customer.homeAddress);
             } else {
                 setIncludeHomeAddress(false);
                 setLocalHomeAddress({
@@ -163,9 +164,12 @@ export const CustomerDetailsModal = ({
                 });
             }
 
-            if (customerDetail.company) {
+            if (customer.company) {
                 setIncludeCompany(true);
-                setLocalCompany(customerDetail.company);
+                setLocalCompany({
+                    ...customer.company,
+                    regon: customer.company.regon || '',
+                });
             } else {
                 setIncludeCompany(false);
                 setLocalCompany({
@@ -251,7 +255,7 @@ export const CustomerDetailsModal = ({
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Edytuj dane klienta" size="xl">
+        <Modal isOpen={isOpen} onClose={onClose} title="Edytuj dane klienta" maxWidth="800px">
             {isLoading ? (
                 <LoadingContainer>
                     Ładowanie danych klienta...

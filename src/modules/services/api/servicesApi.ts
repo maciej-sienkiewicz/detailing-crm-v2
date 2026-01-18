@@ -21,6 +21,9 @@ const mockServices: Service[] = [
         createdAt: '2024-01-15T10:00:00Z',
         updatedAt: '2024-01-15T10:00:00Z',
         replacesServiceId: null,
+        createdByFirstName: 'System',
+        createdByLastName: 'Admin',
+        updatedBy: 'System Admin',
     },
     {
         id: '2',
@@ -31,6 +34,9 @@ const mockServices: Service[] = [
         createdAt: '2024-01-16T11:00:00Z',
         updatedAt: '2024-01-16T11:00:00Z',
         replacesServiceId: null,
+        createdByFirstName: 'System',
+        createdByLastName: 'Admin',
+        updatedBy: 'System Admin',
     },
     {
         id: '3',
@@ -41,6 +47,9 @@ const mockServices: Service[] = [
         createdAt: '2024-01-17T09:00:00Z',
         updatedAt: '2024-01-17T09:00:00Z',
         replacesServiceId: null,
+        createdByFirstName: 'System',
+        createdByLastName: 'Admin',
+        updatedBy: 'System Admin',
     },
     {
         id: '4',
@@ -51,6 +60,9 @@ const mockServices: Service[] = [
         createdAt: '2024-01-18T14:00:00Z',
         updatedAt: '2024-01-18T14:00:00Z',
         replacesServiceId: null,
+        createdByFirstName: 'System',
+        createdByLastName: 'Admin',
+        updatedBy: 'System Admin',
     },
     {
         id: '5',
@@ -61,6 +73,9 @@ const mockServices: Service[] = [
         createdAt: '2024-01-19T10:30:00Z',
         updatedAt: '2024-01-19T10:30:00Z',
         replacesServiceId: null,
+        createdByFirstName: 'System',
+        createdByLastName: 'Admin',
+        updatedBy: 'System Admin',
     },
 ];
 
@@ -121,6 +136,9 @@ const mockCreateService = async (data: CreateServiceRequest): Promise<Service> =
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 replacesServiceId: null,
+                createdByFirstName: 'System',
+                createdByLastName: 'Admin',
+                updatedBy: 'System Admin',
             };
             mockServicesStore.push(newService);
             resolve(newService);
@@ -136,6 +154,8 @@ const mockUpdateService = async (data: UpdateServiceRequest): Promise<Service> =
                 mockServicesStore[oldServiceIndex].isActive = false;
             }
 
+            const oldService = oldServiceIndex !== -1 ? mockServicesStore[oldServiceIndex] : null;
+
             const newService: Service = {
                 id: String(mockIdCounter++),
                 name: data.name,
@@ -145,6 +165,9 @@ const mockUpdateService = async (data: UpdateServiceRequest): Promise<Service> =
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 replacesServiceId: data.originalServiceId,
+                createdByFirstName: oldService?.createdByFirstName || 'System',
+                createdByLastName: oldService?.createdByLastName || 'Admin',
+                updatedBy: 'System Admin',
             };
             mockServicesStore.push(newService);
             resolve(newService);

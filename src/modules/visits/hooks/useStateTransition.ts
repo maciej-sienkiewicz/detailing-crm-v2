@@ -7,9 +7,28 @@ import type {
     QualityCheckItem,
     NotificationChannels,
     PaymentDetails,
+    PaymentMethod,
+    InvoiceType,
+    TransitionToReadyPayload,
+    TransitionToCompletedPayload,
+    SendNotificationPayload,
+    SendNotificationResponse,
 } from '../types/stateTransitions';
 
-interface WizardStep {
+export type {
+    TransitionType,
+    QualityCheckItem,
+    NotificationChannels,
+    PaymentDetails,
+    PaymentMethod,
+    InvoiceType,
+    TransitionToReadyPayload,
+    TransitionToCompletedPayload,
+    SendNotificationPayload,
+    SendNotificationResponse,
+};
+
+export interface WizardStep {
     step: number;
     totalSteps: number;
 }
@@ -26,6 +45,12 @@ export const useStateTransitionWizard = (
         notifications?: NotificationChannels;
         payment?: PaymentDetails;
     }>({});
+
+    const [_qualityChecks, _setQualityChecks] = useState<QualityCheckItem[]>([
+        { id: '1', label: 'Wszystkie usługi wykonane', checked: false },
+        { id: '2', label: 'Pojazd czysty wewnątrz', checked: false },
+        { id: '3', label: 'Pojazd czysty na zewnątrz', checked: false },
+    ]);
 
     const totalSteps = transitionType === 'in_progress_to_ready' ? 2 : 3;
 

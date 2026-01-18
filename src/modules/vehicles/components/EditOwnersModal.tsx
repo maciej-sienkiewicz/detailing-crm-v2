@@ -1,8 +1,7 @@
-import { useState } from 'react';
 import styled from 'styled-components';
 import { Modal } from '@/common/components/Modal';
 import { Button } from '@/common/components/Button';
-import type { VehicleOwner, AssignOwnerPayload, OwnershipRole } from '../types';
+import type { VehicleOwner } from '../types';
 import { useOwnerManagement } from '../hooks/useOwnerManagement';
 import { t } from '@/common/i18n';
 

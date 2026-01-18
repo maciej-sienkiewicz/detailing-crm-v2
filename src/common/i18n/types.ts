@@ -590,6 +590,7 @@ export interface TranslationKeys {
             engineTypeRequired: string;
             mileagePositive: string;
             notesMax: string;
+            ownerRequired: string;
         };
         pagination: {
             showing: string;

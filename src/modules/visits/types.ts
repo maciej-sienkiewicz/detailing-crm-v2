@@ -60,6 +60,7 @@ export interface VehicleInfo {
     model: string;
     yearOfProduction: number;
     color: string;
+    engineType?: string;
     currentMileage?: number;
 }
 

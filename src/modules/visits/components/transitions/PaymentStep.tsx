@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { formatCurrency } from '@/common/utils';
-import type { PaymentMethod, InvoiceType, PaymentDetails } from '../../hooks/useStateTransition.ts';
+import type { PaymentMethod, InvoiceType, PaymentDetails } from '../../hooks/useStateTransition';
 
 const Container = styled.div`
     display: flex;
@@ -140,13 +140,13 @@ export const PaymentStep = ({ totalAmount, currency, onComplete }: PaymentStepPr
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
     const [invoiceType, setInvoiceType] = useState<InvoiceType>('vat');
 
-    const handleComplete = () => {
+    useEffect(() => {
         onComplete({
             method: paymentMethod,
             invoiceType,
             amount: totalAmount,
         });
-    };
+    }, [paymentMethod, invoiceType, totalAmount, onComplete]);
 
     const paymentMethods: Array<{ value: PaymentMethod; label: string; icon: string }> = [
         { value: 'cash', label: 'Gotówka', icon: '💵' },

@@ -77,7 +77,7 @@ interface VehiclePhotoGalleryProps {
     vehicleId: string;
 }
 
-export const VehiclePhotoGallery = ({ photos, vehicleId }: VehiclePhotoGalleryProps) => {
+export const VehiclePhotoGallery = ({ photos }: VehiclePhotoGalleryProps) => {
     return (
         <GalleryContainer>
             <GalleryHeader>

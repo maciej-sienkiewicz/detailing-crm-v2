@@ -34,7 +34,7 @@ const mockAppointmentColors: AppointmentColor[] = [
     { id: '5', name: 'Standardowe', hexColor: '#6366f1' },
 ];
 
-const mockCreateAppointment = async (data: AppointmentCreateRequest): Promise<{ id: string }> => {
+const mockCreateAppointment = async (_data: AppointmentCreateRequest): Promise<{ id: string }> => {
     await new Promise(resolve => setTimeout(resolve, 800));
     return { id: `appointment-${Date.now()}` };
 };

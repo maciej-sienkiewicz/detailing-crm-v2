@@ -8,7 +8,7 @@ import { FormGrid, FieldGroup, Label, Input, ErrorMessage, Select } from '@/comm
 import { Button, ButtonGroup } from '@/common/components/Button';
 import { EmptyState } from '@/common/components/EmptyState';
 import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
-import type { VehicleListItem, EngineType } from '@/modules/vehicles/types';
+import type { VehicleListItem } from '@/modules/vehicles/types';
 
 const SearchInput = styled(Input)`
     margin-bottom: ${props => props.theme.spacing.lg};
@@ -100,6 +100,7 @@ export interface SelectedVehicle {
     model: string;
     yearOfProduction: number;
     licensePlate?: string;
+    vin?: string;
     color?: string;
     paintType?: string;
     isNew: boolean;
@@ -117,7 +118,7 @@ type VehicleMode = 'search' | 'new';
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 50 }, (_, i) => CURRENT_YEAR - i);
 
-export const VehicleSearchModal = ({ isOpen, onClose, onSelect, customerId }: VehicleSearchModalProps) => {
+export const VehicleSearchModal = ({ isOpen, onClose, onSelect }: VehicleSearchModalProps) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [mode, setMode] = useState<VehicleMode>('search');
     const [formData, setFormData] = useState({

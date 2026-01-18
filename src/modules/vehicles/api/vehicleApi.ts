@@ -123,6 +123,8 @@ const mockVehicleDetail: Vehicle = {
     brand: 'BMW',
     model: 'X5',
     yearOfProduction: 2021,
+    vin: 'WBAX5123456789012',
+    engineType: 'GASOLINE',
     color: 'Czarny metalik',
     paintType: 'Lakier bazowy + lakier',
     currentMileage: 45000,
@@ -191,7 +193,7 @@ const mockGetVehicles = async (filters: VehicleFilters): Promise<VehicleListResp
     };
 };
 
-const mockGetVehicleDetail = async (vehicleId: string): Promise<VehicleDetailResponse> => {
+const mockGetVehicleDetail = async (_vehicleId: string): Promise<VehicleDetailResponse> => {
     await new Promise(resolve => setTimeout(resolve, 600));
 
     return {
@@ -274,6 +276,8 @@ const mockCreateVehicle = async (payload: CreateVehiclePayload): Promise<Vehicle
     return {
         id: `v${Date.now()}`,
         ...payload,
+        vin: '—',
+        engineType: 'GASOLINE',
         paintType: payload.paintType || null,
         currentMileage: payload.currentMileage || null,
         technicalNotes: payload.technicalNotes || '',

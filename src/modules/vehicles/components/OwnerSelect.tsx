@@ -43,11 +43,11 @@ const CustomerItem = styled.div<{ $selected: boolean }>`
     border-radius: ${props => props.theme.radii.md};
     cursor: pointer;
     transition: all ${props => props.theme.transitions.fast};
-    background: ${props => props.$selected ? props.theme.colors.primaryLight : props.theme.colors.surface};
+    background: ${props => props.$selected ? 'rgba(14, 165, 233, 0.1)' : props.theme.colors.surface};
     border: 1px solid ${props => props.$selected ? props.theme.colors.primary : props.theme.colors.border};
 
     &:hover {
-        background: ${props => props.$selected ? props.theme.colors.primaryLight : props.theme.colors.surfaceHover};
+        background: ${props => props.$selected ? 'rgba(14, 165, 233, 0.15)' : props.theme.colors.surfaceHover};
     }
 `;
 

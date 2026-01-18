@@ -16,7 +16,6 @@ export { checkinApi } from './api/checkinApi';
 export type {
     CheckInFormData,
     CheckInStep,
-    FuelLevel,
     PhotoSlotType,
     DamagePhotoType,
     PhotoSlot,

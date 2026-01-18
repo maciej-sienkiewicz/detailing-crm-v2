@@ -22,7 +22,6 @@ export const InProgressToReadyWizard = ({
     const {
         currentStep,
         totalSteps,
-        wizardData,
         isProcessing,
         handleClose,
         handleNext,

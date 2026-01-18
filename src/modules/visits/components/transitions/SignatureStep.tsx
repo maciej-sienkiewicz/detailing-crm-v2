@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { Button } from '@/common/components/Button';
 
 const Container = styled.div`
     display: flex;
@@ -132,11 +133,7 @@ const ChecklistItem = styled.li`
     }
 `;
 
-interface SignatureStepProps {
-    onConfirm: () => void;
-}
-
-export const SignatureStep = ({ onConfirm }: SignatureStepProps) => {
+export const SignatureStep = ({ onConfirm }: { onConfirm: () => void }) => {
     return (
         <Container>
             <Description>
@@ -151,6 +148,9 @@ export const SignatureStep = ({ onConfirm }: SignatureStepProps) => {
                     Poproś klienta o podpisanie protokołu wydania pojazdu na urządzeniu mobilnym
                     lub tradycyjnym formularzu papierowym.
                 </SignatureSubtitle>
+                <Button $variant="primary" onClick={onConfirm}>
+                    Podpisano
+                </Button>
                 <PlaceholderBadge>
                     🚧 Funkcjonalność dostępna wkrótce
                 </PlaceholderBadge>

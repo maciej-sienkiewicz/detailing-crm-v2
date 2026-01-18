@@ -7,7 +7,7 @@ import { AppointmentColorFormModal } from '../components/AppointmentColorFormMod
 import { EmptyState } from '@/common/components/EmptyState';
 import { Toggle } from '@/common/components/Toggle';
 import { useDebounce } from '@/common/hooks';
-import { t, interpolate } from '@/common/i18n';
+import { t } from '@/common/i18n';
 import type { AppointmentColor } from '../types';
 
 const ViewContainer = styled.main`

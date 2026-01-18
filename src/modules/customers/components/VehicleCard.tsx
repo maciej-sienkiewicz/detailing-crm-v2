@@ -1,7 +1,7 @@
 // src/modules/customers/components/VehicleCard.tsx
 
 import styled from 'styled-components';
-import type { Vehicle } from '../types';
+import type { Vehicle, EngineType } from '../types';
 import { formatDate, formatNumber } from '@/common/utils';
 import { t } from '@/common/i18n';
 
@@ -134,11 +134,11 @@ const EngineBadge = styled.span<{ $type: Vehicle['engineType'] }>`
     font-weight: 600;
 
     ${props => {
-        const styles = {
-            gasoline: 'background: #fee2e2; color: #991b1b;',
-            diesel: 'background: #fef3c7; color: #92400e;',
-            hybrid: 'background: #dbeafe; color: #1e40af;',
-            electric: 'background: #dcfce7; color: #166534;',
+        const styles: Record<EngineType, string> = {
+            GASOLINE: 'background: #fee2e2; color: #991b1b;',
+            DIESEL: 'background: #fef3c7; color: #92400e;',
+            HYBRID: 'background: #dbeafe; color: #1e40af;',
+            ELECTRIC: 'background: #dcfce7; color: #166534;',
         };
         return styles[props.$type];
     }}
@@ -241,7 +241,7 @@ export const VehicleCard = ({ vehicle }: VehicleCardProps) => {
                 <DetailItem>
                     <DetailLabel>{t.customers.detail.vehicleCard.engine}</DetailLabel>
                     <EngineBadge $type={vehicle.engineType}>
-                        {t.customers.detail.vehicleCard.engineType[vehicle.engineType]}
+                        {t.customers.detail.vehicleCard.engineType[vehicle.engineType.toLowerCase() as keyof typeof t.customers.detail.vehicleCard.engineType]}
                     </EngineBadge>
                 </DetailItem>
 

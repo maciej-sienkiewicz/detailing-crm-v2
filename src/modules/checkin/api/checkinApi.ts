@@ -46,7 +46,7 @@ const mockUploadPhoto = async (
 };
 
 const mockGetSessionPhotos = async (
-    sessionId: string
+    _sessionId: string
 ): Promise<PhotoSlot[]> => {
     await new Promise(resolve => setTimeout(resolve, 400));
     return [

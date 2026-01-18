@@ -115,8 +115,8 @@ const ConfirmButton = styled(Button)`
     border-color: ${props => props.theme.colors.warning};
 
     &:hover:not(:disabled) {
-        background: ${props => props.theme.colors.warningDark || props.theme.colors.warning};
-        border-color: ${props => props.theme.colors.warningDark || props.theme.colors.warning};
+        background: ${props => props.theme.colors.warning};
+        opacity: 0.9;
     }
 `;
 
@@ -145,7 +145,7 @@ export const SkipSigningConfirmDialog = ({
             isOpen={isOpen}
             onClose={onCancel}
             title="Potwierdzenie pominięcia podpisów"
-            size="md"
+            maxWidth="600px"
         >
             <DialogContent>
                 <WarningHeader>

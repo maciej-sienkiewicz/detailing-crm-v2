@@ -4,7 +4,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Modal } from '@/common/components/Modal';
 import { Button } from '@/common/components/Button';
 import { protocolsApi } from '@/modules/protocols/api/protocolsApi';
-import type { VisitProtocol } from '@/modules/protocols/types';
 import { DocumentPreview } from './DocumentPreview';
 import { SkipSigningConfirmDialog } from './SkipSigningConfirmDialog';
 
@@ -289,7 +288,7 @@ export const SigningRequirementModal = ({
                 isOpen={isOpen}
                 onClose={onClose}
                 title="Dokumentacja i Podpisy"
-                size="xl"
+                maxWidth="1000px"
             >
                 <ModalContent>
                     <Header>
@@ -419,7 +418,7 @@ export const SigningRequirementModal = ({
                         {!canProceed && (
                             <SecondaryActionGroup>
                                 <SkipButton
-                                    $variant="text"
+                                    $variant="secondary"
                                     onClick={handleSkipSigning}
                                 >
                                     Rozpocznij bez podpisów

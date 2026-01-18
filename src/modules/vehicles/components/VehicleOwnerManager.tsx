@@ -1,70 +1,49 @@
-import { useState } from 'react';
 import styled from 'styled-components';
-import type { VehicleOwner, AssignOwnerPayload } from '../types';
+import type { DefaultTheme } from 'styled-components';
+import type { VehicleOwner } from '../types';
 import { t } from '@/common/i18n';
 
 const ManagerContainer = styled.div`
     background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    padding: ${props => props.theme.spacing.lg};
+    border: 1px solid ${(props: { theme: DefaultTheme }) => props.theme.colors.border};
+    border-radius: ${(props: { theme: DefaultTheme }) => props.theme.radii.lg};
+    padding: ${(props: { theme: DefaultTheme }) => props.theme.spacing.lg};
 `;
 
 const ManagerHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: ${props => props.theme.spacing.md};
+    margin-bottom: ${(props: { theme: DefaultTheme }) => props.theme.spacing.md};
 `;
 
 const Title = styled.h3`
     margin: 0;
-    font-size: ${props => props.theme.fontSizes.md};
+    font-size: ${(props: { theme: DefaultTheme }) => props.theme.fontSizes.md};
     font-weight: 700;
-    color: ${props => props.theme.colors.text};
+    color: ${(props: { theme: DefaultTheme }) => props.theme.colors.text};
 `;
 
 const Subtitle = styled.p`
     margin: 4px 0 0;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
-`;
-
-const AddButton = styled.button`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    background: var(--brand-primary);
-    color: white;
-    border: none;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 500;
-    cursor: pointer;
-    transition: opacity 0.2s ease;
-
-    &:hover {
-        opacity: 0.9;
-    }
-
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
+    font-size: ${(props: { theme: DefaultTheme }) => props.theme.fontSizes.sm};
+    color: ${(props: { theme: DefaultTheme }) => props.theme.colors.textMuted};
 `;
 
 const OwnersList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.sm};
+    gap: ${(props: { theme: DefaultTheme }) => props.theme.spacing.sm};
 `;
 
 const OwnerCard = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${props => props.theme.spacing.md};
-    background: ${props => props.theme.colors.surfaceAlt};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
+    padding: ${(props: { theme: DefaultTheme }) => props.theme.spacing.md};
+    background: ${(props: { theme: DefaultTheme }) => props.theme.colors.surfaceAlt};
+    border: 1px solid ${(props: { theme: DefaultTheme }) => props.theme.colors.border};
+    border-radius: ${(props: { theme: DefaultTheme }) => props.theme.radii.md};
     transition: all 0.2s ease;
 
     &:hover {
@@ -79,16 +58,16 @@ const OwnerInfo = styled.div`
 `;
 
 const OwnerName = styled.span`
-    font-size: ${props => props.theme.fontSizes.sm};
+    font-size: ${(props: { theme: DefaultTheme }) => props.theme.fontSizes.sm};
     font-weight: 500;
-    color: ${props => props.theme.colors.text};
+    color: ${(props: { theme: DefaultTheme }) => props.theme.colors.text};
 `;
 
-const OwnerRole = styled.span<{ $role: string }>`
+const OwnerRole = styled.span<{ $role: string; theme: DefaultTheme }>`
     display: inline-block;
     padding: 2px 8px;
-    border-radius: ${props => props.theme.radii.full};
-    font-size: ${props => props.theme.fontSizes.xs};
+    border-radius: ${(props) => props.theme.radii.full};
+    font-size: ${(props) => props.theme.fontSizes.xs};
     font-weight: 500;
     width: fit-content;
 
@@ -100,17 +79,17 @@ const OwnerRole = styled.span<{ $role: string }>`
 `;
 
 const RemoveButton = styled.button`
-    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
+    padding: ${(props: { theme: DefaultTheme }) => props.theme.spacing.xs} ${(props: { theme: DefaultTheme }) => props.theme.spacing.sm};
     background: transparent;
-    color: ${props => props.theme.colors.error};
-    border: 1px solid ${props => props.theme.colors.error};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.xs};
+    color: ${(props: { theme: DefaultTheme }) => props.theme.colors.error};
+    border: 1px solid ${(props: { theme: DefaultTheme }) => props.theme.colors.error};
+    border-radius: ${(props: { theme: DefaultTheme }) => props.theme.radii.md};
+    font-size: ${(props: { theme: DefaultTheme }) => props.theme.fontSizes.xs};
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:hover {
-        background: ${props => props.theme.colors.error};
+        background: ${(props: { theme: DefaultTheme }) => props.theme.colors.error};
         color: white;
     }
 
@@ -122,21 +101,15 @@ const RemoveButton = styled.button`
 
 interface VehicleOwnerManagerProps {
     owners: VehicleOwner[];
-    onAssignOwner: (payload: AssignOwnerPayload) => void;
     onRemoveOwner: (customerId: string) => void;
-    isAssigning: boolean;
     isRemoving: boolean;
 }
 
 export const VehicleOwnerManager = ({
                                         owners,
-                                        onAssignOwner,
                                         onRemoveOwner,
-                                        isAssigning,
                                         isRemoving,
                                     }: VehicleOwnerManagerProps) => {
-    const [isAdding, setIsAdding] = useState(false);
-
     const handleRemove = (customerId: string) => {
         if (window.confirm(t.vehicles.detail.owners.confirmRemove)) {
             onRemoveOwner(customerId);
@@ -150,12 +123,6 @@ export const VehicleOwnerManager = ({
                     <Title>{t.vehicles.detail.owners.title}</Title>
                     <Subtitle>{t.vehicles.detail.owners.subtitle}</Subtitle>
                 </div>
-                <AddButton
-                    onClick={() => setIsAdding(true)}
-                    disabled={isAssigning}
-                >
-                    + {t.vehicles.detail.owners.addOwner}
-                </AddButton>
             </ManagerHeader>
 
             <OwnersList>

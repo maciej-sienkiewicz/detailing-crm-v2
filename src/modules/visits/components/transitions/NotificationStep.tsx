@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import type { NotificationChannels } from '../../hooks/useStateTransition.ts';
+import type { NotificationChannels } from '../../hooks/useStateTransition';
 import type { CustomerInfo } from '../../types';
 
 const Container = styled.div`
@@ -191,7 +191,7 @@ export const NotificationStep = ({ customer, onSkip, onSend }: NotificationStepP
     });
 
     const handleToggle = (channel: keyof NotificationChannels) => {
-        setChannels(prev => ({ ...prev, [channel]: !prev[channel] }));
+        setChannels((prev: NotificationChannels) => ({ ...prev, [channel]: !prev[channel] }));
     };
 
     const hasAnyChannel = channels.sms || channels.email;

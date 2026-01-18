@@ -183,7 +183,7 @@ export const VehicleListView = () => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const { searchInput, debouncedSearch, handleSearchChange } = useVehicleSearch();
     const { page, limit, goToPage, resetPagination } = useVehiclePagination();
-    const { deleteVehicle, isDeleting } = useDeleteVehicle();
+    const { deleteVehicle } = useDeleteVehicle();
     const isDesktop = useBreakpoint('lg');
 
     const filters = useMemo(

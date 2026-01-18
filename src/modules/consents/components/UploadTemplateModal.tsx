@@ -100,7 +100,12 @@ export const UploadTemplateModal = ({
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={handleClose} maxWidth="600px">
+        <Modal
+            isOpen={isOpen}
+            onClose={handleClose}
+            maxWidth="600px"
+            title={t.consents.uploadTemplateModal.title}
+        >
             <ModalHeader>
                 <ModalTitle>{t.consents.uploadTemplateModal.title}</ModalTitle>
                 <ModalSubtitle>{definitionName}</ModalSubtitle>

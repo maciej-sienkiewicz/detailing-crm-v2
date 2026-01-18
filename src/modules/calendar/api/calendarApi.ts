@@ -44,14 +44,31 @@ const mockAppointments: AppointmentResponse[] = [
             firstName: 'Jan',
             lastName: 'Kowalski',
             phone: '+48 123 456 789',
+            email: 'jan@example.com',
         },
         vehicle: {
             brand: 'BMW',
             model: 'X5',
         },
         services: [
-            { serviceName: 'Oklejanie PPF - cały przód' },
-            { serviceName: 'Powłoka ceramiczna' },
+            {
+                id: '1',
+                serviceId: 's1',
+                serviceName: 'Oklejanie PPF - cały przód',
+                basePriceNet: 400000,
+                vatRate: 23,
+                finalPriceNet: 400000,
+                finalPriceGross: 492000,
+            },
+            {
+                id: '2',
+                serviceId: 's2',
+                serviceName: 'Powłoka ceramiczna',
+                basePriceNet: 95000,
+                vatRate: 23,
+                finalPriceNet: 95000,
+                finalPriceGross: 116850,
+            },
         ],
         schedule: {
             isAllDay: false,
@@ -59,9 +76,14 @@ const mockAppointments: AppointmentResponse[] = [
             endDateTime: '2026-01-20T15:00:00Z',
         },
         appointmentColor: {
+            id: 'c1',
+            name: 'Red',
             hexColor: '#ef4444',
         },
-        totalPriceNet: 495000,
+        totalNet: 495000,
+        totalGross: 608850,
+        totalVat: 113850,
+        status: 'CONFIRMED',
     },
     {
         id: 'appt_2',
@@ -70,13 +92,22 @@ const mockAppointments: AppointmentResponse[] = [
             firstName: 'Anna',
             lastName: 'Nowak',
             phone: '+48 987 654 321',
+            email: 'anna@example.com',
         },
         vehicle: {
             brand: 'Audi',
             model: 'A4',
         },
         services: [
-            { serviceName: 'Przegląd okresowy' },
+            {
+                id: '3',
+                serviceId: 's3',
+                serviceName: 'Przegląd okresowy',
+                basePriceNet: 25000,
+                vatRate: 23,
+                finalPriceNet: 25000,
+                finalPriceGross: 30750,
+            },
         ],
         schedule: {
             isAllDay: false,
@@ -84,9 +115,14 @@ const mockAppointments: AppointmentResponse[] = [
             endDateTime: '2026-01-22T12:00:00Z',
         },
         appointmentColor: {
+            id: 'c2',
+            name: 'Green',
             hexColor: '#22c55e',
         },
-        totalPriceNet: 25000,
+        totalNet: 25000,
+        totalGross: 30750,
+        totalVat: 5750,
+        status: 'CONFIRMED',
     },
 ];
 

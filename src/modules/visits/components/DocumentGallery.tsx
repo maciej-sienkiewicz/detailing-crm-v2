@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import styled from 'styled-components';
-import { Button } from '@/common/components/Button';
 import { formatDateTime } from '@/common/utils';
 import type { VisitDocument, DocumentType } from '../types';
 
@@ -215,11 +214,10 @@ interface DocumentGalleryProps {
 }
 
 export const DocumentGallery = ({
-                                    documents,
-                                    onUpload,
-                                    onDelete,
-                                    isUploading,
-                                }: DocumentGalleryProps) => {
+                                     documents,
+                                     onUpload,
+                                     isUploading,
+                                 }: DocumentGalleryProps) => {
     const [activeCategory, setActiveCategory] = useState<string>('all');
     const fileInputRef = useRef<HTMLInputElement>(null);
 

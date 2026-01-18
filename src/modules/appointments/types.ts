@@ -8,31 +8,42 @@ export interface PriceAdjustment {
     value: number;
 }
 
-export interface CustomerIdentity {
-    mode: 'EXISTING' | 'NEW';
-    id?: string;
-    newData?: {
-        firstName: string;
-        lastName: string;
-        phone: string;
-        email: string;
-        company?: {
-            name: string;
-            nip: string;
-            regon?: string;
-            address: string;
+export type CustomerIdentity =
+    | {
+        mode: 'EXISTING';
+        id: string;
+    }
+    | {
+        mode: 'NEW';
+        newData: {
+            firstName: string;
+            lastName: string;
+            phone: string;
+            email: string;
+            company?: {
+                name: string;
+                nip: string;
+                regon?: string;
+                address: string;
+            };
         };
     };
-}
 
-export interface VehicleIdentity {
-    mode: 'EXISTING' | 'NEW' | 'NONE';
-    id?: string;
-    newData?: {
-        brand: string;
-        model: string;
+export type VehicleIdentity =
+    | {
+        mode: 'EXISTING';
+        id: string;
+    }
+    | {
+        mode: 'NEW';
+        newData: {
+            brand: string;
+            model: string;
+        };
+    }
+    | {
+        mode: 'NONE';
     };
-}
 
 export interface ServiceLineItem {
     id: string;

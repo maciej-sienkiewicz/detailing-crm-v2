@@ -78,10 +78,10 @@ export const getFullName = (customer: Customer): string => {
 export const mapFormDataToPayload = (
     data: CreateCustomerFormData
 ): CreateCustomerPayload => ({
-    firstName: data.firstName.trim(),
-    lastName: data.lastName.trim(),
-    email: data.email.trim().toLowerCase(),
-    phone: data.phone.replace(/[\s-]/g, ''),
+    firstName: (data.firstName || '').trim(),
+    lastName: (data.lastName || '').trim(),
+    email: (data.email || '').trim().toLowerCase(),
+    phone: (data.phone || '').replace(/[\s-]/g, ''),
     homeAddress: data.homeAddress ?? null,
     companyData: data.company ?? null,
     notes: data.notes.trim(),
@@ -93,6 +93,8 @@ export const mapBackendVehicleToVehicle = (backendVehicle: BackendVehicle): Vehi
     model: backendVehicle.model,
     year: backendVehicle.year,
     licensePlate: backendVehicle.licensePlate,
+    vin: '—',
+    engineType: 'GASOLINE',
     color: '—',
     mileage: 0,
     nextInspectionDate: null,

@@ -1,10 +1,9 @@
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import styled from 'styled-components';
 import { Modal } from '@/common/components/Modal';
 import { Button, ButtonGroup } from '@/common/components/Button';
-import { FormGrid, FieldGroup, Label, Input, Select, TextArea, ErrorMessage } from '@/common/components/Form';
+import { FormGrid, FieldGroup, Label, Input, TextArea, ErrorMessage } from '@/common/components/Form';
 import { useUpdateVehicle } from '../hooks/useUpdateVehicle';
 import { updateVehicleSchema, type UpdateVehicleFormData } from '../utils/vehicleValidation';
 import type { Vehicle } from '../types';

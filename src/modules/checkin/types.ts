@@ -9,6 +9,7 @@ export type AdjustmentType = 'PERCENT' | 'FIXED_NET' | 'FIXED_GROSS' | 'SET_NET'
 export interface DepositItem {
     keys: boolean;
     registrationDocument: boolean;
+    other: boolean;
 }
 
 export interface PhotoSlot {
@@ -50,6 +51,7 @@ export interface CheckInFormData {
         model: string;
         yearOfProduction: number;
         licensePlate: string;
+        vin?: string;
         color?: string;
         paintType?: string;
     } | null;
@@ -113,6 +115,7 @@ export interface ReservationToVisitPayload {
         model: string;
         yearOfProduction: number;
         licensePlate?: string;
+        vin?: string;
         color?: string;
         paintType?: string;
         isNew: boolean; // Czy pojazd został utworzony teraz podczas check-in

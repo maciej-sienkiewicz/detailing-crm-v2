@@ -125,8 +125,6 @@ interface StepperProps {
 }
 
 export const Stepper = ({ steps, currentStepId, completedSteps }: StepperProps) => {
-    const currentIndex = steps.findIndex(s => s.id === currentStepId);
-
     return (
         <StepperContainer>
             {steps.map((step, index) => {

@@ -1,6 +1,6 @@
 // src/modules/checkin/components/PhotoDocumentationStep.tsx
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import styled from 'styled-components';
 import { Card, CardHeader, CardTitle } from '@/common/components/Card';
 import { Button } from '@/common/components/Button';

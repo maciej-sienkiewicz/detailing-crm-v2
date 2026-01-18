@@ -133,7 +133,7 @@ export const LoginView = () => {
 
         if (!result.success) {
             const fieldErrors: Partial<Record<keyof LoginFormData, string>> = {};
-            result.error.errors.forEach((err) => {
+            result.error.issues.forEach((err) => {
                 if (err.path[0]) {
                     fieldErrors[err.path[0] as keyof LoginFormData] = err.message;
                 }

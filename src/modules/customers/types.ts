@@ -104,13 +104,17 @@ export interface MarketingConsent {
     lastModifiedBy: string;
 }
 
+export type EngineType = 'GASOLINE' | 'DIESEL' | 'HYBRID' | 'ELECTRIC';
+
 export interface Vehicle {
     id: string;
     make: string;
     model: string;
     year: number;
     licensePlate: string;
+    vin: string;
     color: string;
+    engineType: EngineType;
     mileage: number;
     nextInspectionDate: string | null;
     nextServiceDate: string | null;
@@ -185,13 +189,13 @@ export interface AddVehiclePayload {
 // src/modules/customers/types.ts - Dodaj te interfejsy
 
 export interface UpdateCustomerPayload {
-    firstName: string;
-    lastName: string;
-    contact: {
-        email: string;
-        phone: string;
+    firstName?: string;
+    lastName?: string;
+    contact?: {
+        email?: string;
+        phone?: string;
     };
-    homeAddress: HomeAddress | null;
+    homeAddress?: HomeAddress | null;
 }
 
 export interface UpdateCompanyPayload {

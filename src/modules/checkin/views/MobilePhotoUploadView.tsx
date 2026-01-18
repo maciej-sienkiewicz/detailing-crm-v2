@@ -381,7 +381,7 @@ export const MobilePhotoUploadView = ({ sessionId, token }: MobilePhotoUploadVie
                         {!slot.preview && !slot.uploaded && (
                             <>
                                 <CameraInput
-                                    ref={el => fileInputRefs.current[slot.type] = el}
+                                    ref={(el) => { fileInputRefs.current[slot.type] = el; }}
                                     type="file"
                                     accept="image/*"
                                     capture="environment"

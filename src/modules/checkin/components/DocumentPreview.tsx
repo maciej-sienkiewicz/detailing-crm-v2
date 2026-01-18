@@ -279,7 +279,7 @@ export const DocumentPreview = ({
             isOpen={isOpen}
             onClose={onClose}
             title={protocol?.protocolTemplate?.name || 'Podgląd dokumentu'}
-            size="xl"
+            maxWidth="1000px"
         >
             <ModalContent>
                 <PreviewContainer>

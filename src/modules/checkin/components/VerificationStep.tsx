@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { Card, CardHeader, CardTitle } from '@/common/components/Card';
-import { FormGrid, FieldGroup, Label, Input, ErrorMessage } from '@/common/components/Form';
+import { FormGrid, FieldGroup } from '@/common/components/Form';
 import { Divider } from '@/common/components/Divider';
 import { Button } from '@/common/components/Button';
 import { EditableServicesTable } from './EditableServicesTable';
@@ -12,7 +12,6 @@ import { VehicleDetailsModal } from './VehicleDetailsModal';
 import type { SelectedCustomer } from '@/modules/appointments/types';
 import { t } from '@/common/i18n';
 import type { CheckInFormData, ServiceLineItem } from '../types';
-import { useCustomerVehicles } from '@/modules/customers/hooks/useCustomerVehicles';
 
 const StepContainer = styled.div`
     display: flex;
@@ -117,32 +116,11 @@ interface VerificationStepProps {
     onServicesChange: (services: ServiceLineItem[]) => void;
 }
 
-export const VerificationStep    = ({ formData, errors, onChange, onServicesChange }: VerificationStepProps) => {
+export const VerificationStep    = ({ formData, onChange, onServicesChange }: VerificationStepProps) => {
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isCustomerDetailsModalOpen, setIsCustomerDetailsModalOpen] = useState(false);
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
     const [isVehicleDetailsModalOpen, setIsVehicleDetailsModalOpen] = useState(false);
-
-    // Pobierz pojazdy klienta jeśli klient jest wybrany
-    const { vehicles: customerVehicles } = useCustomerVehicles(formData.customerData.id || '');
-
-    const handleCustomerChange = (field: string, value: string) => {
-        onChange({
-            customerData: {
-                ...formData.customerData,
-                [field]: value,
-            },
-        });
-    };
-
-    const handleVehicleChange = (field: string, value: string) => {
-        onChange({
-            vehicleData: {
-                ...formData.vehicleData,
-                [field]: value,
-            },
-        });
-    };
 
     const handleCustomerDetailsSave = (data: {
         customerData: {
@@ -183,11 +161,12 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     const handleVehicleSelect = (vehicle: SelectedVehicle) => {
         onChange({
             vehicleData: {
-                id: vehicle.id || '',
+                id: vehicle.id || `temp-${Date.now()}`,
                 brand: vehicle.brand,
                 model: vehicle.model,
-                yearOfProduction: vehicle.yearOfProduction,
+                yearOfProduction: vehicle.yearOfProduction || new Date().getFullYear(),
                 licensePlate: vehicle.licensePlate || '',
+                vin: vehicle.vin,
                 color: vehicle.color,
                 paintType: vehicle.paintType,
             },
@@ -205,10 +184,13 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     }) => {
         onChange({
             vehicleData: {
-                ...formData.vehicleData,
+                id: formData.vehicleData?.id || `temp-${Date.now()}`,
+                yearOfProduction: formData.vehicleData?.yearOfProduction || new Date().getFullYear(),
                 ...data.vehicleData,
+                licensePlate: data.vehicleData.licensePlate || '',
             },
         });
+        setIsVehicleDetailsModalOpen(false);
     };
 
     return (

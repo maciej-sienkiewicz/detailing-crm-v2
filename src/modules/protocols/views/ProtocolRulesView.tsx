@@ -5,7 +5,7 @@ import { ProtocolRuleCard } from '../components/ProtocolRuleCard';
 import { ProtocolTemplateModal } from '../components/ProtocolTemplateModal';
 import { ProtocolRuleModal } from '../components/ProtocolRuleModal';
 import { EmptyState } from '@/common/components/EmptyState';
-import type { ProtocolTemplate, ProtocolRule, ProtocolStage } from '../types';
+import type { ProtocolRule, ProtocolStage } from '../types';
 
 const ViewContainer = styled.main`
     display: flex;
