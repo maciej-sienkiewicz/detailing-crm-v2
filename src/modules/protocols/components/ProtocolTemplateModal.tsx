@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Modal } from '@/common/components/Modal';
 import { Button, ButtonGroup } from '@/common/components/Button';
@@ -126,10 +126,170 @@ const SmallButton = styled.button<{ $variant?: 'danger' }>`
     }
 `;
 
+const FileUploadArea = styled.div`
+    border: 2px dashed ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.md};
+    padding: ${props => props.theme.spacing.lg};
+    text-align: center;
+    background: rgb(249, 250, 251);
+    transition: all ${props => props.theme.transitions.fast};
+    cursor: pointer;
+
+    &:hover {
+        border-color: var(--brand-primary);
+        background: rgb(239, 246, 255);
+    }
+`;
+
+const FileInput = styled.input`
+    display: none;
+`;
+
+const UploadIcon = styled.div`
+    width: 48px;
+    height: 48px;
+    margin: 0 auto ${props => props.theme.spacing.sm};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgb(239, 246, 255);
+    color: var(--brand-primary);
+
+    svg {
+        width: 24px;
+        height: 24px;
+    }
+`;
+
+const UploadText = styled.div`
+    font-size: ${props => props.theme.fontSizes.sm};
+    color: ${props => props.theme.colors.text};
+    font-weight: 500;
+    margin-bottom: 4px;
+`;
+
+const UploadHint = styled.div`
+    font-size: ${props => props.theme.fontSizes.xs};
+    color: ${props => props.theme.colors.textMuted};
+`;
+
+const FilePreview = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.md};
+    padding: ${props => props.theme.spacing.md};
+    background: white;
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.md};
+`;
+
+const FileIcon = styled.div`
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: ${props => props.theme.radii.sm};
+    background: rgb(254, 242, 242);
+    color: rgb(220, 38, 38);
+    flex-shrink: 0;
+
+    svg {
+        width: 20px;
+        height: 20px;
+    }
+`;
+
+const FileInfo = styled.div`
+    flex: 1;
+    min-width: 0;
+`;
+
+const FileName = styled.div`
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: 500;
+    color: ${props => props.theme.colors.text};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+`;
+
+const FileSize = styled.div`
+    font-size: ${props => props.theme.fontSizes.xs};
+    color: ${props => props.theme.colors.textMuted};
+    margin-top: 2px;
+`;
+
+const RemoveFileButton = styled.button`
+    padding: ${props => props.theme.spacing.xs};
+    background: transparent;
+    border: none;
+    color: ${props => props.theme.colors.error};
+    cursor: pointer;
+    border-radius: ${props => props.theme.radii.sm};
+    transition: all ${props => props.theme.transitions.fast};
+
+    &:hover {
+        background: rgb(254, 242, 242);
+    }
+
+    svg {
+        width: 16px;
+        height: 16px;
+        display: block;
+    }
+`;
+
+const DownloadLink = styled.a`
+    display: inline-flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.xs};
+    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
+    font-size: ${props => props.theme.fontSizes.xs};
+    color: var(--brand-primary);
+    text-decoration: none;
+    border-radius: ${props => props.theme.radii.sm};
+    transition: all ${props => props.theme.transitions.fast};
+
+    &:hover {
+        background: rgb(239, 246, 255);
+    }
+
+    svg {
+        width: 14px;
+        height: 14px;
+    }
+`;
+
 // Icons
 const PlusIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+    </svg>
+);
+
+const UploadCloudIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+    </svg>
+);
+
+const FilePdfIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+    </svg>
+);
+
+const XIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+);
+
+const DownloadIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
     </svg>
 );
 
@@ -139,6 +299,15 @@ interface ProtocolTemplateModalProps {
     templates: ProtocolTemplate[];
     onSuccess?: () => void;
 }
+
+// Helper function to format file size
+const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+};
 
 export const ProtocolTemplateModal = ({
     isOpen,
@@ -150,8 +319,9 @@ export const ProtocolTemplateModal = ({
     const [editingTemplate, setEditingTemplate] = useState<ProtocolTemplate | null>(null);
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [templateUrl, setTemplateUrl] = useState('');
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     const createMutation = useCreateProtocolTemplate();
     const updateMutation = useUpdateProtocolTemplate();
@@ -160,17 +330,20 @@ export const ProtocolTemplateModal = ({
     const resetForm = () => {
         setName('');
         setDescription('');
-        setTemplateUrl('');
+        setSelectedFile(null);
         setErrors({});
         setEditingTemplate(null);
         setIsCreating(false);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     };
 
     const handleEdit = (template: ProtocolTemplate) => {
         setEditingTemplate(template);
         setName(template.name);
         setDescription(template.description || '');
-        setTemplateUrl(template.templateUrl || '');
+        setSelectedFile(null);
         setIsCreating(true);
     };
 
@@ -187,11 +360,76 @@ export const ProtocolTemplateModal = ({
         }
     };
 
+    const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        // Validate file type
+        if (file.type !== 'application/pdf') {
+            setErrors({ file: 'Tylko pliki PDF są dozwolone' });
+            return;
+        }
+
+        // Validate file size (max 10MB)
+        const maxSize = 10 * 1024 * 1024;
+        if (file.size > maxSize) {
+            setErrors({ file: 'Plik jest za duży. Maksymalny rozmiar to 10 MB' });
+            return;
+        }
+
+        setSelectedFile(file);
+        setErrors({});
+    };
+
+    const handleRemoveFile = () => {
+        setSelectedFile(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const handleUploadClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const file = e.dataTransfer.files?.[0];
+        if (!file) return;
+
+        // Validate file type
+        if (file.type !== 'application/pdf') {
+            setErrors({ file: 'Tylko pliki PDF są dozwolone' });
+            return;
+        }
+
+        // Validate file size (max 10MB)
+        const maxSize = 10 * 1024 * 1024;
+        if (file.size > maxSize) {
+            setErrors({ file: 'Plik jest za duży. Maksymalny rozmiar to 10 MB' });
+            return;
+        }
+
+        setSelectedFile(file);
+        setErrors({});
+    };
+
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};
 
         if (!name.trim() || name.trim().length < 3) {
             newErrors.name = 'Nazwa musi mieć co najmniej 3 znaki';
+        }
+
+        if (!editingTemplate && !selectedFile) {
+            newErrors.file = 'Plik PDF szablonu jest wymagany';
         }
 
         setErrors(newErrors);
@@ -206,20 +444,36 @@ export const ProtocolTemplateModal = ({
         }
 
         try {
+            // In a real app, this would upload the file to a server
+            // For now, we'll simulate by creating a URL from the filename
+            let templateUrl = '';
+
+            if (selectedFile) {
+                // Simulate file upload - in production, use FormData and multipart/form-data
+                // const formData = new FormData();
+                // formData.append('file', selectedFile);
+                // const uploadResponse = await uploadFile(formData);
+                // templateUrl = uploadResponse.url;
+
+                templateUrl = `/uploads/protocols/${selectedFile.name}`;
+            } else if (editingTemplate) {
+                templateUrl = editingTemplate.templateUrl || '';
+            }
+
             if (editingTemplate) {
                 await updateMutation.mutateAsync({
                     id: editingTemplate.id,
                     data: {
                         name: name.trim(),
                         description: description.trim() || undefined,
-                        templateUrl: templateUrl.trim() || undefined,
+                        templateUrl: selectedFile ? templateUrl : undefined,
                     },
                 });
             } else {
                 await createMutation.mutateAsync({
                     name: name.trim(),
                     description: description.trim() || undefined,
-                    templateUrl: templateUrl.trim() || undefined,
+                    templateUrl,
                 });
             }
             resetForm();
@@ -256,6 +510,18 @@ export const ProtocolTemplateModal = ({
                                         <TemplateName>{template.name}</TemplateName>
                                         {template.description && (
                                             <TemplateDescription>{template.description}</TemplateDescription>
+                                        )}
+                                        {template.templateUrl && (
+                                            <div style={{ marginTop: '8px' }}>
+                                                <DownloadLink
+                                                    href={template.templateUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    <FilePdfIcon />
+                                                    Podgląd PDF
+                                                </DownloadLink>
+                                            </div>
                                         )}
                                         <TemplateActions>
                                             <SmallButton onClick={() => handleEdit(template)}>
@@ -305,13 +571,74 @@ export const ProtocolTemplateModal = ({
                             </FieldGroup>
 
                             <FieldGroup>
-                                <Label>URL szablonu PDF</Label>
-                                <Input
-                                    type="text"
-                                    value={templateUrl}
-                                    onChange={(e) => setTemplateUrl(e.target.value)}
-                                    placeholder="/templates/protokol.pdf"
+                                <Label>Szablon PDF *</Label>
+
+                                {/* Hidden file input */}
+                                <FileInput
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept=".pdf,application/pdf"
+                                    onChange={handleFileSelect}
                                 />
+
+                                {/* Show upload area or file preview */}
+                                {!selectedFile && !editingTemplate?.templateUrl ? (
+                                    <FileUploadArea
+                                        onClick={handleUploadClick}
+                                        onDragOver={handleDragOver}
+                                        onDrop={handleDrop}
+                                    >
+                                        <UploadIcon>
+                                            <UploadCloudIcon />
+                                        </UploadIcon>
+                                        <UploadText>Kliknij aby wybrać plik PDF</UploadText>
+                                        <UploadHint>lub przeciągnij i upuść (maks. 10 MB)</UploadHint>
+                                    </FileUploadArea>
+                                ) : selectedFile ? (
+                                    <FilePreview>
+                                        <FileIcon>
+                                            <FilePdfIcon />
+                                        </FileIcon>
+                                        <FileInfo>
+                                            <FileName>{selectedFile.name}</FileName>
+                                            <FileSize>{formatFileSize(selectedFile.size)}</FileSize>
+                                        </FileInfo>
+                                        <RemoveFileButton onClick={handleRemoveFile} type="button">
+                                            <XIcon />
+                                        </RemoveFileButton>
+                                    </FilePreview>
+                                ) : editingTemplate?.templateUrl ? (
+                                    <FilePreview>
+                                        <FileIcon>
+                                            <FilePdfIcon />
+                                        </FileIcon>
+                                        <FileInfo>
+                                            <FileName>{editingTemplate.name}.pdf</FileName>
+                                            <FileSize>
+                                                Szablon zapisany
+                                                <DownloadLink
+                                                    href={editingTemplate.templateUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <DownloadIcon />
+                                                    Podgląd
+                                                </DownloadLink>
+                                            </FileSize>
+                                        </FileInfo>
+                                        <Button
+                                            type="button"
+                                            $variant="secondary"
+                                            onClick={handleUploadClick}
+                                            style={{ fontSize: '12px', padding: '4px 8px' }}
+                                        >
+                                            Zmień plik
+                                        </Button>
+                                    </FilePreview>
+                                ) : null}
+
+                                {errors.file && <ErrorMessage>{errors.file}</ErrorMessage>}
                             </FieldGroup>
 
                             {errors.submit && (
