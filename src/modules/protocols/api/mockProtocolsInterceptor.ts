@@ -3,7 +3,7 @@ import { mockProtocolTemplates, mockProtocolRules } from './mockProtocols';
 import type { ProtocolTemplate, ProtocolRule, VisitProtocol } from '../types';
 
 // Flag to enable/disable mocks - set to false when backend is ready
-export const USE_PROTOCOL_MOCKS = true;
+export const USE_PROTOCOL_MOCKS = false;
 
 let mockProtocolTemplatesData = [...mockProtocolTemplates];
 let mockProtocolRulesData = [...mockProtocolRules];
