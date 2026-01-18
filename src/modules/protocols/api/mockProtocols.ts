@@ -83,6 +83,8 @@ export const mockProtocolRules: ProtocolRule[] = [
     protocolTemplate: mockProtocolTemplates[0],
     triggerType: 'GLOBAL_ALWAYS',
     stage: 'CHECK_IN',
+    serviceIds: [],
+    serviceNames: [],
     isMandatory: true,
     displayOrder: 1,
     createdAt: '2024-01-10T10:00:00Z',
@@ -94,6 +96,8 @@ export const mockProtocolRules: ProtocolRule[] = [
     protocolTemplate: mockProtocolTemplates[1],
     triggerType: 'GLOBAL_ALWAYS',
     stage: 'CHECK_IN',
+    serviceIds: [],
+    serviceNames: [],
     isMandatory: true,
     displayOrder: 2,
     createdAt: '2024-01-10T10:00:00Z',
@@ -106,6 +110,8 @@ export const mockProtocolRules: ProtocolRule[] = [
     protocolTemplate: mockProtocolTemplates[4],
     triggerType: 'GLOBAL_ALWAYS',
     stage: 'CHECK_OUT',
+    serviceIds: [],
+    serviceNames: [],
     isMandatory: true,
     displayOrder: 1,
     createdAt: '2024-01-10T10:00:00Z',
@@ -117,20 +123,22 @@ export const mockProtocolRules: ProtocolRule[] = [
     protocolTemplate: mockProtocolTemplates[7],
     triggerType: 'GLOBAL_ALWAYS',
     stage: 'CHECK_OUT',
+    serviceIds: [],
+    serviceNames: [],
     isMandatory: false,
     displayOrder: 2,
     createdAt: '2024-01-10T10:00:00Z',
     updatedAt: '2024-01-10T10:00:00Z',
   },
-  // Service-specific rules (Paint Correction)
+  // Service-specific rules (Paint Correction + Detailing)
   {
     id: 'pr-5',
     protocolTemplateId: 'pt-3',
     protocolTemplate: mockProtocolTemplates[2],
     triggerType: 'SERVICE_SPECIFIC',
     stage: 'CHECK_IN',
-    serviceId: 'service-1', // Korekta lakieru
-    serviceName: 'Korekta lakieru',
+    serviceIds: ['service-1', 'service-3'], // Korekta lakieru, Detailing kompleksowy
+    serviceNames: ['Korekta lakieru', 'Detailing kompleksowy'],
     isMandatory: true,
     displayOrder: 3,
     createdAt: '2024-01-10T10:00:00Z',
@@ -142,8 +150,8 @@ export const mockProtocolRules: ProtocolRule[] = [
     protocolTemplate: mockProtocolTemplates[3],
     triggerType: 'SERVICE_SPECIFIC',
     stage: 'CHECK_OUT',
-    serviceId: 'service-1', // Korekta lakieru
-    serviceName: 'Korekta lakieru',
+    serviceIds: ['service-1'], // Korekta lakieru
+    serviceNames: ['Korekta lakieru'],
     isMandatory: true,
     displayOrder: 3,
     createdAt: '2024-01-10T10:00:00Z',
@@ -156,8 +164,8 @@ export const mockProtocolRules: ProtocolRule[] = [
     protocolTemplate: mockProtocolTemplates[5],
     triggerType: 'SERVICE_SPECIFIC',
     stage: 'CHECK_IN',
-    serviceId: 'service-2', // Powłoka ceramiczna
-    serviceName: 'Powłoka ceramiczna',
+    serviceIds: ['service-2'], // Powłoka ceramiczna
+    serviceNames: ['Powłoka ceramiczna'],
     isMandatory: true,
     displayOrder: 4,
     createdAt: '2024-01-10T10:00:00Z',
@@ -169,8 +177,8 @@ export const mockProtocolRules: ProtocolRule[] = [
     protocolTemplate: mockProtocolTemplates[6],
     triggerType: 'SERVICE_SPECIFIC',
     stage: 'CHECK_OUT',
-    serviceId: 'service-2', // Powłoka ceramiczna
-    serviceName: 'Powłoka ceramiczna',
+    serviceIds: ['service-2'], // Powłoka ceramiczna
+    serviceNames: ['Powłoka ceramiczna'],
     isMandatory: true,
     displayOrder: 4,
     createdAt: '2024-01-10T10:00:00Z',
