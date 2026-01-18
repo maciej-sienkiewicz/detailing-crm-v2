@@ -10,224 +10,230 @@ import {
 } from '../api/useProtocols';
 import type { ProtocolTemplate } from '../types';
 
+// Material Design 3 inspired styles
 const ModalContent = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.xl};
+    gap: 2rem;
     max-height: 70vh;
     overflow-y: auto;
-    padding: ${props => props.theme.spacing.xs};
 `;
 
 const Section = styled.div`
-    &:not(:last-child) {
-        padding-bottom: ${props => props.theme.spacing.xl};
-        border-bottom: 2px solid ${props => props.theme.colors.border};
-    }
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+`;
+
+const SectionHeader = styled.div`
+    margin-bottom: 0.5rem;
+`;
+
+const SectionLabel = styled.div`
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgb(100, 116, 139);
+    margin-bottom: 0.75rem;
 `;
 
 const SectionTitle = styled.h3`
-    margin: 0 0 ${props => props.theme.spacing.lg} 0;
-    font-size: ${props => props.theme.fontSizes.lg};
-    font-weight: 700;
-    color: ${props => props.theme.colors.text};
-    display: flex;
-    align-items: center;
-    gap: ${props => props.theme.spacing.sm};
-
-    &::before {
-        content: '';
-        width: 4px;
-        height: 24px;
-        background: linear-gradient(to bottom, var(--brand-primary), var(--brand-primary-dark, #1d4ed8));
-        border-radius: 2px;
-    }
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: rgb(15, 23, 42);
+    letter-spacing: -0.02em;
 `;
 
 const TemplateList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.md};
-    max-height: 350px;
-    overflow-y: auto;
-    padding: 2px;
+    gap: 0.75rem;
 `;
 
-const TemplateCard = styled.div<{ $isSelected: boolean }>`
-    padding: ${props => props.theme.spacing.lg};
-    border: 2px solid ${props => props.$isSelected ? 'var(--brand-primary)' : 'transparent'};
-    background: ${props => props.$isSelected
-        ? 'linear-gradient(135deg, rgb(239, 246, 255) 0%, rgb(224, 242, 254) 100%)'
-        : 'white'};
-    border-radius: ${props => props.theme.radii.lg};
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.03);
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+const TemplateCard = styled.div`
     position: relative;
-    overflow: hidden;
-
-    &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 4px;
-        height: 100%;
-        background: linear-gradient(to bottom, var(--brand-primary), var(--brand-primary-dark, #1d4ed8));
-        opacity: ${props => props.$isSelected ? 1 : 0};
-        transition: opacity ${props => props.theme.transitions.fast};
-    }
+    padding: 1.25rem;
+    background: white;
+    border: 1px solid rgb(226, 232, 240);
+    border-radius: 0.75rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.06);
-        border-color: ${props => props.$isSelected ? 'var(--brand-primary)' : 'rgba(59, 130, 246, 0.3)'};
-
-        &::before {
-            opacity: 1;
-        }
+        border-color: rgb(203, 213, 225);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
+`;
 
-    &:active {
-        transform: translateY(0);
-    }
+const TemplateCardHeader = styled.div`
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+`;
+
+const TemplateInfo = styled.div`
+    flex: 1;
+    min-width: 0;
 `;
 
 const TemplateName = styled.div`
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: 700;
-    color: ${props => props.theme.colors.text};
-    margin-bottom: ${props => props.theme.spacing.xs};
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgb(15, 23, 42);
+    margin-bottom: 0.25rem;
     letter-spacing: -0.01em;
 `;
 
 const TemplateDescription = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
+    font-size: 0.875rem;
+    color: rgb(100, 116, 139);
     line-height: 1.5;
+`;
+
+const TemplateActions = styled.div`
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-shrink: 0;
+`;
+
+const IconButton = styled.button<{ $variant?: 'primary' | 'danger' }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+
+    ${props => props.$variant === 'primary' ? `
+        background: rgb(59, 130, 246);
+        color: white;
+
+        &:hover {
+            background: rgb(37, 99, 235);
+        }
+
+        &:active {
+            background: rgb(29, 78, 216);
+        }
+    ` : props.$variant === 'danger' ? `
+        background: rgb(239, 68, 68);
+        color: white;
+
+        &:hover {
+            background: rgb(220, 38, 38);
+        }
+
+        &:active {
+            background: rgb(185, 28, 28);
+        }
+    ` : `
+        background: rgb(241, 245, 249);
+        color: rgb(51, 65, 85);
+
+        &:hover {
+            background: rgb(226, 232, 240);
+        }
+
+        &:active {
+            background: rgb(203, 213, 225);
+        }
+    `}
+
+    svg {
+        width: 14px;
+        height: 14px;
+    }
+`;
+
+const TextButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.625rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: rgb(59, 130, 246);
+    background: transparent;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+        background: rgb(239, 246, 255);
+    }
+
+    &:active {
+        background: rgb(219, 234, 254);
+    }
+
+    svg {
+        width: 14px;
+        height: 14px;
+    }
 `;
 
 const Form = styled.form`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.md};
+    gap: 1.5rem;
 `;
 
-const AddTemplateButton = styled.button`
+const FormField = styled.div`
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: ${props => props.theme.spacing.sm};
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
-    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark, #1d4ed8) 100%);
-    color: white;
+    flex-direction: column;
+    gap: 0.5rem;
+`;
+
+const FormLabel = styled.label`
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgb(51, 65, 85);
+`;
+
+const BorderlessInput = styled.input`
+    width: 100%;
+    padding: 0.75rem 0;
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: rgb(15, 23, 42);
+    background: transparent;
     border: none;
-    border-radius: ${props => props.theme.radii.lg};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
-    margin-top: ${props => props.theme.spacing.md};
+    border-bottom: 2px solid rgb(226, 232, 240);
+    outline: none;
+    transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
-    &:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+    &:focus {
+        border-bottom-color: rgb(59, 130, 246);
     }
 
-    &:active {
-        transform: translateY(0);
-    }
-
-    svg {
-        width: 18px;
-        height: 18px;
+    &::placeholder {
+        color: rgb(148, 163, 184);
     }
 `;
 
-const EmptyState = styled.div`
-    padding: ${props => props.theme.spacing.xl} ${props => props.theme.spacing.lg};
-    text-align: center;
-    color: ${props => props.theme.colors.textMuted};
-    font-size: ${props => props.theme.fontSizes.sm};
-    background: linear-gradient(135deg, rgb(249, 250, 251) 0%, rgb(243, 244, 246) 100%);
-    border-radius: ${props => props.theme.radii.lg};
-    border: 2px dashed ${props => props.theme.colors.border};
-    line-height: 1.6;
-
-    &::before {
-        content: '📄';
-        display: block;
-        font-size: 48px;
-        margin-bottom: ${props => props.theme.spacing.md};
-        opacity: 0.5;
-    }
-`;
-
-const TemplateActions = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.sm};
-    margin-top: ${props => props.theme.spacing.md};
-    padding-top: ${props => props.theme.spacing.md};
-    border-top: 1px solid ${props => props.theme.colors.border};
-`;
-
-const SmallButton = styled.button<{ $variant?: 'danger' }>`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 600;
-    border-radius: ${props => props.theme.radii.md};
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid ${props => props.$variant === 'danger' ? props.theme.colors.error : 'rgb(209, 213, 219)'};
-    background: white;
-    color: ${props => props.$variant === 'danger' ? props.theme.colors.error : props.theme.colors.text};
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-
-    &:hover {
-        background: ${props => props.$variant === 'danger' ? 'rgb(254, 242, 242)' : 'rgb(249, 250, 251)'};
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        border-color: ${props => props.$variant === 'danger' ? props.theme.colors.error : 'rgb(156, 163, 175)'};
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
-`;
-
-const FileUploadArea = styled.div`
-    border: 3px dashed ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    padding: ${props => props.theme.spacing.xl};
-    text-align: center;
-    background: linear-gradient(135deg, rgb(249, 250, 251) 0%, rgb(243, 244, 246) 100%);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
+const FileUploadArea = styled.div<{ $isDragging?: boolean }>`
     position: relative;
-    overflow: hidden;
-
-    &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(37, 99, 235, 0.05) 100%);
-        opacity: 0;
-        transition: opacity ${props => props.theme.transitions.fast};
-    }
+    border: 2px dashed ${props => props.$isDragging ? 'rgb(59, 130, 246)' : 'rgb(203, 213, 225)'};
+    border-radius: 0.75rem;
+    padding: 2rem;
+    text-align: center;
+    background: ${props => props.$isDragging ? 'rgb(239, 246, 255)' : 'rgb(248, 250, 252)'};
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-        border-color: var(--brand-primary);
-        border-width: 3px;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-
-        &::before {
-            opacity: 1;
-        }
+        border-color: rgb(59, 130, 246);
+        background: rgb(239, 246, 255);
     }
 `;
 
@@ -236,67 +242,58 @@ const FileInput = styled.input`
 `;
 
 const UploadIcon = styled.div`
-    width: 64px;
-    height: 64px;
-    margin: 0 auto ${props => props.theme.spacing.md};
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: linear-gradient(135deg, rgb(239, 246, 255) 0%, rgb(219, 234, 254) 100%);
-    color: var(--brand-primary);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-    position: relative;
-    z-index: 1;
+    background: rgb(219, 234, 254);
+    color: rgb(59, 130, 246);
 
     svg {
-        width: 32px;
-        height: 32px;
+        width: 28px;
+        height: 28px;
     }
 `;
 
 const UploadText = styled.div`
-    font-size: ${props => props.theme.fontSizes.md};
-    color: ${props => props.theme.colors.text};
-    font-weight: 600;
-    margin-bottom: ${props => props.theme.spacing.xs};
-    position: relative;
-    z-index: 1;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: rgb(51, 65, 85);
+    margin-bottom: 0.25rem;
 `;
 
 const UploadHint = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
-    position: relative;
-    z-index: 1;
+    font-size: 0.8125rem;
+    color: rgb(100, 116, 139);
 `;
 
 const FilePreview = styled.div`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.md};
-    padding: ${props => props.theme.spacing.lg};
-    background: linear-gradient(135deg, white 0%, rgb(249, 250, 251) 100%);
-    border: 2px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    gap: 1rem;
+    padding: 1rem;
+    background: white;
+    border: 1px solid rgb(226, 232, 240);
+    border-radius: 0.75rem;
 `;
 
 const FileIcon = styled.div`
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: ${props => props.theme.radii.md};
-    background: linear-gradient(135deg, rgb(254, 242, 242) 0%, rgb(254, 226, 226) 100%);
+    border-radius: 0.5rem;
+    background: rgb(254, 226, 226);
     color: rgb(220, 38, 38);
     flex-shrink: 0;
-    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.15);
 
     svg {
-        width: 24px;
-        height: 24px;
+        width: 22px;
+        height: 22px;
     }
 `;
 
@@ -306,43 +303,35 @@ const FileInfo = styled.div`
 `;
 
 const FileName = styled.div`
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: 600;
-    color: ${props => props.theme.colors.text};
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgb(15, 23, 42);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    letter-spacing: -0.01em;
 `;
 
 const FileSize = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
-    margin-top: ${props => props.theme.spacing.xs};
+    font-size: 0.8125rem;
+    color: rgb(100, 116, 139);
+    margin-top: 0.125rem;
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.xs};
+    gap: 0.5rem;
 `;
 
 const RemoveFileButton = styled.button`
-    padding: ${props => props.theme.spacing.sm};
-    background: white;
-    border: 1px solid rgb(254, 226, 226);
-    color: ${props => props.theme.colors.error};
+    padding: 0.5rem;
+    background: transparent;
+    border: none;
+    color: rgb(100, 116, 139);
     cursor: pointer;
-    border-radius: ${props => props.theme.radii.md};
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    border-radius: 0.375rem;
+    transition: all 0.15s;
 
     &:hover {
-        background: rgb(254, 242, 242);
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(220, 38, 38, 0.15);
-        border-color: ${props => props.theme.colors.error};
-    }
-
-    &:active {
-        transform: translateY(0);
+        background: rgb(254, 226, 226);
+        color: rgb(220, 38, 38);
     }
 
     svg {
@@ -355,30 +344,68 @@ const RemoveFileButton = styled.button`
 const DownloadLink = styled.a`
     display: inline-flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.xs};
-    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 600;
-    color: var(--brand-primary);
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: rgb(59, 130, 246);
     text-decoration: none;
-    border-radius: ${props => props.theme.radii.md};
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid transparent;
+    transition: color 0.15s;
 
     &:hover {
-        background: rgb(239, 246, 255);
-        border-color: rgba(59, 130, 246, 0.2);
-        transform: translateY(-1px);
-    }
-
-    &:active {
-        transform: translateY(0);
+        color: rgb(37, 99, 235);
     }
 
     svg {
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
     }
+`;
+
+const AddTemplateButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.875rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: rgb(59, 130, 246);
+    background: white;
+    border: 1px dashed rgb(203, 213, 225);
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+        border-color: rgb(59, 130, 246);
+        background: rgb(239, 246, 255);
+    }
+
+    svg {
+        width: 18px;
+        height: 18px;
+    }
+`;
+
+const EmptyState = styled.div`
+    padding: 3rem 2rem;
+    text-align: center;
+    background: rgb(248, 250, 252);
+    border-radius: 0.75rem;
+    border: 2px dashed rgb(226, 232, 240);
+`;
+
+const EmptyIcon = styled.div`
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.4;
+`;
+
+const EmptyText = styled.div`
+    font-size: 0.9375rem;
+    color: rgb(100, 116, 139);
+    line-height: 1.6;
 `;
 
 // Icons
@@ -409,6 +436,18 @@ const XIcon = () => (
 const DownloadIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+    </svg>
+);
+
+const EditIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+    </svg>
+);
+
+const TrashIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
     </svg>
 );
 
@@ -607,42 +646,53 @@ export const ProtocolTemplateModal = ({
             <ModalContent>
                 {!isCreating ? (
                     <Section>
-                        <SectionTitle>Dostępne szablony</SectionTitle>
+                        <SectionHeader>
+                            <SectionLabel>Szablony dokumentów</SectionLabel>
+                            <SectionTitle>Twoje szablony</SectionTitle>
+                        </SectionHeader>
                         {templates.length === 0 ? (
                             <EmptyState>
-                                Brak szablonów. Dodaj pierwszy szablon, aby móc tworzyć reguły dokumentacji.
+                                <EmptyIcon>📄</EmptyIcon>
+                                <EmptyText>
+                                    Brak szablonów. Dodaj pierwszy szablon, aby móc tworzyć reguły dokumentacji.
+                                </EmptyText>
                             </EmptyState>
                         ) : (
                             <TemplateList>
                                 {templates.map(template => (
-                                    <TemplateCard key={template.id} $isSelected={false}>
-                                        <TemplateName>{template.name}</TemplateName>
-                                        {template.description && (
-                                            <TemplateDescription>{template.description}</TemplateDescription>
-                                        )}
-                                        {template.templateUrl && (
-                                            <div style={{ marginTop: '8px' }}>
-                                                <DownloadLink
-                                                    href={template.templateUrl}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
+                                    <TemplateCard key={template.id}>
+                                        <TemplateCardHeader>
+                                            <TemplateInfo>
+                                                <TemplateName>{template.name}</TemplateName>
+                                                {template.description && (
+                                                    <TemplateDescription>{template.description}</TemplateDescription>
+                                                )}
+                                            </TemplateInfo>
+                                            <TemplateActions>
+                                                {template.templateUrl && (
+                                                    <TextButton
+                                                        as="a"
+                                                        href={template.templateUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        <DownloadIcon />
+                                                        Podgląd
+                                                    </TextButton>
+                                                )}
+                                                <IconButton onClick={() => handleEdit(template)}>
+                                                    <EditIcon />
+                                                    Edytuj
+                                                </IconButton>
+                                                <IconButton
+                                                    $variant="danger"
+                                                    onClick={() => handleDelete(template)}
                                                 >
-                                                    <FilePdfIcon />
-                                                    Podgląd PDF
-                                                </DownloadLink>
-                                            </div>
-                                        )}
-                                        <TemplateActions>
-                                            <SmallButton onClick={() => handleEdit(template)}>
-                                                Edytuj
-                                            </SmallButton>
-                                            <SmallButton
-                                                $variant="danger"
-                                                onClick={() => handleDelete(template)}
-                                            >
-                                                Usuń
-                                            </SmallButton>
-                                        </TemplateActions>
+                                                    <TrashIcon />
+                                                    Usuń
+                                                </IconButton>
+                                            </TemplateActions>
+                                        </TemplateCardHeader>
                                     </TemplateCard>
                                 ))}
                             </TemplateList>
@@ -654,33 +704,36 @@ export const ProtocolTemplateModal = ({
                     </Section>
                 ) : (
                     <Section>
-                        <SectionTitle>
-                            {editingTemplate ? 'Edytuj szablon' : 'Dodaj nowy szablon'}
-                        </SectionTitle>
+                        <SectionHeader>
+                            <SectionLabel>{editingTemplate ? 'Edycja szablonu' : 'Nowy szablon'}</SectionLabel>
+                            <SectionTitle>
+                                {editingTemplate ? 'Edytuj szablon' : 'Dodaj nowy szablon'}
+                            </SectionTitle>
+                        </SectionHeader>
                         <Form onSubmit={handleSubmit}>
-                            <FieldGroup>
-                                <Label>Nazwa szablonu *</Label>
-                                <Input
+                            <FormField>
+                                <FormLabel>Nazwa szablonu</FormLabel>
+                                <BorderlessInput
                                     type="text"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    placeholder="np. Regulamin ogólny, Zgoda na korekta lakieru..."
+                                    placeholder="np. Regulamin ogólny, Zgoda na korektę lakieru..."
                                 />
                                 {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
-                            </FieldGroup>
+                            </FormField>
 
                             <FieldGroup>
-                                <Label>Opis</Label>
+                                <Label>Opis (opcjonalnie)</Label>
                                 <TextArea
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="Opcjonalny opis szablonu..."
+                                    placeholder="Krótki opis szablonu..."
                                     rows={3}
                                 />
                             </FieldGroup>
 
                             <FieldGroup>
-                                <Label>Szablon PDF *</Label>
+                                <Label>Plik PDF szablonu</Label>
 
                                 {/* Hidden file input */}
                                 <FileInput
@@ -724,7 +777,7 @@ export const ProtocolTemplateModal = ({
                                         <FileInfo>
                                             <FileName>{editingTemplate.name}.pdf</FileName>
                                             <FileSize>
-                                                Szablon zapisany
+                                                <span>Szablon zapisany</span>
                                                 <DownloadLink
                                                     href={editingTemplate.templateUrl}
                                                     target="_blank"
@@ -736,14 +789,12 @@ export const ProtocolTemplateModal = ({
                                                 </DownloadLink>
                                             </FileSize>
                                         </FileInfo>
-                                        <Button
+                                        <IconButton
                                             type="button"
-                                            $variant="secondary"
                                             onClick={handleUploadClick}
-                                            style={{ fontSize: '12px', padding: '4px 8px' }}
                                         >
                                             Zmień plik
-                                        </Button>
+                                        </IconButton>
                                     </FilePreview>
                                 ) : null}
 
