@@ -12,9 +12,19 @@ import type {
     Visit,
     CommunicationLog,
 } from '../types';
+import { mapBackendVehiclesResponse } from '../utils/customerMappers';
 
 const CUSTOMERS_BASE_PATH = '/api/v1/customers';
 const USE_MOCKS = false;
+
+// Backend vehicle response type
+interface BackendVehicle {
+    id: string;
+    brand: string;
+    model: string;
+    year: number;
+    licensePlate: string;
+}
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -321,10 +331,10 @@ export const customerDetailApi = {
             return mockGetCustomerVehicles(customerId);
         }
 
-        const response = await apiClient.get<CustomerVehiclesResponse>(
+        const response = await apiClient.get<BackendVehicle[]>(
             `${CUSTOMERS_BASE_PATH}/${customerId}/vehicles`
         );
-        return response.data;
+        return mapBackendVehiclesResponse(response.data);
     },
 
     getCustomerVisits: async (customerId: string): Promise<CustomerVisitsResponse> => {
