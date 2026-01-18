@@ -296,10 +296,28 @@ export const ProtocolRuleCard = ({ rule, onEdit, onRefresh }: ProtocolRuleCardPr
                         <Description>{rule.protocolTemplate.description}</Description>
                     )}
                     <BadgeGroup>
-                        <Badge $variant={rule.triggerType === 'GLOBAL_ALWAYS' ? 'global' : 'service'}>
-                            {rule.triggerType === 'GLOBAL_ALWAYS' ? <GlobeIcon /> : <WrenchIcon />}
-                            {rule.triggerType === 'GLOBAL_ALWAYS' ? 'Globalny' : rule.serviceName || 'Specyficzny'}
-                        </Badge>
+                        {rule.triggerType === 'GLOBAL_ALWAYS' ? (
+                            <Badge $variant="global">
+                                <GlobeIcon />
+                                Globalny
+                            </Badge>
+                        ) : (
+                            <>
+                                {rule.serviceNames && rule.serviceNames.length > 0 ? (
+                                    rule.serviceNames.map((serviceName, index) => (
+                                        <Badge key={index} $variant="service">
+                                            <WrenchIcon />
+                                            {serviceName}
+                                        </Badge>
+                                    ))
+                                ) : (
+                                    <Badge $variant="service">
+                                        <WrenchIcon />
+                                        Specyficzny dla usług
+                                    </Badge>
+                                )}
+                            </>
+                        )}
                         <Badge $variant={rule.isMandatory ? 'mandatory' : 'optional'}>
                             {rule.isMandatory ? <ShieldCheckIcon /> : null}
                             {rule.isMandatory ? 'Obowiązkowy' : 'Opcjonalny'}
@@ -343,8 +361,12 @@ export const ProtocolRuleCard = ({ rule, onEdit, onRefresh }: ProtocolRuleCardPr
                     </DetailRow>
                     {rule.triggerType === 'SERVICE_SPECIFIC' && (
                         <DetailRow>
-                            <DetailLabel>Usługa:</DetailLabel>
-                            <DetailValue>{rule.serviceName || rule.serviceId || 'Nie określono'}</DetailValue>
+                            <DetailLabel>Usługi:</DetailLabel>
+                            <DetailValue>
+                                {rule.serviceNames && rule.serviceNames.length > 0
+                                    ? rule.serviceNames.join(', ')
+                                    : 'Nie określono'}
+                            </DetailValue>
                         </DetailRow>
                     )}
                     <DetailRow>

@@ -33,6 +33,49 @@ const InfoBox = styled.div`
     }
 `;
 
+const ServiceCheckboxList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${props => props.theme.spacing.sm};
+    max-height: 250px;
+    overflow-y: auto;
+    padding: ${props => props.theme.spacing.sm};
+    background: rgb(249, 250, 251);
+    border-radius: ${props => props.theme.radii.md};
+    border: 1px solid ${props => props.theme.colors.border};
+`;
+
+const ServiceCheckbox = styled.label`
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.sm};
+    padding: ${props => props.theme.spacing.sm};
+    cursor: pointer;
+    border-radius: ${props => props.theme.radii.sm};
+    transition: background ${props => props.theme.transitions.fast};
+
+    &:hover {
+        background: white;
+    }
+
+    input {
+        cursor: pointer;
+    }
+`;
+
+const ServiceName = styled.div`
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: 500;
+    color: ${props => props.theme.colors.text};
+`;
+
+const EmptyServices = styled.div`
+    padding: ${props => props.theme.spacing.md};
+    text-align: center;
+    color: ${props => props.theme.colors.textMuted};
+    font-size: ${props => props.theme.fontSizes.xs};
+`;
+
 const RadioGroup = styled.div`
     display: flex;
     flex-direction: column;
@@ -130,7 +173,7 @@ export const ProtocolRuleModal = ({
 }: ProtocolRuleModalProps) => {
     const [protocolTemplateId, setProtocolTemplateId] = useState('');
     const [triggerType, setTriggerType] = useState<'GLOBAL_ALWAYS' | 'SERVICE_SPECIFIC'>('GLOBAL_ALWAYS');
-    const [serviceId, setServiceId] = useState('');
+    const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
     const [isMandatory, setIsMandatory] = useState(true);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -151,13 +194,13 @@ export const ProtocolRuleModal = ({
                 // Populate form with editing rule data
                 setProtocolTemplateId(editingRule.protocolTemplateId);
                 setTriggerType(editingRule.triggerType);
-                setServiceId(editingRule.serviceId || '');
+                setSelectedServiceIds(editingRule.serviceIds || []);
                 setIsMandatory(editingRule.isMandatory);
             } else {
                 // Reset form when modal opens for creating new rule
                 setProtocolTemplateId('');
                 setTriggerType('GLOBAL_ALWAYS');
-                setServiceId('');
+                setSelectedServiceIds([]);
                 setIsMandatory(true);
             }
             setErrors({});
@@ -171,8 +214,8 @@ export const ProtocolRuleModal = ({
             newErrors.protocolTemplateId = 'Wybierz szablon protokołu';
         }
 
-        if (triggerType === 'SERVICE_SPECIFIC' && !serviceId) {
-            newErrors.serviceId = 'Wybierz usługę dla tego protokołu';
+        if (triggerType === 'SERVICE_SPECIFIC' && selectedServiceIds.length === 0) {
+            newErrors.serviceIds = 'Wybierz co najmniej jedną usługę dla tego protokołu';
         }
 
         setErrors(newErrors);
@@ -191,7 +234,7 @@ export const ProtocolRuleModal = ({
                 protocolTemplateId,
                 triggerType,
                 stage,
-                serviceId: triggerType === 'SERVICE_SPECIFIC' ? serviceId : undefined,
+                serviceIds: triggerType === 'SERVICE_SPECIFIC' ? selectedServiceIds : undefined,
                 isMandatory,
                 displayOrder: editingRule?.displayOrder ?? 999, // Keep order for edits, default for new
             };
@@ -291,23 +334,33 @@ export const ProtocolRuleModal = ({
 
                 {triggerType === 'SERVICE_SPECIFIC' && (
                     <FieldGroup>
-                        <Label>Wybierz usługę *</Label>
-                        <Select
-                            value={serviceId}
-                            onChange={(e) => setServiceId(e.target.value)}
-                            disabled={isLoadingServices}
-                        >
-                            <option value="">
-                                {isLoadingServices ? 'Ładowanie usług...' : '-- Wybierz usługę --'}
-                            </option>
-                            {services.map(service => (
-                                <option key={service.id} value={service.id}>
-                                    {service.name}
-                                </option>
-                            ))}
-                        </Select>
-                        {errors.serviceId && (
-                            <ErrorMessage>{errors.serviceId}</ErrorMessage>
+                        <Label>Wybierz usługi *</Label>
+                        {isLoadingServices ? (
+                            <EmptyServices>Ładowanie usług...</EmptyServices>
+                        ) : services.length === 0 ? (
+                            <EmptyServices>Brak dostępnych usług</EmptyServices>
+                        ) : (
+                            <ServiceCheckboxList>
+                                {services.map(service => (
+                                    <ServiceCheckbox key={service.id}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedServiceIds.includes(service.id)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedServiceIds([...selectedServiceIds, service.id]);
+                                                } else {
+                                                    setSelectedServiceIds(selectedServiceIds.filter(id => id !== service.id));
+                                                }
+                                            }}
+                                        />
+                                        <ServiceName>{service.name}</ServiceName>
+                                    </ServiceCheckbox>
+                                ))}
+                            </ServiceCheckboxList>
+                        )}
+                        {errors.serviceIds && (
+                            <ErrorMessage>{errors.serviceIds}</ErrorMessage>
                         )}
                     </FieldGroup>
                 )}

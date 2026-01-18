@@ -17,8 +17,8 @@ export interface ProtocolRule {
   protocolTemplate?: ProtocolTemplate; // Populated in responses
   triggerType: ProtocolTriggerType;
   stage: ProtocolStage;
-  serviceId?: string; // Only if triggerType is SERVICE_SPECIFIC
-  serviceName?: string; // Populated in responses
+  serviceIds: string[]; // List of service IDs (only if triggerType is SERVICE_SPECIFIC)
+  serviceNames: string[]; // Populated in responses with service names
   isMandatory: boolean;
   displayOrder: number;
   createdAt: string;
@@ -56,7 +56,7 @@ export interface CreateProtocolRuleDto {
   protocolTemplateId: string;
   triggerType: ProtocolTriggerType;
   stage: ProtocolStage;
-  serviceId?: string;
+  serviceIds?: string[]; // List of service IDs (only if triggerType is SERVICE_SPECIFIC)
   isMandatory: boolean;
   displayOrder?: number;
 }
