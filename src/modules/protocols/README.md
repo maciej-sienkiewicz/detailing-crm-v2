@@ -87,9 +87,18 @@ The central management interface for defining which protocols are required durin
 
 1. Navigate to `/protocols` in the app
 2. Click "Zarządzaj szablonami" to create protocol templates
-3. Click "Dodaj regułę" in either Check-in or Check-out section
-4. Select a template, trigger type, and configure mandatory status
-5. Save to activate the rule
+3. Click "Dodaj nowy szablon"
+4. Fill in template details:
+   - **Nazwa**: Protocol name (e.g., "Regulamin ogólny")
+   - **Opis**: Optional description
+   - **Szablon PDF**: Upload PDF file (drag & drop or click)
+     - Accepts only PDF files
+     - Maximum file size: 10 MB
+     - Validates file type automatically
+5. Click "Dodaj szablon" to save
+6. Click "Dodaj regułę" in either Check-in or Check-out section
+7. Select a template, trigger type, and configure mandatory status
+8. Save to activate the rule
 
 ### UI Components
 
@@ -320,6 +329,64 @@ The system is fully responsive:
 - High contrast colors for readability
 - Focus states on interactive elements
 
+## 📤 File Upload System
+
+The protocol template system supports PDF file uploads with the following features:
+
+### Upload Methods
+
+1. **Click to Upload**: Click the upload area to open file picker
+2. **Drag & Drop**: Drag PDF files directly onto the upload area
+
+### Validation
+
+- **File Type**: Only PDF files (`.pdf`, `application/pdf`)
+- **File Size**: Maximum 10 MB per file
+- **Real-time Validation**: Instant feedback on invalid files
+
+### File Preview
+
+When a file is selected:
+- PDF icon with red background
+- File name (truncated if too long)
+- File size (formatted: B, KB, MB, GB)
+- Remove button to clear selection
+
+### Existing Templates
+
+For templates with uploaded files:
+- "Podgląd PDF" link to view the file
+- "Zmień plik" button to replace the file
+- File name display
+
+### Backend Integration
+
+**Note**: Current implementation simulates file upload for demo purposes.
+
+For production, implement actual file upload:
+
+```typescript
+// In ProtocolTemplateModal.tsx handleSubmit()
+const formData = new FormData();
+formData.append('file', selectedFile);
+formData.append('name', name);
+formData.append('description', description);
+
+const uploadResponse = await fetch('/api/v1/protocol-templates/upload', {
+  method: 'POST',
+  body: formData,
+});
+
+const { templateUrl } = await uploadResponse.json();
+```
+
+**Recommended backend setup:**
+- Store files in S3, Azure Blob, or similar
+- Generate unique filenames to prevent collisions
+- Return permanent URL after upload
+- Implement virus scanning for security
+- Add file cleanup for orphaned uploads
+
 ## 🔮 Future Enhancements
 
 - [ ] Drag & drop reordering of protocol rules
@@ -331,6 +398,10 @@ The system is fully responsive:
 - [ ] Conditional logic (e.g., "Show protocol if vehicle age > 5 years")
 - [ ] Custom fields in protocols
 - [ ] Analytics dashboard for protocol completion rates
+- [ ] Multiple file upload (supporting images, Word docs)
+- [ ] PDF preview/viewer in modal
+- [ ] File compression before upload
+- [ ] Progress bar for large file uploads
 
 ## 🤝 Contributing
 
