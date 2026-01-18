@@ -1,16 +1,19 @@
 // src/modules/checkin/views/CheckInWizardViewV2.tsx
 
+import { useState } from 'react';
 import styled from 'styled-components';
 import { Stepper } from '@/common/components/Stepper/Stepper';
 import { Button, ButtonGroup } from '@/common/components/Button';
 import { Card } from '@/common/components/Card';
 import { t } from '@/common/i18n';
+import { useToast } from '@/common/components/Toast';
 import { useCheckInWizard } from '../hooks/useCheckInWizard';
 import { useCheckInValidation } from '../hooks/useCheckInValidation';
 import { VerificationStep } from '../components/VerificationStep';
 import { TechnicalStateStep } from '../components/TechnicalStateStep';
 import { PhotoDocumentationStep } from '../components/PhotoDocumentationStep';
 import { SummaryStep } from '../components/SummaryStep';
+import { SigningRequirementModal } from '../components/SigningRequirementModal';
 import type { CheckInFormData } from '../types';
 
 const Container = styled.div`
@@ -114,6 +117,18 @@ export const CheckInWizardView = ({ reservationId, initialData, onComplete }: Ch
     } = useCheckInWizard(reservationId, initialData);
 
     const { errors, isStepValid } = useCheckInValidation(formData, currentStep);
+    const { showSuccess } = useToast();
+
+    // State for Signing Requirement Modal
+    const [signingModalState, setSigningModalState] = useState<{
+        isOpen: boolean;
+        visitId: string | null;
+        visitNumber: string | null;
+    }>({
+        isOpen: false,
+        visitId: null,
+        visitNumber: null,
+    });
 
     const handleNext = () => {
         if (isStepValid) {
@@ -125,11 +140,47 @@ export const CheckInWizardView = ({ reservationId, initialData, onComplete }: Ch
         if (!isStepValid) return;
 
         try {
+            // Step 1: Create the visit
             const result = await submitCheckIn();
-            onComplete(result.visitId);
+
+            // Step 2: Open the Signing Requirement Modal
+            setSigningModalState({
+                isOpen: true,
+                visitId: result.visitId,
+                visitNumber: result.visitNumber || `VIS-${result.visitId.slice(0, 8)}`,
+            });
         } catch (error) {
             console.error('Check-in failed:', error);
         }
+    };
+
+    const handleSigningModalConfirm = () => {
+        // Close modal and complete the check-in flow
+        if (signingModalState.visitId) {
+            const visitNumber = signingModalState.visitNumber || signingModalState.visitId.slice(0, 8);
+
+            // Show success toast
+            showSuccess(
+                `Wizyta ${visitNumber} rozpoczęta pomyślnie!`,
+                'Możesz teraz przejść do obsługi klienta.'
+            );
+
+            setSigningModalState({
+                isOpen: false,
+                visitId: null,
+                visitNumber: null,
+            });
+            onComplete(signingModalState.visitId);
+        }
+    };
+
+    const handleSigningModalClose = () => {
+        // Allow closing without completing (user can handle documents later)
+        setSigningModalState({
+            isOpen: false,
+            visitId: null,
+            visitNumber: null,
+        });
     };
 
     const handleServicesChange = (services: CheckInFormData['services']) => {
@@ -180,80 +231,94 @@ export const CheckInWizardView = ({ reservationId, initialData, onComplete }: Ch
     const canProceed = isStepValid;
 
     return (
-        <Container>
-            <ContentWrapper>
-                <Header>
-                    <Title>{t.checkin.title}</Title>
-                    <Subtitle>{t.checkin.subtitle}</Subtitle>
-                </Header>
+        <>
+            <Container>
+                <ContentWrapper>
+                    <Header>
+                        <Title>{t.checkin.title}</Title>
+                        <Subtitle>{t.checkin.subtitle}</Subtitle>
+                    </Header>
 
-                <Stepper
-                    steps={steps}
-                    currentStepId={currentStep}
-                    completedSteps={completedSteps}
+                    <Stepper
+                        steps={steps}
+                        currentStepId={currentStep}
+                        completedSteps={completedSteps}
+                    />
+
+                    <StepContent>{renderStepContent()}</StepContent>
+
+                    <ActionsCard>
+                        <ActionsContent>
+                            <DraftButton
+                                $variant="secondary"
+                                onClick={saveDraft}
+                            >
+                                {t.checkin.actions.saveAsDraft}
+                            </DraftButton>
+
+                            <NavigationButtons>
+                                {!isFirstStep && (
+                                    <Button
+                                        $variant="secondary"
+                                        onClick={previousStep}
+                                        disabled={isSubmitting}
+                                    >
+                                        {t.checkin.actions.previousStep}
+                                    </Button>
+                                )}
+
+                                {!isLastStep ? (
+                                    <Button
+                                        $variant="primary"
+                                        onClick={handleNext}
+                                        disabled={!canProceed}
+                                    >
+                                        {t.checkin.actions.nextStep}
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        $variant="primary"
+                                        onClick={handleSubmit}
+                                        disabled={!canProceed || isSubmitting}
+                                    >
+                                        {isSubmitting
+                                            ? t.checkin.summary.creating
+                                            : t.checkin.summary.createVisit}
+                                    </Button>
+                                )}
+                            </NavigationButtons>
+                        </ActionsContent>
+
+                        {submitError && (
+                            <div
+                                style={{
+                                    marginTop: '16px',
+                                    padding: '12px',
+                                    backgroundColor: '#fef2f2',
+                                    border: '1px solid #fca5a5',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    color: '#dc2626',
+                                }}
+                            >
+                                {t.checkin.errors.createFailed}
+                            </div>
+                        )}
+                    </ActionsCard>
+                </ContentWrapper>
+            </Container>
+
+            {/* Signing Requirement Modal */}
+            {signingModalState.visitId && (
+                <SigningRequirementModal
+                    isOpen={signingModalState.isOpen}
+                    onClose={handleSigningModalClose}
+                    visitId={signingModalState.visitId}
+                    visitNumber={signingModalState.visitNumber || ''}
+                    customerName={`${formData.customerData.firstName} ${formData.customerData.lastName}`}
+                    onConfirm={handleSigningModalConfirm}
                 />
-
-                <StepContent>{renderStepContent()}</StepContent>
-
-                <ActionsCard>
-                    <ActionsContent>
-                        <DraftButton
-                            $variant="secondary"
-                            onClick={saveDraft}
-                        >
-                            {t.checkin.actions.saveAsDraft}
-                        </DraftButton>
-
-                        <NavigationButtons>
-                            {!isFirstStep && (
-                                <Button
-                                    $variant="secondary"
-                                    onClick={previousStep}
-                                    disabled={isSubmitting}
-                                >
-                                    {t.checkin.actions.previousStep}
-                                </Button>
-                            )}
-
-                            {!isLastStep ? (
-                                <Button
-                                    $variant="primary"
-                                    onClick={handleNext}
-                                    disabled={!canProceed}
-                                >
-                                    {t.checkin.actions.nextStep}
-                                </Button>
-                            ) : (
-                                <Button
-                                    $variant="primary"
-                                    onClick={handleSubmit}
-                                    disabled={!canProceed || isSubmitting}
-                                >
-                                    {isSubmitting
-                                        ? t.checkin.summary.creating
-                                        : t.checkin.summary.createVisit}
-                                </Button>
-                            )}
-                        </NavigationButtons>
-                    </ActionsContent>
-
-                    {submitError && (
-                        <div
-                            style={{
-                                marginTop: '16px',
-                                padding: '12px',
-                                backgroundColor: '#fef2f2',
-                                border: '1px solid #fca5a5',
-                                borderRadius: '8px',
-                                fontSize: '14px',
-                                color: '#dc2626',
-                            }}
-                        >
-                            {t.checkin.errors.createFailed}
-                        </div>
-                    )}
-                </ActionsCard>
-            </ContentWrapper>
-        </Container>
+            )}
+        </>
     );
 };

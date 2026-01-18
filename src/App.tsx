@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/common/theme';
 import { SidebarProvider } from '@/widgets/Sidebar/context/SidebarContext';
 import { router } from '@/core';
 import { AuthProvider } from '@/core/context/AuthContext';
+import { ToastProvider } from '@/common/components/Toast';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -20,11 +21,13 @@ const App = () => {
     return (
         <QueryClientProvider client={queryClient}>
             <ThemeProvider>
-                <AuthProvider>
-                    <SidebarProvider>
-                        <RouterProvider router={router} />
-                    </SidebarProvider>
-                </AuthProvider>
+                <ToastProvider>
+                    <AuthProvider>
+                        <SidebarProvider>
+                            <RouterProvider router={router} />
+                        </SidebarProvider>
+                    </AuthProvider>
+                </ToastProvider>
             </ThemeProvider>
             <ReactQueryDevtools initialIsOpen={false} />
         </QueryClientProvider>
