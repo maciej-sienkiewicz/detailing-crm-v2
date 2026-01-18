@@ -79,8 +79,7 @@ interface QuickEventModalProps {
 
 export interface QuickEventFormData {
     title: string;
-    customerId?: string;
-    customerName: string;
+    customer: SelectedCustomer | null;
     vehicle: SelectedVehicle | null;
     startDateTime: string;
     endDateTime: string;
@@ -235,8 +234,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         e.preventDefault();
         onSave({
             title,
-            customerId: selectedCustomerId,
-            customerName: selectedCustomerName,
+            customer: selectedCustomer,
             vehicle: selectedVehicle,
             startDateTime,
             endDateTime,

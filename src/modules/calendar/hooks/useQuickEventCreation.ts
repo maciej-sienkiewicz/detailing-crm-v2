@@ -18,13 +18,32 @@ export const useQuickEventCreation = () => {
             }
 
             // Build customer payload
-            if (!data.customerId) {
+            if (!data.customer) {
                 throw new Error('Klient jest wymagany');
             }
-            const customerPayload = {
-                mode: 'EXISTING' as const,
-                id: data.customerId,
-            };
+
+            let customerPayload;
+            if (data.customer.isNew) {
+                // New customer
+                customerPayload = {
+                    mode: 'NEW' as const,
+                    newData: {
+                        firstName: data.customer.firstName || '',
+                        lastName: data.customer.lastName || '',
+                        phone: data.customer.phone || '',
+                        email: data.customer.email || '',
+                    },
+                };
+            } else {
+                // Existing customer
+                if (!data.customer.id) {
+                    throw new Error('ID klienta jest wymagane dla istniejącego klienta');
+                }
+                customerPayload = {
+                    mode: 'EXISTING' as const,
+                    id: data.customer.id,
+                };
+            }
 
             // Build vehicle payload
             let vehiclePayload;
