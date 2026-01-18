@@ -24,17 +24,16 @@ export const useLogin = () => {
 
 export const useSignup = () => {
     const navigate = useNavigate();
-    const { setAuthenticated } = useAuthContext();
 
     return useMutation({
         mutationFn: (credentials: SignupCredentials) => authApi.signup(credentials),
-        onSuccess: (data) => {
-            // Ustaw stan autentykacji na true po udanej rejestracji
-            setAuthenticated(true);
-
-            if (data.redirectUrl) {
-                navigate(data.redirectUrl);
-            }
+        onSuccess: () => {
+            // Przekieruj na stronę logowania z komunikatem o pomyślnej rejestracji
+            navigate('/login', {
+                state: {
+                    message: 'Pomyślnie utworzono konto. Teraz możesz się zalogować.'
+                }
+            });
         },
     });
 };

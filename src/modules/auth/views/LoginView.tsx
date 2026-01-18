@@ -1,12 +1,13 @@
 // src/modules/auth/views/LoginView.tsx
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { useLogin } from '../hooks/useAuth';
 import { loginSchema, type LoginFormData } from '../utils/validators';
 import { PasswordInput } from '../components/PasswordInput';
 import { Checkbox } from '../components/Checkbox';
 import { ErrorAlert } from '../components/ErrorAlert';
+import { SuccessAlert } from '../components/SuccessAlert';
 import { t } from '@/common/i18n';
 import { Input, Label, FieldGroup, ErrorMessage } from '@/common/components/Form';
 import { Button } from '@/common/components/Button';
@@ -110,6 +111,9 @@ const FooterLink = styled(Link)`
 `;
 
 export const LoginView = () => {
+    const location = useLocation();
+    const successMessage = (location.state as { message?: string })?.message;
+
     const [formData, setFormData] = useState<LoginFormData>({
         email: '',
         password: '',
@@ -155,6 +159,7 @@ export const LoginView = () => {
                     <Subtitle>{t.auth.login.subtitle}</Subtitle>
                 </LogoContainer>
 
+                {successMessage && <SuccessAlert message={successMessage} />}
                 {apiError && <ErrorAlert message={apiError} />}
 
                 <Form onSubmit={handleSubmit}>
