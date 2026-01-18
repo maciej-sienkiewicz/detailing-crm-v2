@@ -225,7 +225,7 @@ export const DocumentPreview = ({
                     <PlaceholderText>Podgląd w przygotowaniu</PlaceholderText>
                     <PlaceholderDescription>
                         W przyszłych wersjach tutaj pojawi się dynamiczny podgląd dokumentu
-                        z wypełnionymi danymi wizyty (VIN, przebieg, dane klienta, itp.).
+                        z wypełnionymi danymi wizyty (przebieg, dane klienta, itp.).
                     </PlaceholderDescription>
                 </PlaceholderPreview>
             );

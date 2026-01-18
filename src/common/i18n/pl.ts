@@ -112,7 +112,6 @@ export const pl: TranslationKeys = {
             },
             vehicleCard: {
                 year: 'Rocznik',
-                vin: 'VIN',
                 licensePlate: 'Nr rejestracyjny',
                 color: 'Kolor',
                 engine: 'Silnik',
@@ -406,7 +405,6 @@ export const pl: TranslationKeys = {
             technicalInfo: {
                 title: 'Dane techniczne',
                 licensePlate: 'Numer rejestracyjny',
-                vin: 'VIN',
                 brand: 'Marka',
                 model: 'Model',
                 year: 'Rok produkcji',
@@ -492,8 +490,6 @@ export const pl: TranslationKeys = {
             brandPlaceholder: 'BMW',
             model: 'Model',
             modelPlaceholder: 'X5',
-            vin: 'VIN (opcjonalnie)',
-            vinPlaceholder: 'WBAFR9C50BC000001',
             year: 'Rok produkcji',
             yearPlaceholder: '2021',
             color: 'Kolor',
@@ -524,7 +520,6 @@ export const pl: TranslationKeys = {
             brandMin: 'Marka musi mieć minimum 2 znaki',
             modelRequired: 'Model jest wymagany',
             modelMin: 'Model musi mieć minimum 2 znaki',
-            vinFormat: 'Nieprawidłowy format VIN (17 znaków)',
             yearRequired: 'Rok produkcji jest wymagany',
             yearRange: 'Rok produkcji musi być między 1900 a {currentYear}',
             colorRequired: 'Kolor jest wymagany',
@@ -566,10 +561,6 @@ export const pl: TranslationKeys = {
             brand: 'Marka',
             model: 'Model',
             licensePlate: 'Numer rejestracyjny',
-            vin: 'Numer VIN',
-            vinPlaceholder: 'np. WBAFR9C50BC000001',
-            vinRequired: 'Numer VIN jest wymagany',
-            vinFormat: 'Nieprawidłowy format VIN (17 znaków)',
         },
         technical: {
             title: 'Stan techniczny pojazdu',
@@ -660,7 +651,6 @@ export const pl: TranslationKeys = {
             requiredPhotos: 'Wgraj wszystkie wymagane zdjęcia',
             customerDataRequired: 'Dane klienta są wymagane',
             vehicleDataRequired: 'Dane pojazdu są wymagane',
-            vinRequired: 'Numer VIN jest wymagany',
             mileageRequired: 'Przebieg jest wymagany',
         },
         errors: {

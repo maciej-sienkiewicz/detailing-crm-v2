@@ -109,7 +109,6 @@ interface ReservationResponse {
         model: string;
         yearOfProduction: number;
         licensePlate: string;
-        vin?: string;
         color?: string;
         paintType?: string;
     } | null;
@@ -158,7 +157,6 @@ export const CheckInWizardWrapper = () => {
             model: reservationData.vehicle.model,
             yearOfProduction: reservationData.vehicle.year,
             licensePlate: reservationData.vehicle.licensePlate,
-            vin: reservationData.vehicle.vin,
             color: reservationData.vehicle.color,
             paintType: reservationData.vehicle.paintType,
         } : null,
@@ -243,7 +241,6 @@ export const CheckInWizardWrapper = () => {
             model: reservation.vehicle.model,
             yearOfProduction: reservation.vehicle.yearOfProduction,
             licensePlate: reservation.vehicle.licensePlate,
-            vin: reservation.vehicle.vin || '',
             color: reservation.vehicle.color,
             paintType: reservation.vehicle.paintType,
         } : null,

@@ -440,12 +440,6 @@ export const VehicleDetailView = () => {
                                             <InfoLabel>{t.vehicles.detail.technicalInfo.licensePlate}</InfoLabel>
                                             <InfoValue>{vehicle.licensePlate}</InfoValue>
                                         </InfoItem>
-                                        {vehicle.vin && (
-                                            <InfoItem>
-                                                <InfoLabel>{t.vehicles.detail.technicalInfo.vin}</InfoLabel>
-                                                <InfoValue>{vehicle.vin}</InfoValue>
-                                            </InfoItem>
-                                        )}
                                         <InfoItem>
                                             <InfoLabel>{t.vehicles.detail.technicalInfo.brand}</InfoLabel>
                                             <InfoValue>{vehicle.brand}</InfoValue>

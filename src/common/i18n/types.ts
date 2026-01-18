@@ -171,7 +171,6 @@ export interface TranslationKeys {
             };
             vehicleCard: {
                 year: string;
-                vin: string;
                 licensePlate: string;
                 color: string;
                 engine: string;
@@ -465,7 +464,6 @@ export interface TranslationKeys {
             technicalInfo: {
                 title: string;
                 licensePlate: string;
-                vin: string;
                 brand: string;
                 model: string;
                 year: string;
@@ -551,8 +549,6 @@ export interface TranslationKeys {
             brandPlaceholder: string;
             model: string;
             modelPlaceholder: string;
-            vin: string;
-            vinPlaceholder: string;
             year: string;
             yearPlaceholder: string;
             color: string;
@@ -583,7 +579,6 @@ export interface TranslationKeys {
             brandMin: string;
             modelRequired: string;
             modelMin: string;
-            vinFormat: string;
             yearRequired: string;
             yearRange: string;
             colorRequired: string;
@@ -625,10 +620,6 @@ export interface TranslationKeys {
             brand: string;
             model: string;
             licensePlate: string;
-            vin: string;
-            vinPlaceholder: string;
-            vinRequired: string;
-            vinFormat: string;
         };
         technical: {
             title: string;
@@ -719,7 +710,6 @@ export interface TranslationKeys {
             requiredPhotos: string;
             customerDataRequired: string;
             vehicleDataRequired: string;
-            vinRequired: string;
             mileageRequired: string;
         };
         errors: {

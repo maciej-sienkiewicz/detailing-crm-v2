@@ -129,7 +129,6 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
                 model: formData.vehicleData.model,
                 yearOfProduction: formData.vehicleData.yearOfProduction,
                 licensePlate: formData.vehicleData.licensePlate || undefined,
-                vin: formData.vehicleData.vin || undefined,
                 color: formData.vehicleData.color,
                 paintType: formData.vehicleData.paintType,
                 isNew: formData.isNewVehicle,

@@ -224,11 +224,6 @@ export const VehicleCard = ({ vehicle }: VehicleCardProps) => {
 
             <VehicleDetails>
                 <DetailItem>
-                    <DetailLabel>{t.customers.detail.vehicleCard.vin}</DetailLabel>
-                    <DetailValue>{vehicle.vin}</DetailValue>
-                </DetailItem>
-
-                <DetailItem>
                     <DetailLabel>{t.customers.detail.vehicleCard.licensePlate}</DetailLabel>
                     <DetailValue>{vehicle.licensePlate}</DetailValue>
                 </DetailItem>

@@ -10,7 +10,6 @@ export type {
 
 export {
     formatLicensePlate,
-    formatVin,
     getVehicleDisplayName,
     getVehicleShortName,
 } from './vehicleMappers';

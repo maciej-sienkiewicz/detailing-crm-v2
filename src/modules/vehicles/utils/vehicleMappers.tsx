@@ -2,10 +2,6 @@ export const formatLicensePlate = (plate: string): string => {
     return plate.toUpperCase().replace(/\s+/g, ' ').trim();
 };
 
-export const formatVin = (vin: string): string => {
-    return vin.toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, '');
-};
-
 export const getVehicleDisplayName = (vehicle: {
     brand: string;
     model: string;
