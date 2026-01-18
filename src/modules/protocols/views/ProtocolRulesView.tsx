@@ -250,6 +250,7 @@ export const ProtocolRulesView = () => {
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
     const [selectedStage, setSelectedStage] = useState<ProtocolStage>('CHECK_IN');
+    const [editingRule, setEditingRule] = useState<ProtocolRule | null>(null);
 
     const { data: rules = [], isLoading, isError, refetch } = useProtocolRules();
     const { data: templates = [] } = useProtocolTemplates();
@@ -259,11 +260,19 @@ export const ProtocolRulesView = () => {
 
     const handleAddRule = (stage: ProtocolStage) => {
         setSelectedStage(stage);
+        setEditingRule(null);
+        setIsRuleModalOpen(true);
+    };
+
+    const handleEditRule = (rule: ProtocolRule) => {
+        setSelectedStage(rule.stage);
+        setEditingRule(rule);
         setIsRuleModalOpen(true);
     };
 
     const handleCloseRuleModal = () => {
         setIsRuleModalOpen(false);
+        setEditingRule(null);
     };
 
     if (isLoading) {
@@ -336,6 +345,7 @@ export const ProtocolRulesView = () => {
                                     <ProtocolRuleCard
                                         key={rule.id}
                                         rule={rule}
+                                        onEdit={handleEditRule}
                                         onRefresh={refetch}
                                     />
                                 ))
@@ -372,6 +382,7 @@ export const ProtocolRulesView = () => {
                                     <ProtocolRuleCard
                                         key={rule.id}
                                         rule={rule}
+                                        onEdit={handleEditRule}
                                         onRefresh={refetch}
                                     />
                                 ))
@@ -392,6 +403,7 @@ export const ProtocolRulesView = () => {
                 onClose={handleCloseRuleModal}
                 stage={selectedStage}
                 templates={templates}
+                editingRule={editingRule}
                 onSuccess={refetch}
             />
         </ViewContainer>

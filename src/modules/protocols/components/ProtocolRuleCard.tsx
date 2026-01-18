@@ -1,17 +1,20 @@
 import styled from 'styled-components';
+import { useState } from 'react';
+import { useDeleteProtocolRule } from '../api/useProtocols';
 import type { ProtocolRule } from '../types';
 
+// Material Design 3 inspired card
 const Card = styled.div`
+    position: relative;
+    padding: 1.25rem;
     background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    padding: ${props => props.theme.spacing.lg};
-    transition: all ${props => props.theme.transitions.fast};
-    cursor: pointer;
+    border: 1px solid rgb(226, 232, 240);
+    border-radius: 0.75rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-        box-shadow: ${props => props.theme.shadows.md};
-        transform: translateY(-2px);
+        border-color: rgb(203, 213, 225);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
 `;
 
@@ -19,7 +22,7 @@ const CardHeader = styled.div`
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: ${props => props.theme.spacing.md};
+    gap: 1rem;
 `;
 
 const TitleSection = styled.div`
@@ -28,63 +31,65 @@ const TitleSection = styled.div`
 `;
 
 const DocumentName = styled.h3`
-    margin: 0 0 ${props => props.theme.spacing.xs} 0;
-    font-size: ${props => props.theme.fontSizes.md};
+    margin: 0 0 0.25rem 0;
+    font-size: 1rem;
     font-weight: 600;
-    color: ${props => props.theme.colors.text};
+    color: rgb(15, 23, 42);
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.xs};
+    gap: 0.375rem;
+    letter-spacing: -0.01em;
 `;
 
 const MandatoryIcon = styled.span`
-    color: rgb(239, 68, 68); // red-500
+    color: rgb(239, 68, 68);
     font-weight: 700;
+    font-size: 1.125rem;
 `;
 
 const Description = styled.p`
-    margin: 0;
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
+    margin: 0 0 0.75rem 0;
+    font-size: 0.875rem;
+    color: rgb(100, 116, 139);
+    line-height: 1.5;
 `;
 
 const BadgeGroup = styled.div`
     display: flex;
-    gap: ${props => props.theme.spacing.xs};
+    gap: 0.5rem;
     flex-wrap: wrap;
-    margin-top: ${props => props.theme.spacing.sm};
 `;
 
 const Badge = styled.span<{ $variant: 'global' | 'service' | 'mandatory' | 'optional' }>`
     display: inline-flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.xs};
-    padding: 2px ${props => props.theme.spacing.sm};
-    border-radius: ${props => props.theme.radii.full};
-    font-size: ${props => props.theme.fontSizes.xs};
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
     font-weight: 500;
 
     ${props => {
         switch (props.$variant) {
             case 'global':
                 return `
-                    background: rgb(239, 246, 255); // blue-50
-                    color: rgb(37, 99, 235); // blue-600
+                    background: rgb(239, 246, 255);
+                    color: rgb(37, 99, 235);
                 `;
             case 'service':
                 return `
-                    background: rgb(243, 232, 255); // purple-50
-                    color: rgb(147, 51, 234); // purple-600
+                    background: rgb(243, 232, 255);
+                    color: rgb(147, 51, 234);
                 `;
             case 'mandatory':
                 return `
-                    background: rgb(254, 242, 242); // red-50
-                    color: rgb(220, 38, 38); // red-600
+                    background: rgb(254, 242, 242);
+                    color: rgb(220, 38, 38);
                 `;
             case 'optional':
                 return `
-                    background: rgb(243, 244, 246); // gray-50
-                    color: rgb(75, 85, 99); // gray-600
+                    background: rgb(243, 244, 246);
+                    color: rgb(75, 85, 99);
                 `;
         }
     }}
@@ -93,6 +98,120 @@ const Badge = styled.span<{ $variant: 'global' | 'service' | 'mandatory' | 'opti
         width: 12px;
         height: 12px;
     }
+`;
+
+const Actions = styled.div`
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-shrink: 0;
+`;
+
+const IconButton = styled.button<{ $variant?: 'primary' | 'danger' }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+
+    ${props => props.$variant === 'primary' ? `
+        background: rgb(59, 130, 246);
+        color: white;
+
+        &:hover {
+            background: rgb(37, 99, 235);
+        }
+
+        &:active {
+            background: rgb(29, 78, 216);
+        }
+    ` : props.$variant === 'danger' ? `
+        background: rgb(239, 68, 68);
+        color: white;
+
+        &:hover {
+            background: rgb(220, 38, 38);
+        }
+
+        &:active {
+            background: rgb(185, 28, 28);
+        }
+    ` : `
+        background: rgb(241, 245, 249);
+        color: rgb(51, 65, 85);
+
+        &:hover {
+            background: rgb(226, 232, 240);
+        }
+
+        &:active {
+            background: rgb(203, 213, 225);
+        }
+    `}
+
+    svg {
+        width: 14px;
+        height: 14px;
+    }
+`;
+
+const TextButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.625rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: rgb(59, 130, 246);
+    background: transparent;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+        background: rgb(239, 246, 255);
+    }
+
+    &:active {
+        background: rgb(219, 234, 254);
+    }
+
+    svg {
+        width: 14px;
+        height: 14px;
+    }
+`;
+
+const DetailsPanel = styled.div`
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgb(226, 232, 240);
+`;
+
+const DetailRow = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    font-size: 0.8125rem;
+`;
+
+const DetailLabel = styled.span`
+    color: rgb(100, 116, 139);
+    font-weight: 500;
+`;
+
+const DetailValue = styled.span`
+    color: rgb(15, 23, 42);
+    font-weight: 500;
 `;
 
 // Icons
@@ -115,14 +234,55 @@ const WrenchIcon = () => (
     </svg>
 );
 
+const EyeIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    </svg>
+);
+
+const EditIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+    </svg>
+);
+
+const TrashIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+    </svg>
+);
+
 interface ProtocolRuleCardProps {
     rule: ProtocolRule;
-    onRefresh?: () => void; // Optional, for future use
+    onEdit?: (rule: ProtocolRule) => void;
+    onRefresh?: () => void;
 }
 
-export const ProtocolRuleCard = ({ rule }: ProtocolRuleCardProps) => {
-    // Note: Backend does not support updating or deleting protocol rules
-    // Rules are immutable once created for audit compliance
+export const ProtocolRuleCard = ({ rule, onEdit, onRefresh }: ProtocolRuleCardProps) => {
+    const [showDetails, setShowDetails] = useState(false);
+    const deleteMutation = useDeleteProtocolRule();
+
+    const handleDelete = async () => {
+        if (!confirm(`Czy na pewno chcesz usunąć przypisanie protokołu "${rule.protocolTemplate?.name}"?`)) {
+            return;
+        }
+
+        try {
+            await deleteMutation.mutateAsync(rule.id);
+            onRefresh?.();
+        } catch (error) {
+            console.error('Failed to delete protocol rule:', error);
+        }
+    };
+
+    const handleEdit = () => {
+        onEdit?.(rule);
+    };
+
+    const toggleDetails = () => {
+        setShowDetails(!showDetails);
+    };
 
     return (
         <Card>
@@ -146,7 +306,57 @@ export const ProtocolRuleCard = ({ rule }: ProtocolRuleCardProps) => {
                         </Badge>
                     </BadgeGroup>
                 </TitleSection>
+                <Actions>
+                    <TextButton onClick={toggleDetails}>
+                        <EyeIcon />
+                        {showDetails ? 'Ukryj' : 'Szczegóły'}
+                    </TextButton>
+                    <IconButton onClick={handleEdit}>
+                        <EditIcon />
+                        Edytuj
+                    </IconButton>
+                    <IconButton $variant="danger" onClick={handleDelete}>
+                        <TrashIcon />
+                        Usuń
+                    </IconButton>
+                </Actions>
             </CardHeader>
+            {showDetails && (
+                <DetailsPanel>
+                    <DetailRow>
+                        <DetailLabel>ID reguły:</DetailLabel>
+                        <DetailValue>{rule.id}</DetailValue>
+                    </DetailRow>
+                    <DetailRow>
+                        <DetailLabel>Szablon protokołu:</DetailLabel>
+                        <DetailValue>{rule.protocolTemplate?.name || 'Brak'}</DetailValue>
+                    </DetailRow>
+                    <DetailRow>
+                        <DetailLabel>Etap:</DetailLabel>
+                        <DetailValue>{rule.stage === 'CHECK_IN' ? 'Przyjęcie' : 'Wydanie'}</DetailValue>
+                    </DetailRow>
+                    <DetailRow>
+                        <DetailLabel>Typ wyzwalacza:</DetailLabel>
+                        <DetailValue>
+                            {rule.triggerType === 'GLOBAL_ALWAYS' ? 'Globalny - zawsze wymagany' : 'Specyficzny dla usługi'}
+                        </DetailValue>
+                    </DetailRow>
+                    {rule.triggerType === 'SERVICE_SPECIFIC' && (
+                        <DetailRow>
+                            <DetailLabel>Usługa:</DetailLabel>
+                            <DetailValue>{rule.serviceName || rule.serviceId || 'Nie określono'}</DetailValue>
+                        </DetailRow>
+                    )}
+                    <DetailRow>
+                        <DetailLabel>Obowiązkowy:</DetailLabel>
+                        <DetailValue>{rule.isMandatory ? 'Tak' : 'Nie'}</DetailValue>
+                    </DetailRow>
+                    <DetailRow>
+                        <DetailLabel>Kolejność wyświetlania:</DetailLabel>
+                        <DetailValue>{rule.displayOrder}</DetailValue>
+                    </DetailRow>
+                </DetailsPanel>
+            )}
         </Card>
     );
 };
