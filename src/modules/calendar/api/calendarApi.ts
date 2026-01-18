@@ -154,6 +154,8 @@ const mockVisits: VisitResponse[] = [
  * Transform appointment data to calendar event format
  */
 const transformAppointment = (appointment: AppointmentResponse): CalendarEvent => {
+    console.log('[transformAppointment] Transforming appointment:', appointment.id, appointment);
+
     const customerName = `${appointment.customer.firstName} ${appointment.customer.lastName}`;
     const vehicleInfo = appointment.vehicle
         ? `${appointment.vehicle.brand} ${appointment.vehicle.model}`
@@ -163,6 +165,8 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
     // Fallback color if appointmentColor is missing
     const colorHex = appointment.appointmentColor?.hexColor || '#94a3b8';
     const textColor = getContrastingTextColor(colorHex);
+
+    console.log('[transformAppointment] Color:', colorHex, 'Text color:', textColor);
 
     const eventData: AppointmentEventData = {
         id: appointment.id,
@@ -178,7 +182,7 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         currency: 'PLN',
     };
 
-    return {
+    const calendarEvent = {
         id: appointment.id,
         title: appointment.appointmentTitle || `${customerName} | ${vehicleInfo}`,
         start: appointment.schedule.startDateTime,
@@ -189,6 +193,10 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         textColor,
         extendedProps: eventData,
     };
+
+    console.log('[transformAppointment] Transformed event:', calendarEvent);
+
+    return calendarEvent;
 };
 
 /**

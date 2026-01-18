@@ -73,11 +73,11 @@ export interface AppointmentResponse {
         startDateTime: string;
         endDateTime: string;
     };
-    appointmentColor: {
+    appointmentColor?: {
         id: string;
         name: string;
         hexColor: string;
-    };
+    } | null;
     status: string;
     totalNet: number;
     totalGross: number;

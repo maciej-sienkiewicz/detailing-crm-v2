@@ -258,10 +258,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const { createQuickEvent } = useQuickEventCreation();
     const { data: events = [], isLoading } = useCalendarEvents(dateRange);
 
+    // Log events whenever they change
+    React.useEffect(() => {
+        console.log('[CalendarView] Events updated:', events.length, 'events', events);
+    }, [events]);
+
     /**
      * Handle date range changes (triggered when view changes or user navigates)
      */
     const handleDatesSet = useCallback((arg: DatesSetArg) => {
+        console.log('[CalendarView] handleDatesSet called with:', {
+            start: arg.startStr,
+            end: arg.endStr,
+            viewType: arg.view.type
+        });
+
         setDateRange({
             start: arg.startStr,
             end: arg.endStr,
