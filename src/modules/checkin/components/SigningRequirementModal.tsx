@@ -51,7 +51,7 @@ const DocumentRow = styled.div`
     padding: ${props => props.theme.spacing.md};
     background: ${props => props.theme.colors.surface};
     border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.borderRadius.lg};
+    border-radius: ${props => props.theme.radii.lg};
     transition: all 0.2s ease;
 
     &:hover {
@@ -67,7 +67,7 @@ const DocumentIcon = styled.div`
     align-items: center;
     justify-content: center;
     background: ${props => props.theme.colors.primary}15;
-    border-radius: ${props => props.theme.borderRadius.md};
+    border-radius: ${props => props.theme.radii.md};
     color: ${props => props.theme.colors.primary};
     flex-shrink: 0;
 
@@ -97,7 +97,7 @@ const DocumentDescription = styled.div`
 
 const StatusBadge = styled.span<{ $mandatory: boolean }>`
     padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
-    border-radius: ${props => props.theme.borderRadius.full};
+    border-radius: ${props => props.theme.radii.full};
     font-size: ${props => props.theme.fontSizes.xs};
     font-weight: ${props => props.theme.fontWeights.semibold};
     text-transform: uppercase;
@@ -124,7 +124,7 @@ const IconButton = styled.button`
     justify-content: center;
     border: none;
     background: ${props => props.theme.colors.surfaceHover};
-    border-radius: ${props => props.theme.borderRadius.md};
+    border-radius: ${props => props.theme.radii.md};
     color: ${props => props.theme.colors.textSecondary};
     cursor: pointer;
     transition: all 0.2s ease;

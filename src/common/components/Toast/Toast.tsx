@@ -42,7 +42,7 @@ const ToastContainer = styled.div<{ $variant: 'success' | 'error' | 'info' | 'wa
         }
     }};
     color: white;
-    border-radius: ${props => props.theme.borderRadius.lg};
+    border-radius: ${props => props.theme.radii.lg};
     box-shadow: ${props => props.theme.shadows.xl};
     min-width: 320px;
     max-width: 500px;
@@ -100,7 +100,7 @@ const CloseButton = styled.button`
     background: transparent;
     color: white;
     cursor: pointer;
-    border-radius: ${props => props.theme.borderRadius.sm};
+    border-radius: ${props => props.theme.radii.sm};
     opacity: 0.8;
     transition: opacity 0.2s ease, background 0.2s ease;
 

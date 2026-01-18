@@ -16,7 +16,7 @@ const WarningHeader = styled.div`
     padding: ${props => props.theme.spacing.md};
     background: ${props => props.theme.colors.warning}15;
     border-left: 4px solid ${props => props.theme.colors.warning};
-    border-radius: ${props => props.theme.borderRadius.md};
+    border-radius: ${props => props.theme.radii.md};
 `;
 
 const WarningIcon = styled.div`
@@ -126,7 +126,7 @@ const HelpText = styled.div`
     text-align: center;
     padding: ${props => props.theme.spacing.sm};
     background: ${props => props.theme.colors.surfaceHover};
-    border-radius: ${props => props.theme.borderRadius.sm};
+    border-radius: ${props => props.theme.radii.sm};
 `;
 
 interface SkipSigningConfirmDialogProps {

@@ -16,7 +16,7 @@ const PreviewContainer = styled.div`
     flex: 1;
     background: ${props => props.theme.colors.surfaceHover};
     border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.borderRadius.lg};
+    border-radius: ${props => props.theme.radii.lg};
     overflow: hidden;
     display: flex;
     align-items: center;
