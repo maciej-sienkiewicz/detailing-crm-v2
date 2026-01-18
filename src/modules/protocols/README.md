@@ -393,8 +393,32 @@ await axios.put(response.templateUrl, file, {
 **Backend implementation:**
 - Files stored in AWS S3
 - Presigned URLs for secure uploads
-- Automatic file cleanup for orphaned uploads
 - Download URLs generated on-demand
+
+### Upload Failure Handling
+
+**Current Implementation (Frontend Cleanup):**
+If S3 upload fails, the frontend automatically deletes the created template to prevent orphaned records:
+
+```typescript
+try {
+  await axios.put(templateUrl, file);
+} catch (uploadError) {
+  // Delete template if upload fails
+  await deleteProtocolTemplate(template.id);
+  throw new Error('Upload failed');
+}
+```
+
+**⚠️ Known Limitation**: If browser crashes during upload, orphaned templates may remain in database.
+
+**Recommended Backend Solution:**
+Backend should implement two-phase commit pattern:
+1. Create template with `uploadConfirmed: false`
+2. Require POST `/api/v1/protocol-templates/{id}/confirm-upload` after successful upload
+3. Add scheduled job to clean up unconfirmed templates older than 15 minutes
+
+This ensures data consistency even if client disconnects during upload.
 
 ## ⚠️ Backend Constraints
 

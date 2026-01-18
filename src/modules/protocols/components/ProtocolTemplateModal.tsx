@@ -467,7 +467,10 @@ export const ProtocolTemplateModal = ({
             onSuccess?.();
         } catch (error) {
             console.error('Failed to save template:', error);
-            setErrors({ submit: 'Wystąpił błąd podczas zapisywania szablonu' });
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Wystąpił błąd podczas zapisywania szablonu';
+            setErrors({ submit: errorMessage });
         }
     };
 

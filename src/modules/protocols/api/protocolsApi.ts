@@ -30,11 +30,25 @@ class ProtocolsApi {
     // Step 2: Upload file to S3 if provided
     // The templateUrl contains the presigned URL for uploading
     if (file && template.templateUrl) {
-      await axios.put(template.templateUrl, file, {
-        headers: {
-          'Content-Type': file.type,
-        },
-      });
+      try {
+        await axios.put(template.templateUrl, file, {
+          headers: {
+            'Content-Type': file.type,
+          },
+        });
+      } catch (uploadError) {
+        // CRITICAL: If upload fails, delete the template to prevent orphaned records
+        // This is a temporary frontend solution. Ideally, backend should handle this
+        // via a two-phase commit (uploadConfirmed flag + cleanup job).
+        console.error('S3 upload failed, cleaning up template:', uploadError);
+        try {
+          await this.deleteProtocolTemplate(template.id);
+        } catch (deleteError) {
+          console.error('Failed to cleanup template after upload failure:', deleteError);
+        }
+        // Re-throw the original upload error
+        throw new Error(`Upload pliku nie powiódł się: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`);
+      }
     }
 
     // Step 3: Return the created template
