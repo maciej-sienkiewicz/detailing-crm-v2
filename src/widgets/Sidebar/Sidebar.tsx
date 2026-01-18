@@ -39,6 +39,7 @@ const menuSections: MenuSection[] = [
         title: 'System',
         items: [
             { path: '/consents', label: 'Zgody', icon: '◎' },
+            { path: '/protocols', label: 'Protokoły', icon: '◰' },
             { path: '/team', label: 'Zespół', icon: '◕' },
         ],
     },
