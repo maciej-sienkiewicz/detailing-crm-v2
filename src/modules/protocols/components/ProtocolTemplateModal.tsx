@@ -13,58 +13,98 @@ import type { ProtocolTemplate } from '../types';
 const ModalContent = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
+    gap: ${props => props.theme.spacing.xl};
     max-height: 70vh;
     overflow-y: auto;
+    padding: ${props => props.theme.spacing.xs};
 `;
 
 const Section = styled.div`
-    padding-bottom: ${props => props.theme.spacing.lg};
-    border-bottom: 1px solid ${props => props.theme.colors.border};
-
-    &:last-child {
-        border-bottom: none;
+    &:not(:last-child) {
+        padding-bottom: ${props => props.theme.spacing.xl};
+        border-bottom: 2px solid ${props => props.theme.colors.border};
     }
 `;
 
 const SectionTitle = styled.h3`
-    margin: 0 0 ${props => props.theme.spacing.md} 0;
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: 600;
+    margin: 0 0 ${props => props.theme.spacing.lg} 0;
+    font-size: ${props => props.theme.fontSizes.lg};
+    font-weight: 700;
     color: ${props => props.theme.colors.text};
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.sm};
+
+    &::before {
+        content: '';
+        width: 4px;
+        height: 24px;
+        background: linear-gradient(to bottom, var(--brand-primary), var(--brand-primary-dark, #1d4ed8));
+        border-radius: 2px;
+    }
 `;
 
 const TemplateList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.sm};
-    max-height: 300px;
+    gap: ${props => props.theme.spacing.md};
+    max-height: 350px;
     overflow-y: auto;
+    padding: 2px;
 `;
 
 const TemplateCard = styled.div<{ $isSelected: boolean }>`
-    padding: ${props => props.theme.spacing.md};
-    border: 1px solid ${props => props.$isSelected ? 'var(--brand-primary)' : props.theme.colors.border};
-    background: ${props => props.$isSelected ? 'rgb(239, 246, 255)' : 'white'};
-    border-radius: ${props => props.theme.radii.md};
+    padding: ${props => props.theme.spacing.lg};
+    border: 2px solid ${props => props.$isSelected ? 'var(--brand-primary)' : 'transparent'};
+    background: ${props => props.$isSelected
+        ? 'linear-gradient(135deg, rgb(239, 246, 255) 0%, rgb(224, 242, 254) 100%)'
+        : 'white'};
+    border-radius: ${props => props.theme.radii.lg};
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.03);
     cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(to bottom, var(--brand-primary), var(--brand-primary-dark, #1d4ed8));
+        opacity: ${props => props.$isSelected ? 1 : 0};
+        transition: opacity ${props => props.theme.transitions.fast};
+    }
 
     &:hover {
-        border-color: var(--brand-primary);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.06);
+        border-color: ${props => props.$isSelected ? 'var(--brand-primary)' : 'rgba(59, 130, 246, 0.3)'};
+
+        &::before {
+            opacity: 1;
+        }
+    }
+
+    &:active {
+        transform: translateY(0);
     }
 `;
 
 const TemplateName = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 600;
+    font-size: ${props => props.theme.fontSizes.md};
+    font-weight: 700;
     color: ${props => props.theme.colors.text};
     margin-bottom: ${props => props.theme.spacing.xs};
+    letter-spacing: -0.01em;
 `;
 
 const TemplateDescription = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
+    font-size: ${props => props.theme.fontSizes.sm};
     color: ${props => props.theme.colors.textMuted};
+    line-height: 1.5;
 `;
 
 const Form = styled.form`
@@ -77,67 +117,117 @@ const AddTemplateButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: ${props => props.theme.spacing.xs};
-    padding: ${props => props.theme.spacing.sm};
-    background: transparent;
-    color: var(--brand-primary);
-    border: 1px dashed var(--brand-primary);
-    border-radius: ${props => props.theme.radii.md};
+    gap: ${props => props.theme.spacing.sm};
+    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark, #1d4ed8) 100%);
+    color: white;
+    border: none;
+    border-radius: ${props => props.theme.radii.lg};
     font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+    margin-top: ${props => props.theme.spacing.md};
 
     &:hover {
-        background: rgb(239, 246, 255);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+    }
+
+    &:active {
+        transform: translateY(0);
     }
 
     svg {
-        width: 16px;
-        height: 16px;
+        width: 18px;
+        height: 18px;
     }
 `;
 
 const EmptyState = styled.div`
-    padding: ${props => props.theme.spacing.xl};
+    padding: ${props => props.theme.spacing.xl} ${props => props.theme.spacing.lg};
     text-align: center;
     color: ${props => props.theme.colors.textMuted};
     font-size: ${props => props.theme.fontSizes.sm};
+    background: linear-gradient(135deg, rgb(249, 250, 251) 0%, rgb(243, 244, 246) 100%);
+    border-radius: ${props => props.theme.radii.lg};
+    border: 2px dashed ${props => props.theme.colors.border};
+    line-height: 1.6;
+
+    &::before {
+        content: '📄';
+        display: block;
+        font-size: 48px;
+        margin-bottom: ${props => props.theme.spacing.md};
+        opacity: 0.5;
+    }
 `;
 
 const TemplateActions = styled.div`
     display: flex;
-    gap: ${props => props.theme.spacing.xs};
-    margin-top: ${props => props.theme.spacing.sm};
+    gap: ${props => props.theme.spacing.sm};
+    margin-top: ${props => props.theme.spacing.md};
+    padding-top: ${props => props.theme.spacing.md};
+    border-top: 1px solid ${props => props.theme.colors.border};
 `;
 
 const SmallButton = styled.button<{ $variant?: 'danger' }>`
-    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
+    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
     font-size: ${props => props.theme.fontSizes.xs};
-    border-radius: ${props => props.theme.radii.sm};
+    font-weight: 600;
+    border-radius: ${props => props.theme.radii.md};
     cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
-    border: 1px solid ${props => props.$variant === 'danger' ? props.theme.colors.error : props.theme.colors.border};
-    background: transparent;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid ${props => props.$variant === 'danger' ? props.theme.colors.error : 'rgb(209, 213, 219)'};
+    background: white;
     color: ${props => props.$variant === 'danger' ? props.theme.colors.error : props.theme.colors.text};
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 
     &:hover {
         background: ${props => props.$variant === 'danger' ? 'rgb(254, 242, 242)' : 'rgb(249, 250, 251)'};
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-color: ${props => props.$variant === 'danger' ? props.theme.colors.error : 'rgb(156, 163, 175)'};
+    }
+
+    &:active {
+        transform: translateY(0);
     }
 `;
 
 const FileUploadArea = styled.div`
-    border: 2px dashed ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    padding: ${props => props.theme.spacing.lg};
+    border: 3px dashed ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.lg};
+    padding: ${props => props.theme.spacing.xl};
     text-align: center;
-    background: rgb(249, 250, 251);
-    transition: all ${props => props.theme.transitions.fast};
+    background: linear-gradient(135deg, rgb(249, 250, 251) 0%, rgb(243, 244, 246) 100%);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(37, 99, 235, 0.05) 100%);
+        opacity: 0;
+        transition: opacity ${props => props.theme.transitions.fast};
+    }
 
     &:hover {
         border-color: var(--brand-primary);
-        background: rgb(239, 246, 255);
+        border-width: 3px;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+
+        &::before {
+            opacity: 1;
+        }
     }
 `;
 
@@ -146,58 +236,67 @@ const FileInput = styled.input`
 `;
 
 const UploadIcon = styled.div`
-    width: 48px;
-    height: 48px;
-    margin: 0 auto ${props => props.theme.spacing.sm};
+    width: 64px;
+    height: 64px;
+    margin: 0 auto ${props => props.theme.spacing.md};
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: rgb(239, 246, 255);
+    background: linear-gradient(135deg, rgb(239, 246, 255) 0%, rgb(219, 234, 254) 100%);
     color: var(--brand-primary);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    position: relative;
+    z-index: 1;
 
     svg {
-        width: 24px;
-        height: 24px;
+        width: 32px;
+        height: 32px;
     }
 `;
 
 const UploadText = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
+    font-size: ${props => props.theme.fontSizes.md};
     color: ${props => props.theme.colors.text};
-    font-weight: 500;
-    margin-bottom: 4px;
+    font-weight: 600;
+    margin-bottom: ${props => props.theme.spacing.xs};
+    position: relative;
+    z-index: 1;
 `;
 
 const UploadHint = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
+    font-size: ${props => props.theme.fontSizes.sm};
     color: ${props => props.theme.colors.textMuted};
+    position: relative;
+    z-index: 1;
 `;
 
 const FilePreview = styled.div`
     display: flex;
     align-items: center;
     gap: ${props => props.theme.spacing.md};
-    padding: ${props => props.theme.spacing.md};
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
+    padding: ${props => props.theme.spacing.lg};
+    background: linear-gradient(135deg, white 0%, rgb(249, 250, 251) 100%);
+    border: 2px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.lg};
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 `;
 
 const FileIcon = styled.div`
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: ${props => props.theme.radii.sm};
-    background: rgb(254, 242, 242);
+    border-radius: ${props => props.theme.radii.md};
+    background: linear-gradient(135deg, rgb(254, 242, 242) 0%, rgb(254, 226, 226) 100%);
     color: rgb(220, 38, 38);
     flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.15);
 
     svg {
-        width: 20px;
-        height: 20px;
+        width: 24px;
+        height: 24px;
     }
 `;
 
@@ -207,36 +306,48 @@ const FileInfo = styled.div`
 `;
 
 const FileName = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
+    font-size: ${props => props.theme.fontSizes.md};
+    font-weight: 600;
     color: ${props => props.theme.colors.text};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    letter-spacing: -0.01em;
 `;
 
 const FileSize = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
+    font-size: ${props => props.theme.fontSizes.sm};
     color: ${props => props.theme.colors.textMuted};
-    margin-top: 2px;
+    margin-top: ${props => props.theme.spacing.xs};
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.xs};
 `;
 
 const RemoveFileButton = styled.button`
-    padding: ${props => props.theme.spacing.xs};
-    background: transparent;
-    border: none;
+    padding: ${props => props.theme.spacing.sm};
+    background: white;
+    border: 1px solid rgb(254, 226, 226);
     color: ${props => props.theme.colors.error};
     cursor: pointer;
-    border-radius: ${props => props.theme.radii.sm};
-    transition: all ${props => props.theme.transitions.fast};
+    border-radius: ${props => props.theme.radii.md};
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 
     &:hover {
         background: rgb(254, 242, 242);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(220, 38, 38, 0.15);
+        border-color: ${props => props.theme.colors.error};
+    }
+
+    &:active {
+        transform: translateY(0);
     }
 
     svg {
-        width: 16px;
-        height: 16px;
+        width: 18px;
+        height: 18px;
         display: block;
     }
 `;
@@ -247,18 +358,26 @@ const DownloadLink = styled.a`
     gap: ${props => props.theme.spacing.xs};
     padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
     font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: 600;
     color: var(--brand-primary);
     text-decoration: none;
-    border-radius: ${props => props.theme.radii.sm};
-    transition: all ${props => props.theme.transitions.fast};
+    border-radius: ${props => props.theme.radii.md};
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
 
     &:hover {
         background: rgb(239, 246, 255);
+        border-color: rgba(59, 130, 246, 0.2);
+        transform: translateY(-1px);
+    }
+
+    &:active {
+        transform: translateY(0);
     }
 
     svg {
-        width: 14px;
-        height: 14px;
+        width: 16px;
+        height: 16px;
     }
 `;
 
