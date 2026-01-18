@@ -1,4 +1,13 @@
-import type {Customer, CustomerRevenue, CreateCustomerPayload, Vehicle, CustomerVehiclesResponse} from '../types';
+import type {
+    Customer,
+    CustomerRevenue,
+    CreateCustomerPayload,
+    Vehicle,
+    CustomerVehiclesResponse,
+    Visit,
+    CustomerVisitsResponse,
+    PaginationMeta,
+} from '../types';
 import type { CreateCustomerFormData } from './customerValidation';
 
 // Backend vehicle response type (different from frontend Vehicle type)
@@ -8,6 +17,30 @@ interface BackendVehicle {
     model: string;
     year: number;
     licensePlate: string;
+}
+
+// Backend visit response type
+interface BackendVisit {
+    id: string;
+    date: string;
+    type: string; // lowercase string from backend
+    vehicleId: string;
+    vehicleName: string;
+    description: string;
+    totalCost: {
+        netAmount: number;
+        grossAmount: number;
+        currency: string;
+    };
+    status: string;
+    technician: string;
+    notes: string;
+}
+
+// Backend visits response
+interface BackendVisitsResponse {
+    visits: BackendVisit[];
+    pagination: PaginationMeta;
 }
 
 export const formatCurrency = (amount: number, currency: string): string => {
@@ -71,4 +104,64 @@ export const mapBackendVehicleToVehicle = (backendVehicle: BackendVehicle): Vehi
 export const mapBackendVehiclesResponse = (backendVehicles: BackendVehicle[]): CustomerVehiclesResponse => ({
     vehicles: backendVehicles.map(mapBackendVehicleToVehicle),
     totalCount: backendVehicles.length,
+});
+
+export const mapBackendVisitToVisit = (backendVisit: BackendVisit): Visit => {
+    // Map backend type string to frontend union type
+    const visitType = (() => {
+        const type = backendVisit.type.toLowerCase();
+        switch (type) {
+            case 'service':
+                return 'service' as const;
+            case 'repair':
+                return 'repair' as const;
+            case 'inspection':
+                return 'inspection' as const;
+            case 'consultation':
+                return 'consultation' as const;
+            default:
+                return 'service' as const; // fallback
+        }
+    })();
+
+    // Map backend status string to frontend union type
+    const visitStatus = (() => {
+        const status = backendVisit.status.toLowerCase();
+        switch (status) {
+            case 'completed':
+                return 'completed' as const;
+            case 'in-progress':
+            case 'in_progress':
+                return 'in-progress' as const;
+            case 'scheduled':
+                return 'scheduled' as const;
+            case 'cancelled':
+                return 'cancelled' as const;
+            default:
+                return 'scheduled' as const; // fallback
+        }
+    })();
+
+    return {
+        id: backendVisit.id,
+        date: backendVisit.date,
+        type: visitType,
+        vehicleId: backendVisit.vehicleId,
+        vehicleName: backendVisit.vehicleName,
+        description: backendVisit.description,
+        totalCost: {
+            netAmount: backendVisit.totalCost.netAmount,
+            grossAmount: backendVisit.totalCost.grossAmount,
+            currency: backendVisit.totalCost.currency,
+        },
+        status: visitStatus,
+        technician: backendVisit.technician,
+        notes: backendVisit.notes,
+    };
+};
+
+export const mapBackendVisitsResponse = (backendVisits: BackendVisitsResponse): CustomerVisitsResponse => ({
+    visits: backendVisits.visits.map(mapBackendVisitToVisit),
+    communications: [], // Backend currently doesn't return communications
+    pagination: backendVisits.pagination,
 });

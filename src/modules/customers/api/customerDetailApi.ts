@@ -12,7 +12,7 @@ import type {
     Visit,
     CommunicationLog,
 } from '../types';
-import { mapBackendVehiclesResponse } from '../utils/customerMappers';
+import { mapBackendVehiclesResponse, mapBackendVisitsResponse } from '../utils/customerMappers';
 
 const CUSTOMERS_BASE_PATH = '/api/v1/customers';
 const USE_MOCKS = false;
@@ -24,6 +24,35 @@ interface BackendVehicle {
     model: string;
     year: number;
     licensePlate: string;
+}
+
+// Backend visit response type
+interface BackendVisit {
+    id: string;
+    date: string;
+    type: string;
+    vehicleId: string;
+    vehicleName: string;
+    description: string;
+    totalCost: {
+        netAmount: number;
+        grossAmount: number;
+        currency: string;
+    };
+    status: string;
+    technician: string;
+    notes: string;
+}
+
+// Backend visits response
+interface BackendVisitsResponse {
+    visits: BackendVisit[];
+    pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        itemsPerPage: number;
+    };
 }
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -272,6 +301,12 @@ const mockGetCustomerVisits = async (customerId: string): Promise<CustomerVisits
     return {
         visits: mockVisits,
         communications: mockCommunications,
+        pagination: {
+            currentPage: 1,
+            totalPages: 1,
+            totalItems: mockVisits.length,
+            itemsPerPage: 10,
+        },
     };
 };
 
@@ -337,15 +372,20 @@ export const customerDetailApi = {
         return mapBackendVehiclesResponse(response.data);
     },
 
-    getCustomerVisits: async (customerId: string): Promise<CustomerVisitsResponse> => {
+    getCustomerVisits: async (customerId: string, page: number = 1, limit: number = 10): Promise<CustomerVisitsResponse> => {
         if (USE_MOCKS) {
             return mockGetCustomerVisits(customerId);
         }
 
-        const response = await apiClient.get<CustomerVisitsResponse>(
-            `${CUSTOMERS_BASE_PATH}/${customerId}/visits`
+        const params = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+        });
+
+        const response = await apiClient.get<BackendVisitsResponse>(
+            `${CUSTOMERS_BASE_PATH}/${customerId}/visits?${params.toString()}`
         );
-        return response.data;
+        return mapBackendVisitsResponse(response.data);
     },
 
     updateConsent: async (

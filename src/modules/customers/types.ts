@@ -164,7 +164,8 @@ export interface CustomerVehiclesResponse {
 
 export interface CustomerVisitsResponse {
     visits: Visit[];
-    communications: CommunicationLog[];
+    communications?: CommunicationLog[];
+    pagination: PaginationMeta;
 }
 
 export interface UpdateConsentPayload {

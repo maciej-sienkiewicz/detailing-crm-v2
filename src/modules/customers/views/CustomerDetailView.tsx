@@ -1,6 +1,6 @@
 // src/modules/customers/views/CustomerDetailView.tsx
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useCustomerDetail } from '../hooks/useCustomerDetail';
@@ -14,6 +14,7 @@ import { ActivityTimeline } from '../components/ActivityTimeline';
 import { EditCustomerModal } from '../components/EditCustomerModal';
 import { EditCompanyModal } from '../components/EditCompanyModal';
 import { DocumentsManager } from '../components/DocumentsManager';
+import { CustomerPagination } from '../components/CustomerPagination';
 import { t } from '@/common/i18n';
 
 const ViewContainer = styled.main`
@@ -327,6 +328,8 @@ export const CustomerDetailView = () => {
     const [activeTab, setActiveTab] = useState<TabValue>('overview');
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isEditCompanyModalOpen, setIsEditCompanyModalOpen] = useState(false);
+    const [visitsPage, setVisitsPage] = useState(1);
+    const visitsLimit = 10;
 
     const {
         customerDetail,
@@ -343,12 +346,18 @@ export const CustomerDetailView = () => {
     const {
         visits,
         communications,
+        pagination: visitsPagination,
         isLoading: isVisitsLoading
-    } = useCustomerVisits(customerId!);
+    } = useCustomerVisits(customerId!, visitsPage, visitsLimit);
 
     const { updateConsent, isUpdating } = useUpdateConsent({
         customerId: customerId!,
     });
+
+    // Reset visits page when customer changes
+    useEffect(() => {
+        setVisitsPage(1);
+    }, [customerId]);
 
     if (isDetailLoading) {
         return (
@@ -552,7 +561,15 @@ export const CustomerDetailView = () => {
                                 <Spinner />
                             </LoadingContainer>
                         ) : (
-                            <ActivityTimeline visits={visits} communications={communications} />
+                            <>
+                                <ActivityTimeline visits={visits} communications={communications} />
+                                {visitsPagination && visitsPagination.totalPages > 1 && (
+                                    <CustomerPagination
+                                        pagination={visitsPagination}
+                                        onPageChange={setVisitsPage}
+                                    />
+                                )}
+                            </>
                         )}
                     </TabContent>
                 )}
