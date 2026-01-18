@@ -105,8 +105,28 @@ export function useCreateProtocolRule() {
   });
 }
 
-// Note: Backend does not support updating, deleting, or reordering protocol rules
-// Create new rules instead of modifying existing ones
+export function useUpdateProtocolRule() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateProtocolRuleDto> }) =>
+      protocolsApi.updateProtocolRule(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: protocolQueryKeys.rules() });
+    },
+  });
+}
+
+export function useDeleteProtocolRule() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => protocolsApi.deleteProtocolRule(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: protocolQueryKeys.rules() });
+    },
+  });
+}
 
 // Visit Protocols Hooks
 export function useVisitProtocols(visitId: string) {

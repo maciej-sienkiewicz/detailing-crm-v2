@@ -85,8 +85,14 @@ class ProtocolsApi {
     return response.data;
   }
 
-  // Note: Backend does not support updating or deleting protocol rules
-  // Create new rules instead of modifying existing ones
+  async updateProtocolRule(id: string, data: Partial<CreateProtocolRuleDto>): Promise<ProtocolRule> {
+    const response = await apiClient.patch<ProtocolRule>(`/api/v1/protocol-rules/${id}`, data);
+    return response.data;
+  }
+
+  async deleteProtocolRule(id: string): Promise<void> {
+    await apiClient.delete(`/api/v1/protocol-rules/${id}`);
+  }
 
   // Visit Protocols
   async getVisitProtocols(visitId: string): Promise<VisitProtocol[]> {
