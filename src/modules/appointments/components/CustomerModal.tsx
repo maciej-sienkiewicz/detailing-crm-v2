@@ -14,6 +14,7 @@ const SearchInput = styled(Input)`
     margin-bottom: ${props => props.theme.spacing.lg};
     font-size: ${props => props.theme.fontSizes.md};
     padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
+    width: 100%;
 `;
 
 const CustomerTable = styled.div`
@@ -83,7 +84,7 @@ interface CustomerModalProps {
     onSelect: (customer: SelectedCustomer) => void;
 }
 
-type CustomerMode = 'search' | 'new' | 'alias';
+type CustomerMode = 'search' | 'new';
 
 export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -94,7 +95,6 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
         phone: '',
         email: '',
     });
-    const [aliasValue, setAliasValue] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const debouncedQuery = useDebounce(searchQuery, 200);
@@ -108,7 +108,6 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
             phone: customer.phone,
             email: customer.email,
             isNew: false,
-            isAlias: false,
         });
         onClose();
     };
@@ -139,28 +138,12 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
         onSelect({
             ...formData,
             isNew: true,
-            isAlias: false,
-        });
-        onClose();
-    };
-
-    const handleSubmitAlias = () => {
-        if (!aliasValue.trim()) {
-            setErrors({ alias: 'Alias nie może być pusty' });
-            return;
-        }
-
-        onSelect({
-            alias: aliasValue.trim(),
-            isNew: false,
-            isAlias: true,
         });
         onClose();
     };
 
     const modalTitle =
         mode === 'new' ? t.appointments.customerModal.titleNew :
-        mode === 'alias' ? 'Wprowadź alias klienta' :
         t.appointments.customerModal.titleSelect;
 
     return (
@@ -174,7 +157,9 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
 
-                    {isLoading ? (
+                    {!searchQuery || searchQuery.trim() === '' ? (
+                        <EmptyState title="Zacznij wpisywać, żeby zobaczyć listę klientów" />
+                    ) : isLoading ? (
                         <EmptyState title={t.appointments.customerModal.searching} />
                     ) : customers && customers.length > 0 ? (
                         <CustomerTable>
@@ -202,23 +187,16 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
                             ))}
                         </CustomerTable>
                     ) : (
-                        <EmptyState
-                            title={searchQuery
-                                ? t.appointments.customerModal.noResults
-                                : t.appointments.customerModal.enterSearch}
-                        />
+                        <EmptyState title={t.appointments.customerModal.noResults} />
                     )}
 
                     <ButtonGroup>
                         <Button $variant="primary" onClick={() => setMode('new')}>
                             {t.appointments.customerModal.addNewButton}
                         </Button>
-                        <Button $variant="secondary" onClick={() => setMode('alias')}>
-                            Wprowadź alias
-                        </Button>
                     </ButtonGroup>
                 </>
-            ) : mode === 'new' ? (
+            ) : (
                 <>
                     <FormGrid>
                         <FieldGroup>
@@ -276,27 +254,6 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
                         </Button>
                         <Button $variant="primary" onClick={handleSubmitNew}>
                             {t.appointments.customerModal.confirmButton}
-                        </Button>
-                    </ButtonGroup>
-                </>
-            ) : (
-                <>
-                    <FieldGroup>
-                        <Label>Alias klienta</Label>
-                        <Input
-                            value={aliasValue}
-                            onChange={(e) => setAliasValue(e.target.value)}
-                            placeholder="np. Jan, Kowalski, Stały klient..."
-                        />
-                        {errors.alias && <ErrorMessage>{errors.alias}</ErrorMessage>}
-                    </FieldGroup>
-
-                    <ButtonGroup>
-                        <Button $variant="secondary" onClick={() => setMode('search')}>
-                            Wróć do wyszukiwania
-                        </Button>
-                        <Button $variant="primary" onClick={handleSubmitAlias}>
-                            Potwierdź
                         </Button>
                     </ButtonGroup>
                 </>

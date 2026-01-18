@@ -263,7 +263,7 @@ export const CheckInWizardWrapper = () => {
         );
     }
 
-    // Sprawdzamy czy mamy pełne dane klienta czy tylko alias
+    // Sprawdzamy czy mamy pełne dane klienta
     const hasFullCustomerData = !!(
         reservation.customer?.firstName &&
         reservation.customer?.lastName &&
@@ -279,7 +279,6 @@ export const CheckInWizardWrapper = () => {
             phone: reservation.customer?.phone || '',
             email: reservation.customer?.email || '',
         },
-        customerAlias: (reservationData as any).customerAlias,
         hasFullCustomerData,
         isNewCustomer: false, // Dane z rezerwacji - klient już istnieje
         vehicleData: reservation.vehicle ? {

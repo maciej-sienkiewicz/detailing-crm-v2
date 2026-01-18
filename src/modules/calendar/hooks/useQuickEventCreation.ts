@@ -18,23 +18,13 @@ export const useQuickEventCreation = () => {
             }
 
             // Build customer payload
-            let customerPayload;
-            if (data.customerId) {
-                customerPayload = {
-                    mode: 'EXISTING' as const,
-                    id: data.customerId,
-                };
-            } else if (data.customerName) {
-                customerPayload = {
-                    mode: 'ALIAS' as const,
-                    alias: data.customerName,
-                };
-            } else {
-                customerPayload = {
-                    mode: 'ALIAS' as const,
-                    alias: data.title || 'Nowa wizyta',
-                };
+            if (!data.customerId) {
+                throw new Error('Klient jest wymagany');
             }
+            const customerPayload = {
+                mode: 'EXISTING' as const,
+                id: data.customerId,
+            };
 
             // Build vehicle payload
             let vehiclePayload;

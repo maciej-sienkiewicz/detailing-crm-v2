@@ -64,12 +64,7 @@ export const useAppointmentCreation = () => {
         }
 
         const data = {
-            customer: selectedCustomer.isAlias
-                ? {
-                    mode: 'ALIAS' as const,
-                    alias: selectedCustomer.alias!,
-                }
-                : selectedCustomer.isNew
+            customer: selectedCustomer.isNew
                 ? {
                     mode: 'NEW' as const,
                     newData: {

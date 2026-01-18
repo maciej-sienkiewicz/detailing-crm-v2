@@ -17,7 +17,6 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
             email: '',
             ...initialData.customerData,
         },
-        customerAlias: initialData.customerAlias,
         hasFullCustomerData: initialData.hasFullCustomerData ?? true,
         isNewCustomer: initialData.isNewCustomer ?? false,
         vehicleData: initialData.vehicleData || null,
@@ -114,20 +113,16 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
 
         const payload: ReservationToVisitPayload = {
             reservationId,
-            ...(formData.hasFullCustomerData ? {
-                customer: {
-                    id: formData.isNewCustomer ? undefined : formData.customerData.id,
-                    firstName: formData.customerData.firstName,
-                    lastName: formData.customerData.lastName,
-                    phone: formData.customerData.phone,
-                    email: formData.customerData.email,
-                    homeAddress: formData.homeAddress || undefined,
-                    company: formData.company || undefined,
-                    isNew: formData.isNewCustomer,
-                },
-            } : {
-                customerAlias: formData.customerAlias,
-            }),
+            customer: {
+                id: formData.isNewCustomer ? undefined : formData.customerData.id,
+                firstName: formData.customerData.firstName,
+                lastName: formData.customerData.lastName,
+                phone: formData.customerData.phone,
+                email: formData.customerData.email,
+                homeAddress: formData.homeAddress || undefined,
+                company: formData.company || undefined,
+                isNew: formData.isNewCustomer,
+            },
             vehicle: {
                 id: formData.isNewVehicle ? undefined : formData.vehicleData.id,
                 brand: formData.vehicleData.brand,

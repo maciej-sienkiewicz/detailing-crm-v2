@@ -110,16 +110,6 @@ const CustomerSelectButton = styled(Button)`
     font-size: ${props => props.theme.fontSizes.md};
 `;
 
-const AliasInfo = styled.div`
-    padding: ${props => props.theme.spacing.md};
-    background-color: #fef3c7;
-    border: 1px solid #fbbf24;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: #92400e;
-    margin-bottom: ${props => props.theme.spacing.md};
-`;
-
 interface VerificationStepProps {
     formData: CheckInFormData;
     errors: Record<string, string>;
@@ -175,28 +165,18 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     };
 
     const handleCustomerSelect = (customer: SelectedCustomer) => {
-        if (customer.isAlias) {
-            // Ustawienie aliasu
-            onChange({
-                customerAlias: customer.alias,
-                hasFullCustomerData: false,
-                isNewCustomer: false,
-            });
-        } else {
-            // Ustawienie pełnych danych klienta
-            onChange({
-                customerData: {
-                    id: customer.id || '',
-                    firstName: customer.firstName || '',
-                    lastName: customer.lastName || '',
-                    phone: customer.phone || '',
-                    email: customer.email || '',
-                },
-                customerAlias: undefined,
-                hasFullCustomerData: true,
-                isNewCustomer: customer.isNew || false,
-            });
-        }
+        // Ustawienie pełnych danych klienta
+        onChange({
+            customerData: {
+                id: customer.id || '',
+                firstName: customer.firstName || '',
+                lastName: customer.lastName || '',
+                phone: customer.phone || '',
+                email: customer.email || '',
+            },
+            hasFullCustomerData: true,
+            isNewCustomer: customer.isNew || false,
+        });
         setIsCustomerModalOpen(false);
     };
 
@@ -295,11 +275,6 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                             </svg>
                             {t.checkin.verification.customerSection}
                         </SectionTitle>
-                        {formData.customerAlias && (
-                            <AliasInfo>
-                                Obecny alias: <strong>{formData.customerAlias}</strong>
-                            </AliasInfo>
-                        )}
                         <CustomerSelectButton
                             $variant="primary"
                             onClick={() => setIsCustomerModalOpen(true)}

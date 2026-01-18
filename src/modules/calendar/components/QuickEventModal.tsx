@@ -250,12 +250,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
     const handleCustomerSelect = (customer: SelectedCustomer) => {
         setSelectedCustomer(customer);
-        if (customer.isAlias) {
-            setSelectedCustomerName(customer.alias || '');
-        } else {
-            setSelectedCustomerId(customer.id);
-            setSelectedCustomerName(`${customer.firstName} ${customer.lastName}`);
-        }
+        setSelectedCustomerId(customer.id);
+        setSelectedCustomerName(`${customer.firstName} ${customer.lastName}`);
         // Reset vehicle on customer change
         setSelectedVehicleId(undefined);
         setSelectedVehicleName('');
@@ -432,9 +428,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     >
                                         <span className={`flex-1 text-sm ${selectedCustomer ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
                                             {selectedCustomer
-                                                ? (selectedCustomer.isAlias
-                                                    ? selectedCustomer.alias
-                                                    : `${selectedCustomer.firstName} ${selectedCustomer.lastName}`)
+                                                ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}`
                                                 : 'Dodaj klienta'}
                                         </span>
                                         {selectedCustomer && (

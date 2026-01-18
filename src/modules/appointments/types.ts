@@ -9,9 +9,8 @@ export interface PriceAdjustment {
 }
 
 export interface CustomerIdentity {
-    mode: 'EXISTING' | 'NEW' | 'ALIAS';
+    mode: 'EXISTING' | 'NEW';
     id?: string;
-    alias?: string;
     newData?: {
         firstName: string;
         lastName: string;
@@ -94,9 +93,7 @@ export interface SelectedCustomer {
     lastName?: string;
     phone?: string;
     email?: string;
-    alias?: string;
     isNew: boolean;
-    isAlias: boolean;
 }
 
 export interface SelectedVehicle {

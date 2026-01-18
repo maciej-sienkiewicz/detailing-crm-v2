@@ -42,8 +42,7 @@ export interface CheckInFormData {
         phone: string;
         email: string;
     };
-    customerAlias?: string; // Jeśli klient to tylko alias
-    hasFullCustomerData: boolean; // Określa czy mamy pełne dane klienta czy tylko alias
+    hasFullCustomerData: boolean; // Określa czy mamy pełne dane klienta
     isNewCustomer: boolean; // Czy klient został utworzony teraz podczas check-in
     vehicleData: {
         id: string;
@@ -108,7 +107,6 @@ export interface ReservationToVisitPayload {
         };
         isNew: boolean; // Czy klient został utworzony teraz podczas check-in
     };
-    customerAlias?: string; // Jeśli klient to tylko alias
     vehicle: {
         id?: string; // Opcjonalne - puste dla nowego pojazdu
         brand: string;

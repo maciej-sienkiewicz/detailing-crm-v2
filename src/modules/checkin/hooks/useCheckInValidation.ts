@@ -23,9 +23,9 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
                     validationErrors.phone = t.customers.validation.phoneInvalid;
                 }
             } else {
-                // Jeśli nie ma pełnych danych, musi być alias lub wybór klienta
-                if (!formData.customerAlias && !formData.customerData.id) {
-                    validationErrors.customer = 'Musisz wybrać klienta lub wprowadzić alias';
+                // Jeśli nie ma pełnych danych, musi być wybór klienta
+                if (!formData.customerData.id) {
+                    validationErrors.customer = 'Musisz wybrać klienta';
                 }
             }
 
