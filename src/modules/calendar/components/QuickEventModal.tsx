@@ -1,11 +1,12 @@
 // src/modules/calendar/components/QuickEventModal.tsx
 
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/core';
 import type { EventCreationData } from '../types';
 import { CustomerModal } from '@/modules/appointments/components/CustomerModal';
 import { VehicleModal } from '@/modules/appointments/components/VehicleModal';
+import { QuickServiceModal } from './QuickServiceModal';
 import { useCustomerVehicles } from '@/modules/appointments/hooks/useAppointmentForm';
 import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/types';
 
@@ -128,14 +129,20 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [showServiceDropdown, setShowServiceDropdown] = useState(false);
     const [selectedColorId, setSelectedColorId] = useState('');
     const [notes, setNotes] = useState('');
+    // Temporary services (not saved to database)
+    const [tempServices, setTempServices] = useState<{ [key: string]: { name: string; basePriceNet: number; vatRate: 23 } }>({});
 
     // Modal states
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
+    const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
 
     // Focus states
     const [focusedField, setFocusedField] = useState<string | null>(null);
     const titleInputRef = useRef<HTMLInputElement>(null);
+
+    // Query client for cache invalidation
+    const queryClient = useQueryClient();
 
     // Queries
     const { data: customerVehicles } = useCustomerVehicles(
@@ -235,6 +242,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         setExpandedServiceNote(null);
         setServiceSearch('');
         setNotes('');
+        setTempServices({});
         // Keep color and dates from eventData
     };
 
@@ -304,6 +312,34 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             const grossPrice = (service.basePriceNet / 100) * (100 + service.vatRate) / 100;
             setServicePrices(prev => ({ ...prev, [service.id]: grossPrice }));
         }
+        setServiceSearch('');
+        setShowServiceDropdown(false);
+    };
+
+    const handleQuickServiceCreate = (service: { id?: string; name: string; basePriceNet: number; vatRate: 23 }) => {
+        // If service was saved to database, refresh services list
+        if (service.id) {
+            queryClient.invalidateQueries({ queryKey: ['services'] });
+        }
+
+        // Create a temporary ID for services not saved to database
+        const serviceId = service.id || `temp-${Date.now()}`;
+
+        // Add to selected services
+        setSelectedServiceIds(prev => [...prev, serviceId]);
+
+        // Calculate gross price from base net price
+        const grossPrice = (service.basePriceNet / 100) * (100 + service.vatRate) / 100;
+        setServicePrices(prev => ({ ...prev, [serviceId]: grossPrice }));
+
+        // If service wasn't saved to DB, store it in tempServices for display
+        if (!service.id) {
+            setTempServices(prev => ({
+                ...prev,
+                [serviceId]: { name: service.name, basePriceNet: service.basePriceNet, vatRate: 23 }
+            }));
+        }
+
         setServiceSearch('');
         setShowServiceDropdown(false);
     };
@@ -533,14 +569,17 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             }}
                                         />
                                         {/* Services Dropdown */}
-                                        {showServiceDropdown && (
-                                            <div className="absolute z-10 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-                                                {services
-                                                    .filter((s: any) =>
-                                                        serviceSearch.length === 0 ||
-                                                        s.name.toLowerCase().includes(serviceSearch.toLowerCase())
-                                                    )
-                                                    .map((service: any) => (
+                                        {showServiceDropdown && (() => {
+                                            const filteredServices = services.filter((s: any) =>
+                                                serviceSearch.length === 0 ||
+                                                s.name.toLowerCase().includes(serviceSearch.toLowerCase())
+                                            );
+                                            const hasResults = filteredServices.length > 0;
+                                            const hasSearchQuery = serviceSearch.trim().length > 0;
+
+                                            return (
+                                                <div className="absolute z-10 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                                                    {filteredServices.map((service: any) => (
                                                         <button
                                                             key={service.id}
                                                             type="button"
@@ -553,15 +592,37 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             </span>
                                                         </button>
                                                     ))}
-                                            </div>
-                                        )}
+                                                    {hasSearchQuery && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setIsQuickServiceModalOpen(true);
+                                                                setShowServiceDropdown(false);
+                                                            }}
+                                                            className="w-full px-4 py-3 flex items-center gap-2 hover:bg-blue-50 transition-colors text-left border-t border-gray-100 bg-blue-50/50"
+                                                        >
+                                                            <svg className="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <circle cx="12" cy="12" r="10"/>
+                                                                <line x1="12" y1="8" x2="12" y2="16"/>
+                                                                <line x1="8" y1="12" x2="16" y2="12"/>
+                                                            </svg>
+                                                            <span className="text-sm font-medium text-blue-600">Wprowadź nową usługę</span>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
 
                                     {/* Selected Services */}
                                     {selectedServiceIds.length > 0 && (
                                         <div className="space-y-2">
                                             {selectedServiceIds.map(id => {
-                                                const service = services.find((s: any) => s.id === id);
+                                                // Find service from database or temp services
+                                                let service = services.find((s: any) => s.id === id);
+                                                if (!service && tempServices[id]) {
+                                                    service = { id, ...tempServices[id] };
+                                                }
                                                 if (!service) return null;
                                                 const isNoteExpanded = expandedServiceNote === id;
                                                 const hasNote = serviceNotes[id] && serviceNotes[id].length > 0;
@@ -722,6 +783,14 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 onClose={() => setIsVehicleModalOpen(false)}
                 onSelect={handleVehicleSelect}
                 allowSkip={true}
+            />
+
+            {/* Quick Service Modal */}
+            <QuickServiceModal
+                isOpen={isQuickServiceModalOpen}
+                onClose={() => setIsQuickServiceModalOpen(false)}
+                onServiceCreate={handleQuickServiceCreate}
+                initialServiceName={serviceSearch}
             />
         </>
     );
