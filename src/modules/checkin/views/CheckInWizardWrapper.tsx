@@ -140,6 +140,11 @@ export const CheckInWizardWrapper = () => {
         retry: 1,
     });
 
+    const { data: colors, isLoading: isLoadingColors } = useQuery({
+        queryKey: ['appointmentColors'],
+        queryFn: () => appointmentApi.getAppointmentColors(),
+    });
+
     // Mapowanie danych z backendu na format oczekiwany przez CheckInWizardView
     const reservation: ReservationResponse | undefined = reservationData ? {
         id: reservationData.id,
@@ -178,7 +183,7 @@ export const CheckInWizardWrapper = () => {
         navigate(`/visits/${visitId}`);
     };
 
-    if (isLoading) {
+    if (isLoading || isLoadingColors) {
         return (
             <LoadingContainer>
                 <Spinner />
@@ -187,7 +192,7 @@ export const CheckInWizardWrapper = () => {
         );
     }
 
-    if (error || !reservation) {
+    if (error || !reservation || !colors) {
         return (
             <ErrorContainer>
                 <ErrorIcon>
@@ -257,6 +262,7 @@ export const CheckInWizardWrapper = () => {
         <CheckInWizardView
             reservationId={reservationId!}
             initialData={initialData}
+            colors={colors}
             onComplete={handleComplete}
         />
     );

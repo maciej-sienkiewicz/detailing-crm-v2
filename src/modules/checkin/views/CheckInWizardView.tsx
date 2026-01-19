@@ -15,6 +15,7 @@ import { PhotoDocumentationStep } from '../components/PhotoDocumentationStep';
 import { SummaryStep } from '../components/SummaryStep';
 import { SigningRequirementModal } from '../components/SigningRequirementModal';
 import type { CheckInFormData } from '../types';
+import type { AppointmentColor } from '@/modules/appointments/types';
 
 const Container = styled.div`
     min-height: 100vh;
@@ -98,10 +99,11 @@ const DraftButton = styled(Button)`
 interface CheckInWizardViewProps {
     reservationId: string;
     initialData: Partial<CheckInFormData>;
+    colors: AppointmentColor[];
     onComplete: (visitId: string) => void;
 }
 
-export const CheckInWizardView = ({ reservationId, initialData, onComplete }: CheckInWizardViewProps) => {
+export const CheckInWizardView = ({ reservationId, initialData, colors, onComplete }: CheckInWizardViewProps) => {
     const {
         currentStep,
         completedSteps,
@@ -196,6 +198,7 @@ export const CheckInWizardView = ({ reservationId, initialData, onComplete }: Ch
                         errors={errors}
                         onChange={updateFormData}
                         onServicesChange={handleServicesChange}
+                        colors={colors}
                     />
                 );
             case 'photos':

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { Card, CardHeader, CardTitle } from '@/common/components/Card';
-import { FormGrid, FieldGroup } from '@/common/components/Form';
+import { FormGrid, FieldGroup, Label } from '@/common/components/Form';
 import { Divider } from '@/common/components/Divider';
 import { Button } from '@/common/components/Button';
 import { EditableServicesTable } from './EditableServicesTable';
@@ -9,7 +9,7 @@ import { CustomerModal } from '@/modules/appointments/components/CustomerModal';
 import { CustomerDetailsModal } from './CustomerDetailsModal';
 import { VehicleSearchModal, type SelectedVehicle } from './VehicleSearchModal';
 import { VehicleDetailsModal } from './VehicleDetailsModal';
-import type { SelectedCustomer } from '@/modules/appointments/types';
+import type { SelectedCustomer, AppointmentColor } from '@/modules/appointments/types';
 import { t } from '@/common/i18n';
 import type { CheckInFormData, ServiceLineItem } from '../types';
 
@@ -109,14 +109,53 @@ const CustomerSelectButton = styled(Button)`
     font-size: ${props => props.theme.fontSizes.md};
 `;
 
+const ColorSelectWrapper = styled.div`
+    position: relative;
+`;
+
+const ColorDot = styled.div<{ $color: string }>`
+    position: absolute;
+    left: ${props => props.theme.spacing.md};
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: ${props => props.$color};
+    border: 2px solid ${props => props.theme.colors.border};
+    box-shadow: ${props => props.theme.shadows.sm};
+    pointer-events: none;
+    z-index: 1;
+`;
+
+const ColorSelect = styled.select`
+    width: 100%;
+    padding: ${props => props.theme.spacing.md};
+    padding-left: 48px;
+    border: 2px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.md};
+    font-size: ${props => props.theme.fontSizes.md};
+    background-color: ${props => props.theme.colors.surface};
+    cursor: pointer;
+    transition: all ${props => props.theme.transitions.fast};
+    font-weight: ${props => props.theme.fontWeights.medium};
+
+    &:focus {
+        outline: none;
+        border-color: ${props => props.theme.colors.primary};
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+`;
+
 interface VerificationStepProps {
     formData: CheckInFormData;
     errors: Record<string, string>;
     onChange: (updates: Partial<CheckInFormData>) => void;
     onServicesChange: (services: ServiceLineItem[]) => void;
+    colors: AppointmentColor[];
 }
 
-export const VerificationStep    = ({ formData, onChange, onServicesChange }: VerificationStepProps) => {
+export const VerificationStep    = ({ formData, onChange, onServicesChange, colors }: VerificationStepProps) => {
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isCustomerDetailsModalOpen, setIsCustomerDetailsModalOpen] = useState(false);
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
@@ -367,6 +406,36 @@ export const VerificationStep    = ({ formData, onChange, onServicesChange }: Ve
                     services={formData.services}
                     onChange={onServicesChange}
                 />
+
+                <Divider />
+
+                <SectionTitle>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                    </svg>
+                    Kolor wizyty
+                </SectionTitle>
+
+                <FormGrid>
+                    <FieldGroup>
+                        <Label>Wybierz kolor do wyświetlania w kalendarzu</Label>
+                        <ColorSelectWrapper>
+                            <ColorDot
+                                $color={colors.find(c => c.id === formData.appointmentColorId)?.hexColor || '#cccccc'}
+                            />
+                            <ColorSelect
+                                value={formData.appointmentColorId}
+                                onChange={(e) => onChange({ appointmentColorId: e.target.value })}
+                            >
+                                {colors.map((color) => (
+                                    <option key={color.id} value={color.id}>
+                                        {color.name}
+                                    </option>
+                                ))}
+                            </ColorSelect>
+                        </ColorSelectWrapper>
+                    </FieldGroup>
+                </FormGrid>
             </Card>
 
             <CustomerModal
