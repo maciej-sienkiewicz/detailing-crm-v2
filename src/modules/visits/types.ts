@@ -113,7 +113,7 @@ export interface Visit {
 
 export interface VisitDetailResponse {
     visit: Visit;
-    documents: VisitDocument[];
+    documents?: VisitDocument[];
 }
 
 export interface UpdateVisitPayload {

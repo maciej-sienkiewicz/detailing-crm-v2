@@ -144,6 +144,15 @@ export const visitApi = {
         return data;
     },
 
+    getVisitDocuments: async (visitId: string): Promise<VisitDocument[]> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 600));
+            return mockVisitDetail.documents;
+        }
+        const response = await apiClient.get(`${BASE_PATH}/${visitId}/documents`);
+        return response.data;
+    },
+
     updateVisit: async (
         visitId: string,
         payload: UpdateVisitPayload

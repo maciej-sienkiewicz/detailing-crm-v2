@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { useVisitDetail } from '../hooks';
+import { useVisitDetail, useVisitDocuments } from '../hooks';
 import { useUpdateVisit } from '../hooks';
 import { useUploadDocument, useDeleteDocument } from '../hooks';
 import { useVisitComments } from '../hooks';
@@ -171,6 +171,7 @@ export const VisitDetailView = () => {
     const [transitionType, setTransitionType] = useState<'in_progress_to_ready' | 'ready_to_completed' | null>(null);
 
     const { visitDetail, isLoading, isError, refetch } = useVisitDetail(visitId!);
+    const { documents, isLoading: isLoadingDocuments } = useVisitDocuments(visitId!);
     const { updateVisit } = useUpdateVisit(visitId!);
     const { uploadDocument, isUploading } = useUploadDocument(visitId!);
     const { deleteDocument } = useDeleteDocument(visitId!);
@@ -207,7 +208,7 @@ export const VisitDetailView = () => {
         );
     }
 
-    const { visit, documents } = visitDetail;
+    const { visit } = visitDetail;
 
     const handleCompleteVisit = () => {
         if (visit.status === 'IN_PROGRESS') {

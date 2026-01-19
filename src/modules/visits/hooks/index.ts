@@ -8,6 +8,7 @@ import type {
 } from '../types';
 
 export const visitDetailQueryKey = (visitId: string) => ['visit', visitId];
+export const visitDocumentsQueryKey = (visitId: string) => ['visit', visitId, 'documents'];
 
 export const useVisitDetail = (visitId: string) => {
     const { data, isLoading, isError, refetch } = useQuery({
@@ -53,6 +54,9 @@ export const useUploadDocument = (visitId: string) => {
             queryClient.invalidateQueries({
                 queryKey: visitDetailQueryKey(visitId),
             });
+            queryClient.invalidateQueries({
+                queryKey: visitDocumentsQueryKey(visitId),
+            });
         },
     });
 
@@ -72,12 +76,31 @@ export const useDeleteDocument = (visitId: string) => {
             queryClient.invalidateQueries({
                 queryKey: visitDetailQueryKey(visitId),
             });
+            queryClient.invalidateQueries({
+                queryKey: visitDocumentsQueryKey(visitId),
+            });
         },
     });
 
     return {
         deleteDocument: mutate,
         isDeleting: isPending,
+    };
+};
+
+// Documents hooks
+export const useVisitDocuments = (visitId: string) => {
+    const { data, isLoading, isError, refetch } = useQuery({
+        queryKey: visitDocumentsQueryKey(visitId),
+        queryFn: () => visitApi.getVisitDocuments(visitId),
+        enabled: !!visitId,
+    });
+
+    return {
+        documents: data || [],
+        isLoading,
+        isError,
+        refetch,
     };
 };
 
