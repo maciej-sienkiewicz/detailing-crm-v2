@@ -71,151 +71,120 @@ const InfoValue = styled.span`
 const ServicesContainer = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.md};
+    gap: ${props => props.theme.spacing.sm};
     margin-top: ${props => props.theme.spacing.md};
 `;
 
-const ServiceCard = styled.div`
-    background-color: ${props => props.theme.colors.surface};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
+const ServiceItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${props => props.theme.spacing.sm};
     padding: ${props => props.theme.spacing.md};
-    transition: all ${props => props.theme.transitions.fast};
+    background-color: ${props => props.theme.colors.surfaceAlt};
+    border-radius: ${props => props.theme.radii.md};
+    border-left: 3px solid ${props => props.theme.colors.border};
+    transition: border-color ${props => props.theme.transitions.fast};
 
     &:hover {
-        border-color: ${props => props.theme.colors.primary};
-        box-shadow: ${props => props.theme.shadows.md};
+        border-left-color: ${props => props.theme.colors.primary};
     }
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+`;
+
+const ServiceInfo = styled.div`
+    flex: 1;
+`;
+
+const ServiceName = styled.div`
+    font-size: ${props => props.theme.fontSizes.md};
+    font-weight: ${props => props.theme.fontWeights.medium};
+    color: ${props => props.theme.colors.text};
+    margin-bottom: ${props => props.theme.spacing.xs};
+`;
+
+const ServiceNote = styled.div`
+    font-size: ${props => props.theme.fontSizes.xs};
+    color: ${props => props.theme.colors.textSecondary};
+    font-style: italic;
+`;
+
+const ServicePrices = styled.div`
+    display: flex;
+    gap: ${props => props.theme.spacing.lg};
+    align-items: center;
+`;
+
+const PriceBlock = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+`;
+
+const PriceLabel = styled.span`
+    font-size: ${props => props.theme.fontSizes.xs};
+    color: ${props => props.theme.colors.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+`;
+
+const PriceValue = styled.span`
+    font-size: ${props => props.theme.fontSizes.lg};
+    font-weight: ${props => props.theme.fontWeights.semibold};
+    color: ${props => props.theme.colors.text};
+    font-feature-settings: 'tnum';
+`;
+
+const TotalSummary = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${props => props.theme.spacing.md};
+    margin-top: ${props => props.theme.spacing.md};
+    background-color: ${props => props.theme.colors.surfaceAlt};
+    border-radius: ${props => props.theme.radii.md};
+    border-top: 2px solid ${props => props.theme.colors.primary};
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         padding: ${props => props.theme.spacing.lg};
     }
 `;
 
-const ServiceHeader = styled.div`
-    margin-bottom: ${props => props.theme.spacing.md};
-`;
-
-const ServiceName = styled.h4`
+const TotalLabel = styled.div`
     font-size: ${props => props.theme.fontSizes.md};
     font-weight: ${props => props.theme.fontWeights.semibold};
     color: ${props => props.theme.colors.text};
-    margin: 0 0 ${props => props.theme.spacing.xs} 0;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes.lg};
-    }
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 `;
 
-const ServiceNote = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
-    font-style: italic;
-    padding: ${props => props.theme.spacing.sm};
-    background-color: ${props => props.theme.colors.surfaceAlt};
-    border-left: 3px solid ${props => props.theme.colors.primary};
-    border-radius: ${props => props.theme.radii.sm};
-    margin-top: ${props => props.theme.spacing.sm};
+const TotalPrices = styled.div`
+    display: flex;
+    gap: ${props => props.theme.spacing.xl};
+    align-items: center;
 `;
 
-const PriceGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: ${props => props.theme.spacing.sm};
-
-    @media (min-width: ${props => props.theme.breakpoints.sm}) {
-        grid-template-columns: repeat(3, 1fr);
-    }
-`;
-
-const PriceItem = styled.div`
+const TotalBlock = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.xs};
-    padding: ${props => props.theme.spacing.sm};
-    background-color: ${props => props.theme.colors.surfaceAlt};
-    border-radius: ${props => props.theme.radii.md};
+    align-items: flex-end;
 `;
 
-const PriceLabel = styled.span`
+const TotalBlockLabel = styled.span`
     font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: ${props => props.theme.fontWeights.medium};
     color: ${props => props.theme.colors.textMuted};
     text-transform: uppercase;
-    letter-spacing: 0.5px;
 `;
 
-const PriceValue = styled.span`
-    font-size: ${props => props.theme.fontSizes.lg};
-    font-weight: ${props => props.theme.fontWeights.bold};
-    color: ${props => props.theme.colors.text};
-    font-feature-settings: 'tnum';
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes.xl};
-    }
-`;
-
-const TotalCard = styled.div`
-    background: linear-gradient(135deg,
-        ${props => props.theme.colors.primary} 0%,
-        ${props => props.theme.colors.primaryDark || '#0c4a6e'} 100%);
-    border-radius: ${props => props.theme.radii.lg};
-    padding: ${props => props.theme.spacing.lg};
-    margin-top: ${props => props.theme.spacing.md};
-    box-shadow: ${props => props.theme.shadows.lg};
-    color: white;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.xl};
-    }
-`;
-
-const TotalHeader = styled.div`
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: ${props => props.theme.spacing.lg};
-    opacity: 0.9;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes.lg};
-    }
-`;
-
-const TotalGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: ${props => props.theme.spacing.md};
-
-    @media (min-width: ${props => props.theme.breakpoints.sm}) {
-        grid-template-columns: repeat(3, 1fr);
-    }
-`;
-
-const TotalItem = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.xs};
-`;
-
-const TotalLabel = styled.span`
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    opacity: 0.9;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const TotalValue = styled.span`
+const TotalBlockValue = styled.span`
     font-size: ${props => props.theme.fontSizes.xl};
     font-weight: ${props => props.theme.fontWeights.bold};
+    color: ${props => props.theme.colors.primary};
     font-feature-settings: 'tnum';
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes['2xl']};
-    }
 `;
 
 interface SummaryStepProps {
@@ -388,48 +357,40 @@ export const SummaryStep = ({ formData }: SummaryStepProps) => {
                                 {formData.services.map((service) => {
                                     const prices = calculateServicePrice(service);
                                     return (
-                                        <ServiceCard key={service.id}>
-                                            <ServiceHeader>
+                                        <ServiceItem key={service.id}>
+                                            <ServiceInfo>
                                                 <ServiceName>{service.serviceName}</ServiceName>
                                                 {service.note && (
                                                     <ServiceNote>{service.note}</ServiceNote>
                                                 )}
-                                            </ServiceHeader>
-                                            <PriceGrid>
-                                                <PriceItem>
+                                            </ServiceInfo>
+                                            <ServicePrices>
+                                                <PriceBlock>
                                                     <PriceLabel>Netto</PriceLabel>
                                                     <PriceValue>{formatCurrency(prices.finalPriceNet / 100)}</PriceValue>
-                                                </PriceItem>
-                                                <PriceItem>
-                                                    <PriceLabel>VAT</PriceLabel>
-                                                    <PriceValue>{formatCurrency(prices.vatAmount / 100)}</PriceValue>
-                                                </PriceItem>
-                                                <PriceItem>
+                                                </PriceBlock>
+                                                <PriceBlock>
                                                     <PriceLabel>Brutto</PriceLabel>
                                                     <PriceValue>{formatCurrency(prices.finalPriceGross / 100)}</PriceValue>
-                                                </PriceItem>
-                                            </PriceGrid>
-                                        </ServiceCard>
+                                                </PriceBlock>
+                                            </ServicePrices>
+                                        </ServiceItem>
                                     );
                                 })}
                             </ServicesContainer>
-                            <TotalCard>
-                                <TotalHeader>Podsumowanie</TotalHeader>
-                                <TotalGrid>
-                                    <TotalItem>
-                                        <TotalLabel>Suma netto</TotalLabel>
-                                        <TotalValue>{formatCurrency(totals.totalNet / 100)}</TotalValue>
-                                    </TotalItem>
-                                    <TotalItem>
-                                        <TotalLabel>Suma VAT</TotalLabel>
-                                        <TotalValue>{formatCurrency(totals.totalVat / 100)}</TotalValue>
-                                    </TotalItem>
-                                    <TotalItem>
-                                        <TotalLabel>Suma brutto</TotalLabel>
-                                        <TotalValue>{formatCurrency(totals.totalGross / 100)}</TotalValue>
-                                    </TotalItem>
-                                </TotalGrid>
-                            </TotalCard>
+                            <TotalSummary>
+                                <TotalLabel>Razem</TotalLabel>
+                                <TotalPrices>
+                                    <TotalBlock>
+                                        <TotalBlockLabel>Netto</TotalBlockLabel>
+                                        <TotalBlockValue>{formatCurrency(totals.totalNet / 100)}</TotalBlockValue>
+                                    </TotalBlock>
+                                    <TotalBlock>
+                                        <TotalBlockLabel>Brutto</TotalBlockLabel>
+                                        <TotalBlockValue>{formatCurrency(totals.totalGross / 100)}</TotalBlockValue>
+                                    </TotalBlock>
+                                </TotalPrices>
+                            </TotalSummary>
                         </>
                     ) : (
                         <InfoItem>
