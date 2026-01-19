@@ -6,6 +6,7 @@ import { apiClient } from '@/core';
 import type { EventCreationData } from '../types';
 import { CustomerModal } from '@/modules/appointments/components/CustomerModal';
 import { VehicleModal } from '@/modules/appointments/components/VehicleModal';
+import { useCustomerVehicles } from '@/modules/appointments/hooks/useAppointmentForm';
 import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/types';
 
 // --- ICONS (Inline SVG) ---
@@ -137,15 +138,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const titleInputRef = useRef<HTMLInputElement>(null);
 
     // Queries
-    const { data: vehicles = [] } = useQuery({
-        queryKey: ['customer-vehicles', selectedCustomerId],
-        queryFn: async () => {
-            if (!selectedCustomerId) return [];
-            const response = await apiClient.get(`/v1/customers/${selectedCustomerId}/vehicles`);
-            return response.data.vehicles || [];
-        },
-        enabled: !!selectedCustomerId,
-    });
+    const { data: customerVehicles } = useCustomerVehicles(
+        selectedCustomerId && !selectedCustomer?.isNew ? selectedCustomerId : undefined
+    );
+    const vehicles = customerVehicles || [];
 
     const { data: services = [] } = useQuery({
         queryKey: ['services'],
@@ -219,10 +215,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
     // Auto-open vehicle modal if customer has vehicles
     useEffect(() => {
-        if (selectedCustomer && !selectedCustomer.isNew && vehicles && vehicles.length > 0 && !selectedVehicle) {
+        if (selectedCustomer && !selectedCustomer.isNew && customerVehicles && customerVehicles.length > 0 && !selectedVehicle) {
             setIsVehicleModalOpen(true);
         }
-    }, [selectedCustomer, vehicles, selectedVehicle]);
+    }, [selectedCustomer, customerVehicles, selectedVehicle]);
 
     // Clear form function
     const clearForm = () => {
