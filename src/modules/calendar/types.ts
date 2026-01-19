@@ -90,23 +90,29 @@ export interface AppointmentResponse {
 export interface VisitResponse {
     id: string;
     visitNumber: string;
-    status: 'in_progress' | 'ready_for_pickup' | 'completed' | 'rejected' | 'archived';
+    status: 'IN_PROGRESS' | 'READY_FOR_PICKUP' | 'COMPLETED' | 'REJECTED' | 'ARCHIVED';
     scheduledDate: string;
     customer: {
         firstName: string;
         lastName: string;
         phone: string;
+        companyName?: string | null;
     };
     vehicle: {
         licensePlate: string;
         brand: string;
         model: string;
+        yearOfProduction?: number;
     };
-    totalCost: {
-        netAmount: number;
-        grossAmount: number;
-        currency: string;
-    };
+    appointmentColor?: {
+        id: string;
+        name: string;
+        hexColor: string;
+    } | null;
+    totalNet: number;
+    totalGross: number;
+    createdAt: string;
+    updatedAt: string;
 }
 
 /**

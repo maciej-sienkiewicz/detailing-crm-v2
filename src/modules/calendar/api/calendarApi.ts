@@ -130,7 +130,7 @@ const mockVisits: VisitResponse[] = [
     {
         id: 'visit_1',
         visitNumber: 'VIS-2026-00042',
-        status: 'in_progress',
+        status: 'IN_PROGRESS',
         scheduledDate: '2026-01-21T08:00:00Z',
         customer: {
             firstName: 'Piotr',
@@ -141,12 +141,17 @@ const mockVisits: VisitResponse[] = [
             licensePlate: 'WA 12345',
             brand: 'Volkswagen',
             model: 'Golf',
+            yearOfProduction: 2020,
         },
-        totalCost: {
-            netAmount: 180000,
-            grossAmount: 221400,
-            currency: 'PLN',
+        appointmentColor: {
+            id: 'c3',
+            name: 'Blue',
+            hexColor: '#3b82f6',
         },
+        totalNet: 180000,
+        totalGross: 221400,
+        createdAt: '2026-01-15T10:00:00Z',
+        updatedAt: '2026-01-15T10:00:00Z',
     },
 ];
 
@@ -198,16 +203,8 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
     const customerName = `${visit.customer.firstName} ${visit.customer.lastName}`;
     const vehicleInfo = `${visit.vehicle.brand} ${visit.vehicle.model}`;
 
-    // Map backend status to frontend status
-    const statusMap: Record<string, VisitEventData['status']> = {
-        'in_progress': 'IN_PROGRESS',
-        'ready_for_pickup': 'READY_FOR_PICKUP',
-        'completed': 'COMPLETED',
-        'rejected': 'REJECTED',
-        'archived': 'ARCHIVED',
-    };
-
-    const status = statusMap[visit.status] || 'IN_PROGRESS';
+    // Status is already in the correct format (uppercase with underscores)
+    const status = visit.status;
 
     // Status-based colors
     const statusColors: Record<VisitEventData['status'], string> = {
@@ -218,6 +215,10 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
         'ARCHIVED': '#9ca3af',
     };
 
+    // Use appointmentColor if available, otherwise fall back to status color
+    const colorHex = visit.appointmentColor?.hexColor || statusColors[status];
+    const textColor = getContrastingTextColor(colorHex);
+
     const eventData: VisitEventData = {
         id: visit.id,
         type: 'VISIT',
@@ -227,9 +228,9 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
         visitNumber: visit.visitNumber,
         status,
         licensePlate: visit.vehicle.licensePlate,
-        colorHex: statusColors[status],
-        totalPrice: visit.totalCost.grossAmount,
-        currency: visit.totalCost.currency,
+        colorHex,
+        totalPrice: visit.totalGross,
+        currency: 'PLN',
     };
 
     // Visits are typically all-day events
@@ -238,9 +239,9 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
         title: `🔧 ${visit.visitNumber} | ${customerName}`,
         start: visit.scheduledDate,
         allDay: true,
-        backgroundColor: statusColors[status],
+        backgroundColor: colorHex,
         borderColor: 'transparent',
-        textColor: '#ffffff',
+        textColor,
         extendedProps: eventData,
     };
 };
