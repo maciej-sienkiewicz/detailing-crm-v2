@@ -88,14 +88,27 @@ export const useQuickEventCreation = () => {
                 let adjustment;
 
                 if (customPriceGross !== undefined) {
-                    // User entered a new gross price (in PLN)
+                    // User entered a price (in PLN)
                     // Convert custom price from PLN to cents
                     const customPriceInCents = Math.round(customPriceGross * 100);
 
-                    adjustment = {
-                        type: 'SET_GROSS' as const,
-                        value: customPriceInCents,
-                    };
+                    // Calculate base price gross from net price and VAT
+                    const basePriceGross = Math.round(service.basePriceNet * (1 + service.vatRate / 100));
+
+                    // Check if custom price differs from base price
+                    if (customPriceInCents === basePriceGross) {
+                        // Price unchanged - use FIXED_GROSS with 0 adjustment
+                        adjustment = {
+                            type: 'FIXED_GROSS' as const,
+                            value: 0,
+                        };
+                    } else {
+                        // Price was changed - use SET_GROSS
+                        adjustment = {
+                            type: 'SET_GROSS' as const,
+                            value: customPriceInCents,
+                        };
+                    }
                 } else {
                     adjustment = {
                         type: 'FIXED_GROSS' as const,
