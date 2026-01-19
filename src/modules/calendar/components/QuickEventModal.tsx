@@ -133,7 +133,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         queryKey: ['customer-vehicles', selectedCustomerId],
         queryFn: async () => {
             if (!selectedCustomerId) return [];
-            const response = await apiClient.get(`/api/v1/customers/${selectedCustomerId}/vehicles`);
+            const response = await apiClient.get(`/v1/customers/${selectedCustomerId}/vehicles`);
             return response.data.vehicles || [];
         },
         enabled: !!selectedCustomerId,
@@ -142,7 +142,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const { data: services = [] } = useQuery({
         queryKey: ['services'],
         queryFn: async () => {
-            const response = await apiClient.get('/api/v1/services');
+            const response = await apiClient.get('/v1/services');
             return response.data.services || [];
         },
     });
@@ -150,7 +150,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const { data: appointmentColors = [] } = useQuery({
         queryKey: ['appointment-colors'],
         queryFn: async () => {
-            const response = await apiClient.get('/api/v1/appointment-colors');
+            const response = await apiClient.get('/v1/appointment-colors');
             return response.data.colors || [];
         },
     });

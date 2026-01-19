@@ -7,7 +7,7 @@ import type {
 } from '../types/stateTransitions';
 
 const USE_MOCKS = false;
-const BASE_PATH = '/api/visits';
+const BASE_PATH = '/visits';
 
 export const stateTransitionApi = {
     markReadyForPickup: async (

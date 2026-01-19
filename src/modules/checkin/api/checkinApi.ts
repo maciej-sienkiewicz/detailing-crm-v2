@@ -10,7 +10,7 @@ import type {
 } from '../types';
 
 const USE_MOCKS = false;
-const BASE_PATH = '/api/checkin';
+const BASE_PATH = '/checkin';
 
 const mockUploadSession: MobileUploadSession = {
     sessionId: 'session_123',

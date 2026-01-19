@@ -14,8 +14,8 @@ import type {
     CompanyDetails,
 } from '../types';
 
-const CUSTOMERS_BASE_PATH = '/api/v1/customers';
-const DOCUMENTS_BASE_PATH = '/api/v1/documents';
+const CUSTOMERS_BASE_PATH = '/v1/customers';
+const DOCUMENTS_BASE_PATH = '/v1/documents';
 const USE_MOCKS = false;
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));

@@ -7,7 +7,7 @@ import type {
 } from '../types';
 
 const USE_MOCKS = false;
-const BASE_PATH = '/api/visits';
+const BASE_PATH = '/visits';
 
 const mockVisitDetail: VisitDetailResponse = {
     visit: {
@@ -83,7 +83,7 @@ const mockVisitDetail: VisitDetailResponse = {
             id: 'doc_1',
             type: 'photo',
             fileName: 'przyjecie_przod.jpg',
-            fileUrl: '/api/documents/doc_1/download',
+            fileUrl: '/documents/doc_1/download',
             uploadedAt: '2025-01-15T09:10:00Z',
             uploadedBy: 'Marek Nowak',
             category: 'przyjecie',
@@ -92,7 +92,7 @@ const mockVisitDetail: VisitDetailResponse = {
             id: 'doc_2',
             type: 'photo',
             fileName: 'przyjecie_tyl.jpg',
-            fileUrl: '/api/documents/doc_2/download',
+            fileUrl: '/documents/doc_2/download',
             uploadedAt: '2025-01-15T09:12:00Z',
             uploadedBy: 'Marek Nowak',
             category: 'przyjecie',
@@ -101,7 +101,7 @@ const mockVisitDetail: VisitDetailResponse = {
             id: 'doc_3',
             type: 'pdf',
             fileName: 'protokol_przyjecia_VIS-2025-00042.pdf',
-            fileUrl: '/api/documents/doc_3/download',
+            fileUrl: '/documents/doc_3/download',
             uploadedAt: '2025-01-15T09:20:00Z',
             uploadedBy: 'System',
             category: 'protokoly',
@@ -158,7 +158,7 @@ export const visitApi = {
                 id: `doc_${Date.now()}`,
                 type: payload.type,
                 fileName: payload.file.name,
-                fileUrl: `/api/documents/doc_${Date.now()}/download`,
+                fileUrl: `/documents/doc_${Date.now()}/download`,
                 uploadedAt: new Date().toISOString(),
                 uploadedBy: 'Aktualny Użytkownik',
                 category: payload.category,

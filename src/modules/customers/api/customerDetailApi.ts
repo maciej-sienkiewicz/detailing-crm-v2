@@ -14,7 +14,7 @@ import type {
 } from '../types';
 import { mapBackendVehiclesResponse, mapBackendVisitsResponse } from '../utils/customerMappers';
 
-const CUSTOMERS_BASE_PATH = '/api/v1/customers';
+const CUSTOMERS_BASE_PATH = '/v1/customers';
 const USE_MOCKS = false;
 
 // Backend vehicle response type

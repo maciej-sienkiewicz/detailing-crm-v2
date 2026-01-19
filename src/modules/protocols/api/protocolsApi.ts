@@ -13,18 +13,18 @@ import type {
 class ProtocolsApi {
   // Protocol Templates
   async getProtocolTemplates(): Promise<ProtocolTemplate[]> {
-    const response = await apiClient.get<ProtocolTemplate[]>('/api/v1/protocol-templates');
+    const response = await apiClient.get<ProtocolTemplate[]>('/v1/protocol-templates');
     return response.data;
   }
 
   async getProtocolTemplate(id: string): Promise<ProtocolTemplate> {
-    const response = await apiClient.get<ProtocolTemplate>(`/api/v1/protocol-templates/${id}`);
+    const response = await apiClient.get<ProtocolTemplate>(`/v1/protocol-templates/${id}`);
     return response.data;
   }
 
   async createProtocolTemplate(data: CreateProtocolTemplateDto, file?: File): Promise<ProtocolTemplate> {
     // Step 1: Create template and get presigned upload URL
-    const response = await apiClient.post<ProtocolTemplate>('/api/v1/protocol-templates', data);
+    const response = await apiClient.post<ProtocolTemplate>('/v1/protocol-templates', data);
     const template = response.data;
 
     // Step 2: Upload file to S3 if provided
@@ -56,53 +56,53 @@ class ProtocolsApi {
   }
 
   async updateProtocolTemplate(id: string, data: UpdateProtocolTemplateDto): Promise<ProtocolTemplate> {
-    const response = await apiClient.patch<ProtocolTemplate>(`/api/v1/protocol-templates/${id}`, data);
+    const response = await apiClient.patch<ProtocolTemplate>(`/v1/protocol-templates/${id}`, data);
     return response.data;
   }
 
   async deleteProtocolTemplate(id: string): Promise<void> {
-    await apiClient.delete(`/api/v1/protocol-templates/${id}`);
+    await apiClient.delete(`/v1/protocol-templates/${id}`);
   }
 
   // Protocol Rules
   async getProtocolRules(): Promise<ProtocolRule[]> {
-    const response = await apiClient.get<ProtocolRule[]>('/api/v1/protocol-rules');
+    const response = await apiClient.get<ProtocolRule[]>('/v1/protocol-rules');
     return response.data;
   }
 
   async getProtocolRulesByStage(stage: 'CHECK_IN' | 'CHECK_OUT'): Promise<ProtocolRule[]> {
-    const response = await apiClient.get<ProtocolRule[]>(`/api/v1/protocol-rules?stage=${stage}`);
+    const response = await apiClient.get<ProtocolRule[]>(`/v1/protocol-rules?stage=${stage}`);
     return response.data;
   }
 
   async getProtocolRulesByService(serviceId: string): Promise<ProtocolRule[]> {
-    const response = await apiClient.get<ProtocolRule[]>(`/api/v1/protocol-rules?serviceId=${serviceId}`);
+    const response = await apiClient.get<ProtocolRule[]>(`/v1/protocol-rules?serviceId=${serviceId}`);
     return response.data;
   }
 
   async createProtocolRule(data: CreateProtocolRuleDto): Promise<ProtocolRule> {
-    const response = await apiClient.post<ProtocolRule>('/api/v1/protocol-rules', data);
+    const response = await apiClient.post<ProtocolRule>('/v1/protocol-rules', data);
     return response.data;
   }
 
   async updateProtocolRule(id: string, data: Partial<CreateProtocolRuleDto>): Promise<ProtocolRule> {
-    const response = await apiClient.patch<ProtocolRule>(`/api/v1/protocol-rules/${id}`, data);
+    const response = await apiClient.patch<ProtocolRule>(`/v1/protocol-rules/${id}`, data);
     return response.data;
   }
 
   async deleteProtocolRule(id: string): Promise<void> {
-    await apiClient.delete(`/api/v1/protocol-rules/${id}`);
+    await apiClient.delete(`/v1/protocol-rules/${id}`);
   }
 
   // Visit Protocols
   async getVisitProtocols(visitId: string): Promise<VisitProtocol[]> {
-    const response = await apiClient.get<VisitProtocol[]>(`/api/v1/visits/${visitId}/protocols`);
+    const response = await apiClient.get<VisitProtocol[]>(`/v1/visits/${visitId}/protocols`);
     return response.data;
   }
 
   async signVisitProtocol(visitId: string, protocolId: string, data: SignProtocolDto): Promise<VisitProtocol> {
     const response = await apiClient.post<VisitProtocol>(
-      `/api/v1/visits/${visitId}/protocols/${protocolId}/sign`,
+      `/v1/visits/${visitId}/protocols/${protocolId}/sign`,
       data
     );
     return response.data;
@@ -110,7 +110,7 @@ class ProtocolsApi {
 
   async generateVisitProtocols(visitId: string, stage: 'CHECK_IN' | 'CHECK_OUT' = 'CHECK_IN'): Promise<VisitProtocol[]> {
     const response = await apiClient.post<VisitProtocol[]>(
-      `/api/v1/visits/${visitId}/protocols/generate?stage=${stage}`
+      `/v1/visits/${visitId}/protocols/generate?stage=${stage}`
     );
     return response.data;
   }

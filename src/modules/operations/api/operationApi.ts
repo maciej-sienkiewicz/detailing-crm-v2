@@ -6,7 +6,7 @@ import type { OperationListResponse, OperationFilters, Operation, AppointmentSta
 const USE_MOCKS_FOR_VISITS = false; // Wizyty nadal zamockowane
 const USE_MOCKS_FOR_RESERVATIONS = false; // Rezerwacje z serwera
 
-const BASE_PATH = '/api/operations';
+const BASE_PATH = '/operations';
 
 // Typ dla odpowiedzi z backendu - Rezerwacje
 interface AppointmentResponse {
@@ -283,7 +283,7 @@ export const operationApi = {
             }
 
             const response = await apiClient.get<VisitsListResponse>(
-                `/api/visits?${params.toString()}`
+                `/visits?${params.toString()}`
             );
 
             // Mapuj dane z backendu na format frontend
@@ -328,7 +328,7 @@ export const operationApi = {
             });
 
             const response = await apiClient.get<AppointmentsListResponse>(
-                `/api/v1/appointments?${params.toString()}`
+                `/v1/appointments?${params.toString()}`
             );
 
             const mappedData = response.data.appointments.map(mapAppointmentToOperation);
@@ -356,7 +356,7 @@ export const operationApi = {
             });
 
             const response = await apiClient.get<VisitsListResponse>(
-                `/api/visits?${params.toString()}`
+                `/visits?${params.toString()}`
             );
 
             const mappedData = response.data.visits.map(mapVisitToOperation);
@@ -387,7 +387,7 @@ export const operationApi = {
             });
 
             const response = await apiClient.get<AppointmentsListResponse>(
-                `/api/v1/appointments?${params.toString()}`
+                `/v1/appointments?${params.toString()}`
             );
 
             const mappedData = response.data.appointments.map(mapAppointmentToOperation);
@@ -456,7 +456,7 @@ export const operationApi = {
         startDateTime: string,
         endDateTime: string
     ): Promise<void> => {
-        await apiClient.patch(`/api/v1/appointments/${reservationId}`, {
+        await apiClient.patch(`/v1/appointments/${reservationId}`, {
             schedule: {
                 startDateTime,
                 endDateTime,
@@ -465,7 +465,7 @@ export const operationApi = {
     },
 
     cancelReservation: async (reservationId: string): Promise<void> => {
-        await apiClient.patch(`/api/v1/appointments/${reservationId}`, {
+        await apiClient.patch(`/v1/appointments/${reservationId}`, {
             status: 'CANCELLED',
         });
     },

@@ -54,7 +54,7 @@ export const useQuickEventCreation = () => {
             }
 
             // Fetch service details to build proper ServiceLineItem objects
-            const servicesResponse = await apiClient.get('/api/v1/services');
+            const servicesResponse = await apiClient.get('/v1/services');
             const allServices = servicesResponse.data.services || [];
 
             // Build services payload with all required fields
@@ -97,7 +97,7 @@ export const useQuickEventCreation = () => {
                 appointmentColorId: data.colorId,
             };
 
-            const response = await apiClient.post('/api/v1/appointments', payload);
+            const response = await apiClient.post('/v1/appointments', payload);
             return response.data;
         },
         onSuccess: () => {
