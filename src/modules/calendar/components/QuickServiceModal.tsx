@@ -71,7 +71,8 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                     basePriceNet,
                     vatRate: 23,
                 });
-                createdServiceId = result.service.id;
+                // API returns the service object directly, not wrapped
+                createdServiceId = result.id;
             }
 
             // Return the service (with ID if saved to DB, without if not)
