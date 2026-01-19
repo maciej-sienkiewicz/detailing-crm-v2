@@ -217,6 +217,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         }
     }, [isOpen]);
 
+    // Auto-open vehicle modal if customer has vehicles
+    useEffect(() => {
+        if (selectedCustomer && !selectedCustomer.isNew && vehicles && vehicles.length > 0 && !selectedVehicle) {
+            setIsVehicleModalOpen(true);
+        }
+    }, [selectedCustomer, vehicles, selectedVehicle]);
+
     // Clear form function
     const clearForm = () => {
         setTitle('');
