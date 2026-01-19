@@ -102,6 +102,7 @@ export interface Visit {
     keysHandedOver: boolean;
     documentsHandedOver: boolean;
     technicalNotes?: string;
+    colorId: string;
     createdAt: string;
     updatedAt: string;
 }

@@ -80,6 +80,7 @@ export interface CheckInFormData {
     };
     photos: PhotoSlot[];
     services: ServiceLineItem[];
+    appointmentColorId: string;
 }
 
 export interface ReservationToVisitPayload {
@@ -127,6 +128,7 @@ export interface ReservationToVisitPayload {
     };
     photoIds: string[];
     services: ServiceLineItem[];
+    appointmentColorId: string;
 }
 
 export interface MobileUploadSession {

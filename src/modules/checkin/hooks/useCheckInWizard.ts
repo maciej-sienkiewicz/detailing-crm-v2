@@ -35,6 +35,7 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
         },
         photos: [],
         services: initialData.services || [],
+        appointmentColorId: initialData.appointmentColorId || '',
     });
 
     const steps: Array<{ id: CheckInStep; label: string }> = [
@@ -136,6 +137,7 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
             technicalState: formData.technicalState,
             photoIds: formData.photos.map(p => p.fileId!).filter(Boolean),
             services: formData.services,
+            appointmentColorId: formData.appointmentColorId,
         };
 
         return createVisitMutation.mutateAsync(payload);
