@@ -83,22 +83,37 @@ export const useQuickEventCreation = () => {
                     throw new Error(`Service with id ${serviceId} not found`);
                 }
 
-                // Use custom price if provided, otherwise use service base price
-                const customPrice = data.servicePrices?.[serviceId];
-                const basePriceNet = customPrice !== undefined
-                    ? customPrice * 100 // Convert to cents
-                    : service.basePriceNet;
+                // Calculate adjustment if custom price provided
+                const customPriceGross = data.servicePrices?.[serviceId];
+                let adjustment;
+
+                if (customPriceGross !== undefined) {
+                    // User entered a new gross price (in PLN)
+                    // Calculate original gross price in cents
+                    const originalGrossInCents = Math.round((service.basePriceNet * (100 + service.vatRate)) / 100);
+                    // Convert custom price from PLN to cents
+                    const customPriceInCents = Math.round(customPriceGross * 100);
+                    // Calculate discount as difference (in cents)
+                    const discountValue = originalGrossInCents - customPriceInCents;
+
+                    adjustment = {
+                        type: 'FIXED_GROSS' as const,
+                        value: discountValue,
+                    };
+                } else {
+                    adjustment = {
+                        type: 'FIXED_GROSS' as const,
+                        value: 0,
+                    };
+                }
 
                 return {
                     id: `${Date.now()}-${index}`, // Generate unique line item ID
                     serviceId: serviceId,
                     serviceName: service.name,
-                    basePriceNet: basePriceNet,
+                    basePriceNet: service.basePriceNet, // Keep original base price
                     vatRate: service.vatRate,
-                    adjustment: {
-                        type: 'FIXED_NET' as const,
-                        value: 0,
-                    },
+                    adjustment: adjustment,
                     note: '',
                 };
             });
