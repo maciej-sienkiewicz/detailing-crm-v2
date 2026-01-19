@@ -135,6 +135,7 @@ export interface ReservationToVisitPayload {
         inspectionNotes: string;
     };
     photoIds: string[];
+    damagePoints: DamagePoint[];
     services: ServiceLineItem[];
     appointmentColorId: string;
 }
