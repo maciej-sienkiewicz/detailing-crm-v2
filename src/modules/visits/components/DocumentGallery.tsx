@@ -76,13 +76,20 @@ const PhotoCard = styled.div`
     border-radius: ${props => props.theme.radii.md};
     overflow: hidden;
     border: 1px solid ${props => props.theme.colors.border};
-    cursor: pointer;
     transition: all 0.2s ease;
+    background: #f8fafc;
 
     &:hover {
         box-shadow: ${props => props.theme.shadows.lg};
         transform: translateY(-2px);
     }
+`;
+
+const PhotoImage = styled.img`
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    cursor: pointer;
 `;
 
 const PhotoPlaceholder = styled.div`
@@ -103,6 +110,14 @@ const PhotoOverlay = styled.div`
     padding: ${props => props.theme.spacing.sm};
     background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 100%);
     color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+`;
+
+const PhotoInfo = styled.div`
+    flex: 1;
+    min-width: 0;
 `;
 
 const PhotoName = styled.div`
@@ -116,6 +131,43 @@ const PhotoName = styled.div`
 const PhotoDate = styled.div`
     font-size: ${props => props.theme.fontSizes.xs};
     opacity: 0.8;
+`;
+
+const PhotoActions = styled.div`
+    display: flex;
+    gap: ${props => props.theme.spacing.xs};
+    flex-shrink: 0;
+`;
+
+const IconButton = styled.button`
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: ${props => props.theme.radii.sm};
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: white;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.1);
+    }
+
+    svg {
+        width: 16px;
+        height: 16px;
+    }
+`;
+
+const DeleteIconButton = styled(IconButton)`
+    &:hover {
+        background: rgba(220, 38, 38, 0.9);
+    }
 `;
 
 const DocumentList = styled.div`
@@ -133,7 +185,6 @@ const DocumentCard = styled.div`
     border: 1px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.md};
     transition: all 0.2s ease;
-    cursor: pointer;
 
     &:hover {
         border-color: var(--brand-primary);
@@ -172,6 +223,45 @@ const DocumentMeta = styled.div`
     color: ${props => props.theme.colors.textMuted};
 `;
 
+const DocumentActions = styled.div`
+    display: flex;
+    gap: ${props => props.theme.spacing.sm};
+    flex-shrink: 0;
+`;
+
+const ActionButton = styled.button`
+    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.sm};
+    background: white;
+    color: ${props => props.theme.colors.text};
+    font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    &:hover {
+        border-color: var(--brand-primary);
+        color: var(--brand-primary);
+    }
+
+    svg {
+        width: 14px;
+        height: 14px;
+    }
+`;
+
+const DeleteButton = styled(ActionButton)`
+    &:hover {
+        border-color: #dc2626;
+        color: #dc2626;
+        background: rgba(220, 38, 38, 0.05);
+    }
+`;
+
 const UploadButton = styled.label`
     display: inline-flex;
     align-items: center;
@@ -208,6 +298,7 @@ const EmptyState = styled.div`
 
 interface DocumentGalleryProps {
     documents: VisitDocument[];
+    customerId: string;
     onUpload: (file: File, type: DocumentType, category: string) => void;
     onDelete: (documentId: string) => void;
     isUploading: boolean;
@@ -215,7 +306,9 @@ interface DocumentGalleryProps {
 
 export const DocumentGallery = ({
                                      documents,
+                                     customerId,
                                      onUpload,
+                                     onDelete,
                                      isUploading,
                                  }: DocumentGalleryProps) => {
     const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -233,18 +326,38 @@ export const DocumentGallery = ({
         ? documents
         : documents.filter(doc => doc.category === activeCategory);
 
-    const photos = filteredDocuments.filter(doc => doc.type === 'photo');
-    const pdfs = filteredDocuments.filter(doc => doc.type === 'pdf' || doc.type === 'protocol');
+    const photos = filteredDocuments.filter(doc => doc.type === 'PHOTO' || doc.type === 'DAMAGE_MAP');
+    const pdfs = filteredDocuments.filter(doc =>
+        doc.type === 'PDF' ||
+        doc.type === 'PROTOCOL' ||
+        doc.type === 'INTAKE' ||
+        doc.type === 'OUTTAKE' ||
+        doc.type === 'OTHER'
+    );
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const type: DocumentType = file.type.startsWith('image/') ? 'photo' : 'pdf';
+            const type: DocumentType = file.type.startsWith('image/') ? 'PHOTO' : 'PDF';
             onUpload(file, type, activeCategory === 'all' ? 'inne' : activeCategory);
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
         }
+    };
+
+    const handleDownload = (fileUrl: string, fileName: string) => {
+        const link = document.createElement('a');
+        link.href = fileUrl;
+        link.download = fileName;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleImageClick = (fileUrl: string) => {
+        window.open(fileUrl, '_blank');
     };
 
     return (
@@ -276,7 +389,7 @@ export const DocumentGallery = ({
                             $isActive={activeCategory === cat.id}
                             onClick={() => setActiveCategory(cat.id)}
                         >
-                            {cat.label}
+                            {cat.label} ({cat.id === 'all' ? documents.length : documents.filter(d => d.category === cat.id).length})
                         </CategoryTab>
                     ))}
                 </CategoryTabs>
@@ -291,10 +404,47 @@ export const DocumentGallery = ({
                         <PhotoGrid>
                             {photos.map(photo => (
                                 <PhotoCard key={photo.id}>
-                                    <PhotoPlaceholder>📸</PhotoPlaceholder>
+                                    {photo.fileUrl ? (
+                                        <PhotoImage
+                                            src={photo.fileUrl}
+                                            alt={photo.fileName}
+                                            onClick={() => handleImageClick(photo.fileUrl)}
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).style.display = 'none';
+                                                (e.target as HTMLImageElement).nextElementSibling!.classList.remove('hidden');
+                                            }}
+                                        />
+                                    ) : (
+                                        <PhotoPlaceholder>📸</PhotoPlaceholder>
+                                    )}
                                     <PhotoOverlay>
-                                        <PhotoName>{photo.fileName}</PhotoName>
-                                        <PhotoDate>{formatDateTime(photo.uploadedAt)}</PhotoDate>
+                                        <PhotoInfo>
+                                            <PhotoName>{photo.fileName}</PhotoName>
+                                            <PhotoDate>{formatDateTime(photo.uploadedAt)}</PhotoDate>
+                                        </PhotoInfo>
+                                        <PhotoActions>
+                                            <IconButton
+                                                onClick={() => handleDownload(photo.fileUrl, photo.fileName)}
+                                                title="Pobierz"
+                                            >
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                    <polyline points="7 10 12 15 17 10"/>
+                                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                                </svg>
+                                            </IconButton>
+                                            <DeleteIconButton
+                                                onClick={() => onDelete(photo.id)}
+                                                title="Usuń"
+                                            >
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <polyline points="3 6 5 6 21 6"/>
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                                    <line x1="10" y1="11" x2="10" y2="17"/>
+                                                    <line x1="14" y1="11" x2="14" y2="17"/>
+                                                </svg>
+                                            </DeleteIconButton>
+                                        </PhotoActions>
                                     </PhotoOverlay>
                                 </PhotoCard>
                             ))}
@@ -314,9 +464,30 @@ export const DocumentGallery = ({
                                     <DocumentInfo>
                                         <DocumentName>{doc.fileName}</DocumentName>
                                         <DocumentMeta>
-                                            Dodano: {formatDateTime(doc.uploadedAt)} · {doc.uploadedBy}
+                                            Dodano: {formatDateTime(doc.uploadedAt)} · {doc.uploadedByName}
                                         </DocumentMeta>
                                     </DocumentInfo>
+                                    <DocumentActions>
+                                        <ActionButton
+                                            onClick={() => handleDownload(doc.fileUrl, doc.fileName)}
+                                        >
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                <polyline points="7 10 12 15 17 10"/>
+                                                <line x1="12" y1="15" x2="12" y2="3"/>
+                                            </svg>
+                                            Pobierz
+                                        </ActionButton>
+                                        <DeleteButton
+                                            onClick={() => onDelete(doc.id)}
+                                        >
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <polyline points="3 6 5 6 21 6"/>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                            </svg>
+                                            Usuń
+                                        </DeleteButton>
+                                    </DocumentActions>
                                 </DocumentCard>
                             ))}
                         </DocumentList>
@@ -325,7 +496,10 @@ export const DocumentGallery = ({
 
                 {filteredDocuments.length === 0 && (
                     <EmptyState>
-                        Brak dokumentów w wybranej kategorii
+                        {activeCategory === 'all'
+                            ? 'Brak dokumentów dla tej wizyty'
+                            : 'Brak dokumentów w wybranej kategorii'
+                        }
                     </EmptyState>
                 )}
             </GalleryContent>

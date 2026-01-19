@@ -244,7 +244,13 @@ export const VisitDetailView = () => {
     };
 
     const handleUploadDocument = (file: File, type: DocumentType, category: string) => {
-        uploadDocument({ visitId: visitId!, file, type, category });
+        uploadDocument({
+            visitId: visitId!,
+            customerId: visit.customer.id,
+            file,
+            type,
+            category
+        });
     };
 
     const handleDeleteDocument = (documentId: string) => {
@@ -325,6 +331,7 @@ export const VisitDetailView = () => {
                     <TabContent>
                         <DocumentGallery
                             documents={documents}
+                            customerId={visit.customer.id}
                             onUpload={handleUploadDocument}
                             onDelete={handleDeleteDocument}
                             isUploading={isUploading}

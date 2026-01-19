@@ -75,35 +75,48 @@ const mockVisitDetail: VisitDetailResponse = {
         keysHandedOver: true,
         documentsHandedOver: true,
         technicalNotes: 'Drobne zarysowania na masce - do wyprostowania przed oklejaniem',
+        colorId: 'color_primary',
         createdAt: '2025-01-10T14:30:00Z',
         updatedAt: '2025-01-15T11:20:00Z',
     },
     documents: [
         {
             id: 'doc_1',
-            type: 'photo',
+            visitId: 'visit_1',
+            customerId: 'cust_1',
+            type: 'PHOTO',
+            name: 'Zdjęcie przodu pojazdu przy przyjęciu',
             fileName: 'przyjecie_przod.jpg',
             fileUrl: '/documents/doc_1/download',
             uploadedAt: '2025-01-15T09:10:00Z',
-            uploadedBy: 'Marek Nowak',
+            uploadedBy: 'user_1',
+            uploadedByName: 'Marek Nowak',
             category: 'przyjecie',
         },
         {
             id: 'doc_2',
-            type: 'photo',
+            visitId: 'visit_1',
+            customerId: 'cust_1',
+            type: 'PHOTO',
+            name: 'Zdjęcie tyłu pojazdu przy przyjęciu',
             fileName: 'przyjecie_tyl.jpg',
             fileUrl: '/documents/doc_2/download',
             uploadedAt: '2025-01-15T09:12:00Z',
-            uploadedBy: 'Marek Nowak',
+            uploadedBy: 'user_1',
+            uploadedByName: 'Marek Nowak',
             category: 'przyjecie',
         },
         {
             id: 'doc_3',
-            type: 'pdf',
+            visitId: 'visit_1',
+            customerId: 'cust_1',
+            type: 'PROTOCOL',
+            name: 'Protokół przyjęcia pojazdu',
             fileName: 'protokol_przyjecia_VIS-2025-00042.pdf',
             fileUrl: '/documents/doc_3/download',
             uploadedAt: '2025-01-15T09:20:00Z',
-            uploadedBy: 'System',
+            uploadedBy: 'system',
+            uploadedByName: 'System',
             category: 'protokoly',
         },
     ],
@@ -156,23 +169,30 @@ export const visitApi = {
             await new Promise(resolve => setTimeout(resolve, 1000));
             return {
                 id: `doc_${Date.now()}`,
+                visitId: payload.visitId,
+                customerId: 'mock_customer_id',
                 type: payload.type,
+                name: payload.file.name,
                 fileName: payload.file.name,
                 fileUrl: `/documents/doc_${Date.now()}/download`,
                 uploadedAt: new Date().toISOString(),
-                uploadedBy: 'Aktualny Użytkownik',
+                uploadedBy: 'mock_user_id',
+                uploadedByName: 'Aktualny Użytkownik',
                 category: payload.category,
             };
         }
         const formData = new FormData();
         formData.append('file', payload.file);
+        formData.append('visitId', payload.visitId);
+        formData.append('customerId', payload.customerId || '');
         formData.append('type', payload.type);
+        formData.append('name', payload.file.name);
         if (payload.category) {
             formData.append('category', payload.category);
         }
 
         const response = await apiClient.post(
-            `${BASE_PATH}/${payload.visitId}/documents`,
+            '/documents/external',
             formData,
             {
                 headers: {
@@ -188,6 +208,15 @@ export const visitApi = {
             await new Promise(resolve => setTimeout(resolve, 300));
             return;
         }
-        await apiClient.delete(`${BASE_PATH}/${visitId}/documents/${documentId}`);
+        await apiClient.delete(`/documents/${documentId}`);
+    },
+
+    getDocumentDownloadUrl: async (documentId: string): Promise<string> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+            return `/mock/documents/${documentId}/download`;
+        }
+        const response = await apiClient.get(`/documents/${documentId}/download-url`);
+        return response.data.url;
     },
 };

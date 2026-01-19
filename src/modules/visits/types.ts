@@ -1,6 +1,6 @@
 export type VisitStatus = 'IN_PROGRESS' | 'READY_FOR_PICKUP' | 'COMPLETED' | 'REJECTED' | 'ARCHIVED';
 
-export type DocumentType = 'photo' | 'pdf' | 'protocol';
+export type DocumentType = 'PHOTO' | 'PDF' | 'PROTOCOL' | 'INTAKE' | 'OUTTAKE' | 'DAMAGE_MAP' | 'OTHER';
 
 export type CommentType = 'INTERNAL' | 'FOR_CUSTOMER';
 
@@ -80,11 +80,15 @@ export interface CustomerInfo {
 
 export interface VisitDocument {
     id: string;
+    visitId: string;
+    customerId: string;
     type: DocumentType;
+    name: string;
     fileName: string;
     fileUrl: string;
     uploadedAt: string;
     uploadedBy: string;
+    uploadedByName: string;
     category?: string;
 }
 
@@ -122,6 +126,7 @@ export interface UpdateVisitPayload {
 
 export interface UploadDocumentPayload {
     visitId: string;
+    customerId?: string;
     file: File;
     type: DocumentType;
     category?: string;
