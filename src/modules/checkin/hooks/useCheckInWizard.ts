@@ -34,6 +34,7 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
             ...initialData.technicalState,
         },
         photos: [],
+        damagePoints: initialData.damagePoints || [],
         services: initialData.services || [],
         appointmentColorId: initialData.appointmentColorId || '',
     });

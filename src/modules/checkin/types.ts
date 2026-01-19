@@ -25,6 +25,13 @@ export interface PriceAdjustment {
     value: number;
 }
 
+export interface DamagePoint {
+    id: number;
+    x: number; // Percentage (0-100)
+    y: number; // Percentage (0-100)
+    note: string;
+}
+
 export interface ServiceLineItem {
     id: string;
     serviceId: string;
@@ -79,6 +86,7 @@ export interface CheckInFormData {
         inspectionNotes: string;
     };
     photos: PhotoSlot[];
+    damagePoints: DamagePoint[];
     services: ServiceLineItem[];
     appointmentColorId: string;
 }

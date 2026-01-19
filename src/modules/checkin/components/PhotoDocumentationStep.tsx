@@ -1,14 +1,16 @@
 // src/modules/checkin/components/PhotoDocumentationStep.tsx
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { Card, CardHeader, CardTitle } from '@/common/components/Card';
 import { Button } from '@/common/components/Button';
 import { Badge } from '@/common/components/Badge';
 import { Divider } from '@/common/components/Divider';
+import { Toggle } from '@/common/components/Toggle';
 import { t, interpolate } from '@/common/i18n';
 import { usePhotoUpload } from '../hooks/usePhotoUpload';
-import type { CheckInFormData, PhotoSlotType } from '../types';
+import type { CheckInFormData, PhotoSlotType, DamagePoint } from '../types';
+import { VehicleDamageMapper } from './VehicleDamageMapper';
 
 const StepContainer = styled.div`
     display: flex;
@@ -160,6 +162,7 @@ interface PhotoDocumentationStepProps {
 
 export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: PhotoDocumentationStepProps) => {
     const { uploadSession, photos, refreshPhotos, isRefreshing } = usePhotoUpload(reservationId);
+    const [showDamageDocumentation, setShowDamageDocumentation] = useState(false);
 
     const requiredSlots: PhotoSlotType[] = ['front', 'rear', 'left_side', 'right_side'];
 
@@ -188,6 +191,10 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
     const formatTimestamp = (timestamp: string) => {
         const date = new Date(timestamp);
         return date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const handleDamagePointsChange = (points: DamagePoint[]) => {
+        onChange({ damagePoints: points });
     };
 
     return (
@@ -260,6 +267,28 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
                         </>
                     )}
                 </StatusSection>
+            </Card>
+
+            <Card>
+                <CardHeader style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <CardTitle>Dokumentacja uszkodzeń</CardTitle>
+                    <Toggle
+                        checked={showDamageDocumentation}
+                        onChange={setShowDamageDocumentation}
+                        label="Rozwiń sekcję"
+                    />
+                </CardHeader>
+
+                {showDamageDocumentation && (
+                    <>
+                        <Divider />
+                        <VehicleDamageMapper
+                            imageUrl="/assets/image_627063.jpg"
+                            points={formData.damagePoints || []}
+                            onChange={handleDamagePointsChange}
+                        />
+                    </>
+                )}
             </Card>
         </StepContainer>
     );
