@@ -125,7 +125,11 @@ interface ReservationResponse {
         note?: string;
     }>;
     status: string;
-    appointmentColorId: string;
+    appointmentColor?: {
+        id: string;
+        name: string;
+        hexColor: string;
+    };
 }
 
 
@@ -176,7 +180,7 @@ export const CheckInWizardWrapper = () => {
             note: service.note,
         })) || [],
         status: reservationData.status,
-        appointmentColorId: reservationData.appointmentColorId,
+        appointmentColor: reservationData.appointmentColor,
     } : undefined;
 
     const handleComplete = (visitId: string) => {
@@ -255,7 +259,7 @@ export const CheckInWizardWrapper = () => {
         homeAddress: reservation.customer?.homeAddress || null,
         company: reservation.customer?.company || null,
         services: reservation.services,
-        appointmentColorId: reservation.appointmentColorId,
+        appointmentColorId: reservation.appointmentColor?.id || '',
     };
 
     return (
