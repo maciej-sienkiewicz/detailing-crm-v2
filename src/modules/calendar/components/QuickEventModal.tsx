@@ -598,6 +598,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             onClick={() => {
                                                                 setIsQuickServiceModalOpen(true);
                                                                 setShowServiceDropdown(false);
+                                                                setFocusedField(null);
                                                             }}
                                                             className="w-full px-4 py-3 flex items-center gap-2 hover:bg-blue-50 transition-colors text-left border-t border-gray-100 bg-blue-50/50"
                                                         >
