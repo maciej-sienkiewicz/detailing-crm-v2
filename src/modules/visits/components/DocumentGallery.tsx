@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import styled from 'styled-components';
 import { formatDateTime } from '@/common/utils';
 import type { VisitDocument, DocumentType } from '../types';
+import { ImageViewerModal } from './ImageViewerModal';
 
 const GalleryContainer = styled.div`
     background: white;
@@ -312,6 +313,7 @@ export const DocumentGallery = ({
                                      isUploading,
                                  }: DocumentGalleryProps) => {
     const [activeCategory, setActiveCategory] = useState<string>('all');
+    const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const categories = [
@@ -356,9 +358,27 @@ export const DocumentGallery = ({
         document.body.removeChild(link);
     };
 
-    const handleImageClick = (fileUrl: string) => {
-        window.open(fileUrl, '_blank');
+    const handleImageClick = (index: number) => {
+        setSelectedImageIndex(index);
     };
+
+    const handleCloseModal = () => {
+        setSelectedImageIndex(null);
+    };
+
+    const handleNextImage = () => {
+        if (selectedImageIndex !== null && selectedImageIndex < photos.length - 1) {
+            setSelectedImageIndex(selectedImageIndex + 1);
+        }
+    };
+
+    const handlePrevImage = () => {
+        if (selectedImageIndex !== null && selectedImageIndex > 0) {
+            setSelectedImageIndex(selectedImageIndex - 1);
+        }
+    };
+
+    const selectedPhoto = selectedImageIndex !== null ? photos[selectedImageIndex] : null;
 
     return (
         <GalleryContainer>
@@ -402,13 +422,13 @@ export const DocumentGallery = ({
                             Zdjęcia ({photos.length})
                         </h4>
                         <PhotoGrid>
-                            {photos.map(photo => (
+                            {photos.map((photo, index) => (
                                 <PhotoCard key={photo.id}>
                                     {photo.fileUrl ? (
                                         <PhotoImage
                                             src={photo.fileUrl}
                                             alt={photo.fileName}
-                                            onClick={() => handleImageClick(photo.fileUrl)}
+                                            onClick={() => handleImageClick(index)}
                                             onError={(e) => {
                                                 (e.target as HTMLImageElement).style.display = 'none';
                                                 (e.target as HTMLImageElement).nextElementSibling!.classList.remove('hidden');
@@ -503,6 +523,20 @@ export const DocumentGallery = ({
                     </EmptyState>
                 )}
             </GalleryContent>
+
+            {selectedPhoto && (
+                <ImageViewerModal
+                    imageUrl={selectedPhoto.fileUrl}
+                    imageName={selectedPhoto.fileName}
+                    isOpen={selectedImageIndex !== null}
+                    onClose={handleCloseModal}
+                    onDownload={() => handleDownload(selectedPhoto.fileUrl, selectedPhoto.fileName)}
+                    hasNext={selectedImageIndex !== null && selectedImageIndex < photos.length - 1}
+                    hasPrev={selectedImageIndex !== null && selectedImageIndex > 0}
+                    onNext={handleNextImage}
+                    onPrev={handlePrevImage}
+                />
+            )}
         </GalleryContainer>
     );
 };
