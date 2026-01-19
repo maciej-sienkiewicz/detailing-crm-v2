@@ -89,16 +89,12 @@ export const useQuickEventCreation = () => {
 
                 if (customPriceGross !== undefined) {
                     // User entered a new gross price (in PLN)
-                    // Calculate original gross price in cents
-                    const originalGrossInCents = Math.round((service.basePriceNet * (100 + service.vatRate)) / 100);
                     // Convert custom price from PLN to cents
                     const customPriceInCents = Math.round(customPriceGross * 100);
-                    // Calculate discount as difference (in cents)
-                    const discountValue = originalGrossInCents - customPriceInCents;
 
                     adjustment = {
-                        type: 'FIXED_GROSS' as const,
-                        value: discountValue,
+                        type: 'SET_GROSS' as const,
+                        value: customPriceInCents,
                     };
                 } else {
                     adjustment = {
