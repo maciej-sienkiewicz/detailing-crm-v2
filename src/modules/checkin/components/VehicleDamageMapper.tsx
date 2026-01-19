@@ -35,6 +35,16 @@ const ImageContainer = styled.div`
   border: 2px solid ${props => props.theme.colors.border};
   background-color: white;
   box-shadow: ${props => props.theme.shadows.md};
+  max-width: 800px;
+  margin: 0 auto;
+
+  @media (min-width: ${props => props.theme.breakpoints.md}) {
+    max-width: 700px;
+  }
+
+  @media (min-width: ${props => props.theme.breakpoints.lg}) {
+    max-width: 800px;
+  }
 `;
 
 const VehicleImage = styled.img`
