@@ -68,84 +68,154 @@ const InfoValue = styled.span`
     color: ${props => props.theme.colors.text};
 `;
 
-const ServicesTable = styled.table`
-    width: 100%;
-    border-collapse: collapse;
+const ServicesContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${props => props.theme.spacing.md};
     margin-top: ${props => props.theme.spacing.md};
 `;
 
-const TableHeader = styled.thead`
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-    color: white;
-`;
+const ServiceCard = styled.div`
+    background-color: ${props => props.theme.colors.surface};
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.lg};
+    padding: ${props => props.theme.spacing.md};
+    transition: all ${props => props.theme.transitions.fast};
 
-const TableHeaderCell = styled.th`
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
-    text-align: left;
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
-`;
+    &:hover {
+        border-color: ${props => props.theme.colors.primary};
+        box-shadow: ${props => props.theme.shadows.md};
+    }
 
-const TableBody = styled.tbody``;
-
-const TableRow = styled.tr`
-    border-bottom: 1px solid ${props => props.theme.colors.border};
-
-    &:last-child {
-        border-bottom: none;
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        padding: ${props => props.theme.spacing.lg};
     }
 `;
 
-const TableCell = styled.td`
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
-    font-size: ${props => props.theme.fontSizes.sm};
-    vertical-align: top;
+const ServiceHeader = styled.div`
+    margin-bottom: ${props => props.theme.spacing.md};
 `;
 
-const ServiceName = styled.div`
-    font-weight: ${props => props.theme.fontWeights.medium};
+const ServiceName = styled.h4`
+    font-size: ${props => props.theme.fontSizes.md};
+    font-weight: ${props => props.theme.fontWeights.semibold};
     color: ${props => props.theme.colors.text};
-    margin-bottom: ${props => props.theme.spacing.xs};
+    margin: 0 0 ${props => props.theme.spacing.xs} 0;
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        font-size: ${props => props.theme.fontSizes.lg};
+    }
 `;
 
 const ServiceNote = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
+    font-size: ${props => props.theme.fontSizes.sm};
+    color: ${props => props.theme.colors.textSecondary};
     font-style: italic;
-    margin-top: ${props => props.theme.spacing.xs};
-    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
+    padding: ${props => props.theme.spacing.sm};
     background-color: ${props => props.theme.colors.surfaceAlt};
+    border-left: 3px solid ${props => props.theme.colors.primary};
     border-radius: ${props => props.theme.radii.sm};
+    margin-top: ${props => props.theme.spacing.sm};
 `;
 
-const PriceCell = styled(TableCell)`
-    text-align: right;
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    font-feature-settings: 'tnum';
-    white-space: nowrap;
+const PriceGrid = styled.div`
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: ${props => props.theme.spacing.sm};
+
+    @media (min-width: ${props => props.theme.breakpoints.sm}) {
+        grid-template-columns: repeat(3, 1fr);
+    }
 `;
 
-const TotalRow = styled.tr`
-    background: linear-gradient(to right,
-        ${props => props.theme.colors.surfaceAlt} 0%,
-        ${props => props.theme.colors.surface} 100%);
-    border-top: 3px solid ${props => props.theme.colors.primary};
-    font-weight: ${props => props.theme.fontWeights.bold};
+const PriceItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${props => props.theme.spacing.xs};
+    padding: ${props => props.theme.spacing.sm};
+    background-color: ${props => props.theme.colors.surfaceAlt};
+    border-radius: ${props => props.theme.radii.md};
 `;
 
-const TotalLabel = styled(TableCell)`
-    font-size: ${props => props.theme.fontSizes.md};
-    color: ${props => props.theme.colors.text};
+const PriceLabel = styled.span`
+    font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: ${props => props.theme.fontWeights.medium};
+    color: ${props => props.theme.colors.textMuted};
     text-transform: uppercase;
     letter-spacing: 0.5px;
 `;
 
-const TotalValue = styled(PriceCell)`
+const PriceValue = styled.span`
     font-size: ${props => props.theme.fontSizes.lg};
-    color: ${props => props.theme.colors.primary};
+    font-weight: ${props => props.theme.fontWeights.bold};
+    color: ${props => props.theme.colors.text};
+    font-feature-settings: 'tnum';
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        font-size: ${props => props.theme.fontSizes.xl};
+    }
+`;
+
+const TotalCard = styled.div`
+    background: linear-gradient(135deg,
+        ${props => props.theme.colors.primary} 0%,
+        ${props => props.theme.colors.primaryDark || '#0c4a6e'} 100%);
+    border-radius: ${props => props.theme.radii.lg};
+    padding: ${props => props.theme.spacing.lg};
+    margin-top: ${props => props.theme.spacing.md};
+    box-shadow: ${props => props.theme.shadows.lg};
+    color: white;
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        padding: ${props => props.theme.spacing.xl};
+    }
+`;
+
+const TotalHeader = styled.div`
+    font-size: ${props => props.theme.fontSizes.md};
+    font-weight: ${props => props.theme.fontWeights.semibold};
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: ${props => props.theme.spacing.lg};
+    opacity: 0.9;
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        font-size: ${props => props.theme.fontSizes.lg};
+    }
+`;
+
+const TotalGrid = styled.div`
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: ${props => props.theme.spacing.md};
+
+    @media (min-width: ${props => props.theme.breakpoints.sm}) {
+        grid-template-columns: repeat(3, 1fr);
+    }
+`;
+
+const TotalItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${props => props.theme.spacing.xs};
+`;
+
+const TotalLabel = styled.span`
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: ${props => props.theme.fontWeights.medium};
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const TotalValue = styled.span`
+    font-size: ${props => props.theme.fontSizes.xl};
+    font-weight: ${props => props.theme.fontWeights.bold};
+    font-feature-settings: 'tnum';
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        font-size: ${props => props.theme.fontSizes['2xl']};
+    }
 `;
 
 interface SummaryStepProps {
@@ -313,40 +383,54 @@ export const SummaryStep = ({ formData }: SummaryStepProps) => {
                         Usługi
                     </SectionTitle>
                     {formData.services.length > 0 ? (
-                        <ServicesTable>
-                            <TableHeader>
-                                <tr>
-                                    <TableHeaderCell>Nazwa usługi</TableHeaderCell>
-                                    <TableHeaderCell style={{ textAlign: 'right' }}>Cena netto</TableHeaderCell>
-                                    <TableHeaderCell style={{ textAlign: 'right' }}>VAT</TableHeaderCell>
-                                    <TableHeaderCell style={{ textAlign: 'right' }}>Cena brutto</TableHeaderCell>
-                                </tr>
-                            </TableHeader>
-                            <TableBody>
+                        <>
+                            <ServicesContainer>
                                 {formData.services.map((service) => {
                                     const prices = calculateServicePrice(service);
                                     return (
-                                        <TableRow key={service.id}>
-                                            <TableCell>
+                                        <ServiceCard key={service.id}>
+                                            <ServiceHeader>
                                                 <ServiceName>{service.serviceName}</ServiceName>
                                                 {service.note && (
                                                     <ServiceNote>{service.note}</ServiceNote>
                                                 )}
-                                            </TableCell>
-                                            <PriceCell>{formatCurrency(prices.finalPriceNet / 100)}</PriceCell>
-                                            <PriceCell>{formatCurrency(prices.vatAmount / 100)}</PriceCell>
-                                            <PriceCell>{formatCurrency(prices.finalPriceGross / 100)}</PriceCell>
-                                        </TableRow>
+                                            </ServiceHeader>
+                                            <PriceGrid>
+                                                <PriceItem>
+                                                    <PriceLabel>Netto</PriceLabel>
+                                                    <PriceValue>{formatCurrency(prices.finalPriceNet / 100)}</PriceValue>
+                                                </PriceItem>
+                                                <PriceItem>
+                                                    <PriceLabel>VAT</PriceLabel>
+                                                    <PriceValue>{formatCurrency(prices.vatAmount / 100)}</PriceValue>
+                                                </PriceItem>
+                                                <PriceItem>
+                                                    <PriceLabel>Brutto</PriceLabel>
+                                                    <PriceValue>{formatCurrency(prices.finalPriceGross / 100)}</PriceValue>
+                                                </PriceItem>
+                                            </PriceGrid>
+                                        </ServiceCard>
                                     );
                                 })}
-                                <TotalRow>
-                                    <TotalLabel>Suma</TotalLabel>
-                                    <TotalValue>{formatCurrency(totals.totalNet / 100)}</TotalValue>
-                                    <TotalValue>{formatCurrency(totals.totalVat / 100)}</TotalValue>
-                                    <TotalValue>{formatCurrency(totals.totalGross / 100)}</TotalValue>
-                                </TotalRow>
-                            </TableBody>
-                        </ServicesTable>
+                            </ServicesContainer>
+                            <TotalCard>
+                                <TotalHeader>Podsumowanie</TotalHeader>
+                                <TotalGrid>
+                                    <TotalItem>
+                                        <TotalLabel>Suma netto</TotalLabel>
+                                        <TotalValue>{formatCurrency(totals.totalNet / 100)}</TotalValue>
+                                    </TotalItem>
+                                    <TotalItem>
+                                        <TotalLabel>Suma VAT</TotalLabel>
+                                        <TotalValue>{formatCurrency(totals.totalVat / 100)}</TotalValue>
+                                    </TotalItem>
+                                    <TotalItem>
+                                        <TotalLabel>Suma brutto</TotalLabel>
+                                        <TotalValue>{formatCurrency(totals.totalGross / 100)}</TotalValue>
+                                    </TotalItem>
+                                </TotalGrid>
+                            </TotalCard>
+                        </>
                     ) : (
                         <InfoItem>
                             <InfoValue style={{ color: '#94a3b8', fontStyle: 'italic' }}>
