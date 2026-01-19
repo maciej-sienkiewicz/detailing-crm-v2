@@ -104,7 +104,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     // State initialization
     const [title, setTitle] = useState('');
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>();
-    const [selectedCustomerName, setSelectedCustomerName] = useState('');
+    const [_selectedCustomerName, setSelectedCustomerName] = useState('');
     const [selectedCustomer, setSelectedCustomer] = useState<SelectedCustomer | null>(null);
     const [_selectedVehicleId, setSelectedVehicleId] = useState<string>();
     const [_selectedVehicleName, setSelectedVehicleName] = useState('');
@@ -285,7 +285,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const addService = (service: any) => {
         if (!selectedServiceIds.includes(service.id)) {
             setSelectedServiceIds(prev => [...prev, service.id]);
-            setServicePrices(prev => ({ ...prev, [service.id]: service.basePriceNet / 100 }));
+            // Calculate gross price from base net price
+            const grossPrice = (service.basePriceNet / 100) * (100 + service.vatRate) / 100;
+            setServicePrices(prev => ({ ...prev, [service.id]: grossPrice }));
         }
         setServiceSearch('');
         setShowServiceDropdown(false);
@@ -526,7 +528,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         >
                                                             <span className="text-sm text-gray-900">{service.name}</span>
                                                             <span className="text-sm font-semibold" style={{ color: accentColor }}>
-                                                                {(service.basePriceNet / 100).toFixed(2)} zł
+                                                                {((service.basePriceNet / 100) * (100 + service.vatRate) / 100).toFixed(2)} zł brutto
                                                             </span>
                                                         </button>
                                                     ))}
