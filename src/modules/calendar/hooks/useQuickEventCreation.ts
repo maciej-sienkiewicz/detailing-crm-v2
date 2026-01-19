@@ -110,7 +110,7 @@ export const useQuickEventCreation = () => {
                     basePriceNet: service.basePriceNet, // Keep original base price
                     vatRate: service.vatRate,
                     adjustment: adjustment,
-                    note: '',
+                    note: data.serviceNotes?.[serviceId] || '',
                 };
             });
 

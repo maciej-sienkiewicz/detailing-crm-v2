@@ -69,6 +69,12 @@ const IconPalette = ({ className = "w-5 h-5" }: { className?: string }) => (
     </svg>
 );
 
+const IconMessageSquare = ({ className = "w-4 h-4" }: { className?: string }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+);
+
 // --- TYPES ---
 interface QuickEventModalProps {
     isOpen: boolean;
@@ -86,6 +92,7 @@ export interface QuickEventFormData {
     isAllDay: boolean;
     serviceIds: string[];
     servicePrices?: { [key: string]: number };
+    serviceNotes?: { [key: string]: string };
     colorId: string;
     notes?: string;
 }
@@ -114,6 +121,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [isAllDay, setIsAllDay] = useState(false);
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
     const [servicePrices, setServicePrices] = useState<{ [key: string]: number }>({});
+    const [serviceNotes, setServiceNotes] = useState<{ [key: string]: string }>({});
+    const [expandedServiceNote, setExpandedServiceNote] = useState<string | null>(null);
     const [serviceSearch, setServiceSearch] = useState('');
     const [showServiceDropdown, setShowServiceDropdown] = useState(false);
     const [selectedColorId, setSelectedColorId] = useState('');
@@ -219,6 +228,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         setSelectedVehicle(null);
         setSelectedServiceIds([]);
         setServicePrices({});
+        setServiceNotes({});
+        setExpandedServiceNote(null);
         setServiceSearch('');
         setNotes('');
         // Keep color and dates from eventData
@@ -241,6 +252,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             isAllDay,
             serviceIds: selectedServiceIds,
             servicePrices,
+            serviceNotes,
             colorId: selectedColorId,
             notes,
         });
@@ -508,17 +520,23 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             style={{
                                                 borderColor: focusedField === 'services' ? accentColor : undefined
                                             }}
-                                            onFocus={() => setFocusedField('services')}
+                                            onFocus={() => {
+                                                setFocusedField('services');
+                                                setShowServiceDropdown(true);
+                                            }}
                                             onBlur={() => {
                                                 setFocusedField(null);
                                                 setTimeout(() => setShowServiceDropdown(false), 200);
                                             }}
                                         />
                                         {/* Services Dropdown */}
-                                        {showServiceDropdown && serviceSearch.length > 0 && (
+                                        {showServiceDropdown && (
                                             <div className="absolute z-10 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto">
                                                 {services
-                                                    .filter((s: any) => s.name.toLowerCase().includes(serviceSearch.toLowerCase()))
+                                                    .filter((s: any) =>
+                                                        serviceSearch.length === 0 ||
+                                                        s.name.toLowerCase().includes(serviceSearch.toLowerCase())
+                                                    )
                                                     .map((service: any) => (
                                                         <button
                                                             key={service.id}
@@ -542,28 +560,61 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             {selectedServiceIds.map(id => {
                                                 const service = services.find((s: any) => s.id === id);
                                                 if (!service) return null;
+                                                const isNoteExpanded = expandedServiceNote === id;
+                                                const hasNote = serviceNotes[id] && serviceNotes[id].length > 0;
                                                 return (
-                                                    <div key={id} className="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl">
-                                                        <span className="flex-1 text-sm font-medium text-gray-900">{service.name}</span>
-                                                        <input
-                                                            type="number"
-                                                            value={servicePrices[id] || 0}
-                                                            onChange={(e) => setServicePrices(prev => ({ ...prev, [id]: parseFloat(e.target.value) || 0 }))}
-                                                            className="w-24 px-3 py-1.5 text-sm text-right border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
-                                                        />
-                                                        <span className="text-xs text-gray-500">zł</span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setSelectedServiceIds(prev => prev.filter(i => i !== id));
-                                                                const newPrices = {...servicePrices};
-                                                                delete newPrices[id];
-                                                                setServicePrices(newPrices);
-                                                            }}
-                                                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                                        >
-                                                            <IconTrash />
-                                                        </button>
+                                                    <div key={id} className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+                                                        <div className="flex items-center gap-3 p-3">
+                                                            <span className="flex-1 text-sm font-medium text-gray-900">{service.name}</span>
+                                                            <input
+                                                                type="number"
+                                                                value={servicePrices[id] || 0}
+                                                                onChange={(e) => setServicePrices(prev => ({ ...prev, [id]: parseFloat(e.target.value) || 0 }))}
+                                                                className="w-24 px-3 py-1.5 text-sm text-right border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+                                                            />
+                                                            <span className="text-xs text-gray-500">zł</span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setExpandedServiceNote(isNoteExpanded ? null : id)}
+                                                                className={`p-1.5 rounded-lg transition-all ${
+                                                                    hasNote
+                                                                        ? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
+                                                                        : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
+                                                                }`}
+                                                                title="Dodaj notatkę do usługi"
+                                                            >
+                                                                <IconMessageSquare />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setSelectedServiceIds(prev => prev.filter(i => i !== id));
+                                                                    const newPrices = {...servicePrices};
+                                                                    delete newPrices[id];
+                                                                    setServicePrices(newPrices);
+                                                                    const newNotes = {...serviceNotes};
+                                                                    delete newNotes[id];
+                                                                    setServiceNotes(newNotes);
+                                                                    if (expandedServiceNote === id) {
+                                                                        setExpandedServiceNote(null);
+                                                                    }
+                                                                }}
+                                                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                                            >
+                                                                <IconTrash />
+                                                            </button>
+                                                        </div>
+                                                        {isNoteExpanded && (
+                                                            <div className="px-3 pb-3 pt-0">
+                                                                <textarea
+                                                                    placeholder="Dodaj notatkę do tej usługi..."
+                                                                    value={serviceNotes[id] || ''}
+                                                                    onChange={(e) => setServiceNotes(prev => ({ ...prev, [id]: e.target.value }))}
+                                                                    rows={2}
+                                                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all resize-none"
+                                                                />
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 );
                                             })}
