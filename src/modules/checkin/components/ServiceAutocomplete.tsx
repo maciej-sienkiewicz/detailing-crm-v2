@@ -80,11 +80,34 @@ const EmptyState = styled.div`
     font-size: ${props => props.theme.fontSizes.sm};
 `;
 
+const AddNewButton = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.sm};
+    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
+    cursor: pointer;
+    transition: all ${props => props.theme.transitions.fast};
+    border-top: 1px solid ${props => props.theme.colors.border};
+    background-color: rgba(59, 130, 246, 0.05);
+    color: ${props => props.theme.colors.primary};
+    font-weight: ${props => props.theme.fontWeights.medium};
+
+    &:hover {
+        background-color: rgba(59, 130, 246, 0.1);
+    }
+
+    svg {
+        width: 20px;
+        height: 20px;
+    }
+`;
+
 interface ServiceAutocompleteProps {
     onSelect: (service: Service) => void;
+    onAddNew?: (searchQuery: string) => void;
 }
 
-export const ServiceAutocomplete = ({ onSelect }: ServiceAutocompleteProps) => {
+export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteProps) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -144,29 +167,53 @@ export const ServiceAutocomplete = ({ onSelect }: ServiceAutocompleteProps) => {
                     {isLoading ? (
                         <EmptyState>Wyszukiwanie...</EmptyState>
                     ) : services.length > 0 ? (
-                        services.map((service) => {
-                            const priceNet = service.basePriceNet / 100;
-                            const priceGross = (service.basePriceNet * (100 + service.vatRate)) / 10000;
+                        <>
+                            {services.map((service) => {
+                                const priceNet = service.basePriceNet / 100;
+                                const priceGross = (service.basePriceNet * (100 + service.vatRate)) / 10000;
 
-                            return (
-                                <SuggestionItem
-                                    key={service.id}
-                                    onClick={() => handleServiceSelect(service)}
-                                >
-                                    <ServiceName>{service.name}</ServiceName>
-                                    <PriceInfo>
-                                        <div>
-                                            <PriceLabel>Netto:</PriceLabel> {formatCurrency(priceNet)}
-                                        </div>
-                                        <div>
-                                            <PriceLabel>Brutto:</PriceLabel> {formatCurrency(priceGross)}
-                                        </div>
-                                    </PriceInfo>
-                                </SuggestionItem>
-                            );
-                        })
+                                return (
+                                    <SuggestionItem
+                                        key={service.id}
+                                        onClick={() => handleServiceSelect(service)}
+                                    >
+                                        <ServiceName>{service.name}</ServiceName>
+                                        <PriceInfo>
+                                            <div>
+                                                <PriceLabel>Netto:</PriceLabel> {formatCurrency(priceNet)}
+                                            </div>
+                                            <div>
+                                                <PriceLabel>Brutto:</PriceLabel> {formatCurrency(priceGross)}
+                                            </div>
+                                        </PriceInfo>
+                                    </SuggestionItem>
+                                );
+                            })}
+                            {onAddNew && searchQuery.trim().length > 0 && (
+                                <AddNewButton onClick={() => onAddNew(searchQuery)}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <line x1="12" y1="8" x2="12" y2="16"/>
+                                        <line x1="8" y1="12" x2="16" y2="12"/>
+                                    </svg>
+                                    <span>Wprowadź nową usługę</span>
+                                </AddNewButton>
+                            )}
+                        </>
                     ) : (
-                        <EmptyState>Nie znaleziono usług</EmptyState>
+                        <>
+                            <EmptyState>Nie znaleziono usług</EmptyState>
+                            {onAddNew && searchQuery.trim().length > 0 && (
+                                <AddNewButton onClick={() => onAddNew(searchQuery)}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <line x1="12" y1="8" x2="12" y2="16"/>
+                                        <line x1="8" y1="12" x2="16" y2="12"/>
+                                    </svg>
+                                    <span>Wprowadź nową usługę</span>
+                                </AddNewButton>
+                            )}
+                        </>
                     )}
                 </DropdownContainer>
             )}

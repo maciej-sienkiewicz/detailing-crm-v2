@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import styled from 'styled-components';
+import { useQueryClient } from '@tanstack/react-query';
 import { formatCurrency } from '@/common/utils';
 import { Select, Input } from '@/common/components/Form';
 import { ServiceAutocomplete } from './ServiceAutocomplete';
+import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceModal';
 import type { ServiceLineItem, AdjustmentType } from '../types';
 import type { Service } from '@/modules/services/types';
 
@@ -213,6 +215,9 @@ interface EditableServicesTableProps {
 export const EditableServicesTable = ({ services, onChange }: EditableServicesTableProps) => {
     const [editingPrices, setEditingPrices] = useState<Record<string, boolean>>({});
     const [editingNotes, setEditingNotes] = useState<Record<string, boolean>>({});
+    const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
+    const [quickServiceInitialName, setQuickServiceInitialName] = useState('');
+    const queryClient = useQueryClient();
 
     const calculateServicePrice = (service: ServiceLineItem) => {
         const { basePriceNet, vatRate, adjustment } = service;
@@ -367,13 +372,41 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
         onChange(services.filter(s => s.id !== serviceId));
     };
 
+    const handleAddNewService = (searchQuery: string) => {
+        setQuickServiceInitialName(searchQuery);
+        setIsQuickServiceModalOpen(true);
+    };
+
+    const handleQuickServiceCreate = (service: { id?: string; name: string; basePriceNet: number; vatRate: 23 }) => {
+        // If service was saved to database, refresh services list
+        if (service.id) {
+            queryClient.invalidateQueries({ queryKey: ['services'] });
+        }
+
+        // Create new service line item (with ID if saved to DB, or temporary ID if not)
+        const newServiceLine: ServiceLineItem = {
+            id: service.id ? `${service.id}_${Date.now()}` : `temp_${Date.now()}`,
+            serviceId: service.id || `temp_${Date.now()}`,
+            serviceName: service.name,
+            basePriceNet: service.basePriceNet,
+            vatRate: service.vatRate,
+            adjustment: {
+                type: 'PERCENT',
+                value: 0,
+            },
+            note: '',
+        };
+
+        onChange([...services, newServiceLine]);
+    };
+
     const totals = calculateTotals();
 
     const formatMoneyInput = (amount: number) => (amount / 100).toFixed(2);
 
     return (
         <>
-            <ServiceAutocomplete onSelect={handleAddService} />
+            <ServiceAutocomplete onSelect={handleAddService} onAddNew={handleAddNewService} />
 
             <TableContainer>
                 <Table>
@@ -527,6 +560,14 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                 </Tbody>
             </Table>
         </TableContainer>
+
+        {/* Quick Service Modal */}
+        <QuickServiceModal
+            isOpen={isQuickServiceModalOpen}
+            onClose={() => setIsQuickServiceModalOpen(false)}
+            onServiceCreate={handleQuickServiceCreate}
+            initialServiceName={quickServiceInitialName}
+        />
     </>
     );
 };
