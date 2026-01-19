@@ -1,7 +1,7 @@
 // src/modules/checkin/components/VehicleDamageMapper.tsx
 
 import { useState, useRef } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { Button } from '@/common/components/Button';
 import type { DamagePoint } from '../types';
 
@@ -76,11 +76,11 @@ const DamageMarker = styled.div<{ $isLast: boolean; $isHovered: boolean }>`
   transition: all ${props => props.theme.transitions.normal};
   z-index: 10;
 
-  ${props => props.$isLast && `
+  ${props => props.$isLast && css`
     animation: ${pulse} 2s infinite;
   `}
 
-  ${props => props.$isHovered && `
+  ${props => props.$isHovered && css`
     transform: translate(-50%, -50%) scale(1.2);
     z-index: 20;
   `}
