@@ -146,7 +146,8 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
         onSelect(service);
         setSearchQuery('');
         setIsOpen(false);
-        inputRef.current?.focus();
+        // Blur input to ensure dropdown closes
+        inputRef.current?.blur();
     };
 
     const showDropdown = isOpen;
