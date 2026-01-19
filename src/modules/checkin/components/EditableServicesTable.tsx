@@ -517,12 +517,8 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                                 <PriceLabel style={{ color: 'inherit' }}>Netto</PriceLabel>
                                 <div>{formatCurrency(totals.totalNet / 100)}</div>
                             </div>
-                            <div style={{ marginBottom: '4px' }}>
-                                <PriceLabel style={{ color: 'inherit' }}>VAT</PriceLabel>
-                                <div>{formatCurrency(totals.totalVat / 100)}</div>
-                            </div>
                             <div style={{ fontSize: '1.5rem', marginTop: '8px' }}>
-                                <PriceLabel style={{ color: 'inherit' }}>Do zapłaty</PriceLabel>
+                                <PriceLabel style={{ color: 'inherit' }}>Brutto</PriceLabel>
                                 <div>{formatCurrency(totals.totalGross / 100)}</div>
                             </div>
                         </TotalValue>

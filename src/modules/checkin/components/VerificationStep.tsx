@@ -250,7 +250,7 @@ export const VerificationStep    = ({ formData, onChange, onServicesChange, colo
                             </SectionTitleWithActions>
                             <SubtleButtonGroup>
                                 <SubtleButton onClick={() => setIsCustomerDetailsModalOpen(true)}>
-                                    Pokaż szczegółowe dane
+                                    Edytuj dane
                                 </SubtleButton>
                                 <SubtleButton onClick={() => setIsCustomerModalOpen(true)}>
                                     Zmień klienta
@@ -321,7 +321,7 @@ export const VerificationStep    = ({ formData, onChange, onServicesChange, colo
                             </SectionTitleWithActions>
                             <SubtleButtonGroup>
                                 <SubtleButton onClick={() => setIsVehicleDetailsModalOpen(true)}>
-                                    Pokaż szczegółowe dane
+                                    Edytuj dane
                                 </SubtleButton>
                                 <SubtleButton onClick={() => setIsVehicleModalOpen(true)}>
                                     Zmień pojazd
