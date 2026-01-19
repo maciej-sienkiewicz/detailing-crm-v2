@@ -3,9 +3,9 @@
 import styled from 'styled-components';
 import { Card, CardHeader, CardTitle } from '@/common/components/Card';
 import { Divider } from '@/common/components/Divider';
-import { formatPhoneNumber } from '@/common/utils';
+import { formatPhoneNumber, formatCurrency } from '@/common/utils';
 import { t } from '@/common/i18n';
-import type { CheckInFormData } from '../types';
+import type { CheckInFormData, ServiceLineItem } from '../types';
 
 const StepContainer = styled.div`
     display: flex;
@@ -68,6 +68,86 @@ const InfoValue = styled.span`
     color: ${props => props.theme.colors.text};
 `;
 
+const ServicesTable = styled.table`
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: ${props => props.theme.spacing.md};
+`;
+
+const TableHeader = styled.thead`
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: white;
+`;
+
+const TableHeaderCell = styled.th`
+    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
+    text-align: left;
+    font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: ${props => props.theme.fontWeights.semibold};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+`;
+
+const TableBody = styled.tbody``;
+
+const TableRow = styled.tr`
+    border-bottom: 1px solid ${props => props.theme.colors.border};
+
+    &:last-child {
+        border-bottom: none;
+    }
+`;
+
+const TableCell = styled.td`
+    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
+    font-size: ${props => props.theme.fontSizes.sm};
+    vertical-align: top;
+`;
+
+const ServiceName = styled.div`
+    font-weight: ${props => props.theme.fontWeights.medium};
+    color: ${props => props.theme.colors.text};
+    margin-bottom: ${props => props.theme.spacing.xs};
+`;
+
+const ServiceNote = styled.div`
+    font-size: ${props => props.theme.fontSizes.xs};
+    color: ${props => props.theme.colors.textMuted};
+    font-style: italic;
+    margin-top: ${props => props.theme.spacing.xs};
+    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
+    background-color: ${props => props.theme.colors.surfaceAlt};
+    border-radius: ${props => props.theme.radii.sm};
+`;
+
+const PriceCell = styled(TableCell)`
+    text-align: right;
+    font-weight: ${props => props.theme.fontWeights.semibold};
+    font-feature-settings: 'tnum';
+    white-space: nowrap;
+`;
+
+const TotalRow = styled.tr`
+    background: linear-gradient(to right,
+        ${props => props.theme.colors.surfaceAlt} 0%,
+        ${props => props.theme.colors.surface} 100%);
+    border-top: 3px solid ${props => props.theme.colors.primary};
+    font-weight: ${props => props.theme.fontWeights.bold};
+`;
+
+const TotalLabel = styled(TableCell)`
+    font-size: ${props => props.theme.fontSizes.md};
+    color: ${props => props.theme.colors.text};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const TotalValue = styled(PriceCell)`
+    font-size: ${props => props.theme.fontSizes.lg};
+    color: ${props => props.theme.colors.primary};
+`;
+
 interface SummaryStepProps {
     formData: CheckInFormData;
     readOnly?: boolean;
@@ -77,6 +157,68 @@ export const SummaryStep = ({ formData }: SummaryStepProps) => {
     const depositItems = [];
     if (formData.technicalState.deposit.keys) depositItems.push(t.checkin.technical.depositItems.keys);
     if (formData.technicalState.deposit.registrationDocument) depositItems.push(t.checkin.technical.depositItems.registrationDocument);
+
+    // Calculate service prices
+    const calculateServicePrice = (service: ServiceLineItem) => {
+        const { basePriceNet, vatRate, adjustment } = service;
+        let finalPriceNet = basePriceNet;
+
+        switch (adjustment.type) {
+            case 'PERCENT': {
+                const percentageAmount = Math.round((basePriceNet * Math.abs(adjustment.value)) / 100);
+                finalPriceNet = adjustment.value > 0
+                    ? basePriceNet + percentageAmount
+                    : basePriceNet - percentageAmount;
+                break;
+            }
+            case 'FIXED_NET': {
+                finalPriceNet = basePriceNet - Math.abs(adjustment.value);
+                break;
+            }
+            case 'FIXED_GROSS': {
+                const targetGross = (basePriceNet * (100 + vatRate)) / 100 - Math.abs(adjustment.value);
+                finalPriceNet = Math.round((targetGross * 100) / (100 + vatRate));
+                break;
+            }
+            case 'SET_NET': {
+                finalPriceNet = adjustment.value;
+                break;
+            }
+            case 'SET_GROSS': {
+                finalPriceNet = Math.round((adjustment.value * 100) / (100 + vatRate));
+                break;
+            }
+        }
+
+        if (finalPriceNet < 0) finalPriceNet = 0;
+
+        const vatAmount = Math.round((finalPriceNet * vatRate) / 100);
+        const finalPriceGross = finalPriceNet + vatAmount;
+
+        return {
+            finalPriceNet,
+            finalPriceGross,
+            vatAmount,
+        };
+    };
+
+    // Calculate totals
+    const calculateTotals = () => {
+        let totalNet = 0;
+        let totalVat = 0;
+        let totalGross = 0;
+
+        formData.services.forEach((service) => {
+            const prices = calculateServicePrice(service);
+            totalNet += prices.finalPriceNet;
+            totalVat += prices.vatAmount;
+            totalGross += prices.finalPriceGross;
+        });
+
+        return { totalNet, totalVat, totalGross };
+    };
+
+    const totals = calculateTotals();
 
     return (
         <StepContainer>
@@ -160,6 +302,59 @@ export const SummaryStep = ({ formData }: SummaryStepProps) => {
                         </InfoGrid>
                     </SummarySection>
                 )}
+
+                <Divider />
+
+                <SummarySection>
+                    <SectionTitle>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                        Usługi
+                    </SectionTitle>
+                    {formData.services.length > 0 ? (
+                        <ServicesTable>
+                            <TableHeader>
+                                <tr>
+                                    <TableHeaderCell>Nazwa usługi</TableHeaderCell>
+                                    <TableHeaderCell style={{ textAlign: 'right' }}>Cena netto</TableHeaderCell>
+                                    <TableHeaderCell style={{ textAlign: 'right' }}>VAT</TableHeaderCell>
+                                    <TableHeaderCell style={{ textAlign: 'right' }}>Cena brutto</TableHeaderCell>
+                                </tr>
+                            </TableHeader>
+                            <TableBody>
+                                {formData.services.map((service) => {
+                                    const prices = calculateServicePrice(service);
+                                    return (
+                                        <TableRow key={service.id}>
+                                            <TableCell>
+                                                <ServiceName>{service.serviceName}</ServiceName>
+                                                {service.note && (
+                                                    <ServiceNote>{service.note}</ServiceNote>
+                                                )}
+                                            </TableCell>
+                                            <PriceCell>{formatCurrency(prices.finalPriceNet / 100)}</PriceCell>
+                                            <PriceCell>{formatCurrency(prices.vatAmount / 100)}</PriceCell>
+                                            <PriceCell>{formatCurrency(prices.finalPriceGross / 100)}</PriceCell>
+                                        </TableRow>
+                                    );
+                                })}
+                                <TotalRow>
+                                    <TotalLabel>Suma</TotalLabel>
+                                    <TotalValue>{formatCurrency(totals.totalNet / 100)}</TotalValue>
+                                    <TotalValue>{formatCurrency(totals.totalVat / 100)}</TotalValue>
+                                    <TotalValue>{formatCurrency(totals.totalGross / 100)}</TotalValue>
+                                </TotalRow>
+                            </TableBody>
+                        </ServicesTable>
+                    ) : (
+                        <InfoItem>
+                            <InfoValue style={{ color: '#94a3b8', fontStyle: 'italic' }}>
+                                Brak usług
+                            </InfoValue>
+                        </InfoItem>
+                    )}
+                </SummarySection>
 
                 <Divider />
 
