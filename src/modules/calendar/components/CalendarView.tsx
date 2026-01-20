@@ -379,49 +379,59 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
      * Handle manage button click from popover
      */
     const handleManageClick = useCallback(async () => {
-        if (!popoverEvent || popoverEvent.type !== 'APPOINTMENT') return;
+        if (!popoverEvent) return;
 
-        try {
-            // Fetch full appointment data to convert to Operation format
-            const response = await apiClient.get(`/v1/appointments/${popoverEvent.id}`);
-            const appointment = response.data;
-
-            // Convert to Operation format for ReservationOptionsModal
-            const operation: Operation = {
-                id: appointment.id,
-                type: 'RESERVATION',
-                customerFirstName: appointment.customer.firstName,
-                customerLastName: appointment.customer.lastName,
-                customerPhone: appointment.customer.phone,
-                status: appointment.status || 'CREATED',
-                vehicle: appointment.vehicle ? {
-                    brand: appointment.vehicle.brand,
-                    model: appointment.vehicle.model,
-                    licensePlate: appointment.vehicle.licensePlate || '',
-                } : null,
-                startDateTime: appointment.schedule.startDateTime,
-                endDateTime: appointment.schedule.endDateTime,
-                financials: {
-                    netAmount: appointment.totalNet || 0,
-                    grossAmount: appointment.totalGross || 0,
-                    currency: 'PLN',
-                },
-                lastModification: {
-                    timestamp: new Date().toISOString(),
-                    performedBy: {
-                        firstName: '',
-                        lastName: '',
-                    },
-                },
-            };
-
-            setSelectedReservation(operation);
-            setOptionsModalOpen(true);
+        // For visits, navigate to visit page
+        if (popoverEvent.type === 'VISIT') {
+            navigate(`/visits/${popoverEvent.id}`);
             setPopoverOpen(false);
-        } catch (error) {
-            console.error('Failed to fetch appointment details:', error);
+            return;
         }
-    }, [popoverEvent]);
+
+        // For appointments, open the reservation options modal
+        if (popoverEvent.type === 'APPOINTMENT') {
+            try {
+                // Fetch full appointment data to convert to Operation format
+                const response = await apiClient.get(`/v1/appointments/${popoverEvent.id}`);
+                const appointment = response.data;
+
+                // Convert to Operation format for ReservationOptionsModal
+                const operation: Operation = {
+                    id: appointment.id,
+                    type: 'RESERVATION',
+                    customerFirstName: appointment.customer.firstName,
+                    customerLastName: appointment.customer.lastName,
+                    customerPhone: appointment.customer.phone,
+                    status: appointment.status || 'CREATED',
+                    vehicle: appointment.vehicle ? {
+                        brand: appointment.vehicle.brand,
+                        model: appointment.vehicle.model,
+                        licensePlate: appointment.vehicle.licensePlate || '',
+                    } : null,
+                    startDateTime: appointment.schedule.startDateTime,
+                    endDateTime: appointment.schedule.endDateTime,
+                    financials: {
+                        netAmount: appointment.totalNet || 0,
+                        grossAmount: appointment.totalGross || 0,
+                        currency: 'PLN',
+                    },
+                    lastModification: {
+                        timestamp: new Date().toISOString(),
+                        performedBy: {
+                            firstName: '',
+                            lastName: '',
+                        },
+                    },
+                };
+
+                setSelectedReservation(operation);
+                setOptionsModalOpen(true);
+                setPopoverOpen(false);
+            } catch (error) {
+                console.error('Failed to fetch appointment details:', error);
+            }
+        }
+    }, [popoverEvent, navigate]);
 
     /**
      * Handle change date from options modal
