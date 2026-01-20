@@ -5,6 +5,10 @@ import type {
     UpdateVisitPayload,
     UploadDocumentPayload,
     AddCommentPayload,
+    AddServicePayload,
+    UpdateServicePayload,
+    DeleteServicePayload,
+    UpdateServiceStatusPayload,
 } from '../types';
 
 export const visitDetailQueryKey = (visitId: string) => ['visit', visitId];
@@ -176,5 +180,82 @@ export const useDeleteComment = (visitId: string) => {
     return {
         deleteComment: mutate,
         isDeleting: isPending,
+    };
+};
+
+// Service management hooks
+export const useAddService = (visitId: string) => {
+    const queryClient = useQueryClient();
+
+    const { mutate, isPending } = useMutation({
+        mutationFn: (payload: AddServicePayload) =>
+            visitApi.addService(visitId, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: visitDetailQueryKey(visitId),
+            });
+        },
+    });
+
+    return {
+        addService: mutate,
+        isAdding: isPending,
+    };
+};
+
+export const useUpdateService = (visitId: string) => {
+    const queryClient = useQueryClient();
+
+    const { mutate, isPending } = useMutation({
+        mutationFn: ({ serviceLineItemId, payload }: { serviceLineItemId: string; payload: UpdateServicePayload }) =>
+            visitApi.updateService(visitId, serviceLineItemId, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: visitDetailQueryKey(visitId),
+            });
+        },
+    });
+
+    return {
+        updateService: mutate,
+        isUpdating: isPending,
+    };
+};
+
+export const useDeleteService = (visitId: string) => {
+    const queryClient = useQueryClient();
+
+    const { mutate, isPending } = useMutation({
+        mutationFn: ({ serviceLineItemId, payload }: { serviceLineItemId: string; payload: DeleteServicePayload }) =>
+            visitApi.deleteService(visitId, serviceLineItemId, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: visitDetailQueryKey(visitId),
+            });
+        },
+    });
+
+    return {
+        deleteService: mutate,
+        isDeleting: isPending,
+    };
+};
+
+export const useUpdateServiceStatus = (visitId: string) => {
+    const queryClient = useQueryClient();
+
+    const { mutate, isPending } = useMutation({
+        mutationFn: ({ serviceLineItemId, payload }: { serviceLineItemId: string; payload: UpdateServiceStatusPayload }) =>
+            visitApi.updateServiceStatus(visitId, serviceLineItemId, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: visitDetailQueryKey(visitId),
+            });
+        },
+    });
+
+    return {
+        updateServiceStatus: mutate,
+        isUpdating: isPending,
     };
 };

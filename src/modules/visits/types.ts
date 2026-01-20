@@ -4,6 +4,8 @@ export type DocumentType = 'PHOTO' | 'PDF' | 'PROTOCOL' | 'INTAKE' | 'OUTTAKE' |
 
 export type CommentType = 'INTERNAL' | 'FOR_CUSTOMER';
 
+export type ServiceStatus = 'CONFIRMED' | 'PENDING';
+
 export interface CommentRevision {
     id: string;
     commentId: string;
@@ -51,6 +53,7 @@ export interface ServiceLineItem {
     note: string;
     finalPriceNet: number;
     finalPriceGross: number;
+    status: ServiceStatus;
 }
 
 export interface VehicleInfo {
@@ -157,4 +160,37 @@ export interface UpdateCommentResponse {
 export interface DeleteCommentResponse {
     commentId: string;
     wasDeleted: boolean;
+}
+
+// Service management types
+export interface AddServicePayload {
+    serviceId: string;
+    serviceName: string;
+    basePriceNet: number;
+    vatRate: number;
+    adjustment?: {
+        type: 'PERCENT' | 'FIXED_NET' | 'FIXED_GROSS' | 'SET_NET' | 'SET_GROSS';
+        value: number;
+    };
+    note?: string;
+    notifyCustomer?: boolean;
+}
+
+export interface UpdateServicePayload {
+    basePriceNet?: number;
+    vatRate?: number;
+    adjustment?: {
+        type: 'PERCENT' | 'FIXED_NET' | 'FIXED_GROSS' | 'SET_NET' | 'SET_GROSS';
+        value: number;
+    };
+    note?: string;
+    notifyCustomer?: boolean;
+}
+
+export interface DeleteServicePayload {
+    notifyCustomer?: boolean;
+}
+
+export interface UpdateServiceStatusPayload {
+    status: ServiceStatus;
 }

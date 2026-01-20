@@ -5,14 +5,16 @@ import { useVisitDetail, useVisitDocuments } from '../hooks';
 import { useUpdateVisit } from '../hooks';
 import { useUploadDocument, useDeleteDocument } from '../hooks';
 import { useVisitComments } from '../hooks';
+import { useAddService, useUpdateService, useDeleteService, useUpdateServiceStatus } from '../hooks';
 import { VisitHeader } from '../components/VisitHeader';
 import { StatusStepper } from '../components/StatusStepper';
 import { VehicleInfoCard, CustomerInfoCard } from '../components/InfoCards';
 import { ServicesTable } from '../components/ServicesTable';
 import { DocumentGallery } from '../components/DocumentGallery';
 import { VisitComments } from '../components/VisitComments';
+import { EditServicesModal } from '../components/EditServicesModal';
 import { InProgressToReadyWizard, ReadyToCompletedWizard } from '../components/transitions/TransitionWizards';
-import type { DocumentType } from '../types';
+import type { DocumentType, ServiceStatus } from '../types';
 
 const ViewContainer = styled.main`
     display: flex;
@@ -169,6 +171,7 @@ export const VisitDetailView = () => {
     const [activeTab, setActiveTab] = useState<TabValue>('overview');
     const [isTransitionWizardOpen, setIsTransitionWizardOpen] = useState(false);
     const [transitionType, setTransitionType] = useState<'in_progress_to_ready' | 'ready_to_completed' | null>(null);
+    const [isEditServicesModalOpen, setIsEditServicesModalOpen] = useState(false);
 
     const { visitDetail, isLoading, isError, refetch } = useVisitDetail(visitId!);
     const { documents } = useVisitDocuments(visitId!);
@@ -176,6 +179,10 @@ export const VisitDetailView = () => {
     const { uploadDocument, isUploading } = useUploadDocument(visitId!);
     const { deleteDocument } = useDeleteDocument(visitId!);
     const { comments, isLoading: isLoadingComments } = useVisitComments(visitId!);
+    const { addService } = useAddService(visitId!);
+    const { updateService } = useUpdateService(visitId!);
+    const { deleteService } = useDeleteService(visitId!);
+    const { updateServiceStatus } = useUpdateServiceStatus(visitId!);
 
     if (isLoading) {
         return (
@@ -260,6 +267,40 @@ export const VisitDetailView = () => {
         }
     };
 
+    const handleEditServicesClick = () => {
+        setIsEditServicesModalOpen(true);
+    };
+
+    const handleAddService = (notifyCustomer: boolean) => {
+        // This is a placeholder - in real implementation, you'd show a service selection modal
+        console.log('Add service with notifyCustomer:', notifyCustomer);
+        alert('Funkcja dodawania usługi będzie dostępna w następnej wersji.');
+    };
+
+    const handleUpdateServicePrice = (serviceLineItemId: string, newPrice: number, notifyCustomer: boolean) => {
+        updateService({
+            serviceLineItemId,
+            payload: {
+                basePriceNet: newPrice,
+                notifyCustomer,
+            },
+        });
+    };
+
+    const handleDeleteService = (serviceLineItemId: string, notifyCustomer: boolean) => {
+        deleteService({
+            serviceLineItemId,
+            payload: { notifyCustomer },
+        });
+    };
+
+    const handleUpdateServiceStatus = (serviceLineItemId: string, status: ServiceStatus) => {
+        updateServiceStatus({
+            serviceLineItemId,
+            payload: { status },
+        });
+    };
+
     return (
         <ViewContainer>
             <VisitHeader
@@ -299,7 +340,11 @@ export const VisitDetailView = () => {
                     <TabContent>
                         <ContentGrid>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                <ServicesTable services={visit.services} />
+                                <ServicesTable
+                                    services={visit.services}
+                                    visitStatus={visit.status}
+                                    onEditClick={handleEditServicesClick}
+                                />
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -361,6 +406,16 @@ export const VisitDetailView = () => {
                     }}
                 />
             )}
+
+            <EditServicesModal
+                isOpen={isEditServicesModalOpen}
+                services={visit.services}
+                onClose={() => setIsEditServicesModalOpen(false)}
+                onAddService={handleAddService}
+                onUpdateService={handleUpdateServicePrice}
+                onDeleteService={handleDeleteService}
+                onUpdateServiceStatus={handleUpdateServiceStatus}
+            />
         </ViewContainer>
     );
 };
