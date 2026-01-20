@@ -170,6 +170,17 @@ const CalendarContainer = styled.div`
         font-size: 12px;
     }
 
+    /* Abandoned appointments styling */
+    .fc-event-abandoned {
+        opacity: 0.6;
+        font-style: italic;
+    }
+
+    .fc-event-abandoned .fc-event-title,
+    .fc-event-abandoned .fc-event-time {
+        text-decoration: line-through;
+    }
+
     /* Time grid specific */
     .fc-timegrid-slot {
         height: 48px;

@@ -165,8 +165,12 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         : 'Brak pojazdu';
     const serviceNames = appointment.services.map(s => s.serviceName);
 
-    // Fallback color if appointmentColor is missing
-    const colorHex = appointment.appointmentColor?.hexColor || '#94a3b8';
+    // Check if appointment is abandoned
+    const isAbandoned = appointment.status === 'ABANDONED';
+
+    // For ABANDONED appointments, always use red color with transparency
+    // Otherwise use appointmentColor or fallback
+    const colorHex = isAbandoned ? '#ef4444' : (appointment.appointmentColor?.hexColor || '#94a3b8');
     const textColor = getContrastingTextColor(colorHex);
 
     const eventData: AppointmentEventData = {
@@ -181,6 +185,7 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         isAllDay: appointment.schedule.isAllDay,
         totalPrice: appointment.totalGross || undefined,
         currency: 'PLN',
+        status: appointment.status,
     };
 
     return {
@@ -193,6 +198,8 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         borderColor: 'transparent',
         textColor,
         extendedProps: eventData,
+        // Add custom class name for ABANDONED appointments
+        classNames: isAbandoned ? ['fc-event-abandoned'] : [],
     };
 };
 
@@ -248,6 +255,7 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
 
 /**
  * Fetch appointments for a given date range
+ * Only fetches appointments with status CREATED or ABANDONED
  */
 const fetchAppointments = async (dateRange: DateRange): Promise<AppointmentResponse[]> => {
     if (USE_MOCKS) {
@@ -255,17 +263,34 @@ const fetchAppointments = async (dateRange: DateRange): Promise<AppointmentRespo
         return mockAppointments;
     }
 
-    const response = await apiClient.get<{ appointments: AppointmentResponse[] }>(
-        '/v1/appointments',
-        {
-            params: {
-                startDate: dateRange.start,
-                endDate: dateRange.end,
-            },
-        }
-    );
+    // Fetch appointments with CREATED and ABANDONED statuses
+    const [createdResponse, abandonedResponse] = await Promise.all([
+        apiClient.get<{ appointments: AppointmentResponse[] }>(
+            '/v1/appointments',
+            {
+                params: {
+                    startDate: dateRange.start,
+                    endDate: dateRange.end,
+                    status: 'CREATED',
+                },
+            }
+        ),
+        apiClient.get<{ appointments: AppointmentResponse[] }>(
+            '/v1/appointments',
+            {
+                params: {
+                    startDate: dateRange.start,
+                    endDate: dateRange.end,
+                    status: 'ABANDONED',
+                },
+            }
+        ),
+    ]);
 
-    return response.data.appointments || [];
+    const createdAppointments = createdResponse.data.appointments || [];
+    const abandonedAppointments = abandonedResponse.data.appointments || [];
+
+    return [...createdAppointments, ...abandonedAppointments];
 };
 
 /**

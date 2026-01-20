@@ -4,7 +4,8 @@ import { useState, useCallback } from 'react';
 import type { FilterStatus, OperationType, VisitStatus } from '../types';
 
 export const useOperationFilters = () => {
-    const [selectedFilter, setSelectedFilter] = useState<FilterStatus | undefined>(undefined);
+    // Set default filter to 'RESERVATIONS' to show appointments in CREATED and ABANDONED status
+    const [selectedFilter, setSelectedFilter] = useState<FilterStatus | undefined>('RESERVATIONS');
 
     const handleFilterChange = useCallback((filter: FilterStatus | undefined) => {
         setSelectedFilter(filter);

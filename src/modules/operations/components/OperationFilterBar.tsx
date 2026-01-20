@@ -72,8 +72,7 @@ export const OperationFilterBar = ({
                                        onClearFilters,
                                    }: OperationFilterBarProps) => {
     const filters: { value: FilterStatus; label: string }[] = [
-        { value: 'RESERVATIONS', label: 'Rezerwacje' },
-        { value: 'IN_PROGRESS', label: 'W realizacji' },
+        { value: 'RESERVATIONS', label: 'W realizacji' },
         { value: 'READY_FOR_PICKUP', label: 'Do odbioru' },
         { value: 'COMPLETED', label: 'Zakończone' },
         { value: 'REJECTED', label: 'Odrzucone' },
