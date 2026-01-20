@@ -5,7 +5,9 @@ import styled from 'styled-components';
 import { useCustomerDocuments, useDeleteDocument } from '../hooks/useCustomerDocuments';
 import { DocumentCard } from './DocumentCard';
 import { UploadDocumentModal } from './UploadDocumentModal';
-import type { DocumentCategory } from '../types';
+import { ImageViewerModal } from './ImageViewerModal';
+import { customerEditApi } from '../api/customerEditApi';
+import type { DocumentCategory, CustomerDocument } from '../types';
 
 const Container = styled.div`
     display: flex;
@@ -245,6 +247,9 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
     const [page, setPage] = useState(1);
     const limit = 9;
 
+    const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
     const { documents: allDocuments, isLoading, isError, refetch } = useCustomerDocuments(customerId);
     const deleteMutation = useDeleteDocument(customerId);
 
@@ -289,6 +294,45 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
     const handleDeleteDocument = (documentId: string) => {
         deleteMutation.mutate(documentId);
     };
+
+    // Get only images for viewer navigation
+    const imageDocuments = useMemo(() => {
+        return allDocuments.filter(doc =>
+            doc.type === 'PHOTO' || doc.fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+        );
+    }, [allDocuments]);
+
+    const handleImageClick = (document: CustomerDocument) => {
+        const imageIndex = imageDocuments.findIndex(img => img.id === document.id);
+        if (imageIndex !== -1) {
+            setCurrentImageIndex(imageIndex);
+            setIsImageViewerOpen(true);
+        }
+    };
+
+    const handleNextImage = () => {
+        if (currentImageIndex < imageDocuments.length - 1) {
+            setCurrentImageIndex(currentImageIndex + 1);
+        }
+    };
+
+    const handlePrevImage = () => {
+        if (currentImageIndex > 0) {
+            setCurrentImageIndex(currentImageIndex - 1);
+        }
+    };
+
+    const handleDownloadCurrentImage = async () => {
+        try {
+            const currentImage = imageDocuments[currentImageIndex];
+            const downloadUrl = await customerEditApi.getDocumentDownload(currentImage.id);
+            window.open(downloadUrl, '_blank');
+        } catch (error) {
+            console.error('Download failed:', error);
+        }
+    };
+
+    const currentImage = imageDocuments[currentImageIndex];
 
     if (isLoading) {
         return (
@@ -379,6 +423,7 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
                                 key={document.id}
                                 document={document}
                                 onDelete={handleDeleteDocument}
+                                onImageClick={handleImageClick}
                                 isDeleting={deleteMutation.isPending}
                             />
                         ))}
@@ -431,6 +476,20 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
                 onClose={() => setIsUploadModalOpen(false)}
                 customerId={customerId}
             />
+
+            {currentImage && (
+                <ImageViewerModal
+                    isOpen={isImageViewerOpen}
+                    onClose={() => setIsImageViewerOpen(false)}
+                    imageUrl={currentImage.fileUrl}
+                    imageName={currentImage.fileName}
+                    hasNext={currentImageIndex < imageDocuments.length - 1}
+                    hasPrev={currentImageIndex > 0}
+                    onNext={handleNextImage}
+                    onPrev={handlePrevImage}
+                    onDownload={handleDownloadCurrentImage}
+                />
+            )}
         </Container>
     );
 };

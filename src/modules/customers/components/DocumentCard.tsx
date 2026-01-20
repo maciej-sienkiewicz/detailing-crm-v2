@@ -5,7 +5,7 @@ import { customerEditApi } from '../api/customerEditApi';
 import type { CustomerDocument, DocumentCategory } from '../types';
 import { formatDateTime } from '@/common/utils';
 
-const Card = styled.article`
+const Card = styled.article<{ $isClickable?: boolean }>`
     background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
     border: 1px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.lg};
@@ -13,6 +13,7 @@ const Card = styled.article`
     transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
     position: relative;
     overflow: hidden;
+    cursor: ${props => props.$isClickable ? 'pointer' : 'default'};
 
     &::before {
         content: '';
@@ -242,11 +243,22 @@ const fileIcons: Record<string, React.ReactNode> = {
 interface DocumentCardProps {
     document: CustomerDocument;
     onDelete: (documentId: string) => void;
+    onImageClick?: (document: CustomerDocument) => void;
     isDeleting?: boolean;
 }
 
-export const DocumentCard = ({ document, onDelete, isDeleting = false }: DocumentCardProps) => {
-    const handleDownload = async () => {
+export const DocumentCard = ({ document, onDelete, onImageClick, isDeleting = false }: DocumentCardProps) => {
+    const isImage = document.type === 'PHOTO' ||
+                    document.fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+
+    const handleCardClick = () => {
+        if (isImage && onImageClick) {
+            onImageClick(document);
+        }
+    };
+
+    const handleDownload = async (e: React.MouseEvent) => {
+        e.stopPropagation();
         try {
             const downloadUrl = await customerEditApi.getDocumentDownload(document.id);
             window.open(downloadUrl, '_blank');
@@ -255,7 +267,8 @@ export const DocumentCard = ({ document, onDelete, isDeleting = false }: Documen
         }
     };
 
-    const handleDelete = () => {
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
         if (confirm(`Czy na pewno chcesz usunąć dokument "${document.fileName}"?`)) {
             onDelete(document.id);
         }
@@ -268,7 +281,7 @@ export const DocumentCard = ({ document, onDelete, isDeleting = false }: Documen
     const category = (document.category as DocumentCategory) || 'other';
 
     return (
-        <Card>
+        <Card $isClickable={isImage} onClick={handleCardClick}>
             <CardHeader>
                 <FileIcon $category={category}>
                     {icon}
