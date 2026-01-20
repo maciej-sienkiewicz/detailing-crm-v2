@@ -250,9 +250,13 @@ interface DocumentCardProps {
 export const DocumentCard = ({ document, onDelete, onImageClick, isDeleting = false }: DocumentCardProps) => {
     const isImage = document.type === 'PHOTO' ||
                     document.fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+    const isPDF = document.type === 'PDF' ||
+                  document.fileName.match(/\.pdf$/i);
+
+    const isViewable = isImage || isPDF;
 
     const handleCardClick = () => {
-        if (isImage && onImageClick) {
+        if (isViewable && onImageClick) {
             onImageClick(document);
         }
     };
@@ -281,7 +285,7 @@ export const DocumentCard = ({ document, onDelete, onImageClick, isDeleting = fa
     const category = (document.category as DocumentCategory) || 'other';
 
     return (
-        <Card $isClickable={isImage} onClick={handleCardClick}>
+        <Card $isClickable={isViewable} onClick={handleCardClick}>
             <CardHeader>
                 <FileIcon $category={category}>
                     {icon}

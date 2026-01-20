@@ -64,6 +64,15 @@ const Image = styled.img`
     border-radius: ${props => props.theme.radii.lg};
 `;
 
+const PDFViewer = styled.iframe`
+    width: 90vw;
+    height: 85vh;
+    max-width: 1200px;
+    border: none;
+    border-radius: ${props => props.theme.radii.lg};
+    background: white;
+`;
+
 const ImageInfo = styled.div`
     position: absolute;
     bottom: 0;
@@ -183,6 +192,7 @@ interface ImageViewerModalProps {
     hasPrev?: boolean;
     onNext?: () => void;
     onPrev?: () => void;
+    isPDF?: boolean;
 }
 
 export const ImageViewerModal = ({
@@ -195,6 +205,7 @@ export const ImageViewerModal = ({
     hasPrev = false,
     onNext,
     onPrev,
+    isPDF = false,
 }: ImageViewerModalProps) => {
     useEffect(() => {
         if (!isOpen) return;
@@ -255,7 +266,11 @@ export const ImageViewerModal = ({
                 )}
 
                 <ImageContainer>
-                    <Image src={imageUrl} alt={imageName} />
+                    {isPDF ? (
+                        <PDFViewer src={imageUrl} title={imageName} />
+                    ) : (
+                        <Image src={imageUrl} alt={imageName} />
+                    )}
                     <ImageInfo>
                         <ImageName>{imageName}</ImageName>
                         {onDownload && (

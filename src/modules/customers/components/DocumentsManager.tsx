@@ -295,23 +295,25 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
         deleteMutation.mutate(documentId);
     };
 
-    // Get only images for viewer navigation
-    const imageDocuments = useMemo(() => {
-        return allDocuments.filter(doc =>
-            doc.type === 'PHOTO' || doc.fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)
-        );
+    // Get viewable documents (images and PDFs) for viewer navigation
+    const viewableDocuments = useMemo(() => {
+        return allDocuments.filter(doc => {
+            const isImage = doc.type === 'PHOTO' || doc.fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+            const isPDF = doc.type === 'PDF' || doc.fileName.match(/\.pdf$/i);
+            return isImage || isPDF;
+        });
     }, [allDocuments]);
 
     const handleImageClick = (document: CustomerDocument) => {
-        const imageIndex = imageDocuments.findIndex(img => img.id === document.id);
-        if (imageIndex !== -1) {
-            setCurrentImageIndex(imageIndex);
+        const docIndex = viewableDocuments.findIndex(doc => doc.id === document.id);
+        if (docIndex !== -1) {
+            setCurrentImageIndex(docIndex);
             setIsImageViewerOpen(true);
         }
     };
 
     const handleNextImage = () => {
-        if (currentImageIndex < imageDocuments.length - 1) {
+        if (currentImageIndex < viewableDocuments.length - 1) {
             setCurrentImageIndex(currentImageIndex + 1);
         }
     };
@@ -324,15 +326,19 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
 
     const handleDownloadCurrentImage = async () => {
         try {
-            const currentImage = imageDocuments[currentImageIndex];
-            const downloadUrl = await customerEditApi.getDocumentDownload(currentImage.id);
+            const currentDoc = viewableDocuments[currentImageIndex];
+            const downloadUrl = await customerEditApi.getDocumentDownload(currentDoc.id);
             window.open(downloadUrl, '_blank');
         } catch (error) {
             console.error('Download failed:', error);
         }
     };
 
-    const currentImage = imageDocuments[currentImageIndex];
+    const currentDocument = viewableDocuments[currentImageIndex];
+    const currentDocumentIsPDF = currentDocument && (
+        currentDocument.type === 'PDF' ||
+        currentDocument.fileName.match(/\.pdf$/i)
+    );
 
     if (isLoading) {
         return (
@@ -477,13 +483,14 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
                 customerId={customerId}
             />
 
-            {currentImage && (
+            {currentDocument && (
                 <ImageViewerModal
                     isOpen={isImageViewerOpen}
                     onClose={() => setIsImageViewerOpen(false)}
-                    imageUrl={currentImage.fileUrl}
-                    imageName={currentImage.fileName}
-                    hasNext={currentImageIndex < imageDocuments.length - 1}
+                    imageUrl={currentDocument.fileUrl}
+                    imageName={currentDocument.fileName}
+                    isPDF={currentDocumentIsPDF}
+                    hasNext={currentImageIndex < viewableDocuments.length - 1}
                     hasPrev={currentImageIndex > 0}
                     onNext={handleNextImage}
                     onPrev={handlePrevImage}
