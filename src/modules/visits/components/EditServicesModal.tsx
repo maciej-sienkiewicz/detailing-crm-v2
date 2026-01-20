@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { formatCurrency } from '@/common/utils';
+import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceModal';
 import type { ServiceLineItem, ServiceStatus } from '../types';
 
 const Overlay = styled.div`
@@ -271,7 +272,7 @@ interface EditServicesModalProps {
     isOpen: boolean;
     services: ServiceLineItem[];
     onClose: () => void;
-    onAddService: (notifyCustomer: boolean) => void;
+    onAddService: (service: { id?: string; name: string; basePriceNet: number; vatRate: number }, notifyCustomer: boolean) => void;
     onUpdateService: (serviceId: string, price: number, notifyCustomer: boolean) => void;
     onDeleteService: (serviceId: string, notifyCustomer: boolean) => void;
     onUpdateServiceStatus: (serviceId: string, status: ServiceStatus) => void;
@@ -288,6 +289,7 @@ export const EditServicesModal = ({
 }: EditServicesModalProps) => {
     const [notifyCustomer, setNotifyCustomer] = useState(true);
     const [editingPrices, setEditingPrices] = useState<Record<string, number>>({});
+    const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
 
     if (!isOpen) return null;
 
@@ -317,13 +319,19 @@ export const EditServicesModal = ({
 
     const hasPendingChanges = services.some(s => s.status === 'PENDING');
 
+    const handleServiceCreate = (service: { id?: string; name: string; basePriceNet: number; vatRate: number }) => {
+        onAddService(service, notifyCustomer);
+        setIsQuickServiceModalOpen(false);
+    };
+
     return (
-        <Overlay onClick={onClose}>
-            <ModalContainer onClick={(e) => e.stopPropagation()}>
-                <ModalHeader>
-                    <ModalTitle>Zarządzanie usługami</ModalTitle>
-                    <CloseButton onClick={onClose}>×</CloseButton>
-                </ModalHeader>
+        <>
+            <Overlay onClick={onClose}>
+                <ModalContainer onClick={(e) => e.stopPropagation()}>
+                    <ModalHeader>
+                        <ModalTitle>Zarządzanie usługami</ModalTitle>
+                        <CloseButton onClick={onClose}>×</CloseButton>
+                    </ModalHeader>
 
                 <ModalBody>
                     <ServicesList>
@@ -391,7 +399,7 @@ export const EditServicesModal = ({
                     </ServicesList>
 
                     <AddServiceSection>
-                        <AddButton onClick={() => onAddService(notifyCustomer)}>
+                        <AddButton onClick={() => setIsQuickServiceModalOpen(true)}>
                             + Dodaj usługę
                         </AddButton>
                     </AddServiceSection>
@@ -418,5 +426,12 @@ export const EditServicesModal = ({
                 </ModalFooter>
             </ModalContainer>
         </Overlay>
+
+        <QuickServiceModal
+            isOpen={isQuickServiceModalOpen}
+            onClose={() => setIsQuickServiceModalOpen(false)}
+            onServiceCreate={handleServiceCreate}
+        />
+        </>
     );
 };
