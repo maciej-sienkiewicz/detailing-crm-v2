@@ -4,15 +4,21 @@ import { useState, useCallback } from 'react';
 import type { FilterStatus, OperationType, VisitStatus } from '../types';
 
 export const useOperationFilters = () => {
-    // Set default filter to 'RESERVATIONS' to show appointments in CREATED and ABANDONED status
-    const [selectedFilter, setSelectedFilter] = useState<FilterStatus | undefined>('RESERVATIONS');
+    // Set default filter to 'IN_PROGRESS' to show visits in progress
+    const [selectedFilter, setSelectedFilter] = useState<FilterStatus | undefined>('IN_PROGRESS');
+    const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined);
 
     const handleFilterChange = useCallback((filter: FilterStatus | undefined) => {
         setSelectedFilter(filter);
     }, []);
 
+    const handleDateChange = useCallback((date: string | undefined) => {
+        setSelectedDate(date);
+    }, []);
+
     const clearFilters = useCallback(() => {
         setSelectedFilter(undefined);
+        setSelectedDate(undefined);
     }, []);
 
     const getApiFilters = useCallback(() => {
@@ -29,7 +35,9 @@ export const useOperationFilters = () => {
 
     return {
         selectedFilter,
+        selectedDate,
         handleFilterChange,
+        handleDateChange,
         clearFilters,
         getApiFilters,
     };
