@@ -271,10 +271,14 @@ export const VisitDetailView = () => {
         setIsEditServicesModalOpen(true);
     };
 
-    const handleAddService = (notifyCustomer: boolean) => {
-        // This is a placeholder - in real implementation, you'd show a service selection modal
-        console.log('Add service with notifyCustomer:', notifyCustomer);
-        alert('Funkcja dodawania usługi będzie dostępna w następnej wersji.');
+    const handleAddService = (service: { id?: string; name: string; basePriceNet: number; vatRate: number }, notifyCustomer: boolean) => {
+        addService({
+            serviceId: service.id || 'custom',
+            serviceName: service.name,
+            basePriceNet: service.basePriceNet,
+            vatRate: service.vatRate,
+            notifyCustomer,
+        });
     };
 
     const handleUpdateServicePrice = (serviceLineItemId: string, newPrice: number, notifyCustomer: boolean) => {
