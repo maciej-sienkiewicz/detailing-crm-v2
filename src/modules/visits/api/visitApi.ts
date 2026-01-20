@@ -4,6 +4,11 @@ import type {
     UpdateVisitPayload,
     VisitDocument,
     UploadDocumentPayload,
+    AddServicePayload,
+    UpdateServicePayload,
+    DeleteServicePayload,
+    UpdateServiceStatusPayload,
+    ServiceLineItem,
 } from '../types';
 
 const USE_MOCKS = false;
@@ -53,6 +58,7 @@ const mockVisitDetail: VisitDetailResponse = {
                 note: 'Dodatkowa warstwa na maskę',
                 finalPriceNet: 315000,
                 finalPriceGross: 387450,
+                status: 'CONFIRMED',
             },
             {
                 id: 'service_line_2',
@@ -64,6 +70,7 @@ const mockVisitDetail: VisitDetailResponse = {
                 note: '',
                 finalPriceNet: 180000,
                 finalPriceGross: 221400,
+                status: 'CONFIRMED',
             },
         ],
         totalCost: {
@@ -227,5 +234,101 @@ export const visitApi = {
         }
         const response = await apiClient.get(`/documents/${documentId}/download-url`);
         return response.data.url;
+    },
+
+    // Service management
+    addService: async (
+        visitId: string,
+        payload: AddServicePayload
+    ): Promise<ServiceLineItem> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 600));
+            return {
+                id: `service_line_${Date.now()}`,
+                serviceId: payload.serviceId,
+                serviceName: payload.serviceName,
+                basePriceNet: payload.basePriceNet,
+                vatRate: payload.vatRate,
+                adjustment: payload.adjustment || { type: 'FIXED_NET', value: 0 },
+                note: payload.note || '',
+                finalPriceNet: payload.basePriceNet,
+                finalPriceGross: Math.round(payload.basePriceNet * (1 + payload.vatRate / 100)),
+                status: 'PENDING',
+            };
+        }
+        const response = await apiClient.post(
+            `${BASE_PATH}/${visitId}/services`,
+            payload
+        );
+        return response.data;
+    },
+
+    updateService: async (
+        visitId: string,
+        serviceLineItemId: string,
+        payload: UpdateServicePayload
+    ): Promise<ServiceLineItem> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 600));
+            return {
+                id: serviceLineItemId,
+                serviceId: 'srv_mock',
+                serviceName: 'Mock Service',
+                basePriceNet: payload.basePriceNet || 100000,
+                vatRate: payload.vatRate || 23,
+                adjustment: payload.adjustment || { type: 'FIXED_NET', value: 0 },
+                note: payload.note || '',
+                finalPriceNet: payload.basePriceNet || 100000,
+                finalPriceGross: Math.round((payload.basePriceNet || 100000) * (1 + (payload.vatRate || 23) / 100)),
+                status: 'PENDING',
+            };
+        }
+        const response = await apiClient.patch(
+            `${BASE_PATH}/${visitId}/services/${serviceLineItemId}`,
+            payload
+        );
+        return response.data;
+    },
+
+    deleteService: async (
+        visitId: string,
+        serviceLineItemId: string,
+        payload: DeleteServicePayload
+    ): Promise<void> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 600));
+            return;
+        }
+        await apiClient.delete(
+            `${BASE_PATH}/${visitId}/services/${serviceLineItemId}`,
+            { data: payload }
+        );
+    },
+
+    updateServiceStatus: async (
+        visitId: string,
+        serviceLineItemId: string,
+        payload: UpdateServiceStatusPayload
+    ): Promise<ServiceLineItem> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 600));
+            return {
+                id: serviceLineItemId,
+                serviceId: 'srv_mock',
+                serviceName: 'Mock Service',
+                basePriceNet: 100000,
+                vatRate: 23,
+                adjustment: { type: 'FIXED_NET', value: 0 },
+                note: '',
+                finalPriceNet: 100000,
+                finalPriceGross: 123000,
+                status: payload.status,
+            };
+        }
+        const response = await apiClient.patch(
+            `${BASE_PATH}/${visitId}/services/${serviceLineItemId}/status`,
+            payload
+        );
+        return response.data;
     },
 };

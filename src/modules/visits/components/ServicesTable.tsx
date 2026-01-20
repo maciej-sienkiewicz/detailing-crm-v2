@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
 import { formatCurrency } from '@/common/utils';
-import type { ServiceLineItem } from '../types';
+import type { ServiceLineItem, VisitStatus } from '../types';
 
 const TableContainer = styled.div`
     background: white;
@@ -14,7 +14,12 @@ const TableHeader = styled.div`
     padding: ${props => props.theme.spacing.lg};
     background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
     border-bottom: 2px solid ${props => props.theme.colors.border};
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 `;
+
+const TableHeaderLeft = styled.div``;
 
 const TableTitle = styled.h3`
     margin: 0 0 4px;
@@ -27,6 +32,31 @@ const TableSubtitle = styled.p`
     margin: 0;
     font-size: ${props => props.theme.fontSizes.sm};
     color: ${props => props.theme.colors.textMuted};
+`;
+
+const EditButton = styled.button`
+    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+    background: var(--brand-primary);
+    color: white;
+    border: none;
+    border-radius: ${props => props.theme.radii.md};
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.xs};
+
+    &:hover:not(:disabled) {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
 `;
 
 const Table = styled.table`
@@ -78,6 +108,18 @@ const ServiceNote = styled.div`
     font-size: ${props => props.theme.fontSizes.xs};
     color: ${props => props.theme.colors.textMuted};
     font-style: italic;
+`;
+
+const ServiceStatusBadge = styled.div<{ $status: 'CONFIRMED' | 'PENDING' }>`
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    background: ${props => props.$status === 'PENDING' ? '#fef3c7' : '#dcfce7'};
+    color: ${props => props.$status === 'PENDING' ? '#92400e' : '#166534'};
+    border-radius: ${props => props.theme.radii.full};
+    font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: 600;
+    margin-left: ${props => props.theme.spacing.xs};
 `;
 
 const PriceStack = styled.div`
@@ -143,17 +185,32 @@ const BreakdownItem = styled.div`
 
 interface ServicesTableProps {
     services: ServiceLineItem[];
+    visitStatus?: VisitStatus;
+    onEditClick?: () => void;
 }
 
-export const ServicesTable = ({ services }: ServicesTableProps) => {
+export const ServicesTable = ({ services, visitStatus, onEditClick }: ServicesTableProps) => {
     const { calculateServicePrice, calculateTotal } = useServicePricing();
     const totals = calculateTotal(services);
+
+    const canEdit = visitStatus === 'IN_PROGRESS' || visitStatus === 'READY_FOR_PICKUP';
+    const hasPendingServices = services.some(s => s.status === 'PENDING');
 
     return (
         <TableContainer>
             <TableHeader>
-                <TableTitle>Wykaz usług</TableTitle>
-                <TableSubtitle>{services.length} pozycji</TableSubtitle>
+                <TableHeaderLeft>
+                    <TableTitle>Wykaz usług</TableTitle>
+                    <TableSubtitle>
+                        {services.length} pozycji
+                        {hasPendingServices && ' • Zawiera usługi oczekujące na potwierdzenie'}
+                    </TableSubtitle>
+                </TableHeaderLeft>
+                {canEdit && onEditClick && (
+                    <EditButton onClick={onEditClick}>
+                        ✏️ Edytuj usługi
+                    </EditButton>
+                )}
             </TableHeader>
 
             <Table>
@@ -172,11 +229,18 @@ export const ServicesTable = ({ services }: ServicesTableProps) => {
                         return (
                             <Tr key={service.id}>
                                 <Td>
-                                    <ServiceName>{service.serviceName}</ServiceName>
-                                    {service.note && <ServiceNote>{service.note}</ServiceNote>}
-                                    {pricing.hasDiscount && (
-                                        <DiscountBadge>{pricing.discountLabel}</DiscountBadge>
-                                    )}
+                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <ServiceName>{service.serviceName}</ServiceName>
+                                            {service.note && <ServiceNote>{service.note}</ServiceNote>}
+                                            {pricing.hasDiscount && (
+                                                <DiscountBadge>{pricing.discountLabel}</DiscountBadge>
+                                            )}
+                                        </div>
+                                        <ServiceStatusBadge $status={service.status}>
+                                            {service.status === 'PENDING' ? 'Oczekuje' : 'Potwierdzona'}
+                                        </ServiceStatusBadge>
+                                    </div>
                                 </Td>
                                 <Td>
                                     <PriceStack>
