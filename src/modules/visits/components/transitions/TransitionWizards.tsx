@@ -1,3 +1,4 @@
+import React from 'react';
 import { WizardLayout } from './WizardLayout';
 import { QualityCheckStep } from './QualityCheckStep';
 import { NotificationStep } from './NotificationStep';
@@ -30,6 +31,8 @@ export const InProgressToReadyWizard = ({
         handleFinish,
     } = useStateTransitionWizard(visit.id, 'in_progress_to_ready', onClose);
 
+    const [notificationChannels, setNotificationChannels] = React.useState({ sms: true, email: !!visit.customer.email });
+
     const handleQualityApprove = () => {
         handleNext();
     };
@@ -44,8 +47,8 @@ export const InProgressToReadyWizard = ({
         handleFinish();
     };
 
-    const handleNotificationSend = (channels: any) => {
-        updateWizardData({ notifications: channels });
+    const handleNotificationSend = () => {
+        updateWizardData({ notifications: notificationChannels });
         handleFinish();
     };
 
@@ -62,8 +65,7 @@ export const InProgressToReadyWizard = ({
                 return (
                     <NotificationStep
                         customer={visit.customer}
-                        onSkip={handleNotificationSkip}
-                        onSend={handleNotificationSend}
+                        onChannelsChange={setNotificationChannels}
                     />
                 );
             default:
@@ -100,8 +102,12 @@ export const InProgressToReadyWizard = ({
             currentStep={currentStep}
             totalSteps={totalSteps}
             onBack={currentStep > 1 ? handleBack : undefined}
+            onSkip={currentStep === 2 ? handleNotificationSkip : undefined}
+            skipLabel="Pomiń powiadomienia"
+            onFinish={currentStep === 2 ? handleNotificationSend : undefined}
+            finishLabel="Wyślij i kontynuuj"
             isProcessing={isProcessing}
-            disableNext={false}
+            disableNext={currentStep === 2 ? !(notificationChannels.sms || notificationChannels.email) : false}
         >
             {getStepContent()}
         </WizardLayout>

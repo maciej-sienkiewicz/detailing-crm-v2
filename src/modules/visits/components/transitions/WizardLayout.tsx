@@ -155,9 +155,11 @@ interface WizardLayoutProps {
     onBack?: () => void;
     onNext?: () => void;
     onFinish?: () => void;
+    onSkip?: () => void;
     nextLabel?: string;
     backLabel?: string;
     finishLabel?: string;
+    skipLabel?: string;
     isProcessing?: boolean;
     disableNext?: boolean;
     children: React.ReactNode;
@@ -174,9 +176,11 @@ export const WizardLayout = ({
                                  onBack,
                                  onNext,
                                  onFinish,
+                                 onSkip,
                                  nextLabel = 'Kontynuuj',
                                  backLabel = 'Wstecz',
                                  finishLabel = 'Zakończ',
+                                 skipLabel = 'Pomiń',
                                  isProcessing = false,
                                  disableNext = false,
                                  children,
@@ -233,12 +237,21 @@ export const WizardLayout = ({
                                 {backLabel}
                             </Button>
                         )}
+                        {onSkip && (
+                            <Button
+                                onClick={onSkip}
+                                disabled={isProcessing}
+                                $variant="secondary"
+                            >
+                                {skipLabel}
+                            </Button>
+                        )}
                         {(onNext || onFinish) && (
                             <Button
                                 onClick={handlePrimaryAction}
                                 disabled={disableNext || isProcessing}
                                 $variant="primary"
-                                $fullWidth={currentStep === 1}
+                                $fullWidth={!onBack && !onSkip && currentStep === 1}
                             >
                                 {isProcessing
                                     ? 'Przetwarzanie...'
