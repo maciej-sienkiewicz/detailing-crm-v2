@@ -29,6 +29,7 @@ export interface AppointmentEventData extends CalendarEventData {
     appointmentTitle?: string;
     serviceNames: string[];
     isAllDay: boolean;
+    status?: string;
 }
 
 /**

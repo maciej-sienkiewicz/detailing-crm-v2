@@ -313,25 +313,41 @@ export const operationApi = {
         }
 
         // Jeśli filtrujemy tylko rezerwacje - pobierz z /api/v1/appointments
+        // Zawsze filtruj rezerwacje po statusach CREATED i ABANDONED
         if (filters.type === 'RESERVATION') {
             if (USE_MOCKS_FOR_RESERVATIONS) {
                 return { data: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 20 } };
             }
 
-            const params = new URLSearchParams({
-                ...(filters.search && { search: filters.search }),
-                page: filters.page.toString(),
-                limit: filters.limit.toString(),
-                ...(filters.status && { status: filters.status }),
-                ...(filters.sortBy && { sortBy: filters.sortBy }),
-                ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
-            });
+            // Fetch both CREATED and ABANDONED appointments in parallel
+            const [createdResponse, abandonedResponse] = await Promise.all([
+                apiClient.get<AppointmentsListResponse>(`/v1/appointments`, {
+                    params: {
+                        ...(filters.search && { search: filters.search }),
+                        page: filters.page.toString(),
+                        limit: filters.limit.toString(),
+                        status: 'CREATED',
+                        ...(filters.sortBy && { sortBy: filters.sortBy }),
+                        ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
+                    }
+                }),
+                apiClient.get<AppointmentsListResponse>(`/v1/appointments`, {
+                    params: {
+                        ...(filters.search && { search: filters.search }),
+                        page: filters.page.toString(),
+                        limit: filters.limit.toString(),
+                        status: 'ABANDONED',
+                        ...(filters.sortBy && { sortBy: filters.sortBy }),
+                        ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
+                    }
+                }),
+            ]);
 
-            const response = await apiClient.get<AppointmentsListResponse>(
-                `/v1/appointments?${params.toString()}`
-            );
+            const createdAppointments = createdResponse.data.appointments || [];
+            const abandonedAppointments = abandonedResponse.data.appointments || [];
+            const allAppointments = [...createdAppointments, ...abandonedAppointments];
 
-            const mappedData = response.data.appointments.map(mapAppointmentToOperation);
+            const mappedData = allAppointments.map(mapAppointmentToOperation);
 
             return {
                 data: mappedData,
@@ -377,20 +393,35 @@ export const operationApi = {
                 return { data: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 20 } };
             }
 
-            const params = new URLSearchParams({
-                ...(filters.search && { search: filters.search }),
-                page: filters.page.toString(),
-                limit: filters.limit.toString(),
-                ...(filters.status && { status: filters.status }),
-                ...(filters.sortBy && { sortBy: filters.sortBy }),
-                ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
-            });
+            // Fetch both CREATED and ABANDONED appointments in parallel
+            const [createdResponse, abandonedResponse] = await Promise.all([
+                apiClient.get<AppointmentsListResponse>(`/v1/appointments`, {
+                    params: {
+                        ...(filters.search && { search: filters.search }),
+                        page: filters.page.toString(),
+                        limit: filters.limit.toString(),
+                        status: 'CREATED',
+                        ...(filters.sortBy && { sortBy: filters.sortBy }),
+                        ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
+                    }
+                }),
+                apiClient.get<AppointmentsListResponse>(`/v1/appointments`, {
+                    params: {
+                        ...(filters.search && { search: filters.search }),
+                        page: filters.page.toString(),
+                        limit: filters.limit.toString(),
+                        status: 'ABANDONED',
+                        ...(filters.sortBy && { sortBy: filters.sortBy }),
+                        ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
+                    }
+                }),
+            ]);
 
-            const response = await apiClient.get<AppointmentsListResponse>(
-                `/v1/appointments?${params.toString()}`
-            );
+            const createdAppointments = createdResponse.data.appointments || [];
+            const abandonedAppointments = abandonedResponse.data.appointments || [];
+            const allAppointments = [...createdAppointments, ...abandonedAppointments];
 
-            const mappedData = response.data.appointments.map(mapAppointmentToOperation);
+            const mappedData = allAppointments.map(mapAppointmentToOperation);
 
             return {
                 data: mappedData,
