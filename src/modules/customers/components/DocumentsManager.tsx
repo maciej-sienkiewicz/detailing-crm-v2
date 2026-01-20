@@ -335,10 +335,10 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
     };
 
     const currentDocument = viewableDocuments[currentImageIndex];
-    const currentDocumentIsPDF = currentDocument && (
+    const currentDocumentIsPDF = !!(currentDocument && (
         currentDocument.type === 'PDF' ||
         currentDocument.fileName.match(/\.pdf$/i)
-    );
+    ));
 
     if (isLoading) {
         return (

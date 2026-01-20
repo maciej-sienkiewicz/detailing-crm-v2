@@ -1,7 +1,7 @@
 // src/modules/customers/components/VehicleCard.tsx
 
 import styled from 'styled-components';
-import type { Vehicle, EngineType } from '../types';
+import type { Vehicle } from '../types';
 import { formatDate, formatNumber } from '@/common/utils';
 import { t } from '@/common/i18n';
 
@@ -122,26 +122,6 @@ const DetailValue = styled.span`
     font-weight: 500;
     color: ${props => props.theme.colors.text};
     font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
-`;
-
-const EngineBadge = styled.span<{ $type: Vehicle['engineType'] }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    border-radius: ${props => props.theme.radii.sm};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 600;
-
-    ${props => {
-        const styles: Record<EngineType, string> = {
-            GASOLINE: 'background: #fee2e2; color: #991b1b;',
-            DIESEL: 'background: #fef3c7; color: #92400e;',
-            HYBRID: 'background: #dbeafe; color: #1e40af;',
-            ELECTRIC: 'background: #dcfce7; color: #166534;',
-        };
-        return styles[props.$type];
-    }}
 `;
 
 const ServiceInfo = styled.div`

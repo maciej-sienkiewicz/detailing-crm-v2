@@ -171,7 +171,7 @@ export const VisitDetailView = () => {
     const [transitionType, setTransitionType] = useState<'in_progress_to_ready' | 'ready_to_completed' | null>(null);
 
     const { visitDetail, isLoading, isError, refetch } = useVisitDetail(visitId!);
-    const { documents, isLoading: isLoadingDocuments } = useVisitDocuments(visitId!);
+    const { documents } = useVisitDocuments(visitId!);
     const { updateVisit } = useUpdateVisit(visitId!);
     const { uploadDocument, isUploading } = useUploadDocument(visitId!);
     const { deleteDocument } = useDeleteDocument(visitId!);
@@ -332,7 +332,6 @@ export const VisitDetailView = () => {
                     <TabContent>
                         <DocumentGallery
                             documents={documents}
-                            customerId={visit.customer.id}
                             onUpload={handleUploadDocument}
                             onDelete={handleDeleteDocument}
                             isUploading={isUploading}

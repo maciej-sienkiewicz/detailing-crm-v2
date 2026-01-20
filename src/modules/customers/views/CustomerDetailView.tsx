@@ -321,8 +321,7 @@ export const CustomerDetailView = () => {
     } = useCustomerVisits(customerId!, visitsPage, visitsLimit);
 
     const {
-        documents,
-        isLoading: isDocumentsLoading
+        documents
     } = useCustomerDocuments(customerId!);
 
     const { updateConsent, isUpdating } = useUpdateConsent({

@@ -244,25 +244,6 @@ const Input = styled.input`
     }
 `;
 
-const TextArea = styled.textarea`
-    width: 100%;
-    padding: 12px 14px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 14px;
-    background: white;
-    color: #0f172a;
-    min-height: 80px;
-    resize: vertical;
-    font-family: inherit;
-
-    &:focus {
-        outline: none;
-        border-color: var(--brand-primary);
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-    }
-`;
-
 const Footer = styled.footer`
     display: flex;
     gap: 12px;

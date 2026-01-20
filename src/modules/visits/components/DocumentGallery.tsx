@@ -299,7 +299,6 @@ const EmptyState = styled.div`
 
 interface DocumentGalleryProps {
     documents: VisitDocument[];
-    customerId: string;
     onUpload: (file: File, type: DocumentType, category: string) => void;
     onDelete: (documentId: string) => void;
     isUploading: boolean;
@@ -307,7 +306,6 @@ interface DocumentGalleryProps {
 
 export const DocumentGallery = ({
                                      documents,
-                                     customerId,
                                      onUpload,
                                      onDelete,
                                      isUploading,

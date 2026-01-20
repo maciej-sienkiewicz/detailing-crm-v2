@@ -26,6 +26,7 @@ const mockVehicles: VehicleListItem[] = [
         model: 'X5',
         yearOfProduction: 2021,
         status: 'active',
+        engineType: 'GASOLINE',
         owners: [
             {
                 customerId: 'c1',
@@ -56,6 +57,7 @@ const mockVehicles: VehicleListItem[] = [
         model: 'A4',
         yearOfProduction: 2020,
         status: 'active',
+        engineType: 'DIESEL',
         owners: [
             {
                 customerId: 'c2',
@@ -100,6 +102,7 @@ const mockVehicles: VehicleListItem[] = [
                 assignedAt: '2023-05-10T13:45:00Z',
             },
         ],
+        engineType: 'DIESEL',
         stats: {
             totalVisits: 12,
             lastVisitDate: '2025-01-05T16:20:00Z',
@@ -125,6 +128,7 @@ const mockVehicleDetail: Vehicle = {
     yearOfProduction: 2021,
     color: 'Czarny metalik',
     paintType: 'Lakier bazowy + lakier',
+    engineType: 'GASOLINE',
     currentMileage: 45000,
     status: 'active',
     technicalNotes: 'Cienki lakier na dachu. Wymaga delikatnego mycia. Historia napraw blacharskich.',

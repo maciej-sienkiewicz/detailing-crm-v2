@@ -7,15 +7,12 @@ import type {
     UpdateCompanyPayload,
     UpdateNotesPayload,
     CustomerDocument,
-    DocumentListResponse,
-    DocumentFilters,
     UploadDocumentPayload,
     DocumentDownloadResponse,
     CompanyDetails,
 } from '../types';
 
 const CUSTOMERS_BASE_PATH = '/v1/customers';
-const DOCUMENTS_BASE_PATH = '/v1/documents';
 const USE_MOCKS = false;
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -160,10 +157,10 @@ const mockGetDocumentDownload = async (documentId: string): Promise<DocumentDown
     return {
         documentId,
         fileName: doc.fileName,
-        downloadUrl: `${doc.documentUrl}?expires=3600&signature=abc123`,
+        downloadUrl: `${doc.fileUrl}?expires=3600&signature=abc123`,
         expiresAt: new Date(Date.now() + 3600000).toISOString(),
-        fileSize: doc.fileSize,
-        mimeType: doc.mimeType,
+        fileSize: 1024 * 1024, // Mock size 1MB
+        mimeType: 'application/pdf', // Mock mime type
     };
 };
 

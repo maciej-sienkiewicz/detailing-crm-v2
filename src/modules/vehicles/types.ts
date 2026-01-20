@@ -2,6 +2,8 @@
 
 export type OwnershipRole = 'PRIMARY' | 'CO_OWNER' | 'COMPANY';
 
+export type EngineType = 'GASOLINE' | 'DIESEL' | 'HYBRID' | 'ELECTRIC';
+
 export type VehicleStatus = 'active' | 'sold' | 'archived';
 
 export type DocumentCategory =
@@ -51,6 +53,7 @@ export interface Vehicle {
     yearOfProduction: number;
     color: string;
     paintType: string | null;
+    engineType: EngineType;
     currentMileage: number | null;
     status: VehicleStatus;
     technicalNotes: string;
@@ -67,6 +70,7 @@ export interface VehicleListItem {
     brand: string;
     model: string;
     yearOfProduction: number;
+    engineType: EngineType;
     owners: VehicleOwner[];
     stats: VehicleFinancialStats;
     status: VehicleStatus;
@@ -110,6 +114,7 @@ export interface CreateVehiclePayload {
     yearOfProduction: number;
     color: string;
     paintType?: string;
+    engineType: EngineType;
     currentMileage?: number;
     technicalNotes?: string;
     ownerIds: string[];
@@ -119,6 +124,7 @@ export interface UpdateVehiclePayload {
     licensePlate?: string;
     color?: string;
     paintType?: string;
+    engineType?: EngineType;
     currentMileage?: number;
     technicalNotes?: string;
     status?: VehicleStatus;

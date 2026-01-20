@@ -147,7 +147,7 @@ export const visitApi = {
     getVisitDocuments: async (visitId: string): Promise<VisitDocument[]> => {
         if (USE_MOCKS) {
             await new Promise(resolve => setTimeout(resolve, 600));
-            return mockVisitDetail.documents;
+            return mockVisitDetail.documents || [];
         }
         const response = await apiClient.get(`${BASE_PATH}/${visitId}/documents`);
         return response.data;
@@ -212,7 +212,7 @@ export const visitApi = {
         return response.data;
     },
 
-    deleteDocument: async (visitId: string, documentId: string): Promise<void> => {
+    deleteDocument: async (_visitId: string, documentId: string): Promise<void> => {
         if (USE_MOCKS) {
             await new Promise(resolve => setTimeout(resolve, 300));
             return;

@@ -32,6 +32,12 @@ export const createVehicleSchema = z.object({
         .string()
         .optional(),
 
+    engineType: z
+        .enum(['GASOLINE', 'DIESEL', 'HYBRID', 'ELECTRIC'])
+        .refine((val) => ['GASOLINE', 'DIESEL', 'HYBRID', 'ELECTRIC'].includes(val), {
+            message: t.vehicles.validation.engineTypeRequired,
+        }),
+
     currentMileage: z
         .number()
         .positive(t.vehicles.validation.mileagePositive)
@@ -82,6 +88,13 @@ export const updateVehicleSchema = z.object({
 
     paintType: z
         .string()
+        .optional(),
+
+    engineType: z
+        .enum(['GASOLINE', 'DIESEL', 'HYBRID', 'ELECTRIC'])
+        .refine((val) => !val || ['GASOLINE', 'DIESEL', 'HYBRID', 'ELECTRIC'].includes(val), {
+            message: t.vehicles.validation.engineTypeRequired,
+        })
         .optional(),
 
     currentMileage: z

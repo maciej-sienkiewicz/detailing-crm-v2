@@ -574,7 +574,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 serviceSearch.length === 0 ||
                                                 s.name.toLowerCase().includes(serviceSearch.toLowerCase())
                                             );
-                                            const hasResults = filteredServices.length > 0;
                                             const hasSearchQuery = serviceSearch.trim().length > 0;
 
                                             return (

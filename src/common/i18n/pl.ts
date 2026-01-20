@@ -410,6 +410,7 @@ export const pl: TranslationKeys = {
                 year: 'Rok produkcji',
                 color: 'Kolor',
                 paintType: 'Rodzaj lakieru',
+                engineType: 'Rodzaj silnika',
                 mileage: 'Przebieg',
             },
             owners: {
@@ -495,6 +496,8 @@ export const pl: TranslationKeys = {
             colorPlaceholder: 'Czarny metalik',
             paintType: 'Rodzaj lakieru (opcjonalnie)',
             paintTypePlaceholder: 'Lakier bazowy + lakier',
+            engineType: 'Rodzaj silnika',
+            engineTypePlaceholder: 'Wybierz rodzaj silnika',
             mileage: 'Przebieg (opcjonalnie)',
             mileagePlaceholder: '45000',
             owners: {
@@ -520,6 +523,7 @@ export const pl: TranslationKeys = {
             yearRequired: 'Rok produkcji jest wymagany',
             yearRange: 'Rok produkcji musi być między 1900 a {currentYear}',
             colorRequired: 'Kolor jest wymagany',
+            engineTypeRequired: 'Rodzaj silnika jest wymagany',
             mileagePositive: 'Przebieg musi być większy od 0',
             notesMax: 'Notatki mogą mieć maksymalnie 2000 znaków',
             ownerRequired: 'Wybierz co najmniej jednego właściciela',

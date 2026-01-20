@@ -137,22 +137,6 @@ const CategoryBadge = styled.span<{ $category: DocumentCategory }>`
 }}
 `;
 
-const TagsContainer = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: ${props => props.theme.spacing.md};
-`;
-
-const Tag = styled.span`
-    padding: 2px 8px;
-    border-radius: ${props => props.theme.radii.sm};
-    font-size: 11px;
-    font-weight: 500;
-    background: ${props => props.theme.colors.surfaceAlt};
-    color: ${props => props.theme.colors.textSecondary};
-`;
-
 const CardFooter = styled.footer`
     display: flex;
     justify-content: space-between;
@@ -207,12 +191,6 @@ const DeleteButton = styled(ActionButton)`
     }
 `;
 
-const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
-
 const categoryLabels: Record<DocumentCategory, string> = {
     contracts: 'Umowa',
     invoices: 'Faktura',
@@ -253,7 +231,7 @@ export const DocumentCard = ({ document, onDelete, onImageClick, isDeleting = fa
     const isPDF = document.type === 'PDF' ||
                   document.fileName.match(/\.pdf$/i);
 
-    const isViewable = isImage || isPDF;
+    const isViewable = !!(isImage || isPDF);
 
     const handleCardClick = () => {
         if (isViewable && onImageClick) {
