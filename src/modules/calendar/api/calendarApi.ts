@@ -126,34 +126,7 @@ const mockAppointments: AppointmentResponse[] = [
     },
 ];
 
-const mockVisits: VisitResponse[] = [
-    {
-        id: 'visit_1',
-        visitNumber: 'VIS-2026-00042',
-        status: 'IN_PROGRESS',
-        scheduledDate: '2026-01-21T08:00:00Z',
-        customer: {
-            firstName: 'Piotr',
-            lastName: 'Wiśniewski',
-            phone: '+48 555 666 777',
-        },
-        vehicle: {
-            licensePlate: 'WA 12345',
-            brand: 'Volkswagen',
-            model: 'Golf',
-            yearOfProduction: 2020,
-        },
-        appointmentColor: {
-            id: 'c3',
-            name: 'Blue',
-            hexColor: '#3b82f6',
-        },
-        totalNet: 180000,
-        totalGross: 221400,
-        createdAt: '2026-01-15T10:00:00Z',
-        updatedAt: '2026-01-15T10:00:00Z',
-    },
-];
+const mockVisits: VisitResponse[] = [];
 
 /**
  * Transform appointment data to calendar event format
@@ -245,7 +218,8 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
         id: visit.id,
         title: `🔧 ${visit.visitNumber} | ${customerName}`,
         start: visit.scheduledDate,
-        allDay: true,
+        end: visit.estimatedCompletionDate,
+        allDay: false,
         backgroundColor: colorHex,
         borderColor: 'transparent',
         textColor,

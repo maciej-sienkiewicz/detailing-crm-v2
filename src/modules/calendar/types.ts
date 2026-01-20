@@ -93,6 +93,7 @@ export interface VisitResponse {
     visitNumber: string;
     status: 'IN_PROGRESS' | 'READY_FOR_PICKUP' | 'COMPLETED' | 'REJECTED' | 'ARCHIVED';
     scheduledDate: string;
+    estimatedCompletionDate: string;
     customer: {
         firstName: string;
         lastName: string;

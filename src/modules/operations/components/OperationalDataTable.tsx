@@ -11,7 +11,7 @@ import { DeleteOperationModal } from './DeleteOperationModal';
 import { ReservationOptionsModal } from './ReservationOptionsModal';
 import { ChangeDateModal } from './ChangeDateModal';
 import { CancelReservationModal } from './CancelReservationModal';
-import { formatCurrency, formatDateTime } from '@/common/utils';
+import { formatCurrency, formatDateTime, formatDate } from '@/common/utils';
 import type { Operation, OperationType, OperationStatus } from '../types';
 
 const TableContainer = styled.div`
@@ -481,9 +481,11 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
                                                     <VehicleName>
                                                         {operation.vehicle.brand} {operation.vehicle.model}
                                                     </VehicleName>
+                                                    {operation.vehicle.licensePlate ? (
                                                     <LicensePlateBadge>
                                                         {operation.vehicle.licensePlate}
                                                     </LicensePlateBadge>
+                                                    ) : null}
                                                 </>
                                             ) : (
                                                 <VehicleName style={{ color: '#94a3b8', fontStyle: 'italic' }}>
@@ -500,7 +502,7 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
                                             </DateTimeValue>
                                             <DateTimeLabel style={{ marginTop: '8px' }}>Koniec</DateTimeLabel>
                                             <DateTimeValue>
-                                                {formatDateTime(operation.endDateTime)}
+                                                {formatDate(operation.endDateTime)}
                                             </DateTimeValue>
                                         </DateTimeCell>
                                     </TableCell>

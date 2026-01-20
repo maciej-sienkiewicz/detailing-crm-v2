@@ -67,7 +67,7 @@ interface VisitResponse {
     vehicle: VisitVehicleInfo;
     status: string; // ACCEPTED, IN_PROGRESS, READY, COMPLETED, CANCELLED
     scheduledDate: string;
-    completedDate: string | null;
+    estimatedCompletionDate: string | null;
     totalNet: number; // w groszach
     totalGross: number; // w groszach
     createdAt: string;
@@ -130,7 +130,7 @@ const mapVisitToOperation = (visit: VisitResponse): Operation => {
             licensePlate: visit.vehicle.licensePlate,
         },
         startDateTime: visit.scheduledDate,
-        endDateTime: visit.completedDate || visit.scheduledDate, // Użyj scheduledDate jako fallback
+        endDateTime: visit.estimatedCompletionDate || visit.scheduledDate, // Użyj scheduledDate jako fallback
         financials: {
             netAmount: visit.totalNet / 100, // Konwersja z groszy na złotówki
             grossAmount: visit.totalGross / 100, // Konwersja z groszy na złotówki
