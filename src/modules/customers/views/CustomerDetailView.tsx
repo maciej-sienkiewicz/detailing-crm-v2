@@ -6,6 +6,7 @@ import styled from 'styled-components';
 import { useCustomerDetail } from '../hooks/useCustomerDetail';
 import { useCustomerVehicles } from '../hooks/useCustomerVehicles';
 import { useCustomerVisits } from '../hooks/useCustomerVisits';
+import { useCustomerDocuments } from '../hooks/useCustomerDocuments';
 import { useUpdateConsent } from '../hooks/useUpdateConsent';
 import { CustomerHeader } from '../components/CustomerHeader';
 import { VehicleCard } from '../components/VehicleCard';
@@ -319,6 +320,11 @@ export const CustomerDetailView = () => {
         isLoading: isVisitsLoading
     } = useCustomerVisits(customerId!, visitsPage, visitsLimit);
 
+    const {
+        documents,
+        isLoading: isDocumentsLoading
+    } = useCustomerDocuments(customerId!);
+
     const { updateConsent, isUpdating } = useUpdateConsent({
         customerId: customerId!,
     });
@@ -382,7 +388,7 @@ export const CustomerDetailView = () => {
                         $isActive={activeTab === 'documents'}
                         onClick={() => setActiveTab('documents')}
                     >
-                        Dokumenty
+                        Dokumenty ({documents.length})
                     </TabButton>
                     <TabButton
                         $isActive={activeTab === 'settings'}
