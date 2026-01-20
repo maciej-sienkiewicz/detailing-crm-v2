@@ -295,17 +295,26 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                     )}
                 </PopoverBody>
 
-                {/* Footer z przyciskiem zarządzaj - tylko dla rezerwacji */}
-                {isAppointment && (
-                    <PopoverFooter>
-                        <ManageButton onClick={onManageClick}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                            </svg>
-                            Zarządzaj
-                        </ManageButton>
-                    </PopoverFooter>
-                )}
+                {/* Footer z przyciskiem */}
+                <PopoverFooter>
+                    <ManageButton onClick={onManageClick}>
+                        {isAppointment ? (
+                            <>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                </svg>
+                                Zarządzaj
+                            </>
+                        ) : (
+                            <>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M9 5l7 7-7 7" />
+                                </svg>
+                                Przejdź do wizyty
+                            </>
+                        )}
+                    </ManageButton>
+                </PopoverFooter>
             </PopoverContainer>
         </>
     );
