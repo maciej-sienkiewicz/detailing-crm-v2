@@ -141,57 +141,21 @@ const InfoText = styled.p`
     line-height: 1.5;
 `;
 
-const ActionButtons = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: ${props => props.theme.spacing.md};
-`;
-
-const ActionButton = styled.button<{ $variant: 'secondary' | 'primary' }>`
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
-    border: none;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    ${props => props.$variant === 'secondary' && `
-        background: white;
-        color: ${props.theme.colors.textSecondary};
-        border: 2px solid ${props.theme.colors.border};
-
-        &:hover {
-            background: ${props.theme.colors.surfaceHover};
-        }
-    `}
-
-    ${props => props.$variant === 'primary' && `
-        background: linear-gradient(135deg, var(--brand-primary) 0%, #0284c7 100%);
-        color: white;
-        box-shadow: ${props.theme.shadows.md};
-
-        &:hover {
-            box-shadow: ${props.theme.shadows.lg};
-            transform: translateY(-1px);
-        }
-    `}
-`;
-
 interface NotificationStepProps {
     customer: CustomerInfo;
-    onSkip: () => void;
-    onSend: (channels: NotificationChannels) => void;
+    onChannelsChange?: (channels: NotificationChannels) => void;
 }
 
-export const NotificationStep = ({ customer, onSkip, onSend }: NotificationStepProps) => {
+export const NotificationStep = ({ customer, onChannelsChange }: NotificationStepProps) => {
     const [channels, setChannels] = useState<NotificationChannels>({
         sms: true,
         email: !!customer.email,
     });
 
     const handleToggle = (channel: keyof NotificationChannels) => {
-        setChannels((prev: NotificationChannels) => ({ ...prev, [channel]: !prev[channel] }));
+        const newChannels = { ...channels, [channel]: !channels[channel] };
+        setChannels(newChannels);
+        onChannelsChange?.(newChannels);
     };
 
     const hasAnyChannel = channels.sms || channels.email;
@@ -262,19 +226,6 @@ export const NotificationStep = ({ customer, onSkip, onSend }: NotificationStepP
                     </InfoText>
                 </InfoBox>
             )}
-
-            <ActionButtons>
-                <ActionButton $variant="secondary" onClick={onSkip}>
-                    Pomiń powiadomienia
-                </ActionButton>
-                <ActionButton
-                    $variant="primary"
-                    onClick={() => onSend(channels)}
-                    disabled={!hasAnyChannel}
-                >
-                    Wyślij i kontynuuj
-                </ActionButton>
-            </ActionButtons>
         </Container>
     );
 };
