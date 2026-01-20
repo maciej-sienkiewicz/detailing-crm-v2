@@ -83,7 +83,9 @@ export const OperationListView = () => {
     const { page, limit, goToPage, resetPagination } = useOperationPagination();
     const {
         selectedFilter,
+        selectedDate,
         handleFilterChange,
+        handleDateChange,
         clearFilters,
         getApiFilters,
     } = useOperationFilters();
@@ -97,10 +99,11 @@ export const OperationListView = () => {
             limit,
             type: apiFilters.type,
             status: apiFilters.status,
+            scheduledDate: selectedDate,
             sortBy: 'startDateTime' as const,
             sortDirection: 'desc' as const,
         }),
-        [debouncedSearch, page, limit, apiFilters.type, apiFilters.status]
+        [debouncedSearch, page, limit, apiFilters.type, apiFilters.status, selectedDate]
     );
 
     const { pagination } = useOperations(filters);
@@ -140,7 +143,9 @@ export const OperationListView = () => {
             <ContentSection>
                 <OperationFilterBar
                     selectedFilter={selectedFilter}
+                    selectedDate={selectedDate}
                     onFilterChange={handleFilterChangeWithReset}
+                    onDateChange={handleDateChange}
                     onClearFilters={handleClearFiltersWithReset}
                 />
 

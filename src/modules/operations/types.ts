@@ -71,6 +71,7 @@ export interface OperationFilters {
     limit: number;
     type?: OperationType;
     status?: OperationStatus;
+    scheduledDate?: string;
     sortBy?: 'startDateTime' | 'customerLastName' | 'grossAmount' | 'lastModification';
     sortDirection?: 'asc' | 'desc';
 }

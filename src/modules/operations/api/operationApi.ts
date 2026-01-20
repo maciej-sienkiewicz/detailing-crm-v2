@@ -282,6 +282,10 @@ export const operationApi = {
                 params.append('status', filters.status);
             }
 
+            if (filters.scheduledDate) {
+                params.append('scheduledDate', filters.scheduledDate);
+            }
+
             const response = await apiClient.get<VisitsListResponse>(
                 `/visits?${params.toString()}`
             );
@@ -327,6 +331,7 @@ export const operationApi = {
                         page: filters.page.toString(),
                         limit: filters.limit.toString(),
                         status: 'CREATED',
+                        ...(filters.scheduledDate && { scheduledDate: filters.scheduledDate }),
                         ...(filters.sortBy && { sortBy: filters.sortBy }),
                         ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
                     }
@@ -337,6 +342,7 @@ export const operationApi = {
                         page: filters.page.toString(),
                         limit: filters.limit.toString(),
                         status: 'ABANDONED',
+                        ...(filters.scheduledDate && { scheduledDate: filters.scheduledDate }),
                         ...(filters.sortBy && { sortBy: filters.sortBy }),
                         ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
                     }
@@ -371,6 +377,10 @@ export const operationApi = {
                 size: filters.limit.toString(),
             });
 
+            if (filters.scheduledDate) {
+                params.append('scheduledDate', filters.scheduledDate);
+            }
+
             const response = await apiClient.get<VisitsListResponse>(
                 `/visits?${params.toString()}`
             );
@@ -401,6 +411,7 @@ export const operationApi = {
                         page: filters.page.toString(),
                         limit: filters.limit.toString(),
                         status: 'CREATED',
+                        ...(filters.scheduledDate && { scheduledDate: filters.scheduledDate }),
                         ...(filters.sortBy && { sortBy: filters.sortBy }),
                         ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
                     }
@@ -411,6 +422,7 @@ export const operationApi = {
                         page: filters.page.toString(),
                         limit: filters.limit.toString(),
                         status: 'ABANDONED',
+                        ...(filters.scheduledDate && { scheduledDate: filters.scheduledDate }),
                         ...(filters.sortBy && { sortBy: filters.sortBy }),
                         ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
                     }

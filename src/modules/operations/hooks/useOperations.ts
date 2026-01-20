@@ -11,6 +11,7 @@ export const operationsQueryKey = (filters: OperationFilters) => [
     filters.limit,
     filters.type,
     filters.status,
+    filters.scheduledDate,
     filters.sortBy,
     filters.sortDirection,
 ];
