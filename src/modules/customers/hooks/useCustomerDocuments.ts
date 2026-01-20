@@ -1,25 +1,42 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { customerEditApi } from '../api/customerEditApi';
-import type { DocumentFilters } from '../types';
+import type { UploadDocumentPayload } from '../types';
 
-const CUSTOMER_DOCUMENTS_QUERY_KEY = 'customerDocuments';
+export const customerDocumentsQueryKey = (customerId: string) => ['customer', customerId, 'documents'];
 
-export const useCustomerDocuments = (customerId: string, filters: DocumentFilters) => {
-    const query = useQuery({
-        queryKey: [CUSTOMER_DOCUMENTS_QUERY_KEY, customerId, filters],
-        queryFn: () => customerEditApi.getDocuments(customerId, filters),
-        staleTime: 30_000,
+export const useCustomerDocuments = (customerId: string) => {
+    const { data, isLoading, isError, refetch } = useQuery({
+        queryKey: customerDocumentsQueryKey(customerId),
+        queryFn: () => customerEditApi.getDocuments(customerId),
         enabled: !!customerId,
     });
 
     return {
-        documents: query.data?.data ?? [],
-        pagination: query.data?.pagination ?? null,
-        isLoading: query.isLoading,
-        isError: query.isError,
-        error: query.error,
-        refetch: query.refetch,
+        documents: data || [],
+        isLoading,
+        isError,
+        refetch,
     };
 };
 
-export const customerDocumentsQueryKey = CUSTOMER_DOCUMENTS_QUERY_KEY;
+export const useUploadDocument = (customerId: string) => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (payload: UploadDocumentPayload) => customerEditApi.uploadDocument(payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: customerDocumentsQueryKey(customerId) });
+        },
+    });
+};
+
+export const useDeleteDocument = (customerId: string) => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (documentId: string) => customerEditApi.deleteDocument(documentId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: customerDocumentsQueryKey(customerId) });
+        },
+    });
+};

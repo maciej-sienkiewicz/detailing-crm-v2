@@ -4,7 +4,7 @@ import { useState, useRef, ChangeEvent } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import styled, { keyframes } from 'styled-components';
 import { useUploadDocument } from '../hooks/useUploadDocument';
-import type { DocumentCategory } from '../types';
+import type { DocumentCategory, DocumentType } from '../types';
 import { t } from '@/common/i18n';
 
 const fadeIn = keyframes`
@@ -329,9 +329,9 @@ export const UploadDocumentModal = ({
                                         customerId
                                     }: UploadDocumentModalProps) => {
     const [file, setFile] = useState<File | null>(null);
+    const [type, setType] = useState<DocumentType>('OTHER');
     const [category, setCategory] = useState<DocumentCategory>('other');
-    const [description, setDescription] = useState('');
-    const [tags, setTags] = useState('');
+    const [name, setName] = useState('');
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -345,9 +345,9 @@ export const UploadDocumentModal = ({
 
     const handleReset = () => {
         setFile(null);
+        setType('OTHER');
         setCategory('other');
-        setDescription('');
-        setTags('');
+        setName('');
         setIsDragging(false);
     };
 
@@ -384,9 +384,10 @@ export const UploadDocumentModal = ({
 
         uploadDocument({
             file,
+            customerId,
+            type,
+            name: name || file.name,
             category,
-            description,
-            tags: tags.split(',').map(t => t.trim()).filter(Boolean),
         });
     };
 
@@ -453,6 +454,22 @@ export const UploadDocumentModal = ({
                             />
 
                             <FormField>
+                                <Label>Typ dokumentu</Label>
+                                <Select
+                                    value={type}
+                                    onChange={e => setType(e.target.value as DocumentType)}
+                                >
+                                    <option value="PHOTO">Zdjęcie</option>
+                                    <option value="PDF">PDF</option>
+                                    <option value="PROTOCOL">Protokół</option>
+                                    <option value="INTAKE">Przyjęcie</option>
+                                    <option value="OUTTAKE">Wydanie</option>
+                                    <option value="DAMAGE_MAP">Mapa uszkodzeń</option>
+                                    <option value="OTHER">Inne</option>
+                                </Select>
+                            </FormField>
+
+                            <FormField>
                                 <Label>Kategoria</Label>
                                 <Select
                                     value={category}
@@ -468,21 +485,11 @@ export const UploadDocumentModal = ({
                             </FormField>
 
                             <FormField>
-                                <Label>Opis</Label>
-                                <TextArea
-                                    value={description}
-                                    onChange={e => setDescription(e.target.value)}
-                                    placeholder="Krótki opis dokumentu..."
-                                    required
-                                />
-                            </FormField>
-
-                            <FormField>
-                                <Label>Tagi (oddzielone przecinkami)</Label>
+                                <Label>Nazwa dokumentu</Label>
                                 <Input
-                                    value={tags}
-                                    onChange={e => setTags(e.target.value)}
-                                    placeholder="np. 2024, umowa, ważne"
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
+                                    placeholder="Nazwa dokumentu (opcjonalnie)"
                                 />
                             </FormField>
                         </form>

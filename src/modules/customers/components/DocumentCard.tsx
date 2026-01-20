@@ -248,8 +248,8 @@ interface DocumentCardProps {
 export const DocumentCard = ({ document, onDelete, isDeleting = false }: DocumentCardProps) => {
     const handleDownload = async () => {
         try {
-            const downloadData = await customerEditApi.getDocumentDownload(document.id);
-            window.open(downloadData.downloadUrl, '_blank');
+            const downloadUrl = await customerEditApi.getDocumentDownload(document.id);
+            window.open(downloadUrl, '_blank');
         } catch (error) {
             console.error('Download failed:', error);
         }
@@ -264,39 +264,33 @@ export const DocumentCard = ({ document, onDelete, isDeleting = false }: Documen
     const fileExtension = document.fileName.split('.').pop()?.toLowerCase() || 'default';
     const icon = fileIcons[fileExtension] || fileIcons.default;
 
+    // Map category or use 'other' as default
+    const category = (document.category as DocumentCategory) || 'other';
+
     return (
         <Card>
             <CardHeader>
-                <FileIcon $category={document.category}>
+                <FileIcon $category={category}>
                     {icon}
                 </FileIcon>
                 <FileInfo>
                     <FileName title={document.fileName}>{document.fileName}</FileName>
-                    <FileDescription>{document.description}</FileDescription>
+                    <FileDescription>{document.name}</FileDescription>
                 </FileInfo>
             </CardHeader>
 
             <FileMeta>
-                <CategoryBadge $category={document.category}>
-                    {categoryLabels[document.category]}
+                <CategoryBadge $category={category}>
+                    {categoryLabels[category]}
                 </CategoryBadge>
-                <MetaBadge>{formatFileSize(document.fileSize)}</MetaBadge>
-                <MetaBadge>{document.mimeType}</MetaBadge>
+                <MetaBadge>{document.type}</MetaBadge>
             </FileMeta>
-
-            {document.tags.length > 0 && (
-                <TagsContainer>
-                    {document.tags.map(tag => (
-                        <Tag key={tag}>{tag}</Tag>
-                    ))}
-                </TagsContainer>
-            )}
 
             <CardFooter>
                 <UploadInfo>
                     Dodano: {formatDateTime(document.uploadedAt)}
                     <br />
-                    przez {document.uploadedBy}
+                    przez {document.uploadedByName}
                 </UploadInfo>
 
                 <Actions>

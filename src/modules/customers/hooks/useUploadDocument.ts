@@ -14,10 +14,10 @@ export const useUploadDocument = (options: UseUploadDocumentOptions) => {
 
     const mutation = useMutation({
         mutationFn: (payload: UploadDocumentPayload) =>
-            customerEditApi.uploadDocument(options.customerId, payload),
+            customerEditApi.uploadDocument(payload),
         onSuccess: () => {
             queryClient.invalidateQueries({
-                queryKey: [customerDocumentsQueryKey, options.customerId]
+                queryKey: customerDocumentsQueryKey(options.customerId)
             });
             options.onSuccess?.();
         },

@@ -209,22 +209,20 @@ export interface UpdateNotesPayload {
     notes: string;
 }
 
+export type DocumentType = 'PHOTO' | 'PDF' | 'PROTOCOL' | 'INTAKE' | 'OUTTAKE' | 'DAMAGE_MAP' | 'OTHER';
+
 export interface CustomerDocument {
     id: string;
     customerId: string;
-    category: DocumentCategory;
+    visitId?: string;
+    type: DocumentType;
+    name: string;
     fileName: string;
-    description: string;
-    fileSize: number;
-    mimeType: string;
-    s3Key: string;
-    s3Bucket: string;
-    documentUrl: string;
-    thumbnailUrl: string | null;
+    fileUrl: string;
     uploadedAt: string;
     uploadedBy: string;
-    tags: string[];
-    metadata: Record<string, any>;
+    uploadedByName: string;
+    category?: string;
 }
 
 export type DocumentCategory =
@@ -242,10 +240,11 @@ export interface DocumentListResponse {
 
 export interface UploadDocumentPayload {
     file: File;
-    category: DocumentCategory;
-    description: string;
-    tags: string[];
-    metadata?: Record<string, any>;
+    customerId: string;
+    visitId?: string;
+    type: DocumentType;
+    name?: string;
+    category?: string;
 }
 
 export interface DocumentDownloadResponse {

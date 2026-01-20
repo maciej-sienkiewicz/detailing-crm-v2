@@ -2,8 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
-import { useCustomerDocuments } from '../hooks/useCustomerDocuments';
-import { useDeleteDocument } from '../hooks/useDeleteDocument';
+import { useCustomerDocuments, useDeleteDocument } from '../hooks/useCustomerDocuments';
 import { DocumentCard } from './DocumentCard';
 import { UploadDocumentModal } from './UploadDocumentModal';
 import type { DocumentCategory } from '../types';
@@ -246,21 +245,50 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
     const [page, setPage] = useState(1);
     const limit = 9;
 
-    const filters = useMemo(() => ({
-        search: searchQuery,
-        category: categoryFilter || undefined,
-        page,
-        limit,
-    }), [searchQuery, categoryFilter, page]);
+    const { documents: allDocuments, isLoading, isError, refetch } = useCustomerDocuments(customerId);
+    const deleteMutation = useDeleteDocument(customerId);
 
-    const { documents, pagination, isLoading, isError, refetch } = useCustomerDocuments(
-        customerId,
-        filters
-    );
+    // Filter documents on frontend
+    const filteredDocuments = useMemo(() => {
+        let filtered = allDocuments;
 
-    const { deleteDocument, isDeleting } = useDeleteDocument({
-        customerId,
-    });
+        if (searchQuery) {
+            const searchLower = searchQuery.toLowerCase();
+            filtered = filtered.filter(doc =>
+                doc.fileName.toLowerCase().includes(searchLower) ||
+                doc.name.toLowerCase().includes(searchLower)
+            );
+        }
+
+        if (categoryFilter) {
+            filtered = filtered.filter(doc => doc.category === categoryFilter);
+        }
+
+        return filtered;
+    }, [allDocuments, searchQuery, categoryFilter]);
+
+    // Pagination on frontend
+    const { documents, pagination } = useMemo(() => {
+        const totalItems = filteredDocuments.length;
+        const totalPages = Math.ceil(totalItems / limit);
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const paginatedDocs = filteredDocuments.slice(startIndex, endIndex);
+
+        return {
+            documents: paginatedDocs,
+            pagination: {
+                currentPage: page,
+                totalPages,
+                totalItems,
+                itemsPerPage: limit,
+            },
+        };
+    }, [filteredDocuments, page, limit]);
+
+    const handleDeleteDocument = (documentId: string) => {
+        deleteMutation.mutate(documentId);
+    };
 
     if (isLoading) {
         return (
@@ -282,7 +310,7 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
     return (
         <Container>
             <Header>
-                <Title>Dokumenty ({pagination?.totalItems || 0})</Title>
+                <Title>Dokumenty ({pagination.totalItems})</Title>
                 <Actions>
                     <UploadButton onClick={() => setIsUploadModalOpen(true)}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -350,8 +378,8 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
                             <DocumentCard
                                 key={document.id}
                                 document={document}
-                                onDelete={deleteDocument}
-                                isDeleting={isDeleting}
+                                onDelete={handleDeleteDocument}
+                                isDeleting={deleteMutation.isPending}
                             />
                         ))}
                     </DocumentsGrid>

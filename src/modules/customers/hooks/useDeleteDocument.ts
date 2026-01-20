@@ -15,7 +15,7 @@ export const useDeleteDocument = (options: UseDeleteDocumentOptions) => {
         mutationFn: (documentId: string) => customerEditApi.deleteDocument(documentId),
         onSuccess: () => {
             queryClient.invalidateQueries({
-                queryKey: [customerDocumentsQueryKey, options.customerId]
+                queryKey: customerDocumentsQueryKey(options.customerId)
             });
             options.onSuccess?.();
         },

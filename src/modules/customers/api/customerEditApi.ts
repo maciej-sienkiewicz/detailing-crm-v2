@@ -85,126 +85,64 @@ const mockDocuments: CustomerDocument[] = [
     {
         id: 'doc_001',
         customerId: 'cust_123',
-        category: 'contracts',
+        type: 'PDF',
+        name: 'Umowa serwisowa - pakiet Gold',
         fileName: 'umowa_serwisowa_2023.pdf',
-        description: 'Umowa serwisowa - pakiet Gold',
-        fileSize: 1245678,
-        mimeType: 'application/pdf',
-        s3Key: 'customers/cust_123/contracts/umowa_serwisowa_2023.pdf',
-        s3Bucket: 'crm-documents-prod',
-        documentUrl: 'https://s3.example.com/doc1.pdf',
-        thumbnailUrl: null,
+        fileUrl: 'https://s3.example.com/doc1.pdf',
         uploadedAt: '2023-06-15T10:30:00Z',
         uploadedBy: 'user_123',
-        tags: ['serwis', 'gold', '2023'],
-        metadata: {
-            contractNumber: 'KTR/2023/001',
-            validFrom: '2023-06-15',
-            validTo: '2024-06-15',
-        },
+        uploadedByName: 'Jan Kowalski',
+        category: 'contracts',
     },
     {
         id: 'doc_002',
         customerId: 'cust_123',
-        category: 'identity',
+        type: 'PDF',
+        name: 'Kopia dowodu osobistego',
         fileName: 'dowod_osobisty_skan.pdf',
-        description: 'Kopia dowodu osobistego',
-        fileSize: 845231,
-        mimeType: 'application/pdf',
-        s3Key: 'customers/cust_123/identity/dowod_osobisty_skan.pdf',
-        s3Bucket: 'crm-documents-prod',
-        documentUrl: 'https://s3.example.com/doc2.pdf',
-        thumbnailUrl: 'https://s3.example.com/doc2_thumb.jpg',
+        fileUrl: 'https://s3.example.com/doc2.pdf',
         uploadedAt: '2023-06-15T10:35:00Z',
         uploadedBy: 'user_123',
-        tags: ['weryfikacja', 'KYC'],
-        metadata: {
-            documentType: 'national_id',
-            documentNumber: 'ABC123456',
-        },
+        uploadedByName: 'Jan Kowalski',
+        category: 'identity',
     },
     {
         id: 'doc_003',
         customerId: 'cust_123',
-        category: 'invoices',
+        type: 'PDF',
+        name: 'Faktura VAT 2024/01/001',
         fileName: 'faktura_2024_01.pdf',
-        description: 'Faktura VAT 2024/01/001',
-        fileSize: 245890,
-        mimeType: 'application/pdf',
-        s3Key: 'customers/cust_123/invoices/faktura_2024_01.pdf',
-        s3Bucket: 'crm-documents-prod',
-        documentUrl: 'https://s3.example.com/doc3.pdf',
-        thumbnailUrl: null,
+        fileUrl: 'https://s3.example.com/doc3.pdf',
         uploadedAt: '2024-01-15T09:00:00Z',
         uploadedBy: 'user_456',
-        tags: ['faktura', '2024', 'VAT'],
-        metadata: {
-            invoiceNumber: '2024/01/001',
-            amount: 5500,
-            currency: 'PLN',
-        },
+        uploadedByName: 'Anna Nowak',
+        category: 'invoices',
     },
 ];
 
 const mockGetDocuments = async (
-    customerId: string,
-    filters: DocumentFilters
-): Promise<DocumentListResponse> => {
+    customerId: string
+): Promise<CustomerDocument[]> => {
     await delay(400);
-
-    let filtered = mockDocuments.filter(doc => doc.customerId === customerId);
-
-    if (filters.category) {
-        filtered = filtered.filter(doc => doc.category === filters.category);
-    }
-
-    if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        filtered = filtered.filter(doc =>
-            doc.fileName.toLowerCase().includes(searchLower) ||
-            doc.description.toLowerCase().includes(searchLower)
-        );
-    }
-
-    const totalItems = filtered.length;
-    const totalPages = Math.ceil(totalItems / filters.limit);
-    const startIndex = (filters.page - 1) * filters.limit;
-    const endIndex = startIndex + filters.limit;
-    const paginatedDocs = filtered.slice(startIndex, endIndex);
-
-    return {
-        data: paginatedDocs,
-        pagination: {
-            currentPage: filters.page,
-            totalPages,
-            totalItems,
-            itemsPerPage: filters.limit,
-        },
-    };
+    return mockDocuments.filter(doc => doc.customerId === customerId);
 };
 
 const mockUploadDocument = async (
-    customerId: string,
     payload: UploadDocumentPayload
 ): Promise<CustomerDocument> => {
     await delay(1500);
 
     const newDoc: CustomerDocument = {
         id: `doc_${Date.now()}`,
-        customerId,
-        category: payload.category,
+        customerId: payload.customerId,
+        type: payload.type,
+        name: payload.name || payload.file.name,
         fileName: payload.file.name,
-        description: payload.description,
-        fileSize: payload.file.size,
-        mimeType: payload.file.type,
-        s3Key: `customers/${customerId}/${payload.category}/${payload.file.name}`,
-        s3Bucket: 'crm-documents-prod',
-        documentUrl: `https://s3.example.com/${payload.file.name}`,
-        thumbnailUrl: null,
+        fileUrl: `https://s3.example.com/${payload.file.name}`,
         uploadedAt: new Date().toISOString(),
         uploadedBy: 'current_user',
-        tags: payload.tags,
-        metadata: payload.metadata || {},
+        uploadedByName: 'Current User',
+        category: payload.category,
     };
 
     mockDocuments.unshift(newDoc);
@@ -292,49 +230,32 @@ export const customerEditApi = {
         return response.data;
     },
 
-    getDocuments: async (
-        customerId: string,
-        filters: DocumentFilters
-    ): Promise<DocumentListResponse> => {
+    getDocuments: async (customerId: string): Promise<CustomerDocument[]> => {
         if (USE_MOCKS) {
-            return mockGetDocuments(customerId, filters);
+            return mockGetDocuments(customerId);
         }
 
-        const params = new URLSearchParams({
-            page: filters.page.toString(),
-            limit: filters.limit.toString(),
-        });
-
-        if (filters.category) params.append('category', filters.category);
-        if (filters.search) params.append('search', filters.search);
-        if (filters.sortBy) params.append('sortBy', filters.sortBy);
-        if (filters.sortDirection) params.append('sortDirection', filters.sortDirection);
-
-        const response = await apiClient.get<DocumentListResponse>(
-            `${CUSTOMERS_BASE_PATH}/${customerId}/documents?${params.toString()}`
+        const response = await apiClient.get<CustomerDocument[]>(
+            `${CUSTOMERS_BASE_PATH}/${customerId}/documents`
         );
         return response.data;
     },
 
-    uploadDocument: async (
-        customerId: string,
-        payload: UploadDocumentPayload
-    ): Promise<CustomerDocument> => {
+    uploadDocument: async (payload: UploadDocumentPayload): Promise<CustomerDocument> => {
         if (USE_MOCKS) {
-            return mockUploadDocument(customerId, payload);
+            return mockUploadDocument(payload);
         }
 
         const formData = new FormData();
         formData.append('file', payload.file);
-        formData.append('category', payload.category);
-        formData.append('description', payload.description);
-        formData.append('tags', JSON.stringify(payload.tags));
-        if (payload.metadata) {
-            formData.append('metadata', JSON.stringify(payload.metadata));
-        }
+        formData.append('customerId', payload.customerId);
+        formData.append('type', payload.type);
+        formData.append('name', payload.name || payload.file.name);
+        if (payload.visitId) formData.append('visitId', payload.visitId);
+        if (payload.category) formData.append('category', payload.category);
 
         const response = await apiClient.post<CustomerDocument>(
-            `${CUSTOMERS_BASE_PATH}/${customerId}/documents`,
+            '/documents/external',
             formData,
             {
                 headers: {
@@ -345,15 +266,16 @@ export const customerEditApi = {
         return response.data;
     },
 
-    getDocumentDownload: async (documentId: string): Promise<DocumentDownloadResponse> => {
+    getDocumentDownload: async (documentId: string): Promise<string> => {
         if (USE_MOCKS) {
-            return mockGetDocumentDownload(documentId);
+            const mockResponse = await mockGetDocumentDownload(documentId);
+            return mockResponse.downloadUrl;
         }
 
-        const response = await apiClient.get<DocumentDownloadResponse>(
-            `${DOCUMENTS_BASE_PATH}/${documentId}/download`
+        const response = await apiClient.get<{ url: string }>(
+            `/documents/${documentId}/download-url`
         );
-        return response.data;
+        return response.data.url;
     },
 
     deleteDocument: async (documentId: string): Promise<void> => {
@@ -361,6 +283,6 @@ export const customerEditApi = {
             return mockDeleteDocument(documentId);
         }
 
-        await apiClient.delete(`${DOCUMENTS_BASE_PATH}/${documentId}`);
+        await apiClient.delete(`/documents/${documentId}`);
     },
 };
