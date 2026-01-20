@@ -20,7 +20,6 @@ export type ActivityType =
     | 'notes_updated'
     | 'mileage_updated';
 
-export type EngineType = 'GASOLINE' | 'DIESEL' | 'HYBRID' | 'ELECTRIC';
 
 export interface VehicleOwner {
     customerId: string;
@@ -50,8 +49,6 @@ export interface Vehicle {
     brand: string;
     model: string;
     yearOfProduction: number;
-    vin?: string;
-    engineType: EngineType;
     color: string;
     paintType: string | null;
     currentMileage: number | null;

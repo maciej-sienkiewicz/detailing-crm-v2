@@ -16,7 +16,7 @@ import type {
 } from '../types';
 
 const BASE_PATH = '/v1/vehicles';
-const USE_MOCKS = true;
+const USE_MOCKS = false;
 
 const mockVehicles: VehicleListItem[] = [
     {
@@ -123,8 +123,6 @@ const mockVehicleDetail: Vehicle = {
     brand: 'BMW',
     model: 'X5',
     yearOfProduction: 2021,
-    vin: 'WBAX5123456789012',
-    engineType: 'GASOLINE',
     color: 'Czarny metalik',
     paintType: 'Lakier bazowy + lakier',
     currentMileage: 45000,
@@ -276,8 +274,6 @@ const mockCreateVehicle = async (payload: CreateVehiclePayload): Promise<Vehicle
     return {
         id: `v${Date.now()}`,
         ...payload,
-        vin: '—',
-        engineType: 'GASOLINE',
         paintType: payload.paintType || null,
         currentMileage: payload.currentMileage || null,
         technicalNotes: payload.technicalNotes || '',

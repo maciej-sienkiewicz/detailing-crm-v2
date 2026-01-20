@@ -314,13 +314,6 @@ const RetryButton = styled.button`
 
 type TabValue = 'overview' | 'visits' | 'changes' | 'photos' | 'settings';
 
-const engineTypeLabels: Record<string, string> = {
-    GASOLINE: 'Benzyna',
-    DIESEL: 'Diesel',
-    HYBRID: 'Hybryda',
-    ELECTRIC: 'Elektryczny',
-};
-
 export const VehicleDetailView = () => {
     const { vehicleId } = useParams<{ vehicleId: string }>();
     const [activeTab, setActiveTab] = useState<TabValue>('overview');
@@ -462,12 +455,6 @@ export const VehicleDetailView = () => {
                                                 <InfoValue>{vehicle.paintType}</InfoValue>
                                             </InfoItem>
                                         )}
-                                        <InfoItem>
-                                            <InfoLabel>{t.vehicles.detail.technicalInfo.engineType}</InfoLabel>
-                                            <InfoValue>
-                                                {engineTypeLabels[vehicle.engineType]}
-                                            </InfoValue>
-                                        </InfoItem>
                                         {vehicle.currentMileage && (
                                             <InfoItem>
                                                 <InfoLabel>{t.vehicles.detail.technicalInfo.mileage}</InfoLabel>

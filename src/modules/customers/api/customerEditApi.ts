@@ -236,7 +236,7 @@ export const customerEditApi = {
         }
 
         const response = await apiClient.get<CustomerDocument[]>(
-            `${CUSTOMERS_BASE_PATH}/${customerId}/documents`
+            `customers/${customerId}/documents`
         );
         return response.data;
     },

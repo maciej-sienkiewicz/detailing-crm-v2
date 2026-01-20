@@ -234,13 +234,6 @@ export const VehicleCard = ({ vehicle }: VehicleCardProps) => {
                 </DetailItem>
 
                 <DetailItem>
-                    <DetailLabel>{t.customers.detail.vehicleCard.engine}</DetailLabel>
-                    <EngineBadge $type={vehicle.engineType}>
-                        {t.customers.detail.vehicleCard.engineType[vehicle.engineType.toLowerCase() as keyof typeof t.customers.detail.vehicleCard.engineType]}
-                    </EngineBadge>
-                </DetailItem>
-
-                <DetailItem>
                     <DetailLabel>{t.customers.detail.vehicleCard.mileage}</DetailLabel>
                     <DetailValue>{formatNumber(vehicle.mileage)} km</DetailValue>
                 </DetailItem>
