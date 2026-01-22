@@ -386,7 +386,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 <input
                                     ref={titleInputRef}
                                     type="text"
-                                    placeholder="Dodaj tytuł rezerwacjisss"
+                                    placeholder="Dodaj tytuł rezerwacji"
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
                                     className="w-full text-3xl font-semibold text-gray-900 placeholder-gray-300 border-0 border-b-2 border-transparent focus:border-gray-300 focus:outline-none transition-colors pb-3 bg-transparent"
