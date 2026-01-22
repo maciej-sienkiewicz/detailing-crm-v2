@@ -15,7 +15,20 @@ QuickEventModal displayed incorrectly on server (without styles) but worked fine
 
 ## Deployment Steps
 
-### 1. Build locally and verify
+### Quick Deploy (Recommended)
+
+```bash
+# Build, push to registry, and deploy in one command
+./deploy/build-and-push.sh
+
+# Then on server (or via Jenkins):
+# docker compose --env-file /opt/apps/prod/.env pull
+# docker compose --env-file /opt/apps/prod/.env up -d
+```
+
+### Manual Deploy
+
+#### 1. Build locally and verify
 
 ```bash
 # Clean build
@@ -25,11 +38,20 @@ npm run build:prod
 ./deploy/verify-build.sh
 ```
 
-### 2. Build Docker image **without cache**
+#### 2. Build Docker image with build arguments
 
 ```bash
-# IMPORTANT: Use --no-cache to force rebuild all layers
-docker build --no-cache -f deploy/Dockerfile -t automotive-crm:latest .
+# IMPORTANT: Use build arguments to ensure fresh CSS generation
+# This busts Docker cache and forces Tailwind to regenerate all classes
+docker build \
+  --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+  --build-arg GIT_COMMIT="$(git rev-parse --short HEAD)" \
+  -f deploy/Dockerfile \
+  -t automotive-crm:latest \
+  .
+
+# Alternative: Use --no-cache if build args don't help
+# docker build --no-cache -f deploy/Dockerfile -t automotive-crm:latest .
 ```
 
 ### 3. Stop and remove old container
@@ -108,6 +130,8 @@ The `build:prod` script bypasses TypeScript checking. If you need type safety:
 
 ## Prevention
 
-- Always use `--no-cache` when deploying after UI changes
+- **Always use build arguments** (`BUILD_DATE` and `GIT_COMMIT`) when building Docker images
+- Build args ensure CSS is regenerated even if source files haven't changed
 - Run `./deploy/verify-build.sh` before deployment
 - Check `build-info.txt` after deployment to confirm new build
+- Use `--no-cache` as a last resort if build args don't work
