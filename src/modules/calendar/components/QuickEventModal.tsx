@@ -181,12 +181,72 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const selectedColor = appointmentColors.find((c: AppointmentColor) => c.id === selectedColorId);
     const accentColor = selectedColor?.hexColor || '#3b82f6';
 
+    // Helpers
+    const formatDateTimeLocal = (date: Date) => {
+        const d = new Date(date);
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+    const formatDate = (date: Date) => {
+        const d = new Date(date);
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    };
+
+    // Effects
+    useEffect(() => {
+        if (eventData) {
+            const timeDiff = eventData.end.getTime() - eventData.start.getTime();
+            const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+            const shouldBeAllDay = daysDiff === 1 && eventData.allDay;
+
+            const newIsAllDay = shouldBeAllDay;
+            let newStartDateTime = '';
+            let newEndDateTime = '';
+
+            if (shouldBeAllDay) {
+                newStartDateTime = formatDate(eventData.start);
+                newEndDateTime = formatDate(eventData.start);
+            } else if (daysDiff > 1) {
+                const startDate = new Date(eventData.start);
+                startDate.setHours(9, 0, 0, 0);
+                newStartDateTime = formatDateTimeLocal(startDate);
+
+                const endDate = new Date(eventData.end);
+                endDate.setDate(endDate.getDate() - 1);
+                newEndDateTime = formatDateTimeLocal(endDate);
+            } else {
+                newStartDateTime = formatDateTimeLocal(eventData.start);
+                newEndDateTime = formatDateTimeLocal(eventData.end);
+            }
+
+            // Batch state updates
+            setIsAllDay(newIsAllDay);
+            setStartDateTime(newStartDateTime);
+            setEndDateTime(newEndDateTime);
+        }
+    }, [eventData]);
+
+    useEffect(() => {
+        if (appointmentColors.length > 0) {
+            setSelectedColorId(prev => prev || appointmentColors[0].id);
+        }
+    }, [appointmentColors]);
+
     // Focus title input on open
     useEffect(() => {
         if (isOpen && titleInputRef.current) {
             setTimeout(() => titleInputRef.current?.focus(), 100);
         }
     }, [isOpen]);
+
+    // Auto-open vehicle modal if customer has vehicles
+    useEffect(() => {
+        if (selectedCustomer && !selectedCustomer.isNew && customerVehicles && customerVehicles.length > 0 && !selectedVehicle) {
+            setIsVehicleModalOpen(true);
+        }
+    }, [selectedCustomer, customerVehicles, selectedVehicle]);
 
     // Clear form function
     const clearForm = () => {
