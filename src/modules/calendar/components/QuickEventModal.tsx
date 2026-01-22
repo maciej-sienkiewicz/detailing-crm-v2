@@ -10,6 +10,20 @@ import { QuickServiceModal } from './QuickServiceModal';
 import { useCustomerVehicles } from '@/modules/appointments/hooks/useAppointmentForm';
 import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/types';
 
+// --- TYPES FOR API RESPONSES ---
+interface Service {
+    id: string;
+    name: string;
+    basePriceNet: number;
+    vatRate: number;
+}
+
+interface AppointmentColor {
+    id: string;
+    name: string;
+    hexColor: string;
+}
+
 // --- ICONS (Inline SVG) ---
 const IconClock = ({ className = "w-5 h-5" }: { className?: string }) => (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -113,10 +127,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     // State initialization
     const [title, setTitle] = useState('');
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>();
-    const [_selectedCustomerName, setSelectedCustomerName] = useState('');
     const [selectedCustomer, setSelectedCustomer] = useState<SelectedCustomer | null>(null);
-    const [_selectedVehicleId, setSelectedVehicleId] = useState<string>();
-    const [_selectedVehicleName, setSelectedVehicleName] = useState('');
     const [selectedVehicle, setSelectedVehicle] = useState<SelectedVehicle | null>(null);
     const [startDateTime, setStartDateTime] = useState('');
     const [endDateTime, setEndDateTime] = useState('');
@@ -167,7 +178,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     });
 
     // Get selected color hex
-    const selectedColor = appointmentColors.find((c: any) => c.id === selectedColorId);
+    const selectedColor = appointmentColors.find((c: AppointmentColor) => c.id === selectedColorId);
     const accentColor = selectedColor?.hexColor || '#3b82f6';
 
     // Helpers
@@ -190,28 +201,38 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
             const shouldBeAllDay = daysDiff === 1 && eventData.allDay;
 
-            setIsAllDay(shouldBeAllDay);
+            const newIsAllDay = shouldBeAllDay;
+            let newStartDateTime = '';
+            let newEndDateTime = '';
 
             if (shouldBeAllDay) {
-                setStartDateTime(formatDate(eventData.start));
-                setEndDateTime(formatDate(eventData.start));
+                newStartDateTime = formatDate(eventData.start);
+                newEndDateTime = formatDate(eventData.start);
             } else if (daysDiff > 1) {
                 const startDate = new Date(eventData.start);
                 startDate.setHours(9, 0, 0, 0);
-                setStartDateTime(formatDateTimeLocal(startDate));
+                newStartDateTime = formatDateTimeLocal(startDate);
 
                 const endDate = new Date(eventData.end);
                 endDate.setDate(endDate.getDate() - 1);
-                setEndDateTime(formatDateTimeLocal(endDate));
+                newEndDateTime = formatDateTimeLocal(endDate);
             } else {
-                setStartDateTime(formatDateTimeLocal(eventData.start));
-                setEndDateTime(formatDateTimeLocal(eventData.end));
+                newStartDateTime = formatDateTimeLocal(eventData.start);
+                newEndDateTime = formatDateTimeLocal(eventData.end);
             }
+
+            // Batch state updates
+            setIsAllDay(newIsAllDay);
+            setStartDateTime(newStartDateTime);
+            setEndDateTime(newEndDateTime);
         }
-        if (appointmentColors.length > 0 && !selectedColorId) {
-            setSelectedColorId(appointmentColors[0].id);
+    }, [eventData]);
+
+    useEffect(() => {
+        if (appointmentColors.length > 0) {
+            setSelectedColorId(prev => prev || appointmentColors[0].id);
         }
-    }, [eventData, appointmentColors, selectedColorId]);
+    }, [appointmentColors]);
 
     // Focus title input on open
     useEffect(() => {
@@ -231,10 +252,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const clearForm = () => {
         setTitle('');
         setSelectedCustomerId(undefined);
-        setSelectedCustomerName('');
         setSelectedCustomer(null);
-        setSelectedVehicleId(undefined);
-        setSelectedVehicleName('');
         setSelectedVehicle(null);
         setSelectedServiceIds([]);
         setServicePrices({});
@@ -272,40 +290,28 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const handleCustomerSelect = (customer: SelectedCustomer) => {
         setSelectedCustomer(customer);
         setSelectedCustomerId(customer.id);
-        setSelectedCustomerName(`${customer.firstName} ${customer.lastName}`);
         // Reset vehicle on customer change
-        setSelectedVehicleId(undefined);
-        setSelectedVehicleName('');
         setSelectedVehicle(null);
     };
 
     const handleVehicleSelect = (vehicle: SelectedVehicle) => {
         setSelectedVehicle(vehicle);
-        if (!vehicle.isNew && vehicle.id) {
-            setSelectedVehicleId(vehicle.id);
-        }
-        setSelectedVehicleName(`${vehicle.brand} ${vehicle.model}`);
     };
 
     const handleRemoveCustomer = (e: React.MouseEvent) => {
         e.stopPropagation();
         setSelectedCustomer(null);
         setSelectedCustomerId(undefined);
-        setSelectedCustomerName('');
         // Also reset vehicle
-        setSelectedVehicleId(undefined);
-        setSelectedVehicleName('');
         setSelectedVehicle(null);
     };
 
     const handleRemoveVehicle = (e: React.MouseEvent) => {
         e.stopPropagation();
         setSelectedVehicle(null);
-        setSelectedVehicleId(undefined);
-        setSelectedVehicleName('');
     };
 
-    const addService = (service: any) => {
+    const addService = (service: Service) => {
         if (!selectedServiceIds.includes(service.id)) {
             setSelectedServiceIds(prev => [...prev, service.id]);
             // Calculate gross price from base net price
@@ -570,7 +576,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         />
                                         {/* Services Dropdown */}
                                         {showServiceDropdown && (() => {
-                                            const filteredServices = services.filter((s: any) =>
+                                            const filteredServices = services.filter((s: Service) =>
                                                 serviceSearch.length === 0 ||
                                                 s.name.toLowerCase().includes(serviceSearch.toLowerCase())
                                             );
@@ -578,7 +584,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
                                             return (
                                                 <div className="absolute z-10 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-                                                    {filteredServices.map((service: any) => (
+                                                    {filteredServices.map((service: Service) => (
                                                         <button
                                                             key={service.id}
                                                             type="button"
@@ -619,7 +625,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         <div className="space-y-2">
                                             {selectedServiceIds.map(id => {
                                                 // Find service from database or temp services
-                                                let service = services.find((s: any) => s.id === id);
+                                                let service = services.find((s: Service) => s.id === id);
                                                 if (!service && tempServices[id]) {
                                                     service = { id, ...tempServices[id] };
                                                 }
@@ -721,7 +727,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                             <div className="flex items-center gap-3">
                                 <IconPalette className="text-gray-400" />
                                 <div className="flex items-center gap-2">
-                                    {appointmentColors.map((color: any) => (
+                                    {appointmentColors.map((color: AppointmentColor) => (
                                         <button
                                             key={color.id}
                                             type="button"
