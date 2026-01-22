@@ -10,62 +10,63 @@
   --brand-primary-light: #38bdf8;
 }
 
-/* Tailwind v4 compatibility - Force initialize CSS variables */
-/* These may not be initialized if browser fails @supports check */
-*,
-*::before,
-*::after,
-::backdrop {
-  --tw-scale-x: 1;
-  --tw-scale-y: 1;
-  --tw-scale-z: 1;
-  --tw-rotate-x: 0;
-  --tw-rotate-y: 0;
-  --tw-rotate-z: 0;
-  --tw-skew-x: 0;
-  --tw-skew-y: 0;
-  --tw-translate-x: 0;
-  --tw-translate-y: 0;
-  --tw-translate-z: 0;
-  --tw-space-y-reverse: 0;
-  --tw-border-style: solid;
-  --tw-font-weight: 400;
-  --tw-shadow: 0 0 #0000;
-  --tw-shadow-color: #00000040;
-  --tw-shadow-alpha: 100%;
-  --tw-inset-shadow: 0 0 #0000;
-  --tw-inset-shadow-color: #00000040;
-  --tw-inset-shadow-alpha: 100%;
-  --tw-ring-color: rgb(59 130 246 / 0.5);
-  --tw-ring-shadow: 0 0 #0000;
-  --tw-inset-ring-color: rgb(59 130 246 / 0.5);
-  --tw-inset-ring-shadow: 0 0 #0000;
-  --tw-ring-inset: ;
-  --tw-ring-offset-width: 0px;
-  --tw-ring-offset-color: #fff;
-  --tw-ring-offset-shadow: 0 0 #0000;
-  --tw-outline-style: solid;
-  --tw-blur: blur(0);
-  --tw-brightness: brightness(1);
-  --tw-contrast: contrast(1);
-  --tw-grayscale: grayscale(0);
-  --tw-hue-rotate: hue-rotate(0deg);
-  --tw-invert: invert(0);
-  --tw-opacity: opacity(1);
-  --tw-saturate: saturate(1);
-  --tw-sepia: sepia(0);
-  --tw-drop-shadow: drop-shadow(0 0 #0000);
-  --tw-drop-shadow-color: #00000040;
-  --tw-drop-shadow-alpha: 100%;
-  --tw-drop-shadow-size: 0 0;
-  --tw-backdrop-blur: blur(0);
-  --tw-backdrop-brightness: brightness(1);
-  --tw-backdrop-contrast: contrast(1);
-  --tw-backdrop-grayscale: grayscale(0);
-  --tw-backdrop-hue-rotate: hue-rotate(0deg);
-  --tw-backdrop-invert: invert(0);
-  --tw-backdrop-opacity: opacity(1);
-  --tw-backdrop-saturate: saturate(1);
-  --tw-backdrop-sepia: sepia(0);
-  --tw-duration: 150ms;
+/* Tailwind v4 compatibility - Override @layer properties with concrete values */
+@layer base {
+  *,
+  *::before,
+  *::after,
+  ::backdrop {
+    --tw-scale-x: 1 !important;
+    --tw-scale-y: 1 !important;
+    --tw-scale-z: 1 !important;
+    --tw-rotate-x: 0 !important;
+    --tw-rotate-y: 0 !important;
+    --tw-rotate-z: 0 !important;
+    --tw-skew-x: 0 !important;
+    --tw-skew-y: 0 !important;
+    --tw-translate-x: 0 !important;
+    --tw-translate-y: 0 !important;
+    --tw-translate-z: 0 !important;
+    --tw-space-y-reverse: 0 !important;
+    --tw-border-style: solid !important;
+    --tw-font-weight: 400 !important;
+    --tw-shadow: 0 0 #0000 !important;
+    --tw-shadow-color: #00000040 !important;
+    --tw-shadow-alpha: 100% !important;
+    --tw-inset-shadow: 0 0 #0000 !important;
+    --tw-inset-shadow-color: #00000040 !important;
+    --tw-inset-shadow-alpha: 100% !important;
+    --tw-ring-color: rgb(59 130 246 / 0.5) !important;
+    --tw-ring-shadow: 0 0 #0000 !important;
+    --tw-inset-ring-color: rgb(59 130 246 / 0.5) !important;
+    --tw-inset-ring-shadow: 0 0 #0000 !important;
+    --tw-ring-inset:  !important;
+    --tw-ring-offset-width: 0px !important;
+    --tw-ring-offset-color: #fff !important;
+    --tw-ring-offset-shadow: 0 0 #0000 !important;
+    --tw-outline-style: solid !important;
+    --tw-blur: blur(0) !important;
+    --tw-brightness: brightness(1) !important;
+    --tw-contrast: contrast(1) !important;
+    --tw-grayscale: grayscale(0) !important;
+    --tw-hue-rotate: hue-rotate(0deg) !important;
+    --tw-invert: invert(0) !important;
+    --tw-opacity: opacity(1) !important;
+    --tw-saturate: saturate(1) !important;
+    --tw-sepia: sepia(0) !important;
+    --tw-drop-shadow: drop-shadow(0 0 #0000) !important;
+    --tw-drop-shadow-color: #00000040 !important;
+    --tw-drop-shadow-alpha: 100% !important;
+    --tw-drop-shadow-size: 0 0 !important;
+    --tw-backdrop-blur: blur(0) !important;
+    --tw-backdrop-brightness: brightness(1) !important;
+    --tw-backdrop-contrast: contrast(1) !important;
+    --tw-backdrop-grayscale: grayscale(0) !important;
+    --tw-backdrop-hue-rotate: hue-rotate(0deg) !important;
+    --tw-backdrop-invert: invert(0) !important;
+    --tw-backdrop-opacity: opacity(1) !important;
+    --tw-backdrop-saturate: saturate(1) !important;
+    --tw-backdrop-sepia: sepia(0) !important;
+    --tw-duration: 150ms !important;
+  }
 }
