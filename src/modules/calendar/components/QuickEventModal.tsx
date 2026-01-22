@@ -92,6 +92,14 @@ const IconMessageSquare = () => (
     </svg>
 );
 
+const IconPlus = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="16"/>
+        <line x1="8" y1="12" x2="16" y2="12"/>
+    </svg>
+);
+
 // --- TYPES ---
 interface QuickEventModalProps {
     isOpen: boolean;
@@ -141,7 +149,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [showServiceDropdown, setShowServiceDropdown] = useState(false);
     const [selectedColorId, setSelectedColorId] = useState('');
     const [notes, setNotes] = useState('');
-    // Temporary services (not saved to database)
     const [tempServices, setTempServices] = useState<{ [key: string]: { name: string; basePriceNet: number; vatRate: 23 } }>({});
 
     // Modal states
@@ -222,7 +229,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 newEndDateTime = formatDateTimeLocal(eventData.end);
             }
 
-            // Batch state updates
             setIsAllDay(newIsAllDay);
             setStartDateTime(newStartDateTime);
             setEndDateTime(newEndDateTime);
@@ -235,14 +241,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         }
     }, [appointmentColors]);
 
-    // Focus title input on open
     useEffect(() => {
         if (isOpen && titleInputRef.current) {
             setTimeout(() => titleInputRef.current?.focus(), 100);
         }
     }, [isOpen]);
 
-    // Auto-open vehicle modal if customer has vehicles
     useEffect(() => {
         if (selectedCustomer && !selectedCustomer.isNew && customerVehicles && customerVehicles.length > 0 && !selectedVehicle) {
             setIsVehicleModalOpen(true);
@@ -262,10 +266,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         setServiceSearch('');
         setNotes('');
         setTempServices({});
-        // Keep color and dates from eventData
     };
 
-    // Expose clearForm to parent via ref
     useImperativeHandle(ref, () => ({
         clearForm
     }));
@@ -291,7 +293,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const handleCustomerSelect = (customer: SelectedCustomer) => {
         setSelectedCustomer(customer);
         setSelectedCustomerId(customer.id);
-        // Reset vehicle on customer change
         setSelectedVehicle(null);
     };
 
@@ -303,7 +304,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         e.stopPropagation();
         setSelectedCustomer(null);
         setSelectedCustomerId(undefined);
-        // Also reset vehicle
         setSelectedVehicle(null);
     };
 
@@ -315,7 +315,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const addService = (service: Service) => {
         if (!selectedServiceIds.includes(service.id)) {
             setSelectedServiceIds(prev => [...prev, service.id]);
-            // Calculate gross price from base net price
             const grossPrice = (service.basePriceNet / 100) * (100 + service.vatRate) / 100;
             setServicePrices(prev => ({ ...prev, [service.id]: grossPrice }));
         }
@@ -324,22 +323,16 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     };
 
     const handleQuickServiceCreate = (service: { id?: string; name: string; basePriceNet: number; vatRate: 23 }) => {
-        // If service was saved to database, refresh services list
         if (service.id) {
             queryClient.invalidateQueries({ queryKey: ['services'] });
         }
 
-        // Create a temporary ID for services not saved to database
         const serviceId = service.id || `temp-${Date.now()}`;
-
-        // Add to selected services
         setSelectedServiceIds(prev => [...prev, serviceId]);
 
-        // Calculate gross price from base net price
         const grossPrice = (service.basePriceNet / 100) * (100 + service.vatRate) / 100;
         setServicePrices(prev => ({ ...prev, [serviceId]: grossPrice }));
 
-        // If service wasn't saved to DB, store it in tempServices for display
         if (!service.id) {
             setTempServices(prev => ({
                 ...prev,
@@ -353,208 +346,153 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
     if (!eventData) return null;
 
+    const filteredServices = services.filter((s: Service) =>
+        serviceSearch.length === 0 ||
+        s.name.toLowerCase().includes(serviceSearch.toLowerCase())
+    );
+    const hasSearchQuery = serviceSearch.trim().length > 0;
+
     return (
         <>
-            {/* Overlay */}
-            <div
-                className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300 ${
-                    isOpen ? 'opacity-100 backdrop-blur-sm' : 'opacity-0 pointer-events-none'
-                }`}
-                style={{
-                    backgroundColor: isOpen ? 'rgba(15, 23, 42, 0.4)' : 'rgba(15, 23, 42, 0)'
-                }}
-                onMouseDown={(e) => e.target === e.currentTarget && onClose()}
-            >
-                {/* Modal Container */}
-                <div
-                    className={`bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden transform transition-all duration-300 ${
-                        isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
-                    }`}
-                >
-                    <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-                        {/* Header - Minimalist with close button */}
-                        <div className="relative px-8 pt-6 pb-2">
-                            {/* Drag handle visual indicator */}
-                            <div className="flex justify-center mb-4">
-                                <div className="w-12 h-1.5 bg-gray-200 rounded-full"></div>
-                            </div>
+            <S.Overlay $isOpen={isOpen} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+                <S.ModalContainer $isOpen={isOpen}>
+                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                        <S.Header>
+                            <S.DragHandle>
+                                <div />
+                            </S.DragHandle>
 
-                            {/* Close button */}
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
-                            >
+                            <S.CloseButton type="button" onClick={onClose}>
                                 <IconX />
-                            </button>
+                            </S.CloseButton>
 
-                            {/* Title Input - The Hero */}
-                            <div className="mt-2">
-                                <input
+                            <div style={{ marginTop: '8px' }}>
+                                <S.TitleInput
                                     ref={titleInputRef}
                                     type="text"
                                     placeholder="Dodaj tytuł rezerwacji"
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
-                                    className="w-full text-3xl font-semibold text-gray-900 placeholder-gray-300 border-0 border-b-2 border-transparent focus:border-gray-300 focus:outline-none transition-colors pb-3 bg-transparent"
-                                    style={{
-                                        borderBottomColor: focusedField === 'title' ? accentColor : undefined
-                                    }}
+                                    $accentColor={focusedField === 'title' ? accentColor : undefined}
                                     onFocus={() => setFocusedField('title')}
                                     onBlur={() => setFocusedField(null)}
                                 />
                             </div>
-                        </div>
+                        </S.Header>
 
-                        {/* Content - Row-based with icons */}
-                        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+                        <S.ScrollableContent>
                             {/* TIME ROW */}
-                            <div className="flex items-start gap-4">
-                                <div
-                                    className="flex-shrink-0 mt-3 transition-colors"
-                                    style={{ color: focusedField?.startsWith('time') ? accentColor : '#64748b' }}
-                                >
+                            <S.Row>
+                                <S.IconWrapper $color={focusedField?.startsWith('time') ? accentColor : undefined}>
                                     <IconClock />
-                                </div>
-                                <div className="flex-1 space-y-3">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-500 mb-1.5">Początek</label>
-                                            <input
+                                </S.IconWrapper>
+                                <S.RowContent>
+                                    <S.InputGrid>
+                                        <S.InputGroup>
+                                            <S.Label>Początek</S.Label>
+                                            <S.Input
                                                 type={isAllDay ? 'date' : 'datetime-local'}
                                                 value={startDateTime}
                                                 onChange={(e) => setStartDateTime(e.target.value)}
                                                 required
-                                                className="w-full px-4 py-2.5 bg-gray-50 border border-transparent rounded-xl text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
-                                                style={{
-                                                    borderColor: focusedField === 'time-start' ? accentColor : undefined
-                                                }}
+                                                $accentColor={focusedField === 'time-start' ? accentColor : undefined}
                                                 onFocus={() => setFocusedField('time-start')}
                                                 onBlur={() => setFocusedField(null)}
                                             />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-500 mb-1.5">Koniec</label>
-                                            <input
+                                        </S.InputGroup>
+                                        <S.InputGroup>
+                                            <S.Label>Koniec</S.Label>
+                                            <S.Input
                                                 type={isAllDay ? 'date' : 'datetime-local'}
                                                 value={endDateTime}
                                                 onChange={(e) => setEndDateTime(e.target.value)}
                                                 required
-                                                className="w-full px-4 py-2.5 bg-gray-50 border border-transparent rounded-xl text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
-                                                style={{
-                                                    borderColor: focusedField === 'time-end' ? accentColor : undefined
-                                                }}
+                                                $accentColor={focusedField === 'time-end' ? accentColor : undefined}
                                                 onFocus={() => setFocusedField('time-end')}
                                                 onBlur={() => setFocusedField(null)}
                                             />
-                                        </div>
-                                    </div>
-                                    <label className="flex items-center gap-2 cursor-pointer w-fit">
-                                        <input
-                                            type="checkbox"
+                                        </S.InputGroup>
+                                    </S.InputGrid>
+                                    <S.CheckboxLabel>
+                                        <S.Checkbox
                                             checked={isAllDay}
                                             onChange={(e) => setIsAllDay(e.target.checked)}
-                                            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
-                                            style={{ accentColor }}
+                                            $accentColor={accentColor}
                                         />
-                                        <span className="text-sm text-gray-700">Cały dzień</span>
-                                    </label>
-                                </div>
-                            </div>
+                                        <span>Cały dzień</span>
+                                    </S.CheckboxLabel>
+                                </S.RowContent>
+                            </S.Row>
 
-                            {/* DIVIDER */}
-                            <div className="border-t border-gray-100"></div>
+                            <S.Divider />
 
                             {/* CUSTOMER ROW */}
-                            <div className="flex items-start gap-4">
-                                <div
-                                    className="flex-shrink-0 mt-3 transition-colors"
-                                    style={{ color: focusedField === 'customer' ? accentColor : '#64748b' }}
-                                >
+                            <S.Row>
+                                <S.IconWrapper $color={focusedField === 'customer' ? accentColor : undefined}>
                                     <IconUser />
-                                </div>
-                                <div className="flex-1">
-                                    <button
+                                </S.IconWrapper>
+                                <S.RowContent>
+                                    <S.SelectButton
                                         type="button"
                                         onClick={() => setIsCustomerModalOpen(true)}
-                                        className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 border border-transparent rounded-xl transition-all text-left group"
-                                        style={{
-                                            borderColor: focusedField === 'customer' ? accentColor : undefined
-                                        }}
+                                        $accentColor={focusedField === 'customer' ? accentColor : undefined}
+                                        $hasValue={!!selectedCustomer}
                                         onFocus={() => setFocusedField('customer')}
                                         onBlur={() => setFocusedField(null)}
                                     >
-                                        <span className={`flex-1 text-sm ${selectedCustomer ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
+                                        <span>
                                             {selectedCustomer
                                                 ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}`
                                                 : 'Dodaj klienta'}
                                         </span>
                                         {selectedCustomer && (
-                                            <div
-                                                role="button"
-                                                onClick={handleRemoveCustomer}
-                                                className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
-                                            >
-                                                <IconX className="w-4 h-4" />
-                                            </div>
+                                            <S.RemoveButton onClick={handleRemoveCustomer}>
+                                                <IconX />
+                                            </S.RemoveButton>
                                         )}
-                                    </button>
-                                </div>
-                            </div>
+                                    </S.SelectButton>
+                                </S.RowContent>
+                            </S.Row>
 
                             {/* VEHICLE ROW */}
-                            <div className="flex items-start gap-4">
-                                <div
-                                    className="flex-shrink-0 mt-3 transition-colors"
-                                    style={{ color: focusedField === 'vehicle' ? accentColor : '#64748b' }}
-                                >
+                            <S.Row>
+                                <S.IconWrapper $color={focusedField === 'vehicle' ? accentColor : undefined}>
                                     <IconCar />
-                                </div>
-                                <div className="flex-1">
-                                    <button
+                                </S.IconWrapper>
+                                <S.RowContent>
+                                    <S.SelectButton
                                         type="button"
                                         onClick={() => selectedCustomer && setIsVehicleModalOpen(true)}
                                         disabled={!selectedCustomer}
-                                        className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 border border-transparent rounded-xl transition-all text-left group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-50"
-                                        style={{
-                                            borderColor: focusedField === 'vehicle' ? accentColor : undefined
-                                        }}
+                                        $accentColor={focusedField === 'vehicle' ? accentColor : undefined}
+                                        $hasValue={!!selectedVehicle}
                                         onFocus={() => setFocusedField('vehicle')}
                                         onBlur={() => setFocusedField(null)}
                                     >
-                                        <span className={`flex-1 text-sm ${selectedVehicle ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
+                                        <span>
                                             {selectedVehicle
                                                 ? `${selectedVehicle.brand} ${selectedVehicle.model}`
                                                 : (selectedCustomer ? 'Dodaj pojazd' : 'Najpierw wybierz klienta')}
                                         </span>
                                         {selectedVehicle && (
-                                            <div
-                                                role="button"
-                                                onClick={handleRemoveVehicle}
-                                                className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
-                                            >
-                                                <IconX className="w-4 h-4" />
-                                            </div>
+                                            <S.RemoveButton onClick={handleRemoveVehicle}>
+                                                <IconX />
+                                            </S.RemoveButton>
                                         )}
-                                    </button>
-                                </div>
-                            </div>
+                                    </S.SelectButton>
+                                </S.RowContent>
+                            </S.Row>
 
-                            {/* DIVIDER */}
-                            <div className="border-t border-gray-100"></div>
+                            <S.Divider />
 
                             {/* SERVICES ROW */}
-                            <div className="flex items-start gap-4">
-                                <div
-                                    className="flex-shrink-0 mt-3 transition-colors"
-                                    style={{ color: focusedField === 'services' ? accentColor : '#64748b' }}
-                                >
+                            <S.Row>
+                                <S.IconWrapper $color={focusedField === 'services' ? accentColor : undefined}>
                                     <IconSettings />
-                                </div>
-                                <div className="flex-1 space-y-3">
-                                    {/* Service Search */}
-                                    <div className="relative">
-                                        <input
+                                </S.IconWrapper>
+                                <S.RowContent>
+                                    <S.DropdownContainer>
+                                        <S.Input
                                             type="text"
                                             placeholder="Dodaj usługę..."
                                             value={serviceSearch}
@@ -562,10 +500,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 setServiceSearch(e.target.value);
                                                 setShowServiceDropdown(true);
                                             }}
-                                            className="w-full px-4 py-2.5 bg-gray-50 border border-transparent rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
-                                            style={{
-                                                borderColor: focusedField === 'services' ? accentColor : undefined
-                                            }}
+                                            $accentColor={focusedField === 'services' ? accentColor : undefined}
                                             onFocus={() => {
                                                 setFocusedField('services');
                                                 setShowServiceDropdown(true);
@@ -575,57 +510,41 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 setTimeout(() => setShowServiceDropdown(false), 200);
                                             }}
                                         />
-                                        {/* Services Dropdown */}
-                                        {showServiceDropdown && (() => {
-                                            const filteredServices = services.filter((s: Service) =>
-                                                serviceSearch.length === 0 ||
-                                                s.name.toLowerCase().includes(serviceSearch.toLowerCase())
-                                            );
-                                            const hasSearchQuery = serviceSearch.trim().length > 0;
+                                        {showServiceDropdown && (
+                                            <S.Dropdown>
+                                                {filteredServices.map((service: Service) => (
+                                                    <S.DropdownItem
+                                                        key={service.id}
+                                                        type="button"
+                                                        onClick={() => addService(service)}
+                                                        $accentColor={accentColor}
+                                                    >
+                                                        <span>{service.name}</span>
+                                                        <span>
+                                                            {((service.basePriceNet / 100) * (100 + service.vatRate) / 100).toFixed(2)} zł brutto
+                                                        </span>
+                                                    </S.DropdownItem>
+                                                ))}
+                                                {hasSearchQuery && (
+                                                    <S.DropdownAddButton
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setIsQuickServiceModalOpen(true);
+                                                            setShowServiceDropdown(false);
+                                                            setFocusedField(null);
+                                                        }}
+                                                    >
+                                                        <IconPlus />
+                                                        <span>Wprowadź nową usługę</span>
+                                                    </S.DropdownAddButton>
+                                                )}
+                                            </S.Dropdown>
+                                        )}
+                                    </S.DropdownContainer>
 
-                                            return (
-                                                <div className="absolute z-10 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-                                                    {filteredServices.map((service: Service) => (
-                                                        <button
-                                                            key={service.id}
-                                                            type="button"
-                                                            onClick={() => addService(service)}
-                                                            className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left border-b border-gray-50 last:border-0"
-                                                        >
-                                                            <span className="text-sm text-gray-900">{service.name}</span>
-                                                            <span className="text-sm font-semibold" style={{ color: accentColor }}>
-                                                                {((service.basePriceNet / 100) * (100 + service.vatRate) / 100).toFixed(2)} zł brutto
-                                                            </span>
-                                                        </button>
-                                                    ))}
-                                                    {hasSearchQuery && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setIsQuickServiceModalOpen(true);
-                                                                setShowServiceDropdown(false);
-                                                                setFocusedField(null);
-                                                            }}
-                                                            className="w-full px-4 py-3 flex items-center gap-2 hover:bg-blue-50 transition-colors text-left border-t border-gray-100 bg-blue-50/50"
-                                                        >
-                                                            <svg className="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                <circle cx="12" cy="12" r="10"/>
-                                                                <line x1="12" y1="8" x2="12" y2="16"/>
-                                                                <line x1="8" y1="12" x2="16" y2="12"/>
-                                                            </svg>
-                                                            <span className="text-sm font-medium text-blue-600">Wprowadź nową usługę</span>
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            );
-                                        })()}
-                                    </div>
-
-                                    {/* Selected Services */}
                                     {selectedServiceIds.length > 0 && (
-                                        <div className="space-y-2">
+                                        <S.ServicesList>
                                             {selectedServiceIds.map(id => {
-                                                // Find service from database or temp services
                                                 let service = services.find((s: Service) => s.id === id);
                                                 if (!service && tempServices[id]) {
                                                     service = { id, ...tempServices[id] };
@@ -634,29 +553,24 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 const isNoteExpanded = expandedServiceNote === id;
                                                 const hasNote = serviceNotes[id] && serviceNotes[id].length > 0;
                                                 return (
-                                                    <div key={id} className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-                                                        <div className="flex items-center gap-3 p-3">
-                                                            <span className="flex-1 text-sm font-medium text-gray-900">{service.name}</span>
-                                                            <input
+                                                    <S.ServiceItem key={id}>
+                                                        <S.ServiceItemHeader>
+                                                            <S.ServiceName>{service.name}</S.ServiceName>
+                                                            <S.ServicePriceInput
                                                                 type="number"
                                                                 value={servicePrices[id] || 0}
                                                                 onChange={(e) => setServicePrices(prev => ({ ...prev, [id]: parseFloat(e.target.value) || 0 }))}
-                                                                className="w-24 px-3 py-1.5 text-sm text-right border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
                                                             />
-                                                            <span className="text-xs text-gray-500">zł</span>
-                                                            <button
+                                                            <S.ServicePriceLabel>zł</S.ServicePriceLabel>
+                                                            <S.IconButton
                                                                 type="button"
                                                                 onClick={() => setExpandedServiceNote(isNoteExpanded ? null : id)}
-                                                                className={`p-1.5 rounded-lg transition-all ${
-                                                                    hasNote
-                                                                        ? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
-                                                                        : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
-                                                                }`}
+                                                                $active={hasNote}
                                                                 title="Dodaj notatkę do usługi"
                                                             >
                                                                 <IconMessageSquare />
-                                                            </button>
-                                                            <button
+                                                            </S.IconButton>
+                                                            <S.DeleteButton
                                                                 type="button"
                                                                 onClick={() => {
                                                                     setSelectedServiceIds(prev => prev.filter(i => i !== id));
@@ -670,120 +584,101 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                         setExpandedServiceNote(null);
                                                                     }
                                                                 }}
-                                                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                                                             >
                                                                 <IconTrash />
-                                                            </button>
-                                                        </div>
+                                                            </S.DeleteButton>
+                                                        </S.ServiceItemHeader>
                                                         {isNoteExpanded && (
-                                                            <div className="px-3 pb-3 pt-0">
-                                                                <textarea
+                                                            <S.ServiceNoteContainer>
+                                                                <S.ServiceNoteTextarea
                                                                     placeholder="Dodaj notatkę do tej usługi..."
                                                                     value={serviceNotes[id] || ''}
                                                                     onChange={(e) => setServiceNotes(prev => ({ ...prev, [id]: e.target.value }))}
                                                                     rows={2}
-                                                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all resize-none"
                                                                 />
-                                                            </div>
+                                                            </S.ServiceNoteContainer>
                                                         )}
-                                                    </div>
+                                                    </S.ServiceItem>
                                                 );
                                             })}
-                                        </div>
+                                        </S.ServicesList>
                                     )}
-                                </div>
-                            </div>
+                                </S.RowContent>
+                            </S.Row>
 
-                            {/* DIVIDER */}
-                            <div className="border-t border-gray-100"></div>
+                            <S.Divider />
 
                             {/* NOTES ROW */}
-                            <div className="flex items-start gap-4">
-                                <div
-                                    className="flex-shrink-0 mt-3 transition-colors"
-                                    style={{ color: focusedField === 'notes' ? accentColor : '#64748b' }}
-                                >
+                            <S.Row>
+                                <S.IconWrapper $color={focusedField === 'notes' ? accentColor : undefined}>
                                     <IconNote />
-                                </div>
-                                <div className="flex-1">
-                                    <textarea
+                                </S.IconWrapper>
+                                <S.RowContent>
+                                    <S.Textarea
                                         placeholder="Dodaj notatki..."
                                         value={notes}
                                         onChange={(e) => setNotes(e.target.value)}
                                         rows={3}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all resize-none"
-                                        style={{
-                                            borderColor: focusedField === 'notes' ? accentColor : undefined
-                                        }}
+                                        $accentColor={focusedField === 'notes' ? accentColor : undefined}
                                         onFocus={() => setFocusedField('notes')}
                                         onBlur={() => setFocusedField(null)}
                                     />
-                                </div>
-                            </div>
-                        </div>
+                                </S.RowContent>
+                            </S.Row>
+                        </S.ScrollableContent>
 
-                        {/* Footer */}
-                        <div className="px-8 py-6 border-t border-gray-100 bg-white flex items-center justify-between gap-4">
-                            {/* Color Picker */}
-                            <div className="flex items-center gap-3">
-                                <IconPalette className="text-gray-400" />
-                                <div className="flex items-center gap-2">
+                        <S.Footer>
+                            <S.ColorPickerSection>
+                                <IconPalette />
+                                <S.ColorPickerList>
                                     {appointmentColors.map((color: AppointmentColor) => (
-                                        <button
+                                        <S.ColorButton
                                             key={color.id}
                                             type="button"
                                             onClick={() => setSelectedColorId(color.id)}
-                                            className="w-7 h-7 rounded-full transition-all hover:scale-110 border-2 border-white shadow-md"
-                                            style={{
-                                                backgroundColor: color.hexColor,
-                                                boxShadow: color.id === selectedColorId
-                                                    ? `0 0 0 2px ${color.hexColor}40`
-                                                    : '0 1px 3px rgba(0,0,0,0.1)'
-                                            }}
+                                            $color={color.hexColor}
+                                            $isSelected={color.id === selectedColorId}
                                             title={color.name}
                                         />
                                     ))}
-                                </div>
-                            </div>
+                                </S.ColorPickerList>
+                            </S.ColorPickerSection>
 
-                            {/* Action Buttons */}
-                            <div className="flex items-center gap-3">
-                                <button
+                            <S.FooterActions>
+                                <S.Button
                                     type="button"
                                     onClick={clearForm}
-                                    className="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-all"
+                                    $variant="ghost"
                                     title="Wyczyść wszystkie pola"
                                 >
                                     Wyczyść wszystko
-                                </button>
-                                <button
+                                </S.Button>
+                                <S.Button
                                     type="button"
                                     onClick={onClose}
-                                    className="px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-full transition-all"
+                                    $variant="secondary"
                                 >
                                     Anuluj
-                                </button>
-                                <button
+                                </S.Button>
+                                <S.Button
                                     type="submit"
-                                    className="px-6 py-2.5 text-sm font-medium text-white rounded-full shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
-                                    style={{ backgroundColor: accentColor }}
+                                    $variant="primary"
+                                    style={{ '--button-bg': accentColor } as React.CSSProperties}
                                 >
                                     Zapisz wizytę
-                                </button>
-                            </div>
-                        </div>
+                                </S.Button>
+                            </S.FooterActions>
+                        </S.Footer>
                     </form>
-                </div>
-            </div>
+                </S.ModalContainer>
+            </S.Overlay>
 
-            {/* Customer Modal */}
             <CustomerModal
                 isOpen={isCustomerModalOpen}
                 onClose={() => setIsCustomerModalOpen(false)}
                 onSelect={handleCustomerSelect}
             />
 
-            {/* Vehicle Modal */}
             <VehicleModal
                 isOpen={isVehicleModalOpen}
                 vehicles={vehicles}
@@ -792,7 +687,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 allowSkip={true}
             />
 
-            {/* Quick Service Modal */}
             <QuickServiceModal
                 isOpen={isQuickServiceModalOpen}
                 onClose={() => setIsQuickServiceModalOpen(false)}
