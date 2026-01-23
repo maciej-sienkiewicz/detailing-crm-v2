@@ -7,6 +7,7 @@ import type { EventCreationData } from '../types';
 import { CustomerModal } from '@/modules/appointments/components/CustomerModal';
 import { VehicleModal } from '@/modules/appointments/components/VehicleModal';
 import { QuickServiceModal } from './QuickServiceModal';
+import { PriceInputModal } from './PriceInputModal';
 import { useCustomerVehicles } from '@/modules/appointments/hooks/useAppointmentForm';
 import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/types';
 import * as S from './QuickEventModalStyles';
@@ -156,6 +157,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
     const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
+    const [isPriceInputModalOpen, setIsPriceInputModalOpen] = useState(false);
+    const [pendingService, setPendingService] = useState<Service | null>(null);
 
     // Focus states
     const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -314,16 +317,41 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     };
 
     const addService = (service: Service) => {
-        if (!selectedServiceIds.includes(service.id)) {
-            setSelectedServiceIds(prev => [...prev, service.id]);
-            // Dla usług z requireManualPrice, ustaw cenę na 0 (wymaga ręcznego wprowadzenia)
-            const grossPrice = service.requireManualPrice
-                ? 0
-                : (service.basePriceNet / 100) * (100 + service.vatRate) / 100;
-            setServicePrices(prev => ({ ...prev, [service.id]: grossPrice }));
+        if (selectedServiceIds.includes(service.id)) {
+            return; // Usługa już dodana
         }
+
+        // Dla usług z requireManualPrice, otwórz modal do wprowadzenia ceny
+        if (service.requireManualPrice) {
+            setPendingService(service);
+            setIsPriceInputModalOpen(true);
+            setServiceSearch('');
+            setShowServiceDropdown(false);
+            return;
+        }
+
+        // Dla zwykłych usług, dodaj od razu z domyślną ceną
+        setSelectedServiceIds(prev => [...prev, service.id]);
+        const grossPrice = (service.basePriceNet / 100) * (100 + service.vatRate) / 100;
+        setServicePrices(prev => ({ ...prev, [service.id]: grossPrice }));
         setServiceSearch('');
         setShowServiceDropdown(false);
+    };
+
+    const handlePriceConfirm = (price: number) => {
+        if (!pendingService) return;
+
+        // Dodaj usługę z wprowadzoną ceną
+        setSelectedServiceIds(prev => [...prev, pendingService.id]);
+        setServicePrices(prev => ({ ...prev, [pendingService.id]: price }));
+
+        // Wyczyść pending service
+        setPendingService(null);
+    };
+
+    const handlePriceInputModalClose = () => {
+        setIsPriceInputModalOpen(false);
+        setPendingService(null);
     };
 
     const handleQuickServiceCreate = (service: { id?: string; name: string; basePriceNet: number; vatRate: 23 }) => {
@@ -699,6 +727,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 onClose={() => setIsQuickServiceModalOpen(false)}
                 onServiceCreate={handleQuickServiceCreate}
                 initialServiceName={serviceSearch}
+            />
+
+            <PriceInputModal
+                isOpen={isPriceInputModalOpen}
+                serviceName={pendingService?.name || ''}
+                onClose={handlePriceInputModalClose}
+                onConfirm={handlePriceConfirm}
             />
         </>
     );
