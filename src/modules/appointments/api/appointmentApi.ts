@@ -5,11 +5,11 @@ import type { Customer as CustomerFull, CustomerListResponse } from '@/modules/c
 const USE_MOCKS = false
 
 const mockServices: Service[] = [
-    { id: '1', name: 'Przegląd okresowy', basePriceNet: 25000, vatRate: 23, category: 'Serwis' },
-    { id: '2', name: 'Wymiana oleju', basePriceNet: 15000, vatRate: 23, category: 'Serwis' },
-    { id: '3', name: 'Diagnostyka komputerowa', basePriceNet: 10000, vatRate: 23, category: 'Diagnostyka' },
-    { id: '4', name: 'Naprawa zawieszenia', basePriceNet: 80000, vatRate: 23, category: 'Naprawa' },
-    { id: '5', name: 'Wymiana klocków hamulcowych', basePriceNet: 35000, vatRate: 23, category: 'Naprawa' },
+    { id: '1', name: 'Przegląd okresowy', basePriceNet: 25000, vatRate: 23, requireManualPrice: false, category: 'Serwis' },
+    { id: '2', name: 'Wymiana oleju', basePriceNet: 15000, vatRate: 23, requireManualPrice: false, category: 'Serwis' },
+    { id: '3', name: 'Diagnostyka komputerowa', basePriceNet: 10000, vatRate: 23, requireManualPrice: false, category: 'Diagnostyka' },
+    { id: '4', name: 'Naprawa zawieszenia', basePriceNet: 80000, vatRate: 23, requireManualPrice: false, category: 'Naprawa' },
+    { id: '5', name: 'Wymiana klocków hamulcowych', basePriceNet: 35000, vatRate: 23, requireManualPrice: false, category: 'Naprawa' },
 ];
 
 const mockCustomers: Customer[] = [

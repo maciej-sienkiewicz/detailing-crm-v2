@@ -46,6 +46,7 @@ export interface ServiceLineItem {
     serviceName: string;
     basePriceNet: number;
     vatRate: number;
+    requireManualPrice: boolean;
     adjustment: {
         type: 'PERCENT' | 'FIXED_NET' | 'FIXED_GROSS' | 'SET_NET' | 'SET_GROSS';
         value: number;

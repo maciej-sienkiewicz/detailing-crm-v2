@@ -551,7 +551,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 }
                                                 if (!service) return null;
                                                 const isNoteExpanded = expandedServiceNote === id;
-                                                const hasNote = serviceNotes[id] && serviceNotes[id].length > 0;
+                                                const hasNote = !!(serviceNotes[id] && serviceNotes[id].length > 0);
                                                 return (
                                                     <S.ServiceItem key={id}>
                                                         <S.ServiceItemHeader>

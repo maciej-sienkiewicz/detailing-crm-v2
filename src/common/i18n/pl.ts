@@ -323,6 +323,7 @@ export const pl: TranslationKeys = {
                 setNet: 'Ustaw cenę netto',
                 setGross: 'Ustaw cenę brutto',
             },
+            requireManualPriceInfo: 'Ta usługa wymaga ręcznego wprowadzenia ceny. Możesz wybrać tylko tryb "Ustaw cenę netto" lub "Ustaw cenę brutto".',
             discountLabels: {
                 percent: '{value}%',
                 discountNet: 'Rabat {value} PLN netto',
@@ -760,6 +761,8 @@ export const pl: TranslationKeys = {
             priceNetLabel: 'Cena netto',
             priceGrossLabel: 'Cena brutto',
             vatAmount: 'Kwota VAT',
+            requireManualPriceLabel: 'Wymagaj ręcznego wprowadzenia ceny',
+            requireManualPriceDescription: 'Gdy ta opcja jest włączona, użytkownik będzie musiał podać cenę za każdym razem gdy doda tę usługę do wizyty',
             submit: 'Zapisz usługę',
             submitting: 'Zapisywanie...',
             cancel: 'Anuluj',

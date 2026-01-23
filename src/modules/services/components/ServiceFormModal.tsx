@@ -175,6 +175,7 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
     const [name, setName] = useState('');
     const [basePriceNet, setBasePriceNet] = useState(0);
     const [vatRate, setVatRate] = useState<VatRate>(23);
+    const [requireManualPrice, setRequireManualPrice] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [showToast, setShowToast] = useState(false);
     const [selectedProtocols, setSelectedProtocols] = useState<string[]>([]);
@@ -196,10 +197,12 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
                 setName(service.name);
                 setBasePriceNet(service.basePriceNet);
                 setVatRate(service.vatRate);
+                setRequireManualPrice(service.requireManualPrice);
             } else {
                 setName('');
                 setBasePriceNet(0);
                 setVatRate(23);
+                setRequireManualPrice(false);
                 setSelectedProtocols([]);
                 setShowProtocolSection(false);
             }
@@ -223,7 +226,7 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
         e.preventDefault();
         setErrors({});
 
-        const result = serviceSchema.safeParse({ name, basePriceNet, vatRate });
+        const result = serviceSchema.safeParse({ name, basePriceNet, vatRate, requireManualPrice });
 
         if (!result.success) {
             const fieldErrors: Record<string, string> = {};
@@ -243,6 +246,7 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
                     name,
                     basePriceNet,
                     vatRate,
+                    requireManualPrice,
                 });
                 setShowToast(true);
                 setTimeout(() => setShowToast(false), 4000);
@@ -251,6 +255,7 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
                     name,
                     basePriceNet,
                     vatRate,
+                    requireManualPrice,
                 });
             }
             onSuccess?.();
@@ -313,6 +318,22 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
                         hasError={!!errors.basePriceNet}
                     />
                     {errors.basePriceNet && <ErrorMessage>{errors.basePriceNet}</ErrorMessage>}
+
+                    <Divider />
+
+                    <ToggleRow>
+                        <ToggleLabel>
+                            <ToggleLabelText>{t.services.form.requireManualPriceLabel}</ToggleLabelText>
+                            <ToggleDescription>
+                                {t.services.form.requireManualPriceDescription}
+                            </ToggleDescription>
+                        </ToggleLabel>
+                        <Toggle
+                            checked={requireManualPrice}
+                            onChange={setRequireManualPrice}
+                            label=""
+                        />
+                    </ToggleRow>
 
                     <Divider />
 

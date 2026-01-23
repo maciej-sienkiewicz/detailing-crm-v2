@@ -16,6 +16,7 @@ export const serviceSchema = z.object({
         .refine((val) => [0, 5, 8, 23, -1].includes(val), {
             message: t.services.validation.vatRequired,
         }),
+    requireManualPrice: z.boolean().default(false),
 });
 
 export type ServiceFormData = z.infer<typeof serviceSchema>;

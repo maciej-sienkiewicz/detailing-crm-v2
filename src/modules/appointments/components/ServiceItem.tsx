@@ -8,6 +8,13 @@ import { Badge } from '@/common/components/Badge';
 import { t } from '@/common/i18n';
 import type { ServiceLineItem, AdjustmentType } from '../types';
 
+// Icon
+const InfoIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+);
+
 const ItemRow = styled.div`
     padding: ${props => props.theme.spacing.md};
     background: linear-gradient(to right, ${props => props.theme.colors.surfaceAlt} 0%, ${props => props.theme.colors.surface} 100%);
@@ -259,6 +266,26 @@ const ActionButton = styled.button<{ $active?: boolean }>`
     }
 `;
 
+const InfoBox = styled.div`
+    padding: ${props => props.theme.spacing.md};
+    background: rgb(239, 246, 255);
+    border: 1px solid rgb(191, 219, 254);
+    border-radius: ${props => props.theme.radii.md};
+    font-size: ${props => props.theme.fontSizes.sm};
+    color: rgb(30, 64, 175);
+    margin-bottom: ${props => props.theme.spacing.md};
+    display: flex;
+    gap: ${props => props.theme.spacing.sm};
+    align-items: flex-start;
+
+    svg {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+`;
+
 interface ServiceItemProps {
     item: ServiceLineItem;
     isDiscountExpanded: boolean;
@@ -391,6 +418,12 @@ export const ServiceItem = ({
 
             {isDiscountExpanded && (
                 <ExpandableSection>
+                    {item.requireManualPrice && (
+                        <InfoBox>
+                            <InfoIcon />
+                            <div>{t.appointments.invoiceSummary.requireManualPriceInfo}</div>
+                        </InfoBox>
+                    )}
                     <DiscountGrid>
                         <FieldGroup>
                             <FieldLabel>{t.appointments.invoiceSummary.discountType}</FieldLabel>
@@ -404,10 +437,15 @@ export const ServiceItem = ({
                                         },
                                     })
                                 }
+                                disabled={item.requireManualPrice}
                             >
-                                <option value="PERCENT">{t.appointments.invoiceSummary.discountTypes.percent}</option>
-                                <option value="FIXED_NET">{t.appointments.invoiceSummary.discountTypes.fixedNet}</option>
-                                <option value="FIXED_GROSS">{t.appointments.invoiceSummary.discountTypes.fixedGross}</option>
+                                {!item.requireManualPrice && (
+                                    <>
+                                        <option value="PERCENT">{t.appointments.invoiceSummary.discountTypes.percent}</option>
+                                        <option value="FIXED_NET">{t.appointments.invoiceSummary.discountTypes.fixedNet}</option>
+                                        <option value="FIXED_GROSS">{t.appointments.invoiceSummary.discountTypes.fixedGross}</option>
+                                    </>
+                                )}
                                 <option value="SET_NET">{t.appointments.invoiceSummary.discountTypes.setNet}</option>
                                 <option value="SET_GROSS">{t.appointments.invoiceSummary.discountTypes.setGross}</option>
                             </Select>

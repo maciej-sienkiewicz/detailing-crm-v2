@@ -50,6 +50,7 @@ export const appointmentSchema = z.object({
         serviceName: z.string(),
         basePriceNet: z.number().min(0, t.appointments.validation.basePricePositive),
         vatRate: z.number().min(0).max(100, t.appointments.validation.vatRange),
+        requireManualPrice: z.boolean(),
         adjustment: z.object({
             type: z.enum(['PERCENT', 'FIXED_NET', 'FIXED_GROSS', 'SET_NET', 'SET_GROSS']),
             value: z.number(),

@@ -10,20 +10,27 @@ export const useInvoiceManagement = (
     const [noteExpandedItem, setNoteExpandedItem] = useState<string | null>(null);
 
     const addService = (service: Service) => {
+        const newServiceId = `${Date.now()}`;
         const newService: ServiceLineItem = {
-            id: `${Date.now()}`,
+            id: newServiceId,
             serviceId: service.id,
             serviceName: service.name,
             basePriceNet: service.basePriceNet,
             vatRate: service.vatRate,
+            requireManualPrice: service.requireManualPrice,
             adjustment: {
-                type: 'FIXED_GROSS',
-                value: 0,
+                type: service.requireManualPrice ? 'SET_NET' : 'FIXED_GROSS',
+                value: service.requireManualPrice ? service.basePriceNet : 0,
             },
             note: '',
         };
 
         onChange([...services, newService]);
+
+        // Automatycznie otwórz panel edycji ceny dla usług z requireManualPrice
+        if (service.requireManualPrice) {
+            setExpandedItem(newServiceId);
+        }
     };
 
     const removeService = (id: string) => {

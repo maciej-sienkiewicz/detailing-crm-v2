@@ -70,6 +70,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                     name: serviceName,
                     basePriceNet,
                     vatRate: 23,
+                    requireManualPrice: false,
                 });
                 // API returns the service object directly, not wrapped
                 createdServiceId = result.id;

@@ -7,6 +7,7 @@ export interface Service {
     name: string;
     basePriceNet: number;
     vatRate: VatRate;
+    requireManualPrice: boolean;
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
@@ -41,6 +42,7 @@ export interface CreateServiceRequest {
     name: string;
     basePriceNet: number;
     vatRate: VatRate;
+    requireManualPrice: boolean;
 }
 
 export interface UpdateServiceRequest extends CreateServiceRequest {

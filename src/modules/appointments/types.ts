@@ -51,6 +51,7 @@ export interface ServiceLineItem {
     serviceName: string;
     basePriceNet: MoneyAmount;
     vatRate: number;
+    requireManualPrice: boolean;
     adjustment: PriceAdjustment;
     note?: string;
 }
@@ -73,6 +74,7 @@ export interface Service {
     name: string;
     basePriceNet: MoneyAmount;
     vatRate: number;
+    requireManualPrice: boolean;
     category: string;
 }
 

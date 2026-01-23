@@ -382,6 +382,7 @@ export interface TranslationKeys {
                 setNet: string;
                 setGross: string;
             };
+            requireManualPriceInfo: string;
             discountLabels: {
                 percent: string;
                 discountNet: string;
@@ -758,6 +759,8 @@ export interface TranslationKeys {
             priceNetLabel: string;
             priceGrossLabel: string;
             vatAmount: string;
+            requireManualPriceLabel: string;
+            requireManualPriceDescription: string;
             submit: string;
             submitting: string;
             cancel: string;
