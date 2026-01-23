@@ -276,14 +276,14 @@ export const VerificationStep    = ({ formData, onChange, onServicesChange, colo
                             <FieldGroup>
                                 <ReadOnlyField>
                                     <ReadOnlyLabel>{t.checkin.verification.phone}</ReadOnlyLabel>
-                                    <ReadOnlyValue>{formData.customerData.phone}</ReadOnlyValue>
+                                    <ReadOnlyValue>{formData.customerData.phone || '-'}</ReadOnlyValue>
                                 </ReadOnlyField>
                             </FieldGroup>
 
                             <FieldGroup>
                                 <ReadOnlyField>
                                     <ReadOnlyLabel>{t.checkin.verification.email}</ReadOnlyLabel>
-                                    <ReadOnlyValue>{formData.customerData.email}</ReadOnlyValue>
+                                    <ReadOnlyValue>{formData.customerData.email || '-'}</ReadOnlyValue>
                                 </ReadOnlyField>
                             </FieldGroup>
                         </FormGrid>
