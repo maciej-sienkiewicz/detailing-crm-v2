@@ -308,19 +308,6 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
                         {errors.vatRate && <ErrorMessage>{errors.vatRate}</ErrorMessage>}
                     </FieldGroup>
 
-                    <PriceInput
-                        netAmount={basePriceNet}
-                        vatRate={vatRate}
-                        onChange={setBasePriceNet}
-                        netLabel={t.services.form.priceNetLabel}
-                        grossLabel={t.services.form.priceGrossLabel}
-                        vatLabel={t.services.form.vatAmount}
-                        hasError={!!errors.basePriceNet}
-                    />
-                    {errors.basePriceNet && <ErrorMessage>{errors.basePriceNet}</ErrorMessage>}
-
-                    <Divider />
-
                     <ToggleRow>
                         <ToggleLabel>
                             <ToggleLabelText>{t.services.form.requireManualPriceLabel}</ToggleLabelText>
@@ -330,10 +317,31 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
                         </ToggleLabel>
                         <Toggle
                             checked={requireManualPrice}
-                            onChange={setRequireManualPrice}
+                            onChange={(checked) => {
+                                setRequireManualPrice(checked);
+                                // Automatycznie wyzeruj cenę gdy checkbox jest zaznaczany
+                                if (checked) {
+                                    setBasePriceNet(0);
+                                }
+                            }}
                             label=""
                         />
                     </ToggleRow>
+
+                    {!requireManualPrice && (
+                        <>
+                            <PriceInput
+                                netAmount={basePriceNet}
+                                vatRate={vatRate}
+                                onChange={setBasePriceNet}
+                                netLabel={t.services.form.priceNetLabel}
+                                grossLabel={t.services.form.priceGrossLabel}
+                                vatLabel={t.services.form.vatAmount}
+                                hasError={!!errors.basePriceNet}
+                            />
+                            {errors.basePriceNet && <ErrorMessage>{errors.basePriceNet}</ErrorMessage>}
+                        </>
+                    )}
 
                     <Divider />
 
