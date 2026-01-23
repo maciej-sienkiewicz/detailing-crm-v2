@@ -121,11 +121,22 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
         if (!formData.lastName || formData.lastName.length < 2) {
             newErrors.lastName = t.appointments.validation.lastNameMinLength;
         }
-        if (!formData.phone || !/^(\+48)?\d{9}$/.test(formData.phone.replace(/[\s-]/g, ''))) {
-            newErrors.phone = t.appointments.validation.phoneInvalid;
-        }
-        if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            newErrors.email = t.appointments.validation.emailInvalid;
+
+        // Walidacja: wymagaj co najmniej jednego sposobu kontaktu (telefon LUB email)
+        const hasPhone = formData.phone && formData.phone.trim().length > 0;
+        const hasEmail = formData.email && formData.email.trim().length > 0;
+
+        if (!hasPhone && !hasEmail) {
+            newErrors.phone = 'Podaj co najmniej numer telefonu lub adres email';
+            newErrors.email = 'Podaj co najmniej numer telefonu lub adres email';
+        } else {
+            // Waliduj format tylko jeśli pole jest wypełnione
+            if (hasPhone && !/^(\+48)?\d{9}$/.test(formData.phone.replace(/[\s-]/g, ''))) {
+                newErrors.phone = t.appointments.validation.phoneInvalid;
+            }
+            if (hasEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+                newErrors.email = t.appointments.validation.emailInvalid;
+            }
         }
 
         setErrors(newErrors);

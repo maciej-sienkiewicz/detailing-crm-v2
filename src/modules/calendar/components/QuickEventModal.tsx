@@ -283,14 +283,24 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const validateForm = (): boolean => {
         const newErrors: { [key: string]: string } = {};
 
-        // Walidacja tytułu
-        if (!title.trim()) {
-            newErrors.title = 'Tytuł rezerwacji jest wymagany';
-        }
-
         // Walidacja klienta
         if (!selectedCustomer) {
             newErrors.customer = 'Wybór klienta jest wymagany';
+        } else if (selectedCustomer.isNew) {
+            // Dodatkowa walidacja dla nowego klienta
+            if (!selectedCustomer.firstName || selectedCustomer.firstName.trim().length < 2) {
+                newErrors.customer = 'Imię klienta jest wymagane (minimum 2 znaki)';
+            } else if (!selectedCustomer.lastName || selectedCustomer.lastName.trim().length < 2) {
+                newErrors.customer = 'Nazwisko klienta jest wymagane (minimum 2 znaki)';
+            } else {
+                // Sprawdź czy podano co najmniej jeden sposób kontaktu
+                const hasPhone = selectedCustomer.phone && selectedCustomer.phone.trim().length > 0;
+                const hasEmail = selectedCustomer.email && selectedCustomer.email.trim().length > 0;
+
+                if (!hasPhone && !hasEmail) {
+                    newErrors.customer = 'Podaj co najmniej numer telefonu lub adres email klienta';
+                }
+            }
         }
 
         // Walidacja dat
@@ -473,11 +483,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
                                     $accentColor={focusedField === 'title' ? accentColor : undefined}
-                                    $hasError={!!errors.title}
                                     onFocus={() => setFocusedField('title')}
                                     onBlur={() => setFocusedField(null)}
                                 />
-                                {errors.title && <S.ErrorMessage>{errors.title}</S.ErrorMessage>}
                             </div>
                         </S.Header>
 
