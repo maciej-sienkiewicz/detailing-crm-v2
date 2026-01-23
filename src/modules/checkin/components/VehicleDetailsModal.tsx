@@ -50,13 +50,19 @@ interface VehicleDetailsModalProps {
     fallbackData?: {
         brand: string;
         model: string;
+        yearOfProduction?: number;
         licensePlate: string;
+        color?: string;
+        paintType?: string;
     };
     onSave: (data: {
         vehicleData: {
             brand: string;
             model: string;
+            yearOfProduction?: number;
             licensePlate: string;
+            color?: string;
+            paintType?: string;
         };
     }) => void;
 }
@@ -74,7 +80,10 @@ export const VehicleDetailsModal = ({
     const [localVehicleData, setLocalVehicleData] = useState({
         brand: '',
         model: '',
+        yearOfProduction: undefined as number | undefined,
         licensePlate: '',
+        color: '',
+        paintType: '',
     });
 
     // Inicjalizuj dane gdy modal się otwiera
@@ -87,20 +96,29 @@ export const VehicleDetailsModal = ({
             setLocalVehicleData({
                 brand: fallbackData.brand,
                 model: fallbackData.model,
+                yearOfProduction: fallbackData.yearOfProduction,
                 licensePlate: fallbackData.licensePlate,
+                color: fallbackData.color || '',
+                paintType: fallbackData.paintType || '',
             });
         } else if (vehicleDetail) {
             // Użyj danych z API jako fallback
             setLocalVehicleData({
                 brand: vehicleDetail.vehicle.brand,
                 model: vehicleDetail.vehicle.model,
+                yearOfProduction: vehicleDetail.vehicle.yearOfProduction,
                 licensePlate: vehicleDetail.vehicle.licensePlate,
+                color: vehicleDetail.vehicle.color || '',
+                paintType: vehicleDetail.vehicle.paintType || '',
             });
         }
     }, [isOpen, vehicleDetail, fallbackData]);
 
     const handleVehicleDataChange = (field: string, value: string) => {
-        setLocalVehicleData(prev => ({ ...prev, [field]: value }));
+        setLocalVehicleData(prev => ({
+            ...prev,
+            [field]: field === 'yearOfProduction' ? (value ? parseInt(value, 10) : undefined) : value
+        }));
     };
 
     const handleSave = () => {
@@ -145,11 +163,39 @@ export const VehicleDetailsModal = ({
                         </FieldGroup>
 
                         <FieldGroup>
+                            <Label>Rok produkcji</Label>
+                            <Input
+                                type="number"
+                                value={localVehicleData.yearOfProduction || ''}
+                                onChange={(e) => handleVehicleDataChange('yearOfProduction', e.target.value)}
+                                placeholder="np. 2020"
+                            />
+                        </FieldGroup>
+
+                        <FieldGroup>
                             <Label>{t.checkin.verification.licensePlate}</Label>
                             <Input
                                 value={localVehicleData.licensePlate}
                                 onChange={(e) => handleVehicleDataChange('licensePlate', e.target.value.toUpperCase())}
                                 placeholder="np. WW12345"
+                            />
+                        </FieldGroup>
+
+                        <FieldGroup>
+                            <Label>Kolor</Label>
+                            <Input
+                                value={localVehicleData.color}
+                                onChange={(e) => handleVehicleDataChange('color', e.target.value)}
+                                placeholder="np. Czarny metalik"
+                            />
+                        </FieldGroup>
+
+                        <FieldGroup>
+                            <Label>Typ lakieru</Label>
+                            <Input
+                                value={localVehicleData.paintType}
+                                onChange={(e) => handleVehicleDataChange('paintType', e.target.value)}
+                                placeholder="np. Metalik, Perłowy, Mat"
                             />
                         </FieldGroup>
                     </FormGrid>

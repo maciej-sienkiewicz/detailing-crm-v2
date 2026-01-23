@@ -218,15 +218,21 @@ export const VerificationStep    = ({ formData, onChange, onServicesChange, colo
         vehicleData: {
             brand: string;
             model: string;
+            yearOfProduction?: number;
             licensePlate: string;
+            color?: string;
+            paintType?: string;
         };
     }) => {
         onChange({
             vehicleData: {
                 id: formData.vehicleData?.id || `temp-${Date.now()}`,
-                yearOfProduction: formData.vehicleData?.yearOfProduction || new Date().getFullYear(),
-                ...data.vehicleData,
+                brand: data.vehicleData.brand,
+                model: data.vehicleData.model,
+                yearOfProduction: data.vehicleData.yearOfProduction || new Date().getFullYear(),
                 licensePlate: data.vehicleData.licensePlate || '',
+                color: data.vehicleData.color,
+                paintType: data.vehicleData.paintType,
             },
         });
         setIsVehicleDetailsModalOpen(false);
@@ -473,7 +479,10 @@ export const VerificationStep    = ({ formData, onChange, onServicesChange, colo
                 fallbackData={{
                     brand: formData.vehicleData?.brand || '',
                     model: formData.vehicleData?.model || '',
+                    yearOfProduction: formData.vehicleData?.yearOfProduction,
                     licensePlate: formData.vehicleData?.licensePlate || '',
+                    color: formData.vehicleData?.color,
+                    paintType: formData.vehicleData?.paintType,
                 }}
                 onSave={handleVehicleDetailsSave}
             />
