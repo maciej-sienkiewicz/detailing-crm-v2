@@ -8,8 +8,10 @@ import { CustomerModal } from '@/modules/appointments/components/CustomerModal';
 import { VehicleModal } from '@/modules/appointments/components/VehicleModal';
 import { QuickServiceModal } from './QuickServiceModal';
 import { PriceInputModal } from './PriceInputModal';
+import { QuickColorModal } from './QuickColorModal';
 import { useCustomerVehicles } from '@/modules/appointments/hooks/useAppointmentForm';
 import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/types';
+import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
 import * as S from './QuickEventModalStyles';
 
 // --- TYPES FOR API RESPONSES ---
@@ -158,6 +160,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
     const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
     const [isPriceInputModalOpen, setIsPriceInputModalOpen] = useState(false);
+    const [isQuickColorModalOpen, setIsQuickColorModalOpen] = useState(false);
     const [pendingService, setPendingService] = useState<Service | null>(null);
 
     // Validation state
@@ -451,6 +454,21 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
         setServiceSearch('');
         setShowServiceDropdown(false);
+    };
+
+    const handleQuickColorCreate = async (color: { name: string; hexColor: string }) => {
+        try {
+            // Zapisz kolor w bazie danych
+            const newColor = await appointmentColorApi.createColor(color);
+
+            // Odśwież listę kolorów
+            queryClient.invalidateQueries({ queryKey: ['appointment-colors'] });
+
+            // Ustaw nowo utworzony kolor jako wybrany
+            setSelectedColorId(newColor.id);
+        } catch (error) {
+            console.error('Failed to create color:', error);
+        }
     };
 
     if (!eventData) return null;
@@ -762,6 +780,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             title={color.name}
                                         />
                                     ))}
+                                    <S.AddColorButton
+                                        type="button"
+                                        onClick={() => setIsQuickColorModalOpen(true)}
+                                        title="Dodaj nowy kolor"
+                                    >
+                                        <IconPlus />
+                                    </S.AddColorButton>
                                 </S.ColorPickerList>
                             </S.ColorPickerSection>
 
@@ -820,6 +845,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 serviceName={pendingService?.name || ''}
                 onClose={handlePriceInputModalClose}
                 onConfirm={handlePriceConfirm}
+            />
+
+            <QuickColorModal
+                isOpen={isQuickColorModalOpen}
+                onClose={() => setIsQuickColorModalOpen(false)}
+                onColorCreate={handleQuickColorCreate}
             />
         </>
     );

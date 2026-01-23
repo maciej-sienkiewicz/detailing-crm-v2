@@ -568,6 +568,32 @@ export const ColorButton = styled.button<{ $color: string; $isSelected: boolean 
     }
 `;
 
+export const AddColorButton = styled.button`
+    width: 28px;
+    height: 28px;
+    border-radius: 9999px;
+    border: 2px dashed #d1d5db;
+    background-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #9ca3af;
+
+    &:hover {
+        transform: scale(1.1);
+        border-color: #3b82f6;
+        background-color: #eff6ff;
+        color: #3b82f6;
+    }
+
+    svg {
+        width: 14px;
+        height: 14px;
+    }
+`;
+
 export const FooterActions = styled.div`
     display: flex;
     align-items: center;
