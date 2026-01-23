@@ -225,6 +225,7 @@ export const ServicesTable = ({ services, visitStatus, onEditClick }: ServicesTa
                 <Tbody>
                     {services.map(service => {
                         const pricing = calculateServicePrice(service);
+                        const showDiscount = pricing.hasDiscount && service.basePriceNet !== 0;
 
                         return (
                             <Tr key={service.id}>
@@ -233,7 +234,7 @@ export const ServicesTable = ({ services, visitStatus, onEditClick }: ServicesTa
                                         <div style={{ flex: 1 }}>
                                             <ServiceName>{service.serviceName}</ServiceName>
                                             {service.note && <ServiceNote>{service.note}</ServiceNote>}
-                                            {pricing.hasDiscount && (
+                                            {showDiscount && (
                                                 <DiscountBadge>{pricing.discountLabel}</DiscountBadge>
                                             )}
                                         </div>
@@ -244,7 +245,7 @@ export const ServicesTable = ({ services, visitStatus, onEditClick }: ServicesTa
                                 </Td>
                                 <Td>
                                     <PriceStack>
-                                        {pricing.hasDiscount && (
+                                        {showDiscount && (
                                             <PriceValue $strikethrough>
                                                 {formatCurrency(pricing.originalPriceNet / 100)}
                                             </PriceValue>
@@ -259,7 +260,7 @@ export const ServicesTable = ({ services, visitStatus, onEditClick }: ServicesTa
                                 </Td>
                                 <Td>
                                     <PriceStack>
-                                        {pricing.hasDiscount && (
+                                        {showDiscount && (
                                             <PriceValue $strikethrough>
                                                 {formatCurrency(pricing.originalPriceGross / 100)}
                                             </PriceValue>
