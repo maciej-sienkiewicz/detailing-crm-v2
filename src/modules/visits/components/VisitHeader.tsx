@@ -165,9 +165,9 @@ export const VisitHeader = ({
             <HeaderContent>
                 <HeaderLeft>
                     <VisitNumber>{visit.visitNumber}</VisitNumber>
-                    <LicensePlateBadge>{visit.vehicle.licensePlate}</LicensePlateBadge>
+                    {visit.vehicle.licensePlate ? (<LicensePlateBadge>{visit.vehicle.licensePlate}</LicensePlateBadge>) : null}
                     <VehicleName>
-                        {visit.vehicle.brand} {visit.vehicle.model} ({visit.vehicle.yearOfProduction})
+                        {visit.vehicle.brand} {visit.vehicle.model} {visit.vehicle.yearOfProduction ? ((visit.vehicle.yearOfProduction)) : null}
                     </VehicleName>
                 </HeaderLeft>
 
