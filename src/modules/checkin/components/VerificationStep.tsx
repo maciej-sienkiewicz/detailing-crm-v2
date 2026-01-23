@@ -229,7 +229,7 @@ export const VerificationStep    = ({ formData, onChange, onServicesChange, colo
                 id: formData.vehicleData?.id || `temp-${Date.now()}`,
                 brand: data.vehicleData.brand,
                 model: data.vehicleData.model,
-                yearOfProduction: data.vehicleData.yearOfProduction || new Date().getFullYear(),
+                yearOfProduction: data.vehicleData.yearOfProduction,
                 licensePlate: data.vehicleData.licensePlate || '',
                 color: data.vehicleData.color,
                 paintType: data.vehicleData.paintType,
