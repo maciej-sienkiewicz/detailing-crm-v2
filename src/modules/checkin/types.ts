@@ -40,6 +40,7 @@ export interface ServiceLineItem {
     vatRate: number;
     adjustment: PriceAdjustment;
     note?: string;
+    requireManualPrice?: boolean;
 }
 
 export interface CheckInFormData {

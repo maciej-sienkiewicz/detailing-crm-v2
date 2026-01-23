@@ -207,6 +207,18 @@ const NoteDisplay = styled.div`
     }
 `;
 
+const CustomPriceLabel = styled.div`
+    font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: ${props => props.theme.fontWeights.bold};
+    color: ${props => props.theme.colors.warning || '#f59e0b'};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
+    background-color: ${props => props.theme.colors.warningLight || '#fef3c7'};
+    border-radius: ${props => props.theme.radii.sm};
+    text-align: center;
+`;
+
 interface EditableServicesTableProps {
     services: ServiceLineItem[];
     onChange: (services: ServiceLineItem[]) => void;
@@ -354,6 +366,7 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                 value: 0,
             },
             note: '',
+            requireManualPrice: service.requireManualPrice,
         };
         onChange([...services, newServiceLine]);
     };
@@ -448,20 +461,26 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                                 </Td>
 
                                 <Td>
-                                    <PriceCell>
-                                        <div>
-                                            <PriceLabel>Netto</PriceLabel>
-                                            <PriceValue>
-                                                {formatCurrency(service.basePriceNet / 100)}
-                                            </PriceValue>
-                                        </div>
-                                        <div>
-                                            <PriceLabel>Brutto</PriceLabel>
-                                            <PriceValue>
-                                                {formatCurrency((service.basePriceNet * (100 + service.vatRate)) / 10000)}
-                                            </PriceValue>
-                                        </div>
-                                    </PriceCell>
+                                    {service.basePriceNet === 0 || service.requireManualPrice ? (
+                                        <CustomPriceLabel>
+                                            Cena niestandardowa
+                                        </CustomPriceLabel>
+                                    ) : (
+                                        <PriceCell>
+                                            <div>
+                                                <PriceLabel>Netto</PriceLabel>
+                                                <PriceValue>
+                                                    {formatCurrency(service.basePriceNet / 100)}
+                                                </PriceValue>
+                                            </div>
+                                            <div>
+                                                <PriceLabel>Brutto</PriceLabel>
+                                                <PriceValue>
+                                                    {formatCurrency((service.basePriceNet * (100 + service.vatRate)) / 10000)}
+                                                </PriceValue>
+                                            </div>
+                                        </PriceCell>
+                                    )}
                                 </Td>
 
                                 <Td>
