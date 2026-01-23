@@ -1,4 +1,4 @@
-import { forwardRef, useState, useEffect, ChangeEvent } from 'react';
+import { forwardRef, useRef, useEffect, ChangeEvent } from 'react';
 import styled from 'styled-components';
 
 const Container = styled.div`
@@ -7,16 +7,16 @@ const Container = styled.div`
 `;
 
 const CountryCodeSelect = styled.select<{ $hasError?: boolean }>`
-    padding: 12px 8px 12px 14px;
-    border: 1.5px solid ${props => props.$hasError ? '#ef4444' : '#e2e8f0'};
+    padding: 16px;
+    border: 1px solid ${props => props.$hasError ? '#ef4444' : '#e2e8f0'};
     border-radius: 10px;
-    font-size: 14px;
+    font-size: 16px;
     background: white;
     color: #0f172a;
     cursor: pointer;
     transition: all 0.2s ease;
     flex-shrink: 0;
-    min-width: 80px;
+    min-width: 90px;
 
     &:hover {
         border-color: ${props => props.$hasError ? '#ef4444' : '#cbd5e1'};
@@ -31,10 +31,10 @@ const CountryCodeSelect = styled.select<{ $hasError?: boolean }>`
 
 const PhoneNumberInput = styled.input<{ $hasError?: boolean }>`
     flex: 1;
-    padding: 12px 14px;
-    border: 1.5px solid ${props => props.$hasError ? '#ef4444' : '#e2e8f0'};
+    padding: 16px;
+    border: 1px solid ${props => props.$hasError ? '#ef4444' : '#e2e8f0'};
     border-radius: 10px;
-    font-size: 14px;
+    font-size: 16px;
     background: white;
     color: #0f172a;
     transition: all 0.2s ease;
@@ -75,38 +75,88 @@ const COUNTRY_CODES: CountryCode[] = [
         maxDigits: 9,
     },
     {
-        code: '+1',
-        flag: '🇺🇸',
-        format: (digits: string) => {
-            // Format: XXX XXX XXXX
-            const d = digits.replace(/\D/g, '').slice(0, 10);
-            if (d.length <= 3) return d;
-            if (d.length <= 6) return `${d.slice(0, 3)} ${d.slice(3)}`;
-            return `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}`;
-        },
-        maxDigits: 10,
-    },
-    {
-        code: '+44',
-        flag: '🇬🇧',
-        format: (digits: string) => {
-            // Format: XXXX XXX XXXX
-            const d = digits.replace(/\D/g, '').slice(0, 10);
-            if (d.length <= 4) return d;
-            if (d.length <= 7) return `${d.slice(0, 4)} ${d.slice(4)}`;
-            return `${d.slice(0, 4)} ${d.slice(4, 7)} ${d.slice(7)}`;
-        },
-        maxDigits: 10,
-    },
-    {
         code: '+49',
         flag: '🇩🇪',
         format: (digits: string) => {
-            // Format: XXX XXX XXXX
-            const d = digits.replace(/\D/g, '').slice(0, 10);
+            // Format: XXX XXXX XXXX
+            const d = digits.replace(/\D/g, '').slice(0, 11);
+            if (d.length <= 3) return d;
+            if (d.length <= 7) return `${d.slice(0, 3)} ${d.slice(3)}`;
+            return `${d.slice(0, 3)} ${d.slice(3, 7)} ${d.slice(7)}`;
+        },
+        maxDigits: 11,
+    },
+    {
+        code: '+420',
+        flag: '🇨🇿',
+        format: (digits: string) => {
+            // Format: XXX XXX XXX
+            const d = digits.replace(/\D/g, '').slice(0, 9);
             if (d.length <= 3) return d;
             if (d.length <= 6) return `${d.slice(0, 3)} ${d.slice(3)}`;
             return `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}`;
+        },
+        maxDigits: 9,
+    },
+    {
+        code: '+421',
+        flag: '🇸🇰',
+        format: (digits: string) => {
+            // Format: XXX XXX XXX
+            const d = digits.replace(/\D/g, '').slice(0, 9);
+            if (d.length <= 3) return d;
+            if (d.length <= 6) return `${d.slice(0, 3)} ${d.slice(3)}`;
+            return `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}`;
+        },
+        maxDigits: 9,
+    },
+    {
+        code: '+380',
+        flag: '🇺🇦',
+        format: (digits: string) => {
+            // Format: XX XXX XX XX
+            const d = digits.replace(/\D/g, '').slice(0, 9);
+            if (d.length <= 2) return d;
+            if (d.length <= 5) return `${d.slice(0, 2)} ${d.slice(2)}`;
+            if (d.length <= 7) return `${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5)}`;
+            return `${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5, 7)} ${d.slice(7)}`;
+        },
+        maxDigits: 9,
+    },
+    {
+        code: '+375',
+        flag: '🇧🇾',
+        format: (digits: string) => {
+            // Format: XX XXX XX XX
+            const d = digits.replace(/\D/g, '').slice(0, 9);
+            if (d.length <= 2) return d;
+            if (d.length <= 5) return `${d.slice(0, 2)} ${d.slice(2)}`;
+            if (d.length <= 7) return `${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5)}`;
+            return `${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5, 7)} ${d.slice(7)}`;
+        },
+        maxDigits: 9,
+    },
+    {
+        code: '+370',
+        flag: '🇱🇹',
+        format: (digits: string) => {
+            // Format: XXX XXXXX
+            const d = digits.replace(/\D/g, '').slice(0, 8);
+            if (d.length <= 3) return d;
+            return `${d.slice(0, 3)} ${d.slice(3)}`;
+        },
+        maxDigits: 8,
+    },
+    {
+        code: '+7',
+        flag: '🇷🇺',
+        format: (digits: string) => {
+            // Format: XXX XXX XX XX
+            const d = digits.replace(/\D/g, '').slice(0, 10);
+            if (d.length <= 3) return d;
+            if (d.length <= 6) return `${d.slice(0, 3)} ${d.slice(3)}`;
+            if (d.length <= 8) return `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}`;
+            return `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6, 8)} ${d.slice(8)}`;
         },
         maxDigits: 10,
     },
@@ -124,55 +174,98 @@ interface PhoneInputProps {
 
 export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
     ({ value = '', onChange, onBlur, hasError, placeholder, id, name }, ref) => {
-        // Parse initial value
+        const inputRef = useRef<HTMLInputElement | null>(null);
+        const selectRef = useRef<HTMLSelectElement | null>(null);
+        const isInternalChange = useRef(false);
+
+        // Parse value to extract country code and number
         const parseValue = (val: string) => {
+            if (!val) return { code: '+48', digits: '' };
             const match = val.match(/^(\+\d+)[\s-]?(.*)$/);
             if (match) {
                 const code = match[1];
-                const number = match[2].replace(/[\s-]/g, '');
-                return { code, number };
+                const digits = match[2].replace(/[\s-]/g, '');
+                return { code, digits };
             }
-            return { code: '+48', number: val.replace(/[\s-]/g, '').replace(/^\+48/, '') };
+            // If no country code, assume +48
+            const digits = val.replace(/[\s-]/g, '').replace(/^\+48/, '');
+            return { code: '+48', digits };
         };
 
-        const { code: initialCode, number: initialNumber } = parseValue(value);
-        const [countryCode, setCountryCode] = useState(initialCode);
-        const [phoneNumber, setPhoneNumber] = useState(initialNumber);
+        const { code: initialCode, digits: initialDigits } = parseValue(value);
 
-        // Update local state when value prop changes
+        // Only update from external changes (not our own onChange calls)
         useEffect(() => {
-            const { code, number } = parseValue(value);
-            setCountryCode(code);
-            setPhoneNumber(number);
+            if (!isInternalChange.current) {
+                const { code, digits } = parseValue(value);
+                if (inputRef.current && selectRef.current) {
+                    // Update the select and input values directly without causing re-render
+                    selectRef.current.value = code;
+                    const country = COUNTRY_CODES.find(c => c.code === code) || COUNTRY_CODES[0];
+                    inputRef.current.value = country.format(digits);
+                }
+            }
+            isInternalChange.current = false;
         }, [value]);
-
-        const currentCountry = COUNTRY_CODES.find(c => c.code === countryCode) || COUNTRY_CODES[0];
 
         const handleCountryChange = (e: ChangeEvent<HTMLSelectElement>) => {
             const newCode = e.target.value;
-            setCountryCode(newCode);
-            // Keep the same number, reformat for new country
-            const digits = phoneNumber.replace(/\D/g, '');
+            const currentInput = inputRef.current?.value || '';
+            const digits = currentInput.replace(/\D/g, '');
+
             const newCountry = COUNTRY_CODES.find(c => c.code === newCode) || COUNTRY_CODES[0];
             const formatted = newCountry.format(digits);
-            setPhoneNumber(formatted);
+
+            if (inputRef.current) {
+                inputRef.current.value = formatted;
+            }
 
             // Return full value with new country code
+            isInternalChange.current = true;
             const fullValue = digits ? `${newCode} ${formatted}` : '';
             onChange?.(fullValue);
         };
 
         const handleNumberChange = (e: ChangeEvent<HTMLInputElement>) => {
             const input = e.target.value;
-            // Allow only digits and spaces (spaces will be auto-formatted)
+            const cursorPosition = e.target.selectionStart || 0;
+
+            // Extract only digits
             const digits = input.replace(/\D/g, '');
+
+            // Get current country
+            const select = e.target.parentElement?.querySelector('select') as HTMLSelectElement;
+            const code = select?.value || '+48';
+            const currentCountry = COUNTRY_CODES.find(c => c.code === code) || COUNTRY_CODES[0];
 
             // Apply formatting
             const formatted = currentCountry.format(digits);
-            setPhoneNumber(formatted);
+
+            // Update input value
+            e.target.value = formatted;
+
+            // Restore cursor position (accounting for added spaces)
+            const digitsBeforeCursor = input.slice(0, cursorPosition).replace(/\D/g, '').length;
+            let newCursorPos = 0;
+            let digitCount = 0;
+            for (let i = 0; i < formatted.length; i++) {
+                if (formatted[i] !== ' ') {
+                    digitCount++;
+                }
+                if (digitCount >= digitsBeforeCursor) {
+                    newCursorPos = i + 1;
+                    break;
+                }
+            }
+
+            // Set cursor position after a brief delay to ensure it takes effect
+            setTimeout(() => {
+                e.target.setSelectionRange(newCursorPos, newCursorPos);
+            }, 0);
 
             // Return full value with country code
-            const fullValue = digits ? `${countryCode} ${formatted}` : '';
+            isInternalChange.current = true;
+            const fullValue = digits ? `${code} ${formatted}` : '';
             onChange?.(fullValue);
         };
 
@@ -180,13 +273,15 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
             onBlur?.();
         };
 
-        // Display formatted value
-        const displayValue = phoneNumber;
+        // Get initial display value
+        const currentCountry = COUNTRY_CODES.find(c => c.code === initialCode) || COUNTRY_CODES[0];
+        const initialDisplayValue = currentCountry.format(initialDigits);
 
         return (
             <Container>
                 <CountryCodeSelect
-                    value={countryCode}
+                    ref={selectRef}
+                    defaultValue={initialCode}
                     onChange={handleCountryChange}
                     $hasError={hasError}
                     aria-label="Country code"
@@ -198,9 +293,16 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
                     ))}
                 </CountryCodeSelect>
                 <PhoneNumberInput
-                    ref={ref}
+                    ref={(el) => {
+                        inputRef.current = el;
+                        if (typeof ref === 'function') {
+                            ref(el);
+                        } else if (ref) {
+                            ref.current = el;
+                        }
+                    }}
                     type="tel"
-                    value={displayValue}
+                    defaultValue={initialDisplayValue}
                     onChange={handleNumberChange}
                     onBlur={handleBlur}
                     $hasError={hasError}
