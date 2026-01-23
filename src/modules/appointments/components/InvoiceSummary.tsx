@@ -281,16 +281,22 @@ export const InvoiceSummary = ({ services, availableServices, onChange }: Invoic
                                         onClick={() => handleAddService(service)}
                                     >
                                         <ServiceName>{service.name}</ServiceName>
-                                        <PriceInfo>
-                                            <PriceItem>
-                                                <PriceLabel>Netto</PriceLabel>
-                                                <PriceValue>{formatMoneyAmount(priceNet)} PLN</PriceValue>
-                                            </PriceItem>
-                                            <PriceItem>
-                                                <PriceLabel>Brutto</PriceLabel>
-                                                <PriceValue>{formatMoneyAmount(priceGross)} PLN</PriceValue>
-                                            </PriceItem>
-                                        </PriceInfo>
+                                        {service.requireManualPrice ? (
+                                            <PriceInfo>
+                                                <PriceValue style={{ fontWeight: 600, color: '#f59e0b' }}>NIESTANDARDOWA</PriceValue>
+                                            </PriceInfo>
+                                        ) : (
+                                            <PriceInfo>
+                                                <PriceItem>
+                                                    <PriceLabel>Netto</PriceLabel>
+                                                    <PriceValue>{formatMoneyAmount(priceNet)} PLN</PriceValue>
+                                                </PriceItem>
+                                                <PriceItem>
+                                                    <PriceLabel>Brutto</PriceLabel>
+                                                    <PriceValue>{formatMoneyAmount(priceGross)} PLN</PriceValue>
+                                                </PriceItem>
+                                            </PriceInfo>
+                                        )}
                                     </SearchResultItem>
                                 );
                             })}

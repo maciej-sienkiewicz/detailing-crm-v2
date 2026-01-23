@@ -179,14 +179,20 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
                                         onClick={() => handleServiceSelect(service)}
                                     >
                                         <ServiceName>{service.name}</ServiceName>
-                                        <PriceInfo>
-                                            <div>
-                                                <PriceLabel>Netto:</PriceLabel> {formatCurrency(priceNet)}
-                                            </div>
-                                            <div>
-                                                <PriceLabel>Brutto:</PriceLabel> {formatCurrency(priceGross)}
-                                            </div>
-                                        </PriceInfo>
+                                        {service.requireManualPrice ? (
+                                            <PriceInfo>
+                                                <div style={{ fontWeight: 600, color: '#f59e0b' }}>NIESTANDARDOWA</div>
+                                            </PriceInfo>
+                                        ) : (
+                                            <PriceInfo>
+                                                <div>
+                                                    <PriceLabel>Netto:</PriceLabel> {formatCurrency(priceNet)}
+                                                </div>
+                                                <div>
+                                                    <PriceLabel>Brutto:</PriceLabel> {formatCurrency(priceGross)}
+                                                </div>
+                                            </PriceInfo>
+                                        )}
                                     </SuggestionItem>
                                 );
                             })}

@@ -17,6 +17,7 @@ interface Service {
     name: string;
     basePriceNet: number;
     vatRate: number;
+    requireManualPrice: boolean;
 }
 
 interface AppointmentColor {
@@ -315,7 +316,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const addService = (service: Service) => {
         if (!selectedServiceIds.includes(service.id)) {
             setSelectedServiceIds(prev => [...prev, service.id]);
-            const grossPrice = (service.basePriceNet / 100) * (100 + service.vatRate) / 100;
+            // Dla usług z requireManualPrice, ustaw cenę na 0 (wymaga ręcznego wprowadzenia)
+            const grossPrice = service.requireManualPrice
+                ? 0
+                : (service.basePriceNet / 100) * (100 + service.vatRate) / 100;
             setServicePrices(prev => ({ ...prev, [service.id]: grossPrice }));
         }
         setServiceSearch('');
@@ -521,7 +525,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     >
                                                         <span>{service.name}</span>
                                                         <span>
-                                                            {((service.basePriceNet / 100) * (100 + service.vatRate) / 100).toFixed(2)} zł brutto
+                                                            {service.requireManualPrice
+                                                                ? 'NIESTANDARDOWA'
+                                                                : `${((service.basePriceNet / 100) * (100 + service.vatRate) / 100).toFixed(2)} zł brutto`
+                                                            }
                                                         </span>
                                                     </S.DropdownItem>
                                                 ))}
