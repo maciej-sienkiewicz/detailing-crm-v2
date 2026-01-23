@@ -23,7 +23,7 @@ const toMoneyAmount = (money: ReturnType<typeof dinero>): MoneyAmount => {
 
 export const useServicePricing = () => {
     const calculateServicePrice = (item: ServiceLineItem): PricingResult => {
-        const { basePriceNet, vatRate, adjustment } = item;
+        const { basePriceNet, vatRate, adjustment, requireManualPrice } = item;
 
         const baseNetMoney = createMoney(basePriceNet);
 
@@ -70,12 +70,14 @@ export const useServicePricing = () => {
                 break;
             }
             case 'SET_NET': {
-                hasDiscount = true;
+                // Dla usług z requireManualPrice, ustawienie ceny nie jest rabatem
+                hasDiscount = !requireManualPrice;
                 finalNetMoney = createMoney(adjustment.value);
                 break;
             }
             case 'SET_GROSS': {
-                hasDiscount = true;
+                // Dla usług z requireManualPrice, ustawienie ceny nie jest rabatem
+                hasDiscount = !requireManualPrice;
                 const targetGrossAmount = adjustment.value;
                 const finalNetAmount = Math.round((targetGrossAmount * 100) / (100 + vatRate));
                 finalNetMoney = createMoney(finalNetAmount);
