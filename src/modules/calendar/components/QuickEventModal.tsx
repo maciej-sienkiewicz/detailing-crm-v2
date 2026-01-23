@@ -160,6 +160,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [isPriceInputModalOpen, setIsPriceInputModalOpen] = useState(false);
     const [pendingService, setPendingService] = useState<Service | null>(null);
 
+    // Validation state
+    const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
     // Focus states
     const [focusedField, setFocusedField] = useState<string | null>(null);
     const titleInputRef = useRef<HTMLInputElement>(null);
@@ -277,8 +280,72 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     }));
 
     // Handlers
+    const validateForm = (): boolean => {
+        const newErrors: { [key: string]: string } = {};
+
+        // Walidacja tytułu
+        if (!title.trim()) {
+            newErrors.title = 'Tytuł rezerwacji jest wymagany';
+        }
+
+        // Walidacja klienta
+        if (!selectedCustomer) {
+            newErrors.customer = 'Wybór klienta jest wymagany';
+        }
+
+        // Walidacja dat
+        if (!startDateTime) {
+            newErrors.startDateTime = 'Data rozpoczęcia jest wymagana';
+        }
+        if (!endDateTime) {
+            newErrors.endDateTime = 'Data zakończenia jest wymagana';
+        }
+
+        // Walidacja czy data końca jest po dacie rozpoczęcia
+        if (startDateTime && endDateTime) {
+            const start = new Date(startDateTime);
+            const end = new Date(endDateTime);
+            if (end <= start) {
+                newErrors.endDateTime = 'Data zakończenia musi być późniejsza niż data rozpoczęcia';
+            }
+        }
+
+        // Walidacja usług
+        if (selectedServiceIds.length === 0) {
+            newErrors.services = 'Dodaj przynajmniej jedną usługę';
+        } else {
+            // Walidacja cen dla każdej usługi
+            const servicePriceErrors: string[] = [];
+            selectedServiceIds.forEach((serviceId) => {
+                const price = servicePrices[serviceId];
+                if (!price || price <= 0) {
+                    const service = services.find((s: Service) => s.id === serviceId) ||
+                                  tempServices[serviceId];
+                    const serviceName = service?.name || 'Nieznana usługa';
+                    servicePriceErrors.push(serviceName);
+                }
+            });
+            if (servicePriceErrors.length > 0) {
+                newErrors.servicePrices = `Wprowadź cenę dla usług: ${servicePriceErrors.join(', ')}`;
+            }
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Wyczyść poprzednie błędy
+        setErrors({});
+
+        // Waliduj formularz
+        if (!validateForm()) {
+            return;
+        }
+
+        // Jeśli walidacja przeszła, zapisz
         onSave({
             title,
             customer: selectedCustomer,
@@ -406,9 +473,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
                                     $accentColor={focusedField === 'title' ? accentColor : undefined}
+                                    $hasError={!!errors.title}
                                     onFocus={() => setFocusedField('title')}
                                     onBlur={() => setFocusedField(null)}
                                 />
+                                {errors.title && <S.ErrorMessage>{errors.title}</S.ErrorMessage>}
                             </div>
                         </S.Header>
 
@@ -428,9 +497,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 onChange={(e) => setStartDateTime(e.target.value)}
                                                 required
                                                 $accentColor={focusedField === 'time-start' ? accentColor : undefined}
+                                                $hasError={!!errors.startDateTime}
                                                 onFocus={() => setFocusedField('time-start')}
                                                 onBlur={() => setFocusedField(null)}
                                             />
+                                            {errors.startDateTime && <S.ErrorMessage>{errors.startDateTime}</S.ErrorMessage>}
                                         </S.InputGroup>
                                         <S.InputGroup>
                                             <S.Label>Koniec</S.Label>
@@ -440,9 +511,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 onChange={(e) => setEndDateTime(e.target.value)}
                                                 required
                                                 $accentColor={focusedField === 'time-end' ? accentColor : undefined}
+                                                $hasError={!!errors.endDateTime}
                                                 onFocus={() => setFocusedField('time-end')}
                                                 onBlur={() => setFocusedField(null)}
                                             />
+                                            {errors.endDateTime && <S.ErrorMessage>{errors.endDateTime}</S.ErrorMessage>}
                                         </S.InputGroup>
                                     </S.InputGrid>
                                     <S.CheckboxLabel>
@@ -469,6 +542,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         onClick={() => setIsCustomerModalOpen(true)}
                                         $accentColor={focusedField === 'customer' ? accentColor : undefined}
                                         $hasValue={!!selectedCustomer}
+                                        $hasError={!!errors.customer}
                                         onFocus={() => setFocusedField('customer')}
                                         onBlur={() => setFocusedField(null)}
                                     >
@@ -483,6 +557,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             </S.RemoveButton>
                                         )}
                                     </S.SelectButton>
+                                    {errors.customer && <S.ErrorMessage>{errors.customer}</S.ErrorMessage>}
                                 </S.RowContent>
                             </S.Row>
 
@@ -576,6 +651,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             </S.Dropdown>
                                         )}
                                     </S.DropdownContainer>
+
+                                    {errors.services && <S.ErrorMessage>{errors.services}</S.ErrorMessage>}
+                                    {errors.servicePrices && <S.ErrorMessage>{errors.servicePrices}</S.ErrorMessage>}
 
                                     {selectedServiceIds.length > 0 && (
                                         <S.ServicesList>

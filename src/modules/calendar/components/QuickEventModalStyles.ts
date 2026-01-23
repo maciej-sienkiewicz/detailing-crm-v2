@@ -95,14 +95,14 @@ export const CloseButton = styled.button`
     }
 `;
 
-export const TitleInput = styled.input<{ $accentColor?: string }>`
+export const TitleInput = styled.input<{ $accentColor?: string; $hasError?: boolean }>`
     width: 100%;
     font-size: 30px;
     font-weight: 600;
     color: #111827;
     background: transparent;
     border: none;
-    border-bottom: 2px solid transparent;
+    border-bottom: 2px solid ${props => props.$hasError ? '#ef4444' : 'transparent'};
     padding-bottom: 12px;
     outline: none;
     transition: border-color 0.2s ease;
@@ -112,7 +112,7 @@ export const TitleInput = styled.input<{ $accentColor?: string }>`
     }
 
     &:focus {
-        border-bottom-color: ${props => props.$accentColor || '#d1d5db'};
+        border-bottom-color: ${props => props.$hasError ? '#ef4444' : (props.$accentColor || '#d1d5db')};
     }
 `;
 
@@ -191,11 +191,18 @@ export const Label = styled.label`
     margin-bottom: 6px;
 `;
 
-export const Input = styled.input<{ $accentColor?: string }>`
+export const ErrorMessage = styled.div`
+    margin-top: 6px;
+    font-size: 12px;
+    color: #ef4444;
+    font-weight: 500;
+`;
+
+export const Input = styled.input<{ $accentColor?: string; $hasError?: boolean }>`
     width: 100%;
     padding: 10px 16px;
     background: #f9fafb;
-    border: 1px solid transparent;
+    border: 1px solid ${props => props.$hasError ? '#ef4444' : 'transparent'};
     border-radius: 12px;
     font-size: 14px;
     color: #111827;
@@ -204,7 +211,7 @@ export const Input = styled.input<{ $accentColor?: string }>`
 
     &:focus {
         background: white;
-        border-color: ${props => props.$accentColor || '#3b82f6'};
+        border-color: ${props => props.$hasError ? '#ef4444' : (props.$accentColor || '#3b82f6')};
     }
 
     &:disabled {
@@ -245,14 +252,14 @@ export const Divider = styled.div`
     background: #f3f4f6;
 `;
 
-export const SelectButton = styled.button<{ $accentColor?: string; $hasValue?: boolean }>`
+export const SelectButton = styled.button<{ $accentColor?: string; $hasValue?: boolean; $hasError?: boolean }>`
     width: 100%;
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
     background: #f9fafb;
-    border: 1px solid transparent;
+    border: 1px solid ${props => props.$hasError ? '#ef4444' : 'transparent'};
     border-radius: 12px;
     text-align: left;
     cursor: pointer;
@@ -263,7 +270,7 @@ export const SelectButton = styled.button<{ $accentColor?: string; $hasValue?: b
     }
 
     &:focus {
-        border-color: ${props => props.$accentColor || '#3b82f6'};
+        border-color: ${props => props.$hasError ? '#ef4444' : (props.$accentColor || '#3b82f6')};
     }
 
     &:disabled {
