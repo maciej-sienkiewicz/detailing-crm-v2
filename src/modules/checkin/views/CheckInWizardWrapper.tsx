@@ -229,11 +229,11 @@ export const CheckInWizardWrapper = () => {
     }
 
     // Sprawdzamy czy mamy pełne dane klienta
+    // Wymagane: imię, nazwisko i co najmniej jeden sposób kontaktu (telefon LUB email)
     const hasFullCustomerData = !!(
         reservation.customer?.firstName &&
         reservation.customer?.lastName &&
-        reservation.customer?.phone &&
-        reservation.customer?.email
+        (reservation.customer?.phone || reservation.customer?.email)
     );
 
     const initialData = {
