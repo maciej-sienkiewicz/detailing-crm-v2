@@ -2,6 +2,7 @@ import { useFormContext } from 'react-hook-form';
 import styled from 'styled-components';
 import type { CreateCustomerFormData } from '../utils/customerValidation';
 import { t } from '@/common/i18n';
+import { PhoneInputField } from '@/common/components/PhoneInputField';
 
 const FormGrid = styled.div`
     display: grid;
@@ -373,20 +374,11 @@ export const CustomerForm = ({
 
                     <FormField>
                         <Label htmlFor="phone">{t.customers.form.phone}</Label>
-                        <InputWrapper $hasError={!!errors.phone}>
-                            <Input
-                                id="phone"
-                                type="tel"
-                                {...register('phone')}
-                                placeholder={t.customers.form.phonePlaceholder}
-                            />
-                        </InputWrapper>
-                        {errors.phone && (
-                            <ErrorMessage>
-                                <ErrorIcon />
-                                {errors.phone.message}
-                            </ErrorMessage>
-                        )}
+                        <PhoneInputField
+                            name="phone"
+                            id="phone"
+                            placeholder={t.customers.form.phonePlaceholder}
+                        />
                     </FormField>
                 </FormGrid>
             </FormSection>

@@ -9,6 +9,7 @@ import { useUpdateCustomer } from '../hooks/useUpdateCustomer';
 import { createCustomerSchema, type CreateCustomerFormData } from '../utils/customerValidation';
 import { t } from '@/common/i18n';
 import type { Customer } from '../types';
+import { PhoneInputField } from '@/common/components/PhoneInputField';
 
 const fadeIn = keyframes`
     from { opacity: 0; }
@@ -322,18 +323,10 @@ export const EditCustomerModal = ({ isOpen, onClose, customer }: EditCustomerMod
 
                                     <FormField>
                                         <Label>{t.customers.form.phone}</Label>
-                                        <InputWrapper $hasError={!!methods.formState.errors.phone}>
-                                            <Input
-                                                {...methods.register('phone')}
-                                                type="tel"
-                                                placeholder={t.customers.form.phonePlaceholder}
-                                            />
-                                        </InputWrapper>
-                                        {methods.formState.errors.phone && (
-                                            <ErrorMessage>
-                                                {methods.formState.errors.phone.message}
-                                            </ErrorMessage>
-                                        )}
+                                        <PhoneInputField
+                                            name="phone"
+                                            placeholder={t.customers.form.phonePlaceholder}
+                                        />
                                     </FormField>
 
                                     {customer.homeAddress && (

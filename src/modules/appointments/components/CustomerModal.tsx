@@ -9,6 +9,7 @@ import { Button, ButtonGroup } from '@/common/components/Button';
 import { EmptyState } from '@/common/components/EmptyState';
 import { t } from '@/common/i18n';
 import type { Customer, SelectedCustomer } from '../types';
+import { PhoneInput } from '@/common/components/PhoneInput';
 
 const SearchInput = styled(Input)`
     margin-bottom: ${props => props.theme.spacing.lg};
@@ -236,10 +237,10 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
 
                         <FieldGroup>
                             <Label>{t.appointments.customerModal.phone}</Label>
-                            <Input
+                            <PhoneInput
                                 value={formData.phone}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, phone: e.target.value })
+                                onChange={(value) =>
+                                    setFormData({ ...formData, phone: value })
                                 }
                                 placeholder={t.appointments.customerModal.phonePlaceholder}
                             />

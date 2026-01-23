@@ -6,6 +6,7 @@ import { Button } from '@/common/components/Button';
 import { Toggle } from '@/common/components/Toggle';
 import { t } from '@/common/i18n';
 import { useCustomerDetail } from '@/modules/customers/hooks/useCustomerDetail';
+import { PhoneInput } from '@/common/components/PhoneInput';
 
 const ModalContent = styled.div`
     display: flex;
@@ -300,11 +301,10 @@ export const CustomerDetailsModal = ({
 
                     <FieldGroup>
                         <Label>{t.customers.form.phone}</Label>
-                        <Input
+                        <PhoneInput
                             value={localCustomerData.phone}
-                            onChange={(e) => handleCustomerDataChange('phone', e.target.value)}
+                            onChange={(value) => handleCustomerDataChange('phone', value)}
                             placeholder={t.customers.form.phonePlaceholder}
-                            type="tel"
                         />
                     </FieldGroup>
                 </FormGrid>
