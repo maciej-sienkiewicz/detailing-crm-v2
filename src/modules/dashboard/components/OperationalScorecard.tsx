@@ -167,36 +167,37 @@ const VisitItem = styled.div`
   }
 `;
 
-const VisitContent = styled.div`
-  flex: 1;
-`;
-
-const VisitActions = styled.div`
-  display: flex;
-  align-items: center;
-  margin-top: ${(props) => props.theme.spacing.sm};
-
-  @media (min-width: ${(props) => props.theme.breakpoints.sm}) {
-    margin-top: 0;
-    margin-left: ${(props) => props.theme.spacing.md};
-  }
-`;
-
-const VisitItemWrapper = styled.div`
+const MainRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${(props) => props.theme.spacing.sm};
+  gap: ${(props) => props.theme.spacing.xs};
+  margin-bottom: ${(props) => props.theme.spacing.xs};
 
   @media (min-width: ${(props) => props.theme.breakpoints.sm}) {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
+    gap: ${(props) => props.theme.spacing.md};
   }
+`;
+
+const VehicleInfo = styled.div`
+  display: flex;
+  align-items: baseline;
+  gap: ${(props) => props.theme.spacing.md};
+  flex: 1;
+`;
+
+const DetailsRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${(props) => props.theme.spacing.xs};
 `;
 
 const ViewButton = styled.button`
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: ${(props) => props.theme.spacing.xs};
   padding: ${(props) => props.theme.spacing.xs} ${(props) => props.theme.spacing.sm};
   background-color: ${(props) => props.theme.colors.primary};
@@ -208,6 +209,7 @@ const ViewButton = styled.button`
   cursor: pointer;
   transition: opacity ${(props) => props.theme.transitions.fast};
   white-space: nowrap;
+  align-self: flex-start;
 
   &:hover {
     opacity: 0.9;
@@ -221,13 +223,10 @@ const ViewButton = styled.button`
     width: 14px;
     height: 14px;
   }
-`;
 
-const VehicleInfo = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: ${(props) => props.theme.spacing.xs};
+  @media (min-width: ${(props) => props.theme.breakpoints.sm}) {
+    align-self: center;
+  }
 `;
 
 const VehicleName = styled.div`
@@ -297,30 +296,28 @@ const VisitList = ({
       ) : (
         visits.map((visit) => (
           <VisitItem key={visit.id}>
-            <VisitItemWrapper>
-              <VisitContent>
-                <VehicleInfo>
-                  <VehicleName>
-                    {visit.brand} {visit.model}
-                  </VehicleName>
-                  <VisitAmount>{formatCurrency(visit.amount)}</VisitAmount>
-                </VehicleInfo>
-                <CustomerInfo>
-                  {visit.customerFirstName} {visit.customerLastName}
-                </CustomerInfo>
-                {visit.phoneNumber && (
-                  <PhoneInfo>{formatPhoneNumber(visit.phoneNumber)}</PhoneInfo>
-                )}
-              </VisitContent>
+            <MainRow>
+              <VehicleInfo>
+                <VehicleName>
+                  {visit.brand} {visit.model}
+                </VehicleName>
+                <VisitAmount>{formatCurrency(visit.amount)}</VisitAmount>
+              </VehicleInfo>
               {showActions && (
-                <VisitActions>
-                  <ViewButton onClick={() => handleViewVisit(visit.id)}>
-                    Zobacz wizytę
-                    <ArrowRight />
-                  </ViewButton>
-                </VisitActions>
+                <ViewButton onClick={() => handleViewVisit(visit.id)}>
+                  Zobacz wizytę
+                  <ArrowRight />
+                </ViewButton>
               )}
-            </VisitItemWrapper>
+            </MainRow>
+            <DetailsRow>
+              <CustomerInfo>
+                {visit.customerFirstName} {visit.customerLastName}
+              </CustomerInfo>
+              {visit.phoneNumber && (
+                <PhoneInfo>{formatPhoneNumber(visit.phoneNumber)}</PhoneInfo>
+              )}
+            </DetailsRow>
           </VisitItem>
         ))
       )}
