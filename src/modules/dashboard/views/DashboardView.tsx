@@ -9,7 +9,7 @@ import { AnalyticsSection } from '../components/AnalyticsSection';
 import { LeadInbox } from '../components/LeadInbox';
 import { SocialMediaPlaceholder } from '../components/SocialMediaPlaceholder';
 import { GoogleReviewsSection } from '../components/GoogleReviewsSection';
-import { useDashboard } from '../hooks';
+import { useDashboard, useDashboardSocket } from '../hooks';
 
 const ViewContainer = styled.main`
   display: flex;
@@ -93,6 +93,9 @@ const RetryButton = styled.button`
 `;
 
 export const DashboardView = () => {
+  // Real-time WebSocket subscription for dashboard events
+  useDashboardSocket();
+
   const {
     stats,
     revenue,

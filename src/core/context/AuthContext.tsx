@@ -1,9 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authApi } from '@/modules/auth/api/authApi';
+import type { User } from '@/modules/auth/types';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
+  user: User | null;
   checkAuth: () => Promise<void>;
   setAuthenticated: (value: boolean) => void;
 }
@@ -17,6 +19,7 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<User | null>(null);
 
   const checkAuth = async () => {
     try {
@@ -26,9 +29,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const result = await authApi.checkAuth();
       console.log('[AuthContext] Wynik sprawdzenia:', result);
       setIsAuthenticated(result.isAuthenticated);
+      setUser(result.user ?? null);
     } catch (error) {
       console.error('[AuthContext] Błąd podczas sprawdzania autentykacji:', error);
       setIsAuthenticated(false);
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -36,6 +41,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const setAuthenticated = (value: boolean) => {
     setIsAuthenticated(value);
+    if (!value) {
+      setUser(null);
+    }
   };
 
   // Sprawdź autentykację przy pierwszym załadowaniu
@@ -48,6 +56,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       value={{
         isAuthenticated,
         isLoading,
+        user,
         checkAuth,
         setAuthenticated,
       }}

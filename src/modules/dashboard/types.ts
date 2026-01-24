@@ -136,3 +136,40 @@ export interface DashboardData {
   /** Google reviews statistics */
   googleReviews: GoogleReviewsData;
 }
+
+// ─── WebSocket Event Types ───────────────────────────────────────────────────
+
+/**
+ * Supported dashboard event types
+ */
+export const DashboardEventType = {
+  NEW_INBOUND_CALL: 'NEW_INBOUND_CALL',
+} as const;
+
+export type DashboardEventType = (typeof DashboardEventType)[keyof typeof DashboardEventType];
+
+/**
+ * Payload for a new inbound call event
+ */
+export interface InboundCallPayload {
+  /** Unique call identifier */
+  id: string;
+  /** Caller phone number */
+  phoneNumber: string;
+  /** Caller name (if identified) */
+  callerName?: string;
+  /** ISO timestamp of when the call was received */
+  receivedAt: string;
+}
+
+/**
+ * Generic dashboard event wrapper received via WebSocket
+ */
+export interface DashboardEvent<T = unknown> {
+  /** Event type discriminator */
+  type: DashboardEventType;
+  /** ISO timestamp of when the event was generated */
+  timestamp: string;
+  /** Event-specific payload */
+  payload: T;
+}

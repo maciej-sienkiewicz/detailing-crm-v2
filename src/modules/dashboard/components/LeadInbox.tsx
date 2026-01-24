@@ -26,6 +26,17 @@ const pulse = keyframes`
   }
 `;
 
+const slideIn = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
 const InboxContainer = styled.div`
   background-color: ${(props) => props.theme.colors.surface};
   border-radius: ${(props) => props.theme.radii.lg};
@@ -84,7 +95,7 @@ const CallCard = styled.div<{ $isNew?: boolean }>`
     props.$isNew &&
     `
     border-color: ${props.theme.colors.primary};
-    animation: ${pulse} 2s ease-in-out infinite;
+    animation: ${slideIn} 0.3s ease-out, ${pulse} 2s ease-in-out 0.3s infinite;
   `}
 
   &:hover {

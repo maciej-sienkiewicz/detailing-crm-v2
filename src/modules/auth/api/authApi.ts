@@ -39,11 +39,19 @@ const mockSignup = async (_credentials: SignupCredentials): Promise<AuthResponse
     });
 };
 
-const mockCheckAuth = async (): Promise<{ isAuthenticated: boolean }> => {
+const mockCheckAuth = async (): Promise<{ isAuthenticated: boolean; user: import('../types').User | null }> => {
     return new Promise((resolve) => {
         setTimeout(() => {
             resolve({
                 isAuthenticated: true,
+                user: {
+                    userId: 'mock-user-1',
+                    studioId: 'mock-studio-1',
+                    email: 'test@example.com',
+                    role: 'OWNER',
+                    subscriptionStatus: 'ACTIVE',
+                    trialDaysRemaining: 0,
+                },
             });
         }, 300);
     });
@@ -73,15 +81,16 @@ export const authApi = {
         await apiClient.post(`${BASE_PATH}/logout`);
     },
 
-    checkAuth: async (): Promise<{ isAuthenticated: boolean }> => {
+    checkAuth: async (): Promise<{ isAuthenticated: boolean; user: import('../types').User | null }> => {
         if (USE_MOCKS) {
             return mockCheckAuth();
         }
         const response = await apiClient.get<CheckAuthResponse>(`${BASE_PATH}/me`);
-        // Backend zwraca { success, user }, przekształć na { isAuthenticated }
+        // Backend zwraca { success, user }, przekształć na { isAuthenticated, user }
         // Użytkownik jest zalogowany jeśli success=true i user nie jest null
         return {
-            isAuthenticated: response.data.success && response.data.user !== null
+            isAuthenticated: response.data.success && response.data.user !== null,
+            user: response.data.user ?? null,
         };
     },
 };
