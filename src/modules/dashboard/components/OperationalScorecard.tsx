@@ -6,7 +6,8 @@
 
 import { useState } from 'react';
 import styled from 'styled-components';
-import { ChevronDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronDown, ArrowRight } from 'lucide-react';
 import { t } from '@/common/i18n';
 import { formatCurrency, formatPhoneNumber } from '@/common/utils/formatters';
 import type { OperationalStats, VisitDetail } from '../types';
@@ -166,6 +167,62 @@ const VisitItem = styled.div`
   }
 `;
 
+const VisitContent = styled.div`
+  flex: 1;
+`;
+
+const VisitActions = styled.div`
+  display: flex;
+  align-items: center;
+  margin-top: ${(props) => props.theme.spacing.sm};
+
+  @media (min-width: ${(props) => props.theme.breakpoints.sm}) {
+    margin-top: 0;
+    margin-left: ${(props) => props.theme.spacing.md};
+  }
+`;
+
+const VisitItemWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${(props) => props.theme.spacing.sm};
+
+  @media (min-width: ${(props) => props.theme.breakpoints.sm}) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+`;
+
+const ViewButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: ${(props) => props.theme.spacing.xs};
+  padding: ${(props) => props.theme.spacing.xs} ${(props) => props.theme.spacing.sm};
+  background-color: ${(props) => props.theme.colors.primary};
+  color: white;
+  border: none;
+  border-radius: ${(props) => props.theme.radii.md};
+  font-size: ${(props) => props.theme.fontSizes.sm};
+  font-weight: ${(props) => props.theme.fontWeights.semibold};
+  cursor: pointer;
+  transition: opacity ${(props) => props.theme.transitions.fast};
+  white-space: nowrap;
+
+  &:hover {
+    opacity: 0.9;
+  }
+
+  &:active {
+    opacity: 0.8;
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
 const VehicleInfo = styled.div`
   display: flex;
   justify-content: space-between;
@@ -217,7 +274,21 @@ const ListHeader = styled.div`
   z-index: 1;
 `;
 
-const VisitList = ({ visits, label }: { visits: VisitDetail[]; label: string }) => {
+const VisitList = ({
+  visits,
+  label,
+  showActions = false,
+}: {
+  visits: VisitDetail[];
+  label: string;
+  showActions?: boolean;
+}) => {
+  const navigate = useNavigate();
+
+  const handleViewVisit = (visitId: string) => {
+    navigate(`/operations/${visitId}`);
+  };
+
   return (
     <>
       <ListHeader>{label}</ListHeader>
@@ -226,16 +297,30 @@ const VisitList = ({ visits, label }: { visits: VisitDetail[]; label: string }) 
       ) : (
         visits.map((visit) => (
           <VisitItem key={visit.id}>
-            <VehicleInfo>
-              <VehicleName>
-                {visit.brand} {visit.model}
-              </VehicleName>
-              <VisitAmount>{formatCurrency(visit.amount)}</VisitAmount>
-            </VehicleInfo>
-            <CustomerInfo>
-              {visit.customerFirstName} {visit.customerLastName}
-            </CustomerInfo>
-            {visit.phoneNumber && <PhoneInfo>{formatPhoneNumber(visit.phoneNumber)}</PhoneInfo>}
+            <VisitItemWrapper>
+              <VisitContent>
+                <VehicleInfo>
+                  <VehicleName>
+                    {visit.brand} {visit.model}
+                  </VehicleName>
+                  <VisitAmount>{formatCurrency(visit.amount)}</VisitAmount>
+                </VehicleInfo>
+                <CustomerInfo>
+                  {visit.customerFirstName} {visit.customerLastName}
+                </CustomerInfo>
+                {visit.phoneNumber && (
+                  <PhoneInfo>{formatPhoneNumber(visit.phoneNumber)}</PhoneInfo>
+                )}
+              </VisitContent>
+              {showActions && (
+                <VisitActions>
+                  <ViewButton onClick={() => handleViewVisit(visit.id)}>
+                    Zobacz wizytę
+                    <ArrowRight />
+                  </ViewButton>
+                </VisitActions>
+              )}
+            </VisitItemWrapper>
           </VisitItem>
         ))
       )}
@@ -283,6 +368,7 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
             <VisitList
               visits={stats.inProgressDetails}
               label={t.dashboard.stats.inProgress}
+              showActions={true}
             />
           </ExpandedList>
         )}
@@ -315,6 +401,7 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
             <VisitList
               visits={stats.readyForPickupDetails}
               label={t.dashboard.stats.readyForPickup}
+              showActions={true}
             />
           </ExpandedList>
         )}
