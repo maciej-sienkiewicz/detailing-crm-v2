@@ -19,6 +19,7 @@ export interface AuthResponse {
     success: boolean;
     message?: string;
     redirectUrl?: string;
+    user?: User | null;
 }
 
 export interface AuthError {

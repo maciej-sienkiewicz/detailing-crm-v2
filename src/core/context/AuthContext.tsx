@@ -8,6 +8,7 @@ interface AuthContextType {
   user: User | null;
   checkAuth: () => Promise<void>;
   setAuthenticated: (value: boolean) => void;
+  setUser: (user: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -59,6 +60,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         user,
         checkAuth,
         setAuthenticated,
+        setUser,
       }}
     >
       {children}

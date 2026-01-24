@@ -7,13 +7,16 @@ import { useAuth as useAuthContext } from '@/core/context/AuthContext';
 
 export const useLogin = () => {
     const navigate = useNavigate();
-    const { setAuthenticated } = useAuthContext();
+    const { setAuthenticated, setUser } = useAuthContext();
 
     return useMutation({
         mutationFn: (credentials: LoginCredentials) => authApi.login(credentials),
         onSuccess: (data) => {
-            // Ustaw stan autentykacji na true po udanym logowaniu
+            // Ustaw stan autentykacji i dane użytkownika po udanym logowaniu
             setAuthenticated(true);
+            if (data.user) {
+                setUser(data.user);
+            }
 
             if (data.redirectUrl) {
                 navigate(data.redirectUrl);
