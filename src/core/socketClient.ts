@@ -22,9 +22,14 @@ export function getStompClient(): Client {
     return stompClient;
   }
 
+  console.info('[STOMP] Creating client, endpoint:', WS_ENDPOINT);
+
   stompClient = new Client({
     // Use SockJS factory for the underlying WebSocket connection
-    webSocketFactory: () => new SockJS(WS_ENDPOINT) as unknown as WebSocket,
+    webSocketFactory: () => {
+      console.info('[STOMP] Opening SockJS connection to', WS_ENDPOINT);
+      return new SockJS(WS_ENDPOINT) as unknown as WebSocket;
+    },
 
     // Auto-reconnect on connection loss
     reconnectDelay: RECONNECT_DELAY,
@@ -33,27 +38,29 @@ export function getStompClient(): Client {
     heartbeatIncoming: HEARTBEAT_INCOMING,
     heartbeatOutgoing: HEARTBEAT_OUTGOING,
 
-    // Debug logging (dev only)
+    // Debug logging — all STOMP frames
     debug: (msg) => {
-      if (import.meta.env.DEV) {
-        console.debug('[STOMP]', msg);
-      }
+      console.debug('[STOMP debug]', msg);
     },
 
-    onConnect: () => {
-      if (import.meta.env.DEV) {
-        console.info('[STOMP] Connected to', WS_ENDPOINT);
-      }
+    onConnect: (frame) => {
+      console.info('[STOMP] Connected successfully. Frame:', frame);
+    },
+
+    onDisconnect: (frame) => {
+      console.warn('[STOMP] Disconnected. Frame:', frame);
     },
 
     onStompError: (frame) => {
-      console.error('[STOMP] Error:', frame.headers['message'], frame.body);
+      console.error('[STOMP] STOMP error:', frame.headers['message'], frame.body);
     },
 
-    onWebSocketClose: () => {
-      if (import.meta.env.DEV) {
-        console.warn('[STOMP] WebSocket connection closed. Reconnecting...');
-      }
+    onWebSocketError: (event) => {
+      console.error('[STOMP] WebSocket error:', event);
+    },
+
+    onWebSocketClose: (event) => {
+      console.warn('[STOMP] WebSocket closed. Code:', event?.code, 'Reason:', event?.reason);
     },
   });
 
