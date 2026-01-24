@@ -890,6 +890,33 @@ export interface TranslationKeys {
             yourVersion: string;
         };
     };
+    dashboard: {
+        stats: {
+            inProgress: string;
+            readyForPickup: string;
+            arrivals: string;
+        };
+        metrics: {
+            revenueTitle: string;
+            callsTitle: string;
+            plannedThisWeek: string;
+            realizedLastWeek: string;
+            wowTrend: string;
+        };
+        calls: {
+            title: string;
+            empty: string;
+            actions: {
+                accept: string;
+                edit: string;
+                reject: string;
+            };
+        };
+        social: {
+            title: string;
+            placeholder: string;
+        };
+    };
 }
 
 export type TranslationKey = keyof TranslationKeys;

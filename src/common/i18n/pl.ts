@@ -891,5 +891,32 @@ export const pl: TranslationKeys = {
             currentVersion: 'Aktualna wersja',
             yourVersion: 'Twoja wersja',
         },
-    }
+    },
+    dashboard: {
+        stats: {
+            inProgress: 'W trakcie realizacji',
+            readyForPickup: 'Gotowe do oddania',
+            arrivals: 'Do przyjęcia dzisiaj',
+        },
+        metrics: {
+            revenueTitle: 'Wartość zleceń',
+            callsTitle: 'Aktywność telefoniczna',
+            plannedThisWeek: 'Zaplanowane (ten tydzień)',
+            realizedLastWeek: 'Zrealizowane (poprzedni tydzień)',
+            wowTrend: 'vs poprzedni tydzień',
+        },
+        calls: {
+            title: 'Poczekalnia połączeń',
+            empty: 'Brak nowych połączeń',
+            actions: {
+                accept: 'Zaakceptuj',
+                edit: 'Edytuj',
+                reject: 'Odrzuć',
+            },
+        },
+        social: {
+            title: 'Social Media Content',
+            placeholder: 'Wygeneruj treść posta na podstawie ostatniej realizacji',
+        },
+    },
 }
