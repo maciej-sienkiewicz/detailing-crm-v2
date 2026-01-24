@@ -83,9 +83,10 @@ const CallList = styled.div`
 
 const CallCard = styled.div<{ $isNew?: boolean }>`
   display: flex;
-  flex-direction: column;
-  gap: ${(props) => props.theme.spacing.sm};
-  padding: ${(props) => props.theme.spacing.md};
+  align-items: center;
+  justify-content: space-between;
+  gap: ${(props) => props.theme.spacing.md};
+  padding: ${(props) => props.theme.spacing.sm} ${(props) => props.theme.spacing.md};
   border: 1px solid ${(props) => props.theme.colors.border};
   border-radius: ${(props) => props.theme.radii.md};
   background-color: ${(props) => props.theme.colors.surface};
@@ -100,12 +101,6 @@ const CallCard = styled.div<{ $isNew?: boolean }>`
 
   &:hover {
     background-color: ${(props) => props.theme.colors.surfaceHover};
-  }
-
-  @media (min-width: ${(props) => props.theme.breakpoints.md}) {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
   }
 `;
 
@@ -139,8 +134,7 @@ const PhoneNumber = styled.div`
   font-size: ${(props) => props.theme.fontSizes.sm};
   font-weight: ${(props) => props.theme.fontWeights.medium};
   color: ${(props) => props.theme.colors.textSecondary};
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New',
-    monospace;
+  white-space: nowrap;
 `;
 
 const CallMeta = styled.div`
@@ -160,28 +154,22 @@ const CallNote = styled.div`
 
 const ActionButtons = styled.div`
   display: flex;
-  gap: ${(props) => props.theme.spacing.sm};
-  flex-wrap: wrap;
-
-  @media (min-width: ${(props) => props.theme.breakpoints.md}) {
-    flex-wrap: nowrap;
-  }
+  gap: ${(props) => props.theme.spacing.xs};
 `;
 
 const ActionButton = styled.button<{ $variant?: 'accept' | 'edit' | 'reject' }>`
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: ${(props) => props.theme.spacing.xs};
-  min-height: 44px;
-  padding: ${(props) => props.theme.spacing.sm} ${(props) => props.theme.spacing.md};
+  gap: 4px;
+  padding: 6px 10px;
   border: 1px solid ${(props) => props.theme.colors.border};
-  border-radius: ${(props) => props.theme.radii.md};
-  font-size: ${(props) => props.theme.fontSizes.sm};
+  border-radius: ${(props) => props.theme.radii.sm};
+  font-size: ${(props) => props.theme.fontSizes.xs};
   font-weight: ${(props) => props.theme.fontWeights.medium};
   cursor: pointer;
   transition: all ${(props) => props.theme.transitions.fast};
-  flex: 1;
+  white-space: nowrap;
 
   ${(props) => {
     switch (props.$variant) {
@@ -224,12 +212,8 @@ const ActionButton = styled.button<{ $variant?: 'accept' | 'edit' | 'reject' }>`
   }
 
   svg {
-    width: 16px;
-    height: 16px;
-  }
-
-  @media (min-width: ${(props) => props.theme.breakpoints.md}) {
-    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
   }
 `;
 
