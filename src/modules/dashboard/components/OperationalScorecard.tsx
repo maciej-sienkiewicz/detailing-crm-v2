@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import styled from 'styled-components';
+import { ChevronDown } from 'lucide-react';
 import { t } from '@/common/i18n';
 import { formatCurrency, formatPhoneNumber } from '@/common/utils/formatters';
 import type { OperationalStats, VisitDetail } from '../types';
@@ -54,13 +55,28 @@ const StatCard = styled.div<{ $isExpanded: boolean }>`
   `}
 `;
 
+const StatHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: ${(props) => props.theme.spacing.sm};
+`;
+
 const StatLabel = styled.div`
   font-size: ${(props) => props.theme.fontSizes.sm};
   font-weight: ${(props) => props.theme.fontWeights.medium};
   color: ${(props) => props.theme.colors.textSecondary};
-  margin-bottom: ${(props) => props.theme.spacing.sm};
   text-transform: uppercase;
   letter-spacing: 0.5px;
+`;
+
+const ExpandIcon = styled(ChevronDown)<{ $isExpanded: boolean }>`
+  width: 20px;
+  height: 20px;
+  color: ${(props) => props.theme.colors.primary};
+  transition: transform ${(props) => props.theme.transitions.normal};
+  transform: ${(props) => (props.$isExpanded ? 'rotate(180deg)' : 'rotate(0deg)')};
+  flex-shrink: 0;
 `;
 
 const StatValue = styled.div`
@@ -72,6 +88,16 @@ const StatValue = styled.div`
   @media (min-width: ${(props) => props.theme.breakpoints.md}) {
     font-size: 40px;
   }
+`;
+
+const HintText = styled.div`
+  font-size: ${(props) => props.theme.fontSizes.xs};
+  color: ${(props) => props.theme.colors.textMuted};
+  margin-top: ${(props) => props.theme.spacing.xs};
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0.8;
 `;
 
 const StatSkeleton = styled.div`
@@ -236,8 +262,18 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
           $isExpanded={expandedCard === 'inProgress'}
           onClick={() => stats && handleCardClick('inProgress')}
         >
-          <StatLabel>{t.dashboard.stats.inProgress}</StatLabel>
-          {stats ? <StatValue>{stats.inProgress}</StatValue> : <StatSkeleton />}
+          <StatHeader>
+            <StatLabel>{t.dashboard.stats.inProgress}</StatLabel>
+            {stats && <ExpandIcon $isExpanded={expandedCard === 'inProgress'} />}
+          </StatHeader>
+          {stats ? (
+            <>
+              <StatValue>{stats.inProgress}</StatValue>
+              <HintText>Kliknij aby zobaczyć szczegóły</HintText>
+            </>
+          ) : (
+            <StatSkeleton />
+          )}
         </StatCard>
         {stats && (
           <ExpandedList
@@ -258,8 +294,18 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
           $isExpanded={expandedCard === 'readyForPickup'}
           onClick={() => stats && handleCardClick('readyForPickup')}
         >
-          <StatLabel>{t.dashboard.stats.readyForPickup}</StatLabel>
-          {stats ? <StatValue>{stats.readyForPickup}</StatValue> : <StatSkeleton />}
+          <StatHeader>
+            <StatLabel>{t.dashboard.stats.readyForPickup}</StatLabel>
+            {stats && <ExpandIcon $isExpanded={expandedCard === 'readyForPickup'} />}
+          </StatHeader>
+          {stats ? (
+            <>
+              <StatValue>{stats.readyForPickup}</StatValue>
+              <HintText>Kliknij aby zobaczyć szczegóły</HintText>
+            </>
+          ) : (
+            <StatSkeleton />
+          )}
         </StatCard>
         {stats && (
           <ExpandedList
@@ -280,8 +326,18 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
           $isExpanded={expandedCard === 'incomingToday'}
           onClick={() => stats && handleCardClick('incomingToday')}
         >
-          <StatLabel>{t.dashboard.stats.arrivals}</StatLabel>
-          {stats ? <StatValue>{stats.incomingToday}</StatValue> : <StatSkeleton />}
+          <StatHeader>
+            <StatLabel>{t.dashboard.stats.arrivals}</StatLabel>
+            {stats && <ExpandIcon $isExpanded={expandedCard === 'incomingToday'} />}
+          </StatHeader>
+          {stats ? (
+            <>
+              <StatValue>{stats.incomingToday}</StatValue>
+              <HintText>Kliknij aby zobaczyć szczegóły</HintText>
+            </>
+          ) : (
+            <StatSkeleton />
+          )}
         </StatCard>
         {stats && (
           <ExpandedList
