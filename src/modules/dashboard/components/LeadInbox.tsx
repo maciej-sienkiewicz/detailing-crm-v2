@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import { Phone, Check, X, Edit2 } from 'lucide-react';
 import { t } from '@/common/i18n';
 import { formatPhoneNumber } from '@/common/utils/formatters';
@@ -93,10 +93,10 @@ const CallCard = styled.div<{ $isNew?: boolean }>`
 
   ${(props) =>
     props.$isNew &&
-    `
-    border-color: ${props.theme.colors.primary};
-    animation: ${slideIn} 0.3s ease-out, ${pulse} 2s ease-in-out 0.3s infinite;
-  `}
+    css`
+      border-color: ${props.theme.colors.primary};
+      animation: ${slideIn} 0.3s ease-out, ${pulse} 2s ease-in-out 0.3s infinite;
+    `}
 
   &:hover {
     background-color: ${(props) => props.theme.colors.surfaceHover};
