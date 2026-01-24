@@ -16,6 +16,7 @@ import { ConsentSettingsView } from "@/modules/consents";
 import { CalendarPageView } from "@/modules/calendar";
 import { ProtocolRulesView, ProtocolDemoView } from "@/modules/protocols";
 import { ProtectedRoute } from './components/ProtectedRoute';
+import {DashboardView} from "@/modules/dashboard";
 
 export const router = createBrowserRouter([
     {
@@ -53,6 +54,14 @@ export const router = createBrowserRouter([
         element: (
             <ProtectedRoute>
                 <Layout><CalendarPageView /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/dashboard',
+        element: (
+            <ProtectedRoute>
+                <Layout><DashboardView /></Layout>
             </ProtectedRoute>
         ),
     },

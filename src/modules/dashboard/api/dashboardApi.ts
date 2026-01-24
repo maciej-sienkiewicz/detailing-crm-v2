@@ -5,6 +5,7 @@
  */
 
 import type { DashboardData, IncomingCall } from '../types';
+import {apiClient} from "@/core";
 
 const USE_MOCKS = true;
 
@@ -308,15 +309,8 @@ export const dashboardApi = {
    * @returns Promise resolving to dashboard data
    */
   getStats: async (): Promise<DashboardData> => {
-    if (USE_MOCKS) {
-      return mockGetStats();
-    }
-
-    // TODO: Replace with actual API call when backend is ready
-    // const response = await apiClient.get('/v1/dashboard/stats');
-    // return response.data;
-
-    throw new Error('Real API not implemented yet');
+      const response = await apiClient.get('/v1/dashboard/stats');
+      return response.data;
   },
 
   /**
