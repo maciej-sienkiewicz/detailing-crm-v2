@@ -916,6 +916,14 @@ export interface TranslationKeys {
             title: string;
             placeholder: string;
         };
+        googleReviews: {
+            title: string;
+            averageRating: string;
+            totalReviews: string;
+            newReviews: string;
+            recentReviews: string;
+            competitorRanking: string;
+        };
     };
 }
 

@@ -4,6 +4,26 @@
  */
 
 /**
+ * Visit detail for operational stats hover
+ */
+export interface VisitDetail {
+  /** Unique visit identifier */
+  id: string;
+  /** Vehicle brand */
+  brand: string;
+  /** Vehicle model */
+  model: string;
+  /** Visit value in PLN */
+  amount: number;
+  /** Customer first name */
+  customerFirstName: string;
+  /** Customer last name */
+  customerLastName: string;
+  /** Customer phone number (optional) */
+  phoneNumber?: string;
+}
+
+/**
  * Operational statistics showing current work status
  */
 export interface OperationalStats {
@@ -13,6 +33,12 @@ export interface OperationalStats {
   readyForPickup: number;
   /** Number of new orders scheduled to arrive today */
   incomingToday: number;
+  /** Details of visits in progress */
+  inProgressDetails: VisitDetail[];
+  /** Details of visits ready for pickup */
+  readyForPickupDetails: VisitDetail[];
+  /** Details of visits arriving today */
+  incomingTodayDetails: VisitDetail[];
 }
 
 /**
@@ -46,6 +72,56 @@ export interface IncomingCall {
 }
 
 /**
+ * Individual Google review
+ */
+export interface GoogleReview {
+  /** Unique review identifier */
+  id: string;
+  /** Reviewer name */
+  authorName: string;
+  /** Rating (1-5 stars) */
+  rating: number;
+  /** Review text */
+  text: string;
+  /** ISO timestamp of review */
+  timestamp: string;
+  /** Whether business replied */
+  hasReply: boolean;
+}
+
+/**
+ * Competitor ranking data
+ */
+export interface CompetitorRanking {
+  /** Business name */
+  name: string;
+  /** Average rating */
+  rating: number;
+  /** Number of reviews */
+  reviewCount: number;
+  /** Position in search results (1-based) */
+  position: number;
+  /** Whether this is our business */
+  isOurs: boolean;
+}
+
+/**
+ * Google reviews statistics
+ */
+export interface GoogleReviewsData {
+  /** Current average rating */
+  averageRating: number;
+  /** Total number of reviews */
+  totalReviews: number;
+  /** Number of new reviews (last 30 days) */
+  newReviews: number;
+  /** Recent reviews */
+  recentReviews: GoogleReview[];
+  /** Competitor rankings in region */
+  competitors: CompetitorRanking[];
+}
+
+/**
  * Complete dashboard data response
  */
 export interface DashboardData {
@@ -57,4 +133,6 @@ export interface DashboardData {
   callActivity: BusinessMetric;
   /** List of recent incoming calls */
   recentCalls: IncomingCall[];
+  /** Google reviews statistics */
+  googleReviews: GoogleReviewsData;
 }

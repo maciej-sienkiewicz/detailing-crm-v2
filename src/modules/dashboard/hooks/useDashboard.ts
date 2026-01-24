@@ -66,6 +66,7 @@ export const useDashboard = () => {
     revenue: data?.revenue,
     callActivity: data?.callActivity,
     recentCalls: data?.recentCalls || [],
+    googleReviews: data?.googleReviews,
 
     // Loading states
     isLoading,

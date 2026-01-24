@@ -918,5 +918,13 @@ export const pl: TranslationKeys = {
             title: 'Social Media Content',
             placeholder: 'Wygeneruj treść posta na podstawie ostatniej realizacji',
         },
+        googleReviews: {
+            title: 'Opinie na Google',
+            averageRating: 'Średnia ocena',
+            totalReviews: 'Łączna liczba opinii',
+            newReviews: 'Nowe opinie',
+            recentReviews: 'Ostatnie opinie',
+            competitorRanking: 'Ranking konkurencji',
+        },
     },
 }

@@ -8,6 +8,7 @@ import { OperationalScorecard } from '../components/OperationalScorecard';
 import { AnalyticsSection } from '../components/AnalyticsSection';
 import { LeadInbox } from '../components/LeadInbox';
 import { SocialMediaPlaceholder } from '../components/SocialMediaPlaceholder';
+import { GoogleReviewsSection } from '../components/GoogleReviewsSection';
 import { useDashboard } from '../hooks';
 
 const ViewContainer = styled.main`
@@ -97,6 +98,7 @@ export const DashboardView = () => {
     revenue,
     callActivity,
     recentCalls,
+    googleReviews,
     isLoading,
     isError,
     refetch,
@@ -144,6 +146,9 @@ export const DashboardView = () => {
           />
         </SideColumn>
       </DashboardGrid>
+
+      {/* Google Reviews Section - Full Width */}
+      <GoogleReviewsSection data={googleReviews} />
     </ViewContainer>
   );
 };

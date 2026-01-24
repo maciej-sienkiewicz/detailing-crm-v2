@@ -1,11 +1,14 @@
 /**
  * Operational Scorecard Component
  * Displays three high-contrast cards showing current operational statistics
+ * with expandable hover lists showing detailed visit information
  */
 
+import { useState } from 'react';
 import styled from 'styled-components';
 import { t } from '@/common/i18n';
-import type { OperationalStats } from '../types';
+import { formatCurrency, formatPhoneNumber } from '@/common/utils/formatters';
+import type { OperationalStats, VisitDetail } from '../types';
 
 interface OperationalScorecardProps {
   stats?: OperationalStats;
@@ -21,19 +24,34 @@ const ScorecardContainer = styled.div`
   }
 `;
 
-const StatCard = styled.div`
+const StatCardWrapper = styled.div`
+  position: relative;
+`;
+
+const StatCard = styled.div<{ $isExpanded: boolean }>`
   background-color: ${(props) => props.theme.colors.surface};
   border-radius: ${(props) => props.theme.radii.lg};
   padding: ${(props) => props.theme.spacing.lg};
   box-shadow: ${(props) => props.theme.shadows.md};
   border: 1px solid ${(props) => props.theme.colors.border};
   transition: transform ${(props) => props.theme.transitions.normal},
-    box-shadow ${(props) => props.theme.transitions.normal};
+    box-shadow ${(props) => props.theme.transitions.normal},
+    border-color ${(props) => props.theme.transitions.normal};
+  cursor: pointer;
+  user-select: none;
 
   &:hover {
     transform: translateY(-2px);
     box-shadow: ${(props) => props.theme.shadows.lg};
+    border-color: ${(props) => props.theme.colors.primary};
   }
+
+  ${(props) =>
+    props.$isExpanded &&
+    `
+    border-color: ${props.theme.colors.primary};
+    box-shadow: ${props.theme.shadows.lg};
+  `}
 `;
 
 const StatLabel = styled.div`
@@ -78,23 +96,222 @@ const StatSkeleton = styled.div`
   }
 `;
 
+const ExpandedList = styled.div<{ $isVisible: boolean }>`
+  position: absolute;
+  top: calc(100% + ${(props) => props.theme.spacing.sm});
+  left: 0;
+  right: 0;
+  background-color: ${(props) => props.theme.colors.surface};
+  border-radius: ${(props) => props.theme.radii.lg};
+  box-shadow: ${(props) => props.theme.shadows.xl};
+  border: 1px solid ${(props) => props.theme.colors.primary};
+  z-index: 10;
+  max-height: 400px;
+  overflow-y: auto;
+  opacity: ${(props) => (props.$isVisible ? 1 : 0)};
+  transform: ${(props) => (props.$isVisible ? 'translateY(0)' : 'translateY(-10px)')};
+  pointer-events: ${(props) => (props.$isVisible ? 'auto' : 'none')};
+  transition: opacity ${(props) => props.theme.transitions.normal},
+    transform ${(props) => props.theme.transitions.normal};
+
+  /* Mobile: full width */
+  @media (max-width: ${(props) => props.theme.breakpoints.sm}) {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 60vh;
+    border-radius: ${(props) => props.theme.radii.lg} ${(props) => props.theme.radii.lg} 0 0;
+  }
+`;
+
+const VisitItem = styled.div`
+  padding: ${(props) => props.theme.spacing.md};
+  border-bottom: 1px solid ${(props) => props.theme.colors.border};
+  transition: background-color ${(props) => props.theme.transitions.fast};
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: ${(props) => props.theme.colors.surfaceHover};
+  }
+`;
+
+const VehicleInfo = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: ${(props) => props.theme.spacing.xs};
+`;
+
+const VehicleName = styled.div`
+  font-size: ${(props) => props.theme.fontSizes.md};
+  font-weight: ${(props) => props.theme.fontWeights.semibold};
+  color: ${(props) => props.theme.colors.text};
+`;
+
+const VisitAmount = styled.div`
+  font-size: ${(props) => props.theme.fontSizes.md};
+  font-weight: ${(props) => props.theme.fontWeights.bold};
+  color: ${(props) => props.theme.colors.primary};
+`;
+
+const CustomerInfo = styled.div`
+  font-size: ${(props) => props.theme.fontSizes.sm};
+  color: ${(props) => props.theme.colors.textSecondary};
+  margin-bottom: ${(props) => props.theme.spacing.xs};
+`;
+
+const PhoneInfo = styled.div`
+  font-size: ${(props) => props.theme.fontSizes.sm};
+  color: ${(props) => props.theme.colors.textMuted};
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New',
+    monospace;
+`;
+
+const EmptyMessage = styled.div`
+  padding: ${(props) => props.theme.spacing.lg};
+  text-align: center;
+  color: ${(props) => props.theme.colors.textMuted};
+  font-size: ${(props) => props.theme.fontSizes.sm};
+`;
+
+const ListHeader = styled.div`
+  padding: ${(props) => props.theme.spacing.md};
+  background-color: ${(props) => props.theme.colors.surfaceAlt};
+  border-bottom: 2px solid ${(props) => props.theme.colors.border};
+  font-weight: ${(props) => props.theme.fontWeights.semibold};
+  font-size: ${(props) => props.theme.fontSizes.sm};
+  color: ${(props) => props.theme.colors.text};
+  position: sticky;
+  top: 0;
+  z-index: 1;
+`;
+
+const VisitList = ({ visits, label }: { visits: VisitDetail[]; label: string }) => {
+  return (
+    <>
+      <ListHeader>{label}</ListHeader>
+      {visits.length === 0 ? (
+        <EmptyMessage>Brak wizyt</EmptyMessage>
+      ) : (
+        visits.map((visit) => (
+          <VisitItem key={visit.id}>
+            <VehicleInfo>
+              <VehicleName>
+                {visit.brand} {visit.model}
+              </VehicleName>
+              <VisitAmount>{formatCurrency(visit.amount)}</VisitAmount>
+            </VehicleInfo>
+            <CustomerInfo>
+              {visit.customerFirstName} {visit.customerLastName}
+            </CustomerInfo>
+            {visit.phoneNumber && <PhoneInfo>{formatPhoneNumber(visit.phoneNumber)}</PhoneInfo>}
+          </VisitItem>
+        ))
+      )}
+    </>
+  );
+};
+
 export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+
+  const handleCardClick = (cardId: string) => {
+    setExpandedCard((prev) => (prev === cardId ? null : cardId));
+  };
+
+  const handleClose = () => {
+    setExpandedCard(null);
+  };
+
   return (
     <ScorecardContainer>
-      <StatCard>
-        <StatLabel>{t.dashboard.stats.inProgress}</StatLabel>
-        {stats ? <StatValue>{stats.inProgress}</StatValue> : <StatSkeleton />}
-      </StatCard>
+      {/* In Progress */}
+      <StatCardWrapper>
+        <StatCard
+          $isExpanded={expandedCard === 'inProgress'}
+          onClick={() => stats && handleCardClick('inProgress')}
+        >
+          <StatLabel>{t.dashboard.stats.inProgress}</StatLabel>
+          {stats ? <StatValue>{stats.inProgress}</StatValue> : <StatSkeleton />}
+        </StatCard>
+        {stats && (
+          <ExpandedList
+            $isVisible={expandedCard === 'inProgress'}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <VisitList
+              visits={stats.inProgressDetails}
+              label={t.dashboard.stats.inProgress}
+            />
+          </ExpandedList>
+        )}
+      </StatCardWrapper>
 
-      <StatCard>
-        <StatLabel>{t.dashboard.stats.readyForPickup}</StatLabel>
-        {stats ? <StatValue>{stats.readyForPickup}</StatValue> : <StatSkeleton />}
-      </StatCard>
+      {/* Ready for Pickup */}
+      <StatCardWrapper>
+        <StatCard
+          $isExpanded={expandedCard === 'readyForPickup'}
+          onClick={() => stats && handleCardClick('readyForPickup')}
+        >
+          <StatLabel>{t.dashboard.stats.readyForPickup}</StatLabel>
+          {stats ? <StatValue>{stats.readyForPickup}</StatValue> : <StatSkeleton />}
+        </StatCard>
+        {stats && (
+          <ExpandedList
+            $isVisible={expandedCard === 'readyForPickup'}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <VisitList
+              visits={stats.readyForPickupDetails}
+              label={t.dashboard.stats.readyForPickup}
+            />
+          </ExpandedList>
+        )}
+      </StatCardWrapper>
 
-      <StatCard>
-        <StatLabel>{t.dashboard.stats.arrivals}</StatLabel>
-        {stats ? <StatValue>{stats.incomingToday}</StatValue> : <StatSkeleton />}
-      </StatCard>
+      {/* Incoming Today */}
+      <StatCardWrapper>
+        <StatCard
+          $isExpanded={expandedCard === 'incomingToday'}
+          onClick={() => stats && handleCardClick('incomingToday')}
+        >
+          <StatLabel>{t.dashboard.stats.arrivals}</StatLabel>
+          {stats ? <StatValue>{stats.incomingToday}</StatValue> : <StatSkeleton />}
+        </StatCard>
+        {stats && (
+          <ExpandedList
+            $isVisible={expandedCard === 'incomingToday'}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <VisitList
+              visits={stats.incomingTodayDetails}
+              label={t.dashboard.stats.arrivals}
+            />
+          </ExpandedList>
+        )}
+      </StatCardWrapper>
+
+      {/* Overlay for mobile to close expanded list */}
+      {expandedCard && (
+        <div
+          onClick={handleClose}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 9,
+            display: window.innerWidth < 640 ? 'block' : 'none',
+          }}
+        />
+      )}
     </ScorecardContainer>
   );
 };
