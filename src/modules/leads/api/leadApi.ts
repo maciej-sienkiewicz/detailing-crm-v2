@@ -209,12 +209,36 @@ const mockGetPipelineSummary = async (): Promise<LeadPipelineSummary> => {
         0
       );
 
+      // Calculate this month's value
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const leadsThisMonth = mockLeadsStore.filter(
+        (l) => new Date(l.createdAt) >= startOfMonth
+      );
+      const leadsValueThisMonth = leadsThisMonth.reduce(
+        (sum, lead) => sum + lead.estimatedValue,
+        0
+      );
+
+      // Mock conversion rates (in real scenario, this would be calculated from historical data)
+      const totalClosedThisWeek = converted.length + abandoned.length;
+      const conversionRateThisWeek = totalClosedThisWeek > 0
+        ? Math.round((converted.length / totalClosedThisWeek) * 100)
+        : 0;
+
+      // Previous week mock data (simulated)
+      const conversionRatePreviousWeek = 62; // Mock value for comparison
+
       resolve({
         totalPipelineValue,
         pendingCount: pending.length,
         inProgressCount: inProgress.length,
         convertedCount: converted.length,
         abandonedCount: abandoned.length,
+        totalLeadsCount: mockLeadsStore.length,
+        conversionRateThisWeek,
+        conversionRatePreviousWeek,
+        leadsValueThisMonth,
       });
     }, 200);
   });

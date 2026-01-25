@@ -2,7 +2,7 @@
 import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { t } from '@/common/i18n';
-import { LeadTable, LeadForm, PipelineSummaryWidget } from '../components';
+import { LeadTable, LeadForm, LeadStatsBar } from '../components';
 import { useLeads, useLeadSocket } from '../hooks';
 import { LeadStatus } from '../types';
 import type { Lead, LeadListFilters } from '../types';
@@ -122,26 +122,18 @@ const RefreshButton = styled.button`
   }
 `;
 
-const ContentGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: ${props => props.theme.spacing.lg};
-
-  @media (min-width: ${props => props.theme.breakpoints.lg}) {
-    grid-template-columns: 1fr 280px;
-  }
-`;
-
 const MainContent = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${props => props.theme.spacing.md};
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
 `;
 
-const Sidebar = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${props => props.theme.spacing.md};
+const TableWrapper = styled.div`
+  width: 100%;
+  overflow-x: auto;
 `;
 
 const FiltersBar = styled.div`
@@ -376,80 +368,78 @@ export const LeadListView: React.FC = () => {
         </HeaderActions>
       </PageHeader>
 
-      <ContentGrid>
-        <MainContent>
-          <FiltersBar>
-            <SearchInputWrapper>
-              <SearchIconWrapper>
-                <SearchIcon />
-              </SearchIconWrapper>
-              <SearchInput
-                type="text"
-                placeholder="Szukaj po kontakcie, nazwie..."
-                value={filters.search}
-                onChange={handleSearchChange}
-              />
-            </SearchInputWrapper>
+      <LeadStatsBar />
 
-            <Divider />
+      <MainContent>
+        <FiltersBar>
+          <SearchInputWrapper>
+            <SearchIconWrapper>
+              <SearchIcon />
+            </SearchIconWrapper>
+            <SearchInput
+              type="text"
+              placeholder="Szukaj po kontakcie, nazwie..."
+              value={filters.search}
+              onChange={handleSearchChange}
+            />
+          </SearchInputWrapper>
 
-            <FilterGroup>
-              {statusOptions.map((option) => (
-                <FilterChip
-                  key={option.value}
-                  $isActive={activeStatusFilter === option.value}
-                  onClick={() => handleStatusFilter(option.value)}
-                >
-                  {option.label}
-                </FilterChip>
-              ))}
-            </FilterGroup>
-          </FiltersBar>
+          <Divider />
 
-          {isError ? (
-            <ErrorState>
-              <p>Nie udało się załadować leadów</p>
-              <button onClick={() => refetch()}>Spróbuj ponownie</button>
-            </ErrorState>
-          ) : (
+          <FilterGroup>
+            {statusOptions.map((option) => (
+              <FilterChip
+                key={option.value}
+                $isActive={activeStatusFilter === option.value}
+                onClick={() => handleStatusFilter(option.value)}
+              >
+                {option.label}
+              </FilterChip>
+            ))}
+          </FilterGroup>
+        </FiltersBar>
+
+        {isError ? (
+          <ErrorState>
+            <p>Nie udało się załadować leadów</p>
+            <button onClick={() => refetch()}>Spróbuj ponownie</button>
+          </ErrorState>
+        ) : (
+          <TableWrapper>
             <LeadTable
               leads={leads}
               isLoading={isLoading}
               onRowClick={handleLeadClick}
             />
-          )}
+          </TableWrapper>
+        )}
 
-          {pagination && pagination.totalPages > 1 && (
-            <PaginationBar>
-              <PaginationInfo>
-                {t.common.showing} {(pagination.currentPage - 1) * pagination.itemsPerPage + 1} -{' '}
-                {Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)}{' '}
-                {t.common.of} {pagination.totalItems}
-              </PaginationInfo>
-              <PaginationButtons>
-                <PaginationButton
-                  $disabled={pagination.currentPage === 1}
-                  onClick={() => handlePageChange(pagination.currentPage - 1)}
-                  disabled={pagination.currentPage === 1}
-                >
-                  {t.common.previous}
-                </PaginationButton>
-                <PaginationButton
-                  $disabled={pagination.currentPage === pagination.totalPages}
-                  onClick={() => handlePageChange(pagination.currentPage + 1)}
-                  disabled={pagination.currentPage === pagination.totalPages}
-                >
-                  {t.common.next}
-                </PaginationButton>
-              </PaginationButtons>
-            </PaginationBar>
-          )}
-        </MainContent>
-
-        <Sidebar>
-          <PipelineSummaryWidget />
-        </Sidebar>
-      </ContentGrid>
+        {pagination && pagination.totalPages > 1 && (
+          <PaginationBar>
+            <PaginationInfo>
+              {t.common.showing} {(pagination.currentPage - 1) * pagination.itemsPerPage + 1} -{' '}
+              {Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)}{' '}
+              {t.common.of} {pagination.totalItems}
+            </PaginationInfo>
+            <PaginationButtons>
+              <PaginationButton
+                $disabled={pagination.currentPage === 1}
+                onClick={() => handlePageChange(pagination.currentPage - 1)}
+                disabled={pagination.currentPage === 1}
+              >
+                {t.common.previous}
+              </PaginationButton>
+              <PaginationButton
+                $disabled={pagination.currentPage === pagination.totalPages}
+                onClick={() => handlePageChange(pagination.currentPage + 1)}
+                disabled={pagination.currentPage === pagination.totalPages}
+              >
+                {t.common.next}
+              </PaginationButton>
+            </PaginationButtons>
+          </PaginationBar>
+        )}
+      </MainContent>
 
       <LeadForm
         isOpen={isFormOpen}

@@ -2,4 +2,5 @@
 export * from './LeadInbox';
 export * from './LeadForm';
 export * from './LeadTable';
+export * from './LeadStatsBar';
 export * from './PipelineSummaryWidget';

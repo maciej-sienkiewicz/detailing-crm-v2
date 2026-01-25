@@ -157,6 +157,14 @@ export interface LeadPipelineSummary {
   convertedCount: number;
   /** Count of ABANDONED leads */
   abandonedCount: number;
+  /** Total leads count (all time) */
+  totalLeadsCount: number;
+  /** Conversion rate this week (percentage 0-100) */
+  conversionRateThisWeek: number;
+  /** Conversion rate previous week (percentage 0-100) */
+  conversionRatePreviousWeek: number;
+  /** Total value of leads created this month in grosze */
+  leadsValueThisMonth: number;
 }
 
 /**
