@@ -925,6 +925,50 @@ export interface TranslationKeys {
             competitorRanking: string;
         };
     };
+    leads: {
+        title: string;
+        subtitle: string;
+        fields: {
+            contact: string;
+            estimatedValue: string;
+            name: string;
+            source: string;
+        };
+        sources: {
+            phone: string;
+            email: string;
+            manual: string;
+        };
+        status: {
+            pending: string;
+            inProgress: string;
+            converted: string;
+            abandoned: string;
+        };
+        actions: {
+            add: string;
+            editValue: string;
+            markAsHandled: string;
+        };
+        empty: {
+            title: string;
+            description: string;
+        };
+        error: {
+            loadFailed: string;
+            createFailed: string;
+            updateFailed: string;
+        };
+        pipeline: {
+            title: string;
+            totalValue: string;
+        };
+        toast: {
+            newCall: string;
+            created: string;
+            updated: string;
+        };
+    };
 }
 
 export type TranslationKey = keyof TranslationKeys;

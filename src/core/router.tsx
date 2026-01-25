@@ -15,6 +15,7 @@ import { AppointmentColorListView } from "@/modules/appointment-colors";
 import { ConsentSettingsView } from "@/modules/consents";
 import { CalendarPageView } from "@/modules/calendar";
 import { ProtocolRulesView, ProtocolDemoView } from "@/modules/protocols";
+import { LeadListView } from "@/modules/leads";
 import { ProtectedRoute } from './components/ProtectedRoute';
 import {DashboardView} from "@/modules/dashboard";
 
@@ -166,6 +167,14 @@ export const router = createBrowserRouter([
         element: (
             <ProtectedRoute>
                 <Layout><ProtocolDemoView /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/leads',
+        element: (
+            <ProtectedRoute>
+                <Layout><LeadListView /></Layout>
             </ProtectedRoute>
         ),
     },

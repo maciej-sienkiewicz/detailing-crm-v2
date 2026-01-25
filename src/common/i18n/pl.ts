@@ -927,4 +927,48 @@ export const pl: TranslationKeys = {
             competitorRanking: 'Ranking konkurencji',
         },
     },
+    leads: {
+        title: 'Leady',
+        subtitle: 'Zarządzaj zapytaniami i potencjalnymi klientami',
+        fields: {
+            contact: 'Kontakt',
+            estimatedValue: 'Szacowana wartość',
+            name: 'Klient',
+            source: 'Źródło',
+        },
+        sources: {
+            phone: 'Telefon',
+            email: 'E-mail',
+            manual: 'Ręczne',
+        },
+        status: {
+            pending: 'Nowy',
+            inProgress: 'W kontakcie',
+            converted: 'Zrealizowany',
+            abandoned: 'Odpuszczony',
+        },
+        actions: {
+            add: 'Dodaj lead',
+            editValue: 'Zmień wycenę',
+            markAsHandled: 'Oznacz jako obsługiwany',
+        },
+        empty: {
+            title: 'Brak leadów',
+            description: 'Nowe leady pojawią się tutaj automatycznie',
+        },
+        error: {
+            loadFailed: 'Nie udało się załadować leadów. Spróbuj ponownie.',
+            createFailed: 'Nie udało się utworzyć leada. Spróbuj ponownie.',
+            updateFailed: 'Nie udało się zaktualizować leada. Spróbuj ponownie.',
+        },
+        pipeline: {
+            title: 'Potencjał pipeline\'u',
+            totalValue: 'Łączna wartość',
+        },
+        toast: {
+            newCall: 'Nowe połączenie przychodzące',
+            created: 'Lead został dodany',
+            updated: 'Lead został zaktualizowany',
+        },
+    },
 }
