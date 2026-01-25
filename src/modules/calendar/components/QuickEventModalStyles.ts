@@ -533,16 +533,34 @@ export const Footer = styled.div`
     flex-shrink: 0;
 `;
 
-export const ColorPickerSection = styled.div`
+export const ColorPickerWrapper = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+export const ColorPickerSection = styled.div<{ $hasError?: boolean }>`
     display: flex;
     align-items: center;
     gap: 12px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 2px solid ${props => props.$hasError ? '#ef4444' : 'transparent'};
+    background: ${props => props.$hasError ? '#fef2f2' : 'transparent'};
+    transition: all 0.2s ease;
 
     svg {
-        color: #9ca3af;
+        color: ${props => props.$hasError ? '#ef4444' : '#9ca3af'};
         width: 20px;
         height: 20px;
     }
+`;
+
+export const ColorErrorMessage = styled.div`
+    font-size: 12px;
+    color: #ef4444;
+    font-weight: 500;
+    padding-left: 12px;
 `;
 
 export const ColorPickerList = styled.div`

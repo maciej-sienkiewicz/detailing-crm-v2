@@ -323,6 +323,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             }
         }
 
+        // Walidacja koloru
+        if (!selectedColorId) {
+            newErrors.color = 'Wybierz kolor wizyty lub dodaj nowy';
+        }
+
         // Walidacja usług
         if (selectedServiceIds.length === 0) {
             newErrors.services = 'Dodaj przynajmniej jedną usługę';
@@ -767,28 +772,31 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                         </S.ScrollableContent>
 
                         <S.Footer>
-                            <S.ColorPickerSection>
-                                <IconPalette />
-                                <S.ColorPickerList>
-                                    {appointmentColors.map((color: AppointmentColor) => (
-                                        <S.ColorButton
-                                            key={color.id}
+                            <S.ColorPickerWrapper>
+                                <S.ColorPickerSection $hasError={!!errors.color}>
+                                    <IconPalette />
+                                    <S.ColorPickerList>
+                                        {appointmentColors.map((color: AppointmentColor) => (
+                                            <S.ColorButton
+                                                key={color.id}
+                                                type="button"
+                                                onClick={() => setSelectedColorId(color.id)}
+                                                $color={color.hexColor}
+                                                $isSelected={color.id === selectedColorId}
+                                                title={color.name}
+                                            />
+                                        ))}
+                                        <S.AddColorButton
                                             type="button"
-                                            onClick={() => setSelectedColorId(color.id)}
-                                            $color={color.hexColor}
-                                            $isSelected={color.id === selectedColorId}
-                                            title={color.name}
-                                        />
-                                    ))}
-                                    <S.AddColorButton
-                                        type="button"
-                                        onClick={() => setIsQuickColorModalOpen(true)}
-                                        title="Dodaj nowy kolor"
-                                    >
-                                        <IconPlus />
-                                    </S.AddColorButton>
-                                </S.ColorPickerList>
-                            </S.ColorPickerSection>
+                                            onClick={() => setIsQuickColorModalOpen(true)}
+                                            title="Dodaj nowy kolor"
+                                        >
+                                            <IconPlus />
+                                        </S.AddColorButton>
+                                    </S.ColorPickerList>
+                                </S.ColorPickerSection>
+                                {errors.color && <S.ColorErrorMessage>{errors.color}</S.ColorErrorMessage>}
+                            </S.ColorPickerWrapper>
 
                             <S.FooterActions>
                                 <S.Button
