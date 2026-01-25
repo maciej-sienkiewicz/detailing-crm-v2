@@ -2,7 +2,7 @@
 import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { t } from '@/common/i18n';
-import { LeadInbox, LeadForm, PipelineSummaryWidget } from '../components';
+import { LeadTable, LeadForm, PipelineSummaryWidget } from '../components';
 import { useLeads, useLeadSocket } from '../hooks';
 import { LeadStatus } from '../types';
 import type { Lead, LeadListFilters } from '../types';
@@ -412,10 +412,10 @@ export const LeadListView: React.FC = () => {
               <button onClick={() => refetch()}>Spróbuj ponownie</button>
             </ErrorState>
           ) : (
-            <LeadInbox
+            <LeadTable
               leads={leads}
               isLoading={isLoading}
-              onLeadClick={handleLeadClick}
+              onRowClick={handleLeadClick}
             />
           )}
 
