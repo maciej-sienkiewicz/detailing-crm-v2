@@ -120,6 +120,31 @@ const TrendText = styled.span`
   margin-left: 4px;
 `;
 
+const ValueBreakdown = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+`;
+
+const ValueRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: ${props => props.theme.fontSizes.xs};
+`;
+
+const ValueLabel = styled.span`
+  color: ${props => props.theme.colors.textMuted};
+`;
+
+const ValueAmount = styled.span<{ $color?: string }>`
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-feature-settings: 'tnum';
+  color: ${props => props.$color || props.theme.colors.textSecondary};
+  font-weight: ${props => props.theme.fontWeights.medium};
+`;
+
 const SkeletonCard = styled(StatCard)`
   min-height: 84px;
 `;
@@ -217,6 +242,16 @@ export const LeadStatsBar: React.FC<LeadStatsBarProps> = ({ sourceFilter }) => {
         <StatContent>
           <StatLabel>Wartość (ten miesiąc)</StatLabel>
           <StatValue>{formatCurrency(summary.leadsValueThisMonth)}</StatValue>
+          <ValueBreakdown>
+            <ValueRow>
+              <ValueLabel>Zrealizowane</ValueLabel>
+              <ValueAmount $color="#16a34a">{formatCurrency(summary.convertedValueThisMonth)}</ValueAmount>
+            </ValueRow>
+            <ValueRow>
+              <ValueLabel>Otwarte</ValueLabel>
+              <ValueAmount>{formatCurrency(summary.totalPipelineValue)}</ValueAmount>
+            </ValueRow>
+          </ValueBreakdown>
         </StatContent>
       </StatCard>
     </StatsContainer>

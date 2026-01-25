@@ -169,6 +169,8 @@ export interface LeadPipelineSummary {
   convertedPreviousWeekValue: number;
   /** Total value of leads created this month in grosze */
   leadsValueThisMonth: number;
+  /** Value of converted leads this month in grosze */
+  convertedValueThisMonth: number;
 }
 
 /**

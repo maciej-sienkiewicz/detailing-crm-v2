@@ -69,7 +69,7 @@ const TableHeaderCell = styled.th<{ $align?: 'left' | 'right' | 'center'; $width
 
 const TableBody = styled.tbody``;
 
-const TableRow = styled.tr<{ $isNew?: boolean; $requiresVerification?: boolean }>`
+const TableRow = styled.tr<{ $isNew?: boolean; $requiresVerification?: boolean; $status?: LeadStatus }>`
   border-bottom: 1px solid ${props => props.theme.colors.border};
   transition: background-color 0.15s ease;
   cursor: pointer;
@@ -81,12 +81,23 @@ const TableRow = styled.tr<{ $isNew?: boolean; $requiresVerification?: boolean }
       transparent 100%);
   `}
 
+  ${props => props.$status === LeadStatus.CONVERTED && css`
+    background: rgba(34, 197, 94, 0.06);
+    opacity: 0.75;
+  `}
+
+  ${props => props.$status === LeadStatus.ABANDONED && css`
+    background: rgba(148, 163, 184, 0.08);
+    opacity: 0.65;
+  `}
+
   &:last-child {
     border-bottom: none;
   }
 
   &:hover {
     background: ${props => props.theme.colors.surfaceHover};
+    opacity: 1;
 
     .actions-cell {
       opacity: 1;
@@ -634,7 +645,21 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
           </tr>
         </TableHead>
         <TableBody>
-          {leads.map((lead) => {
+          {[...leads]
+            .sort((a, b) => {
+              // Active leads (PENDING, IN_PROGRESS) always on top
+              const activeStatuses = [LeadStatus.PENDING, LeadStatus.IN_PROGRESS];
+              const aIsActive = activeStatuses.includes(a.status);
+              const bIsActive = activeStatuses.includes(b.status);
+              if (aIsActive && !bIsActive) return -1;
+              if (!aIsActive && bIsActive) return 1;
+              // Within same group, sort by requiresVerification first, then by date
+              if (a.requiresVerification !== b.requiresVerification) {
+                return a.requiresVerification ? -1 : 1;
+              }
+              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            })
+            .map((lead) => {
             const contact = formatContact(lead);
             const isNew = lead.requiresVerification && lead.status === LeadStatus.PENDING;
 
@@ -643,6 +668,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
                 key={lead.id}
                 $isNew={isNew}
                 $requiresVerification={lead.requiresVerification}
+                $status={lead.status}
                 onClick={() => handleRowClick(lead)}
               >
                 {/* Indicator */}

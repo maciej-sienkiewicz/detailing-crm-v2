@@ -226,6 +226,16 @@ const mockGetPipelineSummary = async (sourceFilter?: LeadSource[]): Promise<Lead
         0
       );
 
+      // Calculate converted value this month (by conversion/updatedAt date)
+      const convertedThisMonth = converted.filter((l) => {
+        const updatedAt = l.updatedAt ? new Date(l.updatedAt) : new Date(l.createdAt);
+        return updatedAt >= startOfMonth;
+      });
+      const convertedValueThisMonth = convertedThisMonth.reduce(
+        (sum, lead) => sum + lead.estimatedValue,
+        0
+      );
+
       // Calculate this week's conversions (by updatedAt date - conversion date)
       const startOfThisWeek = new Date(now);
       startOfThisWeek.setDate(now.getDate() - now.getDay() + 1); // Monday
@@ -268,6 +278,7 @@ const mockGetPipelineSummary = async (sourceFilter?: LeadSource[]): Promise<Lead
         convertedPreviousWeekCount,
         convertedPreviousWeekValue,
         leadsValueThisMonth,
+        convertedValueThisMonth,
       });
     }, 200);
   });
