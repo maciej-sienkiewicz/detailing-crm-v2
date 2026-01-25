@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { t } from '@/common/i18n';
 import { LeadTable, LeadForm, LeadStatsBar } from '../components';
 import { useLeads, useLeadSocket } from '../hooks';
-import { LeadStatus } from '../types';
+import { LeadStatus, LeadSource } from '../types';
 import type { Lead, LeadListFilters } from '../types';
 
 // Icons
@@ -276,6 +276,12 @@ const statusOptions: { value: LeadStatus | 'ALL'; label: string }[] = [
   { value: LeadStatus.ABANDONED, label: 'Odpuszczone' },
 ];
 
+const sourceOptions: { value: LeadSource | 'ALL'; label: string }[] = [
+  { value: 'ALL', label: 'Wszystkie źródła' },
+  { value: LeadSource.PHONE, label: 'Telefon' },
+  { value: LeadSource.EMAIL, label: 'Email' },
+];
+
 /**
  * Main Lead List View
  * Displays the lead inbox with filtering, pagination, and WebSocket integration
@@ -300,9 +306,13 @@ export const LeadListView: React.FC = () => {
   });
 
   const [activeStatusFilter, setActiveStatusFilter] = useState<LeadStatus | 'ALL'>('ALL');
+  const [activeSourceFilter, setActiveSourceFilter] = useState<LeadSource | 'ALL'>('ALL');
 
   // Fetch leads
   const { leads, pagination, isLoading, isError, refetch } = useLeads(filters);
+
+  // Source filter for stats (convert to array or undefined)
+  const sourceFilterArray = activeSourceFilter === 'ALL' ? undefined : [activeSourceFilter];
 
   // Handle search input
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -319,6 +329,16 @@ export const LeadListView: React.FC = () => {
     setFilters((prev) => ({
       ...prev,
       status: status === 'ALL' ? [] : [status],
+      page: 1,
+    }));
+  }, []);
+
+  // Handle source filter change
+  const handleSourceFilter = useCallback((source: LeadSource | 'ALL') => {
+    setActiveSourceFilter(source);
+    setFilters((prev) => ({
+      ...prev,
+      source: source === 'ALL' ? [] : [source],
       page: 1,
     }));
   }, []);
@@ -368,7 +388,7 @@ export const LeadListView: React.FC = () => {
         </HeaderActions>
       </PageHeader>
 
-      <LeadStatsBar />
+      <LeadStatsBar sourceFilter={sourceFilterArray} />
 
       <MainContent>
         <FiltersBar>
@@ -383,6 +403,20 @@ export const LeadListView: React.FC = () => {
               onChange={handleSearchChange}
             />
           </SearchInputWrapper>
+
+          <Divider />
+
+          <FilterGroup>
+            {sourceOptions.map((option) => (
+              <FilterChip
+                key={option.value}
+                $isActive={activeSourceFilter === option.value}
+                onClick={() => handleSourceFilter(option.value)}
+              >
+                {option.label}
+              </FilterChip>
+            ))}
+          </FilterGroup>
 
           <Divider />
 

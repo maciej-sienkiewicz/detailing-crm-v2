@@ -196,13 +196,19 @@ const mockUpdateLead = async (data: UpdateLeadRequest): Promise<Lead> => {
   });
 };
 
-const mockGetPipelineSummary = async (): Promise<LeadPipelineSummary> => {
+const mockGetPipelineSummary = async (sourceFilter?: LeadSource[]): Promise<LeadPipelineSummary> => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      const pending = mockLeadsStore.filter((l) => l.status === ('PENDING' as LeadStatus));
-      const inProgress = mockLeadsStore.filter((l) => l.status === ('IN_PROGRESS' as LeadStatus));
-      const converted = mockLeadsStore.filter((l) => l.status === ('CONVERTED' as LeadStatus));
-      const abandoned = mockLeadsStore.filter((l) => l.status === ('ABANDONED' as LeadStatus));
+      // Filter by source if provided
+      let filteredLeads = mockLeadsStore;
+      if (sourceFilter && sourceFilter.length > 0) {
+        filteredLeads = mockLeadsStore.filter((l) => sourceFilter.includes(l.source));
+      }
+
+      const pending = filteredLeads.filter((l) => l.status === ('PENDING' as LeadStatus));
+      const inProgress = filteredLeads.filter((l) => l.status === ('IN_PROGRESS' as LeadStatus));
+      const converted = filteredLeads.filter((l) => l.status === ('CONVERTED' as LeadStatus));
+      const abandoned = filteredLeads.filter((l) => l.status === ('ABANDONED' as LeadStatus));
 
       const totalPipelineValue = [...pending, ...inProgress].reduce(
         (sum, lead) => sum + lead.estimatedValue,
@@ -212,7 +218,7 @@ const mockGetPipelineSummary = async (): Promise<LeadPipelineSummary> => {
       // Calculate this month's value
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const leadsThisMonth = mockLeadsStore.filter(
+      const leadsThisMonth = filteredLeads.filter(
         (l) => new Date(l.createdAt) >= startOfMonth
       );
       const leadsValueThisMonth = leadsThisMonth.reduce(
@@ -220,14 +226,35 @@ const mockGetPipelineSummary = async (): Promise<LeadPipelineSummary> => {
         0
       );
 
-      // Mock conversion rates (in real scenario, this would be calculated from historical data)
-      const totalClosedThisWeek = converted.length + abandoned.length;
-      const conversionRateThisWeek = totalClosedThisWeek > 0
-        ? Math.round((converted.length / totalClosedThisWeek) * 100)
-        : 0;
+      // Calculate this week's conversions (by updatedAt date - conversion date)
+      const startOfThisWeek = new Date(now);
+      startOfThisWeek.setDate(now.getDate() - now.getDay() + 1); // Monday
+      startOfThisWeek.setHours(0, 0, 0, 0);
 
-      // Previous week mock data (simulated)
-      const conversionRatePreviousWeek = 62; // Mock value for comparison
+      const startOfPreviousWeek = new Date(startOfThisWeek);
+      startOfPreviousWeek.setDate(startOfPreviousWeek.getDate() - 7);
+
+      const convertedThisWeek = converted.filter((l) => {
+        const updatedAt = l.updatedAt ? new Date(l.updatedAt) : new Date(l.createdAt);
+        return updatedAt >= startOfThisWeek;
+      });
+
+      const convertedPreviousWeek = converted.filter((l) => {
+        const updatedAt = l.updatedAt ? new Date(l.updatedAt) : new Date(l.createdAt);
+        return updatedAt >= startOfPreviousWeek && updatedAt < startOfThisWeek;
+      });
+
+      const convertedThisWeekCount = convertedThisWeek.length;
+      const convertedThisWeekValue = convertedThisWeek.reduce(
+        (sum, lead) => sum + lead.estimatedValue,
+        0
+      );
+
+      const convertedPreviousWeekCount = convertedPreviousWeek.length;
+      const convertedPreviousWeekValue = convertedPreviousWeek.reduce(
+        (sum, lead) => sum + lead.estimatedValue,
+        0
+      );
 
       resolve({
         totalPipelineValue,
@@ -235,9 +262,11 @@ const mockGetPipelineSummary = async (): Promise<LeadPipelineSummary> => {
         inProgressCount: inProgress.length,
         convertedCount: converted.length,
         abandonedCount: abandoned.length,
-        totalLeadsCount: mockLeadsStore.length,
-        conversionRateThisWeek,
-        conversionRatePreviousWeek,
+        activeLeadsCount: pending.length + inProgress.length,
+        convertedThisWeekCount,
+        convertedThisWeekValue,
+        convertedPreviousWeekCount,
+        convertedPreviousWeekValue,
         leadsValueThisMonth,
       });
     }, 200);
@@ -338,13 +367,21 @@ export const leadApi = {
 
   /**
    * Get pipeline summary for dashboard widget
+   * @param sourceFilter - Optional array of sources to filter by
    */
-  getPipelineSummary: async (): Promise<LeadPipelineSummary> => {
+  getPipelineSummary: async (sourceFilter?: LeadSource[]): Promise<LeadPipelineSummary> => {
     if (USE_MOCKS) {
-      return mockGetPipelineSummary();
+      return mockGetPipelineSummary(sourceFilter);
     }
 
-    const response = await apiClient.get(`${BASE_PATH}/pipeline-summary`);
+    const params = new URLSearchParams();
+    if (sourceFilter?.length) {
+      params.append('source', sourceFilter.join(','));
+    }
+
+    const queryString = params.toString();
+    const url = queryString ? `${BASE_PATH}/pipeline-summary?${queryString}` : `${BASE_PATH}/pipeline-summary`;
+    const response = await apiClient.get(url);
     return response.data;
   },
 

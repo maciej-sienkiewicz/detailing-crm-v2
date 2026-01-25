@@ -10,6 +10,7 @@ import type {
   UpdateLeadRequest,
   LeadPipelineSummary,
   LeadStatus,
+  LeadSource,
 } from '../types';
 
 // Query keys
@@ -67,11 +68,16 @@ export const useLead = (id: LeadId | undefined) => {
 
 /**
  * Hook for fetching pipeline summary
+ * @param sourceFilter - Optional array of sources to filter by
  */
-export const useLeadPipelineSummary = () => {
+export const useLeadPipelineSummary = (sourceFilter?: LeadSource[]) => {
+  const queryKey = sourceFilter?.length
+    ? [...LEAD_PIPELINE_KEY, { source: sourceFilter }]
+    : LEAD_PIPELINE_KEY;
+
   const { data, isLoading, isError, error, refetch } = useQuery<LeadPipelineSummary>({
-    queryKey: LEAD_PIPELINE_KEY,
-    queryFn: () => leadApi.getPipelineSummary(),
+    queryKey,
+    queryFn: () => leadApi.getPipelineSummary(sourceFilter),
     staleTime: 30_000, // 30 seconds
   });
 

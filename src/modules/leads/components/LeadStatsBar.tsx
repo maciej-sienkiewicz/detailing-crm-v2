@@ -3,6 +3,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { useLeadPipelineSummary } from '../hooks';
 import { formatCurrency } from '../utils/formatters';
+import type { LeadSource } from '../types';
 
 // Icons
 const UsersIcon = () => (
@@ -28,11 +29,10 @@ const TrendDownIcon = () => (
   </svg>
 );
 
-const ChartIcon = () => (
+const CheckCircleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="18" y1="20" x2="18" y2="10"/>
-    <line x1="12" y1="20" x2="12" y2="4"/>
-    <line x1="6" y1="20" x2="6" y2="14"/>
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+    <polyline points="22 4 12 14.01 9 11.01"/>
   </svg>
 );
 
@@ -98,13 +98,20 @@ const StatValue = styled.span`
   font-feature-settings: 'tnum';
 `;
 
-const StatTrend = styled.div<{ $positive: boolean }>`
+const StatSubValue = styled.span`
+  font-size: ${props => props.theme.fontSizes.sm};
+  color: ${props => props.theme.colors.textSecondary};
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-feature-settings: 'tnum';
+`;
+
+const StatTrend = styled.div<{ $positive: boolean; $neutral?: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: ${props => props.theme.fontSizes.xs};
   font-weight: ${props => props.theme.fontWeights.medium};
-  color: ${props => props.$positive ? '#16a34a' : '#dc2626'};
+  color: ${props => props.$neutral ? props.theme.colors.textMuted : (props.$positive ? '#16a34a' : '#dc2626')};
   margin-top: 2px;
 `;
 
@@ -135,11 +142,15 @@ const SkeletonValue = styled(SkeletonLine)`
   margin-top: 4px;
 `;
 
+interface LeadStatsBarProps {
+  sourceFilter?: LeadSource[];
+}
+
 /**
  * LeadStatsBar - Displays key lead metrics in a horizontal stats bar
  */
-export const LeadStatsBar: React.FC = () => {
-  const { summary, isLoading } = useLeadPipelineSummary();
+export const LeadStatsBar: React.FC<LeadStatsBarProps> = ({ sourceFilter }) => {
+  const { summary, isLoading } = useLeadPipelineSummary(sourceFilter);
 
   if (isLoading) {
     return (
@@ -163,33 +174,36 @@ export const LeadStatsBar: React.FC = () => {
     return null;
   }
 
-  const conversionDiff = summary.conversionRateThisWeek - summary.conversionRatePreviousWeek;
-  const isPositiveTrend = conversionDiff >= 0;
+  // Calculate week-over-week difference for conversions
+  const countDiff = summary.convertedThisWeekCount - summary.convertedPreviousWeekCount;
+  const isPositiveTrend = countDiff > 0;
+  const isNeutralTrend = countDiff === 0;
 
   return (
     <StatsContainer>
-      {/* Total Leads */}
+      {/* Active Leads */}
       <StatCard>
         <IconWrapper $color="#3b82f6">
           <UsersIcon />
         </IconWrapper>
         <StatContent>
-          <StatLabel>Wszystkie leady</StatLabel>
-          <StatValue>{summary.totalLeadsCount}</StatValue>
+          <StatLabel>Aktywne leady</StatLabel>
+          <StatValue>{summary.activeLeadsCount}</StatValue>
         </StatContent>
       </StatCard>
 
-      {/* Conversion Rate */}
+      {/* Converted This Week */}
       <StatCard>
         <IconWrapper $color="#8b5cf6">
-          <ChartIcon />
+          <CheckCircleIcon />
         </IconWrapper>
         <StatContent>
-          <StatLabel>Skuteczność (tydzień)</StatLabel>
-          <StatValue>{summary.conversionRateThisWeek}%</StatValue>
-          <StatTrend $positive={isPositiveTrend}>
-            {isPositiveTrend ? <TrendUpIcon /> : <TrendDownIcon />}
-            {Math.abs(conversionDiff)}%
+          <StatLabel>Zrealizowane (tydzień)</StatLabel>
+          <StatValue>{summary.convertedThisWeekCount}</StatValue>
+          <StatSubValue>{formatCurrency(summary.convertedThisWeekValue)}</StatSubValue>
+          <StatTrend $positive={isPositiveTrend} $neutral={isNeutralTrend}>
+            {!isNeutralTrend && (isPositiveTrend ? <TrendUpIcon /> : <TrendDownIcon />)}
+            {isNeutralTrend ? '—' : `${isPositiveTrend ? '+' : ''}${countDiff}`}
             <TrendText>vs poprzedni tydzień</TrendText>
           </StatTrend>
         </StatContent>
