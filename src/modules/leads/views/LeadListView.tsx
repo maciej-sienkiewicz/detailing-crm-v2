@@ -61,10 +61,14 @@ const TitleSection = styled.div`
 `;
 
 const PageTitle = styled.h1`
-  font-size: ${props => props.theme.fontSizes.xxl};
+  font-size: ${props => props.theme.fontSizes.xl};
   font-weight: ${props => props.theme.fontWeights.bold};
   color: ${props => props.theme.colors.text};
   margin: 0;
+
+  @media (min-width: ${props => props.theme.breakpoints.md}) {
+    font-size: ${props => props.theme.fontSizes.xxl};
+  }
 `;
 
 const PageSubtitle = styled.p`
@@ -94,6 +98,14 @@ const AddButton = styled.button`
   transition: all ${props => props.theme.transitions.fast};
   box-shadow: ${props => props.theme.shadows.md};
 
+  @media (max-width: ${props => props.theme.breakpoints.sm}) {
+    padding: ${props => props.theme.spacing.md};
+
+    span {
+      display: none;
+    }
+  }
+
   &:hover {
     transform: translateY(-2px);
     box-shadow: ${props => props.theme.shadows.lg};
@@ -101,6 +113,12 @@ const AddButton = styled.button`
 
   &:active {
     transform: translateY(0);
+  }
+`;
+
+const ButtonText = styled.span`
+  @media (max-width: 480px) {
+    display: none;
   }
 `;
 
@@ -230,16 +248,32 @@ const PaginationBar = styled.div`
   background: ${props => props.theme.colors.surface};
   border: 1px solid ${props => props.theme.colors.border};
   border-radius: ${props => props.theme.radii.lg};
+  flex-wrap: wrap;
+  gap: ${props => props.theme.spacing.sm};
+
+  @media (max-width: ${props => props.theme.breakpoints.sm}) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 `;
 
 const PaginationInfo = styled.span`
   font-size: ${props => props.theme.fontSizes.sm};
   color: ${props => props.theme.colors.textSecondary};
+
+  @media (max-width: ${props => props.theme.breakpoints.sm}) {
+    text-align: center;
+    font-size: ${props => props.theme.fontSizes.xs};
+  }
 `;
 
 const PaginationButtons = styled.div`
   display: flex;
   gap: ${props => props.theme.spacing.xs};
+
+  @media (max-width: ${props => props.theme.breakpoints.sm}) {
+    justify-content: center;
+  }
 `;
 
 const PaginationButton = styled.button<{ $disabled?: boolean }>`
@@ -253,6 +287,11 @@ const PaginationButton = styled.button<{ $disabled?: boolean }>`
   cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
   opacity: ${props => props.$disabled ? 0.5 : 1};
   transition: all ${props => props.theme.transitions.fast};
+
+  @media (max-width: ${props => props.theme.breakpoints.sm}) {
+    flex: 1;
+    padding: ${props => props.theme.spacing.md};
+  }
 
   &:hover:not(:disabled) {
     background: ${props => !props.$disabled && props.theme.colors.surfaceHover};
@@ -383,7 +422,7 @@ export const LeadListView: React.FC = () => {
           </RefreshButton>
           <AddButton onClick={handleAddLead}>
             <PlusIcon />
-            {t.leads?.actions?.add || 'Dodaj lead'}
+            <ButtonText>{t.leads?.actions?.add || 'Dodaj lead'}</ButtonText>
           </AddButton>
         </HeaderActions>
       </PageHeader>

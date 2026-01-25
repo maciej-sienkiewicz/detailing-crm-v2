@@ -51,6 +51,7 @@ const StatsContainer = styled.div`
 
   @media (max-width: ${props => props.theme.breakpoints.md}) {
     grid-template-columns: 1fr;
+    gap: ${props => props.theme.spacing.sm};
   }
 `;
 
@@ -62,6 +63,11 @@ const StatCard = styled.div`
   background: ${props => props.theme.colors.surface};
   border: 1px solid ${props => props.theme.colors.border};
   border-radius: ${props => props.theme.radii.lg};
+
+  @media (max-width: ${props => props.theme.breakpoints.md}) {
+    padding: ${props => props.theme.spacing.md};
+    gap: ${props => props.theme.spacing.sm};
+  }
 `;
 
 const IconWrapper = styled.div<{ $color: string }>`
@@ -74,6 +80,16 @@ const IconWrapper = styled.div<{ $color: string }>`
   background: ${props => props.$color}15;
   color: ${props => props.$color};
   flex-shrink: 0;
+
+  @media (max-width: ${props => props.theme.breakpoints.md}) {
+    width: 36px;
+    height: 36px;
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+  }
 `;
 
 const StatContent = styled.div`

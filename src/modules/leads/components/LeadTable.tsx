@@ -407,6 +407,149 @@ const EmptyDescription = styled.p`
 `;
 
 // ============================================================================
+// MOBILE CARD VIEW
+// ============================================================================
+
+const MobileCardsContainer = styled.div`
+  display: none;
+  flex-direction: column;
+  gap: ${props => props.theme.spacing.sm};
+
+  @media (max-width: 768px) {
+    display: flex;
+  }
+`;
+
+const DesktopTableWrapper = styled.div`
+  display: block;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+const MobileCard = styled.div<{ $status?: LeadStatus; $isNew?: boolean }>`
+  background: ${props => props.theme.colors.surface};
+  border: 1px solid ${props => props.theme.colors.border};
+  border-radius: ${props => props.theme.radii.lg};
+  padding: ${props => props.theme.spacing.md};
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  ${props => props.$isNew && css`
+    border-left: 3px solid #ef4444;
+  `}
+
+  ${props => props.$status === LeadStatus.CONVERTED && css`
+    background: rgba(34, 197, 94, 0.06);
+    opacity: 0.8;
+  `}
+
+  ${props => props.$status === LeadStatus.ABANDONED && css`
+    background: rgba(148, 163, 184, 0.08);
+    opacity: 0.7;
+  `}
+
+  &:active {
+    transform: scale(0.99);
+  }
+`;
+
+const MobileCardHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: ${props => props.theme.spacing.sm};
+  margin-bottom: ${props => props.theme.spacing.sm};
+`;
+
+const MobileCardContact = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${props => props.theme.spacing.sm};
+  min-width: 0;
+  flex: 1;
+`;
+
+const MobileCardName = styled.div`
+  min-width: 0;
+`;
+
+const MobileCardPrimary = styled.div`
+  font-weight: 600;
+  color: ${props => props.theme.colors.text};
+  font-size: ${props => props.theme.fontSizes.sm};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const MobileCardSecondary = styled.div`
+  font-size: ${props => props.theme.fontSizes.xs};
+  color: ${props => props.theme.colors.textMuted};
+`;
+
+const MobileCardBody = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${props => props.theme.spacing.xs};
+`;
+
+const MobileCardRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const MobileCardLabel = styled.span`
+  font-size: ${props => props.theme.fontSizes.xs};
+  color: ${props => props.theme.colors.textMuted};
+`;
+
+const MobileCardValue = styled.span`
+  font-size: ${props => props.theme.fontSizes.sm};
+  color: ${props => props.theme.colors.text};
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-feature-settings: 'tnum';
+`;
+
+const MobileCardNote = styled.div`
+  font-size: ${props => props.theme.fontSizes.xs};
+  color: ${props => props.theme.colors.textSecondary};
+  margin-top: ${props => props.theme.spacing.xs};
+  padding-top: ${props => props.theme.spacing.xs};
+  border-top: 1px solid ${props => props.theme.colors.border};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const MobileSourceIcon = styled(SourceIcon)`
+  width: 32px;
+  height: 32px;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+`;
+
+const MobileStatusBadge = styled(StatusBadge)`
+  font-size: 10px;
+  padding: 4px 8px;
+`;
+
+const MobileLoadingCard = styled(MobileCard)`
+  min-height: 100px;
+`;
+
+const MobileSkeletonRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: ${props => props.theme.spacing.sm};
+`;
+
+// ============================================================================
 // LOADING STATE
 // ============================================================================
 
@@ -587,34 +730,53 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
   // Loading state
   if (isLoading) {
     return (
-      <TableWrapper>
-        <Table>
-          <TableHead>
-            <tr>
-              <TableHeaderCell $width="52px"></TableHeaderCell>
-              <TableHeaderCell>Kontakt</TableHeaderCell>
-              <TableHeaderCell $align="right">Wartość</TableHeaderCell>
-              <TableHeaderCell>Aktywność</TableHeaderCell>
-              <TableHeaderCell>Notatka</TableHeaderCell>
-              <TableHeaderCell>Status</TableHeaderCell>
-              <TableHeaderCell $width="80px"></TableHeaderCell>
-            </tr>
-          </TableHead>
-          <TableBody>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <LoadingRow key={i}>
-                <LoadingCell><Skeleton $width="28px" $height="28px" /></LoadingCell>
-                <LoadingCell><Skeleton $width="140px" /></LoadingCell>
-                <LoadingCell><Skeleton $width="80px" /></LoadingCell>
-                <LoadingCell><Skeleton $width="60px" /></LoadingCell>
-                <LoadingCell><Skeleton $width="160px" /></LoadingCell>
-                <LoadingCell><Skeleton $width="90px" $height="24px" /></LoadingCell>
-                <LoadingCell><Skeleton $width="50px" /></LoadingCell>
-              </LoadingRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableWrapper>
+      <>
+        {/* Mobile Loading */}
+        <MobileCardsContainer>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <MobileLoadingCard key={i}>
+              <MobileSkeletonRow>
+                <Skeleton $width="32px" $height="32px" />
+                <Skeleton $width="80px" $height="24px" />
+              </MobileSkeletonRow>
+              <Skeleton $width="60%" $height="16px" />
+              <Skeleton $width="40%" $height="14px" style={{ marginTop: 8 }} />
+            </MobileLoadingCard>
+          ))}
+        </MobileCardsContainer>
+
+        {/* Desktop Loading */}
+        <DesktopTableWrapper>
+          <TableWrapper>
+            <Table>
+              <TableHead>
+                <tr>
+                  <TableHeaderCell $width="52px"></TableHeaderCell>
+                  <TableHeaderCell>Kontakt</TableHeaderCell>
+                  <TableHeaderCell $align="right">Wartość</TableHeaderCell>
+                  <TableHeaderCell>Aktywność</TableHeaderCell>
+                  <TableHeaderCell>Notatka</TableHeaderCell>
+                  <TableHeaderCell>Status</TableHeaderCell>
+                  <TableHeaderCell $width="80px"></TableHeaderCell>
+                </tr>
+              </TableHead>
+              <TableBody>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <LoadingRow key={i}>
+                    <LoadingCell><Skeleton $width="28px" $height="28px" /></LoadingCell>
+                    <LoadingCell><Skeleton $width="140px" /></LoadingCell>
+                    <LoadingCell><Skeleton $width="80px" /></LoadingCell>
+                    <LoadingCell><Skeleton $width="60px" /></LoadingCell>
+                    <LoadingCell><Skeleton $width="160px" /></LoadingCell>
+                    <LoadingCell><Skeleton $width="90px" $height="24px" /></LoadingCell>
+                    <LoadingCell><Skeleton $width="50px" /></LoadingCell>
+                  </LoadingRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableWrapper>
+        </DesktopTableWrapper>
+      </>
     );
   }
 
@@ -630,143 +792,206 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
     );
   }
 
+  // Sort leads - active on top
+  const sortedLeads = [...leads].sort((a, b) => {
+    const activeStatuses = [LeadStatus.PENDING, LeadStatus.IN_PROGRESS];
+    const aIsActive = activeStatuses.includes(a.status);
+    const bIsActive = activeStatuses.includes(b.status);
+    if (aIsActive && !bIsActive) return -1;
+    if (!aIsActive && bIsActive) return 1;
+    if (a.requiresVerification !== b.requiresVerification) {
+      return a.requiresVerification ? -1 : 1;
+    }
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
   return (
-    <TableWrapper>
-      <Table>
-        <TableHead>
-          <tr>
-            <TableHeaderCell $width="52px"></TableHeaderCell>
-            <TableHeaderCell>{t.leads?.fields?.contact || 'Kontakt'}</TableHeaderCell>
-            <TableHeaderCell $align="right">{t.leads?.fields?.estimatedValue || 'Wartość'}</TableHeaderCell>
-            <TableHeaderCell>Aktywność</TableHeaderCell>
-            <TableHeaderCell>Notatka</TableHeaderCell>
-            <TableHeaderCell>Status</TableHeaderCell>
-            <TableHeaderCell $width="80px"></TableHeaderCell>
-          </tr>
-        </TableHead>
-        <TableBody>
-          {[...leads]
-            .sort((a, b) => {
-              // Active leads (PENDING, IN_PROGRESS) always on top
-              const activeStatuses = [LeadStatus.PENDING, LeadStatus.IN_PROGRESS];
-              const aIsActive = activeStatuses.includes(a.status);
-              const bIsActive = activeStatuses.includes(b.status);
-              if (aIsActive && !bIsActive) return -1;
-              if (!aIsActive && bIsActive) return 1;
-              // Within same group, sort by requiresVerification first, then by date
-              if (a.requiresVerification !== b.requiresVerification) {
-                return a.requiresVerification ? -1 : 1;
-              }
-              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-            })
-            .map((lead) => {
-            const contact = formatContact(lead);
-            const isNew = lead.requiresVerification && lead.status === LeadStatus.PENDING;
+    <>
+      {/* Mobile Cards View */}
+      <MobileCardsContainer>
+        {sortedLeads.map((lead) => {
+          const contact = formatContact(lead);
+          const isNew = lead.requiresVerification && lead.status === LeadStatus.PENDING;
 
-            return (
-              <TableRow
-                key={lead.id}
-                $isNew={isNew}
-                $requiresVerification={lead.requiresVerification}
-                $status={lead.status}
-                onClick={() => handleRowClick(lead)}
-              >
-                {/* Indicator */}
-                <IndicatorCell>
-                  <IndicatorWrapper>
-                    <PriorityDot $active={isNew} />
-                    <SourceIcon $source={lead.source}>
-                      {getSourceIcon(lead.source)}
-                    </SourceIcon>
-                  </IndicatorWrapper>
-                </IndicatorCell>
-
-                {/* Contact */}
-                <ContactCell>
-                  <CellStack>
-                    <PrimaryText>{contact.primary}</PrimaryText>
+          return (
+            <MobileCard
+              key={lead.id}
+              $status={lead.status}
+              $isNew={isNew}
+              onClick={() => handleRowClick(lead)}
+            >
+              <MobileCardHeader>
+                <MobileCardContact>
+                  <MobileSourceIcon $source={lead.source}>
+                    {getSourceIcon(lead.source)}
+                  </MobileSourceIcon>
+                  <MobileCardName>
+                    <MobileCardPrimary>{contact.primary}</MobileCardPrimary>
                     {contact.secondary && (
-                      <SecondaryText>{contact.secondary}</SecondaryText>
+                      <MobileCardSecondary>{contact.secondary}</MobileCardSecondary>
                     )}
-                  </CellStack>
-                </ContactCell>
+                  </MobileCardName>
+                </MobileCardContact>
+                <MobileStatusBadge
+                  $status={lead.status}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleStatusClick(lead.id, e);
+                  }}
+                >
+                  {statusLabels[lead.status]}
+                </MobileStatusBadge>
+              </MobileCardHeader>
 
-                {/* Value */}
-                <ValueCell $align="right">
-                  {editingValueId === lead.id ? (
-                    <ValueInput
-                      ref={valueInputRef}
-                      type="number"
-                      value={valueInput}
-                      onChange={(e) => setValueInput(e.target.value)}
-                      onBlur={() => handleValueSave(lead.id)}
-                      onKeyDown={(e) => handleValueKeyDown(e, lead.id)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  ) : (
-                    <ValueDisplay onClick={(e) => handleValueEdit(lead, e)}>
-                      {formatCurrency(lead.estimatedValue)}
-                    </ValueDisplay>
-                  )}
-                </ValueCell>
-
-                {/* Last Activity */}
-                <TableCell>
-                  <SecondaryText>
+              <MobileCardBody>
+                <MobileCardRow>
+                  <MobileCardLabel>Wartość</MobileCardLabel>
+                  <MobileCardValue>{formatCurrency(lead.estimatedValue)}</MobileCardValue>
+                </MobileCardRow>
+                <MobileCardRow>
+                  <MobileCardLabel>Aktywność</MobileCardLabel>
+                  <MobileCardSecondary>
                     {formatRelativeTime(lead.updatedAt || lead.createdAt)}
-                  </SecondaryText>
-                </TableCell>
+                  </MobileCardSecondary>
+                </MobileCardRow>
+              </MobileCardBody>
 
-                {/* Note */}
-                <TableCell>
-                  <NoteText title={lead.initialMessage}>
-                    {lead.initialMessage || '—'}
-                  </NoteText>
-                </TableCell>
+              {lead.initialMessage && (
+                <MobileCardNote title={lead.initialMessage}>
+                  {lead.initialMessage}
+                </MobileCardNote>
+              )}
+            </MobileCard>
+          );
+        })}
+      </MobileCardsContainer>
 
-                {/* Status */}
-                <TableCell>
-                  <StatusWrapper ref={openStatusId === lead.id ? statusRef : null}>
-                    <StatusBadge
-                      $status={lead.status}
-                      onClick={(e) => handleStatusClick(lead.id, e)}
-                    >
-                      {statusLabels[lead.status]}
-                      <ChevronIcon />
-                    </StatusBadge>
-                    <StatusDropdown $isOpen={openStatusId === lead.id}>
-                      {allStatuses.map((status) => (
-                        <StatusOption
-                          key={status}
-                          $isActive={lead.status === status}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStatusChange(lead.id, status);
-                          }}
-                        >
-                          {statusLabels[status]}
-                        </StatusOption>
-                      ))}
-                    </StatusDropdown>
-                  </StatusWrapper>
-                </TableCell>
+      {/* Desktop Table View */}
+      <DesktopTableWrapper>
+        <TableWrapper>
+          <Table>
+            <TableHead>
+              <tr>
+                <TableHeaderCell $width="52px"></TableHeaderCell>
+                <TableHeaderCell>{t.leads?.fields?.contact || 'Kontakt'}</TableHeaderCell>
+                <TableHeaderCell $align="right">{t.leads?.fields?.estimatedValue || 'Wartość'}</TableHeaderCell>
+                <TableHeaderCell>Aktywność</TableHeaderCell>
+                <TableHeaderCell>Notatka</TableHeaderCell>
+                <TableHeaderCell>Status</TableHeaderCell>
+                <TableHeaderCell $width="80px"></TableHeaderCell>
+              </tr>
+            </TableHead>
+            <TableBody>
+              {sortedLeads.map((lead) => {
+                const contact = formatContact(lead);
+                const isNew = lead.requiresVerification && lead.status === LeadStatus.PENDING;
 
-                {/* Actions */}
-                <ActionsCell className="actions-cell">
-                  <ActionButton
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRowClick?.(lead);
-                    }}
+                return (
+                  <TableRow
+                    key={lead.id}
+                    $isNew={isNew}
+                    $requiresVerification={lead.requiresVerification}
+                    $status={lead.status}
+                    onClick={() => handleRowClick(lead)}
                   >
-                    Edytuj
-                  </ActionButton>
-                </ActionsCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </TableWrapper>
+                    {/* Indicator */}
+                    <IndicatorCell>
+                      <IndicatorWrapper>
+                        <PriorityDot $active={isNew} />
+                        <SourceIcon $source={lead.source}>
+                          {getSourceIcon(lead.source)}
+                        </SourceIcon>
+                      </IndicatorWrapper>
+                    </IndicatorCell>
+
+                    {/* Contact */}
+                    <ContactCell>
+                      <CellStack>
+                        <PrimaryText>{contact.primary}</PrimaryText>
+                        {contact.secondary && (
+                          <SecondaryText>{contact.secondary}</SecondaryText>
+                        )}
+                      </CellStack>
+                    </ContactCell>
+
+                    {/* Value */}
+                    <ValueCell $align="right">
+                      {editingValueId === lead.id ? (
+                        <ValueInput
+                          ref={valueInputRef}
+                          type="number"
+                          value={valueInput}
+                          onChange={(e) => setValueInput(e.target.value)}
+                          onBlur={() => handleValueSave(lead.id)}
+                          onKeyDown={(e) => handleValueKeyDown(e, lead.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : (
+                        <ValueDisplay onClick={(e) => handleValueEdit(lead, e)}>
+                          {formatCurrency(lead.estimatedValue)}
+                        </ValueDisplay>
+                      )}
+                    </ValueCell>
+
+                    {/* Last Activity */}
+                    <TableCell>
+                      <SecondaryText>
+                        {formatRelativeTime(lead.updatedAt || lead.createdAt)}
+                      </SecondaryText>
+                    </TableCell>
+
+                    {/* Note */}
+                    <TableCell>
+                      <NoteText title={lead.initialMessage}>
+                        {lead.initialMessage || '—'}
+                      </NoteText>
+                    </TableCell>
+
+                    {/* Status */}
+                    <TableCell>
+                      <StatusWrapper ref={openStatusId === lead.id ? statusRef : null}>
+                        <StatusBadge
+                          $status={lead.status}
+                          onClick={(e) => handleStatusClick(lead.id, e)}
+                        >
+                          {statusLabels[lead.status]}
+                          <ChevronIcon />
+                        </StatusBadge>
+                        <StatusDropdown $isOpen={openStatusId === lead.id}>
+                          {allStatuses.map((status) => (
+                            <StatusOption
+                              key={status}
+                              $isActive={lead.status === status}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStatusChange(lead.id, status);
+                              }}
+                            >
+                              {statusLabels[status]}
+                            </StatusOption>
+                          ))}
+                        </StatusDropdown>
+                      </StatusWrapper>
+                    </TableCell>
+
+                    {/* Actions */}
+                    <ActionsCell className="actions-cell">
+                      <ActionButton
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRowClick?.(lead);
+                        }}
+                      >
+                        Edytuj
+                      </ActionButton>
+                    </ActionsCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableWrapper>
+      </DesktopTableWrapper>
+    </>
   );
 };
