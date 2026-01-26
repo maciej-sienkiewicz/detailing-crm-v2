@@ -18,7 +18,6 @@ export enum LeadSource {
  * Lead lifecycle status
  */
 export enum LeadStatus {
-  PENDING = 'PENDING',       // New
   IN_PROGRESS = 'IN_PROGRESS', // Contacted
   CONVERTED = 'CONVERTED',   // Closed Won
   ABANDONED = 'ABANDONED',   // Closed Lost
@@ -147,18 +146,14 @@ export interface InboundCallPayload {
  * Pipeline summary for dashboard widget
  */
 export interface LeadPipelineSummary {
-  /** Total estimated value of PENDING and IN_PROGRESS leads in grosze */
+  /** Total estimated value of IN_PROGRESS leads in grosze */
   totalPipelineValue: number;
-  /** Count of PENDING leads */
-  pendingCount: number;
   /** Count of IN_PROGRESS leads */
   inProgressCount: number;
   /** Count of CONVERTED leads */
   convertedCount: number;
   /** Count of ABANDONED leads */
   abandonedCount: number;
-  /** Active leads count (PENDING + IN_PROGRESS) */
-  activeLeadsCount: number;
   /** Number of leads converted this week */
   convertedThisWeekCount: number;
   /** Value of leads converted this week in grosze */

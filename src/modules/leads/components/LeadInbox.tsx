@@ -241,12 +241,6 @@ const StatusButton = styled.button<{ $status: LeadStatus }>`
 
   ${props => {
     switch (props.$status) {
-      case 'PENDING':
-        return css`
-          background: #fef3c7;
-          color: #92400e;
-          border-color: #fcd34d;
-        `;
       case 'IN_PROGRESS':
         return css`
           background: #dbeafe;
@@ -365,7 +359,6 @@ const EmptyState = styled.div`
 
 // Status labels
 const statusLabels: Record<LeadStatus, string> = {
-  PENDING: 'Nowy',
   IN_PROGRESS: 'W kontakcie',
   CONVERTED: 'Zrealizowany',
   ABANDONED: 'Odpuszczony',
@@ -433,7 +426,7 @@ const LeadCardItem: React.FC<LeadCardItemProps> = ({ lead, onLeadClick }) => {
   const relativeTime = formatRelativeTime(lead.createdAt);
 
   // Determine if animation should be active
-  const shouldAnimate = lead.requiresVerification && lead.status === 'PENDING';
+  const shouldAnimate = lead.requiresVerification;
 
   return (
     <LeadCard
@@ -453,7 +446,7 @@ const LeadCardItem: React.FC<LeadCardItemProps> = ({ lead, onLeadClick }) => {
           </ContactInfo>
 
           <DesktopActions>
-            {lead.requiresVerification && lead.status === 'PENDING' && (
+            {lead.requiresVerification && (
               <NewBadge $animate={shouldAnimate}>NOWY</NewBadge>
             )}
 

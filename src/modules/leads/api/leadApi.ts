@@ -20,7 +20,7 @@ const mockLeads: Lead[] = [
   {
     id: '1',
     source: 'PHONE' as LeadSource,
-    status: 'PENDING' as LeadStatus,
+    status: 'IN_PROGRESS' as LeadStatus,
     contactIdentifier: '+48 123 456 789',
     customerName: 'Jan Kowalski',
     initialMessage: 'Zainteresowany polerowaniam całego auta',
@@ -44,7 +44,7 @@ const mockLeads: Lead[] = [
   {
     id: '3',
     source: 'MANUAL' as LeadSource,
-    status: 'PENDING' as LeadStatus,
+    status: 'IN_PROGRESS' as LeadStatus,
     contactIdentifier: '+48 987 654 321',
     customerName: 'Piotr Wiśniewski',
     initialMessage: 'Folia PPF na maskę i błotniki',
@@ -151,7 +151,7 @@ const mockCreateLead = async (data: CreateLeadRequest): Promise<Lead> => {
       const newLead: Lead = {
         id: String(mockIdCounter++),
         source: data.source,
-        status: 'PENDING' as LeadStatus,
+        status: 'IN_PROGRESS' as LeadStatus,
         contactIdentifier: data.contactIdentifier,
         customerName: data.customerName,
         initialMessage: data.initialMessage,
@@ -205,12 +205,11 @@ const mockGetPipelineSummary = async (sourceFilter?: LeadSource[]): Promise<Lead
         filteredLeads = mockLeadsStore.filter((l) => sourceFilter.includes(l.source));
       }
 
-      const pending = filteredLeads.filter((l) => l.status === ('PENDING' as LeadStatus));
       const inProgress = filteredLeads.filter((l) => l.status === ('IN_PROGRESS' as LeadStatus));
       const converted = filteredLeads.filter((l) => l.status === ('CONVERTED' as LeadStatus));
       const abandoned = filteredLeads.filter((l) => l.status === ('ABANDONED' as LeadStatus));
 
-      const totalPipelineValue = [...pending, ...inProgress].reduce(
+      const totalPipelineValue = inProgress.reduce(
         (sum, lead) => sum + lead.estimatedValue,
         0
       );
@@ -268,11 +267,9 @@ const mockGetPipelineSummary = async (sourceFilter?: LeadSource[]): Promise<Lead
 
       resolve({
         totalPipelineValue,
-        pendingCount: pending.length,
         inProgressCount: inProgress.length,
         convertedCount: converted.length,
         abandonedCount: abandoned.length,
-        activeLeadsCount: pending.length + inProgress.length,
         convertedThisWeekCount,
         convertedThisWeekValue,
         convertedPreviousWeekCount,

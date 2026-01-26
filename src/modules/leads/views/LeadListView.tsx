@@ -309,7 +309,6 @@ const ErrorState = styled.div`
 
 const statusOptions: { value: LeadStatus | 'ALL'; label: string }[] = [
   { value: 'ALL', label: 'Wszystkie' },
-  { value: LeadStatus.PENDING, label: 'Nowe' },
   { value: LeadStatus.IN_PROGRESS, label: 'W kontakcie' },
   { value: LeadStatus.CONVERTED, label: 'Zrealizowane' },
   { value: LeadStatus.ABANDONED, label: 'Odpuszczone' },

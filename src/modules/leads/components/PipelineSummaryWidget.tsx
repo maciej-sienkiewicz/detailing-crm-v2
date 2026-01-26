@@ -81,7 +81,7 @@ const LoadingSkeleton = styled.div`
 
 /**
  * Widget showing total pipeline potential value
- * Displays sum of estimatedValue for PENDING and IN_PROGRESS leads
+ * Displays sum of estimatedValue for IN_PROGRESS leads
  */
 export const PipelineSummaryWidget: React.FC = () => {
   const { summary, isLoading } = useLeadPipelineSummary();
@@ -113,12 +113,6 @@ export const PipelineSummaryWidget: React.FC = () => {
       <TotalValue>{totalValue}</TotalValue>
 
       <StatsGrid>
-        <StatItem>
-          <StatDot $color="#fcd34d" />
-          <StatLabel>{t.leads?.status?.pending || 'Nowy'}</StatLabel>
-          <StatValue>{summary.pendingCount}</StatValue>
-        </StatItem>
-
         <StatItem>
           <StatDot $color="#60a5fa" />
           <StatLabel>{t.leads?.status?.inProgress || 'W kontakcie'}</StatLabel>
