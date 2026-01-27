@@ -195,3 +195,26 @@ export interface DeleteServicePayload {
 export interface UpdateServiceStatusPayload {
     status: ServiceStatus;
 }
+
+// Batch services changes
+export interface ServicesChangesPayload {
+    notifyCustomer: boolean;
+    added: Array<{
+        serviceId: string;
+        serviceName: string;
+        basePriceNet: number;
+        vatRate: number;
+        adjustment?: {
+            type: 'PERCENT' | 'FIXED_NET' | 'FIXED_GROSS' | 'SET_NET' | 'SET_GROSS';
+            value: number;
+        };
+        note?: string;
+    }>;
+    updated: Array<{
+        serviceLineItemId: string;
+        basePriceNet: number;
+    }>;
+    deleted: Array<{
+        serviceLineItemId: string;
+    }>;
+}

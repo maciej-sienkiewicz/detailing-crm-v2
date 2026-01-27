@@ -5,7 +5,7 @@ import { useVisitDetail, useVisitDocuments } from '../hooks';
 import { useUpdateVisit } from '../hooks';
 import { useUploadDocument, useDeleteDocument } from '../hooks';
 import { useVisitComments } from '../hooks';
-import { useAddService, useUpdateService, useDeleteService, useUpdateServiceStatus } from '../hooks';
+import { useUpdateServiceStatus, useSaveServicesChanges } from '../hooks';
 import { VisitHeader } from '../components/VisitHeader';
 import { StatusStepper } from '../components/StatusStepper';
 import { VehicleInfoCard, CustomerInfoCard } from '../components/InfoCards';
@@ -179,10 +179,8 @@ export const VisitDetailView = () => {
     const { uploadDocument, isUploading } = useUploadDocument(visitId!);
     const { deleteDocument } = useDeleteDocument(visitId!);
     const { comments, isLoading: isLoadingComments } = useVisitComments(visitId!);
-    const { addService } = useAddService(visitId!);
-    const { updateService } = useUpdateService(visitId!);
-    const { deleteService } = useDeleteService(visitId!);
     const { updateServiceStatus } = useUpdateServiceStatus(visitId!);
+    const { saveServicesChanges, isSaving } = useSaveServicesChanges(visitId!);
 
     if (isLoading) {
         return (
@@ -271,30 +269,12 @@ export const VisitDetailView = () => {
         setIsEditServicesModalOpen(true);
     };
 
-    const handleAddService = (service: { id?: string; name: string; basePriceNet: number; vatRate: number }, notifyCustomer: boolean) => {
-        addService({
-            serviceId: service.id || 'custom',
-            serviceName: service.name,
-            basePriceNet: service.basePriceNet,
-            vatRate: service.vatRate,
-            notifyCustomer,
-        });
-    };
 
-    const handleUpdateServicePrice = (serviceLineItemId: string, newPrice: number, notifyCustomer: boolean) => {
-        updateService({
-            serviceLineItemId,
-            payload: {
-                basePriceNet: newPrice,
-                notifyCustomer,
+    const handleSaveServicesChanges = (payload: import('../types').ServicesChangesPayload) => {
+        saveServicesChanges(payload, {
+            onSuccess: () => {
+                setIsEditServicesModalOpen(false);
             },
-        });
-    };
-
-    const handleDeleteService = (serviceLineItemId: string, notifyCustomer: boolean) => {
-        deleteService({
-            serviceLineItemId,
-            payload: { notifyCustomer },
         });
     };
 
@@ -415,10 +395,9 @@ export const VisitDetailView = () => {
                 isOpen={isEditServicesModalOpen}
                 services={visit.services}
                 onClose={() => setIsEditServicesModalOpen(false)}
-                onAddService={handleAddService}
-                onUpdateService={handleUpdateServicePrice}
-                onDeleteService={handleDeleteService}
                 onUpdateServiceStatus={handleUpdateServiceStatus}
+                onSaveChanges={handleSaveServicesChanges}
+                isSavingChanges={isSaving}
             />
         </ViewContainer>
     );

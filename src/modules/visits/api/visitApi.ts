@@ -10,6 +10,7 @@ import type {
     UpdateServiceStatusPayload,
     ServiceLineItem,
 } from '../types';
+import type { ServicesChangesPayload } from '../types';
 
 const USE_MOCKS = false;
 const BASE_PATH = '/visits';
@@ -335,5 +336,19 @@ export const visitApi = {
             payload
         );
         return response.data;
+    },
+
+    saveServicesChanges: async (
+        visitId: string,
+        payload: ServicesChangesPayload
+    ): Promise<void> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 800));
+            return;
+        }
+        await apiClient.post(
+            `${BASE_PATH}/${visitId}/services/changes`,
+            payload
+        );
     },
 };

@@ -5,18 +5,21 @@ import { formatCurrency } from '@/common/utils';
 import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceModal';
 import { ServiceAutocomplete } from '@/modules/checkin/components/ServiceAutocomplete';
 import type { ServiceLineItem, ServiceStatus } from '../types';
+import type { ServicesChangesPayload } from '../types';
 
 interface EditServicesModalProps {
   isOpen: boolean;
   services: ServiceLineItem[];
   onClose: () => void;
-  onAddService: (
+  onAddService?: (
     service: { id?: string; name: string; basePriceNet: number; vatRate: number },
     notifyCustomer: boolean
   ) => void;
-  onUpdateService: (serviceId: string, price: number, notifyCustomer: boolean) => void;
-  onDeleteService: (serviceId: string, notifyCustomer: boolean) => void;
+  onUpdateService?: (serviceId: string, price: number, notifyCustomer: boolean) => void;
+  onDeleteService?: (serviceId: string, notifyCustomer: boolean) => void;
   onUpdateServiceStatus: (serviceId: string, status: ServiceStatus) => void;
+  onSaveChanges: (payload: ServicesChangesPayload) => void;
+  isSavingChanges?: boolean;
 }
 
 // Styled Components
@@ -109,17 +112,20 @@ const Content = styled.div`
   gap: 16px;
 `;
 
-const ServiceCard = styled.div<{ $pending: boolean; $deleted?: boolean }>`
+const ServiceCard = styled.div<{ $pending: boolean; $deleted?: boolean; $added?: boolean }>`
   padding: 16px;
   border-radius: 16px;
   border: 2px solid;
-  border-color: ${p => (p.$deleted ? '#fecaca' : p.$pending ? '#fcd34d' : '#e5e7eb')};
-  background: ${p => (p.$deleted ? '#fff1f2' : p.$pending ? '#fffbeb' : '#fff')};
+  border-color: ${p =>
+    p.$deleted ? '#fecaca' : p.$pending ? '#fcd34d' : p.$added ? '#86efac' : '#e5e7eb'};
+  background: ${p =>
+    p.$deleted ? '#fff1f2' : p.$pending ? '#fffbeb' : p.$added ? '#f0fdf4' : '#fff'};
   transition: border-color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
   opacity: ${p => (p.$deleted ? 0.9 : 1)};
 
   &:hover {
-    border-color: ${p => (p.$deleted ? '#fca5a5' : p.$pending ? '#fcd34d' : '#d1d5db')};
+    border-color: ${p =>
+      p.$deleted ? '#fca5a5' : p.$pending ? '#fcd34d' : p.$added ? '#4ade80' : '#d1d5db'};
   }
 `;
 
@@ -292,10 +298,9 @@ export const EditServicesModal = ({
   isOpen,
   services,
   onClose,
-  onAddService,
-  onUpdateService,
-  onDeleteService,
   onUpdateServiceStatus,
+  onSaveChanges,
+  isSavingChanges,
 }: EditServicesModalProps) => {
   const { isCollapsed } = useSidebar();
   const contentLeft = typeof window !== 'undefined' ? (isCollapsed ? 64 : 240) : 0;
@@ -304,10 +309,11 @@ export const EditServicesModal = ({
   const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
   const [newServiceNamePrefill, setNewServiceNamePrefill] = useState<string>('');
 
-  // Local UI state: optimistic added services (temporary), deleted snapshots for existing items, and cancelled adds tracker
+  // Local UI state: optimistic added services (temporary), deleted snapshots for existing items, and local price change tracking
   const [tempAdded, setTempAdded] = useState<ServiceLineItem[]>([]);
   const [deletedSnapshots, setDeletedSnapshots] = useState<Record<string, ServiceLineItem>>({});
-  const [cancelledAdds, setCancelledAdds] = useState<Array<{ serviceId?: string; serviceName: string }>>([]);
+  const [changedPriceIds, setChangedPriceIds] = useState<Set<string>>(new Set());
+  const [localPriceOverrides, setLocalPriceOverrides] = useState<Record<string, number>>({});
 
   // When real services update, clear matching temps and deleted snapshots that reappear
   useEffect(() => {
@@ -336,7 +342,10 @@ export const EditServicesModal = ({
   const handleSavePrice = (serviceId: string) => {
     const newPrice = editingPrices[serviceId];
     if (newPrice !== undefined) {
-      onUpdateService(serviceId, newPrice, notifyCustomer);
+      // Do not call API here. Mark as locally changed and reflect new price
+      setChangedPriceIds(prev => new Set(prev).add(serviceId));
+      setLocalPriceOverrides(prev => ({ ...prev, [serviceId]: newPrice }));
+      // Exit edit mode for this service
       setEditingPrices((prev) => {
         const { [serviceId]: _, ...rest } = prev;
         return rest;
@@ -350,9 +359,8 @@ export const EditServicesModal = ({
     const isTemp = serviceId.startsWith('temp-') || tempAdded.some(s => s.id === serviceId);
 
     if (isTemp) {
-      // Nowo dodana w tym modalu: usuń całkowicie z listy, bez oznaczania na czerwono
+      // Nowo dodana w tym modalu: usuń całkowicie z listy lokalnie
       setTempAdded(prev => prev.filter(s => s.id !== serviceId));
-      // Nie wysyłamy żądania do API, bo element nie istnieje jeszcze po stronie serwera
       return;
     }
 
@@ -361,9 +369,6 @@ export const EditServicesModal = ({
     if (current) {
       setDeletedSnapshots(prev => ({ ...prev, [serviceId]: current }));
     }
-
-    // Wyślij usunięcie do API (pozycja istnieje na serwerze)
-    onDeleteService(serviceId, notifyCustomer);
   };
 
   const hasPendingChanges = services.some((s) => s.status === 'PENDING');
@@ -374,7 +379,26 @@ export const EditServicesModal = ({
     basePriceNet: number;
     vatRate: number;
   }) => {
-    onAddService(service, notifyCustomer);
+    // Optimistic local add for immediate feedback (green 'Dodano')
+    const tempId = `temp-${Date.now()}`;
+    const basePriceNet = service.basePriceNet;
+    const vatRate = service.vatRate as number;
+    const tempItem: ServiceLineItem = {
+      id: tempId,
+      serviceId: service.id || 'custom',
+      serviceName: service.name,
+      basePriceNet,
+      vatRate,
+      requireManualPrice: false,
+      adjustment: { type: 'FIXED_NET', value: 0 },
+      note: '',
+      finalPriceNet: basePriceNet,
+      finalPriceGross: Math.round(basePriceNet * (1 + vatRate / 100)),
+      status: 'PENDING',
+    };
+    setTempAdded((prev) => [tempItem, ...prev]);
+
+    // Do not call API now; wait until user clicks Save
     setIsQuickServiceModalOpen(false);
   };
 
@@ -423,17 +447,7 @@ export const EditServicesModal = ({
                   status: 'PENDING',
                 };
                 setTempAdded((prev) => [tempItem, ...prev]);
-
-                // Trigger real add
-                onAddService(
-                  {
-                    id: service.id,
-                    name: service.name,
-                    basePriceNet: service.basePriceNet,
-                    vatRate: service.vatRate as any,
-                  },
-                  notifyCustomer
-                );
+                // Do not call API here; it will be sent on Save
               }}
               onAddNew={(q) => {
                 setNewServiceNamePrefill(q);
@@ -452,18 +466,26 @@ export const EditServicesModal = ({
               return items.map((service) => {
                 const isDeleted = !!deletedSnapshots[service.id];
                 const isEditing = !isDeleted && editingPrices[service.id] !== undefined;
-                const displayPrice = isEditing
-                  ? editingPrices[service.id] / 100
-                  : service.finalPriceNet / 100;
+                const isAdded = tempAdded.some(t => t.id === service.id);
+                const isPriceChanged = changedPriceIds.has(service.id);
+                const effectiveNet = isEditing
+                  ? editingPrices[service.id]
+                  : localPriceOverrides[service.id] ?? service.finalPriceNet;
+                const displayPrice = effectiveNet / 100;
+                const effectiveGross = Math.round(effectiveNet * (1 + (service.vatRate || 0) / 100));
 
                 return (
-                  <ServiceCard key={service.id} $pending={service.status === 'PENDING'} $deleted={isDeleted}>
+                  <ServiceCard key={service.id} $pending={!isAdded && (isPriceChanged || service.status === 'PENDING')} $deleted={isDeleted} $added={isAdded}>
                     <ServiceRow>
                       <ServiceInfo>
                         <ServiceHeader>
                           <ServiceName $deleted={isDeleted}>{service.serviceName}</ServiceName>
                           {isDeleted ? (
                             <DeletedChip>Usunięto</DeletedChip>
+                          ) : isAdded ? (
+                            <StatusChip $pending={false}>Dodano</StatusChip>
+                          ) : isPriceChanged ? (
+                            <StatusChip $pending={true}>Zmieniono cenę</StatusChip>
                           ) : (
                             <StatusChip $pending={service.status === 'PENDING'}>
                               {service.status === 'PENDING' ? 'Oczekuje' : 'Potwierdzona'}
@@ -478,8 +500,9 @@ export const EditServicesModal = ({
                             value={displayPrice}
                             onChange={(e) => handlePriceChange(service.id, e.target.value)}
                             onBlur={() => handleSavePrice(service.id)}
-                            onKeyPress={(e) => {
+                            onKeyDown={(e) => {
                               if (e.key === 'Enter') {
+                                e.preventDefault();
                                 handleSavePrice(service.id);
                               }
                             }}
@@ -487,14 +510,14 @@ export const EditServicesModal = ({
                           />
                         ) : (
                           <PriceText $deleted={isDeleted}>
-                            Netto: <span className="strong">{formatCurrency(service.finalPriceNet / 100)}</span> • Brutto:{' '}
-                            <span className="strong">{formatCurrency(service.finalPriceGross / 100)}</span>
+                            Netto: <span className="strong">{formatCurrency(effectiveNet / 100)}</span> • Brutto{' '}
+                            <span className="strong">{formatCurrency(effectiveGross / 100)}</span>
                           </PriceText>
                         )}
                       </ServiceInfo>
 
                       <Actions>
-                        {!isDeleted && service.status === 'PENDING' && (
+                        {!isDeleted && !isAdded && service.status === 'PENDING' && (
                           <IconButton
                             $variant="green"
                             onClick={() => onUpdateServiceStatus(service.id, 'CONFIRMED')}
@@ -510,7 +533,7 @@ export const EditServicesModal = ({
                           <IconButton
                             $variant="blue"
                             onClick={() =>
-                              setEditingPrices((prev) => ({ ...prev, [service.id]: service.finalPriceNet }))
+                              setEditingPrices((prev) => ({ ...prev, [service.id]: effectiveNet }))
                             }
                             title="Edytuj cenę"
                           >
@@ -558,6 +581,44 @@ export const EditServicesModal = ({
             <CloseSecondary type="button" onClick={onClose}>
               Zamknij
             </CloseSecondary>
+            <button
+              type="button"
+              onClick={() => {
+                const payload: ServicesChangesPayload = {
+                  notifyCustomer,
+                  added: tempAdded.map(t => ({
+                    serviceId: t.serviceId,
+                    serviceName: t.serviceName,
+                    basePriceNet: localPriceOverrides[t.id] ?? t.finalPriceNet,
+                    vatRate: t.vatRate,
+                    adjustment: t.adjustment,
+                    note: t.note,
+                  })),
+                  updated: Array.from(changedPriceIds)
+                    .filter(id => !tempAdded.some(t => t.id === id) && !deletedSnapshots[id])
+                    .map(id => ({
+                      serviceLineItemId: id,
+                      basePriceNet: localPriceOverrides[id]!,
+                    })),
+                  deleted: Object.keys(deletedSnapshots).map(id => ({ serviceLineItemId: id })),
+                };
+                onSaveChanges(payload);
+              }}
+              disabled={
+                (tempAdded.length === 0 && Object.keys(deletedSnapshots).length === 0 && changedPriceIds.size === 0) ||
+                !!isSavingChanges
+              }
+              style={{
+                padding: '10px 16px',
+                borderRadius: 9999,
+                background: 'var(--brand-primary)',
+                color: 'white',
+                fontWeight: 600,
+                opacity: ((tempAdded.length === 0 && Object.keys(deletedSnapshots).length === 0 && changedPriceIds.size === 0) || !!isSavingChanges) ? 0.6 : 1,
+              }}
+            >
+              {isSavingChanges ? 'Zapisywanie…' : 'Zapisz'}
+            </button>
           </Footer>
         </ModalContainer>
       </Overlay>

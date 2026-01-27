@@ -259,3 +259,22 @@ export const useUpdateServiceStatus = (visitId: string) => {
         isUpdating: isPending,
     };
 };
+
+export const useSaveServicesChanges = (visitId: string) => {
+    const queryClient = useQueryClient();
+
+    const { mutate, isPending } = useMutation({
+        mutationFn: (payload: import('../types').ServicesChangesPayload) =>
+            visitApi.saveServicesChanges(visitId, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: visitDetailQueryKey(visitId),
+            });
+        },
+    });
+
+    return {
+        saveServicesChanges: mutate,
+        isSaving: isPending,
+    };
+};
