@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import styled, { css } from 'styled-components';
 import { formatCurrency } from '@/common/utils';
 import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceModal';
+import { ServiceAutocomplete } from '@/modules/checkin/components/ServiceAutocomplete';
 import type { ServiceLineItem, ServiceStatus } from '../types';
 
 interface EditServicesModalProps {
@@ -108,16 +109,17 @@ const Content = styled.div`
   gap: 16px;
 `;
 
-const ServiceCard = styled.div<{ $pending: boolean }>`
+const ServiceCard = styled.div<{ $pending: boolean; $deleted?: boolean }>`
   padding: 16px;
   border-radius: 16px;
   border: 2px solid;
-  border-color: ${p => (p.$pending ? '#fcd34d' : '#e5e7eb')};
-  background: ${p => (p.$pending ? '#fffbeb' : '#fff')};
-  transition: border-color 0.15s ease;
+  border-color: ${p => (p.$deleted ? '#fecaca' : p.$pending ? '#fcd34d' : '#e5e7eb')};
+  background: ${p => (p.$deleted ? '#fff1f2' : p.$pending ? '#fffbeb' : '#fff')};
+  transition: border-color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+  opacity: ${p => (p.$deleted ? 0.9 : 1)};
 
   &:hover {
-    border-color: ${p => (p.$pending ? '#fcd34d' : '#d1d5db')};
+    border-color: ${p => (p.$deleted ? '#fca5a5' : p.$pending ? '#fcd34d' : '#d1d5db')};
   }
 `;
 
@@ -138,9 +140,10 @@ const ServiceHeader = styled.div`
   margin-bottom: 4px;
 `;
 
-const ServiceName = styled.h3`
+const ServiceName = styled.h3<{ $deleted?: boolean }>`
   font-weight: 600;
-  color: #111827;
+  color: ${p => (p.$deleted ? '#b91c1c' : '#111827')};
+  text-decoration: ${p => (p.$deleted ? 'line-through' : 'none')};
 `;
 
 const StatusChip = styled.span<{ $pending: boolean }>`
@@ -160,11 +163,21 @@ const StatusChip = styled.span<{ $pending: boolean }>`
         `}
 `;
 
-const PriceText = styled.p`
-  font-size: 0.875rem;
-  color: #4b5563;
+const DeletedChip = styled.span`
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #fee2e2;
+  color: #991b1b;
+`;
 
-  .strong { font-weight: 600; color: #111827; }
+const PriceText = styled.p<{ $deleted?: boolean }>`
+  font-size: 0.875rem;
+  color: ${p => (p.$deleted ? '#b91c1c' : '#4b5563')};
+  text-decoration: ${p => (p.$deleted ? 'line-through' : 'none')};
+
+  .strong { font-weight: 600; color: ${p => (p.$deleted ? '#b91c1c' : '#111827')}; }
 `;
 
 const PriceInput = styled.input`
@@ -289,6 +302,26 @@ export const EditServicesModal = ({
   const [notifyCustomer, setNotifyCustomer] = useState(true);
   const [editingPrices, setEditingPrices] = useState<Record<string, number>>({});
   const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
+  const [newServiceNamePrefill, setNewServiceNamePrefill] = useState<string>('');
+
+  // Local UI state: optimistic added services (temporary), and deleted snapshots
+  const [tempAdded, setTempAdded] = useState<ServiceLineItem[]>([]);
+  const [deletedSnapshots, setDeletedSnapshots] = useState<Record<string, ServiceLineItem>>({});
+
+  // When real services update, clear matching temps and deleted snapshots that reappear
+  useEffect(() => {
+    if (!services) return;
+    // Remove temp items that match existing by serviceId+serviceName
+    setTempAdded(prev => prev.filter(t => !services.some(s => s.serviceId === t.serviceId && s.serviceName === t.serviceName)));
+    // If any deleted item somehow reappeared, drop snapshot
+    setDeletedSnapshots(prev => {
+      const next = { ...prev };
+      services.forEach(s => {
+        if (next[s.id]) delete next[s.id];
+      });
+      return next;
+    });
+  }, [services]);
 
   if (!isOpen) return null;
 
@@ -312,6 +345,14 @@ export const EditServicesModal = ({
 
   const handleDelete = (serviceId: string) => {
     if (window.confirm('Czy na pewno chcesz usunąć tę usługę?')) {
+      // Snapshot current item so we can keep it visible as deleted
+      const current = services.find(s => s.id === serviceId) || tempAdded.find(s => s.id === serviceId);
+      if (current) {
+        setDeletedSnapshots(prev => ({ ...prev, [serviceId]: current }));
+      }
+      // Also remove from tempAdded if it was only optimistic
+      setTempAdded(prev => prev.filter(s => s.id !== serviceId));
+
       onDeleteService(serviceId, notifyCustomer);
     }
   };
@@ -352,90 +393,139 @@ export const EditServicesModal = ({
           </Header>
 
           <Content>
-            {services.map((service) => {
-              const isEditing = editingPrices[service.id] !== undefined;
-              const displayPrice = isEditing
-                ? editingPrices[service.id] / 100
-                : service.finalPriceNet / 100;
+            {/* Select existing service */}
+            <ServiceAutocomplete
+              onSelect={(service) => {
+                // Optimistic local add for immediate feedback
+                const tempId = `temp-${Date.now()}`;
+                const basePriceNet = service.basePriceNet;
+                const vatRate = service.vatRate as number;
+                const tempItem: ServiceLineItem = {
+                  id: tempId,
+                  serviceId: service.id,
+                  serviceName: service.name,
+                  basePriceNet,
+                  vatRate,
+                  requireManualPrice: service.requireManualPrice,
+                  adjustment: { type: 'FIXED_NET', value: 0 },
+                  note: '',
+                  finalPriceNet: basePriceNet,
+                  finalPriceGross: Math.round(basePriceNet * (1 + vatRate / 100)),
+                  status: 'PENDING',
+                };
+                setTempAdded((prev) => [tempItem, ...prev]);
 
-              return (
-                <ServiceCard key={service.id} $pending={service.status === 'PENDING'}>
-                  <ServiceRow>
-                    <ServiceInfo>
-                      <ServiceHeader>
-                        <ServiceName>{service.serviceName}</ServiceName>
-                        <StatusChip $pending={service.status === 'PENDING'}>
-                          {service.status === 'PENDING' ? 'Oczekuje' : 'Potwierdzona'}
-                        </StatusChip>
-                      </ServiceHeader>
+                // Trigger real add
+                onAddService(
+                  {
+                    id: service.id,
+                    name: service.name,
+                    basePriceNet: service.basePriceNet,
+                    vatRate: service.vatRate as any,
+                  },
+                  notifyCustomer
+                );
+              }}
+              onAddNew={(q) => {
+                setNewServiceNamePrefill(q);
+                setIsQuickServiceModalOpen(true);
+              }}
+            />
 
-                      {isEditing ? (
-                        <PriceInput
-                          type="number"
-                          step="0.01"
-                          value={displayPrice}
-                          onChange={(e) => handlePriceChange(service.id, e.target.value)}
-                          onBlur={() => handleSavePrice(service.id)}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              handleSavePrice(service.id);
+            {(() => {
+              // Build list: start with services, then tempAdded (avoid id collision), then deletedSnapshots that are not in services
+              const byId: Record<string, ServiceLineItem> = {};
+              services.forEach(s => { byId[s.id] = s; });
+              tempAdded.forEach(t => { byId[t.id] = t; });
+              Object.values(deletedSnapshots).forEach(d => { byId[d.id] = d; });
+              const items = Object.values(byId);
+
+              return items.map((service) => {
+                const isDeleted = !!deletedSnapshots[service.id];
+                const isEditing = !isDeleted && editingPrices[service.id] !== undefined;
+                const displayPrice = isEditing
+                  ? editingPrices[service.id] / 100
+                  : service.finalPriceNet / 100;
+
+                return (
+                  <ServiceCard key={service.id} $pending={service.status === 'PENDING'} $deleted={isDeleted}>
+                    <ServiceRow>
+                      <ServiceInfo>
+                        <ServiceHeader>
+                          <ServiceName $deleted={isDeleted}>{service.serviceName}</ServiceName>
+                          {isDeleted ? (
+                            <DeletedChip>Usunięto</DeletedChip>
+                          ) : (
+                            <StatusChip $pending={service.status === 'PENDING'}>
+                              {service.status === 'PENDING' ? 'Oczekuje' : 'Potwierdzona'}
+                            </StatusChip>
+                          )}
+                        </ServiceHeader>
+
+                        {isEditing ? (
+                          <PriceInput
+                            type="number"
+                            step="0.01"
+                            value={displayPrice}
+                            onChange={(e) => handlePriceChange(service.id, e.target.value)}
+                            onBlur={() => handleSavePrice(service.id)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                handleSavePrice(service.id);
+                              }
+                            }}
+                            autoFocus
+                          />
+                        ) : (
+                          <PriceText $deleted={isDeleted}>
+                            Netto: <span className="strong">{formatCurrency(service.finalPriceNet / 100)}</span> • Brutto:{' '}
+                            <span className="strong">{formatCurrency(service.finalPriceGross / 100)}</span>
+                          </PriceText>
+                        )}
+                      </ServiceInfo>
+
+                      <Actions>
+                        {!isDeleted && service.status === 'PENDING' && (
+                          <IconButton
+                            $variant="green"
+                            onClick={() => onUpdateServiceStatus(service.id, 'CONFIRMED')}
+                            title="Zatwierdź ręcznie"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </IconButton>
+                        )}
+
+                        {!isDeleted && (
+                          <IconButton
+                            $variant="blue"
+                            onClick={() =>
+                              setEditingPrices((prev) => ({ ...prev, [service.id]: service.finalPriceNet }))
                             }
-                          }}
-                          autoFocus
-                        />
-                      ) : (
-                        <PriceText>
-                          Netto: <span className="strong">{formatCurrency(service.finalPriceNet / 100)}</span> • Brutto:{' '}
-                          <span className="strong">{formatCurrency(service.finalPriceGross / 100)}</span>
-                        </PriceText>
-                      )}
-                    </ServiceInfo>
+                            title="Edytuj cenę"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                          </IconButton>
+                        )}
 
-                    <Actions>
-                      {service.status === 'PENDING' && (
-                        <IconButton
-                          $variant="green"
-                          onClick={() => onUpdateServiceStatus(service.id, 'CONFIRMED')}
-                          title="Zatwierdź ręcznie"
-                        >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        </IconButton>
-                      )}
-
-                      <IconButton
-                        $variant="blue"
-                        onClick={() =>
-                          setEditingPrices((prev) => ({ ...prev, [service.id]: service.finalPriceNet }))
-                        }
-                        title="Edytuj cenę"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                      </IconButton>
-
-                      <IconButton $variant="red" onClick={() => handleDelete(service.id)} title="Usuń usługę">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </svg>
-                      </IconButton>
-                    </Actions>
-                  </ServiceRow>
-                </ServiceCard>
-              );
-            })}
-
-            <AddServiceButton onClick={() => setIsQuickServiceModalOpen(true)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              Dodaj usługę
-            </AddServiceButton>
+                        {!isDeleted && (
+                          <IconButton $variant="red" onClick={() => handleDelete(service.id)} title="Usuń usługę">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
+                          </IconButton>
+                        )}
+                      </Actions>
+                    </ServiceRow>
+                  </ServiceCard>
+                );
+              });
+            })()}
 
             <NotifyBox>
               <NotifyLabel>
@@ -469,6 +559,7 @@ export const EditServicesModal = ({
           isOpen={isQuickServiceModalOpen}
           onClose={() => setIsQuickServiceModalOpen(false)}
           onServiceCreate={handleServiceCreate}
+          initialServiceName={newServiceNamePrefill}
         />
       </div>
     </>
