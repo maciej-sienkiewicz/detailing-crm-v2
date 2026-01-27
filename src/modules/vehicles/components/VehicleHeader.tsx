@@ -161,15 +161,26 @@ interface VehicleHeaderProps {
 }
 
 export const VehicleHeader = ({ vehicle }: VehicleHeaderProps) => {
+    // Safe fallbacks for potentially missing data from API
+    const stats = vehicle.stats ?? ({} as any);
+    const totalSpent = stats.totalSpent ?? { grossAmount: 0, netAmount: 0, currency: 'PLN' };
+    const averageVisitCost = stats.averageVisitCost ?? { grossAmount: 0, currency: totalSpent.currency };
+    const totalVisits = typeof stats.totalVisits === 'number' ? stats.totalVisits : 0;
+    const lastVisitDate = stats.lastVisitDate ?? null;
+
+    const licensePlate = vehicle.licensePlate ?? '—';
+    const vehicleNameParts = [vehicle.brand, vehicle.model].filter(Boolean).join(' ');
+    const yearSuffix = vehicle.yearOfProduction ? ` (${vehicle.yearOfProduction})` : '';
+
     return (
         <HeaderContainer>
             <HeaderTop>
                 <VehicleInfo>
                     <VehicleIcon>🚗</VehicleIcon>
                     <VehicleDetails>
-                        <LicensePlate>{vehicle.licensePlate}</LicensePlate>
+                        <LicensePlate>{licensePlate}</LicensePlate>
                         <VehicleName>
-                            {vehicle.brand} {vehicle.model} ({vehicle.yearOfProduction})
+                            {vehicleNameParts}{yearSuffix}
                         </VehicleName>
                         <StatusBadge $status={vehicle.status}>
                             {t.vehicles.detail.status[vehicle.status]}
@@ -181,31 +192,31 @@ export const VehicleHeader = ({ vehicle }: VehicleHeaderProps) => {
             <StatsGrid>
                 <StatCard>
                     <StatLabel>{t.vehicles.detail.stats.totalVisits}</StatLabel>
-                    <StatValue>{vehicle.stats.totalVisits}</StatValue>
+                    <StatValue>{totalVisits}</StatValue>
                 </StatCard>
 
                 <StatCard>
                     <StatLabel>{t.vehicles.detail.stats.totalSpent}</StatLabel>
                     <StatValue>
-                        {formatCurrency(vehicle.stats.totalSpent.grossAmount, vehicle.stats.totalSpent.currency)}
+                        {formatCurrency(totalSpent.grossAmount, totalSpent.currency)}
                     </StatValue>
                     <StatSubvalue>
-                        {formatCurrency(vehicle.stats.totalSpent.netAmount, vehicle.stats.totalSpent.currency)} netto
+                        {formatCurrency(totalSpent.netAmount, totalSpent.currency)} netto
                     </StatSubvalue>
                 </StatCard>
 
                 <StatCard>
                     <StatLabel>{t.vehicles.detail.stats.averageCost}</StatLabel>
                     <StatValue>
-                        {formatCurrency(vehicle.stats.averageVisitCost.grossAmount, vehicle.stats.averageVisitCost.currency)}
+                        {formatCurrency(averageVisitCost.grossAmount, averageVisitCost.currency)}
                     </StatValue>
                 </StatCard>
 
                 <StatCard>
                     <StatLabel>{t.vehicles.detail.stats.lastVisit}</StatLabel>
                     <StatValue>
-                        {vehicle.stats.lastVisitDate
-                            ? new Date(vehicle.stats.lastVisitDate).toLocaleDateString('pl-PL')
+                        {lastVisitDate
+                            ? new Date(lastVisitDate).toLocaleDateString('pl-PL')
                             : '—'
                         }
                     </StatValue>
