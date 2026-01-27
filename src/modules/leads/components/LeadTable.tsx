@@ -1,5 +1,6 @@
 // src/modules/leads/components/LeadTable.tsx
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import styled, { css, keyframes } from 'styled-components';
 import { t } from '@/common/i18n';
 import type { Lead } from '../types';
@@ -39,6 +40,8 @@ const fadeIn = keyframes`
 const TableWrapper = styled.div`
   width: 100%;
   overflow-x: auto;
+  /* Ensure dropdowns can overflow vertically */
+  overflow-y: visible;
   -webkit-overflow-scrolling: touch;
 `;
 
@@ -48,7 +51,7 @@ const Table = styled.table`
   border-collapse: collapse;
   background: ${props => props.theme.colors.surface};
   border-radius: ${props => props.theme.radii.lg};
-  overflow: hidden;
+  overflow: visible;
 `;
 
 const TableHead = styled.thead`
@@ -268,12 +271,6 @@ const StatusBadge = styled.button<{ $status: LeadStatus }>`
 
   ${props => {
     switch (props.$status) {
-      case LeadStatus.PENDING:
-        return css`
-          background: #fef3c7;
-          color: #92400e;
-          border-color: #fcd34d;
-        `;
       case LeadStatus.IN_PROGRESS:
         return css`
           background: #dbeafe;
@@ -303,20 +300,26 @@ const StatusBadge = styled.button<{ $status: LeadStatus }>`
   }
 `;
 
-const StatusDropdown = styled.div<{ $isOpen: boolean }>`
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  z-index: 100;
-  min-width: 140px;
+const StatusDropdown = styled.div<{ $isOpen: boolean; $placement?: 'top' | 'bottom'; $floating?: boolean }>`
+  position: ${props => props.$floating ? 'fixed' : 'absolute'};
+  ${props => props.$floating ? '' : props.$placement === 'top' ? 'bottom: calc(100% + 4px); top: auto;' : 'top: calc(100% + 4px);'}
+  ${props => props.$floating ? '' : 'left: 0;'}
+  z-index: 1000;
+  min-width: 160px;
+  max-height: 260px;
+  overflow-y: auto;
   background: ${props => props.theme.colors.surface};
   border: 1px solid ${props => props.theme.colors.border};
   border-radius: ${props => props.theme.radii.md};
   box-shadow: ${props => props.theme.shadows.lg};
   opacity: ${props => props.$isOpen ? 1 : 0};
   visibility: ${props => props.$isOpen ? 'visible' : 'hidden'};
-  transform: ${props => props.$isOpen ? 'translateY(0)' : 'translateY(-8px)'};
-  transition: all 0.15s ease;
+  transform: ${props => {
+    if (!props.$isOpen) return 'translateY(-8px)';
+    if (props.$floating && props.$placement === 'top') return 'translateY(-100%)';
+    return 'translateY(0)';
+  }};
+  transition: transform 0.15s ease, opacity 0.15s ease, visibility 0.15s ease;
 `;
 
 const StatusOption = styled.button<{ $isActive: boolean }>`
@@ -608,13 +611,12 @@ const ChevronIcon = () => (
 // ============================================================================
 
 const statusLabels: Record<LeadStatus, string> = {
-  [LeadStatus.PENDING]: t.leads?.status?.pending || 'Nowy',
   [LeadStatus.IN_PROGRESS]: t.leads?.status?.inProgress || 'W kontakcie',
   [LeadStatus.CONVERTED]: t.leads?.status?.converted || 'Zrealizowany',
   [LeadStatus.ABANDONED]: t.leads?.status?.abandoned || 'Odpuszczony',
 };
 
-const allStatuses: LeadStatus[] = [LeadStatus.PENDING, LeadStatus.IN_PROGRESS, LeadStatus.CONVERTED, LeadStatus.ABANDONED];
+const allStatuses: LeadStatus[] = [LeadStatus.IN_PROGRESS, LeadStatus.CONVERTED, LeadStatus.ABANDONED];
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -664,9 +666,11 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
   const [editingValueId, setEditingValueId] = useState<string | null>(null);
   const [valueInput, setValueInput] = useState('');
   const [openStatusId, setOpenStatusId] = useState<string | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; placement: 'top' | 'bottom' } | null>(null);
 
   const valueInputRef = useRef<HTMLInputElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const updateStatus = useUpdateLeadStatus();
   const updateValue = useUpdateLeadValue();
@@ -674,7 +678,10 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
   // Close status dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (statusRef.current && !statusRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const insideStatus = statusRef.current && statusRef.current.contains(target);
+      const insideDropdown = dropdownRef.current && dropdownRef.current.contains(target as Node);
+      if (!insideStatus && !insideDropdown) {
         setOpenStatusId(null);
       }
     };
@@ -714,6 +721,13 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
 
   const handleStatusClick = (leadId: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const placement: 'top' | 'bottom' = rect.bottom + 200 > viewportHeight ? 'top' : 'bottom';
+    const top = placement === 'bottom' ? rect.bottom + 4 : rect.top - 4; // we'll offset in render
+    const left = rect.left;
+    setDropdownPos({ top, left, placement });
     setOpenStatusId(openStatusId === leadId ? null : leadId);
   };
 
@@ -721,6 +735,35 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
     updateStatus.mutate({ id: leadId, status });
     setOpenStatusId(null);
   };
+
+  // Recalculate dropdown position on scroll/resize when open
+  useEffect(() => {
+    if (!openStatusId) return;
+    const updatePosition = () => {
+      const anchor = statusRef.current?.querySelector('button');
+      if (!anchor) return;
+      const rect = (anchor as HTMLElement).getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
+      const placement: 'top' | 'bottom' = rect.bottom + 200 > viewportHeight ? 'top' : 'bottom';
+      let top = placement === 'bottom' ? rect.bottom + 4 : rect.top - 4;
+      let left = rect.left;
+      // Prevent overflow on the right
+      const dropdownWidth = 200; // approx min width
+      if (left + dropdownWidth > viewportWidth - 8) {
+        left = Math.max(8, viewportWidth - dropdownWidth - 8);
+      }
+      setDropdownPos({ top, left, placement });
+    };
+
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [openStatusId]);
 
   const handleRowClick = (lead: Lead) => {
     if (editingValueId || openStatusId) return;
@@ -794,9 +837,9 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
 
   // Sort leads - active on top
   const sortedLeads = [...leads].sort((a, b) => {
-    const activeStatuses = [LeadStatus.PENDING, LeadStatus.IN_PROGRESS];
-    const aIsActive = activeStatuses.includes(a.status);
-    const bIsActive = activeStatuses.includes(b.status);
+    // Active = IN_PROGRESS only (PENDING removed)
+    const aIsActive = a.status === LeadStatus.IN_PROGRESS;
+    const bIsActive = b.status === LeadStatus.IN_PROGRESS;
     if (aIsActive && !bIsActive) return -1;
     if (!aIsActive && bIsActive) return 1;
     if (a.requiresVerification !== b.requiresVerification) {
@@ -811,7 +854,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
       <MobileCardsContainer>
         {sortedLeads.map((lead) => {
           const contact = formatContact(lead);
-          const isNew = lead.requiresVerification && lead.status === LeadStatus.PENDING;
+          const isNew = lead.requiresVerification;
 
           return (
             <MobileCard
@@ -884,7 +927,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
             <TableBody>
               {sortedLeads.map((lead) => {
                 const contact = formatContact(lead);
-                const isNew = lead.requiresVerification && lead.status === LeadStatus.PENDING;
+                const isNew = lead.requiresVerification;
 
                 return (
                   <TableRow
@@ -957,20 +1000,30 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
                           {statusLabels[lead.status]}
                           <ChevronIcon />
                         </StatusBadge>
-                        <StatusDropdown $isOpen={openStatusId === lead.id}>
-                          {allStatuses.map((status) => (
-                            <StatusOption
-                              key={status}
-                              $isActive={lead.status === status}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStatusChange(lead.id, status);
-                              }}
-                            >
-                              {statusLabels[status]}
-                            </StatusOption>
-                          ))}
-                        </StatusDropdown>
+                        {/* Portal-based dropdown to avoid clipping */}
+                        {openStatusId === lead.id && dropdownPos && createPortal(
+                          <StatusDropdown
+                            ref={dropdownRef}
+                            $isOpen={true}
+                            $floating
+                            style={{ top: dropdownPos.top, left: dropdownPos.left }}
+                            $placement={dropdownPos.placement}
+                          >
+                            {allStatuses.map((status) => (
+                              <StatusOption
+                                key={status}
+                                $isActive={lead.status === status}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusChange(lead.id, status);
+                                }}
+                              >
+                                {statusLabels[status]}
+                              </StatusOption>
+                            ))}
+                          </StatusDropdown>,
+                          document.body
+                        )}
                       </StatusWrapper>
                     </TableCell>
 

@@ -41,7 +41,7 @@ export function useLeadSocket(): void {
       const newLead: Lead = {
         id: payload.id,
         source: LeadSource.PHONE,
-        status: LeadStatus.PENDING,
+        status: LeadStatus.IN_PROGRESS,
         contactIdentifier: payload.phoneNumber,
         customerName: payload.callerName,
         createdAt: payload.receivedAt,

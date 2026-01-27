@@ -482,7 +482,7 @@ const LeadCardItem: React.FC<LeadCardItemProps> = ({ lead, onLeadClick }) => {
                 <ChevronDownIcon />
               </StatusButton>
               <StatusMenu $isOpen={statusMenuOpen}>
-                {(['PENDING', 'IN_PROGRESS', 'CONVERTED', 'ABANDONED'] as LeadStatus[]).map(
+                {(['IN_PROGRESS', 'CONVERTED', 'ABANDONED'] as LeadStatus[]).map(
                   (status) => (
                     <StatusOption
                       key={status}
@@ -506,7 +506,7 @@ const LeadCardItem: React.FC<LeadCardItemProps> = ({ lead, onLeadClick }) => {
       {/* Mobile-only row */}
       <MobileRow onClick={(e) => e.stopPropagation()}>
         <BadgeContainer>
-          {lead.requiresVerification && lead.status === 'PENDING' && (
+          {lead.requiresVerification && (
             <NewBadge $animate={shouldAnimate}>NOWY</NewBadge>
           )}
           <ValueBadge onClick={handleValueEdit}>{formattedValue}</ValueBadge>
@@ -521,7 +521,7 @@ const LeadCardItem: React.FC<LeadCardItemProps> = ({ lead, onLeadClick }) => {
             <ChevronDownIcon />
           </StatusButton>
           <StatusMenu $isOpen={statusMenuOpen}>
-            {(['PENDING', 'IN_PROGRESS', 'CONVERTED', 'ABANDONED'] as LeadStatus[]).map(
+            {(['IN_PROGRESS', 'CONVERTED', 'ABANDONED'] as LeadStatus[]).map(
               (status) => (
                 <StatusOption
                   key={status}

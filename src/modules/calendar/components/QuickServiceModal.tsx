@@ -1,5 +1,6 @@
 // src/modules/calendar/components/QuickServiceModal.tsx
 import React, { useState, useEffect } from 'react';
+import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { PriceInput } from '@/modules/services/components/PriceInput';
 import { useCreateService } from '@/modules/services/hooks/useServices';
 import {
@@ -50,6 +51,8 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
     onServiceCreate,
     initialServiceName = '',
 }) => {
+    const { isCollapsed } = useSidebar();
+    const contentLeft = typeof window !== 'undefined' ? (isCollapsed ? 64 : 240) : 0;
     const [serviceName, setServiceName] = useState(initialServiceName);
     const [basePriceNet, setBasePriceNet] = useState(0);
     const [saveToDatabase, setSaveToDatabase] = useState(false);
@@ -122,6 +125,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
     return (
         <Overlay
             $isOpen={isOpen}
+            $contentLeft={contentLeft}
             onMouseDown={(e) => e.target === e.currentTarget && onClose()}
         >
             <ModalContainer $isOpen={isOpen}>

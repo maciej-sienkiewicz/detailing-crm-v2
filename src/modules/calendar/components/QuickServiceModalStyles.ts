@@ -20,7 +20,7 @@ const scaleIn = keyframes`
     }
 `;
 
-export const Overlay = styled.div<{ $isOpen: boolean }>`
+export const Overlay = styled.div<{ $isOpen: boolean; $contentLeft?: number }>`
     position: fixed;
     inset: 0;
     z-index: 50;
@@ -34,6 +34,11 @@ export const Overlay = styled.div<{ $isOpen: boolean }>`
     pointer-events: ${props => props.$isOpen ? 'auto' : 'none'};
     transition: all ${props => props.theme.transitions.slow};
     animation: ${props => props.$isOpen ? fadeIn : 'none'} 0.3s ease-out;
+
+    /* Center within content area on desktop (exclude sidebar width) */
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        left: ${props => (props.$contentLeft ?? 0)}px;
+    }
 `;
 
 export const ModalContainer = styled.div<{ $isOpen: boolean }>`
