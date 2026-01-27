@@ -304,9 +304,10 @@ export const EditServicesModal = ({
   const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
   const [newServiceNamePrefill, setNewServiceNamePrefill] = useState<string>('');
 
-  // Local UI state: optimistic added services (temporary), and deleted snapshots
+  // Local UI state: optimistic added services (temporary), deleted snapshots for existing items, and cancelled adds tracker
   const [tempAdded, setTempAdded] = useState<ServiceLineItem[]>([]);
   const [deletedSnapshots, setDeletedSnapshots] = useState<Record<string, ServiceLineItem>>({});
+  const [cancelledAdds, setCancelledAdds] = useState<Array<{ serviceId?: string; serviceName: string }>>([]);
 
   // When real services update, clear matching temps and deleted snapshots that reappear
   useEffect(() => {
@@ -344,17 +345,25 @@ export const EditServicesModal = ({
   };
 
   const handleDelete = (serviceId: string) => {
-    if (window.confirm('Czy na pewno chcesz usunąć tę usługę?')) {
-      // Snapshot current item so we can keep it visible as deleted
-      const current = services.find(s => s.id === serviceId) || tempAdded.find(s => s.id === serviceId);
-      if (current) {
-        setDeletedSnapshots(prev => ({ ...prev, [serviceId]: current }));
-      }
-      // Also remove from tempAdded if it was only optimistic
-      setTempAdded(prev => prev.filter(s => s.id !== serviceId));
+    if (!window.confirm('Czy na pewno chcesz usunąć tę usługę?')) return;
 
-      onDeleteService(serviceId, notifyCustomer);
+    const isTemp = serviceId.startsWith('temp-') || tempAdded.some(s => s.id === serviceId);
+
+    if (isTemp) {
+      // Nowo dodana w tym modalu: usuń całkowicie z listy, bez oznaczania na czerwono
+      setTempAdded(prev => prev.filter(s => s.id !== serviceId));
+      // Nie wysyłamy żądania do API, bo element nie istnieje jeszcze po stronie serwera
+      return;
     }
+
+    // Istniejąca pozycja przypisana wcześniej do wizyty: oznacz jako usunięta (czerwone przekreślenie)
+    const current = services.find(s => s.id === serviceId);
+    if (current) {
+      setDeletedSnapshots(prev => ({ ...prev, [serviceId]: current }));
+    }
+
+    // Wyślij usunięcie do API (pozycja istnieje na serwerze)
+    onDeleteService(serviceId, notifyCustomer);
   };
 
   const hasPendingChanges = services.some((s) => s.status === 'PENDING');
