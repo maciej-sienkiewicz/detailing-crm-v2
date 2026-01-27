@@ -7,9 +7,9 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, ArrowRight } from 'lucide-react';
+import { ChevronDown, ArrowRight, Clock } from 'lucide-react';
 import { t } from '@/common/i18n';
-import { formatCurrency, formatPhoneNumber } from '@/common/utils/formatters';
+import { formatCurrency, formatPhoneNumber, formatDate } from '@/common/utils/formatters';
 import type { OperationalStats, VisitDetail } from '../types';
 
 interface OperationalScorecardProps {
@@ -36,6 +36,8 @@ const StatCard = styled.div<{ $isExpanded: boolean }>`
   padding: ${(props) => props.theme.spacing.lg};
   box-shadow: ${(props) => props.theme.shadows.md};
   border: 1px solid ${(props) => props.theme.colors.border};
+  box-sizing: border-box;
+  width: 100%;
   transition: transform ${(props) => props.theme.transitions.normal},
     box-shadow ${(props) => props.theme.transitions.normal},
     border-color ${(props) => props.theme.transitions.normal};
@@ -61,6 +63,33 @@ const StatHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: ${(props) => props.theme.spacing.sm};
+`;
+
+const OverdueBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: ${(props) => props.theme.colors.errorLight};
+  color: ${(props) => props.theme.colors.error};
+  border: 1px solid ${(props) => props.theme.colors.error};
+  border-radius: ${(props) => props.theme.radii.sm};
+  padding: 2px 6px;
+  font-size: ${(props) => props.theme.fontSizes.xs};
+  font-weight: ${(props) => props.theme.fontWeights.semibold};
+`;
+
+const DateRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: ${(props) => props.theme.colors.textSecondary};
+  font-size: ${(props) => props.theme.fontSizes.sm};
+`;
+
+const OverdueIcon = styled(Clock)`
+  width: 14px;
+  height: 14px;
+  color: ${(props) => props.theme.colors.error};
 `;
 
 const StatLabel = styled.div`
@@ -101,6 +130,14 @@ const HintText = styled.div`
   opacity: 0.8;
 `;
 
+// Ensures equal vertical spacing across all stat cards beneath the value
+const BadgeRow = styled.div`
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+  margin-top: ${(props) => props.theme.spacing.xs};
+`;
+
 const StatSkeleton = styled.div`
   height: 40px;
   background: linear-gradient(
@@ -132,6 +169,7 @@ const ExpandedList = styled.div<{ $isVisible: boolean }>`
   border-radius: ${(props) => props.theme.radii.lg};
   box-shadow: ${(props) => props.theme.shadows.xl};
   border: 1px solid ${(props) => props.theme.colors.primary};
+  box-sizing: border-box;
   z-index: 10;
   max-height: 400px;
   overflow-y: auto;
@@ -153,17 +191,19 @@ const ExpandedList = styled.div<{ $isVisible: boolean }>`
   }
 `;
 
-const VisitItem = styled.div`
+const VisitItem = styled.div<{ $overdue?: boolean }>`
   padding: ${(props) => props.theme.spacing.md};
   border-bottom: 1px solid ${(props) => props.theme.colors.border};
   transition: background-color ${(props) => props.theme.transitions.fast};
+  background-color: ${(props) => (props.$overdue ? props.theme.colors.errorLight : 'transparent')};
 
   &:last-child {
     border-bottom: none;
   }
 
   &:hover {
-    background-color: ${(props) => props.theme.colors.surfaceHover};
+    background-color: ${(props) =>
+      props.$overdue ? props.theme.colors.errorLight : props.theme.colors.surfaceHover};
   }
 `;
 
@@ -295,7 +335,12 @@ const VisitList = ({
         <EmptyMessage>Brak wizyt</EmptyMessage>
       ) : (
         visits.map((visit) => (
-          <VisitItem key={visit.id}>
+          <VisitItem
+            key={visit.id}
+            $overdue={Boolean(
+              visit.estimatedCompletionDate && new Date(visit.estimatedCompletionDate) < new Date()
+            )}
+          >
             <MainRow>
               <VehicleInfo>
                 <VehicleName>
@@ -316,6 +361,14 @@ const VisitList = ({
               </CustomerInfo>
               {visit.phoneNumber && (
                 <PhoneInfo>{formatPhoneNumber(visit.phoneNumber)}</PhoneInfo>
+              )}
+              {visit.estimatedCompletionDate && (
+                <DateRow>
+                  {new Date(visit.estimatedCompletionDate) < new Date() && <OverdueIcon />}
+                  <span>
+                    {t.dashboard.stats.estimatedCompletion}: {formatDate(visit.estimatedCompletionDate)}
+                  </span>
+                </DateRow>
               )}
             </DetailsRow>
           </VisitItem>
@@ -351,6 +404,13 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
           {stats ? (
             <>
               <StatValue>{stats.inProgress}</StatValue>
+              <BadgeRow>
+                {typeof stats.overdue === 'number' && stats.overdue > 0 && (
+                  <OverdueBadge>
+                    <OverdueIcon /> {t.dashboard.stats.overdue}: {stats.overdue}
+                  </OverdueBadge>
+                )}
+              </BadgeRow>
               <HintText>Kliknij aby zobaczyć szczegóły</HintText>
             </>
           ) : (
@@ -384,6 +444,7 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
           {stats ? (
             <>
               <StatValue>{stats.readyForPickup}</StatValue>
+              <BadgeRow />
               <HintText>Kliknij aby zobaczyć szczegóły</HintText>
             </>
           ) : (
@@ -417,6 +478,7 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
           {stats ? (
             <>
               <StatValue>{stats.incomingToday}</StatValue>
+              <BadgeRow />
               <HintText>Kliknij aby zobaczyć szczegóły</HintText>
             </>
           ) : (

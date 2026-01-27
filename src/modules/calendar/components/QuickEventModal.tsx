@@ -549,14 +549,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             {errors.endDateTime && <S.ErrorMessage>{errors.endDateTime}</S.ErrorMessage>}
                                         </S.InputGroup>
                                     </S.InputGrid>
-                                    <S.CheckboxLabel>
-                                        <S.Checkbox
-                                            checked={isAllDay}
-                                            onChange={(e) => setIsAllDay(e.target.checked)}
-                                            $accentColor={accentColor}
-                                        />
-                                        <span>Cały dzień</span>
-                                    </S.CheckboxLabel>
                                 </S.RowContent>
                             </S.Row>
 

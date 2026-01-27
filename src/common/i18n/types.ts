@@ -895,6 +895,8 @@ export interface TranslationKeys {
             inProgress: string;
             readyForPickup: string;
             arrivals: string;
+            overdue: string;
+            estimatedCompletion: string;
         };
         metrics: {
             revenueTitle: string;

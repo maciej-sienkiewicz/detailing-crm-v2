@@ -897,6 +897,8 @@ export const pl: TranslationKeys = {
             inProgress: 'W trakcie realizacji',
             readyForPickup: 'Gotowe do oddania',
             arrivals: 'Do przyjęcia dzisiaj',
+            overdue: 'Po terminie',
+            estimatedCompletion: 'Szacowana data zakończenia',
         },
         metrics: {
             revenueTitle: 'Wartość zleceń',

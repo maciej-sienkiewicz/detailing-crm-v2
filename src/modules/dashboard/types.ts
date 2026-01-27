@@ -21,6 +21,8 @@ export interface VisitDetail {
   customerLastName: string;
   /** Customer phone number (optional) */
   phoneNumber?: string;
+  /** Estimated completion date (ISO) */
+  estimatedCompletionDate?: string;
 }
 
 /**
@@ -29,6 +31,8 @@ export interface VisitDetail {
 export interface OperationalStats {
   /** Number of orders currently being worked on */
   inProgress: number;
+  /** Number of visits that are overdue (past estimated completion date) */
+  overdue?: number;
   /** Number of completed orders ready for customer pickup */
   readyForPickup: number;
   /** Number of new orders scheduled to arrive today */
