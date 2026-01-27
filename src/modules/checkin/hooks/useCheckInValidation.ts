@@ -16,11 +16,21 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
                 if (!formData.customerData.lastName || formData.customerData.lastName.length < 2) {
                     validationErrors.lastName = t.customers.validation.lastNameMin;
                 }
-                if (!formData.customerData.email || !isValidEmail(formData.customerData.email)) {
-                    validationErrors.email = t.customers.validation.emailInvalid;
-                }
-                if (!formData.customerData.phone || !isValidPolishPhone(formData.customerData.phone)) {
-                    validationErrors.phone = t.customers.validation.phoneInvalid;
+                // Wymagaj co najmniej jednego sposobu kontaktu: e-mail LUB telefon
+                const hasEmail = !!formData.customerData.email && formData.customerData.email.trim().length > 0;
+                const hasPhone = !!formData.customerData.phone && formData.customerData.phone.trim().length > 0;
+
+                if (!hasEmail && !hasPhone) {
+                    // Żaden kontakt nie został podany
+                    validationErrors.contact = 'Podaj e-mail lub numer telefonu';
+                } else {
+                    // Waliduj tylko te pola, które zostały podane
+                    if (hasEmail && !isValidEmail(formData.customerData.email)) {
+                        validationErrors.email = t.customers.validation.emailInvalid;
+                    }
+                    if (hasPhone && !isValidPolishPhone(formData.customerData.phone)) {
+                        validationErrors.phone = t.customers.validation.phoneInvalid;
+                    }
                 }
             } else {
                 // Jeśli nie ma pełnych danych, musi być wybór klienta

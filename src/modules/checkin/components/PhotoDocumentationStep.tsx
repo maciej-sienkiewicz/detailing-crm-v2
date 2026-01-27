@@ -163,6 +163,7 @@ interface PhotoDocumentationStepProps {
 export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: PhotoDocumentationStepProps) => {
     const { uploadSession, photos, refreshPhotos, isRefreshing } = usePhotoUpload(reservationId);
     const [showDamageDocumentation, setShowDamageDocumentation] = useState(false);
+    const [showPhotoDocumentation, setShowPhotoDocumentation] = useState(false);
 
     const requiredSlots: PhotoSlotType[] = ['front', 'rear', 'left_side', 'right_side'];
 
@@ -200,73 +201,80 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
     return (
         <StepContainer>
             <Card>
-                <CardHeader>
-                    <CardTitle>{t.checkin.photos.title}</CardTitle>
+                <CardHeader style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <CardTitle>Dokumentacja zdjęciowa</CardTitle>
+                    <Toggle
+                        checked={showPhotoDocumentation}
+                        onChange={setShowPhotoDocumentation}
+                        label="Rozwiń sekcję"
+                    />
                 </CardHeader>
 
-                {uploadSession && (
-                    <QRSection>
-                        <QRTitle>{t.checkin.photos.qrCodeTitle}</QRTitle>
-                        <QRDescription>{t.checkin.photos.qrCodeDescription}</QRDescription>
-                        <QRCodeWrapper>
-                            <img src={qrCodeUrl} alt="QR Code" />
-                        </QRCodeWrapper>
-                        <Button $variant="secondary" onClick={refreshPhotos} disabled={isRefreshing}>
-                            {isRefreshing ? t.common.loading : t.checkin.photos.refreshPhotos}
-                        </Button>
-                    </QRSection>
+                {showPhotoDocumentation && (
+                    <>
+                        {uploadSession && (
+                            <QRSection>
+                                <QRTitle>{t.checkin.photos.qrCodeTitle}</QRTitle>
+                                <QRDescription>{t.checkin.photos.qrCodeDescription}</QRDescription>
+                                <QRCodeWrapper>
+                                    <img src={qrCodeUrl} alt="QR Code" />
+                                </QRCodeWrapper>
+                                <Button $variant="secondary" onClick={refreshPhotos} disabled={isRefreshing}>
+                                    {isRefreshing ? t.common.loading : t.checkin.photos.refreshPhotos}
+                                </Button>
+                            </QRSection>
+                        )}
+
+                        <div>
+                            <h4 style={{ marginBottom: '16px', fontSize: '16px', fontWeight: 600 }}>
+                                {t.checkin.photos.required}
+                            </h4>
+                            <PhotoGrid>
+                                {requiredSlots.map(type => {
+                                    const photo = getPhotoByType(type);
+                                    const uploaded = !!photo;
+
+                                    return (
+                                        <PhotoSlot key={type} $uploaded={uploaded}>
+                                            <PhotoIcon $uploaded={uploaded}>
+                                                {uploaded ? (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                ) : (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                )}
+                                            </PhotoIcon>
+                                            <PhotoLabel>{t.checkin.photos.requiredSlots[type]}</PhotoLabel>
+                                            {photo && (
+                                                <PhotoTimestamp>{formatTimestamp(photo.uploadedAt!)}</PhotoTimestamp>
+                                            )}
+                                        </PhotoSlot>
+                                    );
+                                })}
+                            </PhotoGrid>
+                        </div>
+
+                        <StatusSection>
+                            {allRequiredUploaded ? (
+                                <>
+                                    <StatusText>{t.checkin.photos.allRequiredUploaded}</StatusText>
+                                    <Badge $variant="success">✓ {requiredPhotosCount}/4</Badge>
+                                </>
+                            ) : (
+                                <>
+                                    <StatusText>
+                                        {interpolate(t.checkin.photos.missingRequired, { count: missingCount.toString() })}
+                                    </StatusText>
+                                    <Badge $variant="warning">{requiredPhotosCount}/4</Badge>
+                                </>
+                            )}
+                        </StatusSection>
+                    </>
                 )}
-
-                <Divider />
-
-                <div>
-                    <h4 style={{ marginBottom: '16px', fontSize: '16px', fontWeight: 600 }}>
-                        {t.checkin.photos.required}
-                    </h4>
-                    <PhotoGrid>
-                        {requiredSlots.map(type => {
-                            const photo = getPhotoByType(type);
-                            const uploaded = !!photo;
-
-                            return (
-                                <PhotoSlot key={type} $uploaded={uploaded}>
-                                    <PhotoIcon $uploaded={uploaded}>
-                                        {uploaded ? (
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                            </svg>
-                                        ) : (
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            </svg>
-                                        )}
-                                    </PhotoIcon>
-                                    <PhotoLabel>{t.checkin.photos.requiredSlots[type]}</PhotoLabel>
-                                    {photo && (
-                                        <PhotoTimestamp>{formatTimestamp(photo.uploadedAt!)}</PhotoTimestamp>
-                                    )}
-                                </PhotoSlot>
-                            );
-                        })}
-                    </PhotoGrid>
-                </div>
-
-                <StatusSection>
-                    {allRequiredUploaded ? (
-                        <>
-                            <StatusText>{t.checkin.photos.allRequiredUploaded}</StatusText>
-                            <Badge $variant="success">✓ {requiredPhotosCount}/4</Badge>
-                        </>
-                    ) : (
-                        <>
-                            <StatusText>
-                                {interpolate(t.checkin.photos.missingRequired, { count: missingCount.toString() })}
-                            </StatusText>
-                            <Badge $variant="warning">{requiredPhotosCount}/4</Badge>
-                        </>
-                    )}
-                </StatusSection>
             </Card>
 
             <Card>
@@ -281,7 +289,6 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
 
                 {showDamageDocumentation && (
                     <>
-                        <Divider />
                         <VehicleDamageMapper
                             imageUrl="/assets/image_627063.jpg"
                             points={formData.damagePoints || []}
