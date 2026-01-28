@@ -253,7 +253,7 @@ export const CustomerListView = () => {
             <AddCustomerModal
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
-                onSuccess={handleCustomerCreated}
+                onSuccess={() => handleCustomerCreated()}
             />
         </ViewContainer>
     );

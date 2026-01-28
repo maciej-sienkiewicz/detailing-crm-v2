@@ -331,10 +331,12 @@ const AlertIcon = () => (
     </svg>
 );
 
+import type { Customer } from '../types';
+
 interface AddCustomerModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSuccess: () => void;
+    onSuccess: (customer: Customer) => void;
 }
 
 export const AddCustomerModal = ({
@@ -367,11 +369,11 @@ export const AddCustomerModal = ({
         },
     });
 
-    const handleSuccess = useCallback(() => {
+    const handleSuccess = useCallback((customer: Customer) => {
         methods.reset();
         setIncludeCompany(false);
         setIncludeHomeAddress(false);
-        onSuccess();
+        onSuccess(customer);
         onClose();
     }, [methods, onClose, onSuccess]);
 

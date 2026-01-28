@@ -4,14 +4,16 @@ import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } f
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/core';
 import type { EventCreationData } from '../types';
-import { CustomerModal } from '@/modules/appointments/components/CustomerModal';
+// import { CustomerModal } from '@/modules/appointments/components/CustomerModal';
 import { VehicleModal } from '@/modules/appointments/components/VehicleModal';
 import { QuickServiceModal } from './QuickServiceModal';
 import { PriceInputModal } from './PriceInputModal';
 import { QuickColorModal } from './QuickColorModal';
-import { useCustomerVehicles } from '@/modules/appointments/hooks/useAppointmentForm';
+import { useCustomerVehicles, useCustomerSearch as useAppointmentCustomerSearch } from '@/modules/appointments/hooks/useAppointmentForm';
 import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/types';
 import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
+import { AddCustomerModal } from '@/modules/customers';
+import { useDebounce } from '@/common/hooks';
 import * as S from './QuickEventModalStyles';
 
 // --- TYPES FOR API RESPONSES ---
@@ -156,12 +158,21 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [tempServices, setTempServices] = useState<{ [key: string]: { name: string; basePriceNet: number; vatRate: 23 } }>({});
 
     // Modal states
-    const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+    // const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+    const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
     const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
     const [isPriceInputModalOpen, setIsPriceInputModalOpen] = useState(false);
     const [isQuickColorModalOpen, setIsQuickColorModalOpen] = useState(false);
     const [pendingService, setPendingService] = useState<Service | null>(null);
+
+    // Customer search state
+    const [customerSearch, setCustomerSearch] = useState('');
+    const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+    const debouncedCustomerSearch = useDebounce(customerSearch, 300);
+    const { data: foundCustomers = [] } = useAppointmentCustomerSearch(debouncedCustomerSearch);
+    const customerResults = foundCustomers;
+    const hasCustomerSearchQuery = customerSearch.trim().length > 0;
 
     // Validation state
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -274,6 +285,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         setServiceNotes({});
         setExpandedServiceNote(null);
         setServiceSearch('');
+        setCustomerSearch('');
+        setShowCustomerDropdown(false);
         setNotes('');
         setTempServices({});
     };
@@ -560,26 +573,66 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <IconUser />
                                 </S.IconWrapper>
                                 <S.RowContent>
-                                    <S.SelectButton
-                                        type="button"
-                                        onClick={() => setIsCustomerModalOpen(true)}
-                                        $accentColor={focusedField === 'customer' ? accentColor : undefined}
-                                        $hasValue={!!selectedCustomer}
-                                        $hasError={!!errors.customer}
-                                        onFocus={() => setFocusedField('customer')}
-                                        onBlur={() => setFocusedField(null)}
-                                    >
-                                        <span>
-                                            {selectedCustomer
-                                                ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}`
-                                                : 'Dodaj klienta'}
-                                        </span>
-                                        {selectedCustomer && (
-                                            <S.RemoveButton onClick={handleRemoveCustomer}>
-                                                <IconX />
-                                            </S.RemoveButton>
+                                    <S.DropdownContainer>
+                                        <S.Input
+                                            type="text"
+                                            placeholder={selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : 'Dodaj klienta...'}
+                                            value={customerSearch}
+                                            onChange={(e) => {
+                                                setCustomerSearch(e.target.value);
+                                                setShowCustomerDropdown(true);
+                                            }}
+                                            $accentColor={focusedField === 'customer' ? accentColor : undefined}
+                                            $hasError={!!errors.customer}
+                                            onFocus={() => {
+                                                setFocusedField('customer');
+                                                setShowCustomerDropdown(true);
+                                            }}
+                                            onBlur={() => {
+                                                setFocusedField(null);
+                                                setTimeout(() => setShowCustomerDropdown(false), 200);
+                                            }}
+                                        />
+                                        {showCustomerDropdown && (
+                                            <S.Dropdown>
+                                                {customerResults.map((c) => (
+                                                    <S.DropdownItem
+                                                        key={c.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            handleCustomerSelect({
+                                                                id: c.id,
+                                                                firstName: c.firstName,
+                                                                lastName: c.lastName,
+                                                                phone: c.phone,
+                                                                email: c.email,
+                                                                isNew: false,
+                                                            });
+                                                            setCustomerSearch(`${c.firstName ?? ''} ${c.lastName ?? ''}`.trim());
+                                                            setShowCustomerDropdown(false);
+                                                        }}
+                                                        $accentColor={accentColor}
+                                                    >
+                                                        <span>{c.firstName} {c.lastName}</span>
+                                                        <span>{c.phone || c.email}</span>
+                                                    </S.DropdownItem>
+                                                ))}
+                                                {hasCustomerSearchQuery && (
+                                                    <S.DropdownAddButton
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setIsAddCustomerModalOpen(true);
+                                                            setShowCustomerDropdown(false);
+                                                            setFocusedField(null);
+                                                        }}
+                                                    >
+                                                        <IconPlus />
+                                                        <span>Dodaj nowego klienta</span>
+                                                    </S.DropdownAddButton>
+                                                )}
+                                            </S.Dropdown>
                                         )}
-                                    </S.SelectButton>
+                                    </S.DropdownContainer>
                                     {errors.customer && <S.ErrorMessage>{errors.customer}</S.ErrorMessage>}
                                 </S.RowContent>
                             </S.Row>
@@ -819,10 +872,25 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 </S.ModalContainer>
             </S.Overlay>
 
-            <CustomerModal
-                isOpen={isCustomerModalOpen}
-                onClose={() => setIsCustomerModalOpen(false)}
-                onSelect={handleCustomerSelect}
+            <AddCustomerModal
+                isOpen={isAddCustomerModalOpen}
+                onClose={() => setIsAddCustomerModalOpen(false)}
+                onSuccess={(customer) => {
+                    // Ustaw nowo utworzonego klienta jako wybranego w formularzu
+                    const mapped = {
+                        id: customer.id,
+                        firstName: customer.firstName,
+                        lastName: customer.lastName,
+                        phone: customer.contact?.phone,
+                        email: customer.contact?.email,
+                        isNew: false,
+                    } as SelectedCustomer;
+                    handleCustomerSelect(mapped);
+                    setCustomerSearch(`${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim());
+                    setShowCustomerDropdown(false);
+                    // Odśwież listę wyników wyszukiwania klientów
+                    queryClient.invalidateQueries({ queryKey: ['appointments', 'customers', 'search'] });
+                }}
             />
 
             <VehicleModal
