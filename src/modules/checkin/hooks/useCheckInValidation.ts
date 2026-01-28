@@ -45,7 +45,7 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
             }
         }
 
-        if (currentStep === 'technical') {
+        if (currentStep === 'verification') {
             if (!formData.technicalState.mileage || formData.technicalState.mileage <= 0) {
                 validationErrors.mileage = t.checkin.technical.mileageRequired;
             }

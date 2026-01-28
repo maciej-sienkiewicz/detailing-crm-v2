@@ -86,6 +86,8 @@ export interface CheckInFormData {
         deposit: DepositItem;
         inspectionNotes: string;
     };
+    visitStartAt?: string; // ISO datetime
+    visitEndAt?: string; // ISO datetime
     photos: PhotoSlot[];
     damagePoints: DamagePoint[];
     services: ServiceLineItem[];
@@ -162,6 +164,6 @@ export interface PhotoUploadResponse {
     uploadedAt: string;
 }
 
-export type CheckInStep = 'verification' | 'technical' | 'photos' | 'summary';
+export type CheckInStep = 'verification' | 'photos';
 
 export type MoneyAmount = number;

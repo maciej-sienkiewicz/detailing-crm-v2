@@ -33,6 +33,8 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
             inspectionNotes: '',
             ...initialData.technicalState,
         },
+        visitStartAt: initialData.visitStartAt,
+        visitEndAt: initialData.visitEndAt,
         photos: [],
         damagePoints: initialData.damagePoints || [],
         services: initialData.services || [],
@@ -40,10 +42,8 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
     });
 
     const steps: Array<{ id: CheckInStep; label: string }> = [
-        { id: 'verification', label: 'Weryfikacja danych i usług' },
+        { id: 'verification', label: 'Weryfikacja i stan pojazdu' },
         { id: 'photos', label: 'Dokumentacja fotograficzna' },
-        { id: 'technical', label: 'Stan pojazdu' },
-        { id: 'summary', label: 'Podsumowanie' },
     ];
 
     useEffect(() => {

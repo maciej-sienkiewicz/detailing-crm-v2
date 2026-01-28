@@ -10,9 +10,7 @@ import { useToast } from '@/common/components/Toast';
 import { useCheckInWizard } from '../hooks/useCheckInWizard';
 import { useCheckInValidation } from '../hooks/useCheckInValidation';
 import { VerificationStep } from '../components/VerificationStep';
-import { TechnicalStateStep } from '../components/TechnicalStateStep';
 import { PhotoDocumentationStep } from '../components/PhotoDocumentationStep';
-import { SummaryStep } from '../components/SummaryStep';
 import { SigningRequirementModal } from '../components/SigningRequirementModal';
 import type { CheckInFormData } from '../types';
 import type { AppointmentColor } from '@/modules/appointments/types';
@@ -209,28 +207,13 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
                         onChange={updateFormData}
                     />
                 );
-            case 'technical':
-                return (
-                    <TechnicalStateStep
-                        formData={formData}
-                        errors={errors}
-                        onChange={updateFormData}
-                    />
-                );
-            case 'summary':
-                return (
-                    <SummaryStep
-                        formData={formData}
-                        readOnly={true}
-                    />
-                );
             default:
                 return null;
         }
     };
 
     const isFirstStep = currentStep === 'verification';
-    const isLastStep = currentStep === 'summary';
+    const isLastStep = currentStep === 'photos';
     const canProceed = isStepValid;
 
     return (

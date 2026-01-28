@@ -2,9 +2,7 @@ export { CheckInWizardView } from './views/CheckInWizardView';
 export { MobilePhotoUploadView } from './views/MobilePhotoUploadView';
 
 export { VerificationStep } from './components/VerificationStep';
-export { TechnicalStateStep } from './components/TechnicalStateStep';
 export { PhotoDocumentationStep } from './components/PhotoDocumentationStep';
-export { SummaryStep } from './components/SummaryStep';
 
 export { useCheckInWizard } from './hooks/useCheckInWizard';
 export { usePhotoUpload } from './hooks/usePhotoUpload';
