@@ -8,7 +8,6 @@ import { useDeleteOperation } from '../hooks/useDeleteOperation';
 import { useUpdateReservationDate, useCancelReservation } from '../hooks/useReservationActions';
 import { OperationStatusBadge } from './OperationStatusBadge';
 import { DeleteOperationModal } from './DeleteOperationModal';
-import { ReservationOptionsModal } from './ReservationOptionsModal';
 import { ChangeDateModal } from './ChangeDateModal';
 import { CancelReservationModal } from './CancelReservationModal';
 import { formatCurrency, formatDateTime, formatDate } from '@/common/utils';
@@ -259,10 +258,6 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
         operation: Operation | null;
     }>({ isOpen: false, operation: null });
 
-    const [reservationOptionsModalState, setReservationOptionsModalState] = useState<{
-        isOpen: boolean;
-        reservation: Operation | null;
-    }>({ isOpen: false, reservation: null });
 
     const [changeDateModalState, setChangeDateModalState] = useState<{
         isOpen: boolean;
@@ -295,9 +290,9 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
             return;
         }
 
-        // Dla rezerwacji - otwórz modal z opcjami tylko dla statusu CREATED
+        // Dla rezerwacji - przejdź do edycji rezerwacji, aby zminimalizować przełączanie kontekstu
         if (operation.type === 'RESERVATION' && operation.status === 'CREATED') {
-            setReservationOptionsModalState({ isOpen: true, reservation: operation });
+            navigate(`/appointments/${operation.id}/edit`);
         }
     }, [navigate]);
 
@@ -320,32 +315,6 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
         setDeleteModalState({ isOpen: false, operation: null });
     }, []);
 
-    // Handlery dla modala opcji rezerwacji
-    const handleReservationOptionsClose = useCallback(() => {
-        setReservationOptionsModalState({ isOpen: false, reservation: null });
-    }, []);
-
-    const handleEditReservationClick = useCallback(() => {
-        if (reservationOptionsModalState.reservation) {
-            navigate(`/appointments/${reservationOptionsModalState.reservation.id}/edit`);
-            setReservationOptionsModalState({ isOpen: false, reservation: null });
-        }
-    }, [reservationOptionsModalState.reservation, navigate]);
-
-    const handleCancelReservationClick = useCallback(() => {
-        setCancelModalState({
-            isOpen: true,
-            reservation: reservationOptionsModalState.reservation,
-        });
-        setReservationOptionsModalState({ isOpen: false, reservation: null });
-    }, [reservationOptionsModalState.reservation]);
-
-    const handleStartVisitClick = useCallback(() => {
-        if (reservationOptionsModalState.reservation) {
-            navigate(`/reservations/${reservationOptionsModalState.reservation.id}/checkin`);
-            setReservationOptionsModalState({ isOpen: false, reservation: null });
-        }
-    }, [reservationOptionsModalState.reservation, navigate]);
 
     // Handlery dla modala zmiany daty
     const handleChangeDateClose = useCallback(() => {
@@ -558,14 +527,6 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
                 }
             />
 
-            <ReservationOptionsModal
-                isOpen={reservationOptionsModalState.isOpen}
-                onClose={handleReservationOptionsClose}
-                reservation={reservationOptionsModalState.reservation}
-                onEditReservationClick={handleEditReservationClick}
-                onCancelReservationClick={handleCancelReservationClick}
-                onStartVisitClick={handleStartVisitClick}
-            />
 
             <ChangeDateModal
                 isOpen={changeDateModalState.isOpen}

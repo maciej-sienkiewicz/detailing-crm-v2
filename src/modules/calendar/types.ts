@@ -16,7 +16,8 @@ export interface CalendarEventData {
     customerPhone?: string;
     vehicleInfo: string;
     status?: string;
-    totalPrice?: number;
+    totalPrice?: number; // gross (brutto) in minor units
+    totalNet?: number; // net (netto) in minor units
     currency?: string;
     colorHex: string;
 }
