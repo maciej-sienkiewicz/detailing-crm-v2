@@ -331,7 +331,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         if (startDateTime && endDateTime) {
             const start = new Date(startDateTime);
             const end = new Date(endDateTime);
-            if (end <= start) {
+            if (end < start) {
                 newErrors.endDateTime = 'Data zakończenia musi być późniejsza niż data rozpoczęcia';
             }
         }
@@ -414,6 +414,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         setSelectedVehicle(null);
     };
 
+    const roundTo2 = (v: number) => Math.round((v + Number.EPSILON) * 100) / 100;
+
     const addService = (service: Service) => {
         if (selectedServiceIds.includes(service.id)) {
             return; // Usługa już dodana
@@ -430,7 +432,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
         // Dla zwykłych usług, dodaj od razu z domyślną ceną
         setSelectedServiceIds(prev => [...prev, service.id]);
-        const grossPrice = (service.basePriceNet / 100) * (100 + service.vatRate) / 100;
+        const grossPrice = roundTo2((service.basePriceNet / 100) * (100 + service.vatRate) / 100);
         setServicePrices(prev => ({ ...prev, [service.id]: grossPrice }));
         setServiceSearch('');
         setShowServiceDropdown(false);
@@ -441,7 +443,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
         // Dodaj usługę z wprowadzoną ceną
         setSelectedServiceIds(prev => [...prev, pendingService.id]);
-        setServicePrices(prev => ({ ...prev, [pendingService.id]: price }));
+        setServicePrices(prev => ({ ...prev, [pendingService.id]: roundTo2(price) }));
 
         // Wyczyść pending service
         setPendingService(null);
@@ -460,7 +462,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         const serviceId = service.id || `temp-${Date.now()}`;
         setSelectedServiceIds(prev => [...prev, serviceId]);
 
-        const grossPrice = (service.basePriceNet / 100) * (100 + service.vatRate) / 100;
+        const grossPrice = roundTo2((service.basePriceNet / 100) * (100 + service.vatRate) / 100);
         setServicePrices(prev => ({ ...prev, [serviceId]: grossPrice }));
 
         if (!service.id) {
@@ -747,8 +749,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             <S.ServiceName>{service.name}</S.ServiceName>
                                                             <S.ServicePriceInput
                                                                 type="number"
-                                                                value={servicePrices[id] || 0}
-                                                                onChange={(e) => setServicePrices(prev => ({ ...prev, [id]: parseFloat(e.target.value) || 0 }))}
+                                                                step="0.01"
+                                                                value={(servicePrices[id] ?? 0).toFixed(2)}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value;
+                                                                    const num = parseFloat(val.replace(',', '.'));
+                                                                    setServicePrices(prev => ({ ...prev, [id]: isNaN(num) ? 0 : roundTo2(num) }));
+                                                                }}
                                                             />
                                                             <S.ServicePriceLabel>zł</S.ServicePriceLabel>
                                                             <S.IconButton

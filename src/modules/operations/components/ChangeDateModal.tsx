@@ -139,7 +139,7 @@ export const ChangeDateModal = ({
         const start = new Date(startDateTime);
         const end = new Date(endDateTime);
 
-        if (end <= start) {
+        if (end < start) {
             setError('Data zakończenia musi być późniejsza niż data rozpoczęcia');
             return;
         }
