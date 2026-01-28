@@ -74,6 +74,11 @@ export const appointmentApi = {
         return response.data;
     },
 
+    updateAppointment: async (appointmentId: string, data: AppointmentCreateRequest): Promise<{ id: string }> => {
+        const response = await apiClient.put(`/v1/appointments/${appointmentId}`, data);
+        return response.data;
+    },
+
     getServices: async (): Promise<Service[]> => {
         if (USE_MOCKS) {
             return mockGetServices();

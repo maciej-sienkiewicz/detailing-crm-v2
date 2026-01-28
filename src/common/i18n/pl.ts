@@ -174,7 +174,7 @@ export const pl: TranslationKeys = {
             email: 'Email',
             emailPlaceholder: 'jan.kowalski@example.com',
             phone: 'Telefon',
-            phonePlaceholder: '+48 123 456 789',
+            phonePlaceholder: '123 456 789',
             includeHomeAddress: 'Dodaj adres zamieszkania',
             homeAddress: {
                 title: 'Adres zamieszkania',
@@ -275,7 +275,7 @@ export const pl: TranslationKeys = {
             lastName: 'Nazwisko',
             lastNamePlaceholder: 'Kowalski',
             phone: 'Telefon',
-            phonePlaceholder: '+48 123 456 789',
+            phonePlaceholder: '123 456 789',
             email: 'Email',
             emailPlaceholder: 'jan.kowalski@example.com',
         },

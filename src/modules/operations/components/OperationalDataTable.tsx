@@ -325,22 +325,7 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
         setReservationOptionsModalState({ isOpen: false, reservation: null });
     }, []);
 
-    const handleChangeDateClick = useCallback(() => {
-        setChangeDateModalState({
-            isOpen: true,
-            reservation: reservationOptionsModalState.reservation,
-        });
-        setReservationOptionsModalState({ isOpen: false, reservation: null });
-    }, [reservationOptionsModalState.reservation]);
-
-    const handleEditServicesClick = useCallback(() => {
-        if (reservationOptionsModalState.reservation) {
-            navigate(`/appointments/${reservationOptionsModalState.reservation.id}/edit`);
-            setReservationOptionsModalState({ isOpen: false, reservation: null });
-        }
-    }, [reservationOptionsModalState.reservation, navigate]);
-
-    const handleEditDetailsClick = useCallback(() => {
+    const handleEditReservationClick = useCallback(() => {
         if (reservationOptionsModalState.reservation) {
             navigate(`/appointments/${reservationOptionsModalState.reservation.id}/edit`);
             setReservationOptionsModalState({ isOpen: false, reservation: null });
@@ -577,9 +562,7 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
                 isOpen={reservationOptionsModalState.isOpen}
                 onClose={handleReservationOptionsClose}
                 reservation={reservationOptionsModalState.reservation}
-                onChangeDateClick={handleChangeDateClick}
-                onEditServicesClick={handleEditServicesClick}
-                onEditDetailsClick={handleEditDetailsClick}
+                onEditReservationClick={handleEditReservationClick}
                 onCancelReservationClick={handleCancelReservationClick}
                 onStartVisitClick={handleStartVisitClick}
             />

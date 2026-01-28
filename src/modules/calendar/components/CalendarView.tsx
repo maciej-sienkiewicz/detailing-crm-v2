@@ -9,6 +9,7 @@ import type { DateSelectArg, EventClickArg, DatesSetArg } from '@fullcalendar/co
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/core';
+import { operationApi } from '@/modules/operations';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
 import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
 import { QuickEventModal, type QuickEventFormData, type QuickEventModalRef } from './QuickEventModal';
@@ -434,27 +435,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     }, [popoverEvent, navigate]);
 
     /**
-     * Handle change date from options modal
+     * Handle edit reservation from options modal
      */
-    const handleChangeDateClick = useCallback(() => {
-        if (!selectedReservation) return;
-        setOptionsModalOpen(false);
-        navigate(`/appointments/${selectedReservation.id}/edit`);
-    }, [selectedReservation, navigate]);
-
-    /**
-     * Handle edit services from options modal
-     */
-    const handleEditServicesClick = useCallback(() => {
-        if (!selectedReservation) return;
-        setOptionsModalOpen(false);
-        navigate(`/appointments/${selectedReservation.id}/edit`);
-    }, [selectedReservation, navigate]);
-
-    /**
-     * Handle edit details from options modal
-     */
-    const handleEditDetailsClick = useCallback(() => {
+    const handleEditReservationClick = useCallback(() => {
         if (!selectedReservation) return;
         setOptionsModalOpen(false);
         navigate(`/appointments/${selectedReservation.id}/edit`);
@@ -476,7 +459,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         if (!selectedReservation) return;
 
         try {
-            await apiClient.delete(`/v1/appointments/${selectedReservation.id}`);
+            await operationApi.cancelReservation(selectedReservation.id);
             setOptionsModalOpen(false);
             // Refresh calendar events
             // The useCalendarEvents hook should automatically refetch
@@ -593,9 +576,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 isOpen={optionsModalOpen}
                 onClose={handleOptionsModalClose}
                 reservation={selectedReservation}
-                onChangeDateClick={handleChangeDateClick}
-                onEditServicesClick={handleEditServicesClick}
-                onEditDetailsClick={handleEditDetailsClick}
+                onEditReservationClick={handleEditReservationClick}
                 onCancelReservationClick={handleCancelReservationClick}
                 onStartVisitClick={handleStartVisitClick}
             />

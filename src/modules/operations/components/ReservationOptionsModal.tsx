@@ -127,9 +127,7 @@ interface ReservationOptionsModalProps {
     isOpen: boolean;
     onClose: () => void;
     reservation: Operation | null;
-    onChangeDateClick: () => void;
-    onEditServicesClick: () => void;
-    onEditDetailsClick: () => void;
+    onEditReservationClick: () => void;
     onCancelReservationClick: () => void;
     onStartVisitClick: () => void;
 }
@@ -138,9 +136,7 @@ export const ReservationOptionsModal = ({
     isOpen,
     onClose,
     reservation,
-    onChangeDateClick,
-    onEditServicesClick,
-    onEditDetailsClick,
+    onEditReservationClick,
     onCancelReservationClick,
     onStartVisitClick,
 }: ReservationOptionsModalProps) => {
@@ -158,43 +154,16 @@ export const ReservationOptionsModal = ({
                 </ModalHeader>
 
                 <OptionsList>
-                    <OptionButton onClick={onChangeDateClick}>
+                    <OptionButton onClick={onEditReservationClick}>
                         <IconWrapper>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                                <line x1="16" y1="2" x2="16" y2="6" />
-                                <line x1="8" y1="2" x2="8" y2="6" />
-                                <line x1="3" y1="10" x2="21" y2="10" />
+                                <path d="M12 20h9" />
+                                <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
                             </svg>
                         </IconWrapper>
                         <OptionContent>
-                            <OptionTitle>Zmień datę rezerwacji</OptionTitle>
-                            <OptionDescription>Zaktualizuj termin przyjazdu i wyjazdu</OptionDescription>
-                        </OptionContent>
-                    </OptionButton>
-
-                    <OptionButton onClick={onEditServicesClick}>
-                        <IconWrapper>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                <path d="M9 12h6m-6 4h6" />
-                            </svg>
-                        </IconWrapper>
-                        <OptionContent>
-                            <OptionTitle>Edytuj pozycje rezerwacji</OptionTitle>
-                            <OptionDescription>Dodaj, usuń lub zmień usługi</OptionDescription>
-                        </OptionContent>
-                    </OptionButton>
-
-                    <OptionButton onClick={onEditDetailsClick}>
-                        <IconWrapper>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                        </IconWrapper>
-                        <OptionContent>
-                            <OptionTitle>Edytuj inne informacje</OptionTitle>
-                            <OptionDescription>Zmień dane klienta lub pojazdu</OptionDescription>
+                            <OptionTitle>Edytuj rezerwację</OptionTitle>
+                            <OptionDescription>Otwórz pełny widok edycji rezerwacji</OptionDescription>
                         </OptionContent>
                     </OptionButton>
 
