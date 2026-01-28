@@ -15,6 +15,7 @@ import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmen
 import { AddCustomerModal } from '@/modules/customers';
 import { useDebounce } from '@/common/hooks';
 import * as S from './QuickEventModalStyles';
+import { Toggle } from '@/common/components/Toggle';
 
 // --- TYPES FOR API RESPONSES ---
 interface Service {
@@ -236,7 +237,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
             if (shouldBeAllDay) {
                 newStartDateTime = formatDate(eventData.start);
-                newEndDateTime = formatDate(eventData.start);
+                newEndDateTime = `${formatDate(eventData.start)}T23:59:59`;
             } else if (daysDiff > 1) {
                 const startDate = new Date(eventData.start);
                 startDate.setHours(9, 0, 0, 0);
@@ -296,6 +297,22 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     }));
 
     // Handlers
+    const handleAllDayToggle = (checked: boolean) => {
+        setIsAllDay(checked);
+        const nowIso = new Date().toISOString();
+        if (checked) {
+            const date = (startDateTime || nowIso).split('T')[0];
+            setStartDateTime(date);
+            setEndDateTime(`${date}T23:59:59`);
+        } else {
+            const base = startDateTime || nowIso;
+            const date = base.split('T')[0];
+            const startWithTime = `${date}T09:00`;
+            const endWithTime = `${date}T10:00`;
+            setStartDateTime(startDateTime.includes('T') ? startDateTime : startWithTime);
+            setEndDateTime(endDateTime ? (endDateTime.includes('T') ? endDateTime : endWithTime) : endWithTime);
+        }
+    };
     const validateForm = (): boolean => {
         const newErrors: { [key: string]: string } = {};
 
@@ -534,13 +551,28 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <IconClock />
                                 </S.IconWrapper>
                                 <S.RowContent>
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                        <Toggle
+                                            checked={isAllDay}
+                                            onChange={handleAllDayToggle}
+                                            label="Wizyta całodniowa"
+                                            size="sm"
+                                        />
+                                    </div>
                                     <S.InputGrid>
                                         <S.InputGroup>
-                                            <S.Label>Początek</S.Label>
+                                            <S.Label>{isAllDay ? 'Data' : 'Początek'}</S.Label>
                                             <S.Input
                                                 type={isAllDay ? 'date' : 'datetime-local'}
                                                 value={startDateTime}
-                                                onChange={(e) => setStartDateTime(e.target.value)}
+                                                onChange={(e) => {
+                                                                                                    const value = e.target.value;
+                                                                                                    setStartDateTime(value);
+                                                                                                    if (isAllDay) {
+                                                                                                        const date = value.split('T')[0];
+                                                                                                        setEndDateTime(`${date}T23:59:59`);
+                                                                                                    }
+                                                                                                }}
                                                 required
                                                 $accentColor={focusedField === 'time-start' ? accentColor : undefined}
                                                 $hasError={!!errors.startDateTime}
@@ -549,20 +581,22 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             />
                                             {errors.startDateTime && <S.ErrorMessage>{errors.startDateTime}</S.ErrorMessage>}
                                         </S.InputGroup>
-                                        <S.InputGroup>
-                                            <S.Label>Koniec</S.Label>
-                                            <S.Input
-                                                type={isAllDay ? 'date' : 'datetime-local'}
-                                                value={endDateTime}
-                                                onChange={(e) => setEndDateTime(e.target.value)}
-                                                required
-                                                $accentColor={focusedField === 'time-end' ? accentColor : undefined}
-                                                $hasError={!!errors.endDateTime}
-                                                onFocus={() => setFocusedField('time-end')}
-                                                onBlur={() => setFocusedField(null)}
-                                            />
-                                            {errors.endDateTime && <S.ErrorMessage>{errors.endDateTime}</S.ErrorMessage>}
-                                        </S.InputGroup>
+                                        {!isAllDay && (
+                                            <S.InputGroup>
+                                                <S.Label>Koniec</S.Label>
+                                                <S.Input
+                                                    type="datetime-local"
+                                                    value={endDateTime}
+                                                    onChange={(e) => setEndDateTime(e.target.value)}
+                                                    required
+                                                    $accentColor={focusedField === 'time-end' ? accentColor : undefined}
+                                                    $hasError={!!errors.endDateTime}
+                                                    onFocus={() => setFocusedField('time-end')}
+                                                    onBlur={() => setFocusedField(null)}
+                                                />
+                                                {errors.endDateTime && <S.ErrorMessage>{errors.endDateTime}</S.ErrorMessage>}
+                                            </S.InputGroup>
+                                        )}
                                     </S.InputGrid>
                                 </S.RowContent>
                             </S.Row>

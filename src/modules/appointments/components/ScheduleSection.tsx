@@ -49,12 +49,19 @@ export const ScheduleSection = ({
                                 }: ScheduleSectionProps) => {
     const handleAllDayToggle = (checked: boolean) => {
         onIsAllDayChange(checked);
-        if (checked && startDateTime) {
-            const date = startDateTime.split('T')[0];
+        const nowIso = new Date().toISOString();
+        if (checked) {
+            const date = (startDateTime || nowIso).split('T')[0];
+            // In all-day mode we store start as date-only and end as end-of-day for the same date
             onStartDateTimeChange(date);
-            if (endDateTime) {
-                onEndDateTimeChange(`${endDateTime.split('T')[0]}T23:59:59`);
-            }
+            onEndDateTimeChange(`${date}T23:59:59`);
+        } else {
+            // When switching off all-day, ensure start has time component suitable for datetime-local input
+            const date = (startDateTime || nowIso).split('T')[0];
+            const startWithTime = `${date}T09:00`;
+            const endWithTime = `${date}T10:00`;
+            onStartDateTimeChange(startDateTime.includes('T') ? startDateTime : startWithTime);
+            onEndDateTimeChange(endDateTime ? (endDateTime.includes('T') ? endDateTime : endWithTime) : endWithTime);
         }
     };
 
