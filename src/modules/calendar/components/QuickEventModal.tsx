@@ -244,7 +244,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 newStartDateTime = formatDateTimeLocal(startDate);
 
                 const endDate = new Date(eventData.end);
+                // For multi-day selection, set the end to the last selected day at 20:00 instead of 00:00
                 endDate.setDate(endDate.getDate() - 1);
+                endDate.setHours(20, 0, 0, 0);
                 newEndDateTime = formatDateTimeLocal(endDate);
             } else {
                 newStartDateTime = formatDateTimeLocal(eventData.start);
