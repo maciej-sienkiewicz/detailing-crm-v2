@@ -100,7 +100,6 @@ export interface SelectedVehicle {
     model: string;
     yearOfProduction: number;
     licensePlate?: string;
-    vin?: string;
     color?: string;
     paintType?: string;
     isNew: boolean;

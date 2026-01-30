@@ -13,6 +13,7 @@ import { VehicleDetailsModal } from './VehicleDetailsModal';
 import type { SelectedCustomer, AppointmentColor } from '@/modules/appointments/types';
 import { t } from '@/common/i18n';
 import type { CheckInFormData, ServiceLineItem } from '../types';
+import { Modal } from '@/common/components/Modal';
 
 const StepContainer = styled.div`
     display: flex;
@@ -162,6 +163,113 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
     const [isVehicleDetailsModalOpen, setIsVehicleDetailsModalOpen] = useState(false);
 
+    // New inline choice modals state
+    const [showCustomerChoice, setShowCustomerChoice] = useState(false);
+    const [customerChoiceMade, setCustomerChoiceMade] = useState(false);
+    const [pendingCustomerUpdates, setPendingCustomerUpdates] = useState<Partial<CheckInFormData['customerData']> | null>(null);
+
+    const [showVehicleChoice, setShowVehicleChoice] = useState(false);
+    const [vehicleChoiceMade, setVehicleChoiceMade] = useState(false);
+    const [pendingVehicleUpdates, setPendingVehicleUpdates] = useState<Partial<NonNullable<CheckInFormData['vehicleData']>> | null>(null);
+
+    const applyCustomerUpdates = (updates: Partial<CheckInFormData['customerData']>) => {
+        onChange({
+            customerData: {
+                ...formData.customerData,
+                ...updates,
+            },
+        });
+    };
+
+    const handleCustomerFieldChange = (updates: Partial<CheckInFormData['customerData']>) => {
+        // If no choice made yet and there is an existing id, ask what to do
+        if (!customerChoiceMade && formData.customerData.id) {
+            setPendingCustomerUpdates(updates);
+            setShowCustomerChoice(true);
+            return;
+        }
+        applyCustomerUpdates(updates);
+    };
+
+    const confirmCustomerEditExisting = () => {
+        // Keep existing id, mark as not new and ensure full data mode for inline editing
+        onChange({ isNewCustomer: false, hasFullCustomerData: true });
+        setCustomerChoiceMade(true);
+        setShowCustomerChoice(false);
+        if (pendingCustomerUpdates) {
+            applyCustomerUpdates(pendingCustomerUpdates);
+            setPendingCustomerUpdates(null);
+        }
+    };
+
+    const confirmCustomerAddNew = () => {
+        // Clear id and mark as new; switch to full data mode so validation expects inline fields, not selected id
+        onChange({
+            isNewCustomer: true,
+            hasFullCustomerData: true,
+            customerData: { ...formData.customerData, id: '' },
+        });
+        setCustomerChoiceMade(true);
+        setShowCustomerChoice(false);
+        if (pendingCustomerUpdates) {
+            applyCustomerUpdates(pendingCustomerUpdates);
+            setPendingCustomerUpdates(null);
+        }
+    };
+
+    const applyVehicleUpdates = (updates: Partial<NonNullable<CheckInFormData['vehicleData']>>) => {
+        const base = formData.vehicleData || {
+            id: '',
+            brand: '',
+            model: '',
+            yearOfProduction: new Date().getFullYear(),
+            licensePlate: '',
+            color: '',
+            paintType: '',
+        };
+        onChange({
+            vehicleData: {
+                ...base,
+                ...updates,
+            },
+        });
+    };
+
+    const handleVehicleFieldChange = (updates: Partial<NonNullable<CheckInFormData['vehicleData']>>) => {
+        if (!vehicleChoiceMade && formData.vehicleData?.id) {
+            setPendingVehicleUpdates(updates);
+            setShowVehicleChoice(true);
+            return;
+        }
+        applyVehicleUpdates(updates);
+    };
+
+    const confirmVehicleEditExisting = () => {
+        onChange({ isNewVehicle: false });
+        setVehicleChoiceMade(true);
+        setShowVehicleChoice(false);
+        if (pendingVehicleUpdates) {
+            applyVehicleUpdates(pendingVehicleUpdates);
+            setPendingVehicleUpdates(null);
+        }
+    };
+
+    const confirmVehicleAddNew = () => {
+        const current = formData.vehicleData || {
+            id: '', brand: '', model: '', yearOfProduction: new Date().getFullYear(), licensePlate: '', color: '', paintType: ''
+        };
+        onChange({
+            isNewVehicle: true,
+            vehicleData: { ...current, id: '' },
+        });
+        setVehicleChoiceMade(true);
+        setShowVehicleChoice(false);
+        if (pendingVehicleUpdates) {
+            applyVehicleUpdates(pendingVehicleUpdates);
+            setPendingVehicleUpdates(null);
+        }
+    };
+
     const handleCustomerDetailsSave = (data: {
         customerData: {
             firstName: string;
@@ -195,6 +303,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
             hasFullCustomerData: true,
             isNewCustomer: customer.isNew || false,
         });
+        setCustomerChoiceMade(false);
         setIsCustomerModalOpen(false);
     };
 
@@ -206,12 +315,12 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                 model: vehicle.model,
                 yearOfProduction: vehicle.yearOfProduction || new Date().getFullYear(),
                 licensePlate: vehicle.licensePlate || '',
-                vin: vehicle.vin,
                 color: vehicle.color,
                 paintType: vehicle.paintType,
             },
             isNewVehicle: vehicle.isNew || false,
         });
+        setVehicleChoiceMade(false);
         setIsVehicleModalOpen(false);
     };
 
@@ -292,159 +401,121 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
 
                 <Divider />
 
-                {formData.hasFullCustomerData ? (
-                    <>
-                        <SectionHeader>
-                            <SectionTitleWithActions>
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
-                                {t.checkin.verification.customerSection}
-                            </SectionTitleWithActions>
-                            <SubtleButtonGroup>
-                                <SubtleButton onClick={() => setIsCustomerDetailsModalOpen(true)}>
-                                    Edytuj dane
-                                </SubtleButton>
-                                <SubtleButton onClick={() => setIsCustomerModalOpen(true)}>
-                                    Zmień klienta
-                                </SubtleButton>
-                            </SubtleButtonGroup>
-                        </SectionHeader>
+                <SectionHeader>
+                    <SectionTitleWithActions>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        {t.checkin.verification.customerSection}
+                    </SectionTitleWithActions>
+                    <SubtleButtonGroup>
+                        <SubtleButton onClick={() => setIsCustomerModalOpen(true)}>
+                            Wyszukaj / zmień klienta
+                        </SubtleButton>
+                    </SubtleButtonGroup>
+                </SectionHeader>
 
-                        <FormGrid>
-                            <FieldGroup>
-                                <ReadOnlyField>
-                                    <ReadOnlyLabel>{t.checkin.verification.firstName}</ReadOnlyLabel>
-                                    <ReadOnlyValue>{formData.customerData.firstName}</ReadOnlyValue>
-                                </ReadOnlyField>
-                            </FieldGroup>
+                <FormGrid>
+                    <FieldGroup>
+                        <Label>{t.checkin.verification.firstName}</Label>
+                        <Input
+                            value={formData.customerData.firstName || ''}
+                            onChange={(e) => handleCustomerFieldChange({ firstName: e.target.value })}
+                        />
+                    </FieldGroup>
 
-                            <FieldGroup>
-                                <ReadOnlyField>
-                                    <ReadOnlyLabel>{t.checkin.verification.lastName}</ReadOnlyLabel>
-                                    <ReadOnlyValue>{formData.customerData.lastName}</ReadOnlyValue>
-                                </ReadOnlyField>
-                            </FieldGroup>
+                    <FieldGroup>
+                        <Label>{t.checkin.verification.lastName}</Label>
+                        <Input
+                            value={formData.customerData.lastName || ''}
+                            onChange={(e) => handleCustomerFieldChange({ lastName: e.target.value })}
+                        />
+                    </FieldGroup>
 
-                            <FieldGroup>
-                                <ReadOnlyField>
-                                    <ReadOnlyLabel>{t.checkin.verification.phone}</ReadOnlyLabel>
-                                    <ReadOnlyValue>{formData.customerData.phone || '-'}</ReadOnlyValue>
-                                </ReadOnlyField>
-                            </FieldGroup>
+                    <FieldGroup>
+                        <Label>{t.checkin.verification.phone}</Label>
+                        <Input
+                            value={formData.customerData.phone || ''}
+                            onChange={(e) => handleCustomerFieldChange({ phone: e.target.value })}
+                        />
+                    </FieldGroup>
 
-                            <FieldGroup>
-                                <ReadOnlyField>
-                                    <ReadOnlyLabel>{t.checkin.verification.email}</ReadOnlyLabel>
-                                    <ReadOnlyValue>{formData.customerData.email || '-'}</ReadOnlyValue>
-                                </ReadOnlyField>
-                            </FieldGroup>
-                        </FormGrid>
-                    </>
-                ) : (
-                    <>
-                        <SectionTitle>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                            {t.checkin.verification.customerSection}
-                        </SectionTitle>
-                        <CustomerSelectButton
-                            $variant="primary"
-                            onClick={() => setIsCustomerModalOpen(true)}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: '20px', height: '20px', marginRight: '8px' }}>
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                            Dodaj lub wyszukaj klienta
-                        </CustomerSelectButton>
-                    </>
-                )}
+                    <FieldGroup>
+                        <Label>{t.checkin.verification.email}</Label>
+                        <Input
+                            type="email"
+                            value={formData.customerData.email || ''}
+                            onChange={(e) => handleCustomerFieldChange({ email: e.target.value })}
+                        />
+                    </FieldGroup>
+                </FormGrid>
 
                 <Divider />
 
-                {formData.vehicleData ? (
-                    <>
-                        <SectionHeader>
-                            <SectionTitleWithActions>
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-                                </svg>
-                                {t.checkin.verification.vehicleSection}
-                            </SectionTitleWithActions>
-                            <SubtleButtonGroup>
-                                <SubtleButton onClick={() => setIsVehicleDetailsModalOpen(true)}>
-                                    Edytuj dane
-                                </SubtleButton>
-                                <SubtleButton onClick={() => setIsVehicleModalOpen(true)}>
-                                    Zmień pojazd
-                                </SubtleButton>
-                            </SubtleButtonGroup>
-                        </SectionHeader>
+                <SectionHeader>
+                    <SectionTitleWithActions>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                        </svg>
+                        {t.checkin.verification.vehicleSection}
+                    </SectionTitleWithActions>
+                    <SubtleButtonGroup>
+                        <SubtleButton onClick={() => setIsVehicleModalOpen(true)}>
+                            Wyszukaj / zmień pojazd
+                        </SubtleButton>
+                    </SubtleButtonGroup>
+                </SectionHeader>
 
-                        <FormGrid>
-                            <FieldGroup>
-                                <ReadOnlyField>
-                                    <ReadOnlyLabel>{t.checkin.verification.brand}</ReadOnlyLabel>
-                                    <ReadOnlyValue>{formData.vehicleData.brand}</ReadOnlyValue>
-                                </ReadOnlyField>
-                            </FieldGroup>
+                <FormGrid>
+                    <FieldGroup>
+                        <Label>{t.checkin.verification.brand}</Label>
+                        <Input
+                            value={formData.vehicleData?.brand || ''}
+                            onChange={(e) => handleVehicleFieldChange({ brand: e.target.value })}
+                        />
+                    </FieldGroup>
 
-                            <FieldGroup>
-                                <ReadOnlyField>
-                                    <ReadOnlyLabel>{t.checkin.verification.model}</ReadOnlyLabel>
-                                    <ReadOnlyValue>{formData.vehicleData.model}</ReadOnlyValue>
-                                </ReadOnlyField>
-                            </FieldGroup>
+                    <FieldGroup>
+                        <Label>{t.checkin.verification.model}</Label>
+                        <Input
+                            value={formData.vehicleData?.model || ''}
+                            onChange={(e) => handleVehicleFieldChange({ model: e.target.value })}
+                        />
+                    </FieldGroup>
 
-                            <FieldGroup>
-                                <ReadOnlyField>
-                                    <ReadOnlyLabel>Rok produkcji</ReadOnlyLabel>
-                                    <ReadOnlyValue>{formData.vehicleData.yearOfProduction || '-'}</ReadOnlyValue>
-                                </ReadOnlyField>
-                            </FieldGroup>
+                    <FieldGroup>
+                        <Label>Rok produkcji</Label>
+                        <Input
+                            type="number"
+                            value={formData.vehicleData?.yearOfProduction || ''}
+                            onChange={(e) => handleVehicleFieldChange({ yearOfProduction: parseInt(e.target.value) || new Date().getFullYear() })}
+                        />
+                    </FieldGroup>
 
-                            <FieldGroup>
-                                <ReadOnlyField>
-                                    <ReadOnlyLabel>{t.checkin.verification.licensePlate}</ReadOnlyLabel>
-                                    <ReadOnlyValue>{formData.vehicleData.licensePlate || '-'}</ReadOnlyValue>
-                                </ReadOnlyField>
-                            </FieldGroup>
+                    <FieldGroup>
+                        <Label>{t.checkin.verification.licensePlate}</Label>
+                        <Input
+                            value={formData.vehicleData?.licensePlate || ''}
+                            onChange={(e) => handleVehicleFieldChange({ licensePlate: e.target.value })}
+                        />
+                    </FieldGroup>
 
-                            <FieldGroup>
-                                <ReadOnlyField>
-                                    <ReadOnlyLabel>Kolor</ReadOnlyLabel>
-                                    <ReadOnlyValue>{formData.vehicleData.color || '-'}</ReadOnlyValue>
-                                </ReadOnlyField>
-                            </FieldGroup>
+                    <FieldGroup>
+                        <Label>Kolor</Label>
+                        <Input
+                            value={formData.vehicleData?.color || ''}
+                            onChange={(e) => handleVehicleFieldChange({ color: e.target.value })}
+                        />
+                    </FieldGroup>
 
-                            <FieldGroup>
-                                <ReadOnlyField>
-                                    <ReadOnlyLabel>Typ lakieru</ReadOnlyLabel>
-                                    <ReadOnlyValue>{formData.vehicleData.paintType || '-'}</ReadOnlyValue>
-                                </ReadOnlyField>
-                            </FieldGroup>
-                        </FormGrid>
-                    </>
-                ) : (
-                    <>
-                        <SectionTitle>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-                            </svg>
-                            {t.checkin.verification.vehicleSection}
-                        </SectionTitle>
-                        <CustomerSelectButton
-                            $variant="primary"
-                            onClick={() => setIsVehicleModalOpen(true)}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: '20px', height: '20px', marginRight: '8px' }}>
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-                            </svg>
-                            Dodaj lub wyszukaj pojazd
-                        </CustomerSelectButton>
-                    </>
-                )}
+                    <FieldGroup>
+                        <Label>Typ lakieru</Label>
+                        <Input
+                            value={formData.vehicleData?.paintType || ''}
+                            onChange={(e) => handleVehicleFieldChange({ paintType: e.target.value })}
+                        />
+                    </FieldGroup>
+                </FormGrid>
 
                 <Divider />
 
@@ -548,6 +619,32 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                 </FormGrid>
 
             </Card>
+
+            {/* Choice modal for customer changes */}
+            <Modal
+                isOpen={showCustomerChoice}
+                onClose={() => setShowCustomerChoice(false)}
+                title="Aktualizacja danych klienta"
+            >
+                <p>Czy chcesz edytować dane istniejącego klienta czy dodać nowego?</p>
+                <div style={{ display: 'flex', gap: 12, marginTop: 16, justifyContent: 'flex-end' }}>
+                    <Button $variant="secondary" onClick={confirmCustomerEditExisting}>Edytuj istniejącego</Button>
+                    <Button $variant="primary" onClick={confirmCustomerAddNew}>Dodaj jako nowego</Button>
+                </div>
+            </Modal>
+
+            {/* Choice modal for vehicle changes */}
+            <Modal
+                isOpen={showVehicleChoice}
+                onClose={() => setShowVehicleChoice(false)}
+                title="Aktualizacja pojazdu"
+            >
+                <p>Czy chcesz edytować dane istniejącego pojazdu czy dodać nowy?</p>
+                <div style={{ display: 'flex', gap: 12, marginTop: 16, justifyContent: 'flex-end' }}>
+                    <Button $variant="secondary" onClick={confirmVehicleEditExisting}>Edytuj istniejący</Button>
+                    <Button $variant="primary" onClick={confirmVehicleAddNew}>Dodaj jako nowy</Button>
+                </div>
+            </Modal>
 
             <CustomerModal
                 isOpen={isCustomerModalOpen}
