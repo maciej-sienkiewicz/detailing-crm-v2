@@ -697,7 +697,23 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                         <Label>{t.checkin.verification.phone}</Label>
                         <PhoneInput
                             value={(pendingCustomerUpdates?.phone ?? formData.customerData.phone) || ''}
-                            onChange={(value) => handleCustomerFieldChange({ phone: value })}
+                            onChange={(value) => {
+                                const getCountryCode = (v?: string) => {
+                                    if (!v) return '';
+                                    const m = v.match(/^\+\d+/);
+                                    return m ? m[0] : '';
+                                };
+                                const prevPhone = (pendingCustomerUpdates?.phone ?? formData.customerData.phone) || '';
+                                const prevCode = getCountryCode(prevPhone);
+                                const newCode = getCountryCode(value || '');
+                                if (!customerChoiceMade && formData.customerData.id && newCode && newCode !== prevCode) {
+                                    setPendingCustomerUpdates(prev => ({ ...(prev || {}), phone: value || '' }));
+                                    setShowCustomerChoice(true);
+                                    setCustomerPromptScheduled(false);
+                                    return;
+                                }
+                                handleCustomerFieldChange({ phone: value });
+                            }}
                             onBlur={handleCustomerFieldBlur}
                         />
                     </FieldGroup>
@@ -739,6 +755,13 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                         <BrandSelect
                             value={(pendingVehicleUpdates?.brand ?? formData.vehicleData?.brand) || ''}
                             onChange={(val) => {
+                                const previousBrand = (pendingVehicleUpdates?.brand ?? formData.vehicleData?.brand) || '';
+                                if (!vehicleChoiceMade && formData.vehicleData?.id && val !== previousBrand) {
+                                    setPendingVehicleUpdates(prev => ({ ...(prev || {}), brand: val, model: '' }));
+                                    setShowVehicleChoice(true);
+                                    setVehiclePromptScheduled(false);
+                                    return;
+                                }
                                 handleVehicleFieldChange({ brand: val, model: '' });
                             }}
                             onBlur={handleVehicleFieldBlur}
