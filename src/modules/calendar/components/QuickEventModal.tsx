@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } f
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/core';
 import type { EventCreationData } from '../types';
+import { useToast } from '@/common/components/Toast';
 // import { CustomerModal } from '@/modules/appointments/components/CustomerModal';
 import { VehicleModal } from '@/modules/appointments/components/VehicleModal';
 import { QuickServiceModal } from './QuickServiceModal';
@@ -134,7 +135,7 @@ export interface QuickEventModalRef {
 }
 
 // --- COMPONENT ---
-export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalProps>(({
+export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalProps>(({ 
     isOpen,
     eventData,
     onClose,
@@ -175,12 +176,28 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const customerResults = foundCustomers;
     const hasCustomerSearchQuery = customerSearch.trim().length > 0;
 
+    // Vehicle search state
+    const [vehicleSearch, setVehicleSearch] = useState('');
+    const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
+
     // Validation state
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+    // Submit state
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Focus states
     const [focusedField, setFocusedField] = useState<string | null>(null);
     const titleInputRef = useRef<HTMLInputElement>(null);
+    const startInputRef = useRef<HTMLInputElement>(null);
+    const endInputRef = useRef<HTMLInputElement>(null);
+    const customerInputRef = useRef<HTMLInputElement>(null);
+    const vehicleInputRef = useRef<HTMLInputElement>(null);
+    const serviceInputRef = useRef<HTMLInputElement>(null);
+    const colorSectionRef = useRef<HTMLDivElement>(null);
+
+    // Toast
+    const { showError } = useToast();
 
     // Query client for cache invalidation
     const queryClient = useQueryClient();
@@ -272,9 +289,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     }, [isOpen]);
 
     useEffect(() => {
-        if (selectedCustomer && !selectedCustomer.isNew && customerVehicles && customerVehicles.length > 0 && !selectedVehicle) {
-            setIsVehicleModalOpen(true);
-        }
+        // Previously this auto-opened the VehicleModal. With new UX (inline vehicle dropdown),
+        // we no longer auto-open any modal here.
     }, [selectedCustomer, customerVehicles, selectedVehicle]);
 
     // Clear form function
@@ -290,6 +306,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         setServiceSearch('');
         setCustomerSearch('');
         setShowCustomerDropdown(false);
+        setVehicleSearch('');
+        setShowVehicleDropdown(false);
         setNotes('');
         setTempServices({});
     };
@@ -315,7 +333,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             setEndDateTime(endDateTime ? (endDateTime.includes('T') ? endDateTime : endWithTime) : endWithTime);
         }
     };
-    const validateForm = (): boolean => {
+    const validateForm = (): { [key: string]: string } => {
         const newErrors: { [key: string]: string } = {};
 
         // Walidacja klienta
@@ -381,57 +399,81 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         }
 
         setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        return newErrors;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const focusFirstError = (errs: { [key: string]: string }) => {
+        const order = ['startDateTime', 'endDateTime', 'customer', 'services', 'servicePrices', 'color'];
+        const firstKey = order.find(k => errs[k]);
+        if (!firstKey) return;
+        const map: Record<string, React.RefObject<HTMLElement>> = {
+            startDateTime: startInputRef as React.RefObject<HTMLElement>,
+            endDateTime: endInputRef as React.RefObject<HTMLElement>,
+            customer: customerInputRef as React.RefObject<HTMLElement>,
+            services: serviceInputRef as React.RefObject<HTMLElement>,
+            servicePrices: serviceInputRef as React.RefObject<HTMLElement>,
+            color: colorSectionRef as React.RefObject<HTMLElement>,
+        };
+        const ref = map[firstKey];
+        if (ref && ref.current) {
+            ref.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Try to focus if focusable
+            // @ts-ignore
+            ref.current.focus?.();
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSubmitting) return;
 
         // Wyczyść poprzednie błędy
         setErrors({});
 
         // Waliduj formularz
-        if (!validateForm()) {
+        const errs = validateForm();
+        if (Object.keys(errs).length > 0) {
+            showError('Nie można zapisać wizyty', 'Sprawdź zaznaczone pola formularza.');
+            focusFirstError(errs);
             return;
         }
 
-        // Jeśli walidacja przeszła, zapisz
-        onSave({
-            title,
-            customer: selectedCustomer,
-            vehicle: selectedVehicle,
-            startDateTime,
-            endDateTime,
-            isAllDay,
-            serviceIds: selectedServiceIds,
-            servicePrices,
-            serviceNotes,
-            colorId: selectedColorId,
-            notes,
-        });
+        setIsSubmitting(true);
+        try {
+            await Promise.resolve(onSave({
+                title,
+                customer: selectedCustomer,
+                vehicle: selectedVehicle,
+                startDateTime,
+                endDateTime,
+                isAllDay,
+                serviceIds: selectedServiceIds,
+                servicePrices,
+                serviceNotes,
+                colorId: selectedColorId,
+                notes,
+            }));
+        } catch (err: any) {
+            const message = err?.message || 'Wystąpił nieoczekiwany błąd podczas zapisu.';
+            showError('Błąd zapisu wizyty', message);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleCustomerSelect = (customer: SelectedCustomer) => {
         setSelectedCustomer(customer);
         setSelectedCustomerId(customer.id);
         setSelectedVehicle(null);
+        setVehicleSearch('');
     };
 
     const handleVehicleSelect = (vehicle: SelectedVehicle) => {
         setSelectedVehicle(vehicle);
+        setVehicleSearch(`${vehicle.brand ?? ''} ${vehicle.model ?? ''}`.trim());
+        setShowVehicleDropdown(false);
     };
 
-    const handleRemoveCustomer = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setSelectedCustomer(null);
-        setSelectedCustomerId(undefined);
-        setSelectedVehicle(null);
-    };
-
-    const handleRemoveVehicle = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setSelectedVehicle(null);
-    };
 
     const roundTo2 = (v: number) => Math.round((v + Number.EPSILON) * 100) / 100;
 
@@ -505,8 +547,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
             // Ustaw nowo utworzony kolor jako wybrany
             setSelectedColorId(newColor.id);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to create color:', error);
+            const msg = error?.message || 'Nie udało się utworzyć koloru. Spróbuj ponownie.';
+            showError('Błąd tworzenia koloru', msg);
         }
     };
 
@@ -565,17 +609,19 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         <S.InputGroup>
                                             <S.Label>{isAllDay ? 'Data' : 'Początek'}</S.Label>
                                             <S.Input
+                                                ref={startInputRef}
                                                 type={isAllDay ? 'date' : 'datetime-local'}
                                                 value={startDateTime}
                                                 onChange={(e) => {
-                                                                                                    const value = e.target.value;
-                                                                                                    setStartDateTime(value);
-                                                                                                    if (isAllDay) {
-                                                                                                        const date = value.split('T')[0];
-                                                                                                        setEndDateTime(`${date}T23:59:59`);
-                                                                                                    }
-                                                                                                }}
+                                                    const value = e.target.value;
+                                                    setStartDateTime(value);
+                                                    if (isAllDay) {
+                                                        const date = value.split('T')[0];
+                                                        setEndDateTime(`${date}T23:59:59`);
+                                                    }
+                                                }}
                                                 required
+                                                aria-invalid={!!errors.startDateTime}
                                                 $accentColor={focusedField === 'time-start' ? accentColor : undefined}
                                                 $hasError={!!errors.startDateTime}
                                                 onFocus={() => setFocusedField('time-start')}
@@ -587,15 +633,17 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             <S.InputGroup>
                                                 <S.Label>Koniec</S.Label>
                                                 <S.Input
-                                                    type="datetime-local"
-                                                    value={endDateTime}
-                                                    onChange={(e) => setEndDateTime(e.target.value)}
-                                                    required
-                                                    $accentColor={focusedField === 'time-end' ? accentColor : undefined}
-                                                    $hasError={!!errors.endDateTime}
-                                                    onFocus={() => setFocusedField('time-end')}
-                                                    onBlur={() => setFocusedField(null)}
-                                                />
+                                                ref={endInputRef}
+                                                type="datetime-local"
+                                                value={endDateTime}
+                                                onChange={(e) => setEndDateTime(e.target.value)}
+                                                required
+                                                aria-invalid={!!errors.endDateTime}
+                                                $accentColor={focusedField === 'time-end' ? accentColor : undefined}
+                                                $hasError={!!errors.endDateTime}
+                                                onFocus={() => setFocusedField('time-end')}
+                                                onBlur={() => setFocusedField(null)}
+                                            />
                                                 {errors.endDateTime && <S.ErrorMessage>{errors.endDateTime}</S.ErrorMessage>}
                                             </S.InputGroup>
                                         )}
@@ -613,6 +661,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 <S.RowContent>
                                     <S.DropdownContainer>
                                         <S.Input
+                                            ref={customerInputRef}
                                             type="text"
                                             placeholder={selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : 'Dodaj klienta...'}
                                             value={customerSearch}
@@ -620,6 +669,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 setCustomerSearch(e.target.value);
                                                 setShowCustomerDropdown(true);
                                             }}
+                                            aria-invalid={!!errors.customer}
                                             $accentColor={focusedField === 'customer' ? accentColor : undefined}
                                             $hasError={!!errors.customer}
                                             onFocus={() => {
@@ -681,26 +731,69 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <IconCar />
                                 </S.IconWrapper>
                                 <S.RowContent>
-                                    <S.SelectButton
-                                        type="button"
-                                        onClick={() => selectedCustomer && setIsVehicleModalOpen(true)}
-                                        disabled={!selectedCustomer}
-                                        $accentColor={focusedField === 'vehicle' ? accentColor : undefined}
-                                        $hasValue={!!selectedVehicle}
-                                        onFocus={() => setFocusedField('vehicle')}
-                                        onBlur={() => setFocusedField(null)}
-                                    >
-                                        <span>
-                                            {selectedVehicle
-                                                ? `${selectedVehicle.brand} ${selectedVehicle.model}`
-                                                : (selectedCustomer ? 'Dodaj pojazd' : 'Najpierw wybierz klienta')}
-                                        </span>
-                                        {selectedVehicle && (
-                                            <S.RemoveButton onClick={handleRemoveVehicle}>
-                                                <IconX />
-                                            </S.RemoveButton>
+                                    <S.DropdownContainer>
+                                        <S.Input
+                                            ref={vehicleInputRef}
+                                            type="text"
+                                            placeholder={selectedCustomer ? (selectedVehicle ? `${selectedVehicle.brand} ${selectedVehicle.model}` : 'Wybierz pojazd...') : 'Najpierw wybierz klienta'}
+                                            value={selectedCustomer ? vehicleSearch : ''}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setVehicleSearch(val);
+                                                setShowVehicleDropdown(true);
+                                            }}
+                                            disabled={!selectedCustomer}
+                                            $accentColor={focusedField === 'vehicle' ? accentColor : undefined}
+                                            onFocus={() => {
+                                                if (!selectedCustomer) return;
+                                                setFocusedField('vehicle');
+                                                setShowVehicleDropdown(true);
+                                            }}
+                                            onBlur={() => {
+                                                setFocusedField(null);
+                                                setTimeout(() => setShowVehicleDropdown(false), 200);
+                                            }}
+                                        />
+                                        {showVehicleDropdown && selectedCustomer && (
+                                            <S.Dropdown>
+                                                {vehicles
+                                                    .filter(v => {
+                                                        if (!vehicleSearch.trim()) return true;
+                                                        const q = vehicleSearch.toLowerCase();
+                                                        const brand = (v.brand || '').toLowerCase();
+                                                        const model = (v.model || '').toLowerCase();
+                                                        const plate = (v.licensePlate || '').toLowerCase();
+                                                        return brand.includes(q) || model.includes(q) || plate.includes(q);
+                                                    })
+                                                    .map(v => (
+                                                        <S.DropdownItem
+                                                            key={v.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                handleVehicleSelect({ id: v.id, brand: v.brand, model: v.model, isNew: false });
+                                                                setVehicleSearch(`${v.brand} ${v.model}`.trim());
+                                                                setShowVehicleDropdown(false);
+                                                            }}
+                                                            $accentColor={accentColor}
+                                                        >
+                                                            <span>{v.brand} {v.model}</span>
+                                                            <span>{v.licensePlate}</span>
+                                                        </S.DropdownItem>
+                                                    ))}
+                                                <S.DropdownAddButton
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsVehicleModalOpen(true);
+                                                        setShowVehicleDropdown(false);
+                                                        setFocusedField(null);
+                                                    }}
+                                                >
+                                                    <IconPlus />
+                                                    <span>Dodaj nowy pojazd</span>
+                                                </S.DropdownAddButton>
+                                            </S.Dropdown>
                                         )}
-                                    </S.SelectButton>
+                                    </S.DropdownContainer>
                                 </S.RowContent>
                             </S.Row>
 
@@ -714,6 +807,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 <S.RowContent>
                                     <S.DropdownContainer>
                                         <S.Input
+                                            ref={serviceInputRef}
                                             type="text"
                                             placeholder="Dodaj usługę..."
                                             value={serviceSearch}
@@ -721,6 +815,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 setServiceSearch(e.target.value);
                                                 setShowServiceDropdown(true);
                                             }}
+                                            aria-invalid={!!errors.services || !!errors.servicePrices}
                                             $accentColor={focusedField === 'services' ? accentColor : undefined}
                                             onFocus={() => {
                                                 setFocusedField('services');
@@ -861,7 +956,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
                         <S.Footer>
                             <S.ColorPickerWrapper>
-                                <S.ColorPickerSection $hasError={!!errors.color}>
+                                <S.ColorPickerSection ref={colorSectionRef} $hasError={!!errors.color}>
                                     <IconPalette />
                                     <S.ColorPickerList>
                                         {appointmentColors.map((color: AppointmentColor) => (
@@ -905,9 +1000,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 <S.Button
                                     type="submit"
                                     $variant="primary"
-                                    style={{ '--button-bg': accentColor } as React.CSSProperties}
+                                    disabled={isSubmitting}
+                                    style={{ '--button-bg': accentColor, opacity: isSubmitting ? 0.7 : 1 } as React.CSSProperties}
                                 >
-                                    Zapisz wizytę
+                                    {isSubmitting ? 'Zapisywanie…' : 'Zapisz wizytę'}
                                 </S.Button>
                             </S.FooterActions>
                         </S.Footer>
