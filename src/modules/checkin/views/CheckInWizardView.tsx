@@ -291,7 +291,14 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
                                     color: '#dc2626',
                                 }}
                             >
-                                {t.checkin.errors.createFailed}
+                                {(() => {
+                                    const anyErr: any = submitError as any;
+                                    const backendMsg = anyErr?.response?.data?.message;
+                                    const msg = typeof backendMsg === 'string' && backendMsg.trim().length > 0
+                                        ? backendMsg
+                                        : (anyErr?.message ?? t.checkin.errors.createFailed);
+                                    return msg;
+                                })()}
                             </div>
                         )}
                     </ActionsCard>
