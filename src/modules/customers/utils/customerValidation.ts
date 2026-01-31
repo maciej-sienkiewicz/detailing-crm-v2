@@ -65,25 +65,14 @@ export const createCustomerSchema = z.object({
     notes: z.string().max(1000, t.customers.validation.notesMax),
 }).refine(
     (data) => {
-        // Wymagane: Przynajmniej jedno z imienia lub nazwiska
-        const hasName = (data.firstName && data.firstName.trim().length >= 2) ||
-                        (data.lastName && data.lastName.trim().length >= 2);
-        return hasName;
-    },
-    {
-        message: 'Wymagane jest imię lub nazwisko (min. 2 znaki)',
-        path: ['firstName'], // Pokaż błąd przy polu firstName
-    }
-).refine(
-    (data) => {
         // Wymagane: Przynajmniej jedno z telefonu lub emaila
         const hasContact = (data.phone && data.phone.trim().length > 0) ||
                           (data.email && data.email.trim().length > 0);
         return hasContact;
     },
     {
-        message: 'Wymagany jest numer telefonu lub email',
-        path: ['phone'], // Pokaż błąd przy polu phone
+        message: 'Wymagany jest co najmniej numer telefonu lub adres email klienta.',
+        path: ['phone'],
     }
 );
 

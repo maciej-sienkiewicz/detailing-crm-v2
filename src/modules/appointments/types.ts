@@ -16,10 +16,10 @@ export type CustomerIdentity =
     | {
         mode: 'NEW';
         newData: {
-            firstName: string;
-            lastName: string;
-            phone: string;
-            email: string;
+            firstName: string | null;
+            lastName: string | null;
+            phone: string | null;
+            email: string | null;
             company?: {
                 name: string;
                 nip: string;
@@ -32,10 +32,10 @@ export type CustomerIdentity =
         mode: 'UPDATE';
         id: string;
         updateData: {
-            firstName: string;
-            lastName: string;
-            phone: string;
-            email: string;
+            firstName: string | null;
+            lastName: string | null;
+            phone: string | null;
+            email: string | null;
             company?: {
                 name: string;
                 nip: string;
@@ -114,10 +114,10 @@ export interface Service {
 
 export interface Customer {
     id: string;
-    firstName: string;
-    lastName: string;
-    phone: string;
-    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    phone: string | null;
+    email: string | null;
 }
 
 export interface Vehicle {

@@ -21,8 +21,8 @@ export interface HomeAddress {
 }
 
 export interface CustomerContact {
-    email: string;
-    phone: string;
+    email: string | null;
+    phone: string | null;
 }
 
 export interface CustomerRevenue {
@@ -33,8 +33,8 @@ export interface CustomerRevenue {
 
 export interface Customer {
     id: string;
-    firstName: string;
-    lastName: string;
+    firstName: string | null;
+    lastName: string | null;
     contact: CustomerContact;
     homeAddress: HomeAddress | null;
     company: CompanyDetails | null;
@@ -83,10 +83,10 @@ export interface CustomerFilters {
 }
 
 export interface CreateCustomerPayload {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string | null;
+    phone: string | null;
     homeAddress: HomeAddress | null;
     companyData: Omit<CompanyDetails, 'id'> | null;
     notes: string;
@@ -189,11 +189,11 @@ export interface AddVehiclePayload {
 // src/modules/customers/types.ts - Dodaj te interfejsy
 
 export interface UpdateCustomerPayload {
-    firstName?: string;
-    lastName?: string;
+    firstName?: string | null;
+    lastName?: string | null;
     contact?: {
-        email?: string;
-        phone?: string;
+        email?: string | null;
+        phone?: string | null;
     };
     homeAddress?: HomeAddress | null;
 }

@@ -66,13 +66,21 @@ export const formatDate = (dateString: string | null): string => {
     }).format(new Date(dateString));
 };
 
-export const formatPhoneNumber = (phone: string): string => {
+export const formatPhoneNumber = (phone: string | null): string => {
+    if (!phone) return '—';
     const clean = phone.replace(/[\s-]/g, '').replace(/^\+48/, '');
+    if (clean.length < 9) return phone;
     return `+48 ${clean.slice(0, 3)} ${clean.slice(3, 6)} ${clean.slice(6)}`;
 };
 
 export const getFullName = (customer: Customer): string => {
-    return `${customer.firstName} ${customer.lastName}`;
+    const first = customer.firstName?.trim() || '';
+    const last = customer.lastName?.trim() || '';
+    const name = `${first} ${last}`.trim();
+    if (name) return name;
+    if (customer.contact?.phone) return formatPhoneNumber(customer.contact.phone);
+    if (customer.contact?.email) return customer.contact.email;
+    return 'Klient bezimienny';
 };
 
 export const mapFormDataToPayload = (
