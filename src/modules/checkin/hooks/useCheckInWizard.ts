@@ -129,30 +129,74 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
             console.error('Błąd konwersji daty do Instant:', e);
         }
 
+        // Build unified Customer/Vehicle Identity (EXISTING/NEW/UPDATE)
+        const customerIdentity = (() => {
+            const hasId = !!formData.customerData.id;
+            if (formData.isNewCustomer || !hasId) {
+                return {
+                    mode: 'NEW' as const,
+                    newData: {
+                        firstName: formData.customerData.firstName,
+                        lastName: formData.customerData.lastName,
+                        phone: formData.customerData.phone,
+                        email: formData.customerData.email,
+                        homeAddress: formData.homeAddress || undefined,
+                        company: formData.company || undefined,
+                    },
+                };
+            }
+            // Existing customer – send UPDATE so server can recognize changes
+            return {
+                mode: 'UPDATE' as const,
+                id: formData.customerData.id,
+                updateData: {
+                    firstName: formData.customerData.firstName,
+                    lastName: formData.customerData.lastName,
+                    phone: formData.customerData.phone,
+                    email: formData.customerData.email,
+                    homeAddress: formData.homeAddress || undefined,
+                    company: formData.company || undefined,
+                },
+            };
+        })();
+
+        const vehicleIdentity = (() => {
+            const hasId = !!formData.vehicleData?.id;
+            if (formData.isNewVehicle || !hasId) {
+                return {
+                    mode: 'NEW' as const,
+                    newData: {
+                        brand: formData.vehicleData!.brand,
+                        model: formData.vehicleData!.model,
+                        yearOfProduction: formData.vehicleData!.yearOfProduction,
+                        licensePlate: formData.vehicleData!.licensePlate || undefined,
+                        vin: formData.vehicleData!.vin,
+                        color: formData.vehicleData!.color,
+                        paintType: formData.vehicleData!.paintType,
+                    },
+                };
+            }
+            return {
+                mode: 'UPDATE' as const,
+                id: formData.vehicleData!.id,
+                updateData: {
+                    brand: formData.vehicleData!.brand,
+                    model: formData.vehicleData!.model,
+                    yearOfProduction: formData.vehicleData!.yearOfProduction,
+                    licensePlate: formData.vehicleData!.licensePlate || undefined,
+                    vin: formData.vehicleData!.vin,
+                    color: formData.vehicleData!.color,
+                    paintType: formData.vehicleData!.paintType,
+                },
+            };
+        })();
+
         const payload: ReservationToVisitPayload = {
             reservationId,
             startDateTime: startInstant,
             endDateTime: endInstant,
-            customer: {
-                id: formData.isNewCustomer ? undefined : formData.customerData.id,
-                firstName: formData.customerData.firstName,
-                lastName: formData.customerData.lastName,
-                phone: formData.customerData.phone,
-                email: formData.customerData.email,
-                homeAddress: formData.homeAddress || undefined,
-                company: formData.company || undefined,
-                isNew: formData.isNewCustomer,
-            },
-            vehicle: {
-                id: formData.isNewVehicle ? undefined : formData.vehicleData.id,
-                brand: formData.vehicleData.brand,
-                model: formData.vehicleData.model,
-                yearOfProduction: formData.vehicleData.yearOfProduction,
-                licensePlate: formData.vehicleData.licensePlate || undefined,
-                color: formData.vehicleData.color,
-                paintType: formData.vehicleData.paintType,
-                isNew: formData.isNewVehicle,
-            },
+            customer: customerIdentity,
+            vehicle: vehicleIdentity,
             technicalState: formData.technicalState,
             photoIds: formData.photos.map(p => p.fileId!).filter(Boolean),
             damagePoints: formData.damagePoints || [],

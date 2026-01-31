@@ -40,7 +40,7 @@ export interface ServiceLineItem {
     vatRate: number;
     adjustment: PriceAdjustment;
     note?: string;
-    requireManualPrice?: boolean;
+    requireManualPrice: boolean;
 }
 
 export interface CheckInFormData {
@@ -96,48 +96,104 @@ export interface CheckInFormData {
     appointmentColorId: string;
 }
 
+export type CheckInCustomerIdentity =
+    | {
+        mode: 'EXISTING';
+        id: string;
+    }
+    | {
+        mode: 'NEW';
+        newData: {
+            firstName: string;
+            lastName: string;
+            phone: string;
+            email: string;
+            homeAddress?: {
+                street: string;
+                city: string;
+                postalCode: string;
+                country: string;
+            };
+            company?: {
+                name: string;
+                nip: string;
+                regon?: string;
+                address: {
+                    street: string;
+                    city: string;
+                    postalCode: string;
+                    country: string;
+                };
+            };
+        };
+    }
+    | {
+        mode: 'UPDATE';
+        id: string;
+        updateData: {
+            firstName: string;
+            lastName: string;
+            phone: string;
+            email: string;
+            homeAddress?: {
+                street: string;
+                city: string;
+                postalCode: string;
+                country: string;
+            };
+            company?: {
+                name: string;
+                nip: string;
+                regon?: string;
+                address: {
+                    street: string;
+                    city: string;
+                    postalCode: string;
+                    country: string;
+                };
+            };
+        };
+    };
+
+export type CheckInVehicleIdentity =
+    | {
+        mode: 'EXISTING';
+        id: string;
+    }
+    | {
+        mode: 'NEW';
+        newData: {
+            brand: string;
+            model: string;
+            yearOfProduction?: number;
+            licensePlate?: string;
+            vin?: string;
+            color?: string;
+            paintType?: string;
+        };
+    }
+    | {
+        mode: 'UPDATE';
+        id: string;
+        updateData: {
+            brand: string;
+            model: string;
+            yearOfProduction?: number;
+            licensePlate?: string;
+            vin?: string;
+            color?: string;
+            paintType?: string;
+        };
+    };
+
 export interface ReservationToVisitPayload {
     reservationId: string;
     /** Instant (UTC ISO-8601 with 'Z') */
     startDateTime?: string;
     /** Instant (UTC ISO-8601 with 'Z') */
     endDateTime?: string;
-    customer?: {
-        id?: string;
-        firstName: string;
-        lastName: string;
-        phone: string;
-        email: string;
-        homeAddress?: {
-            street: string;
-            city: string;
-            postalCode: string;
-            country: string;
-        };
-        company?: {
-            name: string;
-            nip: string;
-            regon: string;
-            address: {
-                street: string;
-                city: string;
-                postalCode: string;
-                country: string;
-            };
-        };
-        isNew: boolean; // Czy klient został utworzony teraz podczas check-in
-    };
-    vehicle: {
-        id?: string; // Opcjonalne - puste dla nowego pojazdu
-        brand: string;
-        model: string;
-        yearOfProduction: number;
-        licensePlate?: string;
-        vin?: string;
-        color?: string;
-        paintType?: string;
-        isNew: boolean; // Czy pojazd został utworzony teraz podczas check-in
-    };
+    customer?: CheckInCustomerIdentity;
+    vehicle: CheckInVehicleIdentity;
     technicalState: {
         mileage: number;
         deposit: DepositItem;
