@@ -7,12 +7,11 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { appointmentApi } from '../api/appointmentApi';
 import { LoadingSkeleton } from '@/modules/appointments/components/common';
 import { VerificationStep } from '@/modules/checkin/components/VerificationStep';
-import { ScheduleSection } from '../components/ScheduleSection';
 import type { CheckInFormData, ServiceLineItem as CheckInServiceLineItem } from '@/modules/checkin/types';
 import type { AppointmentCreateRequest } from '@/modules/appointments/types';
 import { Button } from '@/common/components/Button';
 import { t } from '@/common/i18n';
-import { toInstant } from '@/common/dateTime';
+import { toInstant, fromInstantToLocalInput } from '@/common/dateTime';
 
 const Container = styled.div`
     min-height: 100vh;
@@ -123,17 +122,14 @@ export const AppointmentEditView = () => {
 
     const [formData, setFormData] = useState<CheckInFormData | null>(null);
 
-    // Local schedule state for editing dates in edit view
-    const [isAllDay, setIsAllDay] = useState(false);
-    const [startDateTime, setStartDateTime] = useState('');
-    const [endDateTime, setEndDateTime] = useState('');
-
     // preserve appointment title from appointment (not editable in this view)
     const appointmentTitleRef = useMemo(() => appointment?.appointmentTitle ?? '', [appointment]);
 
     useEffect(() => {
         if (initialData && !formData) {
             // fill defaults for required fields of CheckInFormData
+            const startRaw = appointment?.schedule?.startDateTime ?? appointment?.startDateTime ?? '';
+            const endRaw = appointment?.schedule?.endDateTime ?? appointment?.endDateTime ?? '';
             setFormData({
                 customerData: {
                     id: '', firstName: '', lastName: '', phone: '', email: '',
@@ -154,35 +150,9 @@ export const AppointmentEditView = () => {
                 },
                 photos: initialData.photos || [],
                 damagePoints: initialData.damagePoints || [],
+                visitStartAt: fromInstantToLocalInput(startRaw),
+                visitEndAt: fromInstantToLocalInput(endRaw),
             });
-        }
-        // initialize schedule state from appointment with proper formatting for inputs
-        if (appointment) {
-            const isAllDayInit = appointment.schedule?.isAllDay ?? false;
-            const startRaw = appointment.schedule?.startDateTime ?? appointment.startDateTime ?? '';
-            const endRaw = appointment.schedule?.endDateTime ?? appointment.endDateTime ?? '';
-
-            const toDateOnly = (val: string) => (val ? val.split('T')[0] : '');
-            const toLocalDateTimeInput = (val: string) => {
-                if (!val) return '';
-                const trimmed = val.replace('Z', '');
-                // expect format YYYY-MM-DDTHH:MM
-                return trimmed.includes('T') ? trimmed.slice(0, 16) : trimmed;
-            };
-
-            setIsAllDay(isAllDayInit);
-            setStartDateTime(isAllDayInit ? toDateOnly(startRaw) : toLocalDateTimeInput(startRaw));
-            // Normalize end for both modes: remove trailing 'Z' for non-all-day to avoid backend parse error
-            const toLocalDateTimeWithSeconds = (val: string) => {
-                if (!val) return '';
-                const trimmed = val.replace('Z', '');
-                return trimmed.length >= 19 ? trimmed.slice(0, 19) : trimmed; // YYYY-MM-DDTHH:MM:SS
-            };
-            setEndDateTime(
-                isAllDayInit
-                    ? (endRaw ? `${toDateOnly(endRaw)}T23:59:59` : '')
-                    : toLocalDateTimeWithSeconds(endRaw)
-            );
         }
     }, [initialData, formData, appointment]);
 
@@ -207,8 +177,8 @@ export const AppointmentEditView = () => {
         let startInstant = '';
         let endInstant = '';
         try {
-            startInstant = toInstant(startDateTime);
-            endInstant = toInstant(endDateTime);
+            startInstant = toInstant(formData.visitStartAt || '');
+            endInstant = toInstant(formData.visitEndAt || '');
         } catch (e) {
             console.error('Błąd konwersji daty do Instant (edit):', e);
             return;
@@ -245,7 +215,7 @@ export const AppointmentEditView = () => {
                     },
             services: formData.services,
             schedule: {
-                isAllDay,
+                isAllDay: false,
                 startDateTime: startInstant,
                 endDateTime: endInstant,
             },
@@ -254,7 +224,7 @@ export const AppointmentEditView = () => {
         };
 
         // basic guard
-        if (!payload.customer || !payload.appointmentColorId || payload.services.length === 0 || !startDateTime || !endDateTime) return;
+        if (!payload.customer || !payload.appointmentColorId || payload.services.length === 0 || !formData.visitStartAt || !formData.visitEndAt) return;
 
         updateMutation.mutate(payload);
     };
@@ -288,14 +258,6 @@ export const AppointmentEditView = () => {
                     </Actions>
                 </Header>
 
-                <ScheduleSection
-                    isAllDay={isAllDay}
-                    onIsAllDayChange={setIsAllDay}
-                    startDateTime={startDateTime}
-                    onStartDateTimeChange={setStartDateTime}
-                    endDateTime={endDateTime}
-                    onEndDateTimeChange={setEndDateTime}
-                />
 
                 <VerificationStep
                     formData={formData}

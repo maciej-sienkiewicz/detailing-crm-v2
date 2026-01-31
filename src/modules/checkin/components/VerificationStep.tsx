@@ -12,6 +12,7 @@ import { VehicleSearchModal, type SelectedVehicle } from './VehicleSearchModal';
 import { VehicleDetailsModal } from './VehicleDetailsModal';
 import type { SelectedCustomer, AppointmentColor } from '@/modules/appointments/types';
 import { t } from '@/common/i18n';
+import { fromDateToLocalInput } from '@/common/dateTime';
 import type { CheckInFormData, ServiceLineItem } from '../types';
 import { Modal } from '@/common/components/Modal';
 
@@ -368,7 +369,26 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                         <Input
                             type="datetime-local"
                             value={formData.visitStartAt ? formData.visitStartAt : ''}
-                            onChange={(e) => onChange({ visitStartAt: e.target.value })}
+                            onChange={(e) => {
+                                const start = e.target.value;
+                                let updates: Partial<CheckInFormData> = { visitStartAt: start };
+                                if (!formData.visitEndAt) {
+                                    const d = new Date(start);
+                                    if (!isNaN(d.getTime())) {
+                                        d.setHours(d.getHours() + 1);
+                                        updates.visitEndAt = fromDateToLocalInput(d);
+                                    }
+                                } else {
+                                    const s = new Date(start);
+                                    const eDate = new Date(formData.visitEndAt);
+                                    if (!isNaN(s.getTime()) && !isNaN(eDate.getTime()) && eDate < s) {
+                                        const d2 = new Date(s.getTime());
+                                        d2.setHours(d2.getHours() + 1);
+                                        updates.visitEndAt = fromDateToLocalInput(d2);
+                                    }
+                                }
+                                onChange(updates);
+                            }}
                         />
                     </FieldGroup>
                     <FieldGroup>
@@ -376,7 +396,20 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                         <Input
                             type="datetime-local"
                             value={formData.visitEndAt ? formData.visitEndAt : ''}
-                            onChange={(e) => onChange({ visitEndAt: e.target.value })}
+                            onChange={(e) => {
+                                const newEnd = e.target.value;
+                                let nextEnd = newEnd;
+                                if (formData.visitStartAt) {
+                                    const s = new Date(formData.visitStartAt);
+                                    const eDate = new Date(newEnd);
+                                    if (!isNaN(s.getTime()) && !isNaN(eDate.getTime()) && eDate < s) {
+                                        const d = new Date(s.getTime());
+                                        d.setHours(d.getHours() + 1);
+                                        nextEnd = fromDateToLocalInput(d);
+                                    }
+                                }
+                                onChange({ visitEndAt: nextEnd });
+                            }}
                         />
                     </FieldGroup>
                     <FieldGroup>
