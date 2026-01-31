@@ -8,12 +8,6 @@ const Container = styled.div`
     gap: ${props => props.theme.spacing.lg};
 `;
 
-const Description = styled.p`
-    margin: 0;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
-    line-height: 1.6;
-`;
 
 const ChecklistSection = styled.div`
     background: ${props => props.theme.colors.surfaceAlt};
@@ -65,18 +59,6 @@ const CheckLabel = styled.span`
     flex: 1;
 `;
 
-const CheckIcon = styled.div<{ $checked: boolean }>`
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: ${props => props.$checked ? '#10b981' : props.theme.colors.border};
-    color: white;
-    font-size: 14px;
-    transition: all 0.2s ease;
-`;
 
 const WarningBox = styled.div`
     padding: ${props => props.theme.spacing.md};
@@ -178,11 +160,6 @@ export const QualityCheckStep = ({ onApprove, onReject }: QualityCheckStepProps)
 
     return (
         <Container>
-            <Description>
-                Przed przekazaniem pojazdu do odbioru przeprowadź weryfikację jakości wykonanych usług.
-                Zaznacz wszystkie punkty kontrolne.
-            </Description>
-
             <ChecklistSection>
                 <SectionTitle>Lista kontrolna jakości</SectionTitle>
                 <ChecklistItems>
@@ -194,23 +171,10 @@ export const QualityCheckStep = ({ onApprove, onReject }: QualityCheckStepProps)
                                 onChange={() => handleToggle(check.id)}
                             />
                             <CheckLabel>{check.label}</CheckLabel>
-                            <CheckIcon $checked={check.checked}>
-                                {check.checked && '✓'}
-                            </CheckIcon>
                         </ChecklistItem>
                     ))}
                 </ChecklistItems>
             </ChecklistSection>
-
-            {!allChecked && (
-                <WarningBox>
-                    <WarningIcon>⚠️</WarningIcon>
-                    <WarningText>
-                        Jeśli którykolwiek punkt nie jest spełniony, wybierz opcję "Wymaga poprawek"
-                        i wróć do etapu realizacji.
-                    </WarningText>
-                </WarningBox>
-            )}
 
             <ActionButtons>
                 <ActionButton $variant="warning" onClick={onReject}>

@@ -162,11 +162,6 @@ export const NotificationStep = ({ customer, onChannelsChange }: NotificationSte
 
     return (
         <Container>
-            <Description>
-                Powiadom klienta o zakończeniu prac i gotowości pojazdu do odbioru.
-                Wybierz kanały komunikacji.
-            </Description>
-
             <CustomerCard>
                 <CustomerName>
                     {customer.firstName} {customer.lastName}
@@ -216,16 +211,6 @@ export const NotificationStep = ({ customer, onChannelsChange }: NotificationSte
                     </ChannelOption>
                 </ChannelOptions>
             </ChannelsSection>
-
-            {hasAnyChannel && (
-                <InfoBox>
-                    <InfoIcon>💡</InfoIcon>
-                    <InfoText>
-                        Klient otrzyma informację o gotowości pojazdu oraz godzinach pracy warsztatu.
-                        Powiadomienie zostanie wysłane natychmiast.
-                    </InfoText>
-                </InfoBox>
-            )}
         </Container>
     );
 };

@@ -136,10 +136,6 @@ const ChecklistItem = styled.li`
 export const SignatureStep = ({ onConfirm }: { onConfirm: () => void }) => {
     return (
         <Container>
-            <Description>
-                Poproś klienta o podpisanie protokołu wydania pojazdu. Upewnij się, że klient
-                potwierdza odbiór pojazdu w stanie zgodnym z oczekiwaniami.
-            </Description>
 
             <SignatureArea>
                 <SignatureIcon>✍️</SignatureIcon>
@@ -173,15 +169,6 @@ export const SignatureStep = ({ onConfirm }: { onConfirm: () => void }) => {
                     </ChecklistItem>
                 </ChecklistItems>
             </ChecklistSection>
-
-            <InfoBox>
-                <InfoIcon>💡</InfoIcon>
-                <InfoText>
-                    <strong>Tymczasowo:</strong> Po kliknięciu przycisku "Podpisano" system przejdzie
-                    do ostatniego kroku finalizacji płatności. W przyszłości tutaj będzie możliwość
-                    zbierania podpisu elektronicznego bezpośrednio w aplikacji.
-                </InfoText>
-            </InfoBox>
         </Container>
     );
 };

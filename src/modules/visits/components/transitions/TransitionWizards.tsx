@@ -83,7 +83,7 @@ export const InProgressToReadyWizard = ({
             title={currentStep === 1 ? 'Weryfikacja jakości' : 'Powiadomienie klienta'}
             subtitle={
                 currentStep === 1
-                    ? 'Sprawdź wykonane usługi przed przekazaniem do odbioru'
+                    ? undefined
                     : 'Poinformuj klienta o gotowości pojazdu'
             }
             icon={

@@ -52,15 +52,21 @@ const HeaderLeft = styled.div`
     flex: 1;
 `;
 
+const TitleRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.md};
+`;
+
 const WizardTitle = styled.h2`
-    margin: 0 0 ${props => props.theme.spacing.xs};
+    margin: 0;
     font-size: ${props => props.theme.fontSizes.xl};
     font-weight: 700;
     color: ${props => props.theme.colors.text};
 `;
 
 const WizardSubtitle = styled.p`
-    margin: 0;
+    margin: ${props => props.theme.spacing.xs} 0 0;
     font-size: ${props => props.theme.fontSizes.sm};
     color: ${props => props.theme.colors.textMuted};
 `;
@@ -127,19 +133,18 @@ const WizardFooter = styled.div`
 `;
 
 const IconWrapper = styled.div`
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     border-radius: ${props => props.theme.radii.lg};
     background: linear-gradient(135deg, var(--brand-primary) 0%, #0284c7 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: ${props => props.theme.spacing.md};
     box-shadow: ${props => props.theme.shadows.md};
 
     svg {
-        width: 24px;
-        height: 24px;
+        width: 20px;
+        height: 20px;
         color: white;
     }
 `;
@@ -204,8 +209,10 @@ export const WizardLayout = ({
                 <WizardHeader>
                     <HeaderTop>
                         <HeaderLeft>
-                            {icon && <IconWrapper>{icon}</IconWrapper>}
-                            <WizardTitle>{title}</WizardTitle>
+                            <TitleRow>
+                                {icon && <IconWrapper>{icon}</IconWrapper>}
+                                <WizardTitle>{title}</WizardTitle>
+                            </TitleRow>
                             {subtitle && <WizardSubtitle>{subtitle}</WizardSubtitle>}
                         </HeaderLeft>
                         <CloseButton onClick={onClose}>×</CloseButton>

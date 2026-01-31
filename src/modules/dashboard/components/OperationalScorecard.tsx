@@ -325,7 +325,7 @@ const VisitList = ({
   const navigate = useNavigate();
 
   const handleViewVisit = (visitId: string) => {
-    navigate(`/operations/${visitId}`);
+    navigate(`/visits/${visitId}`);
   };
 
   return (
