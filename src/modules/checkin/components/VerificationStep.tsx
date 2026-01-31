@@ -291,10 +291,12 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     const [showCustomerChoice, setShowCustomerChoice] = useState(false);
     const [customerChoiceMade, setCustomerChoiceMade] = useState(false);
     const [pendingCustomerUpdates, setPendingCustomerUpdates] = useState<Partial<CheckInFormData['customerData']> | null>(null);
+    const [customerPromptScheduled, setCustomerPromptScheduled] = useState(false);
 
     const [showVehicleChoice, setShowVehicleChoice] = useState(false);
     const [vehicleChoiceMade, setVehicleChoiceMade] = useState(false);
     const [pendingVehicleUpdates, setPendingVehicleUpdates] = useState<Partial<NonNullable<CheckInFormData['vehicleData']>> | null>(null);
+    const [vehiclePromptScheduled, setVehiclePromptScheduled] = useState(false);
 
     // Derived badges labels
     const customerBadge = formData.isNewCustomer
@@ -304,6 +306,35 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     const vehicleBadge = (formData.vehicleData === null)
         ? undefined
         : ((formData.isNewVehicle || !formData.vehicleData?.id) ? 'Dodasz nowy pojazd' : 'Aktualizujesz dane istniejącego pojazdu');
+
+    // Compute whether there are changes to enable/disable Reset buttons
+    const canResetCustomer = !(initialCustomerData === undefined && initialHasFullCustomerData === undefined && initialIsNewCustomer === undefined);
+    const customerDataEqual = initialCustomerData === undefined ? true : (
+        initialCustomerData.id === formData.customerData.id &&
+        initialCustomerData.firstName === formData.customerData.firstName &&
+        initialCustomerData.lastName === formData.customerData.lastName &&
+        initialCustomerData.phone === formData.customerData.phone &&
+        initialCustomerData.email === formData.customerData.email
+    );
+    const customerHasFullEqual = initialHasFullCustomerData === undefined ? true : (initialHasFullCustomerData === formData.hasFullCustomerData);
+    const customerIsNewEqual = initialIsNewCustomer === undefined ? true : (initialIsNewCustomer === formData.isNewCustomer);
+    const hasCustomerChanges = canResetCustomer && !(customerDataEqual && customerHasFullEqual && customerIsNewEqual);
+
+    const canResetVehicle = !(initialVehicleData === undefined && initialIsNewVehicle === undefined);
+    const vehicleDataEqual = initialVehicleData === undefined ? true : (
+        (initialVehicleData === null && formData.vehicleData === null) ||
+        (initialVehicleData !== null && formData.vehicleData !== null &&
+            initialVehicleData.id === formData.vehicleData.id &&
+            initialVehicleData.brand === formData.vehicleData.brand &&
+            initialVehicleData.model === formData.vehicleData.model &&
+            initialVehicleData.yearOfProduction === formData.vehicleData.yearOfProduction &&
+            (initialVehicleData.licensePlate || '') === (formData.vehicleData.licensePlate || '') &&
+            (initialVehicleData.color || '') === (formData.vehicleData.color || '') &&
+            (initialVehicleData.paintType || '') === (formData.vehicleData.paintType || '')
+        )
+    );
+    const vehicleIsNewEqual = initialIsNewVehicle === undefined ? true : (initialIsNewVehicle === formData.isNewVehicle);
+    const hasVehicleChanges = canResetVehicle && !(vehicleDataEqual && vehicleIsNewEqual);
 
     // Reset handlers
     const handleResetCustomer = () => {
@@ -316,6 +347,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
         setCustomerChoiceMade(false);
         setPendingCustomerUpdates(null);
         setShowCustomerChoice(false);
+        setCustomerPromptScheduled(false);
     };
 
     const handleResetVehicle = () => {
@@ -326,6 +358,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
         setVehicleChoiceMade(false);
         setPendingVehicleUpdates(null);
         setShowVehicleChoice(false);
+        setVehiclePromptScheduled(false);
     };
 
     const applyCustomerUpdates = (updates: Partial<CheckInFormData['customerData']>) => {
@@ -338,13 +371,29 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
         setCustomerChoiceMade(true);
     };
 
-    const handleCustomerFieldChange = (updates: Partial<CheckInFormData['customerData']>) => {
-        // If no choice made yet and there is an existing id, ask what to do
-        if (!customerChoiceMade && formData.customerData.id) {
-            setPendingCustomerUpdates(updates);
+    const handleCustomerFieldBlur = () => {
+        // Show modal only when leaving the field, not on first input
+        if (!customerChoiceMade && formData.customerData.id && customerPromptScheduled && pendingCustomerUpdates) {
             setShowCustomerChoice(true);
+            setCustomerPromptScheduled(false);
             return;
         }
+        // If no existing id (new customer) or choice already made, just apply queued updates
+        if (pendingCustomerUpdates) {
+            applyCustomerUpdates(pendingCustomerUpdates);
+            setPendingCustomerUpdates(null);
+            setCustomerPromptScheduled(false);
+        }
+    };
+
+    const handleCustomerFieldChange = (updates: Partial<CheckInFormData['customerData']>) => {
+        // If user edits while an existing customer is selected, schedule the prompt for blur instead of opening immediately
+        if (!customerChoiceMade && formData.customerData.id) {
+            setPendingCustomerUpdates(prev => ({ ...(prev || {}), ...updates }));
+            setCustomerPromptScheduled(true);
+            return;
+        }
+        // Otherwise, apply immediately (new customer or decision already made)
         applyCustomerUpdates(updates);
     };
 
@@ -353,6 +402,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
         onChange({ isNewCustomer: false, hasFullCustomerData: true });
         setCustomerChoiceMade(true);
         setShowCustomerChoice(false);
+        setCustomerPromptScheduled(false);
         if (pendingCustomerUpdates) {
             applyCustomerUpdates(pendingCustomerUpdates);
             setPendingCustomerUpdates(null);
@@ -394,11 +444,24 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
 
     const handleVehicleFieldChange = (updates: Partial<NonNullable<CheckInFormData['vehicleData']>>) => {
         if (!vehicleChoiceMade && formData.vehicleData?.id) {
-            setPendingVehicleUpdates(updates);
-            setShowVehicleChoice(true);
+            setPendingVehicleUpdates(prev => ({ ...(prev || {}), ...updates }));
+            setVehiclePromptScheduled(true);
             return;
         }
         applyVehicleUpdates(updates);
+    };
+
+    const handleVehicleFieldBlur = () => {
+        if (!vehicleChoiceMade && formData.vehicleData?.id && vehiclePromptScheduled && pendingVehicleUpdates) {
+            setShowVehicleChoice(true);
+            setVehiclePromptScheduled(false);
+            return;
+        }
+        if (pendingVehicleUpdates) {
+            applyVehicleUpdates(pendingVehicleUpdates);
+            setPendingVehicleUpdates(null);
+            setVehiclePromptScheduled(false);
+        }
     };
 
     const confirmVehicleEditExisting = () => {
@@ -591,7 +654,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                         {customerChoiceMade && customerBadge && <Badge>{customerBadge}</Badge>}
                     </SectionTitleWithActions>
                     <SubtleButtonGroup>
-                        <SubtleButton onClick={handleResetCustomer} disabled={initialCustomerData === undefined && initialHasFullCustomerData === undefined && initialIsNewCustomer === undefined}>
+                        <SubtleButton onClick={handleResetCustomer} disabled={!hasCustomerChanges}>
                             Wycofaj zmiany
                         </SubtleButton>
                         <SubtleButton onClick={() => setIsCustomerModalOpen(true)}>
@@ -604,24 +667,27 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                     <FieldGroup>
                         <Label>{t.checkin.verification.firstName}</Label>
                         <Input
-                            value={formData.customerData.firstName || ''}
+                            value={(pendingCustomerUpdates?.firstName ?? formData.customerData.firstName) || ''}
                             onChange={(e) => handleCustomerFieldChange({ firstName: e.target.value })}
+                            onBlur={handleCustomerFieldBlur}
                         />
                     </FieldGroup>
 
                     <FieldGroup>
                         <Label>{t.checkin.verification.lastName}</Label>
                         <Input
-                            value={formData.customerData.lastName || ''}
+                            value={(pendingCustomerUpdates?.lastName ?? formData.customerData.lastName) || ''}
                             onChange={(e) => handleCustomerFieldChange({ lastName: e.target.value })}
+                            onBlur={handleCustomerFieldBlur}
                         />
                     </FieldGroup>
 
                     <FieldGroup>
                         <Label>{t.checkin.verification.phone}</Label>
                         <Input
-                            value={formData.customerData.phone || ''}
+                            value={(pendingCustomerUpdates?.phone ?? formData.customerData.phone) || ''}
                             onChange={(e) => handleCustomerFieldChange({ phone: e.target.value })}
+                            onBlur={handleCustomerFieldBlur}
                         />
                     </FieldGroup>
 
@@ -629,8 +695,9 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                         <Label>{t.checkin.verification.email}</Label>
                         <Input
                             type="email"
-                            value={formData.customerData.email || ''}
+                            value={(pendingCustomerUpdates?.email ?? formData.customerData.email) || ''}
                             onChange={(e) => handleCustomerFieldChange({ email: e.target.value })}
+                            onBlur={handleCustomerFieldBlur}
                         />
                     </FieldGroup>
                 </FormGrid>
@@ -646,7 +713,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                         {vehicleChoiceMade && vehicleBadge && <Badge>{vehicleBadge}</Badge>}
                     </SectionTitleWithActions>
                     <SubtleButtonGroup>
-                        <SubtleButton onClick={handleResetVehicle} disabled={initialVehicleData === undefined && initialIsNewVehicle === undefined}>
+                        <SubtleButton onClick={handleResetVehicle} disabled={!hasVehicleChanges}>
                             Wycofaj zmiany
                         </SubtleButton>
                         <SubtleButton onClick={() => setIsVehicleModalOpen(true)}>
@@ -659,16 +726,18 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                     <FieldGroup>
                         <Label>{t.checkin.verification.brand}</Label>
                         <Input
-                            value={formData.vehicleData?.brand || ''}
+                            value={(pendingVehicleUpdates?.brand ?? formData.vehicleData?.brand) || ''}
                             onChange={(e) => handleVehicleFieldChange({ brand: e.target.value })}
+                            onBlur={handleVehicleFieldBlur}
                         />
                     </FieldGroup>
 
                     <FieldGroup>
                         <Label>{t.checkin.verification.model}</Label>
                         <Input
-                            value={formData.vehicleData?.model || ''}
+                            value={(pendingVehicleUpdates?.model ?? formData.vehicleData?.model) || ''}
                             onChange={(e) => handleVehicleFieldChange({ model: e.target.value })}
+                            onBlur={handleVehicleFieldBlur}
                         />
                     </FieldGroup>
 
@@ -676,8 +745,9 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                         <Label>Rok produkcji</Label>
                         <Input
                             type="number"
-                            value={formData.vehicleData?.yearOfProduction || ''}
+                            value={(pendingVehicleUpdates?.yearOfProduction ?? formData.vehicleData?.yearOfProduction) ?? ''}
                             onChange={(e) => handleVehicleFieldChange({ yearOfProduction: parseInt(e.target.value) || new Date().getFullYear() })}
+                            onBlur={handleVehicleFieldBlur}
                         />
                     </FieldGroup>
 
@@ -685,8 +755,9 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                         <FieldGroup>
                             <Label>{t.checkin.verification.licensePlate}</Label>
                             <Input
-                                value={formData.vehicleData?.licensePlate || ''}
+                                value={(pendingVehicleUpdates?.licensePlate ?? formData.vehicleData?.licensePlate) || ''}
                                 onChange={(e) => handleVehicleFieldChange({ licensePlate: e.target.value })}
+                                onBlur={handleVehicleFieldBlur}
                             />
                         </FieldGroup>
                     )}
@@ -696,8 +767,9 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                             <FieldGroup>
                                 <Label>Kolor</Label>
                                 <Input
-                                    value={formData.vehicleData?.color || ''}
+                                    value={(pendingVehicleUpdates?.color ?? formData.vehicleData?.color) || ''}
                                     onChange={(e) => handleVehicleFieldChange({ color: e.target.value })}
+                                    onBlur={handleVehicleFieldBlur}
                                 />
                             </FieldGroup>
 
@@ -706,6 +778,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                                 <Input
                                     value={formData.vehicleData?.paintType || ''}
                                     onChange={(e) => handleVehicleFieldChange({ paintType: e.target.value })}
+                                    onBlur={handleVehicleFieldBlur}
                                 />
                             </FieldGroup>
                         </>
