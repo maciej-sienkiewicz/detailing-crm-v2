@@ -6,6 +6,7 @@ import { SidebarProvider } from '@/widgets/Sidebar/context/SidebarContext';
 import { router } from '@/core';
 import { AuthProvider } from '@/core/context/AuthContext';
 import { ToastProvider } from '@/common/components/Toast';
+import { vehicleMetadataApi } from '@/modules/vehicles/api/vehicleMetadataApi';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -15,6 +16,12 @@ const queryClient = new QueryClient({
             staleTime: 30_000,
         },
     },
+});
+
+// Prefetch vehicle metadata once on app start to enable instant filtering
+queryClient.prefetchQuery({
+    queryKey: ['vehicleMetadata'],
+    queryFn: () => vehicleMetadataApi.getAll(),
 });
 
 const App = () => {

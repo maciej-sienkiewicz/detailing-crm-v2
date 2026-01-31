@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import styled from 'styled-components';
 import { Modal } from '@/common/components/Modal';
@@ -8,6 +8,7 @@ import { useUpdateVehicle } from '../hooks/useUpdateVehicle';
 import { updateVehicleSchema, type UpdateVehicleFormData } from '../utils/vehicleValidation';
 import type { Vehicle } from '../types';
 import { t } from '@/common/i18n';
+import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 
 const ModalContent = styled.div`
     display: flex;
@@ -34,6 +35,9 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
     const {
         register,
         handleSubmit,
+        control,
+        setValue,
+        watch,
         formState: { errors },
     } = useForm<UpdateVehicleFormData>({
         resolver: zodResolver(updateVehicleSchema),
@@ -78,10 +82,19 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
 
                         <FieldGroup>
                             <Label htmlFor="brand">Marka *</Label>
-                            <Input
-                                id="brand"
-                                {...register('brand')}
-                                placeholder="BMW"
+                            <Controller
+                                name="brand"
+                                control={control}
+                                render={({ field }) => (
+                                    <BrandSelect
+                                        value={field.value}
+                                        onChange={(val) => {
+                                            field.onChange(val);
+                                            // Reset model when brand changes
+                                            setValue('model', '');
+                                        }}
+                                    />
+                                )}
                             />
                             {errors.brand && (
                                 <ErrorMessage>{errors.brand.message}</ErrorMessage>
@@ -90,10 +103,16 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
 
                         <FieldGroup>
                             <Label htmlFor="model">Model *</Label>
-                            <Input
-                                id="model"
-                                {...register('model')}
-                                placeholder="X5"
+                            <Controller
+                                name="model"
+                                control={control}
+                                render={({ field }) => (
+                                    <ModelSelect
+                                        brand={watch('brand')}
+                                        value={field.value}
+                                        onChange={(val) => field.onChange(val)}
+                                    />
+                                )}
                             />
                             {errors.model && (
                                 <ErrorMessage>{errors.model.message}</ErrorMessage>

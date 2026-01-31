@@ -9,6 +9,7 @@ import { Button, ButtonGroup } from '@/common/components/Button';
 import { EmptyState } from '@/common/components/EmptyState';
 import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
 import type { VehicleListItem } from '@/modules/vehicles/types';
+import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 
 const SearchInput = styled(Input)`
     margin-bottom: ${props => props.theme.spacing.lg};
@@ -266,24 +267,25 @@ export const VehicleSearchModal = ({ isOpen, onClose, onSelect }: VehicleSearchM
                     <FormGrid>
                         <FieldGroup>
                             <Label>Marka *</Label>
-                            <Input
+                            <BrandSelect
                                 value={formData.brand}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, brand: e.target.value })
+                                onChange={(val) =>
+                                    setFormData({ ...formData, brand: val, model: '' })
                                 }
-                                placeholder="np. BMW, Audi, Mercedes"
+                                onBlur={() => {}}
                             />
                             {errors.brand && <ErrorMessage>{errors.brand}</ErrorMessage>}
                         </FieldGroup>
 
                         <FieldGroup>
                             <Label>Model *</Label>
-                            <Input
+                            <ModelSelect
+                                brand={formData.brand}
                                 value={formData.model}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, model: e.target.value })
+                                onChange={(val) =>
+                                    setFormData({ ...formData, model: val })
                                 }
-                                placeholder="np. X5, A4, C-Class"
+                                onBlur={() => {}}
                             />
                             {errors.model && <ErrorMessage>{errors.model}</ErrorMessage>}
                         </FieldGroup>

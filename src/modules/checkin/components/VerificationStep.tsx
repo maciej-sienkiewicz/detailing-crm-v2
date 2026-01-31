@@ -16,6 +16,7 @@ import { fromDateToLocalInput } from '@/common/dateTime';
 import type { CheckInFormData, ServiceLineItem } from '../types';
 import { Modal } from '@/common/components/Modal';
 import { PhoneInput } from '@/common/components/PhoneInput';
+import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 
 const StepContainer = styled.div`
     display: flex;
@@ -193,7 +194,7 @@ const ColorMenu = styled.div`
     border-radius: ${props => props.theme.radii.lg};
     box-shadow: ${props => props.theme.shadows.lg};
     padding: ${props => props.theme.spacing.xs} 0;
-    z-index: 20;
+    z-index: 2001;
     max-height: 320px;
     overflow: auto;
 `;
@@ -735,18 +736,21 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                 <FormGrid $columns={3}>
                     <FieldGroup>
                         <Label>{t.checkin.verification.brand}</Label>
-                        <Input
+                        <BrandSelect
                             value={(pendingVehicleUpdates?.brand ?? formData.vehicleData?.brand) || ''}
-                            onChange={(e) => handleVehicleFieldChange({ brand: e.target.value })}
+                            onChange={(val) => {
+                                handleVehicleFieldChange({ brand: val, model: '' });
+                            }}
                             onBlur={handleVehicleFieldBlur}
                         />
                     </FieldGroup>
 
                     <FieldGroup>
                         <Label>{t.checkin.verification.model}</Label>
-                        <Input
+                        <ModelSelect
+                            brand={(pendingVehicleUpdates?.brand ?? formData.vehicleData?.brand) || ''}
                             value={(pendingVehicleUpdates?.model ?? formData.vehicleData?.model) || ''}
-                            onChange={(e) => handleVehicleFieldChange({ model: e.target.value })}
+                            onChange={(val) => handleVehicleFieldChange({ model: val })}
                             onBlur={handleVehicleFieldBlur}
                         />
                     </FieldGroup>

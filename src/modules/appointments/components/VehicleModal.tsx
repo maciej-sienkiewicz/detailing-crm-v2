@@ -2,11 +2,12 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { Modal } from '@/common/components/Modal';
-import { FormGrid, FieldGroup, Label, Input, ErrorMessage } from '@/common/components/Form';
+import { FormGrid, FieldGroup, Label, ErrorMessage } from '@/common/components/Form';
 import { Button, ButtonGroup } from '@/common/components/Button';
 import { Divider } from '@/common/components/Divider';
 import { t } from '@/common/i18n';
 import type { Vehicle, SelectedVehicle } from '../types';
+import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 
 const VehicleGrid = styled.div`
     display: grid;
@@ -181,24 +182,23 @@ export const VehicleModal = ({ isOpen, vehicles, onClose, onSelect, allowSkip = 
                     <FormGrid>
                         <FieldGroup>
                             <Label>{t.appointments.vehicleModal.brand}</Label>
-                            <Input
+                            <BrandSelect
                                 value={formData.brand}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, brand: e.target.value })
+                                onChange={(val) =>
+                                    setFormData({ ...formData, brand: val, model: '' })
                                 }
-                                placeholder={t.appointments.vehicleModal.brandPlaceholder}
                             />
                             {errors.brand && <ErrorMessage>{errors.brand}</ErrorMessage>}
                         </FieldGroup>
 
                         <FieldGroup>
                             <Label>{t.appointments.vehicleModal.model}</Label>
-                            <Input
+                            <ModelSelect
+                                brand={formData.brand}
                                 value={formData.model}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, model: e.target.value })
+                                onChange={(val) =>
+                                    setFormData({ ...formData, model: val })
                                 }
-                                placeholder={t.appointments.vehicleModal.modelPlaceholder}
                             />
                             {errors.model && <ErrorMessage>{errors.model}</ErrorMessage>}
                         </FieldGroup>

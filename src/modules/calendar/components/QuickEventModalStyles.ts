@@ -336,7 +336,7 @@ export const DropdownContainer = styled.div`
 
 export const Dropdown = styled.div`
     position: absolute;
-    z-index: 10;
+    z-index: 2001;
     width: 100%;
     margin-top: 8px;
     background: white;
