@@ -197,6 +197,11 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
                         onChange={updateFormData}
                         onServicesChange={handleServicesChange}
                         colors={colors}
+                        initialCustomerData={initialData.customerData}
+                        initialHasFullCustomerData={initialData.hasFullCustomerData}
+                        initialIsNewCustomer={initialData.isNewCustomer}
+                        initialVehicleData={initialData.vehicleData === undefined ? undefined : (initialData.vehicleData ?? null)}
+                        initialIsNewVehicle={initialData.isNewVehicle}
                     />
                 );
             case 'photos':

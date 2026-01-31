@@ -94,6 +94,15 @@ const SubtleButton = styled.button`
     &:active {
         transform: scale(0.98);
     }
+
+    &:disabled {
+        color: ${props => props.theme.colors.textMuted};
+        background: ${props => props.theme.colors.surfaceAlt};
+        border-color: ${props => props.theme.colors.border};
+        cursor: not-allowed;
+        opacity: 0.7;
+        pointer-events: none;
+    }
 `;
 
 const ReadOnlyField = styled.div`
