@@ -163,6 +163,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     // const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
+    const [vehicleModalInitialMode, setVehicleModalInitialMode] = useState<'select' | 'new'>('select');
     const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
     const [isPriceInputModalOpen, setIsPriceInputModalOpen] = useState(false);
     const [isQuickColorModalOpen, setIsQuickColorModalOpen] = useState(false);
@@ -783,6 +784,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 <S.DropdownAddButton
                                                     type="button"
                                                     onClick={() => {
+                                                        setVehicleModalInitialMode('new');
                                                         setIsVehicleModalOpen(true);
                                                         setShowVehicleDropdown(false);
                                                         setFocusedField(null);
@@ -1035,9 +1037,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             <VehicleModal
                 isOpen={isVehicleModalOpen}
                 vehicles={vehicles}
-                onClose={() => setIsVehicleModalOpen(false)}
+                onClose={() => { setIsVehicleModalOpen(false); setVehicleModalInitialMode('select'); }}
                 onSelect={handleVehicleSelect}
                 allowSkip={true}
+                initialMode={vehicleModalInitialMode}
             />
 
             <QuickServiceModal

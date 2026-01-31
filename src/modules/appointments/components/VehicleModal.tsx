@@ -1,5 +1,5 @@
 // src/modules/appointments/components/VehicleModal.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Modal } from '@/common/components/Modal';
 import { FormGrid, FieldGroup, Label, ErrorMessage } from '@/common/components/Form';
@@ -82,10 +82,18 @@ interface VehicleModalProps {
     onClose: () => void;
     onSelect: (vehicle: SelectedVehicle) => void;
     allowSkip?: boolean;
+    initialMode?: 'select' | 'new';
 }
 
-export const VehicleModal = ({ isOpen, vehicles, onClose, onSelect, allowSkip = false }: VehicleModalProps) => {
-    const [showNewForm, setShowNewForm] = useState(false);
+export const VehicleModal = ({ isOpen, vehicles, onClose, onSelect, allowSkip = false, initialMode = 'select' }: VehicleModalProps) => {
+    const [showNewForm, setShowNewForm] = useState(initialMode === 'new');
+
+    // When modal opens or initialMode changes, sync the internal mode
+    useEffect(() => {
+        if (isOpen) {
+            setShowNewForm(initialMode === 'new');
+        }
+    }, [isOpen, initialMode]);
     const [formData, setFormData] = useState({
         brand: '',
         model: '',
