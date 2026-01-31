@@ -178,18 +178,31 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
         const selectRef = useRef<HTMLSelectElement | null>(null);
         const isInternalChange = useRef(false);
 
-        // Parse value to extract country code and number
+        // Parse value to extract country code and number (robust against missing spaces)
         const parseValue = (val: string) => {
             if (!val) return { code: '+48', digits: '' };
-            const match = val.match(/^(\+\d+)[\s-]?(.*)$/);
-            if (match) {
-                const code = match[1];
-                const digits = match[2].replace(/[\s-]/g, '');
-                return { code, digits };
+
+            const raw = String(val).trim();
+            const compact = raw.replace(/[\s-]/g, '');
+
+            // Try to match by known country codes (longest first)
+            if (compact.startsWith('+')) {
+                const sorted = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
+                for (const c of sorted) {
+                    if (compact.startsWith(c.code)) {
+                        return { code: c.code, digits: compact.slice(c.code.length) };
+                    }
+                }
+                // If unknown code but starts with '+48', fallback to PL
+                if (compact.startsWith('+48')) {
+                    return { code: '+48', digits: compact.slice(3) };
+                }
+                // Unknown code, keep digits only and default to +48
+                return { code: '+48', digits: compact.replace(/^\+\d+/, '') };
             }
-            // If no country code, assume +48
-            const digits = val.replace(/[\s-]/g, '').replace(/^\+48/, '');
-            return { code: '+48', digits };
+
+            // No country code provided, assume +48
+            return { code: '+48', digits: compact };
         };
 
         const { code: initialCode, digits: initialDigits } = parseValue(value);
@@ -199,9 +212,9 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
             if (!isInternalChange.current) {
                 const { code, digits } = parseValue(value);
                 if (inputRef.current && selectRef.current) {
-                    // Update the select and input values directly without causing re-render
-                    selectRef.current.value = code;
+                    // Ensure select has a valid option value
                     const country = COUNTRY_CODES.find(c => c.code === code) || COUNTRY_CODES[0];
+                    selectRef.current.value = country.code;
                     inputRef.current.value = country.format(digits);
                 }
             }
@@ -211,13 +224,18 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
         const handleCountryChange = (e: ChangeEvent<HTMLSelectElement>) => {
             const newCode = e.target.value;
             const currentInput = inputRef.current?.value || '';
-            const digits = currentInput.replace(/\D/g, '');
-
             const newCountry = COUNTRY_CODES.find(c => c.code === newCode) || COUNTRY_CODES[0];
+
+            // Clamp digits to the new country's max length
+            const digits = currentInput.replace(/\D/g, '').slice(0, newCountry.maxDigits);
             const formatted = newCountry.format(digits);
 
             if (inputRef.current) {
                 inputRef.current.value = formatted;
+                // Move caret to end to avoid unexpected jumps when formats differ
+                setTimeout(() => {
+                    inputRef.current?.setSelectionRange(formatted.length, formatted.length);
+                }, 0);
             }
 
             // Return full value with new country code
@@ -230,32 +248,45 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
             const input = e.target.value;
             const cursorPosition = e.target.selectionStart || 0;
 
-            // Extract only digits
-            const digits = input.replace(/\D/g, '');
-
-            // Get current country
+            // Get current country settings
             const select = e.target.parentElement?.querySelector('select') as HTMLSelectElement;
             const code = select?.value || '+48';
             const currentCountry = COUNTRY_CODES.find(c => c.code === code) || COUNTRY_CODES[0];
 
-            // Apply formatting
+            // Extract only digits and clamp to max length for the country
+            const rawDigits = input.replace(/\D/g, '');
+            const digits = rawDigits.slice(0, currentCountry.maxDigits);
+
+            // Apply formatting based on clamped digits
             const formatted = currentCountry.format(digits);
 
             // Update input value
             e.target.value = formatted;
 
             // Restore cursor position (accounting for added spaces)
-            const digitsBeforeCursor = input.slice(0, cursorPosition).replace(/\D/g, '').length;
-            let newCursorPos = 0;
-            let digitCount = 0;
-            for (let i = 0; i < formatted.length; i++) {
-                if (formatted[i] !== ' ') {
-                    digitCount++;
+            const digitsBeforeCursor = Math.min(
+                input.slice(0, cursorPosition).replace(/\D/g, '').length,
+                digits.length
+            );
+
+            // Default cursor position to end; compute more precise position if possible
+            let newCursorPos = formatted.length;
+            if (digitsBeforeCursor > 0) {
+                let digitCount = 0;
+                for (let i = 0; i < formatted.length; i++) {
+                    if (formatted[i] !== ' ') {
+                        digitCount++;
+                    }
+                    if (digitCount >= digitsBeforeCursor) {
+                        newCursorPos = i + 1;
+                        break;
+                    }
                 }
-                if (digitCount >= digitsBeforeCursor) {
-                    newCursorPos = i + 1;
-                    break;
-                }
+            }
+
+            // If user attempted to input beyond max, keep caret at the end
+            if (rawDigits.length > currentCountry.maxDigits) {
+                newCursorPos = formatted.length;
             }
 
             // Set cursor position after a brief delay to ensure it takes effect
@@ -283,6 +314,7 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
                     ref={selectRef}
                     defaultValue={initialCode}
                     onChange={handleCountryChange}
+                    onBlur={handleBlur}
                     $hasError={hasError}
                     aria-label="Country code"
                 >

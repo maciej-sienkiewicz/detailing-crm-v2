@@ -15,6 +15,7 @@ import { t } from '@/common/i18n';
 import { fromDateToLocalInput } from '@/common/dateTime';
 import type { CheckInFormData, ServiceLineItem } from '../types';
 import { Modal } from '@/common/components/Modal';
+import { PhoneInput } from '@/common/components/PhoneInput';
 
 const StepContainer = styled.div`
     display: flex;
@@ -693,9 +694,9 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
 
                     <FieldGroup>
                         <Label>{t.checkin.verification.phone}</Label>
-                        <Input
+                        <PhoneInput
                             value={(pendingCustomerUpdates?.phone ?? formData.customerData.phone) || ''}
-                            onChange={(e) => handleCustomerFieldChange({ phone: e.target.value })}
+                            onChange={(value) => handleCustomerFieldChange({ phone: value })}
                             onBlur={handleCustomerFieldBlur}
                         />
                     </FieldGroup>

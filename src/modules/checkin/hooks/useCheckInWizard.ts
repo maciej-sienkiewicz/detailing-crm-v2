@@ -26,7 +26,7 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
         technicalState: {
             mileage: 0,
             deposit: {
-                keys: false,
+                keys: true,
                 registrationDocument: false,
                 other: false,
             },
