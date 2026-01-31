@@ -113,8 +113,26 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
             throw new Error('Pojazd jest wymagany do utworzenia wizyty');
         }
 
+        // Konwersja lokalnych wartości wejściowych na Instant dla backendu
+        let startInstant: string | undefined;
+        let endInstant: string | undefined;
+        try {
+            if (formData.visitStartAt) {
+                const { toInstant } = await import('@/common/dateTime');
+                startInstant = toInstant(formData.visitStartAt);
+            }
+            if (formData.visitEndAt) {
+                const { toInstant } = await import('@/common/dateTime');
+                endInstant = toInstant(formData.visitEndAt);
+            }
+        } catch (e) {
+            console.error('Błąd konwersji daty do Instant:', e);
+        }
+
         const payload: ReservationToVisitPayload = {
             reservationId,
+            startDateTime: startInstant,
+            endDateTime: endInstant,
             customer: {
                 id: formData.isNewCustomer ? undefined : formData.customerData.id,
                 firstName: formData.customerData.firstName,

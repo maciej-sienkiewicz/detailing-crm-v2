@@ -3,19 +3,28 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/core';
 import type { QuickEventFormData } from '../components/QuickEventModal';
+import { toInstant } from '@/common/dateTime';
 
 export const useQuickEventCreation = () => {
     const queryClient = useQueryClient();
 
     const createQuickEvent = useMutation({
         mutationFn: async (data: QuickEventFormData) => {
-            // Format end datetime
-            let endDateTime = data.endDateTime;
-            if (data.isAllDay && !endDateTime.includes('T')) {
-                endDateTime = `${endDateTime}T23:59:59`;
-            } else if (!data.isAllDay && !endDateTime.includes('T')) {
-                endDateTime = `${endDateTime}T23:59:59`;
+            // Normalize end datetime text for all-day vs timed
+            let endDateTimeText = data.endDateTime;
+            if (data.isAllDay && !endDateTimeText.includes('T')) {
+                endDateTimeText = `${endDateTimeText}T23:59:59`;
+            } else if (!data.isAllDay && !endDateTimeText.includes('T')) {
+                endDateTimeText = `${endDateTimeText}T23:59:59`;
             }
+
+            // Convert local values to Instant (UTC ISO with 'Z')
+            const startInstant = toInstant(
+                data.isAllDay && !data.startDateTime.includes('T')
+                    ? `${data.startDateTime}T00:00:00`
+                    : data.startDateTime
+            );
+            const endInstant = toInstant(endDateTimeText);
 
             // Build customer payload
             if (!data.customer) {
@@ -133,8 +142,8 @@ export const useQuickEventCreation = () => {
                 services: servicesPayload,
                 schedule: {
                     isAllDay: data.isAllDay,
-                    startDateTime: data.isAllDay ? data.startDateTime : data.startDateTime,
-                    endDateTime,
+                    startDateTime: startInstant,
+                    endDateTime: endInstant,
                 },
                 appointmentTitle: data.title || undefined,
                 appointmentColorId: data.colorId,

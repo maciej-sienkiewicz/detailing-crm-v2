@@ -542,8 +542,7 @@ export const pl: TranslationKeys = {
         },
     },
     checkin: {
-        title: 'Przyjęcie do warsztatu',
-        subtitle: 'Rozpocznij wizytę serwisową',
+        title: 'Przyjęcie pojazdu do studia',
         steps: {
             verification: 'Weryfikacja',
             technical: 'Stan techniczny',

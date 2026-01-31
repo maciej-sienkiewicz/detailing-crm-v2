@@ -602,7 +602,6 @@ export interface TranslationKeys {
     };
     checkin: {
         title: string;
-        subtitle: string;
         steps: {
             verification: string;
             technical: string;

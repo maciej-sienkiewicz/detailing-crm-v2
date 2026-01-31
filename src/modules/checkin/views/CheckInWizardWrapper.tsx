@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { CheckInWizardView } from './CheckInWizardView';
 import { t } from '@/common/i18n';
 import { appointmentApi } from '@/modules/appointments';
+import { fromInstantToLocalInput } from '@/common/dateTime';
 
 const LoadingContainer = styled.div`
     min-height: 100vh;
@@ -236,6 +237,24 @@ export const CheckInWizardWrapper = () => {
         (reservation.customer?.phone || reservation.customer?.email)
     );
 
+    // Przygotuj daty rozpoczęcia i zakończenia dla kreatora w standardzie Instant
+    // i sformatuj je do lokalnego formatu wejściowego dla input[type="datetime-local"]
+
+    const nowIso = new Date().toISOString();
+    const startRaw = (reservationData as any)?.schedule?.startDateTime || (reservationData as any)?.startDateTime || nowIso;
+    const endRawFromApi = (reservationData as any)?.schedule?.endDateTime || (reservationData as any)?.endDateTime || '';
+
+    const endRaw = endRawFromApi || (() => {
+        try {
+            const d = new Date(startRaw);
+            if (isNaN(d.getTime())) return '';
+            d.setHours(d.getHours() + 1);
+            return d.toISOString();
+        } catch {
+            return '';
+        }
+    })();
+
     const initialData = {
         customerData: {
             id: reservation.customer?.id || '',
@@ -260,6 +279,8 @@ export const CheckInWizardWrapper = () => {
         company: reservation.customer?.company || null,
         services: reservation.services,
         appointmentColorId: reservation.appointmentColor?.id || '',
+        visitStartAt: fromInstantToLocalInput(startRaw),
+        visitEndAt: fromInstantToLocalInput(endRaw),
     };
 
     return (

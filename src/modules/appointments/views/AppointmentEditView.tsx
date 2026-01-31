@@ -12,6 +12,7 @@ import type { CheckInFormData, ServiceLineItem as CheckInServiceLineItem } from 
 import type { AppointmentCreateRequest } from '@/modules/appointments/types';
 import { Button } from '@/common/components/Button';
 import { t } from '@/common/i18n';
+import { toInstant } from '@/common/dateTime';
 
 const Container = styled.div`
     min-height: 100vh;
@@ -202,6 +203,17 @@ export const AppointmentEditView = () => {
         if (!formData) return;
 
         // build update payload using CheckIn-like state + preserved schedule
+        // Convert local input values to Instant (UTC ISO with 'Z') before sending to backend
+        let startInstant = '';
+        let endInstant = '';
+        try {
+            startInstant = toInstant(startDateTime);
+            endInstant = toInstant(endDateTime);
+        } catch (e) {
+            console.error('Błąd konwersji daty do Instant (edit):', e);
+            return;
+        }
+
         const payload: AppointmentCreateRequest = {
             customer: formData.isNewCustomer
                 ? {
@@ -234,8 +246,8 @@ export const AppointmentEditView = () => {
             services: formData.services,
             schedule: {
                 isAllDay,
-                startDateTime,
-                endDateTime,
+                startDateTime: startInstant,
+                endDateTime: endInstant,
             },
             appointmentTitle: appointmentTitleRef || undefined,
             appointmentColorId: formData.appointmentColorId,

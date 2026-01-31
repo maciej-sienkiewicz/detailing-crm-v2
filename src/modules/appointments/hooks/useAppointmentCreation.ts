@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppointmentForm, useAppointmentServices, useAppointmentColors, useCustomerVehicles } from './useAppointmentForm';
 import type { SelectedCustomer, SelectedVehicle, ServiceLineItem } from '../types';
+import { toInstant, fromInstantToLocalInput } from '@/common/dateTime';
 
 export const useAppointmentCreation = () => {
     const navigate = useNavigate();
@@ -20,8 +21,8 @@ export const useAppointmentCreation = () => {
     const [selectedVehicle, setSelectedVehicle] = useState<SelectedVehicle | null>(null);
     const [serviceItems, setServiceItems] = useState<ServiceLineItem[]>([]);
     const [isAllDay, setIsAllDay] = useState(isAllDayParam);
-    const [startDateTime, setStartDateTime] = useState(startDateTimeParam || '');
-    const [endDateTime, setEndDateTime] = useState(endDateTimeParam || '');
+    const [startDateTime, setStartDateTime] = useState(fromInstantToLocalInput(startDateTimeParam || ''));
+    const [endDateTime, setEndDateTime] = useState(fromInstantToLocalInput(endDateTimeParam || ''));
     const [appointmentTitle, setAppointmentTitle] = useState('');
     const [selectedColorId, setSelectedColorId] = useState('');
 
@@ -63,6 +64,17 @@ export const useAppointmentCreation = () => {
             return;
         }
 
+        // Convert local input values to Instant (UTC ISO with 'Z') before sending to backend
+        let startInstant = '';
+        let endInstant = '';
+        try {
+            startInstant = toInstant(startDateTime);
+            endInstant = toInstant(endDateTime);
+        } catch (e) {
+            console.error('Błąd konwersji daty do Instant:', e);
+            return;
+        }
+
         const data = {
             customer: selectedCustomer.isNew
                 ? {
@@ -95,8 +107,8 @@ export const useAppointmentCreation = () => {
             services: serviceItems,
             schedule: {
                 isAllDay,
-                startDateTime,
-                endDateTime,
+                startDateTime: startInstant,
+                endDateTime: endInstant,
             },
             appointmentTitle: appointmentTitle || undefined,
             appointmentColorId: selectedColorId,

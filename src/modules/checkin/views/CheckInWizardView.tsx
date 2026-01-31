@@ -222,7 +222,6 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
                 <ContentWrapper>
                     <Header>
                         <Title>{t.checkin.title}</Title>
-                        <Subtitle>{t.checkin.subtitle}</Subtitle>
                     </Header>
 
                     <Stepper

@@ -62,7 +62,9 @@ export interface AppointmentCreateRequest {
     services: ServiceLineItem[];
     schedule: {
         isAllDay: boolean;
+        /** Instant (UTC ISO-8601 with trailing 'Z') */
         startDateTime: string;
+        /** Instant (UTC ISO-8601 with trailing 'Z') */
         endDateTime: string;
     };
     appointmentTitle?: string;

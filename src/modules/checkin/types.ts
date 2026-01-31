@@ -86,8 +86,10 @@ export interface CheckInFormData {
         deposit: DepositItem;
         inspectionNotes: string;
     };
-    visitStartAt?: string; // ISO datetime
-    visitEndAt?: string; // ISO datetime
+    // Local UI input value (YYYY-MM-DDTHH:mm). Convert to Instant for backend using toInstant()
+    visitStartAt?: string;
+    // Local UI input value (YYYY-MM-DDTHH:mm). Convert to Instant for backend using toInstant()
+    visitEndAt?: string;
     photos: PhotoSlot[];
     damagePoints: DamagePoint[];
     services: ServiceLineItem[];
@@ -96,6 +98,10 @@ export interface CheckInFormData {
 
 export interface ReservationToVisitPayload {
     reservationId: string;
+    /** Instant (UTC ISO-8601 with 'Z') */
+    startDateTime?: string;
+    /** Instant (UTC ISO-8601 with 'Z') */
+    endDateTime?: string;
     customer?: {
         id?: string;
         firstName: string;
