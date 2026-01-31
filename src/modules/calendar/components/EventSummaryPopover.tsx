@@ -165,49 +165,62 @@ const PopoverFooter = styled.div`
 
 const FooterActions = styled.div`
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    flex-wrap: nowrap;
 `;
 
 const IconActionButton = styled.button<{ $variant?: 'default' | 'primary' | 'danger' }>`
-    width: 56px;
-    height: 56px;
+    flex: 1 1 0;
+    min-width: 0;
+    height: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 12px;
+    border-radius: 8px;
     border: 1px solid #e5e7eb;
     background: #ffffff;
     color: #0f172a;
     cursor: pointer;
     transition: all 0.15s ease;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+    padding: 0 10px;
 
     &:hover {
         background: #f8fafc;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+
+    &:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.25);
     }
 
     &:active {
         transform: scale(0.98);
     }
 
-    svg {
-        width: 24px;
-        height: 24px;
-    }
-
     ${props => props.$variant === 'primary' ? `
         background: #1d4ed8;
         color: white;
         border-color: #1d4ed8;
-        &:hover { background: #1e40af; }
+        &:hover { background: #1e40af; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+        &:focus-visible { box-shadow: 0 0 0 3px rgba(29,78,216,0.35); }
     ` : ''}
 
     ${props => props.$variant === 'danger' ? `
-        background: #fee2e2;
-        color: #b91c1c;
-        border-color: #fecaca;
-        &:hover { background: #fecaca; }
+        background: #dc2626;
+        color: #ffffff;
+        border-color: #dc2626;
+        &:hover { background: #b91c1c; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+        &:focus-visible { box-shadow: 0 0 0 3px rgba(220,38,38,0.35); }
     ` : ''}
 `;
 
@@ -381,24 +394,9 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                 <PopoverFooter>
                     {isAppointment ? (
                         <FooterActions>
-                            <IconActionButton onClick={onEditReservationClick} title="Edytuj rezerwację">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M12 20h9" />
-                                    <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                                </svg>
-                            </IconActionButton>
-                            <IconActionButton $variant="primary" onClick={onStartVisitClick} title="Rozpocznij wizytę">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M9 12l2 2 4-4" />
-                                </svg>
-                            </IconActionButton>
-                            <IconActionButton $variant="danger" onClick={onCancelReservationClick} title="Anuluj rezerwację">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <line x1="15" y1="9" x2="9" y2="15" />
-                                    <line x1="9" y1="9" x2="15" y2="15" />
-                                </svg>
-                            </IconActionButton>
+                            <IconActionButton onClick={onEditReservationClick} title="Edytuj rezerwację">EDYTUJ</IconActionButton>
+                            <IconActionButton $variant="primary" onClick={onStartVisitClick} title="Rozpocznij wizytę">ROZPOCZNIJ</IconActionButton>
+                            <IconActionButton $variant="danger" onClick={onCancelReservationClick} title="Anuluj rezerwację">PORZUC</IconActionButton>
                         </FooterActions>
                     ) : (
                         <ManageButton onClick={onManageClick}>
