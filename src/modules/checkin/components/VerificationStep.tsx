@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { Card, CardHeader, CardTitle } from '@/common/components/Card';
 import { FormGrid, FieldGroup, Label, Input, TextArea, ErrorMessage } from '@/common/components/Form';
@@ -125,36 +125,28 @@ const CustomerSelectButton = styled(Button)`
     font-size: ${props => props.theme.fontSizes.md};
 `;
 
-const ColorSelectWrapper = styled.div`
+
+// New Google Calendar-like dropdown for appointment color
+const ColorDropdownContainer = styled.div`
     position: relative;
 `;
 
-const ColorDot = styled.div<{ $color: string }>`
-    position: absolute;
-    left: ${props => props.theme.spacing.md};
-    top: 50%;
-    transform: translateY(-50%);
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background-color: ${props => props.$color};
-    border: 2px solid ${props => props.theme.colors.border};
-    box-shadow: ${props => props.theme.shadows.sm};
-    pointer-events: none;
-    z-index: 1;
-`;
-
-const ColorSelect = styled.select`
+const ColorTrigger = styled.button`
     width: 100%;
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.sm};
     padding: ${props => props.theme.spacing.md};
-    padding-left: 48px;
     border: 2px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.md};
-    background-color: ${props => props.theme.colors.surface};
+    background: ${props => props.theme.colors.surface};
     cursor: pointer;
     transition: all ${props => props.theme.transitions.fast};
     font-weight: ${props => props.theme.fontWeights.medium};
+
+    &:hover {
+        background: ${props => props.theme.colors.surfaceHover};
+    }
 
     &:focus {
         outline: none;
@@ -162,6 +154,115 @@ const ColorSelect = styled.select`
         box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
     }
 `;
+
+const ColorSwatch = styled.span<{ $color: string }>`
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background-color: ${props => props.$color};
+    border: 1px solid rgba(0,0,0,0.1);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2);
+`;
+
+const Caret = styled.span`
+    margin-left: auto;
+    border: solid ${props => props.theme.colors.textMuted};
+    border-width: 0 2px 2px 0;
+    display: inline-block;
+    padding: 3px;
+    transform: rotate(45deg);
+`;
+
+const ColorMenu = styled.div`
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: ${props => props.theme.colors.surface};
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.lg};
+    box-shadow: ${props => props.theme.shadows.lg};
+    padding: ${props => props.theme.spacing.xs} 0;
+    z-index: 20;
+    max-height: 320px;
+    overflow: auto;
+`;
+
+const ColorMenuItem = styled.button<{ $selected?: boolean }>`
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.md};
+    padding: 10px 14px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: ${props => props.theme.fontSizes.md};
+
+    ${props => props.$selected ? `
+        background: ${props.theme.colors.surfaceAlt};
+        font-weight: ${props.theme.fontWeights.semibold};
+    ` : ''}
+
+    &:hover {
+        background: ${props => props.theme.colors.surfaceHover};
+    }
+`;
+
+interface ColorDropdownProps {
+    colors: AppointmentColor[];
+    value: string;
+    onChange: (value: string) => void;
+}
+
+const ColorDropdown = ({ colors, value, onChange }: ColorDropdownProps) => {
+    const [open, setOpen] = useState(false);
+    const ref = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        const onDocClick = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+        };
+        const onEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setOpen(false);
+        };
+        document.addEventListener('mousedown', onDocClick);
+        document.addEventListener('keydown', onEsc);
+        return () => {
+            document.removeEventListener('mousedown', onDocClick);
+            document.removeEventListener('keydown', onEsc);
+        };
+    }, []);
+
+    const selected = colors.find(c => c.id === value);
+
+    return (
+        <ColorDropdownContainer ref={ref}>
+            <ColorTrigger type="button" onClick={() => setOpen(o => !o)} aria-haspopup="listbox" aria-expanded={open}>
+                <ColorSwatch $color={selected?.hexColor || '#cccccc'} />
+                <span>{selected?.name || 'Wybierz kolor'}</span>
+                <Caret />
+            </ColorTrigger>
+            {open && (
+                <ColorMenu role="listbox">
+                    {colors.map(c => (
+                        <ColorMenuItem
+                            key={c.id}
+                            role="option"
+                            aria-selected={c.id === value}
+                            $selected={c.id === value}
+                            onClick={() => { onChange(c.id); setOpen(false); }}
+                        >
+                            <ColorSwatch $color={c.hexColor} />
+                            <span>{c.name}</span>
+                        </ColorMenuItem>
+                    ))}
+                </ColorMenu>
+            )}
+        </ColorDropdownContainer>
+    );
+};
 
 interface VerificationStepProps {
     formData: CheckInFormData;
@@ -471,21 +572,11 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                     </FieldGroup>
                     <FieldGroup>
                         <Label>Kolor w kalendarzu</Label>
-                        <ColorSelectWrapper>
-                            <ColorDot
-                                $color={colors.find(c => c.id === formData.appointmentColorId)?.hexColor || '#cccccc'}
-                            />
-                            <ColorSelect
-                                value={formData.appointmentColorId}
-                                onChange={(e) => onChange({ appointmentColorId: e.target.value })}
-                            >
-                                {colors.map((color) => (
-                                    <option key={color.id} value={color.id}>
-                                        {color.name}
-                                    </option>
-                                ))}
-                            </ColorSelect>
-                        </ColorSelectWrapper>
+                        <ColorDropdown
+                            colors={colors}
+                            value={formData.appointmentColorId}
+                            onChange={(val) => onChange({ appointmentColorId: val })}
+                        />
                     </FieldGroup>
                 </FormGrid>
 
