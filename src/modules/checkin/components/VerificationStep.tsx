@@ -156,9 +156,10 @@ interface VerificationStepProps {
     onChange: (updates: Partial<CheckInFormData>) => void;
     onServicesChange: (services: ServiceLineItem[]) => void;
     colors: AppointmentColor[];
+    showTechnicalSection?: boolean;
 }
 
-export const VerificationStep    = ({ formData, errors, onChange, onServicesChange, colors }: VerificationStepProps) => {
+export const VerificationStep    = ({ formData, errors, onChange, onServicesChange, colors, showTechnicalSection = true }: VerificationStepProps) => {
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isCustomerDetailsModalOpen, setIsCustomerDetailsModalOpen] = useState(false);
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
@@ -550,69 +551,72 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                     </FieldGroup>
                 </FormGrid>
 
-                <Divider />
+                {showTechnicalSection && (
+                    <>
+                        <Divider />
 
-                {/* Sekcja: Stan techniczny (jeden wiersz: przebieg + depozyty) */}
-                <SectionTitle>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-3-3v6m8-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    {t.checkin.technical.title}
-                </SectionTitle>
+                        {/* Sekcja: Stan techniczny (jeden wiersz: przebieg + depozyty) */}
+                        <SectionTitle>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-3-3v6m8-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {t.checkin.technical.title}
+                        </SectionTitle>
 
-                <FormGrid $columns={2}>
-                    <FieldGroup>
-                        <Label>{t.checkin.technical.mileage}</Label>
-                        <Input
-                            type="number"
-                            value={formData.technicalState.mileage || ''}
-                            onChange={(e) => onChange({
-                                technicalState: {
-                                    ...formData.technicalState,
-                                    mileage: parseInt(e.target.value) || 0,
-                                },
-                            })}
-                            placeholder={t.checkin.technical.mileagePlaceholder}
-                        />
-                    </FieldGroup>
-
-                    <FieldGroup>
-                        <Label>{t.checkin.technical.deposit}</Label>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', height: '100%', justifyContent: 'space-between' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <Toggle
-                                    checked={formData.technicalState.deposit.keys}
-                                    onChange={(checked) => onChange({
+                        <FormGrid $columns={2}>
+                            <FieldGroup>
+                                <Label>{t.checkin.technical.mileage}</Label>
+                                <Input
+                                    type="number"
+                                    value={formData.technicalState.mileage || ''}
+                                    onChange={(e) => onChange({
                                         technicalState: {
                                             ...formData.technicalState,
-                                            deposit: { ...formData.technicalState.deposit, keys: checked },
+                                            mileage: parseInt(e.target.value) || 0,
                                         },
                                     })}
-                                    label={t.checkin.technical.depositItems.keys}
+                                    placeholder={t.checkin.technical.mileagePlaceholder}
                                 />
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <Toggle
-                                    checked={formData.technicalState.deposit.registrationDocument}
-                                    onChange={(checked) => onChange({
-                                        technicalState: {
-                                            ...formData.technicalState,
-                                            deposit: { ...formData.technicalState.deposit, registrationDocument: checked },
-                                        },
-                                    })}
-                                    label={t.checkin.technical.depositItems.registrationDocument}
-                                />
-                            </div>
-                        </div>
-                    </FieldGroup>
-                </FormGrid>
+                            </FieldGroup>
 
-                {errors.mileage && (
-                    <ErrorMessage>{errors.mileage}</ErrorMessage>
+                            <FieldGroup>
+                                <Label>{t.checkin.technical.deposit}</Label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', height: '100%', justifyContent: 'space-between' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <Toggle
+                                            checked={formData.technicalState.deposit.keys}
+                                            onChange={(checked) => onChange({
+                                                technicalState: {
+                                                    ...formData.technicalState,
+                                                    deposit: { ...formData.technicalState.deposit, keys: checked },
+                                                },
+                                            })}
+                                            label={t.checkin.technical.depositItems.keys}
+                                        />
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <Toggle
+                                            checked={formData.technicalState.deposit.registrationDocument}
+                                            onChange={(checked) => onChange({
+                                                technicalState: {
+                                                    ...formData.technicalState,
+                                                    deposit: { ...formData.technicalState.deposit, registrationDocument: checked },
+                                                },
+                                            })}
+                                            label={t.checkin.technical.depositItems.registrationDocument}
+                                        />
+                                    </div>
+                                </div>
+                            </FieldGroup>
+                        </FormGrid>
+
+                        {errors.mileage && (
+                            <ErrorMessage>{errors.mileage}</ErrorMessage>
+                        )}
+                    </>
                 )}
 
                 <Divider />
-
 
                 <SectionTitle>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">

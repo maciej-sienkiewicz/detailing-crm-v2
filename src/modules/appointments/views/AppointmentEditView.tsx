@@ -193,25 +193,64 @@ export const AppointmentEditView = () => {
                         lastName: formData.customerData.lastName,
                         phone: formData.customerData.phone,
                         email: formData.customerData.email,
+                        company: formData.company
+                            ? {
+                                name: formData.company.name,
+                                nip: formData.company.nip,
+                                regon: formData.company.regon,
+                                address: `${formData.company.address.street}, ${formData.company.address.postalCode} ${formData.company.address.city}`,
+                              }
+                            : undefined,
                     },
                 }
-                : {
-                    mode: 'EXISTING',
-                    id: formData.customerData.id,
-                },
+                : (formData.hasFullCustomerData && formData.customerData.id)
+                    ? {
+                        mode: 'UPDATE',
+                        id: formData.customerData.id,
+                        updateData: {
+                            firstName: formData.customerData.firstName,
+                            lastName: formData.customerData.lastName,
+                            phone: formData.customerData.phone,
+                            email: formData.customerData.email,
+                            company: formData.company
+                                ? {
+                                    name: formData.company.name,
+                                    nip: formData.company.nip,
+                                    regon: formData.company.regon,
+                                    address: `${formData.company.address.street}, ${formData.company.address.postalCode} ${formData.company.address.city}`,
+                                  }
+                                : undefined,
+                        },
+                    }
+                    : {
+                        mode: 'EXISTING',
+                        id: formData.customerData.id,
+                    },
             vehicle: !formData.vehicleData
                 ? { mode: 'NONE' }
-                : formData.isNewVehicle
+                : formData.isNewVehicle || !formData.vehicleData.id
                     ? {
                         mode: 'NEW',
                         newData: {
                             brand: formData.vehicleData.brand,
                             model: formData.vehicleData.model,
+                            yearOfProduction: formData.vehicleData.yearOfProduction,
+                            licensePlate: formData.vehicleData.licensePlate || undefined,
+                            color: formData.vehicleData.color,
+                            paintType: formData.vehicleData.paintType,
                         },
                     }
                     : {
-                        mode: 'EXISTING',
+                        mode: 'UPDATE',
                         id: formData.vehicleData.id,
+                        updateData: {
+                            brand: formData.vehicleData.brand,
+                            model: formData.vehicleData.model,
+                            yearOfProduction: formData.vehicleData.yearOfProduction,
+                            licensePlate: formData.vehicleData.licensePlate || undefined,
+                            color: formData.vehicleData.color,
+                            paintType: formData.vehicleData.paintType,
+                        },
                     },
             services: formData.services,
             schedule: {
@@ -265,6 +304,7 @@ export const AppointmentEditView = () => {
                     onChange={handleChange}
                     onServicesChange={handleServicesChange}
                     colors={colors || []}
+                    showTechnicalSection={false}
                 />
             </ContentWrapper>
         </Container>

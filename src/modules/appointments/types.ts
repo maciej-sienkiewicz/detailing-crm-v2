@@ -27,6 +27,22 @@ export type CustomerIdentity =
                 address: string;
             };
         };
+    }
+    | {
+        mode: 'UPDATE';
+        id: string;
+        updateData: {
+            firstName: string;
+            lastName: string;
+            phone: string;
+            email: string;
+            company?: {
+                name: string;
+                nip: string;
+                regon?: string;
+                address: string;
+            };
+        };
     };
 
 export type VehicleIdentity =
@@ -39,6 +55,22 @@ export type VehicleIdentity =
         newData: {
             brand: string;
             model: string;
+            yearOfProduction?: number;
+            licensePlate?: string;
+            color?: string;
+            paintType?: string;
+        };
+    }
+    | {
+        mode: 'UPDATE';
+        id: string;
+        updateData: {
+            brand: string;
+            model: string;
+            yearOfProduction?: number;
+            licensePlate?: string;
+            color?: string;
+            paintType?: string;
         };
     }
     | {
