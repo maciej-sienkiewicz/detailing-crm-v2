@@ -61,6 +61,19 @@ const SubtleButtonGroup = styled.div`
     align-items: center;
 `;
 
+const Badge = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border-radius: ${props => props.theme.radii.md};
+    font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: ${props => props.theme.fontWeights.medium};
+    color: ${props => props.theme.colors.text};
+    background-color: ${props => props.theme.colors.surfaceAlt};
+    border: 1px solid ${props => props.theme.colors.border};
+`;
+
 const SubtleButton = styled.button`
     padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
     font-size: ${props => props.theme.fontSizes.sm};
@@ -157,9 +170,17 @@ interface VerificationStepProps {
     onServicesChange: (services: ServiceLineItem[]) => void;
     colors: AppointmentColor[];
     showTechnicalSection?: boolean;
+    hideVehicleColorAndPaint?: boolean;
+    hideLicensePlate?: boolean;
+    // Initial snapshots for Reset functionality
+    initialCustomerData?: CheckInFormData['customerData'];
+    initialHasFullCustomerData?: boolean;
+    initialIsNewCustomer?: boolean;
+    initialVehicleData?: CheckInFormData['vehicleData'];
+    initialIsNewVehicle?: boolean;
 }
 
-export const VerificationStep    = ({ formData, errors, onChange, onServicesChange, colors, showTechnicalSection = true }: VerificationStepProps) => {
+export const VerificationStep    = ({ formData, errors, onChange, onServicesChange, colors, showTechnicalSection = true, hideVehicleColorAndPaint = false, hideLicensePlate = false, initialCustomerData, initialHasFullCustomerData, initialIsNewCustomer, initialVehicleData, initialIsNewVehicle }: VerificationStepProps) => {
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isCustomerDetailsModalOpen, setIsCustomerDetailsModalOpen] = useState(false);
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
@@ -174,6 +195,38 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     const [vehicleChoiceMade, setVehicleChoiceMade] = useState(false);
     const [pendingVehicleUpdates, setPendingVehicleUpdates] = useState<Partial<NonNullable<CheckInFormData['vehicleData']>> | null>(null);
 
+    // Derived badges labels
+    const customerBadge = formData.isNewCustomer
+        ? 'Dodasz nowego klienta'
+        : (formData.customerData.id ? 'Aktualizujesz dane istniejącego klienta' : undefined);
+
+    const vehicleBadge = (formData.vehicleData === null)
+        ? undefined
+        : ((formData.isNewVehicle || !formData.vehicleData?.id) ? 'Dodasz nowy pojazd' : 'Aktualizujesz dane istniejącego pojazdu');
+
+    // Reset handlers
+    const handleResetCustomer = () => {
+        if (!initialCustomerData && initialCustomerData !== null && initialHasFullCustomerData === undefined && initialIsNewCustomer === undefined) return;
+        onChange({
+            customerData: initialCustomerData ? { ...initialCustomerData } : { id: '', firstName: '', lastName: '', phone: '', email: '' },
+            hasFullCustomerData: initialHasFullCustomerData ?? false,
+            isNewCustomer: initialIsNewCustomer ?? false,
+        });
+        setCustomerChoiceMade(false);
+        setPendingCustomerUpdates(null);
+        setShowCustomerChoice(false);
+    };
+
+    const handleResetVehicle = () => {
+        onChange({
+            vehicleData: (initialVehicleData === undefined) ? formData.vehicleData : (initialVehicleData ?? null),
+            isNewVehicle: initialIsNewVehicle ?? false,
+        });
+        setVehicleChoiceMade(false);
+        setPendingVehicleUpdates(null);
+        setShowVehicleChoice(false);
+    };
+
     const applyCustomerUpdates = (updates: Partial<CheckInFormData['customerData']>) => {
         onChange({
             customerData: {
@@ -181,6 +234,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                 ...updates,
             },
         });
+        setCustomerChoiceMade(true);
     };
 
     const handleCustomerFieldChange = (updates: Partial<CheckInFormData['customerData']>) => {
@@ -290,6 +344,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
             homeAddress: data.homeAddress,
             company: data.company,
         });
+        setCustomerChoiceMade(true);
     };
 
     const handleCustomerSelect = (customer: SelectedCustomer) => {
@@ -305,7 +360,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
             hasFullCustomerData: true,
             isNewCustomer: customer.isNew || false,
         });
-        setCustomerChoiceMade(false);
+        setCustomerChoiceMade(true);
         setIsCustomerModalOpen(false);
     };
 
@@ -322,7 +377,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
             },
             isNewVehicle: vehicle.isNew || false,
         });
-        setVehicleChoiceMade(false);
+        setVehicleChoiceMade(true);
         setIsVehicleModalOpen(false);
     };
 
@@ -347,6 +402,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                 paintType: data.vehicleData.paintType,
             },
         });
+        setVehicleChoiceMade(true);
         setIsVehicleDetailsModalOpen(false);
     };
 
@@ -441,8 +497,12 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                         {t.checkin.verification.customerSection}
+                        {customerChoiceMade && customerBadge && <Badge>{customerBadge}</Badge>}
                     </SectionTitleWithActions>
                     <SubtleButtonGroup>
+                        <SubtleButton onClick={handleResetCustomer} disabled={initialCustomerData === undefined && initialHasFullCustomerData === undefined && initialIsNewCustomer === undefined}>
+                            Wycofaj zmiany
+                        </SubtleButton>
                         <SubtleButton onClick={() => setIsCustomerModalOpen(true)}>
                             Wyszukaj / zmień klienta
                         </SubtleButton>
@@ -492,15 +552,19 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
                         </svg>
                         {t.checkin.verification.vehicleSection}
+                        {vehicleChoiceMade && vehicleBadge && <Badge>{vehicleBadge}</Badge>}
                     </SectionTitleWithActions>
                     <SubtleButtonGroup>
+                        <SubtleButton onClick={handleResetVehicle} disabled={initialVehicleData === undefined && initialIsNewVehicle === undefined}>
+                            Wycofaj zmiany
+                        </SubtleButton>
                         <SubtleButton onClick={() => setIsVehicleModalOpen(true)}>
                             Wyszukaj / zmień pojazd
                         </SubtleButton>
                     </SubtleButtonGroup>
                 </SectionHeader>
 
-                <FormGrid>
+                <FormGrid $columns={3}>
                     <FieldGroup>
                         <Label>{t.checkin.verification.brand}</Label>
                         <Input
@@ -526,29 +590,35 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                         />
                     </FieldGroup>
 
-                    <FieldGroup>
-                        <Label>{t.checkin.verification.licensePlate}</Label>
-                        <Input
-                            value={formData.vehicleData?.licensePlate || ''}
-                            onChange={(e) => handleVehicleFieldChange({ licensePlate: e.target.value })}
-                        />
-                    </FieldGroup>
+                    {!hideLicensePlate && (
+                        <FieldGroup>
+                            <Label>{t.checkin.verification.licensePlate}</Label>
+                            <Input
+                                value={formData.vehicleData?.licensePlate || ''}
+                                onChange={(e) => handleVehicleFieldChange({ licensePlate: e.target.value })}
+                            />
+                        </FieldGroup>
+                    )}
 
-                    <FieldGroup>
-                        <Label>Kolor</Label>
-                        <Input
-                            value={formData.vehicleData?.color || ''}
-                            onChange={(e) => handleVehicleFieldChange({ color: e.target.value })}
-                        />
-                    </FieldGroup>
+                    {!hideVehicleColorAndPaint && (
+                        <>
+                            <FieldGroup>
+                                <Label>Kolor</Label>
+                                <Input
+                                    value={formData.vehicleData?.color || ''}
+                                    onChange={(e) => handleVehicleFieldChange({ color: e.target.value })}
+                                />
+                            </FieldGroup>
 
-                    <FieldGroup>
-                        <Label>Typ lakieru</Label>
-                        <Input
-                            value={formData.vehicleData?.paintType || ''}
-                            onChange={(e) => handleVehicleFieldChange({ paintType: e.target.value })}
-                        />
-                    </FieldGroup>
+                            <FieldGroup>
+                                <Label>Typ lakieru</Label>
+                                <Input
+                                    value={formData.vehicleData?.paintType || ''}
+                                    onChange={(e) => handleVehicleFieldChange({ paintType: e.target.value })}
+                                />
+                            </FieldGroup>
+                        </>
+                    )}
                 </FormGrid>
 
                 {showTechnicalSection && (

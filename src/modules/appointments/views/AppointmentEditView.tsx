@@ -51,6 +51,13 @@ const Actions = styled.div`
     gap: ${props => props.theme.spacing.md};
 `;
 
+const FooterActions = styled.div`
+    display: flex;
+    gap: ${props => props.theme.spacing.md};
+    justify-content: flex-end;
+    margin-top: ${props => props.theme.spacing.lg};
+`;
+
 export const AppointmentEditView = () => {
     const { appointmentId } = useParams<{ appointmentId: string }>();
     const navigate = useNavigate();
@@ -287,16 +294,7 @@ export const AppointmentEditView = () => {
             <ContentWrapper>
                 <Header>
                     <Title>{'Edytuj rezerwację'}</Title>
-                    <Actions>
-                        <Button $variant="secondary" onClick={() => navigate('/appointments')} disabled={updateMutation.isPending}>
-                            {t.common.cancel}
-                        </Button>
-                        <Button $variant="primary" onClick={handleSave} disabled={updateMutation.isPending}>
-                            {updateMutation.isPending ? (t.appointments?.createView?.submitting || 'Zapisywanie...') : 'Zapisz zmiany'}
-                        </Button>
-                    </Actions>
                 </Header>
-
 
                 <VerificationStep
                     formData={formData}
@@ -305,7 +303,23 @@ export const AppointmentEditView = () => {
                     onServicesChange={handleServicesChange}
                     colors={colors || []}
                     showTechnicalSection={false}
+                    hideVehicleColorAndPaint={true}
+                    hideLicensePlate={true}
+                    initialCustomerData={initialData?.customerData}
+                    initialHasFullCustomerData={initialData?.hasFullCustomerData}
+                    initialIsNewCustomer={initialData?.isNewCustomer}
+                    initialVehicleData={initialData?.vehicleData === undefined ? undefined : (initialData?.vehicleData ?? null)}
+                    initialIsNewVehicle={initialData?.isNewVehicle}
                 />
+
+                <FooterActions>
+                    <Button $variant="secondary" onClick={() => navigate('/appointments')} disabled={updateMutation.isPending}>
+                        {t.common.cancel}
+                    </Button>
+                    <Button $variant="primary" onClick={handleSave} disabled={updateMutation.isPending}>
+                        {updateMutation.isPending ? (t.appointments?.createView?.submitting || 'Zapisywanie...') : 'Zapisz zmiany'}
+                    </Button>
+                </FooterActions>
             </ContentWrapper>
         </Container>
     );
