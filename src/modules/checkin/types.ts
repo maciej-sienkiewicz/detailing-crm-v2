@@ -86,6 +86,7 @@ export interface CheckInFormData {
         deposit: DepositItem;
         inspectionNotes: string;
     };
+    note: string;
     // Local UI input value (YYYY-MM-DDTHH:mm). Convert to Instant for backend using toInstant()
     visitStartAt?: string;
     // Local UI input value (YYYY-MM-DDTHH:mm). Convert to Instant for backend using toInstant()

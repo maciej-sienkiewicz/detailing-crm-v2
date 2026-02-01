@@ -146,6 +146,7 @@ export const useQuickEventCreation = () => {
                     endDateTime: endInstant,
                 },
                 appointmentTitle: data.title || undefined,
+                note: data.notes || undefined,
                 appointmentColorId: data.colorId,
             };
 

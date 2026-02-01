@@ -279,6 +279,9 @@ export const CheckInWizardWrapper = () => {
         company: reservation.customer?.company || null,
         services: reservation.services,
         appointmentColorId: reservation.appointmentColor?.id || '',
+        technicalState: {
+            inspectionNotes: (reservationData as any)?.note || '',
+        },
         visitStartAt: fromInstantToLocalInput(startRaw),
         visitEndAt: fromInstantToLocalInput(endRaw),
     };

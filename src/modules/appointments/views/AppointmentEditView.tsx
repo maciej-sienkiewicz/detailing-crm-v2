@@ -120,7 +120,7 @@ export const AppointmentEditView = () => {
             technicalState: {
                 mileage: 0,
                 deposit: { keys: false, registrationDocument: false, other: false },
-                inspectionNotes: '',
+                inspectionNotes: appointment.note || '',
             },
             photos: [],
             damagePoints: [],

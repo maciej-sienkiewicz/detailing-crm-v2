@@ -100,6 +100,7 @@ export interface AppointmentCreateRequest {
         endDateTime: string;
     };
     appointmentTitle?: string;
+    note?: string;
     appointmentColorId: string;
 }
 

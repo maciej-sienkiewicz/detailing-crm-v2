@@ -66,5 +66,6 @@ export const appointmentSchema = z.object({
         t.appointments.validation.endAfterStart
     ),
     appointmentTitle: z.string().optional(),
+    note: z.string().max(500, t.appointments.validation.noteMaxLength).optional(),
     appointmentColorId: z.string().min(1, t.appointments.validation.colorRequired),
 });

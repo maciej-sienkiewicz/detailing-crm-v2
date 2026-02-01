@@ -346,8 +346,8 @@ export const visitApi = {
             await new Promise(resolve => setTimeout(resolve, 800));
             return;
         }
-        await apiClient.post(
-            `${BASE_PATH}/${visitId}/services/changes`,
+        await apiClient.patch(
+            `${BASE_PATH}/${visitId}/services/`,
             payload
         );
     },

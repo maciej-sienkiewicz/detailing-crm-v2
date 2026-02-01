@@ -912,7 +912,6 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                 </SectionTitle>
                 <FormGrid $columns={1}>
                     <FieldGroup>
-                        <Label>{t.checkin.technical.inspectionNotes}</Label>
                         <TextArea
                             value={formData.technicalState.inspectionNotes}
                             onChange={(e) => onChange({
