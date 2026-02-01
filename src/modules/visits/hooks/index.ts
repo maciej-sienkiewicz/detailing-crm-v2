@@ -278,3 +278,41 @@ export const useSaveServicesChanges = (visitId: string) => {
         isSaving: isPending,
     };
 };
+
+export const useApproveServiceChange = (visitId: string) => {
+    const queryClient = useQueryClient();
+
+    const { mutate, isPending } = useMutation({
+        mutationFn: (serviceLineItemId: string) =>
+            visitApi.approveServiceChange(visitId, serviceLineItemId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: visitDetailQueryKey(visitId),
+            });
+        },
+    });
+
+    return {
+        approveServiceChange: mutate,
+        isApproving: isPending,
+    };
+};
+
+export const useRejectServiceChange = (visitId: string) => {
+    const queryClient = useQueryClient();
+
+    const { mutate, isPending } = useMutation({
+        mutationFn: (serviceLineItemId: string) =>
+            visitApi.rejectServiceChange(visitId, serviceLineItemId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: visitDetailQueryKey(visitId),
+            });
+        },
+    });
+
+    return {
+        rejectServiceChange: mutate,
+        isRejecting: isPending,
+    };
+};

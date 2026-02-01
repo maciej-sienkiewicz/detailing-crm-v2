@@ -371,7 +371,7 @@ export const EditServicesModal = ({
     }
   };
 
-  const hasPendingChanges = services.some((s) => s.status === 'PENDING');
+  const hasPendingChanges = services.some((s) => (s.hasPendingChange ?? (s.status === 'PENDING')));
 
   const handleServiceCreate = (service: {
     id?: string;

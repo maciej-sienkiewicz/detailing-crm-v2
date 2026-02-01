@@ -327,6 +327,7 @@ export const VisitDetailView = () => {
                                 <ServicesTable
                                     services={visit.services}
                                     visitStatus={visit.status}
+                                    visitId={visitId!}
                                     onEditClick={handleEditServicesClick}
                                 />
                             </div>

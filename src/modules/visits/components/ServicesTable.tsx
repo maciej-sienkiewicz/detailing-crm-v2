@@ -2,6 +2,7 @@ import styled from 'styled-components';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
 import { formatCurrency } from '@/common/utils';
 import type { ServiceLineItem, VisitStatus } from '../types';
+import { useApproveServiceChange, useRejectServiceChange } from '../hooks';
 
 const TableContainer = styled.div`
     background: white;
@@ -79,13 +80,61 @@ const Th = styled.th`
     border-bottom: 1px solid ${props => props.theme.colors.border};
 `;
 
+const ActionsCell = styled.td`
+    padding: ${props => props.theme.spacing.md};
+    text-align: right;
+`;
+
+const RowActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: ${props => props.theme.spacing.sm};
+`;
+
+const ActionButton = styled.button<{ $variant?: 'primary' | 'danger' }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: ${props => props.theme.radii.md};
+    border: 1px solid ${props => props.theme.colors.border};
+    font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: 500;
+    cursor: pointer;
+    background: transparent;
+    color: ${p => p.$variant === 'danger' ? p.theme.colors.error : p.theme.colors.text};
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+
+    &:hover:not(:disabled) {
+        background: ${props => props.theme.colors.surfaceAlt};
+    }
+
+    &:active:not(:disabled) {
+        background: ${props => (props.theme.colors as any).surfaceHover || props.theme.colors.surfaceAlt};
+    }
+
+    &:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+`;
+
 const Tbody = styled.tbody``;
 
-const Tr = styled.tr`
+const Tr = styled.tr<{ $pendingOp?: 'ADD' | 'EDIT' | 'DELETE' | null }>`
     transition: background-color 0.2s ease;
+    background: ${props => props.$pendingOp === 'DELETE' ? '#fff1f2'
+        : props.$pendingOp === 'EDIT' ? '#fffbeb'
+        : props.$pendingOp === 'ADD' ? '#f0fdf4'
+        : 'transparent'};
 
     &:hover {
-        background: ${props => props.theme.colors.surfaceAlt};
+        background: ${props => props.$pendingOp ? 'inherit' : props.theme.colors.surfaceAlt};
     }
 
     &:not(:last-child) {
@@ -137,6 +186,13 @@ const PriceValue = styled.div<{ $strikethrough?: boolean }>`
     `}
 `;
 
+const PriceLabel = styled.span`
+    display: inline-block;
+    font-size: ${props => props.theme.fontSizes.xs};
+    color: ${props => props.theme.colors.textMuted};
+    margin-left: 6px;
+`;
+
 
 const DiscountBadge = styled.div`
     display: inline-flex;
@@ -186,15 +242,53 @@ const BreakdownItem = styled.div`
 interface ServicesTableProps {
     services: ServiceLineItem[];
     visitStatus?: VisitStatus;
+    visitId?: string;
     onEditClick?: () => void;
 }
 
-export const ServicesTable = ({ services, visitStatus, onEditClick }: ServicesTableProps) => {
-    const { calculateServicePrice, calculateTotal } = useServicePricing();
-    const totals = calculateTotal(services);
+export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: ServicesTableProps) => {
+    const { calculateServicePrice } = useServicePricing();
+
+    // Totals should use previous (approved) price if an EDIT is pending
+    const totals = (() => {
+        let totalFinalNet = 0;
+        let totalFinalGross = 0;
+        let totalVat = 0;
+        let totalOriginalGross = 0; // for hasTotalDiscount flag
+
+        services.forEach(service => {
+            const isPending = (service.hasPendingChange ?? (service.status === 'PENDING'));
+            const isEditPending = isPending && service.pendingOperation === 'EDIT' && (service.previousPriceNet ?? null) !== null && (service.previousPriceGross ?? null) !== null;
+            if (isEditPending) {
+                const net = service.previousPriceNet as number;
+                const gross = service.previousPriceGross as number;
+                totalFinalNet += net;
+                totalFinalGross += gross;
+                totalVat += Math.max(gross - net, 0);
+                // originalGross for discount comparison: use gross (we don't track 'original' vs 'final' here)
+                totalOriginalGross += gross;
+            } else {
+                const pricing = calculateServicePrice(service);
+                totalFinalNet += pricing.finalPriceNet;
+                totalFinalGross += pricing.finalPriceGross;
+                totalVat += pricing.vatAmount;
+                totalOriginalGross += pricing.originalPriceGross;
+            }
+        });
+
+        return {
+            totalFinalNet,
+            totalFinalGross,
+            totalVat,
+            hasTotalDiscount: totalFinalGross < totalOriginalGross,
+        };
+    })();
+
+    const { approveServiceChange, isApproving } = useApproveServiceChange(visitId || '');
+    const { rejectServiceChange, isRejecting } = useRejectServiceChange(visitId || '');
 
     const canEdit = visitStatus === 'IN_PROGRESS' || visitStatus === 'READY_FOR_PICKUP';
-    const hasPendingServices = services.some(s => s.status === 'PENDING');
+    const hasPendingServices = services.some(s => (s.hasPendingChange ?? (s.status === 'PENDING')));
 
     return (
         <TableContainer>
@@ -208,7 +302,7 @@ export const ServicesTable = ({ services, visitStatus, onEditClick }: ServicesTa
                 </TableHeaderLeft>
                 {canEdit && onEditClick && (
                     <EditButton onClick={onEditClick}>
-                        ✏️ Edytuj usługi
+                        Edytuj usługi
                     </EditButton>
                 )}
             </TableHeader>
@@ -216,11 +310,12 @@ export const ServicesTable = ({ services, visitStatus, onEditClick }: ServicesTa
             <Table>
                 <Thead>
                     <Tr>
-                        <Th>Usługa</Th>
-                        <Th>Cena netto</Th>
-                        <Th>VAT</Th>
-                        <Th>Cena brutto</Th>
-                    </Tr>
+                    <Th>Usługa</Th>
+                    <Th>Cena netto</Th>
+                    <Th>VAT</Th>
+                    <Th>Cena brutto</Th>
+                    <Th style={{ textAlign: 'right' }}>Akcje</Th>
+                </Tr>
                 </Thead>
                 <Tbody>
                     {services.map(service => {
@@ -228,7 +323,7 @@ export const ServicesTable = ({ services, visitStatus, onEditClick }: ServicesTa
                         const showDiscount = pricing.hasDiscount && service.basePriceNet !== 0;
 
                         return (
-                            <Tr key={service.id}>
+                            <Tr key={service.id} $pendingOp={(service.hasPendingChange ?? (service.status === 'PENDING')) ? (service.pendingOperation || 'EDIT') : null}>
                                 <Td>
                                     <div style={{ display: 'flex', alignItems: 'center' }}>
                                         <div style={{ flex: 1 }}>
@@ -239,20 +334,53 @@ export const ServicesTable = ({ services, visitStatus, onEditClick }: ServicesTa
                                             )}
                                         </div>
                                         <ServiceStatusBadge $status={service.status}>
-                                            {service.status === 'PENDING' ? 'Oczekuje' : 'Potwierdzona'}
+                                            {(service.hasPendingChange ?? (service.status === 'PENDING'))
+                                                ? (service.pendingOperation === 'ADD' ? 'Nowa (oczekuje)'
+                                                    : service.pendingOperation === 'EDIT' ? 'Edycja (oczekuje)'
+                                                    : service.pendingOperation === 'DELETE' ? 'Usunięcie (oczekuje)'
+                                                    : 'Oczekuje')
+                                                : 'Potwierdzona'}
                                         </ServiceStatusBadge>
                                     </div>
                                 </Td>
                                 <Td>
                                     <PriceStack>
-                                        {showDiscount && (
-                                            <PriceValue $strikethrough>
-                                                {formatCurrency(pricing.originalPriceNet / 100)}
-                                            </PriceValue>
-                                        )}
-                                        <PriceValue>
-                                            {formatCurrency(pricing.finalPriceNet / 100)}
-                                        </PriceValue>
+                                        {(() => {
+                                            const isPending = (service.hasPendingChange ?? (service.status === 'PENDING'));
+                                            const isEditPending = isPending && service.pendingOperation === 'EDIT' && (service.previousPriceNet ?? null) !== null;
+                                            if (isEditPending) {
+                                                const prevNet = service.previousPriceNet as number;
+                                                return (
+                                                    <>
+                                                        <div>
+                                                            <PriceValue>
+                                                                {formatCurrency(prevNet / 100)}
+                                                                <PriceLabel>Obowiązująca</PriceLabel>
+                                                            </PriceValue>
+                                                        </div>
+                                                        <div>
+                                                            <PriceValue $strikethrough>
+                                                                {formatCurrency(pricing.finalPriceNet / 100)}
+                                                                <PriceLabel>Proponowana</PriceLabel>
+                                                            </PriceValue>
+                                                        </div>
+                                                    </>
+                                                );
+                                            }
+
+                                            return (
+                                                <>
+                                                    {showDiscount && (
+                                                        <PriceValue $strikethrough>
+                                                            {formatCurrency(pricing.originalPriceNet / 100)}
+                                                        </PriceValue>
+                                                    )}
+                                                    <PriceValue>
+                                                        {formatCurrency(pricing.finalPriceNet / 100)}
+                                                    </PriceValue>
+                                                </>
+                                            );
+                                        })()}
                                     </PriceStack>
                                 </Td>
                                 <Td>
@@ -260,16 +388,78 @@ export const ServicesTable = ({ services, visitStatus, onEditClick }: ServicesTa
                                 </Td>
                                 <Td>
                                     <PriceStack>
-                                        {showDiscount && (
-                                            <PriceValue $strikethrough>
-                                                {formatCurrency(pricing.originalPriceGross / 100)}
-                                            </PriceValue>
-                                        )}
-                                        <PriceValue>
-                                            {formatCurrency(pricing.finalPriceGross / 100)}
-                                        </PriceValue>
+                                        {(() => {
+                                            const isPending = (service.hasPendingChange ?? (service.status === 'PENDING'));
+                                            const isEditPending = isPending && service.pendingOperation === 'EDIT' && (service.previousPriceGross ?? null) !== null;
+                                            if (isEditPending) {
+                                                const prevGross = service.previousPriceGross as number;
+                                                return (
+                                                    <>
+                                                        <div>
+                                                            <PriceValue>
+                                                                {formatCurrency(prevGross / 100)}
+                                                                <PriceLabel>Obowiązująca</PriceLabel>
+                                                            </PriceValue>
+                                                        </div>
+                                                        <div>
+                                                            <PriceValue $strikethrough>
+                                                                {formatCurrency(pricing.finalPriceGross / 100)}
+                                                                <PriceLabel>Proponowana</PriceLabel>
+                                                            </PriceValue>
+                                                        </div>
+                                                    </>
+                                                );
+                                            }
+
+                                            return (
+                                                <>
+                                                    {showDiscount && (
+                                                        <PriceValue $strikethrough>
+                                                            {formatCurrency(pricing.originalPriceGross / 100)}
+                                                        </PriceValue>
+                                                    )}
+                                                    <PriceValue>
+                                                        {formatCurrency(pricing.finalPriceGross / 100)}
+                                                    </PriceValue>
+                                                </>
+                                            );
+                                        })()}
                                     </PriceStack>
                                 </Td>
+                                <ActionsCell>
+                                    <RowActions>
+                                        {(service.hasPendingChange ?? (service.status === 'PENDING')) && (
+                                            <>
+                                                <ActionButton
+                                                    onClick={() => {
+                                                        if (!visitId) return;
+                                                        const actionText = service.pendingOperation === 'DELETE'
+                                                            ? 'zatwierdzić usunięcie tej usługi (zostanie trwale usunięta z wizyty)'
+                                                            : 'zatwierdzić tę zmianę';
+                                                        if (window.confirm(`Czy na pewno chcesz ${actionText}? Administrator potwierdza, że rozumie konsekwencje.`)) {
+                                                            approveServiceChange(service.id);
+                                                        }
+                                                    }}
+                                                    disabled={!visitId || isApproving}
+                                                >
+                                                    Zatwierdź zmianę
+                                                </ActionButton>
+                                                <ActionButton
+                                                    $variant="danger"
+                                                    onClick={() => {
+                                                        if (!visitId) return;
+                                                        if (window.confirm('Czy na pewno chcesz wycofać tę zmianę? Administrator potwierdza, że rozumie konsekwencje.')) {
+                                                            rejectServiceChange(service.id);
+                                                        }
+                                                    }}
+                                                    disabled={!visitId || isRejecting}
+                                                >
+                                                    Wycofaj zmianę
+                                                </ActionButton>
+                                            </>
+                                        )}
+                                    </RowActions>
+                                </ActionsCell>
                             </Tr>
                         );
                     })}
@@ -281,7 +471,7 @@ export const ServicesTable = ({ services, visitStatus, onEditClick }: ServicesTa
                     <TotalLabel>Razem do zapłaty</TotalLabel>
                     {totals.hasTotalDiscount && (
                         <div style={{ fontSize: '12px', color: '#92400e', marginTop: '4px' }}>
-                            ✨ Uwzględniono rabaty
+                            Uwzględniono rabaty
                         </div>
                     )}
                 </div>

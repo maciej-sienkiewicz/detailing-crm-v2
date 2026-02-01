@@ -351,4 +351,64 @@ export const visitApi = {
             payload
         );
     },
+
+    approveServiceChange: async (
+        visitId: string,
+        serviceLineItemId: string
+    ): Promise<ServiceLineItem> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return {
+                id: serviceLineItemId,
+                serviceId: 'srv_mock',
+                serviceName: 'Mock Service',
+                basePriceNet: 100000,
+                vatRate: 23,
+                requireManualPrice: false,
+                adjustment: { type: 'FIXED_NET', value: 0 },
+                note: '',
+                finalPriceNet: 100000,
+                finalPriceGross: 123000,
+                status: 'CONFIRMED',
+                pendingOperation: null,
+                hasPendingChange: false,
+                previousPriceNet: null,
+                previousPriceGross: null,
+            };
+        }
+        const response = await apiClient.post(
+            `${BASE_PATH}/${visitId}/services/${serviceLineItemId}/approve`
+        );
+        return response.data;
+    },
+
+    rejectServiceChange: async (
+        visitId: string,
+        serviceLineItemId: string
+    ): Promise<ServiceLineItem> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return {
+                id: serviceLineItemId,
+                serviceId: 'srv_mock',
+                serviceName: 'Mock Service',
+                basePriceNet: 100000,
+                vatRate: 23,
+                requireManualPrice: false,
+                adjustment: { type: 'FIXED_NET', value: 0 },
+                note: '',
+                finalPriceNet: 100000,
+                finalPriceGross: 123000,
+                status: 'CONFIRMED',
+                pendingOperation: null,
+                hasPendingChange: false,
+                previousPriceNet: null,
+                previousPriceGross: null,
+            };
+        }
+        const response = await apiClient.post(
+            `${BASE_PATH}/${visitId}/services/${serviceLineItemId}/reject`
+        );
+        return response.data;
+    },
 };

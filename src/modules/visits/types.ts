@@ -4,7 +4,7 @@ export type DocumentType = 'PHOTO' | 'PDF' | 'PROTOCOL' | 'INTAKE' | 'OUTTAKE' |
 
 export type CommentType = 'INTERNAL' | 'FOR_CUSTOMER';
 
-export type ServiceStatus = 'CONFIRMED' | 'PENDING';
+export type ServiceStatus = 'CONFIRMED' | 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface CommentRevision {
     id: string;
@@ -55,6 +55,11 @@ export interface ServiceLineItem {
     finalPriceNet: number;
     finalPriceGross: number;
     status: ServiceStatus;
+    // New approval workflow fields (optional for backward compatibility)
+    pendingOperation?: 'ADD' | 'EDIT' | 'DELETE' | null;
+    hasPendingChange?: boolean;
+    previousPriceNet?: number | null;
+    previousPriceGross?: number | null;
 }
 
 export interface VehicleInfo {
