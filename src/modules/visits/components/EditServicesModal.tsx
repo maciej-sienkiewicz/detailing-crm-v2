@@ -587,7 +587,7 @@ export const EditServicesModal = ({
                 const payload: ServicesChangesPayload = {
                   notifyCustomer,
                   added: tempAdded.map(t => ({
-                    serviceId: t.serviceId,
+                    serviceId: t.serviceId === 'custom' ? null : t.serviceId,
                     serviceName: t.serviceName,
                     basePriceNet: localPriceOverrides[t.id] ?? t.finalPriceNet,
                     vatRate: t.vatRate,

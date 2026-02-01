@@ -200,7 +200,7 @@ export interface UpdateServiceStatusPayload {
 export interface ServicesChangesPayload {
     notifyCustomer: boolean;
     added: Array<{
-        serviceId: string;
+        serviceId: string | null;
         serviceName: string;
         basePriceNet: number;
         vatRate: number;
