@@ -575,7 +575,7 @@ export const pl: TranslationKeys = {
                 registrationDocument: 'Dowód rejestracyjny',
                 other: 'Inne',
             },
-            inspectionNotes: 'Notatki z oględzin',
+            inspectionNotes: 'Notatki',
             inspectionNotesPlaceholder: 'Opisz widoczne uszkodzenia, stan lakieru, itp.',
         },
         photos: {
