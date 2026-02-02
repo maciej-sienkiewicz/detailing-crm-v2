@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { useState } from 'react';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
 import { formatCurrency } from '@/common/utils';
 import type { ServiceLineItem, VisitStatus } from '../types';
@@ -91,6 +92,78 @@ const RowActions = styled.div`
     gap: ${props => props.theme.spacing.sm};
 `;
 
+// Minimalist confirm modal
+const ModalOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+`;
+
+const ModalCard = styled.div`
+    width: 100%;
+    max-width: 440px;
+    background: #fff;
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.lg};
+    box-shadow: 0 20px 50px rgba(2,6,23,0.15);
+    overflow: hidden;
+`;
+
+const ModalHeader = styled.div`
+    padding: ${props => props.theme.spacing.lg};
+    border-bottom: 1px solid ${props => props.theme.colors.border};
+`;
+
+const ModalTitle = styled.h4`
+    margin: 0;
+    font-size: ${props => props.theme.fontSizes.md};
+    font-weight: 700;
+`;
+
+const ModalBody = styled.div`
+    padding: ${props => props.theme.spacing.lg};
+    color: ${props => props.theme.colors.textSecondary};
+    font-size: ${props => props.theme.fontSizes.sm};
+`;
+
+const ModalFooter = styled.div`
+    padding: ${props => props.theme.spacing.md};
+    display: flex;
+    justify-content: flex-end;
+    gap: ${props => props.theme.spacing.sm};
+    background: ${props => props.theme.colors.surfaceAlt};
+    border-top: 1px solid ${props => props.theme.colors.border};
+`;
+
+const SecondaryBtn = styled.button`
+    padding: 6px 10px;
+    border-radius: ${props => props.theme.radii.md};
+    border: 1px solid ${props => props.theme.colors.border};
+    background: transparent;
+    color: ${props => props.theme.colors.text};
+    font-size: ${props => props.theme.fontSizes.xs};
+    cursor: pointer;
+
+    &:hover { background: ${props => props.theme.colors.surfaceAlt}; }
+`;
+
+const PrimaryBtn = styled.button<{ $danger?: boolean }>`
+    padding: 6px 10px;
+    border-radius: ${props => props.theme.radii.md};
+    border: 1px solid ${props => props.theme.colors.border};
+    background: ${props => props.theme.colors.surfaceAlt};
+    color: ${props => props.$danger ? props.theme.colors.error : 'var(--brand-primary)'};
+    font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: 600;
+    cursor: pointer;
+
+    &:disabled { opacity: 0.6; cursor: not-allowed; }
+`;
+
 const ActionButton = styled.button<{ $variant?: 'primary' | 'danger' }>`
     display: inline-flex;
     align-items: center;
@@ -177,12 +250,17 @@ const PriceStack = styled.div`
     gap: 2px;
 `;
 
-const PriceValue = styled.div<{ $strikethrough?: boolean }>`
+const PriceValue = styled.div<{ $strikethrough?: boolean; $secondary?: boolean }>`
     font-weight: 500;
     ${props => props.$strikethrough && `
         text-decoration: line-through;
         opacity: 0.6;
         font-size: ${props.theme.fontSizes.xs};
+    `}
+    ${props => props.$secondary && `
+        color: ${props.theme.colors.textSecondary};
+        font-size: ${props.theme.fontSizes.xs};
+        font-weight: 500;
     `}
 `;
 
@@ -191,6 +269,19 @@ const PriceLabel = styled.span`
     font-size: ${props => props.theme.fontSizes.xs};
     color: ${props => props.theme.colors.textMuted};
     margin-left: 6px;
+`;
+
+const ChangePill = styled.span<{ $trend: 'up' | 'down' | 'neutral' }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: ${props => props.theme.radii.full};
+    font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: 600;
+    margin-left: 8px;
+    background: ${p => p.$trend === 'up' ? '#fee2e2' : p.$trend === 'down' ? '#ecfdf5' : '#f3f4f6'};
+    color: ${p => p.$trend === 'up' ? '#991b1b' : p.$trend === 'down' ? '#065f46' : '#374151'};
 `;
 
 
@@ -249,6 +340,23 @@ interface ServicesTableProps {
 export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: ServicesTableProps) => {
     const { calculateServicePrice } = useServicePricing();
 
+    // Confirm modal state
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const [confirmAction, setConfirmAction] = useState<null | 'approve' | 'reject'>(null);
+    const [targetService, setTargetService] = useState<ServiceLineItem | null>(null);
+
+    const openConfirm = (service: ServiceLineItem, action: 'approve' | 'reject') => {
+        setTargetService(service);
+        setConfirmAction(action);
+        setIsConfirmOpen(true);
+    };
+
+    const closeConfirm = () => {
+        setIsConfirmOpen(false);
+        setConfirmAction(null);
+        setTargetService(null);
+    };
+
     // Totals should use previous (approved) price if an EDIT is pending
     const totals = (() => {
         let totalFinalNet = 0;
@@ -291,6 +399,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
     const hasPendingServices = services.some(s => (s.hasPendingChange ?? (s.status === 'PENDING')));
 
     return (
+        <>
         <TableContainer>
             <TableHeader>
                 <TableHeaderLeft>
@@ -350,6 +459,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
                                             const isEditPending = isPending && service.pendingOperation === 'EDIT' && (service.previousPriceNet ?? null) !== null;
                                             if (isEditPending) {
                                                 const prevNet = service.previousPriceNet as number;
+                                                const proposedNet = pricing.finalPriceNet;
+                                                const trendNet: 'up' | 'down' | 'neutral' = proposedNet > prevNet ? 'up' : proposedNet < prevNet ? 'down' : 'neutral';
                                                 return (
                                                     <>
                                                         <div>
@@ -359,9 +470,12 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
                                                             </PriceValue>
                                                         </div>
                                                         <div>
-                                                            <PriceValue $strikethrough>
-                                                                {formatCurrency(pricing.finalPriceNet / 100)}
+                                                            <PriceValue $secondary>
+                                                                {formatCurrency(proposedNet / 100)}
                                                                 <PriceLabel>Proponowana</PriceLabel>
+                                                                <ChangePill $trend={trendNet}>
+                                                                    {trendNet === 'up' ? '▲' : trendNet === 'down' ? '▼' : '▬'}
+                                                                </ChangePill>
                                                             </PriceValue>
                                                         </div>
                                                     </>
@@ -393,6 +507,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
                                             const isEditPending = isPending && service.pendingOperation === 'EDIT' && (service.previousPriceGross ?? null) !== null;
                                             if (isEditPending) {
                                                 const prevGross = service.previousPriceGross as number;
+                                                const proposedGross = pricing.finalPriceGross;
+                                                const trendGross: 'up' | 'down' | 'neutral' = proposedGross > prevGross ? 'up' : proposedGross < prevGross ? 'down' : 'neutral';
                                                 return (
                                                     <>
                                                         <div>
@@ -402,9 +518,12 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
                                                             </PriceValue>
                                                         </div>
                                                         <div>
-                                                            <PriceValue $strikethrough>
-                                                                {formatCurrency(pricing.finalPriceGross / 100)}
+                                                            <PriceValue $secondary>
+                                                                {formatCurrency(proposedGross / 100)}
                                                                 <PriceLabel>Proponowana</PriceLabel>
+                                                                <ChangePill $trend={trendGross}>
+                                                                    {trendGross === 'up' ? '▲' : trendGross === 'down' ? '▼' : '▬'}
+                                                                </ChangePill>
                                                             </PriceValue>
                                                         </div>
                                                     </>
@@ -433,12 +552,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
                                                 <ActionButton
                                                     onClick={() => {
                                                         if (!visitId) return;
-                                                        const actionText = service.pendingOperation === 'DELETE'
-                                                            ? 'zatwierdzić usunięcie tej usługi (zostanie trwale usunięta z wizyty)'
-                                                            : 'zatwierdzić tę zmianę';
-                                                        if (window.confirm(`Czy na pewno chcesz ${actionText}? Administrator potwierdza, że rozumie konsekwencje.`)) {
-                                                            approveServiceChange(service.id);
-                                                        }
+                                                        openConfirm(service, 'approve');
                                                     }}
                                                     disabled={!visitId || isApproving}
                                                 >
@@ -448,9 +562,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
                                                     $variant="danger"
                                                     onClick={() => {
                                                         if (!visitId) return;
-                                                        if (window.confirm('Czy na pewno chcesz wycofać tę zmianę? Administrator potwierdza, że rozumie konsekwencje.')) {
-                                                            rejectServiceChange(service.id);
-                                                        }
+                                                        openConfirm(service, 'reject');
                                                     }}
                                                     disabled={!visitId || isRejecting}
                                                 >
@@ -488,5 +600,46 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
                 </TotalBreakdown>
             </TotalRow>
         </TableContainer>
+
+        {isConfirmOpen && targetService && (
+            <ModalOverlay onClick={(e) => { if (e.target === e.currentTarget) closeConfirm(); }}>
+                <ModalCard role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+                    <ModalHeader>
+                        <ModalTitle id="confirm-title">
+                            {confirmAction === 'approve' ? 'Potwierdź zmianę' : 'Wycofać zmianę?'}
+                        </ModalTitle>
+                    </ModalHeader>
+                    <ModalBody>
+                        {confirmAction === 'approve' ? (
+                            <>
+                                {targetService.pendingOperation === 'DELETE'
+                                    ? 'Zatwierdzenie spowoduje trwałe usunięcie tej usługi z wizyty. Czy na pewno chcesz kontynuować?'
+                                    : 'Zatwierdzenie zmiany spowoduje jej wejście w życie. Czy na pewno chcesz kontynuować?'}
+                            </>
+                        ) : (
+                            <>Odrzucenie spowoduje przywrócenie ostatniego zatwierdzonego stanu tej usługi. Kontynuować?</>
+                        )}
+                    </ModalBody>
+                    <ModalFooter>
+                        <SecondaryBtn onClick={closeConfirm}>Anuluj</SecondaryBtn>
+                        <PrimaryBtn
+                            $danger={confirmAction === 'reject'}
+                            disabled={(confirmAction === 'approve' && isApproving) || (confirmAction === 'reject' && isRejecting)}
+                            onClick={() => {
+                                if (!visitId || !targetService) return;
+                                if (confirmAction === 'approve') {
+                                    approveServiceChange(targetService.id, { onSettled: closeConfirm });
+                                } else if (confirmAction === 'reject') {
+                                    rejectServiceChange(targetService.id, { onSettled: closeConfirm });
+                                }
+                            }}
+                        >
+                            {confirmAction === 'approve' ? 'Zatwierdź' : 'Wycofaj'}
+                        </PrimaryBtn>
+                    </ModalFooter>
+                </ModalCard>
+            </ModalOverlay>
+        )}
+        </>
     );
 };
