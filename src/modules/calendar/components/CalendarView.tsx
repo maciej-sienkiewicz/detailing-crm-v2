@@ -263,7 +263,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
     // Reservation options modal state
 
-    const { createQuickEvent } = useQuickEventCreation();
+    const { createQuickEventAsync } = useQuickEventCreation();
     const { data: events = [], isLoading } = useCalendarEvents(dateRange);
 
     /**
@@ -345,16 +345,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     /**
      * Handle quick event save
      */
-    const handleQuickSave = useCallback((data: QuickEventFormData) => {
-        createQuickEvent(data, {
-            onSuccess: () => {
-                // Clear form after successful save
-                quickEventModalRef.current?.clearForm();
-                setQuickModalOpen(false);
-                setSelectedEventData(null);
-            }
-        });
-    }, [createQuickEvent]);
+    const handleQuickSave = useCallback(async (data: QuickEventFormData) => {
+        await createQuickEventAsync(data);
+        // Clear form after successful save
+        quickEventModalRef.current?.clearForm();
+        setQuickModalOpen(false);
+        setSelectedEventData(null);
+    }, [createQuickEventAsync]);
 
     /**
      * Handle modal close

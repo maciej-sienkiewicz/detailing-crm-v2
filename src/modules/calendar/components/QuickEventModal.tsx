@@ -113,7 +113,7 @@ interface QuickEventModalProps {
     isOpen: boolean;
     eventData: EventCreationData | null;
     onClose: () => void;
-    onSave: (data: QuickEventFormData) => void;
+    onSave: (data: QuickEventFormData) => Promise<void> | void;
 }
 
 export interface QuickEventFormData {
@@ -126,6 +126,8 @@ export interface QuickEventFormData {
     serviceIds: string[];
     servicePrices?: { [key: string]: number };
     serviceNotes?: { [key: string]: string };
+    // Map tymczasowych usług utworzonych w modalu: key = temp-id, value = dane usługi
+    tempServices?: { [key: string]: { name: string; basePriceNet: number; vatRate: number } };
     colorId: string;
     notes?: string;
 }
@@ -157,7 +159,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [showServiceDropdown, setShowServiceDropdown] = useState(false);
     const [selectedColorId, setSelectedColorId] = useState('');
     const [notes, setNotes] = useState('');
-    const [tempServices, setTempServices] = useState<{ [key: string]: { name: string; basePriceNet: number; vatRate: 23 } }>({});
+    const [tempServices, setTempServices] = useState<{ [key: string]: { name: string; basePriceNet: number; vatRate: number } }>({});
 
     // Modal states
     // const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
@@ -451,11 +453,19 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 serviceIds: selectedServiceIds,
                 servicePrices,
                 serviceNotes,
+                tempServices,
                 colorId: selectedColorId,
                 notes,
             }));
         } catch (err: any) {
-            const message = err?.message || 'Wystąpił nieoczekiwany błąd podczas zapisu.';
+            let message = 'Wystąpił nieoczekiwany błąd podczas zapisu.';
+            // Extract common API error shapes
+            if (err?.response?.data) {
+                const data = err.response.data;
+                message = data.message || data.error || JSON.stringify(data);
+            } else if (err?.message) {
+                message = err.message;
+            }
             showError('Błąd zapisu wizyty', message);
         } finally {
             setIsSubmitting(false);

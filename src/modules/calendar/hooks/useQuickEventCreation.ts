@@ -87,9 +87,28 @@ export const useQuickEventCreation = () => {
 
             // Build services payload with all required fields
             const servicesPayload = data.serviceIds.map((serviceId, index) => {
-                const service = allServices.find((s: any) => s.id === serviceId);
+                // Try to find existing service by ID
+                let service = allServices.find((s: any) => s.id === serviceId);
+                let isTempService = false;
+
+                // If not found, try to use temp service provided by the form (allow creating visit without saving service in DB)
                 if (!service) {
-                    throw new Error(`Service with id ${serviceId} not found`);
+                    const temp = data.tempServices?.[serviceId];
+                    if (temp) {
+                        isTempService = true;
+                        service = {
+                            id: serviceId,
+                            name: temp.name,
+                            basePriceNet: temp.basePriceNet,
+                            vatRate: temp.vatRate,
+                            requireManualPrice: false,
+                        } as any;
+                    }
+                }
+
+                if (!service) {
+                    // As a last resort, inform user clearly
+                    throw new Error(`Nie znaleziono usługi (${serviceId}). Usuń ją z listy lub wprowadź ponownie.`);
                 }
 
                 // Calculate adjustment if custom price provided
@@ -127,7 +146,8 @@ export const useQuickEventCreation = () => {
 
                 return {
                     id: `${Date.now()}-${index}`, // Generate unique line item ID
-                    serviceId: serviceId,
+                    // IMPORTANT: when service is newly created locally (not saved to DB), send serviceId as null
+                    serviceId: isTempService ? null : service.id,
                     serviceName: service.name,
                     basePriceNet: service.basePriceNet, // Keep original base price
                     vatRate: service.vatRate,
@@ -161,6 +181,7 @@ export const useQuickEventCreation = () => {
 
     return {
         createQuickEvent: createQuickEvent.mutate,
+        createQuickEventAsync: createQuickEvent.mutateAsync,
         isCreating: createQuickEvent.isPending,
         isError: createQuickEvent.isError,
         error: createQuickEvent.error,
