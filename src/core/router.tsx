@@ -18,6 +18,7 @@ import { ProtocolRulesView, ProtocolDemoView } from "@/modules/protocols";
 import { LeadListView } from "@/modules/leads";
 import { ProtectedRoute } from './components/ProtectedRoute';
 import {DashboardView} from "@/modules/dashboard";
+import {GrowthEngineView} from "@/modules/growth-engine";
 
 export const router = createBrowserRouter([
     {
@@ -175,6 +176,14 @@ export const router = createBrowserRouter([
         element: (
             <ProtectedRoute>
                 <Layout><LeadListView /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/growth-engine',
+        element: (
+            <ProtectedRoute>
+                <Layout><GrowthEngineView /></Layout>
             </ProtectedRoute>
         ),
     },
