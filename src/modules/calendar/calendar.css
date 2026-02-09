@@ -1,30 +1,30 @@
 /* FullCalendar Base Styles */
-/* Minimal required styles for FullCalendar structure */
+/* Premium detailing studio calendar theme */
 
 :root {
-  --fc-border-color: #ddd;
+  --fc-border-color: #e8ecf1;
   --fc-button-text-color: #fff;
-  --fc-button-bg-color: #2C3E50;
-  --fc-button-border-color: #2C3E50;
-  --fc-button-hover-bg-color: #1e2b37;
-  --fc-button-hover-border-color: #1a252f;
-  --fc-button-active-bg-color: #1e2b37;
-  --fc-button-active-border-color: #151e27;
-  --fc-event-bg-color: #3788d8;
-  --fc-event-border-color: #3788d8;
+  --fc-button-bg-color: #1e293b;
+  --fc-button-border-color: #1e293b;
+  --fc-button-hover-bg-color: #0f172a;
+  --fc-button-hover-border-color: #0f172a;
+  --fc-button-active-bg-color: #0f172a;
+  --fc-button-active-border-color: #0f172a;
+  --fc-event-bg-color: #3b82f6;
+  --fc-event-border-color: #3b82f6;
   --fc-event-text-color: #fff;
-  --fc-event-selected-overlay-color: rgba(0, 0, 0, 0.25);
-  --fc-more-link-bg-color: #d0d0d0;
-  --fc-more-link-text-color: inherit;
+  --fc-event-selected-overlay-color: rgba(0, 0, 0, 0.15);
+  --fc-more-link-bg-color: transparent;
+  --fc-more-link-text-color: #6366f1;
   --fc-event-resizer-thickness: 8px;
   --fc-event-resizer-dot-total-width: 8px;
   --fc-event-resizer-dot-border-width: 1px;
-  --fc-non-business-color: rgba(215, 215, 215, 0.3);
+  --fc-non-business-color: rgba(241, 245, 249, 0.6);
   --fc-bg-event-color: rgb(143, 223, 130);
   --fc-bg-event-opacity: 0.3;
-  --fc-highlight-color: rgba(188, 232, 241, 0.3);
-  --fc-today-bg-color: rgba(255, 220, 40, 0.15);
-  --fc-now-indicator-color: red;
+  --fc-highlight-color: rgba(99, 102, 241, 0.08);
+  --fc-today-bg-color: rgba(99, 102, 241, 0.04);
+  --fc-now-indicator-color: #6366f1;
 }
 
 .fc {
@@ -111,13 +111,14 @@
   height: 100%;
 }
 
+/* --- Event base --- */
 .fc-event {
   position: relative;
   display: block;
   font-size: 0.85em;
-  line-height: 1.4;
-  border-radius: 3px;
-  border: 1px solid var(--fc-event-border-color);
+  line-height: 1.5;
+  border-radius: 10px;
+  border: none;
 }
 
 .fc-event .fc-event-main {
@@ -130,7 +131,7 @@
 }
 
 .fc-event-dragging.fc-event-selected {
-  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.18);
 }
 
 .fc-event .fc-event-resizer {
@@ -145,7 +146,7 @@
 }
 
 .fc-event-selected {
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .fc-event-selected:before {
@@ -167,16 +168,13 @@
   right: -1px;
   bottom: -1px;
   left: -1px;
+  border-radius: 10px;
 }
 
+/* --- Horizontal events (month/all-day) --- */
 .fc-h-event {
   display: block;
-  border: 1px solid var(--fc-event-border-color);
-  /* background-color removed - use inline styles from FullCalendar */
-}
-
-.fc-h-event .fc-event-main {
-  /* color removed - use inline styles from FullCalendar */
+  border: none;
 }
 
 .fc-h-event .fc-event-main-frame {
@@ -242,14 +240,13 @@
   bottom: 0;
 }
 
+/* --- Vertical events (week/day) --- */
 .fc-v-event {
   display: block;
-  border: 1px solid var(--fc-event-border-color);
-  /* background-color removed - use inline styles from FullCalendar */
+  border: none;
 }
 
 .fc-v-event .fc-event-main {
-  /* color removed - use inline styles from FullCalendar */
   height: 100%;
 }
 
@@ -312,6 +309,7 @@
   margin-bottom: 1px;
 }
 
+/* --- Now indicator --- */
 .fc-timegrid-now-indicator-line {
   position: absolute;
   z-index: 4;
@@ -319,7 +317,7 @@
   right: 0;
   border-style: solid;
   border-color: var(--fc-now-indicator-color);
-  border-width: 1px 0 0;
+  border-width: 2px 0 0;
 }
 
 .fc-timegrid-now-indicator-arrow {
@@ -346,6 +344,7 @@
 
 .fc-highlight {
   background: var(--fc-highlight-color);
+  border-radius: 8px;
 }
 
 .fc-day-today {

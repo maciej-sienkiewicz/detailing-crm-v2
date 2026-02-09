@@ -8,48 +8,79 @@ const Overlay = styled.div`
     position: fixed;
     inset: 0;
     z-index: 999;
+    background: rgba(15, 23, 42, 0.1);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
 `;
 
 const PopoverContainer = styled.div<{ $x: number; $y: number }>`
     position: fixed;
     left: ${props => props.$x}px;
     top: ${props => props.$y}px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-    width: 380px;
+    background: rgba(255, 255, 255, 0.97);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 20px;
+    box-shadow:
+        0 4px 6px rgba(0, 0, 0, 0.02),
+        0 12px 24px rgba(0, 0, 0, 0.06),
+        0 24px 48px rgba(0, 0, 0, 0.08);
+    width: 390px;
     max-height: 600px;
     z-index: 1000;
     overflow: hidden;
-    border: 1px solid #e5e7eb;
+    border: 1px solid rgba(255, 255, 255, 0.8);
     display: flex;
     flex-direction: column;
+
+    @media (max-width: 480px) {
+        width: calc(100vw - 24px);
+        left: 12px !important;
+        max-height: 80vh;
+    }
 `;
 
 const PopoverHeader = styled.div<{ $color: string }>`
-    padding: 20px;
+    padding: 22px 24px;
     background: ${props => props.$color};
     color: white;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: none;
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+        pointer-events: none;
+    }
 `;
 
 const EventTitle = styled.h3`
     margin: 0 0 8px;
     font-size: 18px;
-    font-weight: 600;
+    font-weight: 700;
     color: inherit;
+    position: relative;
+    z-index: 1;
 `;
 
 const EventType = styled.div`
-    font-size: 13px;
-    opacity: 0.9;
+    font-size: 11px;
+    opacity: 0.85;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 500;
+    letter-spacing: 1.2px;
+    font-weight: 700;
+    position: relative;
+    z-index: 1;
 `;
 
 const PopoverBody = styled.div`
-    padding: 20px;
+    padding: 22px 24px;
     overflow-y: auto;
     flex: 1;
 `;
@@ -67,30 +98,35 @@ const InfoColumns = styled.div`
     grid-template-columns: 1fr 1fr;
     gap: 16px;
     margin-bottom: 20px;
+
+    @media (max-width: 400px) {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
 `;
 
 const SectionTitle = styled.div`
-    font-size: 12px;
-    font-weight: 600;
-    color: #64748b;
+    font-size: 10px;
+    font-weight: 800;
+    color: #94a3b8;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
 `;
 
 const InfoRow = styled.div`
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 0;
+    gap: 10px;
+    padding: 6px 0;
     font-size: 14px;
-    color: #1f2937;
+    color: #1e293b;
 `;
 
 const InfoIcon = styled.div`
     width: 16px;
     height: 16px;
-    color: #64748b;
+    color: #94a3b8;
     flex-shrink: 0;
 
     svg {
@@ -101,8 +137,8 @@ const InfoIcon = styled.div`
 
 const InfoValue = styled.div`
     flex: 1;
-    color: #1f2937;
-    font-weight: 400;
+    color: #1e293b;
+    font-weight: 500;
 `;
 
 const ServicesList = styled.div`
@@ -112,22 +148,24 @@ const ServicesList = styled.div`
 `;
 
 const ServiceItem = styled.div`
-    padding: 10px 12px;
-    background: #f8fafc;
-    border-radius: 6px;
-    font-size: 14px;
-    color: #1f2937;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-radius: 10px;
+    font-size: 13px;
+    color: #1e293b;
+    font-weight: 500;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 `;
 
 const ServiceBullet = styled.div`
-    width: 6px;
-    height: 6px;
-    background: #3b82f6;
+    width: 7px;
+    height: 7px;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
     border-radius: 50%;
     flex-shrink: 0;
+    box-shadow: 0 1px 4px rgba(99, 102, 241, 0.3);
 `;
 
 const PricesContainer = styled.div`
@@ -138,28 +176,29 @@ const PricesContainer = styled.div`
 `;
 
 const PriceTag = styled.div`
-    font-size: 16px;
-    font-weight: 700;
+    font-size: 17px;
+    font-weight: 800;
     color: #0f172a;
     padding: 14px 12px;
-    background: #f1f5f9;
-    border-radius: 10px;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-radius: 14px;
     text-align: center;
+    letter-spacing: -0.3px;
 `;
 
 const PriceLabel = styled.div`
-    font-size: 12px;
-    color: #64748b;
-    font-weight: 600;
+    font-size: 10px;
+    color: #94a3b8;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: 1.5px;
     margin-bottom: 6px;
 `;
 
 const PopoverFooter = styled.div`
-    padding: 12px 16px;
-    border-top: 1px solid #e5e7eb;
-    background: white;
+    padding: 16px 20px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    background: rgba(248, 250, 252, 0.6);
     flex-shrink: 0;
 `;
 
@@ -180,68 +219,84 @@ const IconActionButton = styled.button<{ $variant?: 'default' | 'primary' | 'dan
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
-    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
     background: #ffffff;
-    color: #0f172a;
+    color: #334155;
     cursor: pointer;
-    transition: all 0.15s ease;
-    font-size: 13px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.5px;
     white-space: nowrap;
     padding: 0 10px;
 
     &:hover {
         background: #f8fafc;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+        border-color: #cbd5e1;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        transform: translateY(-1px);
     }
 
     &:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.25);
     }
 
     &:active {
-        transform: scale(0.98);
+        transform: scale(0.97);
     }
 
     ${props => props.$variant === 'primary' ? `
-        background: #1d4ed8;
+        background: linear-gradient(135deg, #6366f1, #4f46e5);
         color: white;
-        border-color: #1d4ed8;
-        &:hover { background: #1e40af; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
-        &:focus-visible { box-shadow: 0 0 0 3px rgba(29,78,216,0.35); }
+        border-color: transparent;
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+        &:hover {
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+            transform: translateY(-1px);
+            background: linear-gradient(135deg, #4f46e5, #4338ca);
+        }
+        &:focus-visible { box-shadow: 0 0 0 3px rgba(99,102,241,0.4); }
     ` : ''}
 
     ${props => props.$variant === 'danger' ? `
-        background: #dc2626;
+        background: linear-gradient(135deg, #ef4444, #dc2626);
         color: #ffffff;
-        border-color: #dc2626;
-        &:hover { background: #b91c1c; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
-        &:focus-visible { box-shadow: 0 0 0 3px rgba(220,38,38,0.35); }
+        border-color: transparent;
+        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+        &:hover {
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+            transform: translateY(-1px);
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+        }
+        &:focus-visible { box-shadow: 0 0 0 3px rgba(239,68,68,0.35); }
     ` : ''}
 `;
 
 const ManageButton = styled.button`
     width: 100%;
     padding: 14px 20px;
-    background: #3b82f6;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
     color: white;
     border: none;
-    border-radius: 8px;
-    font-size: 15px;
-    font-weight: 600;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    letter-spacing: 0.3px;
 
     &:hover {
-        background: #2563eb;
+        box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+        transform: translateY(-1px);
+        background: linear-gradient(135deg, #4f46e5, #4338ca);
     }
 
     &:active {
@@ -255,10 +310,12 @@ const ManageButton = styled.button`
 `;
 
 const EmptyState = styled.div`
-    padding: 12px;
-    color: #64748b;
-    font-size: 14px;
+    padding: 12px 14px;
+    color: #94a3b8;
+    font-size: 13px;
     font-style: italic;
+    background: #f8fafc;
+    border-radius: 10px;
 `;
 
 interface EventSummaryPopoverProps {
