@@ -34,6 +34,7 @@ const menuSections: MenuSection[] = [
             { path: '/services', label: 'Usługi', icon: '◐' },
             { path: '/invoices', label: 'Faktury', icon: '◫' },
             { path: '/appointment-colors', label: 'Raporty', icon: '◧' },
+            { path: '/growth-engine', label: 'Growth Engine', icon: '◆' },
         ],
     },
     {
