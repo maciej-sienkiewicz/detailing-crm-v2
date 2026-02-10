@@ -338,6 +338,7 @@ export const VisitDetailView = () => {
                                     mileageAtArrival={visit.mileageAtArrival}
                                     keysHandedOver={visit.keysHandedOver}
                                     documentsHandedOver={visit.documentsHandedOver}
+                                    vehicleHandoff={visit.vehicleHandoff}
                                     onMileageChange={handleMileageChange}
                                     onKeysToggle={handleKeysToggle}
                                     onDocumentsToggle={handleDocumentsToggle}

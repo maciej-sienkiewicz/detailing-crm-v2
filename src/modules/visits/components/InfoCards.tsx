@@ -165,6 +165,15 @@ interface VehicleInfoCardProps {
     mileageAtArrival?: number;
     keysHandedOver: boolean;
     documentsHandedOver: boolean;
+    vehicleHandoff?: {
+        isHandedOffByOtherPerson: boolean;
+        contactPerson: {
+            firstName: string;
+            lastName: string;
+            phone: string;
+            email: string;
+        };
+    };
     onMileageChange: (mileage: number) => void;
     onKeysToggle: (checked: boolean) => void;
     onDocumentsToggle: (checked: boolean) => void;
@@ -175,6 +184,7 @@ export const VehicleInfoCard = ({
                                     mileageAtArrival,
                                     keysHandedOver,
                                     documentsHandedOver,
+                                    vehicleHandoff,
                                 }: VehicleInfoCardProps) => {
     const hasMileage = typeof mileageAtArrival === 'number' && mileageAtArrival > 0;
     const mileageNumber = hasMileage ? mileageAtArrival!.toLocaleString('pl-PL') : undefined;
@@ -236,6 +246,42 @@ export const VehicleInfoCard = ({
                     </StatusPill>
                 </ToggleRow>
             </ToggleSection>
+
+            {vehicleHandoff?.isHandedOffByOtherPerson && (
+                <div style={{
+                    marginTop: '16px',
+                    padding: '12px',
+                    background: '#f8fafc',
+                    borderRadius: '8px',
+                    border: '1px solid #e2e8f0'
+                }}>
+                    <InfoLabel style={{ marginBottom: '8px' }}>Pojazd przekazała inna osoba</InfoLabel>
+                    <InfoGrid>
+                        <InfoItem>
+                            <InfoLabel style={{ fontSize: '11px' }}>Imię i nazwisko</InfoLabel>
+                            <InfoValue style={{ fontSize: '13px' }}>
+                                {vehicleHandoff.contactPerson.firstName} {vehicleHandoff.contactPerson.lastName}
+                            </InfoValue>
+                        </InfoItem>
+                        {vehicleHandoff.contactPerson.phone && (
+                            <InfoItem>
+                                <InfoLabel style={{ fontSize: '11px' }}>Telefon</InfoLabel>
+                                <InfoValue style={{ fontSize: '13px' }}>
+                                    {vehicleHandoff.contactPerson.phone}
+                                </InfoValue>
+                            </InfoItem>
+                        )}
+                        {vehicleHandoff.contactPerson.email && (
+                            <InfoItem>
+                                <InfoLabel style={{ fontSize: '11px' }}>E-mail</InfoLabel>
+                                <InfoValue style={{ fontSize: '13px' }}>
+                                    {vehicleHandoff.contactPerson.email}
+                                </InfoValue>
+                            </InfoItem>
+                        )}
+                    </InfoGrid>
+                </div>
+            )}
         </Card>
     );
 };
