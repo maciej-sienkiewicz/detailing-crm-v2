@@ -396,8 +396,17 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
 
         if (finalPriceNet < 0) finalPriceNet = 0;
 
-        const vatAmount = Math.round((finalPriceNet * vatRate) / 100);
-        const finalPriceGross = finalPriceNet + vatAmount;
+        let vatAmount;
+        let finalPriceGross;
+
+        if (adjustment.type === 'SET_GROSS') {
+            // For SET_GROSS, ensure exact gross value
+            finalPriceGross = adjustment.value;
+            vatAmount = finalPriceGross - finalPriceNet;
+        } else {
+            vatAmount = Math.round((finalPriceNet * vatRate) / 100);
+            finalPriceGross = finalPriceNet + vatAmount;
+        }
 
         // Oblicz kwotę rabatu
         const basePriceGross = basePriceNet + Math.round((basePriceNet * vatRate) / 100);
