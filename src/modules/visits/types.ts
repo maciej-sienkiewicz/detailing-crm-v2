@@ -114,6 +114,15 @@ export interface Visit {
     mileageAtArrival?: number;
     keysHandedOver: boolean;
     documentsHandedOver: boolean;
+    vehicleHandoff?: {
+        isHandedOffByOtherPerson: boolean;
+        contactPerson: {
+            firstName: string;
+            lastName: string;
+            phone: string;
+            email: string;
+        };
+    };
     technicalNotes?: string;
     colorId: string;
     createdAt: string;
