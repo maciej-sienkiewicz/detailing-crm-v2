@@ -13,7 +13,7 @@ import { QuickColorModal } from './QuickColorModal';
 import { useCustomerVehicles, useCustomerSearch as useAppointmentCustomerSearch } from '@/modules/appointments/hooks/useAppointmentForm';
 import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/types';
 import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
-import { AddCustomerModal } from '@/modules/customers';
+import { QuickCustomerModal } from './QuickCustomerModal';
 import { useDebounce } from '@/common/hooks';
 import * as S from './QuickEventModalStyles';
 import { Toggle } from '@/common/components/Toggle';
@@ -1023,11 +1023,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 </S.ModalContainer>
             </S.Overlay>
 
-            <AddCustomerModal
+            <QuickCustomerModal
                 isOpen={isAddCustomerModalOpen}
                 onClose={() => setIsAddCustomerModalOpen(false)}
                 onSuccess={(customer) => {
-                    // Ustaw nowo utworzonego klienta jako wybranego w formularzu
                     const mapped = {
                         id: customer.id,
                         firstName: customer.firstName,
@@ -1039,7 +1038,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                     handleCustomerSelect(mapped);
                     setCustomerSearch(`${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim());
                     setShowCustomerDropdown(false);
-                    // Odśwież listę wyników wyszukiwania klientów
                     queryClient.invalidateQueries({ queryKey: ['appointments', 'customers', 'search'] });
                 }}
             />
