@@ -460,16 +460,60 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
             return;
         }
 
-        // Apply discount to all services
-        const updatedServices = services.map(service => {
-            const discountMultiplier = (100 - discountPercentage) / 100;
-            const newBasePriceNet = Math.round(service.basePriceNet * discountMultiplier);
+        // Round discount percentage to 2 decimal places
+        const roundedDiscountPercentage = Math.round(discountPercentage * 100) / 100;
 
+        // Apply discount to all services using PERCENT adjustment (negative value = discount)
+        const updatedServices = services.map((service) => {
             return {
                 ...service,
-                basePriceNet: newBasePriceNet,
+                adjustment: {
+                    type: 'PERCENT' as const,
+                    value: -roundedDiscountPercentage,
+                },
             };
         });
+
+        // Calculate actual total after applying discounts
+        let actualTotal = 0;
+        updatedServices.forEach(service => {
+            const pricing = calculateServicePrice(service);
+            actualTotal += discountPriceType === 'gross' ? pricing.finalPriceGross : pricing.finalPriceNet;
+        });
+
+        // If there's a rounding error, adjust the last service's discount
+        const difference = actualTotal - targetAmount;
+        if (difference !== 0 && updatedServices.length > 0) {
+            const lastIndex = updatedServices.length - 1;
+            const lastService = updatedServices[lastIndex];
+
+            // Calculate how much we need to adjust the last service
+            const lastServicePricing = calculateServicePrice(lastService);
+            const lastServiceTotal = discountPriceType === 'gross'
+                ? lastServicePricing.finalPriceGross
+                : lastServicePricing.finalPriceNet;
+
+            const adjustedLastServiceTotal = lastServiceTotal - difference;
+
+            // Set the last service to have exact price using SET_NET or SET_GROSS
+            if (discountPriceType === 'gross') {
+                updatedServices[lastIndex] = {
+                    ...lastService,
+                    adjustment: {
+                        type: 'SET_GROSS' as const,
+                        value: adjustedLastServiceTotal,
+                    },
+                };
+            } else {
+                updatedServices[lastIndex] = {
+                    ...lastService,
+                    adjustment: {
+                        type: 'SET_NET' as const,
+                        value: adjustedLastServiceTotal,
+                    },
+                };
+            }
+        }
 
         onChange(updatedServices);
         closeDiscountModal();
