@@ -45,11 +45,7 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
             }
         }
 
-        if (currentStep === 'verification') {
-            if (!formData.technicalState.mileage || formData.technicalState.mileage <= 0) {
-                validationErrors.mileage = t.checkin.technical.mileageRequired;
-            }
-        }
+        // Przebieg nie jest wymagany – pole opcjonalne
 
         if (currentStep === 'photos') {
             const requiredSlots = ['front', 'rear', 'left_side', 'right_side'];

@@ -7,50 +7,42 @@ const Container = styled.div`
 `;
 
 const CountryCodeSelect = styled.select<{ $hasError?: boolean }>`
-    padding: 16px;
-    border: 1px solid ${props => props.$hasError ? '#ef4444' : '#e2e8f0'};
-    border-radius: 10px;
-    font-size: 16px;
-    background: white;
-    color: #0f172a;
+    padding: 10px ${props => props.theme.spacing.md};
+    background: ${props => props.theme.colors.surfaceAlt};
+    border: 1px solid ${props => props.$hasError ? props.theme.colors.error : 'transparent'};
+    border-radius: ${props => props.theme.radii.lg};
+    font-size: ${props => props.theme.fontSizes.sm};
+    color: ${props => props.theme.colors.text};
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all ${props => props.theme.transitions.fast};
     flex-shrink: 0;
     min-width: 90px;
-
-    &:hover {
-        border-color: ${props => props.$hasError ? '#ef4444' : '#cbd5e1'};
-    }
+    outline: none;
 
     &:focus {
-        outline: none;
-        border-color: ${props => props.$hasError ? '#ef4444' : 'var(--brand-primary)'};
-        box-shadow: 0 0 0 3px ${props => props.$hasError ? 'rgba(239, 68, 68, 0.1)' : 'rgba(14, 165, 233, 0.1)'};
+        background: ${props => props.theme.colors.surface};
+        border-color: ${props => props.$hasError ? props.theme.colors.error : props.theme.colors.primary};
     }
 `;
 
 const PhoneNumberInput = styled.input<{ $hasError?: boolean }>`
     flex: 1;
-    padding: 16px;
-    border: 1px solid ${props => props.$hasError ? '#ef4444' : '#e2e8f0'};
-    border-radius: 10px;
-    font-size: 16px;
-    background: white;
-    color: #0f172a;
-    transition: all 0.2s ease;
+    padding: 10px ${props => props.theme.spacing.md};
+    background: ${props => props.theme.colors.surfaceAlt};
+    border: 1px solid ${props => props.$hasError ? props.theme.colors.error : 'transparent'};
+    border-radius: ${props => props.theme.radii.lg};
+    font-size: ${props => props.theme.fontSizes.sm};
+    color: ${props => props.theme.colors.text};
+    outline: none;
+    transition: all ${props => props.theme.transitions.fast};
 
-    &:hover {
-        border-color: ${props => props.$hasError ? '#ef4444' : '#cbd5e1'};
+    &::placeholder {
+        color: ${props => props.theme.colors.textMuted};
     }
 
     &:focus {
-        outline: none;
-        border-color: ${props => props.$hasError ? '#ef4444' : 'var(--brand-primary)'};
-        box-shadow: 0 0 0 3px ${props => props.$hasError ? 'rgba(239, 68, 68, 0.1)' : 'rgba(14, 165, 233, 0.1)'};
-    }
-
-    &::placeholder {
-        color: #94a3b8;
+        background: ${props => props.theme.colors.surface};
+        border-color: ${props => props.$hasError ? props.theme.colors.error : props.theme.colors.primary};
     }
 `;
 
