@@ -822,6 +822,116 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                     )}
                 </FormGrid>
 
+                <Divider />
+
+                {/* Sekcja: Przekazanie pojazdu przez inną osobę */}
+                <SectionTitle>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    Przekazanie pojazdu
+                </SectionTitle>
+
+                <div style={{ marginBottom: '16px' }}>
+                    <Toggle
+                        checked={formData.vehicleHandoff.isHandedOffByOtherPerson}
+                        onChange={(checked) => onChange({
+                            vehicleHandoff: {
+                                ...formData.vehicleHandoff,
+                                isHandedOffByOtherPerson: checked,
+                            },
+                        })}
+                        label="Pojazd oddaje inna osoba"
+                    />
+                </div>
+
+                {formData.vehicleHandoff.isHandedOffByOtherPerson && (
+                    <>
+                        <FormGrid $columns={2}>
+                            <FieldGroup>
+                                <Label>Imię osoby przekazującej *</Label>
+                                <Input
+                                    value={formData.vehicleHandoff.contactPerson.firstName}
+                                    onChange={(e) => onChange({
+                                        vehicleHandoff: {
+                                            ...formData.vehicleHandoff,
+                                            contactPerson: {
+                                                ...formData.vehicleHandoff.contactPerson,
+                                                firstName: e.target.value,
+                                            },
+                                        },
+                                    })}
+                                />
+                                {errors.handoffFirstName && (
+                                    <ErrorMessage>{errors.handoffFirstName}</ErrorMessage>
+                                )}
+                            </FieldGroup>
+
+                            <FieldGroup>
+                                <Label>Nazwisko osoby przekazującej *</Label>
+                                <Input
+                                    value={formData.vehicleHandoff.contactPerson.lastName}
+                                    onChange={(e) => onChange({
+                                        vehicleHandoff: {
+                                            ...formData.vehicleHandoff,
+                                            contactPerson: {
+                                                ...formData.vehicleHandoff.contactPerson,
+                                                lastName: e.target.value,
+                                            },
+                                        },
+                                    })}
+                                />
+                                {errors.handoffLastName && (
+                                    <ErrorMessage>{errors.handoffLastName}</ErrorMessage>
+                                )}
+                            </FieldGroup>
+
+                            <FieldGroup>
+                                <Label>Telefon</Label>
+                                <PhoneInput
+                                    value={formData.vehicleHandoff.contactPerson.phone}
+                                    onChange={(value) => onChange({
+                                        vehicleHandoff: {
+                                            ...formData.vehicleHandoff,
+                                            contactPerson: {
+                                                ...formData.vehicleHandoff.contactPerson,
+                                                phone: value || '',
+                                            },
+                                        },
+                                    })}
+                                />
+                                {errors.handoffPhone && (
+                                    <ErrorMessage>{errors.handoffPhone}</ErrorMessage>
+                                )}
+                            </FieldGroup>
+
+                            <FieldGroup>
+                                <Label>E-mail</Label>
+                                <Input
+                                    type="email"
+                                    value={formData.vehicleHandoff.contactPerson.email}
+                                    onChange={(e) => onChange({
+                                        vehicleHandoff: {
+                                            ...formData.vehicleHandoff,
+                                            contactPerson: {
+                                                ...formData.vehicleHandoff.contactPerson,
+                                                email: e.target.value,
+                                            },
+                                        },
+                                    })}
+                                />
+                                {errors.handoffEmail && (
+                                    <ErrorMessage>{errors.handoffEmail}</ErrorMessage>
+                                )}
+                            </FieldGroup>
+                        </FormGrid>
+
+                        {errors.handoffContact && (
+                            <ErrorMessage>{errors.handoffContact}</ErrorMessage>
+                        )}
+                    </>
+                )}
+
                 {showTechnicalSection && (
                     <>
                         <Divider />

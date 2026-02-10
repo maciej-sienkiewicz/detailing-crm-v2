@@ -43,6 +43,32 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
             if (!formData.vehicleData) {
                 validationErrors.vehicle = 'Pojazd jest wymagany';
             }
+
+            // Walidacja przekazania pojazdu przez inną osobę
+            if (formData.vehicleHandoff.isHandedOffByOtherPerson) {
+                const handoff = formData.vehicleHandoff.contactPerson;
+
+                if (!handoff.firstName || handoff.firstName.trim().length < 2) {
+                    validationErrors.handoffFirstName = 'Imię osoby przekazującej jest wymagane (min. 2 znaki)';
+                }
+                if (!handoff.lastName || handoff.lastName.trim().length < 2) {
+                    validationErrors.handoffLastName = 'Nazwisko osoby przekazującej jest wymagane (min. 2 znaki)';
+                }
+
+                const hasHandoffEmail = !!handoff.email && handoff.email.trim().length > 0;
+                const hasHandoffPhone = !!handoff.phone && handoff.phone.trim().length > 0;
+
+                if (!hasHandoffEmail && !hasHandoffPhone) {
+                    validationErrors.handoffContact = 'Podaj e-mail lub numer telefonu osoby przekazującej';
+                } else {
+                    if (hasHandoffEmail && !isValidEmail(handoff.email)) {
+                        validationErrors.handoffEmail = 'Nieprawidłowy format adresu e-mail';
+                    }
+                    if (hasHandoffPhone && !isValidPolishPhone(handoff.phone)) {
+                        validationErrors.handoffPhone = 'Nieprawidłowy format numeru telefonu';
+                    }
+                }
+            }
         }
 
         // Przebieg nie jest wymagany – pole opcjonalne

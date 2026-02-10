@@ -64,6 +64,15 @@ export interface CheckInFormData {
         paintType?: string;
     } | null;
     isNewVehicle: boolean; // Czy pojazd został utworzony teraz podczas check-in
+    vehicleHandoff: {
+        isHandedOffByOtherPerson: boolean;
+        contactPerson: {
+            firstName: string;
+            lastName: string;
+            phone: string;
+            email: string;
+        };
+    };
     homeAddress: {
         street: string;
         city: string;
@@ -195,6 +204,14 @@ export interface ReservationToVisitPayload {
     endDateTime?: string;
     customer?: CheckInCustomerIdentity;
     vehicle: CheckInVehicleIdentity;
+    vehicleHandoff?: {
+        contactPerson: {
+            firstName: string;
+            lastName: string;
+            phone: string;
+            email: string;
+        };
+    };
     technicalState: {
         mileage: number;
         deposit: DepositItem;

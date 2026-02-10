@@ -21,6 +21,15 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
         isNewCustomer: initialData.isNewCustomer ?? false,
         vehicleData: initialData.vehicleData || null,
         isNewVehicle: initialData.isNewVehicle ?? false,
+        vehicleHandoff: initialData.vehicleHandoff || {
+            isHandedOffByOtherPerson: false,
+            contactPerson: {
+                firstName: '',
+                lastName: '',
+                phone: '',
+                email: '',
+            },
+        },
         homeAddress: initialData.homeAddress || null,
         company: initialData.company || null,
         technicalState: {
@@ -197,6 +206,14 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
             endDateTime: endInstant,
             customer: customerIdentity,
             vehicle: vehicleIdentity,
+            vehicleHandoff: formData.vehicleHandoff.isHandedOffByOtherPerson ? {
+                contactPerson: {
+                    firstName: formData.vehicleHandoff.contactPerson.firstName,
+                    lastName: formData.vehicleHandoff.contactPerson.lastName,
+                    phone: formData.vehicleHandoff.contactPerson.phone,
+                    email: formData.vehicleHandoff.contactPerson.email,
+                },
+            } : undefined,
             technicalState: formData.technicalState,
             photoIds: formData.photos.map(p => p.fileId!).filter(Boolean),
             damagePoints: formData.damagePoints || [],
