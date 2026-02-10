@@ -301,6 +301,7 @@ interface VerificationStepProps {
     showTechnicalSection?: boolean;
     hideVehicleColorAndPaint?: boolean;
     hideLicensePlate?: boolean;
+    hideVehicleHandoff?: boolean;
     // Initial snapshots for Reset functionality
     initialCustomerData?: CheckInFormData['customerData'];
     initialHasFullCustomerData?: boolean;
@@ -309,7 +310,7 @@ interface VerificationStepProps {
     initialIsNewVehicle?: boolean;
 }
 
-export const VerificationStep    = ({ formData, errors, onChange, onServicesChange, colors, showTechnicalSection = true, hideVehicleColorAndPaint = false, hideLicensePlate = false, initialCustomerData, initialHasFullCustomerData, initialIsNewCustomer, initialVehicleData, initialIsNewVehicle }: VerificationStepProps) => {
+export const VerificationStep    = ({ formData, errors, onChange, onServicesChange, colors, showTechnicalSection = true, hideVehicleColorAndPaint = false, hideLicensePlate = false, hideVehicleHandoff = false, initialCustomerData, initialHasFullCustomerData, initialIsNewCustomer, initialVehicleData, initialIsNewVehicle }: VerificationStepProps) => {
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isCustomerDetailsModalOpen, setIsCustomerDetailsModalOpen] = useState(false);
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
@@ -746,21 +747,23 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                     </FieldGroup>
                 </FormGrid>
 
-                <CheckboxWrapper>
-                    <input
-                        type="checkbox"
-                        checked={formData.vehicleHandoff.isHandedOffByOtherPerson}
-                        onChange={(e) => onChange({
-                            vehicleHandoff: {
-                                ...formData.vehicleHandoff,
-                                isHandedOffByOtherPerson: e.target.checked,
-                            },
-                        })}
-                    />
-                    <span>Pojazd oddaje inna osoba</span>
-                </CheckboxWrapper>
+                {!hideVehicleHandoff && formData.vehicleHandoff && (
+                    <>
+                        <CheckboxWrapper>
+                            <input
+                                type="checkbox"
+                                checked={formData.vehicleHandoff.isHandedOffByOtherPerson}
+                                onChange={(e) => onChange({
+                                    vehicleHandoff: {
+                                        ...formData.vehicleHandoff,
+                                        isHandedOffByOtherPerson: e.target.checked,
+                                    },
+                                })}
+                            />
+                            <span>Pojazd oddaje inna osoba</span>
+                        </CheckboxWrapper>
 
-                {formData.vehicleHandoff.isHandedOffByOtherPerson && (
+                        {formData.vehicleHandoff.isHandedOffByOtherPerson && (
                     <FormGrid $columns={2}>
                         <FieldGroup>
                             <Label>Imię osoby przekazującej *</Label>
@@ -838,11 +841,13 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                                 <ErrorMessage>{errors.handoffEmail}</ErrorMessage>
                             )}
                         </FieldGroup>
-                    </FormGrid>
-                )}
+                        </FormGrid>
+                        )}
 
-                {formData.vehicleHandoff.isHandedOffByOtherPerson && errors.handoffContact && (
-                    <ErrorMessage>{errors.handoffContact}</ErrorMessage>
+                        {formData.vehicleHandoff.isHandedOffByOtherPerson && errors.handoffContact && (
+                            <ErrorMessage>{errors.handoffContact}</ErrorMessage>
+                        )}
+                    </>
                 )}
 
                 <Divider />

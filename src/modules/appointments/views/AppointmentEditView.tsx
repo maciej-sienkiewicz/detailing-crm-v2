@@ -146,6 +146,15 @@ export const AppointmentEditView = () => {
                 isNewCustomer: initialData.isNewCustomer ?? false,
                 vehicleData: initialData.vehicleData ?? null,
                 isNewVehicle: initialData.isNewVehicle ?? false,
+                vehicleHandoff: {
+                    isHandedOffByOtherPerson: false,
+                    contactPerson: {
+                        firstName: '',
+                        lastName: '',
+                        phone: '',
+                        email: '',
+                    },
+                },
                 homeAddress: initialData.homeAddress ?? null,
                 company: initialData.company ?? null,
                 services: (initialData.services as CheckInServiceLineItem[]) ?? [],
@@ -305,6 +314,7 @@ export const AppointmentEditView = () => {
                     showTechnicalSection={false}
                     hideVehicleColorAndPaint={true}
                     hideLicensePlate={true}
+                    hideVehicleHandoff={true}
                     initialCustomerData={initialData?.customerData}
                     initialHasFullCustomerData={initialData?.hasFullCustomerData}
                     initialIsNewCustomer={initialData?.isNewCustomer}
