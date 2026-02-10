@@ -163,7 +163,7 @@ interface PhotoDocumentationStepProps {
 export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: PhotoDocumentationStepProps) => {
     const { uploadSession, photos, refreshPhotos, isRefreshing } = usePhotoUpload(reservationId);
     const [showDamageDocumentation, setShowDamageDocumentation] = useState(false);
-    const [showPhotoDocumentation, setShowPhotoDocumentation] = useState(false);
+    const [showPhotoDocumentation, setShowPhotoDocumentation] = useState(true);
 
     const requiredSlots: PhotoSlotType[] = ['front', 'rear', 'left_side', 'right_side'];
 
