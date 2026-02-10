@@ -87,9 +87,19 @@ export const useServicePricing = () => {
             finalNetMoney = createMoney(0);
         }
 
-        const finalVatAmount = Math.round((toMoneyAmount(finalNetMoney) * vatRate) / 100);
-        const finalVat = createMoney(finalVatAmount);
-        const finalGrossMoney = add(finalNetMoney, finalVat);
+        let finalVat;
+        let finalGrossMoney;
+
+        if (adjustment.type === 'SET_GROSS') {
+            // For SET_GROSS, ensure exact gross value
+            finalGrossMoney = createMoney(adjustment.value);
+            const finalVatAmount = adjustment.value - toMoneyAmount(finalNetMoney);
+            finalVat = createMoney(finalVatAmount);
+        } else {
+            const finalVatAmount = Math.round((toMoneyAmount(finalNetMoney) * vatRate) / 100);
+            finalVat = createMoney(finalVatAmount);
+            finalGrossMoney = add(finalNetMoney, finalVat);
+        }
 
         const discountLabel = getDiscountLabel(adjustment, hasDiscount);
 
