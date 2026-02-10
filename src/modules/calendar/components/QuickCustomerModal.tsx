@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { useCreateCustomer } from '@/modules/customers';
 import type { Customer, CreateCustomerPayload } from '@/modules/customers';
+import { PhoneInput } from '@/common/components/PhoneInput';
 import {
     Overlay,
     ModalContainer,
@@ -47,6 +48,7 @@ export const QuickCustomerModal: React.FC<QuickCustomerModalProps> = ({
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [phone, setPhone] = useState('');
+    const [email, setEmail] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const { createCustomer, isCreating } = useCreateCustomer({
@@ -64,6 +66,7 @@ export const QuickCustomerModal: React.FC<QuickCustomerModalProps> = ({
             setFirstName('');
             setLastName('');
             setPhone('');
+            setEmail('');
             setErrors({});
         }
     }, [isOpen]);
@@ -82,8 +85,17 @@ export const QuickCustomerModal: React.FC<QuickCustomerModalProps> = ({
             newErrors.lastName = 'Nazwisko musi mieć co najmniej 2 znaki';
         }
 
-        if (!phone.trim()) {
-            newErrors.phone = 'Numer telefonu jest wymagany';
+        // Phone has real digits if after stripping non-digits we have more than just a country code
+        const phoneDigits = phone.replace(/\D/g, '');
+        const hasPhone = phoneDigits.length > 3;
+        const hasEmail = email.trim().length > 0;
+
+        if (!hasPhone && !hasEmail) {
+            newErrors.phone = 'Podaj numer telefonu lub adres email';
+        }
+
+        if (hasEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+            newErrors.email = 'Nieprawidłowy format adresu email';
         }
 
         if (Object.keys(newErrors).length > 0) {
@@ -94,8 +106,8 @@ export const QuickCustomerModal: React.FC<QuickCustomerModalProps> = ({
         const payload: CreateCustomerPayload = {
             firstName: firstName.trim(),
             lastName: lastName.trim(),
-            email: null,
-            phone: phone.replace(/[\s-]/g, ''),
+            email: hasEmail ? email.trim().toLowerCase() : null,
+            phone: hasPhone ? phone.replace(/[\s-]/g, '') : null,
             homeAddress: null,
             companyData: null,
             notes: '',
@@ -158,15 +170,27 @@ export const QuickCustomerModal: React.FC<QuickCustomerModalProps> = ({
 
                         <FieldGroup>
                             <Label>Numer telefonu</Label>
-                            <Input
-                                type="tel"
+                            <PhoneInput
                                 value={phone}
-                                onChange={(e) => setPhone(e.target.value)}
-                                placeholder="np. +48 123 456 789"
-                                $hasError={!!errors.phone}
+                                onChange={(value) => setPhone(value)}
+                                hasError={!!errors.phone}
                             />
                             {errors.phone && (
                                 <ErrorMessage>{errors.phone}</ErrorMessage>
+                            )}
+                        </FieldGroup>
+
+                        <FieldGroup>
+                            <Label>Adres email</Label>
+                            <Input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="np. jan@firma.pl"
+                                $hasError={!!errors.email}
+                            />
+                            {errors.email && (
+                                <ErrorMessage>{errors.email}</ErrorMessage>
                             )}
                         </FieldGroup>
 
