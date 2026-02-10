@@ -5,6 +5,7 @@ import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { useCreateCustomer } from '@/modules/customers';
 import type { Customer, CreateCustomerPayload } from '@/modules/customers';
 import { PhoneInput } from '@/common/components/PhoneInput';
+import styled from 'styled-components';
 import {
     Overlay,
     ModalContainer,
@@ -23,6 +24,45 @@ import {
     Footer,
     Button,
 } from './QuickServiceModalStyles';
+
+const PhoneInputWrapper = styled.div`
+    select, input[type="tel"] {
+        padding: 10px ${props => props.theme.spacing.md};
+        background: ${props => props.theme.colors.surfaceAlt};
+        border: 1px solid transparent;
+        border-radius: ${props => props.theme.radii.lg};
+        font-size: ${props => props.theme.fontSizes.sm};
+        color: ${props => props.theme.colors.text};
+        outline: none;
+        transition: all ${props => props.theme.transitions.fast};
+        box-shadow: none;
+
+        &:hover {
+            border-color: transparent;
+        }
+
+        &::placeholder {
+            color: ${props => props.theme.colors.textMuted};
+        }
+
+        &:focus {
+            background: ${props => props.theme.colors.surface};
+            border-color: ${props => props.theme.colors.primary};
+            box-shadow: none;
+        }
+    }
+
+    /* Error state */
+    &.has-error select,
+    &.has-error input[type="tel"] {
+        border-color: ${props => props.theme.colors.error};
+    }
+
+    &.has-error select:focus,
+    &.has-error input[type="tel"]:focus {
+        border-color: ${props => props.theme.colors.error};
+    }
+`;
 
 const IconX = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -170,11 +210,13 @@ export const QuickCustomerModal: React.FC<QuickCustomerModalProps> = ({
 
                         <FieldGroup>
                             <Label>Numer telefonu</Label>
-                            <PhoneInput
-                                value={phone}
-                                onChange={(value) => setPhone(value)}
-                                hasError={!!errors.phone}
-                            />
+                            <PhoneInputWrapper className={errors.phone ? 'has-error' : ''}>
+                                <PhoneInput
+                                    value={phone}
+                                    onChange={(value) => setPhone(value)}
+                                    hasError={!!errors.phone}
+                                />
+                            </PhoneInputWrapper>
                             {errors.phone && (
                                 <ErrorMessage>{errors.phone}</ErrorMessage>
                             )}
