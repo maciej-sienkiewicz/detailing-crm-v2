@@ -304,8 +304,6 @@ const TotalRow = styled.div`
     padding: ${props => props.theme.spacing.lg};
     background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
     border-top: 2px solid ${props => props.theme.colors.border};
-    gap: ${props => props.theme.spacing.md};
-    flex-wrap: wrap;
 `;
 
 const TotalLabel = styled.span`
@@ -332,84 +330,20 @@ const BreakdownItem = styled.div`
     color: ${props => props.theme.colors.textSecondary};
 `;
 
-const DiscountButton = styled.button`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    background: #f59e0b;
-    color: white;
-    border: none;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: ${props => props.theme.spacing.xs};
-
-    &:hover:not(:disabled) {
-        background: #d97706;
-        transform: translateY(-1px);
-    }
-
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-`;
-
-const Input = styled.input`
-    width: 100%;
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    border: 2px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-
-    &:focus {
-        outline: none;
-        border-color: var(--brand-primary);
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-    }
-`;
-
-const RadioGroup = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.md};
-    margin-bottom: ${props => props.theme.spacing.md};
-`;
-
-const RadioLabel = styled.label`
-    display: flex;
-    align-items: center;
-    gap: ${props => props.theme.spacing.xs};
-    cursor: pointer;
-
-    input[type="radio"] {
-        width: 16px;
-        height: 16px;
-        cursor: pointer;
-    }
-`;
-
 interface ServicesTableProps {
     services: ServiceLineItem[];
     visitStatus?: VisitStatus;
     visitId?: string;
     onEditClick?: () => void;
-    onApplyTotalDiscount?: (discountPercentage: number) => void;
 }
 
-export const ServicesTable = ({ services, visitStatus, visitId, onEditClick, onApplyTotalDiscount }: ServicesTableProps) => {
+export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: ServicesTableProps) => {
     const { calculateServicePrice } = useServicePricing();
 
     // Confirm modal state
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [confirmAction, setConfirmAction] = useState<null | 'approve' | 'reject'>(null);
     const [targetService, setTargetService] = useState<ServiceLineItem | null>(null);
-
-    // Discount modal state
-    const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
-    const [discountPriceType, setDiscountPriceType] = useState<'net' | 'gross'>('gross');
-    const [targetPrice, setTargetPrice] = useState('');
 
     const openConfirm = (service: ServiceLineItem, action: 'approve' | 'reject') => {
         setTargetService(service);
@@ -421,40 +355,6 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick, onA
         setIsConfirmOpen(false);
         setConfirmAction(null);
         setTargetService(null);
-    };
-
-    const openDiscountModal = () => {
-        setIsDiscountModalOpen(true);
-        setTargetPrice('');
-        setDiscountPriceType('gross');
-    };
-
-    const closeDiscountModal = () => {
-        setIsDiscountModalOpen(false);
-        setTargetPrice('');
-    };
-
-    const handleApplyDiscount = () => {
-        if (!onApplyTotalDiscount || !targetPrice) return;
-
-        const targetAmount = parseFloat(targetPrice) * 100; // Convert to cents
-        if (isNaN(targetAmount) || targetAmount <= 0) return;
-
-        // Calculate current total based on price type
-        const currentTotal = discountPriceType === 'gross'
-            ? totals.totalFinalGross
-            : totals.totalFinalNet;
-
-        // Calculate discount percentage needed
-        const discountPercentage = ((currentTotal - targetAmount) / currentTotal) * 100;
-
-        if (discountPercentage < 0 || discountPercentage > 100) {
-            alert('Podana kwota jest nieprawidłowa. Musi być niższa niż obecna suma.');
-            return;
-        }
-
-        onApplyTotalDiscount(discountPercentage);
-        closeDiscountModal();
     };
 
     // Totals should use previous (approved) price if an EDIT is pending
@@ -687,11 +587,6 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick, onA
                         </div>
                     )}
                 </div>
-                {canEdit && onApplyTotalDiscount && (
-                    <DiscountButton onClick={openDiscountModal}>
-                        🏷️ Rabatuj całość
-                    </DiscountButton>
-                )}
                 <TotalBreakdown>
                     <BreakdownItem>
                         Netto: {formatCurrency(totals.totalFinalNet / 100)}
@@ -740,67 +635,6 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick, onA
                             }}
                         >
                             {confirmAction === 'approve' ? 'Zatwierdź' : 'Wycofaj'}
-                        </PrimaryBtn>
-                    </ModalFooter>
-                </ModalCard>
-            </ModalOverlay>
-        )}
-
-        {isDiscountModalOpen && (
-            <ModalOverlay onClick={(e) => { if (e.target === e.currentTarget) closeDiscountModal(); }}>
-                <ModalCard role="dialog" aria-modal="true" aria-labelledby="discount-title">
-                    <ModalHeader>
-                        <ModalTitle id="discount-title">Rabatuj całość</ModalTitle>
-                    </ModalHeader>
-                    <ModalBody>
-                        <p style={{ marginBottom: '16px' }}>
-                            Podaj docelową kwotę całkowitą. System automatycznie obliczy i zastosuje procentowy rabat do wszystkich usług.
-                        </p>
-                        <RadioGroup>
-                            <RadioLabel>
-                                <input
-                                    type="radio"
-                                    name="priceType"
-                                    value="gross"
-                                    checked={discountPriceType === 'gross'}
-                                    onChange={() => setDiscountPriceType('gross')}
-                                />
-                                Brutto
-                            </RadioLabel>
-                            <RadioLabel>
-                                <input
-                                    type="radio"
-                                    name="priceType"
-                                    value="net"
-                                    checked={discountPriceType === 'net'}
-                                    onChange={() => setDiscountPriceType('net')}
-                                />
-                                Netto
-                            </RadioLabel>
-                        </RadioGroup>
-                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-                            Docelowa kwota ({discountPriceType === 'gross' ? 'brutto' : 'netto'}):
-                        </label>
-                        <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={targetPrice}
-                            onChange={(e) => setTargetPrice(e.target.value)}
-                            placeholder="0.00"
-                            autoFocus
-                        />
-                        <div style={{ marginTop: '12px', fontSize: '13px', color: '#6b7280' }}>
-                            Obecna suma {discountPriceType === 'gross' ? 'brutto' : 'netto'}:{' '}
-                            <strong>
-                                {formatCurrency((discountPriceType === 'gross' ? totals.totalFinalGross : totals.totalFinalNet) / 100)}
-                            </strong>
-                        </div>
-                    </ModalBody>
-                    <ModalFooter>
-                        <SecondaryBtn onClick={closeDiscountModal}>Anuluj</SecondaryBtn>
-                        <PrimaryBtn onClick={handleApplyDiscount} disabled={!targetPrice || parseFloat(targetPrice) <= 0}>
-                            Zastosuj rabat
                         </PrimaryBtn>
                     </ModalFooter>
                 </ModalCard>

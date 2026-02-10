@@ -219,6 +219,135 @@ const CustomPriceLabel = styled.div`
     text-align: center;
 `;
 
+const DiscountButton = styled.button`
+    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+    background: #f59e0b;
+    color: white;
+    border: none;
+    border-radius: ${props => props.theme.radii.md};
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.xs};
+
+    &:hover:not(:disabled) {
+        background: #d97706;
+        transform: translateY(-1px);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+`;
+
+const ModalOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+`;
+
+const ModalCard = styled.div`
+    width: 100%;
+    max-width: 440px;
+    background: #fff;
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.lg};
+    box-shadow: 0 20px 50px rgba(2,6,23,0.15);
+    overflow: hidden;
+`;
+
+const ModalHeader = styled.div`
+    padding: ${props => props.theme.spacing.lg};
+    border-bottom: 1px solid ${props => props.theme.colors.border};
+`;
+
+const ModalTitle = styled.h4`
+    margin: 0;
+    font-size: ${props => props.theme.fontSizes.md};
+    font-weight: 700;
+`;
+
+const ModalBody = styled.div`
+    padding: ${props => props.theme.spacing.lg};
+    color: ${props => props.theme.colors.textSecondary};
+    font-size: ${props => props.theme.fontSizes.sm};
+`;
+
+const ModalFooter = styled.div`
+    padding: ${props => props.theme.spacing.md};
+    display: flex;
+    justify-content: flex-end;
+    gap: ${props => props.theme.spacing.sm};
+    background: ${props => props.theme.colors.surfaceAlt};
+    border-top: 1px solid ${props => props.theme.colors.border};
+`;
+
+const SecondaryBtn = styled.button`
+    padding: 6px 10px;
+    border-radius: ${props => props.theme.radii.md};
+    border: 1px solid ${props => props.theme.colors.border};
+    background: transparent;
+    color: ${props => props.theme.colors.text};
+    font-size: ${props => props.theme.fontSizes.xs};
+    cursor: pointer;
+
+    &:hover { background: ${props => props.theme.colors.surfaceAlt}; }
+`;
+
+const PrimaryBtn = styled.button`
+    padding: 6px 10px;
+    border-radius: ${props => props.theme.radii.md};
+    border: 1px solid ${props => props.theme.colors.border};
+    background: ${props => props.theme.colors.surfaceAlt};
+    color: var(--brand-primary);
+    font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: 600;
+    cursor: pointer;
+
+    &:disabled { opacity: 0.6; cursor: not-allowed; }
+`;
+
+const RadioGroup = styled.div`
+    display: flex;
+    gap: ${props => props.theme.spacing.md};
+    margin-bottom: ${props => props.theme.spacing.md};
+`;
+
+const RadioLabel = styled.label`
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.xs};
+    cursor: pointer;
+
+    input[type="radio"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+`;
+
+const ModalInput = styled(Input)`
+    width: 100%;
+    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+    border: 2px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.md};
+    font-size: ${props => props.theme.fontSizes.sm};
+
+    &:focus {
+        outline: none;
+        border-color: var(--brand-primary);
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+`;
+
 interface EditableServicesTableProps {
     services: ServiceLineItem[];
     onChange: (services: ServiceLineItem[]) => void;
@@ -229,6 +358,9 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
     const [editingNotes, setEditingNotes] = useState<Record<string, boolean>>({});
     const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
     const [quickServiceInitialName, setQuickServiceInitialName] = useState('');
+    const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
+    const [discountPriceType, setDiscountPriceType] = useState<'net' | 'gross'>('gross');
+    const [targetPrice, setTargetPrice] = useState('');
     const queryClient = useQueryClient();
 
     const calculateServicePrice = (service: ServiceLineItem) => {
@@ -295,6 +427,52 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
         });
 
         return { totalNet, totalGross, totalVat };
+    };
+
+    const openDiscountModal = () => {
+        setIsDiscountModalOpen(true);
+        setTargetPrice('');
+        setDiscountPriceType('gross');
+    };
+
+    const closeDiscountModal = () => {
+        setIsDiscountModalOpen(false);
+        setTargetPrice('');
+    };
+
+    const handleApplyDiscount = () => {
+        if (!targetPrice || services.length === 0) return;
+
+        const targetAmount = parseFloat(targetPrice) * 100; // Convert to cents
+        if (isNaN(targetAmount) || targetAmount <= 0) return;
+
+        const totals = calculateTotals();
+        // Calculate current total based on price type
+        const currentTotal = discountPriceType === 'gross'
+            ? totals.totalGross
+            : totals.totalNet;
+
+        // Calculate discount percentage needed
+        const discountPercentage = ((currentTotal - targetAmount) / currentTotal) * 100;
+
+        if (discountPercentage < 0 || discountPercentage > 100) {
+            alert('Podana kwota jest nieprawidłowa. Musi być niższa niż obecna suma.');
+            return;
+        }
+
+        // Apply discount to all services
+        const updatedServices = services.map(service => {
+            const discountMultiplier = (100 - discountPercentage) / 100;
+            const newBasePriceNet = Math.round(service.basePriceNet * discountMultiplier);
+
+            return {
+                ...service,
+                basePriceNet: newBasePriceNet,
+            };
+        });
+
+        onChange(updatedServices);
+        closeDiscountModal();
     };
 
     const handlePriceEdit = (serviceId: string, field: 'net' | 'gross', value: string) => {
@@ -563,7 +741,16 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                     })}
 
                     <TotalRow>
-                        <TotalLabel colSpan={3}>Podsumowanie:</TotalLabel>
+                        <TotalLabel colSpan={3}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                                <span>Podsumowanie:</span>
+                                {services.length > 0 && (
+                                    <DiscountButton onClick={openDiscountModal}>
+                                        🏷️ Rabatuj całość
+                                    </DiscountButton>
+                                )}
+                            </div>
+                        </TotalLabel>
                         <TotalValue>
                             <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px', flexWrap: 'wrap' }}>
                                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
@@ -589,6 +776,68 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
             onServiceCreate={handleQuickServiceCreate}
             initialServiceName={quickServiceInitialName}
         />
+
+        {/* Discount Modal */}
+        {isDiscountModalOpen && (
+            <ModalOverlay onClick={(e) => { if (e.target === e.currentTarget) closeDiscountModal(); }}>
+                <ModalCard role="dialog" aria-modal="true" aria-labelledby="discount-title">
+                    <ModalHeader>
+                        <ModalTitle id="discount-title">Rabatuj całość</ModalTitle>
+                    </ModalHeader>
+                    <ModalBody>
+                        <p style={{ marginBottom: '16px' }}>
+                            Podaj docelową kwotę całkowitą. System automatycznie obliczy i zastosuje procentowy rabat do wszystkich usług.
+                        </p>
+                        <RadioGroup>
+                            <RadioLabel>
+                                <input
+                                    type="radio"
+                                    name="priceType"
+                                    value="gross"
+                                    checked={discountPriceType === 'gross'}
+                                    onChange={() => setDiscountPriceType('gross')}
+                                />
+                                Brutto
+                            </RadioLabel>
+                            <RadioLabel>
+                                <input
+                                    type="radio"
+                                    name="priceType"
+                                    value="net"
+                                    checked={discountPriceType === 'net'}
+                                    onChange={() => setDiscountPriceType('net')}
+                                />
+                                Netto
+                            </RadioLabel>
+                        </RadioGroup>
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+                            Docelowa kwota ({discountPriceType === 'gross' ? 'brutto' : 'netto'}):
+                        </label>
+                        <ModalInput
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={targetPrice}
+                            onChange={(e) => setTargetPrice(e.target.value)}
+                            placeholder="0.00"
+                            autoFocus
+                        />
+                        <div style={{ marginTop: '12px', fontSize: '13px', color: '#6b7280' }}>
+                            Obecna suma {discountPriceType === 'gross' ? 'brutto' : 'netto'}:{' '}
+                            <strong>
+                                {formatCurrency((discountPriceType === 'gross' ? calculateTotals().totalGross : calculateTotals().totalNet) / 100)}
+                            </strong>
+                        </div>
+                    </ModalBody>
+                    <ModalFooter>
+                        <SecondaryBtn onClick={closeDiscountModal}>Anuluj</SecondaryBtn>
+                        <PrimaryBtn onClick={handleApplyDiscount} disabled={!targetPrice || parseFloat(targetPrice) <= 0}>
+                            Zastosuj rabat
+                        </PrimaryBtn>
+                    </ModalFooter>
+                </ModalCard>
+            </ModalOverlay>
+        )}
     </>
     );
 };

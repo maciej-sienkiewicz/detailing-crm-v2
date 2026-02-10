@@ -285,28 +285,6 @@ export const VisitDetailView = () => {
         });
     };
 
-    const handleApplyTotalDiscount = (discountPercentage: number) => {
-        // Apply discount percentage to all services
-        const updatedServices = visit.services.map(service => {
-            // Calculate the discounted price
-            const discountMultiplier = (100 - discountPercentage) / 100;
-            const newBasePriceNet = Math.round(service.basePriceNet * discountMultiplier);
-
-            return {
-                serviceLineItemId: service.id,
-                basePriceNet: newBasePriceNet,
-            };
-        });
-
-        // Save the changes using the batch update
-        saveServicesChanges({
-            notifyCustomer: false,
-            added: [],
-            updated: updatedServices,
-            deleted: [],
-        });
-    };
-
     return (
         <ViewContainer>
             <VisitHeader
@@ -351,7 +329,6 @@ export const VisitDetailView = () => {
                                     visitStatus={visit.status}
                                     visitId={visitId!}
                                     onEditClick={handleEditServicesClick}
-                                    onApplyTotalDiscount={handleApplyTotalDiscount}
                                 />
                             </div>
 
