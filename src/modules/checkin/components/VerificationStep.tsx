@@ -416,13 +416,23 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     };
 
     const handleCustomerFieldChange = (updates: Partial<CheckInFormData['customerData']>) => {
-        // If user edits while an existing customer is selected, schedule the prompt for blur instead of opening immediately
+        // If user edits while an existing customer is selected
         if (!customerChoiceMade && formData.customerData.id) {
-            setPendingCustomerUpdates(prev => ({ ...(prev || {}), ...updates }));
-            setCustomerPromptScheduled(true);
-            return;
+            // Check if any of the updated fields had a non-empty value before
+            const hasExistingValue = Object.keys(updates).some(key => {
+                const fieldKey = key as keyof CheckInFormData['customerData'];
+                const currentValue = formData.customerData[fieldKey];
+                return currentValue && String(currentValue).trim().length > 0;
+            });
+
+            // Only schedule the prompt if we're changing an existing value
+            if (hasExistingValue) {
+                setPendingCustomerUpdates(prev => ({ ...(prev || {}), ...updates }));
+                setCustomerPromptScheduled(true);
+                return;
+            }
         }
-        // Otherwise, apply immediately (new customer or decision already made)
+        // Otherwise, apply immediately (new customer, decision already made, or filling empty field)
         applyCustomerUpdates(updates);
     };
 
@@ -473,9 +483,19 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
 
     const handleVehicleFieldChange = (updates: Partial<NonNullable<CheckInFormData['vehicleData']>>) => {
         if (!vehicleChoiceMade && formData.vehicleData?.id) {
-            setPendingVehicleUpdates(prev => ({ ...(prev || {}), ...updates }));
-            setVehiclePromptScheduled(true);
-            return;
+            // Check if any of the updated fields had a non-empty value before
+            const hasExistingValue = Object.keys(updates).some(key => {
+                const fieldKey = key as keyof NonNullable<CheckInFormData['vehicleData']>;
+                const currentValue = formData.vehicleData?.[fieldKey];
+                return currentValue && String(currentValue).trim().length > 0;
+            });
+
+            // Only schedule the prompt if we're changing an existing value
+            if (hasExistingValue) {
+                setPendingVehicleUpdates(prev => ({ ...(prev || {}), ...updates }));
+                setVehiclePromptScheduled(true);
+                return;
+            }
         }
         applyVehicleUpdates(updates);
     };
@@ -724,7 +744,8 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                                 const prevPhone = (pendingCustomerUpdates?.phone ?? formData.customerData.phone) || '';
                                 const prevCode = getCountryCode(prevPhone);
                                 const newCode = getCountryCode(value || '');
-                                if (!customerChoiceMade && formData.customerData.id && newCode && newCode !== prevCode) {
+                                // Only show modal if there was a previous phone and the country code changed
+                                if (!customerChoiceMade && formData.customerData.id && prevPhone.trim().length > 0 && newCode && newCode !== prevCode) {
                                     setPendingCustomerUpdates(prev => ({ ...(prev || {}), phone: value || '' }));
                                     setShowCustomerChoice(true);
                                     setCustomerPromptScheduled(false);
@@ -877,7 +898,8 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                             value={(pendingVehicleUpdates?.brand ?? formData.vehicleData?.brand) || ''}
                             onChange={(val) => {
                                 const previousBrand = (pendingVehicleUpdates?.brand ?? formData.vehicleData?.brand) || '';
-                                if (!vehicleChoiceMade && formData.vehicleData?.id && val !== previousBrand) {
+                                // Only show modal if there was a previous brand and it's being changed
+                                if (!vehicleChoiceMade && formData.vehicleData?.id && previousBrand.trim().length > 0 && val !== previousBrand) {
                                     setPendingVehicleUpdates(prev => ({ ...(prev || {}), brand: val, model: '' }));
                                     setShowVehicleChoice(true);
                                     setVehiclePromptScheduled(false);
