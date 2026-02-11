@@ -411,4 +411,27 @@ export const visitApi = {
         );
         return response.data;
     },
+
+    // Draft visit management
+    cancelDraftVisit: async (visitId: string): Promise<void> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            console.log('Mock: Cancelling draft visit', visitId);
+            return;
+        }
+        await apiClient.delete(`${BASE_PATH}/${visitId}`);
+    },
+
+    confirmDraftVisit: async (visitId: string): Promise<{ visitId: string; message: string }> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 600));
+            console.log('Mock: Confirming draft visit', visitId);
+            return {
+                visitId,
+                message: 'Visit confirmed successfully'
+            };
+        }
+        const response = await apiClient.post(`${BASE_PATH}/${visitId}/confirm`);
+        return response.data;
+    },
 };

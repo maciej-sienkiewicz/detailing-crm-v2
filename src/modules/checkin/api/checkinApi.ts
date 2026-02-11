@@ -3,6 +3,7 @@
 import { apiClient } from '@/core';
 import type {
     ReservationToVisitPayload,
+    CreateVisitFromReservationResponse,
     MobileUploadSession,
     UploadPhotoPayload,
     PhotoUploadResponse,
@@ -21,10 +22,32 @@ const mockUploadSession: MobileUploadSession = {
 
 const mockCreateVisitFromReservation = async (
     payload: ReservationToVisitPayload
-): Promise<{ visitId: string }> => {
+): Promise<CreateVisitFromReservationResponse> => {
     await new Promise(resolve => setTimeout(resolve, 1200));
     console.log('Mock: Creating visit from reservation', payload);
-    return { visitId: `visit_${Date.now()}` };
+    return {
+        visitId: `visit_${Date.now()}`,
+        protocols: [
+            {
+                id: `protocol_${Date.now()}_1`,
+                templateId: 'template_1',
+                templateName: 'Protokół przyjęcia pojazdu',
+                stage: 'CHECK_IN',
+                isMandatory: true,
+                status: 'READY_FOR_SIGNATURE',
+                filledPdfUrl: 'https://example.com/protocol1.pdf'
+            },
+            {
+                id: `protocol_${Date.now()}_2`,
+                templateId: 'template_2',
+                templateName: 'Warunki świadczenia usług',
+                stage: 'CHECK_IN',
+                isMandatory: true,
+                status: 'READY_FOR_SIGNATURE',
+                filledPdfUrl: 'https://example.com/protocol2.pdf'
+            }
+        ]
+    };
 };
 
 const mockCreateUploadSession = async (
@@ -68,7 +91,7 @@ const mockGetSessionPhotos = async (
 export const checkinApi = {
     createVisitFromReservation: async (
         payload: ReservationToVisitPayload
-    ): Promise<{ visitId: string }> => {
+    ): Promise<CreateVisitFromReservationResponse> => {
         if (USE_MOCKS) {
             return mockCreateVisitFromReservation(payload);
         }

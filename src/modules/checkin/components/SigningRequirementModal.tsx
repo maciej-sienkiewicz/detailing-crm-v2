@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { Modal } from '@/common/components/Modal';
 import { Button } from '@/common/components/Button';
-import { protocolsApi } from '@/modules/protocols/api/protocolsApi';
+import { visitApi } from '@/modules/visits/api/visitApi';
 import { DocumentPreview } from './DocumentPreview';
 import { SkipSigningConfirmDialog } from './SkipSigningConfirmDialog';
+import type { ProtocolResponse } from '../types';
 
 const ModalContent = styled.div`
     display: flex;
@@ -192,39 +193,42 @@ const EmptyState = styled.div`
 interface SigningRequirementModalProps {
     isOpen: boolean;
     onClose: () => void;
+    onCancel: () => void; // Called when user cancels (deletes draft visit)
     visitId: string;
     visitNumber: string;
     customerName: string;
+    protocols: ProtocolResponse[];
     onConfirm: () => void;
 }
 
 export const SigningRequirementModal = ({
     isOpen,
     onClose,
+    onCancel,
     visitId,
     visitNumber,
     customerName,
+    protocols,
     onConfirm,
 }: SigningRequirementModalProps) => {
     const [selectedForPrint, setSelectedForPrint] = useState<Set<string>>(new Set());
     const [previewProtocolId, setPreviewProtocolId] = useState<string | null>(null);
     const [showSkipConfirmDialog, setShowSkipConfirmDialog] = useState(false);
 
-    // Fetch protocols for this visit
-    const { data: protocols, isLoading, error } = useQuery({
-        queryKey: ['visit-protocols', visitId],
-        queryFn: async () => {
-            // Try to get existing protocols first
-            let protocols = await protocolsApi.getVisitProtocols(visitId);
-
-            // If no protocols exist, generate them for CHECK_IN stage
-            if (!protocols || protocols.length === 0) {
-                protocols = await protocolsApi.generateVisitProtocols(visitId, 'CHECK_IN');
-            }
-
-            return protocols;
+    // Mutation for cancelling (deleting) draft visit
+    const cancelVisitMutation = useMutation({
+        mutationFn: () => visitApi.cancelDraftVisit(visitId),
+        onSuccess: () => {
+            onCancel();
         },
-        enabled: isOpen && !!visitId,
+    });
+
+    // Mutation for confirming draft visit
+    const confirmVisitMutation = useMutation({
+        mutationFn: () => visitApi.confirmDraftVisit(visitId),
+        onSuccess: () => {
+            onConfirm();
+        },
     });
 
     // Reset state when modal opens
@@ -269,18 +273,24 @@ export const SigningRequirementModal = ({
         setShowSkipConfirmDialog(false);
     };
 
+    const handleCancel = () => {
+        if (window.confirm('Czy na pewno chcesz anulować? Wizyta i wszystkie dokumenty zostaną usunięte.')) {
+            cancelVisitMutation.mutate();
+        }
+    };
+
     const handleConfirm = () => {
         // TODO: Handle printing of selected documents
-        // For now, just confirm
-        onConfirm();
+        confirmVisitMutation.mutate();
     };
 
     const mandatoryProtocols = protocols?.filter(p => p.isMandatory) || [];
     const allMandatoryHandled = mandatoryProtocols.every(p =>
-        selectedForPrint.has(p.id) || p.isSigned
+        selectedForPrint.has(p.id)
     );
 
     const canProceed = allMandatoryHandled || mandatoryProtocols.length === 0;
+    const isProcessing = cancelVisitMutation.isPending || confirmVisitMutation.isPending;
 
     return (
         <>
@@ -292,15 +302,7 @@ export const SigningRequirementModal = ({
             >
                 <ModalContent>
 
-                    {isLoading ? (
-                        <LoadingContainer>
-                            Ładowanie protokołów...
-                        </LoadingContainer>
-                    ) : error ? (
-                        <EmptyState>
-                            Wystąpił błąd podczas ładowania protokołów
-                        </EmptyState>
-                    ) : !protocols || protocols.length === 0 ? (
+                    {!protocols || protocols.length === 0 ? (
                         <EmptyState>
                             Brak wymaganych protokołów dla tej wizyty
                         </EmptyState>
@@ -326,13 +328,8 @@ export const SigningRequirementModal = ({
 
                                     <DocumentInfo>
                                         <DocumentName>
-                                            {protocol.protocolTemplate?.name || 'Protokół'}
+                                            {protocol.templateName || 'Protokół'}
                                         </DocumentName>
-                                        {protocol.protocolTemplate?.description && (
-                                            <DocumentDescription>
-                                                {protocol.protocolTemplate.description}
-                                            </DocumentDescription>
-                                        )}
                                     </DocumentInfo>
 
                                     <StatusBadge $mandatory={protocol.isMandatory}>
@@ -397,19 +394,23 @@ export const SigningRequirementModal = ({
 
                     <FooterActions>
                         <PrimaryActionGroup>
-                            <Button $variant="secondary" onClick={onClose}>
-                                Anuluj
+                            <Button
+                                $variant="secondary"
+                                onClick={handleCancel}
+                                disabled={isProcessing}
+                            >
+                                Anuluj wizytę
                             </Button>
                             <Button
                                 $variant="primary"
                                 onClick={handleConfirm}
-                                disabled={!canProceed}
+                                disabled={!canProceed || isProcessing}
                             >
-                                Zatwierdź i rozpocznij wizytę
+                                {isProcessing ? 'Przetwarzanie...' : 'Zatwierdź i rozpocznij wizytę'}
                             </Button>
                         </PrimaryActionGroup>
 
-                        {!canProceed && (
+                        {!canProceed && !isProcessing && (
                             <SecondaryActionGroup>
                                 <SkipButton
                                     $variant="secondary"

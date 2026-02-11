@@ -12,7 +12,7 @@ import { useCheckInValidation } from '../hooks/useCheckInValidation';
 import { VerificationStep } from '../components/VerificationStep';
 import { PhotoDocumentationStep } from '../components/PhotoDocumentationStep';
 import { SigningRequirementModal } from '../components/SigningRequirementModal';
-import type { CheckInFormData } from '../types';
+import type { CheckInFormData, ProtocolResponse } from '../types';
 import type { AppointmentColor } from '@/modules/appointments/types';
 
 const Container = styled.div`
@@ -124,10 +124,12 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
         isOpen: boolean;
         visitId: string | null;
         visitNumber: string | null;
+        protocols: ProtocolResponse[];
     }>({
         isOpen: false,
         visitId: null,
         visitNumber: null,
+        protocols: [],
     });
 
     const handleNext = () => {
@@ -140,14 +142,15 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
         if (!isStepValid) return;
 
         try {
-            // Step 1: Create the visit
+            // Step 1: Create the DRAFT visit with protocols
             const result = await submitCheckIn();
 
-            // Step 2: Open the Signing Requirement Modal
+            // Step 2: Open the Signing Requirement Modal with protocols
             setSigningModalState({
                 isOpen: true,
                 visitId: result.visitId,
                 visitNumber: `VIS-${result.visitId.slice(0, 8)}`,
+                protocols: result.protocols || [],
             });
         } catch (error) {
             console.error('Check-in failed:', error);
@@ -169,9 +172,20 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
                 isOpen: false,
                 visitId: null,
                 visitNumber: null,
+                protocols: [],
             });
             onComplete(signingModalState.visitId);
         }
+    };
+
+    const handleSigningModalCancel = () => {
+        // Visit was cancelled (deleted), reset state
+        setSigningModalState({
+            isOpen: false,
+            visitId: null,
+            visitNumber: null,
+            protocols: [],
+        });
     };
 
     const handleSigningModalClose = () => {
@@ -310,9 +324,11 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
                 <SigningRequirementModal
                     isOpen={signingModalState.isOpen}
                     onClose={handleSigningModalClose}
+                    onCancel={handleSigningModalCancel}
                     visitId={signingModalState.visitId}
                     visitNumber={signingModalState.visitNumber || ''}
                     customerName={`${formData.customerData.firstName} ${formData.customerData.lastName}`}
+                    protocols={signingModalState.protocols}
                     onConfirm={handleSigningModalConfirm}
                 />
             )}

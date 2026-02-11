@@ -244,6 +244,21 @@ export interface PhotoUploadResponse {
     uploadedAt: string;
 }
 
+export interface ProtocolResponse {
+    id: string;
+    templateId: string;
+    templateName: string;
+    stage: 'CHECK_IN' | 'CHECK_OUT';
+    isMandatory: boolean;
+    status: 'READY_FOR_SIGNATURE' | 'PENDING';
+    filledPdfUrl?: string; // Presigned URL (10 min)
+}
+
+export interface CreateVisitFromReservationResponse {
+    visitId: string;
+    protocols: ProtocolResponse[];
+}
+
 export type CheckInStep = 'verification' | 'photos';
 
 export type MoneyAmount = number;

@@ -110,7 +110,7 @@ const steps = [
 ];
 
 const getStepIndex = (status: VisitStatus): number => {
-    if (status === 'REJECTED' || status === 'ARCHIVED') return -1;
+    if (status === 'DRAFT' || status === 'REJECTED' || status === 'ARCHIVED') return -1;
     return steps.findIndex(step => step.status === status);
 };
 
@@ -123,6 +123,22 @@ const calculateProgress = (currentIndex: number): number => {
 export const StatusStepper = ({ currentStatus }: StatusStepperProps) => {
     const currentIndex = getStepIndex(currentStatus);
     const progress = calculateProgress(currentIndex);
+
+    if (currentStatus === 'DRAFT') {
+        return (
+            <StepperContainer>
+                <div style={{ textAlign: 'center', padding: '20px' }}>
+                    <span style={{ fontSize: '48px' }}>📝</span>
+                    <h3 style={{ margin: '16px 0 4px', fontSize: '18px', fontWeight: 600 }}>
+                        Wizyta w przygotowaniu
+                    </h3>
+                    <p style={{ margin: 0, fontSize: '14px', color: '#94a3b8' }}>
+                        Wizyta oczekuje na potwierdzenie i podpisanie dokumentów
+                    </p>
+                </div>
+            </StepperContainer>
+        );
+    }
 
     if (currentStatus === 'REJECTED') {
         return (
