@@ -219,7 +219,8 @@ export const SigningRequirementModal = ({
     const cancelVisitMutation = useMutation({
         mutationFn: () => visitApi.cancelDraftVisit(visitId),
         onSuccess: () => {
-            onCancel();
+            onClose(); // Close the modal first
+            onCancel(); // Then notify parent
         },
     });
 
@@ -227,7 +228,8 @@ export const SigningRequirementModal = ({
     const confirmVisitMutation = useMutation({
         mutationFn: () => visitApi.confirmDraftVisit(visitId),
         onSuccess: () => {
-            onConfirm();
+            onClose(); // Close the modal first
+            onConfirm(); // Then notify parent
         },
     });
 
@@ -274,9 +276,7 @@ export const SigningRequirementModal = ({
     };
 
     const handleCancel = () => {
-        if (window.confirm('Czy na pewno chcesz anulować? Wizyta i wszystkie dokumenty zostaną usunięte.')) {
-            cancelVisitMutation.mutate();
-        }
+        cancelVisitMutation.mutate();
     };
 
     const handleConfirm = () => {
