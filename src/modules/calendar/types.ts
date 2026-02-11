@@ -31,6 +31,7 @@ export interface AppointmentEventData extends CalendarEventData {
     serviceNames: string[];
     isAllDay: boolean;
     status?: string;
+    note?: string;
 }
 
 /**
@@ -41,6 +42,7 @@ export interface VisitEventData extends CalendarEventData {
     visitNumber: string;
     status: string;
     licensePlate: string;
+    technicalNotes?: string;
 }
 
 /**
@@ -84,6 +86,7 @@ export interface AppointmentResponse {
     totalNet: number;
     totalGross: number;
     totalVat: number;
+    note?: string;
 }
 
 /**
@@ -114,6 +117,7 @@ export interface VisitResponse {
     } | null;
     totalNet: number;
     totalGross: number;
+    technicalNotes?: string;
     createdAt: string;
     updatedAt: string;
 }
