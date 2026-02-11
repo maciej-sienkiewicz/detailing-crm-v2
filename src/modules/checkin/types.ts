@@ -34,13 +34,13 @@ export interface DamagePoint {
 
 export interface ServiceLineItem {
     id: string;
-    serviceId: string;
+    serviceId: string | null;
     serviceName: string;
     basePriceNet: number;
     vatRate: number;
     adjustment: PriceAdjustment;
     note?: string;
-    requireManualPrice: boolean;
+    requireManualPrice?: boolean;
 }
 
 export interface CheckInFormData {

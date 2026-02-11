@@ -200,6 +200,18 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
             };
         })();
 
+        // Transform services: convert temporary serviceIds to null
+        const transformedServices = formData.services.map(service => {
+            // If serviceId is null, starts with "temp_", or is "null" string, convert to null
+            const isTemporary = !service.serviceId ||
+                                service.serviceId.startsWith('temp_') ||
+                                service.serviceId === 'null';
+            return {
+                ...service,
+                serviceId: isTemporary ? null : service.serviceId,
+            };
+        });
+
         const payload: ReservationToVisitPayload = {
             reservationId,
             startDateTime: startInstant,
@@ -217,7 +229,7 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
             technicalState: formData.technicalState,
             photoIds: formData.photos.map(p => p.fileId!).filter(Boolean),
             damagePoints: formData.damagePoints || [],
-            services: formData.services,
+            services: transformedServices,
             appointmentColorId: formData.appointmentColorId,
         };
 
