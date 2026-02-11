@@ -162,16 +162,6 @@ export const NotificationStep = ({ customer, onChannelsChange }: NotificationSte
 
     return (
         <Container>
-            <CustomerCard>
-                <CustomerName>
-                    {customer.firstName} {customer.lastName}
-                </CustomerName>
-                <CustomerContact>
-                    📞 {customer.phone}
-                    {customer.email && ` • 📧 ${customer.email}`}
-                </CustomerContact>
-            </CustomerCard>
-
             <ChannelsSection>
                 <SectionTitle>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
