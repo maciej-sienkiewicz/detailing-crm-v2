@@ -122,11 +122,13 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
     // State for Signing Requirement Modal
     const [signingModalState, setSigningModalState] = useState<{
         isOpen: boolean;
+        isCreating: boolean;
         visitId: string | null;
         visitNumber: string | null;
         protocols: ProtocolResponse[];
     }>({
         isOpen: false,
+        isCreating: false,
         visitId: null,
         visitNumber: null,
         protocols: [],
@@ -141,19 +143,37 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
     const handleSubmit = async () => {
         if (!isStepValid) return;
 
+        // Step 1: Open modal immediately with loading state
+        setSigningModalState({
+            isOpen: true,
+            isCreating: true,
+            visitId: null,
+            visitNumber: null,
+            protocols: [],
+        });
+
         try {
-            // Step 1: Create the DRAFT visit with protocols
+            // Step 2: Create the DRAFT visit with protocols in background
             const result = await submitCheckIn();
 
-            // Step 2: Open the Signing Requirement Modal with protocols
+            // Step 3: Update modal with visit data
             setSigningModalState({
                 isOpen: true,
+                isCreating: false,
                 visitId: result.visitId,
                 visitNumber: `VIS-${result.visitId.slice(0, 8)}`,
                 protocols: result.protocols || [],
             });
         } catch (error) {
             console.error('Check-in failed:', error);
+            // Close modal on error
+            setSigningModalState({
+                isOpen: false,
+                isCreating: false,
+                visitId: null,
+                visitNumber: null,
+                protocols: [],
+            });
         }
     };
 
@@ -170,6 +190,7 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
 
             setSigningModalState({
                 isOpen: false,
+                isCreating: false,
                 visitId: null,
                 visitNumber: null,
                 protocols: [],
@@ -182,6 +203,7 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
         // Visit was cancelled (deleted), reset state
         setSigningModalState({
             isOpen: false,
+            isCreating: false,
             visitId: null,
             visitNumber: null,
             protocols: [],
@@ -192,6 +214,7 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
         // Allow closing without completing (user can handle documents later)
         setSigningModalState({
             isOpen: false,
+            isCreating: false,
             visitId: null,
             visitNumber: null,
         });
@@ -320,9 +343,10 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
             </Container>
 
             {/* Signing Requirement Modal */}
-            {signingModalState.visitId && (
+            {signingModalState.isOpen && (
                 <SigningRequirementModal
                     isOpen={signingModalState.isOpen}
+                    isCreating={signingModalState.isCreating}
                     onClose={handleSigningModalClose}
                     onCancel={handleSigningModalCancel}
                     visitId={signingModalState.visitId}

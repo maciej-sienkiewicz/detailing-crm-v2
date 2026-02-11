@@ -192,9 +192,10 @@ const EmptyState = styled.div`
 
 interface SigningRequirementModalProps {
     isOpen: boolean;
+    isCreating: boolean; // True while visit is being created
     onClose: () => void;
     onCancel: () => void; // Called when user cancels (deletes draft visit)
-    visitId: string;
+    visitId: string | null;
     visitNumber: string;
     customerName: string;
     protocols: ProtocolResponse[];
@@ -203,6 +204,7 @@ interface SigningRequirementModalProps {
 
 export const SigningRequirementModal = ({
     isOpen,
+    isCreating,
     onClose,
     onCancel,
     visitId,
@@ -217,7 +219,10 @@ export const SigningRequirementModal = ({
 
     // Mutation for cancelling (deleting) draft visit
     const cancelVisitMutation = useMutation({
-        mutationFn: () => visitApi.cancelDraftVisit(visitId),
+        mutationFn: () => {
+            if (!visitId) throw new Error('No visit to cancel');
+            return visitApi.cancelDraftVisit(visitId);
+        },
         onSuccess: () => {
             onClose(); // Close the modal first
             onCancel(); // Then notify parent
@@ -226,7 +231,10 @@ export const SigningRequirementModal = ({
 
     // Mutation for confirming draft visit
     const confirmVisitMutation = useMutation({
-        mutationFn: () => visitApi.confirmDraftVisit(visitId),
+        mutationFn: () => {
+            if (!visitId) throw new Error('No visit to confirm');
+            return visitApi.confirmDraftVisit(visitId);
+        },
         onSuccess: () => {
             onClose(); // Close the modal first
             onConfirm(); // Then notify parent
@@ -291,6 +299,7 @@ export const SigningRequirementModal = ({
 
     const canProceed = allMandatoryHandled || mandatoryProtocols.length === 0;
     const isProcessing = cancelVisitMutation.isPending || confirmVisitMutation.isPending;
+    const canInteract = !isCreating && visitId !== null;
 
     return (
         <>
@@ -302,7 +311,29 @@ export const SigningRequirementModal = ({
             >
                 <ModalContent>
 
-                    {!protocols || protocols.length === 0 ? (
+                    {isCreating ? (
+                        <LoadingContainer>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                                <div className="spinner" style={{
+                                    border: '3px solid #f3f4f6',
+                                    borderTop: '3px solid #3b82f6',
+                                    borderRadius: '50%',
+                                    width: '40px',
+                                    height: '40px',
+                                    animation: 'spin 1s linear infinite'
+                                }} />
+                                <div style={{ fontSize: '16px', fontWeight: 500 }}>
+                                    Uzupełniam dane na protokole...
+                                </div>
+                            </div>
+                            <style>{`
+                                @keyframes spin {
+                                    0% { transform: rotate(0deg); }
+                                    100% { transform: rotate(360deg); }
+                                }
+                            `}</style>
+                        </LoadingContainer>
+                    ) : !protocols || protocols.length === 0 ? (
                         <EmptyState>
                             Brak wymaganych protokołów dla tej wizyty
                         </EmptyState>
@@ -397,20 +428,20 @@ export const SigningRequirementModal = ({
                             <Button
                                 $variant="secondary"
                                 onClick={handleCancel}
-                                disabled={isProcessing}
+                                disabled={!canInteract || isProcessing}
                             >
                                 Anuluj wizytę
                             </Button>
                             <Button
                                 $variant="primary"
                                 onClick={handleConfirm}
-                                disabled={!canProceed || isProcessing}
+                                disabled={!canInteract || !canProceed || isProcessing}
                             >
                                 {isProcessing ? 'Przetwarzanie...' : 'Zatwierdź i rozpocznij wizytę'}
                             </Button>
                         </PrimaryActionGroup>
 
-                        {!canProceed && !isProcessing && (
+                        {!canProceed && !isProcessing && canInteract && (
                             <SecondaryActionGroup>
                                 <SkipButton
                                     $variant="secondary"
@@ -425,7 +456,7 @@ export const SigningRequirementModal = ({
             </Modal>
 
             {/* Document Preview Modal */}
-            {previewProtocolId && (
+            {previewProtocolId && visitId && (
                 <DocumentPreview
                     isOpen={!!previewProtocolId}
                     onClose={handleClosePreview}
