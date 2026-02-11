@@ -318,6 +318,33 @@ const EmptyState = styled.div`
     border-radius: 10px;
 `;
 
+const NotesContainer = styled.div`
+    padding: 14px;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-radius: 12px;
+    border-left: 4px solid #f59e0b;
+`;
+
+const NotesLabel = styled.div`
+    font-size: 11px;
+    font-weight: 800;
+    color: #92400e;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+`;
+
+const NotesText = styled.div`
+    font-size: 13px;
+    color: #78350f;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+`;
+
 interface EventSummaryPopoverProps {
     event: AppointmentEventData | VisitEventData;
     position: { x: number; y: number };
@@ -338,6 +365,11 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
     onCancelReservationClick,
 }) => {
     const isAppointment = event.type === 'APPOINTMENT';
+
+    // Get appropriate note based on event type
+    const eventNote = isAppointment
+        ? (event as AppointmentEventData).note
+        : (event as VisitEventData).technicalNotes;
 
     const formatPrice = (amount?: number, currency?: string) => {
         if (!amount) return '—';
@@ -440,6 +472,21 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                 </InfoIcon>
                                 <InfoValue>{formatStatus(event.status) || '—'}</InfoValue>
                             </InfoRow>
+                        </Section>
+                    )}
+
+                    {/* Notatka */}
+                    {eventNote && (
+                        <Section>
+                            <NotesContainer>
+                                <NotesLabel>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '14px', height: '14px' }}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    {isAppointment ? 'Notatka' : 'Notatka techniczna'}
+                                </NotesLabel>
+                                <NotesText>{eventNote}</NotesText>
+                            </NotesContainer>
                         </Section>
                     )}
 

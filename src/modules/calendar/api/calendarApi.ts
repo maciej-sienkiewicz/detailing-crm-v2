@@ -160,6 +160,7 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         totalNet: appointment.totalNet || undefined,
         currency: 'PLN',
         status: appointment.status,
+        note: appointment.note,
     };
 
     return {
@@ -213,6 +214,7 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
         totalPrice: visit.totalGross,
         totalNet: visit.totalNet,
         currency: 'PLN',
+        technicalNotes: visit.technicalNotes,
     };
 
     // Visits are typically all-day events
