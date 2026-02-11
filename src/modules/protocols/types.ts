@@ -35,6 +35,7 @@ export interface VisitProtocol {
   isSigned: boolean;
   signedAt?: string;
   signedBy?: string;
+  filledPdfUrl?: string; // URL to the filled PDF with visit data
   signatureUrl?: string;
   notes?: string;
   createdAt: string;

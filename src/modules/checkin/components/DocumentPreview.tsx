@@ -162,7 +162,7 @@ export const DocumentPreview = ({
     });
 
     const protocol = protocols?.find(p => p.id === protocolId);
-    const templateUrl = protocol?.protocolTemplate?.templateUrl;
+    const pdfUrl = protocol?.filledPdfUrl || protocol?.protocolTemplate?.templateUrl;
 
     const handlePdfError = () => {
         setPdfError(true);
@@ -204,7 +204,7 @@ export const DocumentPreview = ({
             );
         }
 
-        if (!protocol || !templateUrl) {
+        if (!protocol || !pdfUrl) {
             return (
                 <PlaceholderPreview>
                     <PlaceholderIcon>
@@ -222,10 +222,9 @@ export const DocumentPreview = ({
                             />
                         </svg>
                     </PlaceholderIcon>
-                    <PlaceholderText>Podgląd w przygotowaniu</PlaceholderText>
+                    <PlaceholderText>Podgląd niedostępny</PlaceholderText>
                     <PlaceholderDescription>
-                        W przyszłych wersjach tutaj pojawi się dynamiczny podgląd dokumentu
-                        z wypełnionymi danymi wizyty (przebieg, dane klienta, itp.).
+                        Dokument nie został jeszcze wygenerowany lub nie jest dostępny.
                     </PlaceholderDescription>
                 </PlaceholderPreview>
             );
@@ -256,7 +255,7 @@ export const DocumentPreview = ({
                     </ErrorDetails>
                     <Button
                         $variant="primary"
-                        onClick={() => window.open(templateUrl, '_blank')}
+                        onClick={() => window.open(pdfUrl, '_blank')}
                     >
                         Otwórz w nowej karcie
                     </Button>
@@ -267,7 +266,7 @@ export const DocumentPreview = ({
         // Try to display PDF via iframe
         return (
             <IframePreview
-                src={`${templateUrl}#toolbar=0`}
+                src={`${pdfUrl}#toolbar=0`}
                 title="Document Preview"
                 onError={handlePdfError}
             />
@@ -287,10 +286,10 @@ export const DocumentPreview = ({
                 </PreviewContainer>
 
                 <FooterActions>
-                    {templateUrl && !pdfError && (
+                    {pdfUrl && !pdfError && (
                         <Button
                             $variant="secondary"
-                            onClick={() => window.open(templateUrl, '_blank')}
+                            onClick={() => window.open(pdfUrl, '_blank')}
                         >
                             Otwórz w nowej karcie
                         </Button>
