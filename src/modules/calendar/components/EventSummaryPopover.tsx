@@ -347,6 +347,17 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
         }).format(amount / 100);
     };
 
+    const formatStatus = (status: string) => {
+        const statusMap: Record<string, string> = {
+            'IN_PROGRESS': 'W trakcie',
+            'READY_FOR_PICKUP': 'Gotowe do odbioru',
+            'COMPLETED': 'Zakończone',
+            'REJECTED': 'Odrzucone',
+            'ARCHIVED': 'Zarchiwizowane',
+        };
+        return statusMap[status] || status;
+    };
+
     return (
         <>
             <Overlay onClick={onClose} />
@@ -427,7 +438,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                         <path d="M12 6v6l4 2" />
                                     </svg>
                                 </InfoIcon>
-                                <InfoValue>{event.status || '—'}</InfoValue>
+                                <InfoValue>{formatStatus(event.status) || '—'}</InfoValue>
                             </InfoRow>
                         </Section>
                     )}

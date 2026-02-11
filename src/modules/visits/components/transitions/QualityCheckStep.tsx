@@ -140,9 +140,9 @@ interface QualityCheckStepProps {
 }
 
 const defaultChecks: QualityCheckItem[] = [
-    { id: 'scope', label: 'Zgodność z zakresem zlecenia', checked: false },
-    { id: 'quality', label: 'Jakość wykonania usług', checked: false },
-    { id: 'condition', label: 'Stan techniczny pojazdu', checked: false },
+    { id: 'scope', label: 'Zgodność z zakresem zlecenia', checked: true },
+    { id: 'quality', label: 'Jakość wykonania usług', checked: true },
+    { id: 'condition', label: 'Stan techniczny pojazdu', checked: true },
 ];
 
 export const QualityCheckStep = ({ onApprove, onReject }: QualityCheckStepProps) => {

@@ -14,6 +14,7 @@ import type {
     SendNotificationPayload,
     SendNotificationResponse,
 } from '../types/stateTransitions';
+import {useToast} from "@/common/components/Toast";
 
 export type {
     TransitionType,
@@ -47,9 +48,9 @@ export const useStateTransitionWizard = (
     }>({});
 
     const [_qualityChecks, _setQualityChecks] = useState<QualityCheckItem[]>([
-        { id: '1', label: 'Wszystkie usługi wykonane', checked: false },
-        { id: '2', label: 'Pojazd czysty wewnątrz', checked: false },
-        { id: '3', label: 'Pojazd czysty na zewnątrz', checked: false },
+        { id: '1', label: 'Wszystkie usługi wykonane', checked: true },
+        { id: '2', label: 'Pojazd czysty wewnątrz', checked: true },
+        { id: '3', label: 'Pojazd czysty na zewnątrz', checked: true },
     ]);
 
     const totalSteps = transitionType === 'in_progress_to_ready' ? 2 : 3;

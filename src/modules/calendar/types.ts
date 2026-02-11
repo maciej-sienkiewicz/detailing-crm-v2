@@ -39,7 +39,7 @@ export interface AppointmentEventData extends CalendarEventData {
 export interface VisitEventData extends CalendarEventData {
     type: 'VISIT';
     visitNumber: string;
-    status: 'IN_PROGRESS' | 'READY_FOR_PICKUP' | 'COMPLETED' | 'REJECTED' | 'ARCHIVED';
+    status: string;
     licensePlate: string;
 }
 

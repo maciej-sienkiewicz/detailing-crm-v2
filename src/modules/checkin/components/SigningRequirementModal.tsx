@@ -291,12 +291,6 @@ export const SigningRequirementModal = ({
                 maxWidth="1000px"
             >
                 <ModalContent>
-                    <Header>
-                        <Title>Dokumentacja i Podpisy</Title>
-                        <Subtitle>
-                            Wizyta: {visitNumber} • Klient: {customerName}
-                        </Subtitle>
-                    </Header>
 
                     {isLoading ? (
                         <LoadingContainer>

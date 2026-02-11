@@ -10,6 +10,7 @@ import type {
     DeleteServicePayload,
     UpdateServiceStatusPayload,
 } from '../types';
+import {useToast} from "@/common/components/Toast";
 
 export const visitDetailQueryKey = (visitId: string) => ['visit', visitId];
 export const visitDocumentsQueryKey = (visitId: string) => ['visit', visitId, 'documents'];

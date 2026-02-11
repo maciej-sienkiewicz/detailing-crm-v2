@@ -15,6 +15,7 @@ import { VisitComments } from '../components/VisitComments';
 import { EditServicesModal } from '../components/EditServicesModal';
 import { InProgressToReadyWizard, ReadyToCompletedWizard } from '../components/transitions/TransitionWizards';
 import type { DocumentType, ServiceStatus } from '../types';
+import {useToast} from "@/common/components/Toast";
 
 const ViewContainer = styled.main`
     display: flex;
@@ -181,6 +182,7 @@ export const VisitDetailView = () => {
     const { comments, isLoading: isLoadingComments } = useVisitComments(visitId!);
     const { updateServiceStatus } = useUpdateServiceStatus(visitId!);
     const { saveServicesChanges, isSaving } = useSaveServicesChanges(visitId!);
+    const { showSuccess } = useToast();
 
     if (isLoading) {
         return (
