@@ -9,6 +9,7 @@ import { useUpdateServiceStatus, useSaveServicesChanges } from '../hooks';
 import { VisitHeader } from '../components/VisitHeader';
 import { StatusStepper } from '../components/StatusStepper';
 import { VehicleInfoCard, CustomerInfoCard } from '../components/InfoCards';
+import { TechnicalNotesCard } from '../components/TechnicalNotesCard';
 import { ServicesTable } from '../components/ServicesTable';
 import { DocumentGallery } from '../components/DocumentGallery';
 import { VisitComments } from '../components/VisitComments';
@@ -346,6 +347,7 @@ export const VisitDetailView = () => {
                                     onDocumentsToggle={handleDocumentsToggle}
                                 />
                                 <CustomerInfoCard customer={visit.customer} />
+                                <TechnicalNotesCard notes={visit.technicalNotes} />
                             </div>
                         </ContentGrid>
                     </TabContent>
