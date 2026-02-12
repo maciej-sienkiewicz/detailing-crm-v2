@@ -260,6 +260,17 @@ export const SigningRequirementModal = ({
         });
     };
 
+    const handlePrint = (protocolId: string) => {
+        const protocol = protocols.find(p => p.id === protocolId);
+        const pdfUrl = protocol?.filledPdfUrl;
+
+        if (pdfUrl) {
+            window.open(pdfUrl, '_blank');
+        } else {
+            console.warn('PDF URL not available for protocol:', protocolId);
+        }
+    };
+
     const handlePreview = (protocolId: string) => {
         setPreviewProtocolId(protocolId);
     };
@@ -291,11 +302,11 @@ export const SigningRequirementModal = ({
     };
 
     const mandatoryProtocols = protocols?.filter(p => p.isMandatory) || [];
-    const allMandatoryHandled = mandatoryProtocols.every(p =>
-        selectedForPrint.has(p.id)
+    const allMandatoryReady = mandatoryProtocols.every(p =>
+        p.status === 'READY_FOR_SIGNATURE'
     );
 
-    const canProceed = allMandatoryHandled || mandatoryProtocols.length === 0;
+    const canProceed = allMandatoryReady || mandatoryProtocols.length === 0;
     const isProcessing = cancelVisitMutation.isPending || confirmVisitMutation.isPending;
     const canInteract = !isCreating && visitId !== null;
 
@@ -394,9 +405,9 @@ export const SigningRequirementModal = ({
 
                                         {/* Print button */}
                                         <IconButton
-                                            $active={selectedForPrint.has(protocol.id)}
-                                            onClick={() => handleTogglePrint(protocol.id)}
+                                            onClick={() => handlePrint(protocol.id)}
                                             title="Drukuj"
+                                            disabled={!protocol.filledPdfUrl}
                                         >
                                             <svg
                                                 xmlns="http://www.w3.org/2000/svg"
