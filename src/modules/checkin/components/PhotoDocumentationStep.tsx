@@ -155,13 +155,6 @@ const PhotoTimestamp = styled.span`
     color: ${props => props.theme.colors.textMuted};
 `;
 
-const EmptyState = styled.div`
-    text-align: center;
-    padding: ${props => props.theme.spacing.xl};
-    color: ${props => props.theme.colors.textMuted};
-    font-size: ${props => props.theme.fontSizes.sm};
-`;
-
 const StatusSection = styled.div`
     display: flex;
     flex-direction: column;
@@ -325,48 +318,42 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
                             )}
                         </UploadSection>
 
-                        <div>
-                            <h4 style={{ marginBottom: '16px', fontSize: '16px', fontWeight: 600 }}>
-                                Przesłane zdjęcia ({photosCount})
-                            </h4>
+                        {uploadedPhotos.length > 0 && (
+                            <>
+                                <div>
+                                    <h4 style={{ marginBottom: '16px', fontSize: '16px', fontWeight: 600 }}>
+                                        Przesłane zdjęcia ({photosCount})
+                                    </h4>
 
-                            {uploadedPhotos.length === 0 ? (
-                                <EmptyState>
-                                    Brak przesłanych zdjęć. Użyj opcji powyżej aby dodać zdjęcia.
-                                </EmptyState>
-                            ) : (
-                                <PhotoGrid>
-                                    {uploadedPhotos.map((photo, index) => (
-                                        <PhotoCard key={photo.id || photo.fileId || index}>
-                                            <PhotoIcon>
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                </svg>
-                                            </PhotoIcon>
-                                            <PhotoInfo>
-                                                {photo.description && (
-                                                    <PhotoDescription>{photo.description}</PhotoDescription>
-                                                )}
-                                                {photo.uploadedAt && (
-                                                    <PhotoTimestamp>{formatTimestamp(photo.uploadedAt)}</PhotoTimestamp>
-                                                )}
-                                            </PhotoInfo>
-                                        </PhotoCard>
-                                    ))}
-                                </PhotoGrid>
-                            )}
-                        </div>
+                                    <PhotoGrid>
+                                        {uploadedPhotos.map((photo, index) => (
+                                            <PhotoCard key={photo.id || photo.fileId || index}>
+                                                <PhotoIcon>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                </PhotoIcon>
+                                                <PhotoInfo>
+                                                    {photo.description && (
+                                                        <PhotoDescription>{photo.description}</PhotoDescription>
+                                                    )}
+                                                    {photo.uploadedAt && (
+                                                        <PhotoTimestamp>{formatTimestamp(photo.uploadedAt)}</PhotoTimestamp>
+                                                    )}
+                                                </PhotoInfo>
+                                            </PhotoCard>
+                                        ))}
+                                    </PhotoGrid>
+                                </div>
 
-                        <StatusSection>
-                            <StatusText>
-                                {photosCount > 0
-                                    ? `Dodano ${photosCount} ${photosCount === 1 ? 'zdjęcie' : photosCount < 5 ? 'zdjęcia' : 'zdjęć'}`
-                                    : 'Dokumentacja zdjęciowa jest opcjonalna'}
-                            </StatusText>
-                            {photosCount > 0 && (
-                                <Badge $variant="success">✓ {photosCount}</Badge>
-                            )}
-                        </StatusSection>
+                                <StatusSection>
+                                    <StatusText>
+                                        Dodano {photosCount} {photosCount === 1 ? 'zdjęcie' : photosCount < 5 ? 'zdjęcia' : 'zdjęć'}
+                                    </StatusText>
+                                    <Badge $variant="success">✓ {photosCount}</Badge>
+                                </StatusSection>
+                            </>
+                        )}
                     </>
                 )}
             </Card>
