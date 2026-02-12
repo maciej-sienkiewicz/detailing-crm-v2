@@ -212,61 +212,6 @@ const Checkbox = styled.input`
     flex-shrink: 0;
 `;
 
-const StatusBadge = styled.span<{ variant: 'appointment' | 'visit'; status: string }>`
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    flex-shrink: 0;
-
-    ${props => {
-        if (props.variant === 'appointment') {
-            switch (props.status) {
-                case 'CREATED':
-                    return `
-                        background: rgba(99, 102, 241, 0.1);
-                        color: #6366f1;
-                    `;
-                case 'ABANDONED':
-                    return `
-                        background: rgba(239, 68, 68, 0.1);
-                        color: #ef4444;
-                    `;
-            }
-        } else {
-            switch (props.status) {
-                case 'IN_PROGRESS':
-                    return `
-                        background: rgba(245, 158, 11, 0.1);
-                        color: #f59e0b;
-                    `;
-                case 'READY_FOR_PICKUP':
-                    return `
-                        background: rgba(16, 185, 129, 0.1);
-                        color: #10b981;
-                    `;
-                case 'COMPLETED':
-                    return `
-                        background: rgba(99, 102, 241, 0.1);
-                        color: #6366f1;
-                    `;
-                case 'REJECTED':
-                    return `
-                        background: rgba(239, 68, 68, 0.1);
-                        color: #ef4444;
-                    `;
-                case 'ARCHIVED':
-                    return `
-                        background: rgba(156, 163, 175, 0.1);
-                        color: #9ca3af;
-                    `;
-            }
-        }
-    }}
-`;
-
 const DropdownFooter = styled.div`
     padding: 16px 20px;
     border-top: 1px solid rgba(0, 0, 0, 0.06);
@@ -428,10 +373,7 @@ export const CalendarFilterDropdown: React.FC<CalendarFilterDropdownProps> = ({
                                                 checked={selectedAppointmentStatuses.includes(status)}
                                                 onChange={() => handleAppointmentToggle(status)}
                                             />
-                                            <span style={{ flex: 1 }}>{APPOINTMENT_STATUS_LABELS[status]}</span>
-                                            <StatusBadge variant="appointment" status={status}>
-                                                {status}
-                                            </StatusBadge>
+                                            {APPOINTMENT_STATUS_LABELS[status]}
                                         </CheckboxLabel>
                                     ))}
                                 </CheckboxGroup>
@@ -455,10 +397,7 @@ export const CalendarFilterDropdown: React.FC<CalendarFilterDropdownProps> = ({
                                                 checked={selectedVisitStatuses.includes(status)}
                                                 onChange={() => handleVisitToggle(status)}
                                             />
-                                            <span style={{ flex: 1 }}>{VISIT_STATUS_LABELS[status]}</span>
-                                            <StatusBadge variant="visit" status={status}>
-                                                {status}
-                                            </StatusBadge>
+                                            {VISIT_STATUS_LABELS[status]}
                                         </CheckboxLabel>
                                     ))}
                                 </CheckboxGroup>
