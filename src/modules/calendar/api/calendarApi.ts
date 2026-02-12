@@ -9,6 +9,7 @@ import type {
     AppointmentEventData,
     VisitEventData,
     VisitStatus,
+    AppointmentStatus,
 } from '../types';
 
 const USE_MOCKS = false;
@@ -233,43 +234,37 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
 };
 
 /**
- * Fetch appointments for a given date range
- * Only fetches appointments with status CREATED or ABANDONED
+ * Fetch appointments for a given date range and optional status filters
  */
-const fetchAppointments = async (dateRange: DateRange): Promise<AppointmentResponse[]> => {
+const fetchAppointments = async (dateRange: DateRange, statuses: AppointmentStatus[] = []): Promise<AppointmentResponse[]> => {
     if (USE_MOCKS) {
         await new Promise(resolve => setTimeout(resolve, 500));
         return mockAppointments;
     }
 
-    // Fetch appointments with CREATED and ABANDONED statuses
-    const [createdResponse, abandonedResponse] = await Promise.all([
+    // If no statuses selected, return empty array
+    if (statuses.length === 0) {
+        return [];
+    }
+
+    // Fetch appointments for each requested status in parallel
+    const requests = statuses.map(status =>
         apiClient.get<{ appointments: AppointmentResponse[] }>(
             '/v1/appointments',
             {
                 params: {
                     startDate: dateRange.start,
                     endDate: dateRange.end,
-                    status: 'CREATED',
+                    status,
                 },
             }
-        ),
-        apiClient.get<{ appointments: AppointmentResponse[] }>(
-            '/v1/appointments',
-            {
-                params: {
-                    startDate: dateRange.start,
-                    endDate: dateRange.end,
-                    status: 'ABANDONED',
-                },
-            }
-        ),
-    ]);
+        )
+    );
 
-    const createdAppointments = createdResponse.data.appointments || [];
-    const abandonedAppointments = abandonedResponse.data.appointments || [];
+    const responses = await Promise.all(requests);
+    const allAppointments = responses.flatMap(response => response.data.appointments || []);
 
-    return [...createdAppointments, ...abandonedAppointments];
+    return allAppointments;
 };
 
 /**
@@ -304,14 +299,19 @@ export const calendarApi = {
     /**
      * Fetch and merge all calendar events (appointments + visits) for a date range
      */
-    getCalendarEvents: async (dateRange: DateRange, visitStatuses: VisitStatus[] = []): Promise<CalendarEvent[]> => {
+    getCalendarEvents: async (
+        dateRange: DateRange,
+        appointmentStatuses: AppointmentStatus[] = [],
+        visitStatuses: VisitStatus[] = []
+    ): Promise<CalendarEvent[]> => {
         try {
             console.log('[CalendarAPI] Fetching events for range:', dateRange);
+            console.log('[CalendarAPI] Appointment status filters:', appointmentStatuses);
             console.log('[CalendarAPI] Visit status filters:', visitStatuses);
 
             // Fetch both appointments and visits in parallel
             const [appointments, visits] = await Promise.all([
-                fetchAppointments(dateRange),
+                fetchAppointments(dateRange, appointmentStatuses),
                 fetchVisits(dateRange, visitStatuses),
             ]);
 

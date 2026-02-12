@@ -8,6 +8,8 @@ export type CalendarView = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay';
 
 export type VisitStatus = 'IN_PROGRESS' | 'READY_FOR_PICKUP' | 'COMPLETED' | 'REJECTED' | 'ARCHIVED';
 
+export type AppointmentStatus = 'CREATED' | 'ABANDONED';
+
 /**
  * Base calendar event data structure
  */
@@ -148,9 +150,10 @@ export interface DateRange {
 }
 
 /**
- * Calendar filters for visits
+ * Calendar filters for appointments and visits
  */
 export interface CalendarFilters {
+    appointmentStatuses: AppointmentStatus[];
     visitStatuses: VisitStatus[];
 }
 
