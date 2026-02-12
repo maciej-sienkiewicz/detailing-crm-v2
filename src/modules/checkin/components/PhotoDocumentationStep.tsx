@@ -63,19 +63,11 @@ const QRPlaceholder = styled.div`
     font-style: italic;
 `;
 
-const UploadSection = styled.div`
+const ButtonGroup = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.md};
-    padding: ${props => props.theme.spacing.lg};
-    background-color: ${props => props.theme.colors.surfaceAlt};
-    border-radius: ${props => props.theme.radii.md};
-`;
-
-const UploadButtons = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.md};
+    gap: ${props => props.theme.spacing.sm};
     flex-wrap: wrap;
+    justify-content: center;
 `;
 
 const HiddenFileInput = styled.input`
@@ -270,30 +262,26 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
                             <QRPlaceholder>
                                 Tu pojawi się QR kod jak przygotujemy implementację
                             </QRPlaceholder>
-                            <Button $variant="secondary" onClick={refreshPhotos} disabled={isRefreshing}>
-                                {isRefreshing ? t.common.loading : 'Odśwież zdjęcia'}
-                            </Button>
-                        </QRSection>
 
-                        <UploadSection>
-                            <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
-                                Lub dodaj zdjęcia bezpośrednio
-                            </h4>
-                            <UploadButtons>
-                                <HiddenFileInput
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    onChange={(e) => handleFileSelect(e.target.files)}
-                                />
-                                <HiddenFileInput
-                                    ref={cameraInputRef}
-                                    type="file"
-                                    accept="image/*"
-                                    capture="environment"
-                                    onChange={(e) => handleFileSelect(e.target.files)}
-                                />
+                            <HiddenFileInput
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={(e) => handleFileSelect(e.target.files)}
+                            />
+                            <HiddenFileInput
+                                ref={cameraInputRef}
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                onChange={(e) => handleFileSelect(e.target.files)}
+                            />
+
+                            <ButtonGroup>
+                                <Button $variant="secondary" onClick={refreshPhotos} disabled={isRefreshing}>
+                                    {isRefreshing ? t.common.loading : 'Odśwież zdjęcia'}
+                                </Button>
                                 <Button
                                     $variant="secondary"
                                     onClick={handleChooseFromDisk}
@@ -310,13 +298,14 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
                                         📷 Zrób zdjęcie
                                     </Button>
                                 )}
-                            </UploadButtons>
+                            </ButtonGroup>
+
                             {isUploading && (
                                 <div style={{ fontSize: '14px', color: '#64748b' }}>
                                     Przesyłanie zdjęć...
                                 </div>
                             )}
-                        </UploadSection>
+                        </QRSection>
 
                         {uploadedPhotos.length > 0 && (
                             <>
