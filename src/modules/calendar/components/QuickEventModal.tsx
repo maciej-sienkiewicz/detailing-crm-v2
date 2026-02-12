@@ -33,6 +33,79 @@ interface AppointmentColor {
     hexColor: string;
 }
 
+// --- HELPER FUNCTIONS ---
+/**
+ * Kapitalizuje pierwszą literę i zamienia resztę na małe litery
+ */
+const capitalize = (str: string): string => {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+
+/**
+ * Parsuje wprowadzony tekst z pola wyszukiwania klienta
+ * @param input - tekst wprowadzony przez użytkownika
+ * @returns obiekt z sparsowanymi wartościami dla firstName, lastName, email, phone
+ */
+const parseCustomerInput = (input: string): {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+} => {
+    const trimmed = input.trim();
+
+    // Sprawdź czy zawiera @, wtedy to email
+    if (trimmed.includes('@')) {
+        return {
+            firstName: '',
+            lastName: '',
+            email: trimmed,
+            phone: '',
+        };
+    }
+
+    // Sprawdź czy to same cyfry (z ewentualnymi spacjami, myślnikami, plusami)
+    const digitsOnly = trimmed.replace(/[\s\-+()]/g, '');
+    if (/^\d+$/.test(digitsOnly) && digitsOnly.length > 0) {
+        return {
+            firstName: '',
+            lastName: '',
+            email: '',
+            phone: trimmed,
+        };
+    }
+
+    // Podziel na wyrazy
+    const words = trimmed.split(/\s+/).filter(w => w.length > 0);
+
+    if (words.length === 1) {
+        // Jeden wyraz - to imię
+        return {
+            firstName: capitalize(words[0]),
+            lastName: '',
+            email: '',
+            phone: '',
+        };
+    } else if (words.length >= 2) {
+        // Dwa lub więcej wyrazów - pierwszy to imię, drugi to nazwisko
+        return {
+            firstName: capitalize(words[0]),
+            lastName: capitalize(words[1]),
+            email: '',
+            phone: '',
+        };
+    }
+
+    // Pusty string lub brak dopasowania
+    return {
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+    };
+};
+
 // --- ICONS (Inline SVG) ---
 const IconClock = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1040,6 +1113,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                     setShowCustomerDropdown(false);
                     queryClient.invalidateQueries({ queryKey: ['appointments', 'customers', 'search'] });
                 }}
+                {...parseCustomerInput(customerSearch)}
             />
 
             <VehicleModal
