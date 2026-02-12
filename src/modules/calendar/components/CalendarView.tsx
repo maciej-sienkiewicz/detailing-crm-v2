@@ -19,6 +19,8 @@ import type { Operation } from '@/modules/operations/types';
 import '../calendar.css';
 
 const CalendarContainer = styled.div`
+    display: flex;
+    flex-direction: column;
     height: 100%;
     width: 100%;
     background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
@@ -475,22 +477,22 @@ const CalendarContainer = styled.div`
 `;
 
 const CalendarWrapper = styled.div`
-    position: relative;
-    height: 100%;
-    width: 100%;
+    flex: 1;
+    overflow: hidden;
 `;
 
 const FilterToolbar = styled.div`
-    position: absolute;
-    top: 20px;
-    right: 28px;
-    z-index: 100;
     display: flex;
+    justify-content: flex-end;
+    padding: 12px 28px;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     gap: 12px;
 
     @media (max-width: 768px) {
-        top: 16px;
-        right: 16px;
+        padding: 12px 16px;
     }
 `;
 
@@ -712,16 +714,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 </LoadingOverlay>
             )}
 
-            <CalendarWrapper>
-                <FilterToolbar>
-                    <CalendarFilterDropdown
-                        selectedAppointmentStatuses={selectedAppointmentStatuses}
-                        selectedVisitStatuses={selectedVisitStatuses}
-                        onAppointmentStatusesChange={setSelectedAppointmentStatuses}
-                        onVisitStatusesChange={setSelectedVisitStatuses}
-                    />
-                </FilterToolbar>
+            <FilterToolbar>
+                <CalendarFilterDropdown
+                    selectedAppointmentStatuses={selectedAppointmentStatuses}
+                    selectedVisitStatuses={selectedVisitStatuses}
+                    onAppointmentStatusesChange={setSelectedAppointmentStatuses}
+                    onVisitStatusesChange={setSelectedVisitStatuses}
+                />
+            </FilterToolbar>
 
+            <CalendarWrapper>
                 <FullCalendar
                 ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
