@@ -98,6 +98,25 @@ const CalendarContainer = styled.div`
 
     .fc-today-button:hover:not(:disabled) {
         border-color: #6366f1 !important;
+    }
+
+    /* Filter button */
+    .fc-filter-button {
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        margin-left: 12px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+        background: #ffffff !important;
+        color: #475569 !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .fc-filter-button:hover {
+        background: #f8fafc !important;
+        border-color: #6366f1 !important;
+        color: #1e293b !important;
+        box-shadow: 0 2px 6px rgba(99, 102, 241, 0.15) !important;
         color: #6366f1 !important;
     }
 
@@ -371,6 +390,12 @@ const CalendarContainer = styled.div`
             border-radius: 10px !important;
         }
 
+        .fc-filter-button {
+            margin-left: 8px !important;
+            padding: 7px 12px !important;
+            border-radius: 10px !important;
+        }
+
         .fc-prev-button,
         .fc-next-button {
             padding: 7px 10px !important;
@@ -482,20 +507,6 @@ const CalendarWrapper = styled.div`
     overflow: hidden;
 `;
 
-const FilterToolbar = styled.div`
-    position: absolute;
-    top: 78px;
-    right: 28px;
-    z-index: 100;
-    display: flex;
-    gap: 12px;
-
-    @media (max-width: 768px) {
-        top: 74px;
-        right: 16px;
-    }
-`;
-
 const LoadingOverlay = styled.div`
     position: absolute;
     top: 0;
@@ -548,6 +559,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         'REJECTED',
         'ARCHIVED',
     ]);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     // Popover state
     const [popoverOpen, setPopoverOpen] = useState(false);
@@ -715,14 +727,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
             )}
 
             <CalendarWrapper>
-                <FilterToolbar>
-                    <CalendarFilterDropdown
-                        selectedAppointmentStatuses={selectedAppointmentStatuses}
-                        selectedVisitStatuses={selectedVisitStatuses}
-                        onAppointmentStatusesChange={setSelectedAppointmentStatuses}
-                        onVisitStatusesChange={setSelectedVisitStatuses}
-                    />
-                </FilterToolbar>
+                <CalendarFilterDropdown
+                    selectedAppointmentStatuses={selectedAppointmentStatuses}
+                    selectedVisitStatuses={selectedVisitStatuses}
+                    onAppointmentStatusesChange={setSelectedAppointmentStatuses}
+                    onVisitStatusesChange={setSelectedVisitStatuses}
+                    isOpen={isFilterOpen}
+                    onClose={() => setIsFilterOpen(false)}
+                />
 
                 <FullCalendar
                 ref={calendarRef}
@@ -731,9 +743,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 // Initial view
                 initialView="dayGridMonth"
 
+                // Custom buttons
+                customButtons={{
+                    filter: {
+                        text: '🔍 Filtruj',
+                        click: () => setIsFilterOpen(!isFilterOpen),
+                    },
+                }}
+
                 // Header configuration
                 headerToolbar={{
-                    left: 'prev,next today',
+                    left: 'prev,next today filter',
                     center: 'title',
                     right: 'dayGridMonth,timeGridWeek,timeGridDay',
                 }}
