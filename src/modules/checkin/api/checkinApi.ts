@@ -74,15 +74,16 @@ const mockGetSessionPhotos = async (
     await new Promise(resolve => setTimeout(resolve, 400));
     return [
         {
-            type: 'front',
+            id: 'photo_1',
             fileId: 'file_1',
-            fileName: 'front.jpg',
+            fileName: 'vehicle1.jpg',
             uploadedAt: new Date().toISOString(),
+            description: 'Zdjęcie pojazdu',
         },
         {
-            type: 'rear',
+            id: 'photo_2',
             fileId: 'file_2',
-            fileName: 'rear.jpg',
+            fileName: 'vehicle2.jpg',
             uploadedAt: new Date().toISOString(),
         },
     ];
@@ -124,7 +125,6 @@ export const checkinApi = {
 
         const formData = new FormData();
         formData.append('photo', payload.photo);
-        formData.append('type', payload.type);
         formData.append('token', payload.token);
         if (payload.description) {
             formData.append('description', payload.description);

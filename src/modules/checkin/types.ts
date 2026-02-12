@@ -1,9 +1,5 @@
 // src/modules/checkin/types.ts
 
-export type PhotoSlotType = 'front' | 'rear' | 'left_side' | 'right_side';
-
-export type DamagePhotoType = 'damage_front' | 'damage_rear' | 'damage_left' | 'damage_right' | 'damage_other';
-
 export type AdjustmentType = 'PERCENT' | 'FIXED_NET' | 'FIXED_GROSS' | 'SET_NET' | 'SET_GROSS';
 
 export interface DepositItem {
@@ -13,7 +9,7 @@ export interface DepositItem {
 }
 
 export interface PhotoSlot {
-    type: PhotoSlotType | DamagePhotoType;
+    id?: string; // Unique identifier for the photo
     fileId?: string;
     fileName?: string;
     uploadedAt?: string;
@@ -234,7 +230,6 @@ export interface UploadPhotoPayload {
     sessionId: string;
     token: string;
     photo: File;
-    type: PhotoSlotType | DamagePhotoType;
     description?: string;
 }
 
