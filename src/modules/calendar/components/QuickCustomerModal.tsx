@@ -75,12 +75,20 @@ interface QuickCustomerModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: (customer: Customer) => void;
+    initialFirstName?: string;
+    initialLastName?: string;
+    initialPhone?: string;
+    initialEmail?: string;
 }
 
 export const QuickCustomerModal: React.FC<QuickCustomerModalProps> = ({
     isOpen,
     onClose,
     onSuccess,
+    initialFirstName = '',
+    initialLastName = '',
+    initialPhone = '',
+    initialEmail = '',
 }) => {
     const { isCollapsed } = useSidebar();
     const contentLeft = typeof window !== 'undefined' ? (isCollapsed ? 64 : 240) : 0;
@@ -103,13 +111,13 @@ export const QuickCustomerModal: React.FC<QuickCustomerModalProps> = ({
 
     useEffect(() => {
         if (isOpen) {
-            setFirstName('');
-            setLastName('');
-            setPhone('');
-            setEmail('');
+            setFirstName(initialFirstName);
+            setLastName(initialLastName);
+            setPhone(initialPhone);
+            setEmail(initialEmail);
             setErrors({});
         }
-    }, [isOpen]);
+    }, [isOpen, initialFirstName, initialLastName, initialPhone, initialEmail]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
