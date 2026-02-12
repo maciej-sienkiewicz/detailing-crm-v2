@@ -336,6 +336,7 @@ export const VisitDetailView = () => {
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                {visit.technicalNotes && (<TechnicalNotesCard notes={visit.technicalNotes} />)}
                                 <VehicleInfoCard
                                     vehicle={visit.vehicle}
                                     mileageAtArrival={visit.mileageAtArrival}
@@ -347,7 +348,6 @@ export const VisitDetailView = () => {
                                     onDocumentsToggle={handleDocumentsToggle}
                                 />
                                 <CustomerInfoCard customer={visit.customer} />
-                                <TechnicalNotesCard notes={visit.technicalNotes} />
                             </div>
                         </ContentGrid>
                     </TabContent>

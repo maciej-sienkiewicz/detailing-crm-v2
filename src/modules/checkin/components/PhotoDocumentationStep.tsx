@@ -370,13 +370,6 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
                                         ))}
                                     </PhotoGrid>
                                 </div>
-
-                                <StatusSection>
-                                    <StatusText>
-                                        Dodano {photosCount} {photosCount === 1 ? 'zdjęcie' : photosCount < 5 ? 'zdjęcia' : 'zdjęć'}
-                                    </StatusText>
-                                    <Badge $variant="success">✓ {photosCount}</Badge>
-                                </StatusSection>
                             </>
                         )}
                     </>

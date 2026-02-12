@@ -204,21 +204,6 @@ export const VehicleInfoCard = ({
                 <CardTitle>Informacje o pojeździe</CardTitle>
             </CardHeader>
 
-            <InfoGrid>
-                <InfoItem>
-                    <InfoLabel>Marka i model</InfoLabel>
-                    <InfoValue>{vehicle.brand} {vehicle.model}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                    <InfoLabel>Rok produkcji</InfoLabel>
-                    <InfoValue>{vehicle.yearOfProduction}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                    <InfoLabel>Kolor</InfoLabel>
-                    <InfoValue>{vehicle.color}</InfoValue>
-                </InfoItem>
-            </InfoGrid>
-
             <ToggleSection style={{ marginTop: '16px' }}>
                 <ToggleRow>
                     <InfoLabel>Przebieg przy przyjęciu</InfoLabel>
