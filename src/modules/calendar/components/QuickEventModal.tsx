@@ -252,6 +252,14 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const customerResults = foundCustomers;
     const hasCustomerSearchQuery = customerSearch.trim().length > 0;
 
+    // Parsed customer data for new customer modal
+    const [parsedCustomerData, setParsedCustomerData] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+    });
+
     // Vehicle search state
     const [vehicleSearch, setVehicleSearch] = useState('');
     const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
@@ -386,6 +394,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         setShowVehicleDropdown(false);
         setNotes('');
         setTempServices({});
+        setParsedCustomerData({ firstName: '', lastName: '', email: '', phone: '' });
     };
 
     useImperativeHandle(ref, () => ({
@@ -793,6 +802,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     <S.DropdownAddButton
                                                         type="button"
                                                         onClick={() => {
+                                                            // Parsuj wprowadzone dane przed otwarciem modalu
+                                                            setParsedCustomerData(parseCustomerInput(customerSearch));
                                                             setIsAddCustomerModalOpen(true);
                                                             setShowCustomerDropdown(false);
                                                             setFocusedField(null);
@@ -1113,7 +1124,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                     setShowCustomerDropdown(false);
                     queryClient.invalidateQueries({ queryKey: ['appointments', 'customers', 'search'] });
                 }}
-                {...parseCustomerInput(customerSearch)}
+                initialFirstName={parsedCustomerData.firstName}
+                initialLastName={parsedCustomerData.lastName}
+                initialPhone={parsedCustomerData.phone}
+                initialEmail={parsedCustomerData.email}
             />
 
             <VehicleModal
