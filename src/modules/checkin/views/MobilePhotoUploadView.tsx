@@ -7,7 +7,6 @@ import { Badge } from '@/common/components/Badge';
 import { Input } from '@/common/components/Form';
 import { t } from '@/common/i18n';
 import { useMobilePhotoUpload } from '../hooks/useMobilePhotoUpload';
-import type { PhotoSlotType, DamagePhotoType } from '../types';
 
 const MobileContainer = styled.div`
     min-height: 100vh;
@@ -36,14 +35,14 @@ const Subtitle = styled.p`
     margin: 0;
 `;
 
-const SlotsList = styled.div`
+const PhotoList = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${props => props.theme.spacing.md};
     margin-bottom: ${props => props.theme.spacing.xl};
 `;
 
-const SlotCard = styled.div<{ $completed: boolean }>`
+const PhotoCard = styled.div<{ $completed: boolean }>`
     background-color: rgba(255, 255, 255, 0.05);
     border: 2px solid ${props => props.$completed ? '#22c55e' : 'rgba(255, 255, 255, 0.1)'};
     border-radius: ${props => props.theme.radii.lg};
@@ -55,14 +54,14 @@ const SlotCard = styled.div<{ $completed: boolean }>`
     `}
 `;
 
-const SlotHeader = styled.div`
+const PhotoHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: ${props => props.theme.spacing.md};
 `;
 
-const SlotTitle = styled.h3`
+const PhotoTitle = styled.h3`
     font-size: ${props => props.theme.fontSizes.md};
     font-weight: ${props => props.theme.fontWeights.semibold};
     margin: 0;
@@ -156,28 +155,42 @@ const ErrorBox = styled.div`
     color: #fca5a5;
 `;
 
-const ProgressBar = styled.div<{ $progress: number }>`
+const AddPhotoButton = styled.button`
     width: 100%;
-    height: 4px;
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: ${props => props.theme.radii.full};
-    overflow: hidden;
-    margin-top: ${props => props.theme.spacing.md};
+    padding: ${props => props.theme.spacing.lg};
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+    border-radius: ${props => props.theme.radii.lg};
+    color: white;
+    font-size: ${props => props.theme.fontSizes.md};
+    font-weight: ${props => props.theme.fontWeights.semibold};
+    cursor: pointer;
+    transition: all ${props => props.theme.transitions.fast};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${props => props.theme.spacing.sm};
 
-    &::after {
-        content: '';
-        display: block;
-        width: ${props => props.$progress}%;
-        height: 100%;
-        background: linear-gradient(90deg, ${props => props.theme.colors.primary} 0%, #22c55e 100%);
-        transition: width ${props => props.theme.transitions.slow};
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-color: ${props => props.theme.colors.primary};
+    }
+
+    svg {
+        width: 24px;
+        height: 24px;
     }
 `;
 
-interface PhotoSlotState {
-    type: PhotoSlotType | DamagePhotoType;
-    label: string;
-    required: boolean;
+const ProgressInfo = styled.div`
+    text-align: center;
+    padding: ${props => props.theme.spacing.md};
+    color: rgba(255, 255, 255, 0.7);
+    font-size: ${props => props.theme.fontSizes.sm};
+`;
+
+interface PhotoState {
+    id: string;
     preview?: string;
     file?: File;
     description?: string;
@@ -194,14 +207,9 @@ export const MobilePhotoUploadView = ({ sessionId, token }: MobilePhotoUploadVie
     const { validateSession, uploadPhoto, isValidating, isUploading, uploadError } = useMobilePhotoUpload();
 
     const [isValid, setIsValid] = useState(false);
-    const [slots, setSlots] = useState<PhotoSlotState[]>([
-        { type: 'front', label: t.checkin.photos.requiredSlots.front, required: true, uploaded: false },
-        { type: 'rear', label: t.checkin.photos.requiredSlots.rear, required: true, uploaded: false },
-        { type: 'left_side', label: t.checkin.photos.requiredSlots.left_side, required: true, uploaded: false },
-        { type: 'right_side', label: t.checkin.photos.requiredSlots.right_side, required: true, uploaded: false },
-    ]);
+    const [photos, setPhotos] = useState<PhotoState[]>([]);
 
-    const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => {
         const validate = async () => {
@@ -260,46 +268,53 @@ export const MobilePhotoUploadView = ({ sessionId, token }: MobilePhotoUploadVie
         });
     };
 
-    const handleFileSelect = async (slotType: string, file: File) => {
-        const compressedFile = await compressImage(file);
-        const preview = URL.createObjectURL(compressedFile);
-
-        setSlots(prev => prev.map(slot =>
-            slot.type === slotType
-                ? { ...slot, file: compressedFile, preview, uploaded: false }
-                : slot
-        ));
+    const handleAddPhoto = () => {
+        fileInputRef.current?.click();
     };
 
-    const handleUpload = async (slotType: string) => {
-        const slot = slots.find(s => s.type === slotType);
-        if (!slot?.file || !sessionId || !token) return;
+    const handleFileSelect = async (file: File) => {
+        const compressedFile = await compressImage(file);
+        const preview = URL.createObjectURL(compressedFile);
+        const newPhoto: PhotoState = {
+            id: Date.now().toString(),
+            file: compressedFile,
+            preview,
+            uploaded: false,
+        };
+
+        setPhotos(prev => [...prev, newPhoto]);
+    };
+
+    const handleUpload = async (photoId: string) => {
+        const photo = photos.find(p => p.id === photoId);
+        if (!photo?.file || !sessionId || !token) return;
 
         const success = await uploadPhoto({
             sessionId,
             token,
-            photo: slot.file,
-            type: slot.type as PhotoSlotType | DamagePhotoType,
-            description: slot.description,
+            photo: photo.file,
+            description: photo.description,
         });
 
         if (success) {
-            setSlots(prev => prev.map(s =>
-                s.type === slotType ? { ...s, uploaded: true, file: undefined } : s
+            setPhotos(prev => prev.map(p =>
+                p.id === photoId ? { ...p, uploaded: true, file: undefined } : p
             ));
         }
     };
 
-    const handleRetake = (slotType: string) => {
-        setSlots(prev => prev.map(slot =>
-            slot.type === slotType
-                ? { ...slot, file: undefined, preview: undefined, uploaded: false }
-                : slot
+    const handleRetake = (photoId: string) => {
+        setPhotos(prev => prev.filter(p => p.id !== photoId));
+    };
+
+    const handleDescriptionChange = (photoId: string, description: string) => {
+        setPhotos(prev => prev.map(p =>
+            p.id === photoId ? { ...p, description } : p
         ));
     };
 
-    const completedCount = slots.filter(s => s.uploaded).length;
-    const progress = (completedCount / slots.length) * 100;
+    const uploadedCount = photos.filter(p => p.uploaded).length;
+    const totalCount = photos.length;
 
     if (isValidating) {
         return (
@@ -315,8 +330,8 @@ export const MobilePhotoUploadView = ({ sessionId, token }: MobilePhotoUploadVie
         return (
             <MobileContainer>
                 <Header>
-                    <Title>{t.checkin.mobile.sessionExpired}</Title>
-                    <Subtitle>{t.checkin.mobile.invalidSession}</Subtitle>
+                    <Title>Sesja wygasła</Title>
+                    <Subtitle>Link do przesyłania zdjęć jest nieprawidłowy lub wygasł</Subtitle>
                 </Header>
             </MobileContainer>
         );
@@ -325,90 +340,84 @@ export const MobilePhotoUploadView = ({ sessionId, token }: MobilePhotoUploadVie
     return (
         <MobileContainer>
             <Header>
-                <Title>{t.checkin.mobile.title}</Title>
-                <Subtitle>{t.checkin.mobile.subtitle}</Subtitle>
-                <ProgressBar $progress={progress} />
+                <Title>Dodaj zdjęcia pojazdu</Title>
+                <Subtitle>Dodaj dowolną liczbę zdjęć</Subtitle>
             </Header>
 
-            <InfoBox>{t.checkin.mobile.compressionInfo}</InfoBox>
+            <InfoBox>
+                Zdjęcia są automatycznie kompresowane do optymalnej wielkości
+            </InfoBox>
 
-            <SlotsList>
-                {slots.map((slot) => (
-                    <SlotCard key={slot.type} $completed={slot.uploaded}>
-                        <SlotHeader>
-                            <SlotTitle>{slot.label}</SlotTitle>
-                            {slot.uploaded ? (
+            {totalCount > 0 && (
+                <ProgressInfo>
+                    Przesłano {uploadedCount} z {totalCount} zdjęć
+                </ProgressInfo>
+            )}
+
+            <PhotoList>
+                {photos.map((photo) => (
+                    <PhotoCard key={photo.id} $completed={photo.uploaded}>
+                        <PhotoHeader>
+                            <PhotoTitle>Zdjęcie #{photos.indexOf(photo) + 1}</PhotoTitle>
+                            {photo.uploaded && (
                                 <Badge $variant="success">✓</Badge>
-                            ) : slot.required ? (
-                                <Badge $variant="warning">Wymagane</Badge>
-                            ) : null}
-                        </SlotHeader>
+                            )}
+                        </PhotoHeader>
 
-                        {slot.preview && !slot.uploaded && (
+                        {photo.preview && !photo.uploaded && (
                             <>
-                                <PreviewImage src={slot.preview} alt={slot.label} />
+                                <PreviewImage src={photo.preview} alt="Podgląd" />
                                 <DescriptionInput
-                                    placeholder={t.checkin.mobile.addDescription}
-                                    value={slot.description || ''}
-                                    onChange={(e) =>
-                                        setSlots(prev => prev.map(s =>
-                                            s.type === slot.type
-                                                ? { ...s, description: e.target.value }
-                                                : s
-                                        ))
-                                    }
+                                    placeholder="Dodaj opis (opcjonalnie)"
+                                    value={photo.description || ''}
+                                    onChange={(e) => handleDescriptionChange(photo.id, e.target.value)}
                                 />
                                 <ActionButtons>
                                     <UploadButton
                                         $variant="primary"
-                                        onClick={() => handleUpload(slot.type)}
+                                        onClick={() => handleUpload(photo.id)}
                                         disabled={isUploading}
                                     >
-                                        {isUploading ? t.checkin.mobile.uploading : t.checkin.mobile.uploadPhoto}
+                                        {isUploading ? 'Przesyłanie...' : 'Prześlij zdjęcie'}
                                     </UploadButton>
                                     <RetakeButton
                                         $variant="secondary"
-                                        onClick={() => handleRetake(slot.type)}
+                                        onClick={() => handleRetake(photo.id)}
                                         disabled={isUploading}
                                     >
-                                        {t.checkin.mobile.retakePhoto}
+                                        Usuń
                                     </RetakeButton>
                                 </ActionButtons>
                                 {uploadError && <ErrorBox>{uploadError}</ErrorBox>}
                             </>
                         )}
 
-                        {!slot.preview && !slot.uploaded && (
-                            <>
-                                <CameraInput
-                                    ref={(el) => { fileInputRefs.current[slot.type] = el; }}
-                                    type="file"
-                                    accept="image/*"
-                                    capture="environment"
-                                    onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) handleFileSelect(slot.type, file);
-                                    }}
-                                    id={`camera-${slot.type}`}
-                                />
-                                <CameraButton htmlFor={`camera-${slot.type}`}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                    {t.checkin.mobile.takePhoto}
-                                </CameraButton>
-                            </>
-                        )}
-
-                        {slot.uploaded && (
+                        {photo.uploaded && (
                             <div style={{ textAlign: 'center', color: '#22c55e', fontSize: '14px' }}>
-                                {t.checkin.mobile.uploadSuccess}
+                                ✓ Zdjęcie przesłane pomyślnie
                             </div>
                         )}
-                    </SlotCard>
+                    </PhotoCard>
                 ))}
-            </SlotsList>
+            </PhotoList>
+
+            <CameraInput
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileSelect(file);
+                }}
+            />
+
+            <AddPhotoButton onClick={handleAddPhoto}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Dodaj kolejne zdjęcie
+            </AddPhotoButton>
         </MobileContainer>
     );
 };

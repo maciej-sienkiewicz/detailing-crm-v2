@@ -14,8 +14,6 @@ export { checkinApi } from './api/checkinApi';
 export type {
     CheckInFormData,
     CheckInStep,
-    PhotoSlotType,
-    DamagePhotoType,
     PhotoSlot,
     DepositItem,
     ReservationToVisitPayload,

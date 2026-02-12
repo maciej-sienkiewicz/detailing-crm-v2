@@ -73,14 +73,9 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
 
         // Przebieg nie jest wymagany – pole opcjonalne
 
+        // Zdjęcia są opcjonalne – brak walidacji
         if (currentStep === 'photos') {
-            const requiredSlots = ['front', 'rear', 'left_side', 'right_side'];
-            const uploadedRequired = formData.photos.filter(p =>
-                requiredSlots.includes(p.type)
-            );
-            if (uploadedRequired.length < 0) {
-                validationErrors.photos = t.checkin.validation.requiredPhotos;
-            }
+            // No validation required - photos are optional
         }
 
         return validationErrors;
