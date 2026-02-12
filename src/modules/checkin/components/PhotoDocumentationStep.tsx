@@ -180,6 +180,7 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
+    const filesMapRef = useRef<Map<string, File>>(new Map()); // Store files by photo ID
     const isMobile = isMobileDevice();
 
     useEffect(() => {
@@ -187,6 +188,27 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
             onChange({ photos });
         }
     }, [photos]);
+
+    // Restore preview URLs for photos that don't have them
+    useEffect(() => {
+        const photosNeedingPreview = formData.photos.filter(
+            photo => photo.id && !photo.previewUrl && filesMapRef.current.has(photo.id)
+        );
+
+        if (photosNeedingPreview.length > 0) {
+            const updatedPhotos = formData.photos.map(photo => {
+                if (photo.id && !photo.previewUrl && filesMapRef.current.has(photo.id)) {
+                    const file = filesMapRef.current.get(photo.id)!;
+                    return {
+                        ...photo,
+                        previewUrl: URL.createObjectURL(file),
+                    };
+                }
+                return photo;
+            });
+            onChange({ photos: updatedPhotos });
+        }
+    }, [formData.photos.length]); // Re-run when photos count changes (e.g., coming back from another step)
 
     const uploadedPhotos = formData.photos || [];
     const photosCount = uploadedPhotos.length;
@@ -214,12 +236,18 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         // Add uploaded photos to formData with preview URLs
-        const newPhotos: PhotoSlot[] = Array.from(files).map((file, index) => ({
-            id: `${Date.now()}_${index}`,
-            fileName: file.name,
-            uploadedAt: new Date().toISOString(),
-            previewUrl: URL.createObjectURL(file),
-        }));
+        const newPhotos: PhotoSlot[] = Array.from(files).map((file, index) => {
+            const photoId = `${Date.now()}_${index}`;
+            // Store file in ref for future use
+            filesMapRef.current.set(photoId, file);
+
+            return {
+                id: photoId,
+                fileName: file.name,
+                uploadedAt: new Date().toISOString(),
+                previewUrl: URL.createObjectURL(file),
+            };
+        });
 
         onChange({ photos: [...uploadedPhotos, ...newPhotos] });
         setIsUploading(false);
