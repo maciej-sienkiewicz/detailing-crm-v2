@@ -1,6 +1,6 @@
 // src/modules/checkin/components/PhotoDocumentationStep.tsx
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import styled from 'styled-components';
 import { Card, CardHeader, CardTitle } from '@/common/components/Card';
 import { Button } from '@/common/components/Button';
@@ -47,19 +47,39 @@ const QRDescription = styled.p`
     text-align: center;
 `;
 
-const QRCodeWrapper = styled.div`
+const QRPlaceholder = styled.div`
+    width: 200px;
+    height: 200px;
     padding: ${props => props.theme.spacing.lg};
-    background-color: white;
+    background-color: ${props => props.theme.colors.surfaceAlt};
     border-radius: ${props => props.theme.radii.md};
     box-shadow: ${props => props.theme.shadows.lg};
     display: flex;
     align-items: center;
     justify-content: center;
+    text-align: center;
+    color: ${props => props.theme.colors.textMuted};
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-style: italic;
+`;
 
-    img {
-        width: 200px;
-        height: 200px;
-    }
+const UploadSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${props => props.theme.spacing.md};
+    padding: ${props => props.theme.spacing.lg};
+    background-color: ${props => props.theme.colors.surfaceAlt};
+    border-radius: ${props => props.theme.radii.md};
+`;
+
+const UploadButtons = styled.div`
+    display: flex;
+    gap: ${props => props.theme.spacing.md};
+    flex-wrap: wrap;
+`;
+
+const HiddenFileInput = styled.input`
+    display: none;
 `;
 
 const PhotoGrid = styled.div`
@@ -170,10 +190,22 @@ interface PhotoDocumentationStepProps {
     onChange: (updates: Partial<CheckInFormData>) => void;
 }
 
+// Helper function to detect mobile device
+const isMobileDevice = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+    );
+};
+
 export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: PhotoDocumentationStepProps) => {
     const { uploadSession, photos, refreshPhotos, isRefreshing } = usePhotoUpload(reservationId);
     const [showDamageDocumentation, setShowDamageDocumentation] = useState(false);
     const [showPhotoDocumentation, setShowPhotoDocumentation] = useState(true);
+    const [isUploading, setIsUploading] = useState(false);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const cameraInputRef = useRef<HTMLInputElement>(null);
+    const isMobile = isMobileDevice();
 
     useEffect(() => {
         if (photos) {
@@ -188,10 +220,6 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
         ? `${window.location.origin}/checkin/mobile/${uploadSession.sessionId}?token=${uploadSession.token}`
         : '';
 
-    const qrCodeUrl = mobileUploadUrl
-        ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(mobileUploadUrl)}`
-        : '';
-
     const formatTimestamp = (timestamp: string) => {
         const date = new Date(timestamp);
         return date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
@@ -199,6 +227,34 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
 
     const handleDamagePointsChange = (points: DamagePoint[]) => {
         onChange({ damagePoints: points });
+    };
+
+    const handleFileSelect = async (files: FileList | null) => {
+        if (!files || files.length === 0) return;
+
+        setIsUploading(true);
+
+        // Here you would implement actual photo upload logic
+        // For now, we'll simulate it with a timeout
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Add uploaded photos to formData
+        const newPhotos: PhotoSlot[] = Array.from(files).map((file, index) => ({
+            id: `${Date.now()}_${index}`,
+            fileName: file.name,
+            uploadedAt: new Date().toISOString(),
+        }));
+
+        onChange({ photos: [...uploadedPhotos, ...newPhotos] });
+        setIsUploading(false);
+    };
+
+    const handleChooseFromDisk = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleTakePhoto = () => {
+        cameraInputRef.current?.click();
     };
 
     return (
@@ -215,18 +271,59 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
 
                 {showPhotoDocumentation && (
                     <>
-                        {uploadSession && (
-                            <QRSection>
-                                <QRTitle>Zeskanuj kod QR aby dodać zdjęcia</QRTitle>
-                                <QRDescription>Użyj telefonu aby wykonać i przesłać zdjęcia pojazdu</QRDescription>
-                                <QRCodeWrapper>
-                                    <img src={qrCodeUrl} alt="QR Code" />
-                                </QRCodeWrapper>
-                                <Button $variant="secondary" onClick={refreshPhotos} disabled={isRefreshing}>
-                                    {isRefreshing ? t.common.loading : 'Odśwież zdjęcia'}
+                        <QRSection>
+                            <QRTitle>Zeskanuj kod QR aby dodać zdjęcia</QRTitle>
+                            <QRDescription>Użyj telefonu aby wykonać i przesłać zdjęcia pojazdu</QRDescription>
+                            <QRPlaceholder>
+                                Tu pojawi się QR kod jak przygotujemy implementację
+                            </QRPlaceholder>
+                            <Button $variant="secondary" onClick={refreshPhotos} disabled={isRefreshing}>
+                                {isRefreshing ? t.common.loading : 'Odśwież zdjęcia'}
+                            </Button>
+                        </QRSection>
+
+                        <UploadSection>
+                            <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
+                                Lub dodaj zdjęcia bezpośrednio
+                            </h4>
+                            <UploadButtons>
+                                <HiddenFileInput
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={(e) => handleFileSelect(e.target.files)}
+                                />
+                                <HiddenFileInput
+                                    ref={cameraInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    capture="environment"
+                                    onChange={(e) => handleFileSelect(e.target.files)}
+                                />
+                                <Button
+                                    $variant="secondary"
+                                    onClick={handleChooseFromDisk}
+                                    disabled={isUploading}
+                                >
+                                    📁 Wybierz z dysku
                                 </Button>
-                            </QRSection>
-                        )}
+                                {isMobile && (
+                                    <Button
+                                        $variant="secondary"
+                                        onClick={handleTakePhoto}
+                                        disabled={isUploading}
+                                    >
+                                        📷 Zrób zdjęcie
+                                    </Button>
+                                )}
+                            </UploadButtons>
+                            {isUploading && (
+                                <div style={{ fontSize: '14px', color: '#64748b' }}>
+                                    Przesyłanie zdjęć...
+                                </div>
+                            )}
+                        </UploadSection>
 
                         <div>
                             <h4 style={{ marginBottom: '16px', fontSize: '16px', fontWeight: 600 }}>
@@ -235,7 +332,7 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
 
                             {uploadedPhotos.length === 0 ? (
                                 <EmptyState>
-                                    Brak przesłanych zdjęć. Użyj kodu QR powyżej aby dodać zdjęcia z telefonu.
+                                    Brak przesłanych zdjęć. Użyj opcji powyżej aby dodać zdjęcia.
                                 </EmptyState>
                             ) : (
                                 <PhotoGrid>
