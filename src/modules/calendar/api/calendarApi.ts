@@ -8,6 +8,7 @@ import type {
     VisitResponse,
     AppointmentEventData,
     VisitEventData,
+    VisitStatus,
 } from '../types';
 
 const USE_MOCKS = false;
@@ -272,12 +273,17 @@ const fetchAppointments = async (dateRange: DateRange): Promise<AppointmentRespo
 };
 
 /**
- * Fetch visits for a given date range
+ * Fetch visits for a given date range and optional status filters
  */
-const fetchVisits = async (dateRange: DateRange): Promise<VisitResponse[]> => {
+const fetchVisits = async (dateRange: DateRange, statuses: VisitStatus[] = []): Promise<VisitResponse[]> => {
     if (USE_MOCKS) {
         await new Promise(resolve => setTimeout(resolve, 500));
         return mockVisits;
+    }
+
+    // If no statuses selected, return empty array
+    if (statuses.length === 0) {
+        return [];
     }
 
     const response = await apiClient.get<{ visits: VisitResponse[] }>(
@@ -286,6 +292,7 @@ const fetchVisits = async (dateRange: DateRange): Promise<VisitResponse[]> => {
             params: {
                 startDate: dateRange.start,
                 endDate: dateRange.end,
+                statuses: statuses.join(','), // Send as comma-separated string
             },
         }
     );
@@ -297,14 +304,15 @@ export const calendarApi = {
     /**
      * Fetch and merge all calendar events (appointments + visits) for a date range
      */
-    getCalendarEvents: async (dateRange: DateRange): Promise<CalendarEvent[]> => {
+    getCalendarEvents: async (dateRange: DateRange, visitStatuses: VisitStatus[] = []): Promise<CalendarEvent[]> => {
         try {
             console.log('[CalendarAPI] Fetching events for range:', dateRange);
+            console.log('[CalendarAPI] Visit status filters:', visitStatuses);
 
             // Fetch both appointments and visits in parallel
             const [appointments, visits] = await Promise.all([
                 fetchAppointments(dateRange),
-                fetchVisits(dateRange),
+                fetchVisits(dateRange, visitStatuses),
             ]);
 
             console.log('[CalendarAPI] Fetched appointments:', appointments);

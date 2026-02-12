@@ -13,7 +13,8 @@ import { useCalendarEvents } from '../hooks/useCalendarEvents';
 import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
 import { QuickEventModal, type QuickEventFormData, type QuickEventModalRef } from './QuickEventModal';
 import { EventSummaryPopover } from './EventSummaryPopover';
-import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData } from '../types';
+import { VisitStatusFilter } from './VisitStatusFilter';
+import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData, VisitStatus } from '../types';
 import type { Operation } from '@/modules/operations/types';
 import '../calendar.css';
 
@@ -473,6 +474,22 @@ const CalendarContainer = styled.div`
     }
 `;
 
+const FilterPanel = styled.div`
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    max-width: 280px;
+
+    @media (max-width: 768px) {
+        position: relative;
+        top: 0;
+        right: 0;
+        max-width: 100%;
+        padding: 16px;
+    }
+`;
+
 const LoadingOverlay = styled.div`
     position: absolute;
     top: 0;
@@ -513,6 +530,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const [quickModalOpen, setQuickModalOpen] = useState(false);
     const [selectedEventData, setSelectedEventData] = useState<EventCreationData | null>(null);
 
+    // Filter state - all visit statuses selected by default
+    const [selectedStatuses, setSelectedStatuses] = useState<VisitStatus[]>([
+        'IN_PROGRESS',
+        'READY_FOR_PICKUP',
+        'COMPLETED',
+        'REJECTED',
+        'ARCHIVED',
+    ]);
+
     // Popover state
     const [popoverOpen, setPopoverOpen] = useState(false);
     const [popoverEvent, setPopoverEvent] = useState<AppointmentEventData | VisitEventData | null>(null);
@@ -521,7 +547,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     // Reservation options modal state
 
     const { createQuickEventAsync } = useQuickEventCreation();
-    const { data: events = [], isLoading } = useCalendarEvents(dateRange);
+    const { data: events = [], isLoading } = useCalendarEvents(dateRange, selectedStatuses);
 
     /**
      * Handle date range changes (triggered when view changes or user navigates)
@@ -677,6 +703,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     <LoadingSpinner />
                 </LoadingOverlay>
             )}
+
+            <FilterPanel>
+                <VisitStatusFilter
+                    selectedStatuses={selectedStatuses}
+                    onChange={setSelectedStatuses}
+                />
+            </FilterPanel>
 
             <FullCalendar
                 ref={calendarRef}

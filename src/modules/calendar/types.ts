@@ -6,6 +6,8 @@ export type CalendarEventType = 'APPOINTMENT' | 'VISIT';
 
 export type CalendarView = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay';
 
+export type VisitStatus = 'IN_PROGRESS' | 'READY_FOR_PICKUP' | 'COMPLETED' | 'REJECTED' | 'ARCHIVED';
+
 /**
  * Base calendar event data structure
  */
@@ -40,7 +42,7 @@ export interface AppointmentEventData extends CalendarEventData {
 export interface VisitEventData extends CalendarEventData {
     type: 'VISIT';
     visitNumber: string;
-    status: string;
+    status: VisitStatus;
     licensePlate: string;
     technicalNotes?: string;
 }
@@ -95,7 +97,7 @@ export interface AppointmentResponse {
 export interface VisitResponse {
     id: string;
     visitNumber: string;
-    status: 'IN_PROGRESS' | 'READY_FOR_PICKUP' | 'COMPLETED' | 'REJECTED' | 'ARCHIVED';
+    status: VisitStatus;
     scheduledDate: string;
     estimatedCompletionDate: string;
     customer: {
@@ -143,6 +145,13 @@ export interface CalendarEvent extends EventInput {
 export interface DateRange {
     start: string;
     end: string;
+}
+
+/**
+ * Calendar filters for visits
+ */
+export interface CalendarFilters {
+    visitStatuses: VisitStatus[];
 }
 
 /**
