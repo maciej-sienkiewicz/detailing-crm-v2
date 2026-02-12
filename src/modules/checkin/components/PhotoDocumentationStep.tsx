@@ -1,6 +1,6 @@
 // src/modules/checkin/components/PhotoDocumentationStep.tsx
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import styled from 'styled-components';
 import { Card, CardHeader, CardTitle } from '@/common/components/Card';
 import { Button } from '@/common/components/Button';
@@ -183,32 +183,48 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
     const filesMapRef = useRef<Map<string, File>>(new Map()); // Store files by photo ID
     const isMobile = isMobileDevice();
 
+    // Sync photos from backend ONLY if we don't have local photos yet
     useEffect(() => {
-        if (photos) {
-            onChange({ photos });
-        }
+        if (!photos || photos.length === 0) return;
+
+        // Don't overwrite if we already have local photos
+        if (formData.photos && formData.photos.length > 0) return;
+
+        onChange({ photos });
     }, [photos]);
 
     // Restore preview URLs for photos that don't have them
-    useEffect(() => {
-        const photosNeedingPreview = formData.photos.filter(
-            photo => photo.id && !photo.previewUrl && filesMapRef.current.has(photo.id)
-        );
+    // Memoize the list of photos needing restoration
+    const photosNeedingRestore = useMemo(() => {
+        if (!formData.photos || formData.photos.length === 0) return [];
 
-        if (photosNeedingPreview.length > 0) {
-            const updatedPhotos = formData.photos.map(photo => {
-                if (photo.id && !photo.previewUrl && filesMapRef.current.has(photo.id)) {
-                    const file = filesMapRef.current.get(photo.id)!;
-                    return {
-                        ...photo,
-                        previewUrl: URL.createObjectURL(file),
-                    };
-                }
-                return photo;
-            });
-            onChange({ photos: updatedPhotos });
-        }
-    }, [formData.photos.length]); // Re-run when photos count changes (e.g., coming back from another step)
+        return formData.photos.filter(photo =>
+            photo.id &&
+            !photo.previewUrl &&
+            filesMapRef.current.has(photo.id)
+        );
+    }, [formData.photos]);
+
+    // Restore preview URLs when component mounts or photos change
+    useEffect(() => {
+        if (photosNeedingRestore.length === 0) return;
+
+        console.log('🔧 Restoring preview URLs for', photosNeedingRestore.length, 'photos');
+
+        const updatedPhotos = formData.photos.map(photo => {
+            if (photo.id && !photo.previewUrl && filesMapRef.current.has(photo.id)) {
+                const file = filesMapRef.current.get(photo.id)!;
+                console.log('  ↳ Restoring preview for photo:', photo.id, photo.fileName);
+                return {
+                    ...photo,
+                    previewUrl: URL.createObjectURL(file),
+                };
+            }
+            return photo;
+        });
+
+        onChange({ photos: updatedPhotos });
+    }, [photosNeedingRestore.length, onChange]);
 
     const uploadedPhotos = formData.photos || [];
     const photosCount = uploadedPhotos.length;
