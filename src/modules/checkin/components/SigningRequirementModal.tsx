@@ -116,16 +116,20 @@ const ActionButtons = styled.div`
     align-items: center;
 `;
 
-const IconButton = styled.button`
+const IconButton = styled.button<{ $active?: boolean }>`
     width: 36px;
     height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
     border: none;
-    background: ${props => props.theme.colors.surfaceHover};
+    background: ${props => props.$active
+        ? props.theme.colors.primary + '20'
+        : props.theme.colors.surfaceHover};
     border-radius: ${props => props.theme.radii.md};
-    color: ${props => props.theme.colors.textSecondary};
+    color: ${props => props.$active
+        ? props.theme.colors.primary
+        : props.theme.colors.textSecondary};
     cursor: pointer;
     transition: all 0.2s ease;
 
@@ -145,12 +149,6 @@ const IconButton = styled.button`
     }
 `;
 
-const Checkbox = styled.input.attrs({ type: 'checkbox' })`
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-    accent-color: ${props => props.theme.colors.primary};
-`;
 
 const FooterActions = styled.div`
     display: flex;
@@ -371,7 +369,7 @@ export const SigningRequirementModal = ({
                                         {/* Preview button */}
                                         <IconButton
                                             onClick={() => handlePreview(protocol.id)}
-                                            title="Podgląd dokumentu"
+                                            title="Podgląd"
                                         >
                                             <svg
                                                 xmlns="http://www.w3.org/2000/svg"
@@ -394,15 +392,29 @@ export const SigningRequirementModal = ({
                                             </svg>
                                         </IconButton>
 
-                                        {/* Print checkbox */}
-                                        <Checkbox
-                                            checked={selectedForPrint.has(protocol.id)}
-                                            onChange={() => handleTogglePrint(protocol.id)}
-                                            title="Zaznacz do druku"
-                                        />
+                                        {/* Print button */}
+                                        <IconButton
+                                            $active={selectedForPrint.has(protocol.id)}
+                                            onClick={() => handleTogglePrint(protocol.id)}
+                                            title="Drukuj"
+                                        >
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+                                                />
+                                            </svg>
+                                        </IconButton>
 
-                                        {/* Tablet signature (disabled placeholder) */}
-                                        <IconButton disabled title="Wyślij na tablet (Wkrótce)">
+                                        {/* Tablet signature button */}
+                                        <IconButton disabled title="Podpisz na tablecie">
                                             <svg
                                                 xmlns="http://www.w3.org/2000/svg"
                                                 fill="none"
