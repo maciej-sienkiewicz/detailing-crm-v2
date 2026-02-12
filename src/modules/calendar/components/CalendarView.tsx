@@ -13,8 +13,8 @@ import { useCalendarEvents } from '../hooks/useCalendarEvents';
 import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
 import { QuickEventModal, type QuickEventFormData, type QuickEventModalRef } from './QuickEventModal';
 import { EventSummaryPopover } from './EventSummaryPopover';
-import { VisitStatusFilter } from './VisitStatusFilter';
-import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData, VisitStatus } from '../types';
+import { CalendarFilterDropdown } from './CalendarFilterDropdown';
+import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData, VisitStatus, AppointmentStatus } from '../types';
 import type { Operation } from '@/modules/operations/types';
 import '../calendar.css';
 
@@ -474,19 +474,23 @@ const CalendarContainer = styled.div`
     }
 `;
 
-const FilterPanel = styled.div`
+const CalendarWrapper = styled.div`
+    position: relative;
+    height: 100%;
+    width: 100%;
+`;
+
+const FilterToolbar = styled.div`
     position: absolute;
     top: 20px;
-    right: 20px;
+    right: 28px;
     z-index: 100;
-    max-width: 280px;
+    display: flex;
+    gap: 12px;
 
     @media (max-width: 768px) {
-        position: relative;
-        top: 0;
-        right: 0;
-        max-width: 100%;
-        padding: 16px;
+        top: 16px;
+        right: 16px;
     }
 `;
 
@@ -530,8 +534,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const [quickModalOpen, setQuickModalOpen] = useState(false);
     const [selectedEventData, setSelectedEventData] = useState<EventCreationData | null>(null);
 
-    // Filter state - all visit statuses selected by default
-    const [selectedStatuses, setSelectedStatuses] = useState<VisitStatus[]>([
+    // Filter state - all statuses selected by default
+    const [selectedAppointmentStatuses, setSelectedAppointmentStatuses] = useState<AppointmentStatus[]>([
+        'CREATED',
+        'ABANDONED',
+    ]);
+    const [selectedVisitStatuses, setSelectedVisitStatuses] = useState<VisitStatus[]>([
         'IN_PROGRESS',
         'READY_FOR_PICKUP',
         'COMPLETED',
@@ -547,7 +555,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     // Reservation options modal state
 
     const { createQuickEventAsync } = useQuickEventCreation();
-    const { data: events = [], isLoading } = useCalendarEvents(dateRange, selectedStatuses);
+    const { data: events = [], isLoading } = useCalendarEvents(dateRange, selectedAppointmentStatuses, selectedVisitStatuses);
 
     /**
      * Handle date range changes (triggered when view changes or user navigates)
@@ -704,14 +712,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 </LoadingOverlay>
             )}
 
-            <FilterPanel>
-                <VisitStatusFilter
-                    selectedStatuses={selectedStatuses}
-                    onChange={setSelectedStatuses}
-                />
-            </FilterPanel>
+            <CalendarWrapper>
+                <FilterToolbar>
+                    <CalendarFilterDropdown
+                        selectedAppointmentStatuses={selectedAppointmentStatuses}
+                        selectedVisitStatuses={selectedVisitStatuses}
+                        onAppointmentStatusesChange={setSelectedAppointmentStatuses}
+                        onVisitStatusesChange={setSelectedVisitStatuses}
+                    />
+                </FilterToolbar>
 
-            <FullCalendar
+                <FullCalendar
                 ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
 
@@ -781,6 +792,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 height="100%"
                 expandRows={true}
             />
+            </CalendarWrapper>
 
             <QuickEventModal
                 ref={quickEventModalRef}
