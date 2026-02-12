@@ -65,10 +65,11 @@ const Backdrop = styled.div`
     z-index: 999;
 `;
 
-const DropdownPanel = styled.div`
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
+const DropdownPanel = styled.div<{ $top?: number; $left?: number }>`
+    position: fixed;
+    top: ${props => props.$top !== undefined ? `${props.$top}px` : 'calc(100% + 8px)'};
+    left: ${props => props.$left !== undefined ? `${props.$left}px` : 'auto'};
+    right: ${props => props.$left === undefined ? '0' : 'auto'};
     min-width: 320px;
     max-width: 400px;
     background: #ffffff;
@@ -79,10 +80,9 @@ const DropdownPanel = styled.div`
     border: 1px solid rgba(0, 0, 0, 0.08);
 
     @media (max-width: 768px) {
-        position: fixed;
-        top: auto;
+        top: auto !important;
         bottom: 0;
-        left: 0;
+        left: 0 !important;
         right: 0;
         max-width: 100%;
         border-radius: 16px 16px 0 0;
@@ -241,6 +241,8 @@ interface CalendarFilterDropdownProps {
     selectedVisitStatuses: VisitStatus[];
     onAppointmentStatusesChange: (statuses: AppointmentStatus[]) => void;
     onVisitStatusesChange: (statuses: VisitStatus[]) => void;
+    isOpen?: boolean;
+    onClose?: () => void;
 }
 
 const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
@@ -264,19 +266,49 @@ export const CalendarFilterDropdown: React.FC<CalendarFilterDropdownProps> = ({
     selectedVisitStatuses,
     onAppointmentStatusesChange,
     onVisitStatusesChange,
+    isOpen: isOpenProp,
+    onClose: onCloseProp,
 }) => {
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpenInternal, setIsOpenInternal] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
+
+    // Use external control if provided, otherwise use internal state
+    const isOpen = isOpenProp !== undefined ? isOpenProp : isOpenInternal;
+    const setIsOpen = onCloseProp ? (open: boolean) => !open && onCloseProp() : setIsOpenInternal;
 
     // Calculate active filters count
     const totalPossibleFilters = ALL_APPOINTMENT_STATUSES.length + ALL_VISIT_STATUSES.length;
     const activeFiltersCount = selectedAppointmentStatuses.length + selectedVisitStatuses.length;
     const hasDeselectedFilters = activeFiltersCount < totalPossibleFilters;
 
+    // Calculate dropdown position based on filter button in toolbar
+    useEffect(() => {
+        if (isOpen && isOpenProp !== undefined) {
+            const filterButton = document.querySelector('.fc-filter-button');
+            if (filterButton) {
+                const rect = filterButton.getBoundingClientRect();
+                setDropdownPosition({
+                    top: rect.bottom + 8,
+                    left: rect.left,
+                });
+            }
+        }
+    }, [isOpen, isOpenProp]);
+
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
+                // Don't close if clicking on the filter button
+                const target = event.target as HTMLElement;
+                if (target.closest('.fc-filter-button')) {
+                    return;
+                }
+                if (onCloseProp) {
+                    onCloseProp();
+                } else {
+                    setIsOpenInternal(false);
+                }
             }
         };
 
@@ -287,7 +319,7 @@ export const CalendarFilterDropdown: React.FC<CalendarFilterDropdownProps> = ({
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [isOpen]);
+    }, [isOpen, onCloseProp]);
 
     const handleAppointmentToggle = (status: AppointmentStatus) => {
         if (selectedAppointmentStatuses.includes(status)) {
@@ -326,28 +358,44 @@ export const CalendarFilterDropdown: React.FC<CalendarFilterDropdownProps> = ({
         onVisitStatusesChange(ALL_VISIT_STATUSES);
     };
 
+    const handleClose = () => {
+        if (onCloseProp) {
+            onCloseProp();
+        } else {
+            setIsOpenInternal(false);
+        }
+    };
+
+    // External control mode (no button, only dropdown)
+    const isExternalControl = isOpenProp !== undefined;
+
     return (
         <DropdownContainer ref={dropdownRef}>
-            <FilterButton
-                hasActiveFilters={hasDeselectedFilters}
-                onClick={() => setIsOpen(!isOpen)}
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
-                </svg>
-                Filtruj
-                {hasDeselectedFilters && (
-                    <FilterBadge>{activeFiltersCount}</FilterBadge>
-                )}
-            </FilterButton>
+            {!isExternalControl && (
+                <FilterButton
+                    hasActiveFilters={hasDeselectedFilters}
+                    onClick={() => setIsOpenInternal(!isOpenInternal)}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+                    </svg>
+                    Filtruj
+                    {hasDeselectedFilters && (
+                        <FilterBadge>{activeFiltersCount}</FilterBadge>
+                    )}
+                </FilterButton>
+            )}
 
             {isOpen && (
                 <>
-                    <Backdrop onClick={() => setIsOpen(false)} />
-                    <DropdownPanel>
+                    <Backdrop onClick={handleClose} />
+                    <DropdownPanel
+                        $top={isExternalControl ? dropdownPosition?.top : undefined}
+                        $left={isExternalControl ? dropdownPosition?.left : undefined}
+                    >
                         <DropdownHeader>
                             <DropdownTitle>Filtruj kalendarz</DropdownTitle>
-                            <CloseButton onClick={() => setIsOpen(false)}>
+                            <CloseButton onClick={handleClose}>
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
