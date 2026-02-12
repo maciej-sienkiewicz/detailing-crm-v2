@@ -86,65 +86,55 @@ const PhotoGrid = styled.div`
 
 const PhotoCard = styled.div`
     aspect-ratio: 4 / 3;
-    border: 2px dashed ${props => props.theme.colors.primary};
+    border: 2px solid ${props => props.theme.colors.primary};
     border-radius: ${props => props.theme.radii.md};
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: ${props => props.theme.spacing.sm};
-    padding: ${props => props.theme.spacing.md};
     background: rgba(14, 165, 233, 0.05);
     transition: all ${props => props.theme.transitions.normal};
     position: relative;
     overflow: hidden;
-
-    &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(135deg, rgba(14, 165, 233, 0.1) 0%, transparent 100%);
-    }
 `;
 
-const PhotoIcon = styled.div`
-    width: 48px;
-    height: 48px;
-    border-radius: ${props => props.theme.radii.full};
-    background: linear-gradient(135deg, ${props => props.theme.colors.primary} 0%, #0284c7 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    transition: all ${props => props.theme.transitions.normal};
-
-    svg {
-        width: 24px;
-        height: 24px;
-    }
+const PhotoThumbnail = styled.img`
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
 `;
 
-const PhotoInfo = styled.div`
+const PhotoOverlay = styled.div`
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
+    padding: ${props => props.theme.spacing.sm};
     display: flex;
     flex-direction: column;
-    align-items: center;
     gap: ${props => props.theme.spacing.xs};
     z-index: 1;
 `;
 
 const PhotoDescription = styled.span`
     font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.text};
-    text-align: center;
+    font-weight: ${props => props.theme.fontWeights.semibold};
+    color: white;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 `;
 
 const PhotoTimestamp = styled.span`
     font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
+    color: rgba(255, 255, 255, 0.7);
+    text-align: left;
 `;
 
 const StatusSection = styled.div`
@@ -223,11 +213,12 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
         // For now, we'll simulate it with a timeout
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Add uploaded photos to formData
+        // Add uploaded photos to formData with preview URLs
         const newPhotos: PhotoSlot[] = Array.from(files).map((file, index) => ({
             id: `${Date.now()}_${index}`,
             fileName: file.name,
             uploadedAt: new Date().toISOString(),
+            previewUrl: URL.createObjectURL(file),
         }));
 
         onChange({ photos: [...uploadedPhotos, ...newPhotos] });
@@ -317,19 +308,20 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
                                     <PhotoGrid>
                                         {uploadedPhotos.map((photo, index) => (
                                             <PhotoCard key={photo.id || photo.fileId || index}>
-                                                <PhotoIcon>
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                </PhotoIcon>
-                                                <PhotoInfo>
+                                                {photo.previewUrl && (
+                                                    <PhotoThumbnail src={photo.previewUrl} alt={photo.fileName || 'Zdjęcie pojazdu'} />
+                                                )}
+                                                <PhotoOverlay>
+                                                    {photo.fileName && (
+                                                        <PhotoDescription style={{ color: 'white' }}>{photo.fileName}</PhotoDescription>
+                                                    )}
                                                     {photo.description && (
-                                                        <PhotoDescription>{photo.description}</PhotoDescription>
+                                                        <PhotoDescription style={{ color: 'rgba(255, 255, 255, 0.8)' }}>{photo.description}</PhotoDescription>
                                                     )}
                                                     {photo.uploadedAt && (
-                                                        <PhotoTimestamp>{formatTimestamp(photo.uploadedAt)}</PhotoTimestamp>
+                                                        <PhotoTimestamp style={{ color: 'rgba(255, 255, 255, 0.7)' }}>{formatTimestamp(photo.uploadedAt)}</PhotoTimestamp>
                                                     )}
-                                                </PhotoInfo>
+                                                </PhotoOverlay>
                                             </PhotoCard>
                                         ))}
                                     </PhotoGrid>
