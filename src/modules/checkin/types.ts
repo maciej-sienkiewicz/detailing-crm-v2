@@ -14,6 +14,7 @@ export interface PhotoSlot {
     fileName?: string;
     uploadedAt?: string;
     description?: string;
+    previewUrl?: string; // Local preview URL for uploaded photos
 }
 
 export interface PriceAdjustment {
