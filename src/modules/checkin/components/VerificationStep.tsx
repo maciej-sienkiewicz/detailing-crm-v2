@@ -379,6 +379,12 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     const [isHomeAddressOpen, setIsHomeAddressOpen] = useState(false);
     const [isCompanyOpen, setIsCompanyOpen] = useState(false);
 
+    // Debug log
+    useEffect(() => {
+        console.log('[DEBUG VerificationStep] formData.homeAddress changed:', formData.homeAddress);
+        console.log('[DEBUG VerificationStep] formData.company changed:', formData.company);
+    }, [formData.homeAddress, formData.company]);
+
     // Auto-open panels when data is present
     useEffect(() => {
         if (formData.homeAddress && (
@@ -386,6 +392,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
             formData.homeAddress.city ||
             formData.homeAddress.postalCode
         )) {
+            console.log('[DEBUG VerificationStep] Auto-opening homeAddress panel');
             setIsHomeAddressOpen(true);
         }
     }, [formData.homeAddress]);
@@ -691,6 +698,8 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     };
 
     const handleCustomerSelect = async (customer: SelectedCustomer) => {
+        console.log('[DEBUG VerificationStep] handleCustomerSelect called with:', customer);
+
         // Ustawienie pełnych danych klienta
         const baseCustomerData = {
             customerData: {
@@ -707,8 +716,13 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
         // Jeśli to istniejący klient, pobierz pełne dane z API (homeAddress i company)
         if (!customer.isNew && customer.id) {
             try {
+                console.log('[DEBUG VerificationStep] Fetching customer details for ID:', customer.id);
                 const customerDetail = await customerDetailApi.getCustomerDetail(customer.id);
-                onChange({
+                console.log('[DEBUG VerificationStep] Customer detail response:', customerDetail);
+                console.log('[DEBUG VerificationStep] homeAddress from API:', customerDetail.customer.homeAddress);
+                console.log('[DEBUG VerificationStep] company from API:', customerDetail.customer.company);
+
+                const updateData = {
                     ...baseCustomerData,
                     homeAddress: customerDetail.customer.homeAddress || null,
                     company: customerDetail.customer.company ? {
@@ -722,7 +736,10 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                             country: customerDetail.customer.company.address?.country || 'Polska',
                         },
                     } : null,
-                });
+                };
+
+                console.log('[DEBUG VerificationStep] Calling onChange with updateData:', updateData);
+                onChange(updateData);
             } catch (error) {
                 console.error('Failed to fetch customer details:', error);
                 // Fallback - ustaw tylko podstawowe dane
@@ -730,6 +747,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
             }
         } else {
             // Nowy klient - ustaw tylko podstawowe dane
+            console.log('[DEBUG VerificationStep] New customer, setting base data only');
             onChange(baseCustomerData);
         }
 

@@ -92,7 +92,13 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
     });
 
     const updateFormData = (updates: Partial<CheckInFormData>) => {
-        setFormData(prev => ({ ...prev, ...updates }));
+        console.log('[DEBUG useCheckInWizard] updateFormData called with:', updates);
+        console.log('[DEBUG useCheckInWizard] Previous formData:', formData);
+        setFormData(prev => {
+            const newData = { ...prev, ...updates };
+            console.log('[DEBUG useCheckInWizard] New formData after merge:', newData);
+            return newData;
+        });
     };
 
     const nextStep = () => {
