@@ -9,12 +9,12 @@ export interface DepositItem {
 }
 
 export interface PhotoSlot {
-    id?: string; // Unique identifier for the photo
-    fileId?: string;
-    fileName?: string;
-    uploadedAt?: string;
-    description?: string;
-    previewUrl?: string; // Local preview URL for uploaded photos
+    id: string; // Photo ID from backend
+    fileName: string;
+    fileSize?: number;
+    uploadedAt: string;
+    thumbnailUrl?: string; // Presigned URL from backend (valid for 10 min)
+    previewUrl?: string; // Local preview URL for uploaded photos (client-side only)
 }
 
 export interface PriceAdjustment {
@@ -224,20 +224,23 @@ export interface MobileUploadSession {
     sessionId: string;
     token: string;
     expiresAt: string;
-    uploadedPhotos: PhotoSlot[];
 }
 
-export interface UploadPhotoPayload {
-    sessionId: string;
-    token: string;
-    photo: File;
-    description?: string;
-}
-
-export interface PhotoUploadResponse {
-    fileId: string;
+export interface UploadUrlRequest {
     fileName: string;
-    uploadedAt: string;
+    contentType: string;
+    fileSize: number;
+    sessionToken: string;
+}
+
+export interface UploadUrlResponse {
+    photoId: string;
+    uploadUrl: string; // Presigned S3 URL
+    expiresAt: string;
+}
+
+export interface SessionPhotosResponse {
+    photos: PhotoSlot[];
 }
 
 export interface ProtocolResponse {

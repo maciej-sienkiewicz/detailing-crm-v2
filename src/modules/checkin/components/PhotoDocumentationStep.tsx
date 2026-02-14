@@ -137,6 +137,36 @@ const PhotoTimestamp = styled.span`
     text-align: left;
 `;
 
+const DeleteButton = styled.button`
+    position: absolute;
+    top: ${props => props.theme.spacing.xs};
+    right: ${props => props.theme.spacing.xs};
+    background: rgba(220, 38, 38, 0.9);
+    color: white;
+    border: none;
+    border-radius: ${props => props.theme.radii.sm};
+    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
+    font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: ${props => props.theme.fontWeights.semibold};
+    cursor: pointer;
+    z-index: 2;
+    transition: all ${props => props.theme.transitions.fast};
+
+    &:hover {
+        background: rgba(185, 28, 28, 1);
+        transform: scale(1.05);
+    }
+
+    &:active {
+        transform: scale(0.95);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+`;
+
 const StatusSection = styled.div`
     display: flex;
     flex-direction: column;
@@ -173,58 +203,30 @@ const isMobileDevice = () => {
 };
 
 export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: PhotoDocumentationStepProps) => {
-    const { uploadSession, photos, refreshPhotos, isRefreshing } = usePhotoUpload(reservationId);
+    const {
+        uploadSession,
+        photos,
+        uploadPhoto,
+        deletePhoto,
+        refreshPhotos,
+        isUploading,
+        isDeleting,
+        isRefreshing
+    } = usePhotoUpload(reservationId);
+
     const [showDamageDocumentation, setShowDamageDocumentation] = useState(false);
     const [showPhotoDocumentation, setShowPhotoDocumentation] = useState(true);
-    const [isUploading, setIsUploading] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
-    const filesMapRef = useRef<Map<string, File>>(new Map()); // Store files by photo ID
     const isMobile = isMobileDevice();
 
-    // Sync photos from backend ONLY if we don't have local photos yet
+    // Sync photos from backend to formData
     useEffect(() => {
-        if (!photos || photos.length === 0) return;
-
-        // Don't overwrite if we already have local photos
-        if (formData.photos && formData.photos.length > 0) return;
-
-        onChange({ photos });
-    }, [photos]);
-
-    // Restore preview URLs for photos that don't have them
-    // Memoize the list of photos needing restoration
-    const photosNeedingRestore = useMemo(() => {
-        if (!formData.photos || formData.photos.length === 0) return [];
-
-        return formData.photos.filter(photo =>
-            photo.id &&
-            !photo.previewUrl &&
-            filesMapRef.current.has(photo.id)
-        );
-    }, [formData.photos]);
-
-    // Restore preview URLs when component mounts or photos change
-    useEffect(() => {
-        if (photosNeedingRestore.length === 0) return;
-
-        console.log('🔧 Restoring preview URLs for', photosNeedingRestore.length, 'photos');
-
-        const updatedPhotos = formData.photos.map(photo => {
-            if (photo.id && !photo.previewUrl && filesMapRef.current.has(photo.id)) {
-                const file = filesMapRef.current.get(photo.id)!;
-                console.log('  ↳ Restoring preview for photo:', photo.id, photo.fileName);
-                return {
-                    ...photo,
-                    previewUrl: URL.createObjectURL(file),
-                };
-            }
-            return photo;
-        });
-
-        onChange({ photos: updatedPhotos });
-    }, [photosNeedingRestore.length, onChange]);
+        if (photos && photos.length > 0) {
+            onChange({ photos });
+        }
+    }, [photos, onChange]);
 
     const uploadedPhotos = formData.photos || [];
     const photosCount = uploadedPhotos.length;
@@ -245,28 +247,29 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
     const handleFileSelect = async (files: FileList | null) => {
         if (!files || files.length === 0) return;
 
-        setIsUploading(true);
+        try {
+            // Upload each file to S3 via presigned URLs
+            const uploadPromises = Array.from(files).map(file => uploadPhoto(file));
+            await Promise.all(uploadPromises);
 
-        // Here you would implement actual photo upload logic
-        // For now, we'll simulate it with a timeout
-        await new Promise(resolve => setTimeout(resolve, 1000));
+            // Photos will be automatically refreshed via React Query
+            console.log('✅ All photos uploaded successfully');
+        } catch (error) {
+            console.error('❌ Error uploading photos:', error);
+            alert('Błąd podczas przesyłania zdjęć. Spróbuj ponownie.');
+        }
+    };
 
-        // Add uploaded photos to formData with preview URLs
-        const newPhotos: PhotoSlot[] = Array.from(files).map((file, index) => {
-            const photoId = `${Date.now()}_${index}`;
-            // Store file in ref for future use
-            filesMapRef.current.set(photoId, file);
+    const handleDeletePhoto = async (photoId: string) => {
+        if (!confirm('Czy na pewno chcesz usunąć to zdjęcie?')) return;
 
-            return {
-                id: photoId,
-                fileName: file.name,
-                uploadedAt: new Date().toISOString(),
-                previewUrl: URL.createObjectURL(file),
-            };
-        });
-
-        onChange({ photos: [...uploadedPhotos, ...newPhotos] });
-        setIsUploading(false);
+        try {
+            await deletePhoto(photoId);
+            console.log('✅ Photo deleted successfully');
+        } catch (error) {
+            console.error('❌ Error deleting photo:', error);
+            alert('Błąd podczas usuwania zdjęcia. Spróbuj ponownie.');
+        }
     };
 
     const handleChooseFromDisk = () => {
@@ -350,20 +353,31 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
                                     </h4>
 
                                     <PhotoGrid>
-                                        {uploadedPhotos.map((photo, index) => (
-                                            <PhotoCard key={photo.id || photo.fileId || index}>
-                                                {photo.previewUrl && (
-                                                    <PhotoThumbnail src={photo.previewUrl} alt={photo.fileName || 'Zdjęcie pojazdu'} />
+                                        {uploadedPhotos.map((photo) => (
+                                            <PhotoCard key={photo.id}>
+                                                {(photo.thumbnailUrl || photo.previewUrl) && (
+                                                    <PhotoThumbnail
+                                                        src={photo.thumbnailUrl || photo.previewUrl}
+                                                        alt={photo.fileName || 'Zdjęcie pojazdu'}
+                                                    />
                                                 )}
+                                                <DeleteButton
+                                                    onClick={() => handleDeletePhoto(photo.id)}
+                                                    disabled={isDeleting}
+                                                    title="Usuń zdjęcie"
+                                                >
+                                                    🗑️
+                                                </DeleteButton>
                                                 <PhotoOverlay>
                                                     {photo.fileName && (
-                                                        <PhotoDescription style={{ color: 'white' }}>{photo.fileName}</PhotoDescription>
-                                                    )}
-                                                    {photo.description && (
-                                                        <PhotoDescription style={{ color: 'rgba(255, 255, 255, 0.8)' }}>{photo.description}</PhotoDescription>
+                                                        <PhotoDescription style={{ color: 'white' }}>
+                                                            {photo.fileName}
+                                                        </PhotoDescription>
                                                     )}
                                                     {photo.uploadedAt && (
-                                                        <PhotoTimestamp style={{ color: 'rgba(255, 255, 255, 0.7)' }}>{formatTimestamp(photo.uploadedAt)}</PhotoTimestamp>
+                                                        <PhotoTimestamp style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                                                            {formatTimestamp(photo.uploadedAt)}
+                                                        </PhotoTimestamp>
                                                     )}
                                                 </PhotoOverlay>
                                             </PhotoCard>

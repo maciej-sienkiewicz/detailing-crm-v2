@@ -293,7 +293,6 @@ export const MobilePhotoUploadView = ({ sessionId, token }: MobilePhotoUploadVie
             sessionId,
             token,
             photo: photo.file,
-            description: photo.description,
         });
 
         if (success) {

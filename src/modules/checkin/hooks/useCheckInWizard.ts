@@ -233,7 +233,7 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
                 },
             } : undefined,
             technicalState: formData.technicalState,
-            photoIds: formData.photos.map(p => p.fileId!).filter(Boolean),
+            photoIds: formData.photos.map(p => p.id), // Use 'id' instead of 'fileId'
             damagePoints: formData.damagePoints || [],
             services: transformedServices,
             appointmentColorId: formData.appointmentColorId,
