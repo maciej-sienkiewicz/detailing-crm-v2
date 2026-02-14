@@ -237,6 +237,8 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
                         initialCustomerData={initialData.customerData}
                         initialHasFullCustomerData={initialData.hasFullCustomerData}
                         initialIsNewCustomer={initialData.isNewCustomer}
+                        initialHomeAddress={initialData.homeAddress}
+                        initialCompany={initialData.company}
                         initialVehicleData={initialData.vehicleData === undefined ? undefined : (initialData.vehicleData ?? null)}
                         initialIsNewVehicle={initialData.isNewVehicle}
                     />

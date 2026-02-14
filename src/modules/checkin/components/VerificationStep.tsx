@@ -17,6 +17,7 @@ import type { CheckInFormData, ServiceLineItem } from '../types';
 import { Modal } from '@/common/components/Modal';
 import { PhoneInput } from '@/common/components/PhoneInput';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
+import { customerDetailApi } from '@/modules/customers/api/customerDetailApi';
 
 const StepContainer = styled.div`
     display: flex;
@@ -362,11 +363,13 @@ interface VerificationStepProps {
     initialCustomerData?: CheckInFormData['customerData'];
     initialHasFullCustomerData?: boolean;
     initialIsNewCustomer?: boolean;
+    initialHomeAddress?: CheckInFormData['homeAddress'];
+    initialCompany?: CheckInFormData['company'];
     initialVehicleData?: CheckInFormData['vehicleData'];
     initialIsNewVehicle?: boolean;
 }
 
-export const VerificationStep    = ({ formData, errors, onChange, onServicesChange, colors, showTechnicalSection = true, hideVehicleColorAndPaint = false, hideLicensePlate = false, hideVehicleHandoff = false, initialCustomerData, initialHasFullCustomerData, initialIsNewCustomer, initialVehicleData, initialIsNewVehicle }: VerificationStepProps) => {
+export const VerificationStep    = ({ formData, errors, onChange, onServicesChange, colors, showTechnicalSection = true, hideVehicleColorAndPaint = false, hideLicensePlate = false, hideVehicleHandoff = false, initialCustomerData, initialHasFullCustomerData, initialIsNewCustomer, initialHomeAddress, initialCompany, initialVehicleData, initialIsNewVehicle }: VerificationStepProps) => {
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isCustomerDetailsModalOpen, setIsCustomerDetailsModalOpen] = useState(false);
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
@@ -436,7 +439,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     );
 
     // Compute whether there are changes to enable/disable Reset buttons
-    const canResetCustomer = !(initialCustomerData === undefined && initialHasFullCustomerData === undefined && initialIsNewCustomer === undefined);
+    const canResetCustomer = !(initialCustomerData === undefined && initialHasFullCustomerData === undefined && initialIsNewCustomer === undefined && initialHomeAddress === undefined && initialCompany === undefined);
     const customerDataEqual = initialCustomerData === undefined ? true : (
         initialCustomerData.id === formData.customerData.id &&
         initialCustomerData.firstName === formData.customerData.firstName &&
@@ -446,7 +449,33 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     );
     const customerHasFullEqual = initialHasFullCustomerData === undefined ? true : (initialHasFullCustomerData === formData.hasFullCustomerData);
     const customerIsNewEqual = initialIsNewCustomer === undefined ? true : (initialIsNewCustomer === formData.isNewCustomer);
-    const hasCustomerChanges = canResetCustomer && !(customerDataEqual && customerHasFullEqual && customerIsNewEqual);
+
+    // Compare homeAddress
+    const homeAddressEqual = initialHomeAddress === undefined ? true : (
+        (initialHomeAddress === null && formData.homeAddress === null) ||
+        (initialHomeAddress !== null && formData.homeAddress !== null &&
+            initialHomeAddress.street === formData.homeAddress.street &&
+            initialHomeAddress.city === formData.homeAddress.city &&
+            initialHomeAddress.postalCode === formData.homeAddress.postalCode &&
+            initialHomeAddress.country === formData.homeAddress.country
+        )
+    );
+
+    // Compare company
+    const companyEqual = initialCompany === undefined ? true : (
+        (initialCompany === null && formData.company === null) ||
+        (initialCompany !== null && formData.company !== null &&
+            initialCompany.name === formData.company.name &&
+            initialCompany.nip === formData.company.nip &&
+            initialCompany.regon === formData.company.regon &&
+            initialCompany.address.street === formData.company.address.street &&
+            initialCompany.address.city === formData.company.address.city &&
+            initialCompany.address.postalCode === formData.company.address.postalCode &&
+            initialCompany.address.country === formData.company.address.country
+        )
+    );
+
+    const hasCustomerChanges = canResetCustomer && !(customerDataEqual && customerHasFullEqual && customerIsNewEqual && homeAddressEqual && companyEqual);
 
     const canResetVehicle = !(initialVehicleData === undefined && initialIsNewVehicle === undefined);
     const vehicleDataEqual = initialVehicleData === undefined ? true : (
@@ -471,6 +500,8 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
             customerData: initialCustomerData ? { ...initialCustomerData } : { id: '', firstName: '', lastName: '', phone: '', email: '' },
             hasFullCustomerData: initialHasFullCustomerData ?? false,
             isNewCustomer: initialIsNewCustomer ?? false,
+            homeAddress: initialHomeAddress !== undefined ? initialHomeAddress : formData.homeAddress,
+            company: initialCompany !== undefined ? initialCompany : formData.company,
         });
         setCustomerChoiceMade(false);
         setPendingCustomerUpdates(null);
@@ -659,9 +690,9 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
         setCustomerChoiceMade(true);
     };
 
-    const handleCustomerSelect = (customer: SelectedCustomer) => {
+    const handleCustomerSelect = async (customer: SelectedCustomer) => {
         // Ustawienie pełnych danych klienta
-        onChange({
+        const baseCustomerData = {
             customerData: {
                 id: customer.id || '',
                 firstName: customer.firstName || '',
@@ -671,7 +702,37 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
             },
             hasFullCustomerData: true,
             isNewCustomer: customer.isNew || false,
-        });
+        };
+
+        // Jeśli to istniejący klient, pobierz pełne dane z API (homeAddress i company)
+        if (!customer.isNew && customer.id) {
+            try {
+                const customerDetail = await customerDetailApi.getCustomerDetail(customer.id);
+                onChange({
+                    ...baseCustomerData,
+                    homeAddress: customerDetail.customer.homeAddress || null,
+                    company: customerDetail.customer.company ? {
+                        name: customerDetail.customer.company.name || '',
+                        nip: customerDetail.customer.company.nip || '',
+                        regon: customerDetail.customer.company.regon || '',
+                        address: {
+                            street: customerDetail.customer.company.address?.street || '',
+                            city: customerDetail.customer.company.address?.city || '',
+                            postalCode: customerDetail.customer.company.address?.postalCode || '',
+                            country: customerDetail.customer.company.address?.country || 'Polska',
+                        },
+                    } : null,
+                });
+            } catch (error) {
+                console.error('Failed to fetch customer details:', error);
+                // Fallback - ustaw tylko podstawowe dane
+                onChange(baseCustomerData);
+            }
+        } else {
+            // Nowy klient - ustaw tylko podstawowe dane
+            onChange(baseCustomerData);
+        }
+
         setCustomerChoiceMade(true);
         setIsCustomerModalOpen(false);
     };
