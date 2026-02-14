@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { CheckInWizardView } from './CheckInWizardView';
 import { t } from '@/common/i18n';
 import { appointmentApi } from '@/modules/appointments';
+import { customerDetailApi } from '@/modules/customers/api/customerDetailApi';
 import { fromInstantToLocalInput } from '@/common/dateTime';
 
 const LoadingContainer = styled.div`
@@ -150,6 +151,15 @@ export const CheckInWizardWrapper = () => {
         queryFn: () => appointmentApi.getAppointmentColors(),
     });
 
+    // Pobierz pełne dane klienta (z homeAddress i company)
+    const customerId = reservationData?.customerId;
+    const { data: customerDetailData, isLoading: isLoadingCustomerDetail } = useQuery({
+        queryKey: ['customerDetail', customerId],
+        queryFn: () => customerDetailApi.getCustomerDetail(customerId!),
+        enabled: !!customerId,
+        retry: 1,
+    });
+
     // Mapowanie danych z backendu na format oczekiwany przez CheckInWizardView
     const reservation: ReservationResponse | undefined = reservationData ? {
         id: reservationData.id,
@@ -159,8 +169,9 @@ export const CheckInWizardWrapper = () => {
             lastName: reservationData.customer.lastName,
             phone: reservationData.customer.phone,
             email: reservationData.customer.email,
-            homeAddress: reservationData.customer.homeAddress,
-            company: reservationData.customer.company,
+            // Użyj danych z customerDetailData jeśli są dostępne, w przeciwnym razie null
+            homeAddress: customerDetailData?.customer.homeAddress || null,
+            company: customerDetailData?.customer.company || null,
         },
         vehicle: reservationData.vehicle ? {
             id: reservationData.vehicleId,
@@ -188,7 +199,7 @@ export const CheckInWizardWrapper = () => {
         navigate(`/visits/${visitId}`);
     };
 
-    if (isLoading || isLoadingColors) {
+    if (isLoading || isLoadingColors || isLoadingCustomerDetail) {
         return (
             <LoadingContainer>
                 <Spinner />
