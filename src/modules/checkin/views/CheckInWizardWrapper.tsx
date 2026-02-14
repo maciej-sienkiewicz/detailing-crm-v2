@@ -171,7 +171,17 @@ export const CheckInWizardWrapper = () => {
             email: reservationData.customer.email,
             // Użyj danych z customerDetailData jeśli są dostępne, w przeciwnym razie null
             homeAddress: customerDetailData?.customer.homeAddress || null,
-            company: customerDetailData?.customer.company || null,
+            company: customerDetailData?.customer.company ? {
+                name: customerDetailData.customer.company.name || '',
+                nip: customerDetailData.customer.company.nip || '',
+                regon: customerDetailData.customer.company.regon || '',
+                address: {
+                    street: customerDetailData.customer.company.address?.street || '',
+                    city: customerDetailData.customer.company.address?.city || '',
+                    postalCode: customerDetailData.customer.company.address?.postalCode || '',
+                    country: customerDetailData.customer.company.address?.country || 'Polska',
+                },
+            } : null,
         },
         vehicle: reservationData.vehicle ? {
             id: reservationData.vehicleId,

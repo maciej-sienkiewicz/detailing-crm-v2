@@ -385,31 +385,6 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
         console.log('[DEBUG VerificationStep] formData.company changed:', formData.company);
     }, [formData.homeAddress, formData.company]);
 
-    // Auto-open panels when data is present
-    useEffect(() => {
-        if (formData.homeAddress && (
-            formData.homeAddress.street ||
-            formData.homeAddress.city ||
-            formData.homeAddress.postalCode
-        )) {
-            console.log('[DEBUG VerificationStep] Auto-opening homeAddress panel');
-            setIsHomeAddressOpen(true);
-        }
-    }, [formData.homeAddress]);
-
-    useEffect(() => {
-        if (formData.company && (
-            formData.company.name ||
-            formData.company.nip ||
-            formData.company.regon ||
-            formData.company.address.street ||
-            formData.company.address.city ||
-            formData.company.address.postalCode
-        )) {
-            setIsCompanyOpen(true);
-        }
-    }, [formData.company]);
-
     // New inline choice modals state
     const [showCustomerChoice, setShowCustomerChoice] = useState(false);
     const [customerChoiceMade, setCustomerChoiceMade] = useState(false);
