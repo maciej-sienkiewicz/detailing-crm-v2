@@ -276,12 +276,6 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
 
                     <ActionsCard>
                         <ActionsContent>
-                            <DraftButton
-                                $variant="secondary"
-                                onClick={saveDraft}
-                            >
-                                {t.checkin.actions.saveAsDraft}
-                            </DraftButton>
 
                             <NavigationButtons>
                                 {!isFirstStep && (
