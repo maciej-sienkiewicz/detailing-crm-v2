@@ -92,6 +92,25 @@ export const useUploadPhoto = (visitId: string) => {
     };
 };
 
+export const useDeletePhoto = (visitId: string) => {
+    const queryClient = useQueryClient();
+
+    const { mutate, isPending } = useMutation({
+        mutationFn: (photoId: string) =>
+            visitApi.deletePhoto(visitId, photoId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: visitPhotosQueryKey(visitId),
+            });
+        },
+    });
+
+    return {
+        deletePhoto: mutate,
+        isDeleting: isPending,
+    };
+};
+
 export const useDeleteDocument = (visitId: string) => {
     const queryClient = useQueryClient();
 

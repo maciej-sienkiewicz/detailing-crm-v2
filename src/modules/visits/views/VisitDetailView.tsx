@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useVisitDetail, useVisitDocuments, useVisitPhotos } from '../hooks';
 import { useUpdateVisit } from '../hooks';
-import { useUploadDocument, useUploadPhoto, useDeleteDocument } from '../hooks';
+import { useUploadDocument, useUploadPhoto, useDeleteDocument, useDeletePhoto } from '../hooks';
 import { useVisitComments } from '../hooks';
 import { useUpdateServiceStatus, useSaveServicesChanges } from '../hooks';
 import { VisitHeader } from '../components/VisitHeader';
@@ -182,6 +182,7 @@ export const VisitDetailView = () => {
     const { uploadDocument, isUploading } = useUploadDocument(visitId!);
     const { uploadPhoto, isUploading: isUploadingPhoto } = useUploadPhoto(visitId!);
     const { deleteDocument } = useDeleteDocument(visitId!);
+    const { deletePhoto } = useDeletePhoto(visitId!);
     const { comments, isLoading: isLoadingComments } = useVisitComments(visitId!);
     const { updateServiceStatus } = useUpdateServiceStatus(visitId!);
     const { saveServicesChanges, isSaving } = useSaveServicesChanges(visitId!);
@@ -275,6 +276,12 @@ export const VisitDetailView = () => {
     const handleDeleteDocument = (documentId: string) => {
         if (window.confirm('Czy na pewno chcesz usunąć ten dokument?')) {
             deleteDocument(documentId);
+        }
+    };
+
+    const handleDeletePhoto = (photoId: string) => {
+        if (window.confirm('Czy na pewno chcesz usunąć to zdjęcie?')) {
+            deletePhoto(photoId);
         }
     };
 
@@ -382,6 +389,7 @@ export const VisitDetailView = () => {
                             onUpload={handleUploadDocument}
                             onUploadPhoto={handleUploadPhoto}
                             onDelete={handleDeleteDocument}
+                            onDeletePhoto={handleDeletePhoto}
                             isUploading={isUploading || isUploadingPhoto}
                         />
                     </TabContent>
