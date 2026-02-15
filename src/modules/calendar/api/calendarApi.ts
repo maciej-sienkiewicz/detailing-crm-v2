@@ -140,12 +140,12 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         : 'Brak pojazdu';
     const serviceNames = appointment.services.map(s => s.serviceName);
 
-    // Check if appointment is abandoned
-    const isAbandoned = appointment.status === 'ABANDONED';
+    // Check if appointment is abandoned or cancelled
+    const isCancelled = appointment.status === 'ABANDONED' || appointment.status === 'CANCELLED';
 
-    // For ABANDONED appointments, always use red color with transparency
+    // For ABANDONED/CANCELLED appointments, always use red color with transparency
     // Otherwise use appointmentColor or fallback
-    const colorHex = isAbandoned ? '#ef4444' : (appointment.appointmentColor?.hexColor || '#94a3b8');
+    const colorHex = isCancelled ? '#ef4444' : (appointment.appointmentColor?.hexColor || '#94a3b8');
     const textColor = getContrastingTextColor(colorHex);
 
     const eventData: AppointmentEventData = {
@@ -175,8 +175,8 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         borderColor: 'transparent',
         textColor,
         extendedProps: eventData,
-        // Add custom class name for ABANDONED appointments
-        classNames: isAbandoned ? ['fc-event-abandoned'] : [],
+        // Add custom class name for ABANDONED/CANCELLED appointments
+        classNames: isCancelled ? ['fc-event-abandoned'] : [],
     };
 };
 

@@ -248,6 +248,7 @@ interface CalendarFilterDropdownProps {
 const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
     'CREATED': 'Potwierdzone',
     'ABANDONED': 'Porzucone',
+    'CANCELLED': 'Anulowane',
 };
 
 const VISIT_STATUS_LABELS: Record<VisitStatus, string> = {
@@ -258,7 +259,7 @@ const VISIT_STATUS_LABELS: Record<VisitStatus, string> = {
     'ARCHIVED': 'Zarchiwizowane',
 };
 
-const ALL_APPOINTMENT_STATUSES: AppointmentStatus[] = ['CREATED', 'ABANDONED'];
+const ALL_APPOINTMENT_STATUSES: AppointmentStatus[] = ['CREATED', 'ABANDONED', 'CANCELLED'];
 const ALL_VISIT_STATUSES: VisitStatus[] = ['IN_PROGRESS', 'READY_FOR_PICKUP', 'COMPLETED', 'REJECTED', 'ARCHIVED'];
 
 export const CalendarFilterDropdown: React.FC<CalendarFilterDropdownProps> = ({

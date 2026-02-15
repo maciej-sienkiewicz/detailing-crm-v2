@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { operationApi } from '../api/operationApi';
+import { useToast } from '@/common/components/Toast';
 
 export const useUpdateReservationDate = () => {
     const queryClient = useQueryClient();
@@ -31,12 +32,16 @@ export const useUpdateReservationDate = () => {
 
 export const useCancelReservation = () => {
     const queryClient = useQueryClient();
+    const { showToast } = useToast();
 
     const mutation = useMutation({
         mutationFn: (reservationId: string) => operationApi.cancelReservation(reservationId),
         onSuccess: () => {
             // Odśwież listę operacji
             queryClient.invalidateQueries({ queryKey: ['operations'] });
+
+            // Pokaż toast z informacją o porzuceniu rezerwacji
+            showToast('Rezerwacja została porzucona', 'success');
         },
     });
 

@@ -8,7 +8,7 @@ export type CalendarView = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay';
 
 export type VisitStatus = 'IN_PROGRESS' | 'READY_FOR_PICKUP' | 'COMPLETED' | 'REJECTED' | 'ARCHIVED';
 
-export type AppointmentStatus = 'CREATED' | 'ABANDONED';
+export type AppointmentStatus = 'CREATED' | 'ABANDONED' | 'CANCELLED';
 
 /**
  * Base calendar event data structure

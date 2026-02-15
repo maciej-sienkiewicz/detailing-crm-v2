@@ -258,11 +258,10 @@ const CalendarContainer = styled.div`
         padding: 0 2px 4px;
     }
 
-    /* Abandoned appointments — premium muted style */
+    /* Abandoned/Cancelled appointments — red with strike-through and 30% opacity */
     .fc-event-abandoned {
-        opacity: 0.5;
-        font-style: italic;
-        filter: grayscale(0.3);
+        opacity: 0.3;
+        background-color: #ef4444 !important; /* Red color */
     }
 
     .fc-event-abandoned .fc-event-title,
@@ -551,6 +550,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const [selectedAppointmentStatuses, setSelectedAppointmentStatuses] = useState<AppointmentStatus[]>([
         'CREATED',
         'ABANDONED',
+        'CANCELLED',
     ]);
     const [selectedVisitStatuses, setSelectedVisitStatuses] = useState<VisitStatus[]>([
         'IN_PROGRESS',
