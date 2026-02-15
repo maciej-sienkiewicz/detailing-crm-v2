@@ -140,8 +140,9 @@ export const ReadyToCompletedWizard = ({
     const { comments } = useVisitComments(visit.id);
 
     const handlePaymentComplete = (payment: any) => {
+        // Only update wizard data with payment details
+        // Don't call handleFinish here - it will be called when user clicks the final button
         updateWizardData({ payment });
-        handleFinish();
     };
 
     const getStepTitle = () => {
@@ -236,7 +237,7 @@ export const ReadyToCompletedWizard = ({
             totalSteps={totalSteps}
             onBack={currentStep > 1 ? handleBack : undefined}
             onNext={currentStep < totalSteps ? handleNext : undefined}
-            onFinish={currentStep === totalSteps ? () => handlePaymentComplete(wizardData.payment!) : undefined}
+            onFinish={currentStep === totalSteps ? handleFinish : undefined}
             nextLabel={currentStep === 2 ? 'Podpisano' : 'Kontynuuj'}
             finishLabel="Zatwierdź i wydaj pojazd"
             isProcessing={isProcessing}
