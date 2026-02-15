@@ -974,70 +974,122 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     {errors.servicePrices && <S.ErrorMessage>{errors.servicePrices}</S.ErrorMessage>}
 
                                     {selectedServiceIds.length > 0 && (
-                                        <S.ServicesList>
-                                            {selectedServiceIds.map(id => {
-                                                let service = services.find((s: Service) => s.id === id);
-                                                if (!service && tempServices[id]) {
-                                                    service = { id, ...tempServices[id] };
-                                                }
-                                                if (!service) return null;
-                                                const isNoteExpanded = expandedServiceNote === id;
-                                                const hasNote = !!(serviceNotes[id] && serviceNotes[id].length > 0);
-                                                return (
-                                                    <S.ServiceItem key={id}>
-                                                        <S.ServiceItemHeader>
-                                                            <S.ServiceName>{service.name}</S.ServiceName>
-                                                            <S.ServicePriceInput
-                                                                type="number"
-                                                                step="0.01"
-                                                                value={(servicePrices[id] ?? 0).toFixed(2)}
-                                                                onChange={(e) => {
-                                                                    const val = e.target.value;
-                                                                    const num = parseFloat(val.replace(',', '.'));
-                                                                    setServicePrices(prev => ({ ...prev, [id]: isNaN(num) ? 0 : roundTo2(num) }));
-                                                                }}
-                                                            />
-                                                            <S.ServicePriceLabel>zł</S.ServicePriceLabel>
-                                                            <S.IconButton
-                                                                type="button"
-                                                                onClick={() => setExpandedServiceNote(isNoteExpanded ? null : id)}
-                                                                $active={hasNote}
-                                                                title="Dodaj notatkę do usługi"
-                                                            >
-                                                                <IconMessageSquare />
-                                                            </S.IconButton>
-                                                            <S.DeleteButton
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setSelectedServiceIds(prev => prev.filter(i => i !== id));
-                                                                    const newPrices = {...servicePrices};
-                                                                    delete newPrices[id];
-                                                                    setServicePrices(newPrices);
-                                                                    const newNotes = {...serviceNotes};
-                                                                    delete newNotes[id];
-                                                                    setServiceNotes(newNotes);
-                                                                    if (expandedServiceNote === id) {
-                                                                        setExpandedServiceNote(null);
-                                                                    }
-                                                                }}
-                                                            >
-                                                                <IconTrash />
-                                                            </S.DeleteButton>
-                                                        </S.ServiceItemHeader>
-                                                        {isNoteExpanded && (
-                                                            <S.ServiceNoteContainer>
-                                                                <S.ServiceNoteTextarea
-                                                                    placeholder="Dodaj notatkę do tej usługi..."
-                                                                    value={serviceNotes[id] || ''}
-                                                                    onChange={(e) => setServiceNotes(prev => ({ ...prev, [id]: e.target.value }))}
-                                                                    rows={2}
-                                                                />
-                                                            </S.ServiceNoteContainer>
-                                                        )}
-                                                    </S.ServiceItem>
-                                                );
-                                            })}
-                                        </S.ServicesList>
+                                        <>
+                                            <S.ServicesList>
+                                                {selectedServiceIds.map(id => {
+                                                    let service = services.find((s: Service) => s.id === id);
+                                                    if (!service && tempServices[id]) {
+                                                        service = { id, ...tempServices[id] };
+                                                    }
+                                                    if (!service) return null;
+                                                    const isNoteExpanded = expandedServiceNote === id;
+                                                    const hasNote = !!(serviceNotes[id] && serviceNotes[id].length > 0);
+
+                                                    // Calculate net price from gross
+                                                    const grossPrice = servicePrices[id] ?? 0;
+                                                    const vatRate = service.vatRate || 23;
+                                                    const netPrice = roundTo2(grossPrice / (1 + vatRate / 100));
+
+                                                    return (
+                                                        <S.ServiceItem key={id}>
+                                                            <S.ServiceItemHeader>
+                                                                <S.ServiceName>{service.name}</S.ServiceName>
+                                                                <S.ServicePriceWrapper>
+                                                                    <S.ServicePriceInput
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        value={(servicePrices[id] ?? 0).toFixed(2)}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value;
+                                                                            const num = parseFloat(val.replace(',', '.'));
+                                                                            setServicePrices(prev => ({ ...prev, [id]: isNaN(num) ? 0 : roundTo2(num) }));
+                                                                        }}
+                                                                    />
+                                                                    <S.ServicePriceLabel>zł</S.ServicePriceLabel>
+                                                                    <S.ServicePriceBadge>brutto</S.ServicePriceBadge>
+                                                                </S.ServicePriceWrapper>
+                                                                <S.IconButton
+                                                                    type="button"
+                                                                    onClick={() => setExpandedServiceNote(isNoteExpanded ? null : id)}
+                                                                    $active={hasNote}
+                                                                    title="Dodaj notatkę do usługi"
+                                                                >
+                                                                    <IconMessageSquare />
+                                                                </S.IconButton>
+                                                                <S.DeleteButton
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setSelectedServiceIds(prev => prev.filter(i => i !== id));
+                                                                        const newPrices = {...servicePrices};
+                                                                        delete newPrices[id];
+                                                                        setServicePrices(newPrices);
+                                                                        const newNotes = {...serviceNotes};
+                                                                        delete newNotes[id];
+                                                                        setServiceNotes(newNotes);
+                                                                        if (expandedServiceNote === id) {
+                                                                            setExpandedServiceNote(null);
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <IconTrash />
+                                                                </S.DeleteButton>
+                                                            </S.ServiceItemHeader>
+                                                            {isNoteExpanded && (
+                                                                <S.ServiceNoteContainer>
+                                                                    <S.ServiceNoteTextarea
+                                                                        placeholder="Dodaj notatkę do tej usługi..."
+                                                                        value={serviceNotes[id] || ''}
+                                                                        onChange={(e) => setServiceNotes(prev => ({ ...prev, [id]: e.target.value }))}
+                                                                        rows={2}
+                                                                    />
+                                                                </S.ServiceNoteContainer>
+                                                            )}
+                                                        </S.ServiceItem>
+                                                    );
+                                                })}
+                                            </S.ServicesList>
+
+                                            {/* Summary Section */}
+                                            <S.SummarySection>
+                                                {(() => {
+                                                    let totalNet = 0;
+                                                    let totalGross = 0;
+
+                                                    selectedServiceIds.forEach(id => {
+                                                        const service = services.find((s: Service) => s.id === id) || tempServices[id];
+                                                        if (!service) return;
+
+                                                        const grossPrice = servicePrices[id] ?? 0;
+                                                        const vatRate = service.vatRate || 23;
+                                                        const netPrice = roundTo2(grossPrice / (1 + vatRate / 100));
+
+                                                        totalNet += netPrice;
+                                                        totalGross += grossPrice;
+                                                    });
+
+                                                    totalNet = roundTo2(totalNet);
+                                                    totalGross = roundTo2(totalGross);
+                                                    const totalVat = roundTo2(totalGross - totalNet);
+
+                                                    return (
+                                                        <>
+                                                            <S.SummaryRow>
+                                                                <S.SummaryLabel>Wartość netto:</S.SummaryLabel>
+                                                                <S.SummaryValue>{totalNet.toFixed(2)} zł</S.SummaryValue>
+                                                            </S.SummaryRow>
+                                                            <S.SummaryRow>
+                                                                <S.SummaryLabel>VAT:</S.SummaryLabel>
+                                                                <S.SummaryValue>{totalVat.toFixed(2)} zł</S.SummaryValue>
+                                                            </S.SummaryRow>
+                                                            <S.SummaryRow $isTotal>
+                                                                <S.SummaryLabel $isTotal>Wartość brutto:</S.SummaryLabel>
+                                                                <S.SummaryValue $isTotal>{totalGross.toFixed(2)} zł</S.SummaryValue>
+                                                            </S.SummaryRow>
+                                                        </>
+                                                    );
+                                                })()}
+                                            </S.SummarySection>
+                                        </>
                                     )}
                                 </S.RowContent>
                             </S.Row>
