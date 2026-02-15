@@ -439,10 +439,17 @@ export const ServiceName = styled.span`
     color: ${props => props.theme.colors.text};
 `;
 
+export const ServicePriceWrapper = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+`;
+
 export const ServicePriceInput = styled.input`
     width: 96px;
     padding: 6px 12px;
     font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: ${props => props.theme.fontWeights.medium};
     text-align: right;
     border: 1px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.md};
@@ -459,6 +466,19 @@ export const ServicePriceInput = styled.input`
 export const ServicePriceLabel = styled.span`
     font-size: ${props => props.theme.fontSizes.xs};
     color: ${props => props.theme.colors.textSecondary};
+    font-weight: ${props => props.theme.fontWeights.medium};
+`;
+
+export const ServicePriceBadge = styled.span`
+    padding: 2px 6px;
+    background: ${props => props.theme.colors.surfaceAlt};
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.sm};
+    font-size: ${props => props.theme.fontSizes.xs};
+    color: ${props => props.theme.colors.textMuted};
+    text-transform: uppercase;
+    font-weight: ${props => props.theme.fontWeights.medium};
+    letter-spacing: 0.02em;
 `;
 
 export const IconButton = styled.button<{ $active?: boolean }>`
@@ -525,6 +545,37 @@ export const ServiceNoteTextarea = styled.textarea`
         background: ${props => props.theme.colors.surface};
         border-color: ${props => props.theme.colors.primary};
     }
+`;
+
+export const SummarySection = styled.div`
+    margin-top: ${props => props.theme.spacing.md};
+    padding: ${props => props.theme.spacing.md};
+    background: ${props => props.theme.colors.surfaceAlt};
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.lg};
+`;
+
+export const SummaryRow = styled.div<{ $isTotal?: boolean }>`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${props => props.$isTotal ? '12px 0 0' : '6px 0'};
+    border-top: ${props => props.$isTotal ? `2px solid ${props.theme.colors.border}` : 'none'};
+    margin-top: ${props => props.$isTotal ? props.theme.spacing.sm : '0'};
+`;
+
+export const SummaryLabel = styled.span<{ $isTotal?: boolean }>`
+    font-size: ${props => props.$isTotal ? props.theme.fontSizes.base : props.theme.fontSizes.sm};
+    color: ${props => props.$isTotal ? props.theme.colors.text : props.theme.colors.textSecondary};
+    font-weight: ${props => props.$isTotal ? props.theme.fontWeights.semibold : props.theme.fontWeights.normal};
+`;
+
+export const SummaryValue = styled.span<{ $isTotal?: boolean }>`
+    font-size: ${props => props.$isTotal ? props.theme.fontSizes.lg : props.theme.fontSizes.sm};
+    color: ${props => props.theme.colors.text};
+    font-weight: ${props => props.$isTotal ? props.theme.fontWeights.bold : props.theme.fontWeights.medium};
+    font-feature-settings: 'tnum';
+    font-variant-numeric: tabular-nums;
 `;
 
 export const Footer = styled.div`
