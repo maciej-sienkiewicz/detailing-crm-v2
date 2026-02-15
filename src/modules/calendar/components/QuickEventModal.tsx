@@ -842,7 +842,14 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             onFocus={() => {
                                                 if (!selectedCustomer) return;
                                                 setFocusedField('vehicle');
-                                                setShowVehicleDropdown(true);
+
+                                                // If customer has no vehicles, open vehicle creation modal directly
+                                                if (vehicles.length === 0) {
+                                                    setVehicleModalInitialMode('new');
+                                                    setIsVehicleModalOpen(true);
+                                                } else {
+                                                    setShowVehicleDropdown(true);
+                                                }
                                             }}
                                             onBlur={() => {
                                                 setFocusedField(null);
