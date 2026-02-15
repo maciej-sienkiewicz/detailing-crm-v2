@@ -140,13 +140,16 @@ export const PaymentStep = ({ totalAmount, currency, onComplete }: PaymentStepPr
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
     const [invoiceType, setInvoiceType] = useState<InvoiceType>('vat');
 
+    // Update payment data whenever selection changes, but don't call onComplete yet
+    // onComplete should only be called when user clicks "Finish" button
     useEffect(() => {
         onComplete({
             method: paymentMethod,
             invoiceType,
             amount: totalAmount,
         });
-    }, [paymentMethod, invoiceType, totalAmount, onComplete]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [paymentMethod, invoiceType, totalAmount]); // Removed onComplete from deps to prevent infinite loop
 
     const paymentMethods: Array<{ value: PaymentMethod; label: string; icon: string }> = [
         { value: 'cash', label: 'Gotówka', icon: '💵' },
