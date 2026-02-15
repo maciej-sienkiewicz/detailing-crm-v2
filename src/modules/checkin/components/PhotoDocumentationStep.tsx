@@ -226,7 +226,8 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
         if (photos && photos.length > 0) {
             onChange({ photos });
         }
-    }, [photos, onChange]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [photos]); // Only depend on photos, not onChange to avoid infinite loop
 
     const uploadedPhotos = formData.photos || [];
     const photosCount = uploadedPhotos.length;
