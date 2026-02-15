@@ -319,7 +319,7 @@ export const VisitDetailView = () => {
                             $isActive={activeTab === 'documentation'}
                             onClick={() => setActiveTab('documentation')}
                         >
-                            📁 Dokumentacja ({documents.length})
+                            📁 Dokumentacja ({documents.length + visitPhotos.length})
                         </TabButton>
                     </TabsList>
                 </TabsContainer>

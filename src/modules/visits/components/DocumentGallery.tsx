@@ -320,25 +320,38 @@ export const DocumentGallery = ({
                                      onDelete,
                                      isUploading,
                                  }: DocumentGalleryProps) => {
-    const [activeCategory, setActiveCategory] = useState<string>('all');
-    const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
-    const [selectedVisitPhotoIndex, setSelectedVisitPhotoIndex] = useState<number | null>(null);
+    const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const categories = [
-        { id: 'all', label: 'Wszystkie' },
-        { id: 'przyjecie', label: 'Przyjęcie' },
-        { id: 'realizacja', label: 'Realizacja' },
-        { id: 'wydanie', label: 'Wydanie' },
-        { id: 'protokoly', label: 'Protokoły' },
+    // Combine visit photos and document photos
+    const documentPhotos = documents.filter(doc => doc.type === 'PHOTO' || doc.type === 'DAMAGE_MAP');
+
+    // Convert visit photos to a common format for display
+    const visitPhotosAsPhotos = visitPhotos.map(vp => ({
+        id: vp.id,
+        fileName: vp.fileName,
+        fileUrl: vp.thumbnailUrl,
+        fullSizeUrl: vp.fullSizeUrl,
+        uploadedAt: vp.uploadedAt,
+        description: vp.description,
+        isVisitPhoto: true,
+    }));
+
+    // Merge all photos (visit photos first, then document photos)
+    const allPhotos = [
+        ...visitPhotosAsPhotos,
+        ...documentPhotos.map(p => ({
+            id: p.id,
+            fileName: p.fileName,
+            fileUrl: p.fileUrl,
+            fullSizeUrl: p.fileUrl,
+            uploadedAt: p.uploadedAt,
+            description: undefined,
+            isVisitPhoto: false,
+        }))
     ];
 
-    const filteredDocuments = activeCategory === 'all'
-        ? documents
-        : documents.filter(doc => doc.category === activeCategory);
-
-    const photos = filteredDocuments.filter(doc => doc.type === 'PHOTO' || doc.type === 'DAMAGE_MAP');
-    const pdfs = filteredDocuments.filter(doc =>
+    const pdfs = documents.filter(doc =>
         doc.type === 'PDF' ||
         doc.type === 'PROTOCOL' ||
         doc.type === 'INTAKE' ||
@@ -350,7 +363,7 @@ export const DocumentGallery = ({
         const file = e.target.files?.[0];
         if (file) {
             const type: DocumentType = file.type.startsWith('image/') ? 'PHOTO' : 'PDF';
-            onUpload(file, type, activeCategory === 'all' ? 'inne' : activeCategory);
+            onUpload(file, type, 'inne'); // Default category
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
@@ -368,26 +381,26 @@ export const DocumentGallery = ({
     };
 
     const handleImageClick = (index: number) => {
-        setSelectedImageIndex(index);
+        setSelectedPhotoIndex(index);
     };
 
     const handleCloseModal = () => {
-        setSelectedImageIndex(null);
+        setSelectedPhotoIndex(null);
     };
 
     const handleNextImage = () => {
-        if (selectedImageIndex !== null && selectedImageIndex < photos.length - 1) {
-            setSelectedImageIndex(selectedImageIndex + 1);
+        if (selectedPhotoIndex !== null && selectedPhotoIndex < allPhotos.length - 1) {
+            setSelectedPhotoIndex(selectedPhotoIndex + 1);
         }
     };
 
     const handlePrevImage = () => {
-        if (selectedImageIndex !== null && selectedImageIndex > 0) {
-            setSelectedImageIndex(selectedImageIndex - 1);
+        if (selectedPhotoIndex !== null && selectedPhotoIndex > 0) {
+            setSelectedPhotoIndex(selectedPhotoIndex - 1);
         }
     };
 
-    const selectedPhoto = selectedImageIndex !== null ? photos[selectedImageIndex] : null;
+    const selectedPhoto = selectedPhotoIndex !== null ? allPhotos[selectedPhotoIndex] : null;
 
     return (
         <GalleryContainer>
@@ -410,35 +423,27 @@ export const DocumentGallery = ({
                         />
                     </UploadButton>
                 </HeaderTop>
-
-                <CategoryTabs>
-                    {categories.map(cat => (
-                        <CategoryTab
-                            key={cat.id}
-                            $isActive={activeCategory === cat.id}
-                            onClick={() => setActiveCategory(cat.id)}
-                        >
-                            {cat.label} ({cat.id === 'all' ? documents.length : documents.filter(d => d.category === cat.id).length})
-                        </CategoryTab>
-                    ))}
-                </CategoryTabs>
             </GalleryHeader>
 
             <GalleryContent>
-                {/* Visit Photos Section (from check-in) */}
-                {visitPhotos.length > 0 && (
+                {/* All Photos Section */}
+                {allPhotos.length > 0 && (
                     <div style={{ marginBottom: '24px' }}>
-                        <h4 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            📸 Zdjęcia z check-in ({visitPhotos.length})
+                        <h4 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 600 }}>
+                            Zdjęcia ({allPhotos.length})
                         </h4>
                         <PhotoGrid>
-                            {visitPhotos.map((photo, index) => (
+                            {allPhotos.map((photo, index) => (
                                 <PhotoCard key={photo.id}>
-                                    <PhotoImage
-                                        src={photo.thumbnailUrl}
-                                        alt={photo.fileName}
-                                        onClick={() => setSelectedVisitPhotoIndex(index)}
-                                    />
+                                    {photo.fileUrl ? (
+                                        <PhotoImage
+                                            src={photo.fileUrl}
+                                            alt={photo.fileName}
+                                            onClick={() => handleImageClick(index)}
+                                        />
+                                    ) : (
+                                        <PhotoPlaceholder>📸</PhotoPlaceholder>
+                                    )}
                                     <PhotoOverlay>
                                         <PhotoInfo>
                                             <PhotoName>{photo.fileName}</PhotoName>
@@ -461,66 +466,22 @@ export const DocumentGallery = ({
                                                     <line x1="12" y1="15" x2="12" y2="3"/>
                                                 </svg>
                                             </IconButton>
-                                        </PhotoActions>
-                                    </PhotoOverlay>
-                                </PhotoCard>
-                            ))}
-                        </PhotoGrid>
-                    </div>
-                )}
-
-                {/* Optional divider between visit photos and document photos */}
-                {visitPhotos.length > 0 && photos.length > 0 && <SectionDivider />}
-
-                {/* Document Photos Section */}
-                {photos.length > 0 && (
-                    <div style={{ marginBottom: '24px' }}>
-                        <h4 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 600 }}>
-                            📁 Dodatkowe zdjęcia ({photos.length})
-                        </h4>
-                        <PhotoGrid>
-                            {photos.map((photo, index) => (
-                                <PhotoCard key={photo.id}>
-                                    {photo.fileUrl ? (
-                                        <PhotoImage
-                                            src={photo.fileUrl}
-                                            alt={photo.fileName}
-                                            onClick={() => handleImageClick(index)}
-                                            onError={(e) => {
-                                                (e.target as HTMLImageElement).style.display = 'none';
-                                                (e.target as HTMLImageElement).nextElementSibling!.classList.remove('hidden');
-                                            }}
-                                        />
-                                    ) : (
-                                        <PhotoPlaceholder>📸</PhotoPlaceholder>
-                                    )}
-                                    <PhotoOverlay>
-                                        <PhotoInfo>
-                                            <PhotoName>{photo.fileName}</PhotoName>
-                                            <PhotoDate>{formatDateTime(photo.uploadedAt)}</PhotoDate>
-                                        </PhotoInfo>
-                                        <PhotoActions>
-                                            <IconButton
-                                                onClick={() => handleDownload(photo.fileUrl, photo.fileName)}
-                                                title="Pobierz"
-                                            >
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                                    <polyline points="7 10 12 15 17 10"/>
-                                                    <line x1="12" y1="15" x2="12" y2="3"/>
-                                                </svg>
-                                            </IconButton>
-                                            <DeleteIconButton
-                                                onClick={() => onDelete(photo.id)}
-                                                title="Usuń"
-                                            >
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <polyline points="3 6 5 6 21 6"/>
-                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                                    <line x1="10" y1="11" x2="10" y2="17"/>
-                                                    <line x1="14" y1="11" x2="14" y2="17"/>
-                                                </svg>
-                                            </DeleteIconButton>
+                                            {!photo.isVisitPhoto && (
+                                                <DeleteIconButton
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onDelete(photo.id);
+                                                    }}
+                                                    title="Usuń"
+                                                >
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <polyline points="3 6 5 6 21 6"/>
+                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                                        <line x1="10" y1="11" x2="10" y2="17"/>
+                                                        <line x1="14" y1="11" x2="14" y2="17"/>
+                                                    </svg>
+                                                </DeleteIconButton>
+                                            )}
                                         </PhotoActions>
                                     </PhotoOverlay>
                                 </PhotoCard>
@@ -571,46 +532,25 @@ export const DocumentGallery = ({
                     </div>
                 )}
 
-                {filteredDocuments.length === 0 && (
+                {allPhotos.length === 0 && pdfs.length === 0 && (
                     <EmptyState>
-                        {activeCategory === 'all'
-                            ? 'Brak dokumentów dla tej wizyty'
-                            : 'Brak dokumentów w wybranej kategorii'
-                        }
+                        Brak dokumentów dla tej wizyty
                     </EmptyState>
                 )}
             </GalleryContent>
 
-            {/* Modal for document photos */}
+            {/* Photo viewer modal */}
             {selectedPhoto && (
                 <ImageViewerModal
-                    imageUrl={selectedPhoto.fileUrl}
+                    imageUrl={selectedPhoto.fullSizeUrl}
                     imageName={selectedPhoto.fileName}
-                    isOpen={selectedImageIndex !== null}
+                    isOpen={selectedPhotoIndex !== null}
                     onClose={handleCloseModal}
-                    onDownload={() => handleDownload(selectedPhoto.fileUrl, selectedPhoto.fileName)}
-                    hasNext={selectedImageIndex !== null && selectedImageIndex < photos.length - 1}
-                    hasPrev={selectedImageIndex !== null && selectedImageIndex > 0}
+                    onDownload={() => handleDownload(selectedPhoto.fullSizeUrl, selectedPhoto.fileName)}
+                    hasNext={selectedPhotoIndex !== null && selectedPhotoIndex < allPhotos.length - 1}
+                    hasPrev={selectedPhotoIndex !== null && selectedPhotoIndex > 0}
                     onNext={handleNextImage}
                     onPrev={handlePrevImage}
-                />
-            )}
-
-            {/* Modal for visit photos (from check-in) */}
-            {selectedVisitPhotoIndex !== null && visitPhotos[selectedVisitPhotoIndex] && (
-                <ImageViewerModal
-                    imageUrl={visitPhotos[selectedVisitPhotoIndex].fullSizeUrl}
-                    imageName={visitPhotos[selectedVisitPhotoIndex].fileName}
-                    isOpen={selectedVisitPhotoIndex !== null}
-                    onClose={() => setSelectedVisitPhotoIndex(null)}
-                    onDownload={() => handleDownload(
-                        visitPhotos[selectedVisitPhotoIndex].fullSizeUrl,
-                        visitPhotos[selectedVisitPhotoIndex].fileName
-                    )}
-                    hasNext={selectedVisitPhotoIndex < visitPhotos.length - 1}
-                    hasPrev={selectedVisitPhotoIndex > 0}
-                    onNext={() => setSelectedVisitPhotoIndex(prev => (prev !== null && prev < visitPhotos.length - 1) ? prev + 1 : prev)}
-                    onPrev={() => setSelectedVisitPhotoIndex(prev => (prev !== null && prev > 0) ? prev - 1 : prev)}
                 />
             )}
         </GalleryContainer>
