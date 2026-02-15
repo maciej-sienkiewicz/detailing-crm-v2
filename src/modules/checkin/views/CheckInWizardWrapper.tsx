@@ -265,34 +265,75 @@ export const CheckInWizardWrapper = () => {
     const originalStartRaw = (reservationData as any)?.schedule?.startDateTime || (reservationData as any)?.startDateTime || nowIso;
     const originalEndRaw = (reservationData as any)?.schedule?.endDateTime || (reservationData as any)?.endDateTime || '';
 
-    // Oblicz czas trwania rezerwacji (w milisekundach)
-    let durationMs = 60 * 60 * 1000; // Domyślnie 1 godzina
-    if (originalStartRaw && originalEndRaw) {
-        try {
-            const startDate = new Date(originalStartRaw);
-            const endDate = new Date(originalEndRaw);
-            if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
-                durationMs = endDate.getTime() - startDate.getTime();
+    // Sprawdź czy dzisiaj to ten sam dzień co zaplanowana rezerwacja
+    const now = new Date();
+    const originalStartDate = new Date(originalStartRaw);
+    const isSameDay =
+        now.getFullYear() === originalStartDate.getFullYear() &&
+        now.getMonth() === originalStartDate.getMonth() &&
+        now.getDate() === originalStartDate.getDate();
+
+    let startRaw: string;
+    let endRaw: string;
+
+    if (isSameDay) {
+        // Jeśli ten sam dzień - użyj oryginalnych czasów bez przesunięcia
+        startRaw = originalStartRaw;
+        endRaw = originalEndRaw || (() => {
+            try {
+                const d = new Date(startRaw);
+                if (isNaN(d.getTime())) return '';
+                d.setHours(d.getHours() + 1);
+                return d.toISOString();
+            } catch {
+                return '';
             }
-        } catch {
-            // Zachowaj domyślny czas trwania
+        })();
+    } else {
+        // Inny dzień - przesuń na bieżący czas
+        // Oblicz czas trwania rezerwacji (w milisekundach)
+        let durationMs = 60 * 60 * 1000; // Domyślnie 1 godzina
+        if (originalStartRaw && originalEndRaw) {
+            try {
+                const startDate = new Date(originalStartRaw);
+                const endDate = new Date(originalEndRaw);
+                if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+                    durationMs = endDate.getTime() - startDate.getTime();
+                }
+            } catch {
+                // Zachowaj domyślny czas trwania
+            }
         }
+
+        // Ustaw datę rozpoczęcia na bieżący czas
+        startRaw = nowIso;
+
+        // Oblicz datę zakończenia na podstawie czasu trwania
+        endRaw = (() => {
+            try {
+                const startDate = new Date(startRaw);
+                if (isNaN(startDate.getTime())) return '';
+                const endDate = new Date(startDate.getTime() + durationMs);
+
+                // Zaokrąglij do najbliższego następnego południa (12:00)
+                const hours = endDate.getHours();
+                const minutes = endDate.getMinutes();
+
+                // Jeśli jest przed południem (< 12:00) lub dokładnie w południe, ustaw na 12:00 tego dnia
+                // Jeśli jest po południu (>= 12:00), ustaw na 12:00 następnego dnia
+                if (hours < 12 || (hours === 12 && minutes === 0)) {
+                    endDate.setHours(12, 0, 0, 0);
+                } else {
+                    endDate.setDate(endDate.getDate() + 1);
+                    endDate.setHours(12, 0, 0, 0);
+                }
+
+                return endDate.toISOString();
+            } catch {
+                return '';
+            }
+        })();
     }
-
-    // Ustaw datę rozpoczęcia na bieżący czas
-    const startRaw = nowIso;
-
-    // Oblicz datę zakończenia na podstawie czasu trwania
-    const endRaw = (() => {
-        try {
-            const startDate = new Date(startRaw);
-            if (isNaN(startDate.getTime())) return '';
-            const endDate = new Date(startDate.getTime() + durationMs);
-            return endDate.toISOString();
-        } catch {
-            return '';
-        }
-    })();
 
     const initialData = {
         customerData: {
