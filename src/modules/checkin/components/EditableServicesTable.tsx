@@ -15,16 +15,29 @@ const TableContainer = styled.div`
     border-radius: ${props => props.theme.radii.lg};
     overflow: hidden;
     border: 1px solid ${props => props.theme.colors.border};
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        border: none;
+        background: transparent;
+    }
 `;
 
 const Table = styled.table`
     width: 100%;
     border-collapse: collapse;
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        display: block;
+    }
 `;
 
 const Thead = styled.thead`
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
     color: white;
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        display: none;
+    }
 `;
 
 const Th = styled.th`
@@ -36,34 +49,55 @@ const Th = styled.th`
     letter-spacing: 0.5px;
     white-space: nowrap;
 
-    &:nth-child(1) {
-        width: auto; /* Service name - flexible */
-    }
-
-    &:nth-child(2) {
-        width: 160px; /* Base price */
-    }
-
-    &:nth-child(3) {
-        width: 220px; /* Discount */
-    }
-
-    &:nth-child(4) {
-        width: 180px; /* Final price */
-    }
-
-    &:nth-child(5) {
-        width: 80px; /* Actions */
-        text-align: center;
-    }
-
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         padding: ${props => props.theme.spacing.lg};
         font-size: ${props => props.theme.fontSizes.xs};
+
+        &:nth-child(1) {
+            width: auto; /* Service name - flexible */
+        }
+
+        &:nth-child(2) {
+            width: 160px; /* Base price */
+        }
+
+        &:nth-child(3) {
+            width: 220px; /* Discount */
+        }
+
+        &:nth-child(4) {
+            width: 180px; /* Final price */
+        }
+
+        &:nth-child(5) {
+            width: 80px; /* Actions */
+            text-align: center;
+        }
+    }
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) and (max-width: ${props => props.theme.breakpoints.lg}) {
+        font-size: ${props => props.theme.fontSizes.xs};
+        padding: ${props => props.theme.spacing.sm};
+
+        &:nth-child(2) {
+            width: 140px; /* Base price - narrower on tablet */
+        }
+
+        &:nth-child(3) {
+            width: 180px; /* Discount - narrower on tablet */
+        }
+
+        &:nth-child(4) {
+            width: 140px; /* Final price - narrower on tablet */
+        }
     }
 `;
 
-const Tbody = styled.tbody``;
+const Tbody = styled.tbody`
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        display: block;
+    }
+`;
 
 const Tr = styled.tr`
     border-bottom: 1px solid ${props => props.theme.colors.border};
@@ -76,9 +110,22 @@ const Tr = styled.tr`
     &:last-child {
         border-bottom: none;
     }
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        display: block;
+        margin-bottom: ${props => props.theme.spacing.md};
+        background: ${props => props.theme.colors.surface};
+        border: 1px solid ${props => props.theme.colors.border};
+        border-radius: ${props => props.theme.radii.lg};
+        padding: ${props => props.theme.spacing.md};
+
+        &:last-child {
+            border-bottom: 1px solid ${props => props.theme.colors.border};
+        }
+    }
 `;
 
-const Td = styled.td`
+const Td = styled.td<{ 'data-label'?: string }>`
     padding: ${props => props.theme.spacing.md};
     font-size: ${props => props.theme.fontSizes.sm};
 
@@ -89,18 +136,61 @@ const Td = styled.td`
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         padding: ${props => props.theme.spacing.lg};
     }
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        display: block;
+        padding: ${props => props.theme.spacing.sm} 0;
+        text-align: left !important;
+
+        &:nth-child(5) {
+            text-align: right !important;
+            margin-top: ${props => props.theme.spacing.md};
+            padding-top: ${props => props.theme.spacing.md};
+            border-top: 1px solid ${props => props.theme.colors.border};
+        }
+
+        &:before {
+            content: attr(data-label);
+            font-weight: ${props => props.theme.fontWeights.semibold};
+            text-transform: uppercase;
+            font-size: ${props => props.theme.fontSizes.xs};
+            color: ${props => props.theme.colors.textMuted};
+            display: block;
+            margin-bottom: ${props => props.theme.spacing.xs};
+        }
+
+        &:nth-child(5):before {
+            content: none;
+        }
+    }
 `;
 
 const ServiceName = styled.div`
     font-weight: ${props => props.theme.fontWeights.medium};
     color: ${props => props.theme.colors.text};
     margin-bottom: ${props => props.theme.spacing.xs};
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        font-size: ${props => props.theme.fontSizes.md};
+        font-weight: ${props => props.theme.fontWeights.semibold};
+    }
 `;
 
 const PriceCell = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${props => props.theme.spacing.xs};
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        flex-direction: row;
+        gap: ${props => props.theme.spacing.md};
+        justify-content: space-between;
+        align-items: center;
+
+        > div {
+            flex: 1;
+        }
+    }
 `;
 
 const PriceLabel = styled.span`
@@ -153,6 +243,12 @@ const DiscountTypeTrigger = styled.button`
         outline: none;
         border-color: ${props => props.theme.colors.primary};
         box-shadow: 0 0 0 3px ${props => props.theme.colors.primary}20;
+    }
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        padding: ${props => props.theme.spacing.md};
+        min-height: 44px; /* Touch-friendly */
+        font-size: ${props => props.theme.fontSizes.md};
     }
 `;
 
@@ -235,6 +331,12 @@ const DiscountInput = styled.input`
     &::placeholder {
         color: ${props => props.theme.colors.textMuted};
     }
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        padding: ${props => props.theme.spacing.md};
+        font-size: ${props => props.theme.fontSizes.md};
+        min-height: 44px; /* Touch-friendly */
+    }
 `;
 
 const DiscountSuffix = styled.span`
@@ -259,6 +361,11 @@ const DiscountAmount = styled.div`
     border-radius: ${props => props.theme.radii.sm};
     text-align: center;
     font-feature-settings: 'tnum';
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        padding: ${props => props.theme.spacing.sm};
+        font-size: ${props => props.theme.fontSizes.md};
+    }
 `;
 
 const ActionButton = styled.button`
@@ -282,14 +389,35 @@ const ActionButton = styled.button`
         width: 20px;
         height: 20px;
     }
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        padding: ${props => props.theme.spacing.md};
+        min-width: 44px;
+        min-height: 44px; /* Touch-friendly */
+
+        svg {
+            width: 24px;
+            height: 24px;
+        }
+    }
 `;
 
 const TotalRow = styled.tr`
-    background: linear-gradient(to right, 
-        ${props => props.theme.colors.surfaceAlt} 0%, 
+    background: linear-gradient(to right,
+        ${props => props.theme.colors.surfaceAlt} 0%,
         ${props => props.theme.colors.surface} 100%);
     border-top: 3px solid ${props => props.theme.colors.primary};
     font-weight: ${props => props.theme.fontWeights.bold};
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        display: block;
+        margin-top: ${props => props.theme.spacing.lg};
+        margin-bottom: 0;
+        background: ${props => props.theme.colors.surface};
+        border: 1px solid ${props => props.theme.colors.border};
+        border-radius: ${props => props.theme.radii.lg};
+        padding: ${props => props.theme.spacing.md};
+    }
 `;
 
 const TotalLabel = styled(Td)`
@@ -301,6 +429,16 @@ const TotalLabel = styled(Td)`
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         font-size: ${props => props.theme.fontSizes.lg};
     }
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        display: block;
+        padding: 0 0 ${props => props.theme.spacing.sm} 0;
+        font-size: ${props => props.theme.fontSizes.sm};
+
+        &:before {
+            content: none;
+        }
+    }
 `;
 
 const TotalValue = styled(Td)`
@@ -310,6 +448,16 @@ const TotalValue = styled(Td)`
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         font-size: ${props => props.theme.fontSizes.xl};
+    }
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        display: block;
+        padding: ${props => props.theme.spacing.sm} 0 0 0;
+        font-size: ${props => props.theme.fontSizes.md};
+
+        &:before {
+            content: none;
+        }
     }
 `;
 
@@ -364,6 +512,7 @@ const DiscountButton = styled.button`
     display: flex;
     align-items: center;
     gap: ${props => props.theme.spacing.xs};
+    white-space: nowrap;
 
     &:hover:not(:disabled) {
         background: #d97706;
@@ -373,6 +522,13 @@ const DiscountButton = styled.button`
     &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+    }
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        width: 100%;
+        justify-content: center;
+        padding: ${props => props.theme.spacing.md};
+        min-height: 44px; /* Touch-friendly */
     }
 `;
 
@@ -961,7 +1117,7 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
 
                         return (
                             <Tr key={service.id}>
-                                <Td>
+                                <Td data-label="Nazwa usługi">
                                     <ServiceName>{service.serviceName}</ServiceName>
                                     {isEditingNote ? (
                                         <NoteInput
@@ -981,7 +1137,7 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                                     )}
                                 </Td>
 
-                                <Td>
+                                <Td data-label="Cena bazowa">
                                     {service.basePriceNet === 0 || service.requireManualPrice ? (
                                         <CustomPriceLabel>
                                             Cena niestandardowa
@@ -1004,7 +1160,7 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                                     )}
                                 </Td>
 
-                                <Td>
+                                <Td data-label="Rabat">
                                     <DiscountCell>
                                         <DiscountTypeDropdown
                                             value={service.adjustment.type}
@@ -1044,7 +1200,7 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                                     </DiscountCell>
                                 </Td>
 
-                                <Td>
+                                <Td data-label="Cena końcowa">
                                     <PriceCell>
                                         <div>
                                             <PriceLabel>Netto</PriceLabel>
