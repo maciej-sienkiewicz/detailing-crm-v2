@@ -103,6 +103,21 @@ const DiscountSelect = styled(Select)`
     width: 100%;
     max-width: 180px;
     font-size: ${props => props.theme.fontSizes.sm};
+    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+    background: white;
+    border: 2px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.md};
+    transition: all ${props => props.theme.transitions.fast};
+
+    &:hover {
+        border-color: ${props => props.theme.colors.primary};
+    }
+
+    &:focus {
+        border-color: ${props => props.theme.colors.primary};
+        box-shadow: 0 0 0 3px ${props => props.theme.colors.primary}20;
+        outline: none;
+    }
 `;
 
 const DiscountInputWrapper = styled.div`
@@ -619,6 +634,22 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
             ...prev,
             [serviceId]: true,
         }));
+
+        // Initialize input value from current service value if not already set
+        const service = services.find(s => s.id === serviceId);
+        if (service && discountInputValues[serviceId] === undefined) {
+            const isMoneyType = ['FIXED_NET', 'FIXED_GROSS', 'SET_NET', 'SET_GROSS'].includes(service.adjustment.type);
+            const currentValue = service.adjustment.value === 0
+                ? ''
+                : (isMoneyType
+                    ? formatMoneyInput(Math.abs(service.adjustment.value))
+                    : String(service.adjustment.value));
+
+            setDiscountInputValues(prev => ({
+                ...prev,
+                [serviceId]: currentValue,
+            }));
+        }
     };
 
     const handleDiscountBlur = (serviceId: string) => {
