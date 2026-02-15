@@ -34,6 +34,28 @@ const Th = styled.th`
     font-weight: ${props => props.theme.fontWeights.semibold};
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    white-space: nowrap;
+
+    &:nth-child(1) {
+        width: auto; /* Service name - flexible */
+    }
+
+    &:nth-child(2) {
+        width: 160px; /* Base price */
+    }
+
+    &:nth-child(3) {
+        width: 220px; /* Discount */
+    }
+
+    &:nth-child(4) {
+        width: 180px; /* Final price */
+    }
+
+    &:nth-child(5) {
+        width: 80px; /* Actions */
+        text-align: center;
+    }
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         padding: ${props => props.theme.spacing.lg};
@@ -59,6 +81,10 @@ const Tr = styled.tr`
 const Td = styled.td`
     padding: ${props => props.theme.spacing.md};
     font-size: ${props => props.theme.fontSizes.sm};
+
+    &:nth-child(5) {
+        text-align: center; /* Actions column */
+    }
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         padding: ${props => props.theme.spacing.lg};
@@ -101,7 +127,6 @@ const PriceInput = styled(Input)`
 
 const DiscountSelect = styled(Select)`
     width: 100%;
-    max-width: 180px;
     font-size: ${props => props.theme.fontSizes.sm};
     padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
     background: white;
@@ -128,7 +153,7 @@ const DiscountInputWrapper = styled.div`
     border: 2px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.md};
     transition: all ${props => props.theme.transitions.fast};
-    max-width: 150px;
+    width: 100%;
 
     &:focus-within {
         border-color: ${props => props.theme.colors.primary};
@@ -945,26 +970,26 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                     })}
 
                     <TotalRow>
-                        <TotalLabel colSpan={3}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                                <span>Podsumowanie:</span>
+                        <TotalLabel colSpan={2}>
+                            <span>Podsumowanie:</span>
+                        </TotalLabel>
+                        <TotalValue colSpan={2}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px', flexWrap: 'wrap' }}>
+                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                                        <PriceLabel style={{ color: 'inherit' }}>Netto:</PriceLabel>
+                                        <div style={{ fontWeight: 600 }}>{formatCurrency(totals.totalNet / 100)}</div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                                        <PriceLabel style={{ color: 'inherit' }}>Brutto:</PriceLabel>
+                                        <div style={{ fontWeight: 700 }}>{formatCurrency(totals.totalGross / 100)}</div>
+                                    </div>
+                                </div>
                                 {services.length > 0 && (
                                     <DiscountButton onClick={openDiscountModal}>
                                         🏷️ Rabatuj całość
                                     </DiscountButton>
                                 )}
-                            </div>
-                        </TotalLabel>
-                        <TotalValue>
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px', flexWrap: 'wrap' }}>
-                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                                    <PriceLabel style={{ color: 'inherit' }}>Netto:</PriceLabel>
-                                    <div style={{ fontWeight: 600 }}>{formatCurrency(totals.totalNet / 100)}</div>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                                    <PriceLabel style={{ color: 'inherit' }}>Brutto:</PriceLabel>
-                                    <div style={{ fontWeight: 700 }}>{formatCurrency(totals.totalGross / 100)}</div>
-                                </div>
                             </div>
                         </TotalValue>
                         <Td></Td>
