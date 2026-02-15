@@ -105,11 +105,47 @@ const DiscountSelect = styled(Select)`
     font-size: ${props => props.theme.fontSizes.sm};
 `;
 
-const DiscountInput = styled(Input)`
+const DiscountInputWrapper = styled.div`
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: white;
+    border: 2px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.md};
+    transition: all ${props => props.theme.transitions.fast};
+    max-width: 150px;
+
+    &:focus-within {
+        border-color: ${props => props.theme.colors.primary};
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+`;
+
+const DiscountInput = styled.input`
     width: 100%;
-    max-width: 120px;
+    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+    border: none;
+    border-radius: ${props => props.theme.radii.md};
+    font-size: ${props => props.theme.fontSizes.sm};
+    background: transparent;
+    color: ${props => props.theme.colors.text};
     text-align: right;
     font-feature-settings: 'tnum';
+
+    &:focus {
+        outline: none;
+    }
+
+    &::placeholder {
+        color: ${props => props.theme.colors.textMuted};
+    }
+`;
+
+const DiscountSuffix = styled.span`
+    padding-right: ${props => props.theme.spacing.md};
+    font-size: ${props => props.theme.fontSizes.sm};
+    color: ${props => props.theme.colors.textMuted};
+    font-weight: ${props => props.theme.fontWeights.medium};
 `;
 
 const DiscountCell = styled.div`
@@ -565,10 +601,33 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
         const service = services.find(s => s.id === serviceId);
         if (!service) return;
 
+        // Handle empty string (when user clears the input)
+        if (value === '' || value === '-') {
+            const updatedServices = services.map(s => {
+                if (s.id === serviceId) {
+                    return {
+                        ...s,
+                        adjustment: {
+                            ...s.adjustment,
+                            value: 0,
+                        },
+                    };
+                }
+                return s;
+            });
+            onChange(updatedServices);
+            return;
+        }
+
         const isMoneyType = ['FIXED_NET', 'FIXED_GROSS', 'SET_NET', 'SET_GROSS'].includes(service.adjustment.type);
+        const parsedValue = parseFloat(value);
+
+        // If parsing fails, ignore the change
+        if (isNaN(parsedValue)) return;
+
         const numValue = isMoneyType
-            ? Math.round(Math.abs(parseFloat(value)) * 100) || 0
-            : parseFloat(value) || 0;
+            ? Math.round(Math.abs(parsedValue) * 100)
+            : parsedValue;
 
         const updatedServices = services.map(s => {
             if (s.id === serviceId) {
@@ -726,17 +785,21 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                                             <option value="SET_NET">Ustaw netto</option>
                                             <option value="SET_GROSS">Ustaw brutto</option>
                                         </DiscountSelect>
-                                        <DiscountInput
-                                            type="number"
-                                            step="0.01"
-                                            value={
-                                                service.adjustment.type === 'PERCENT'
-                                                    ? service.adjustment.value
-                                                    : formatMoneyInput(Math.abs(service.adjustment.value))
-                                            }
-                                            onChange={(e) => handleDiscountValueChange(service.id, e.target.value)}
-                                            placeholder="0.00"
-                                        />
+                                        <DiscountInputWrapper>
+                                            <DiscountInput
+                                                type="text"
+                                                value={
+                                                    service.adjustment.type === 'PERCENT'
+                                                        ? service.adjustment.value === 0 ? '' : String(service.adjustment.value)
+                                                        : service.adjustment.value === 0 ? '' : formatMoneyInput(Math.abs(service.adjustment.value))
+                                                }
+                                                onChange={(e) => handleDiscountValueChange(service.id, e.target.value)}
+                                                placeholder="0.00"
+                                            />
+                                            <DiscountSuffix>
+                                                {service.adjustment.type === 'PERCENT' ? '%' : 'PLN'}
+                                            </DiscountSuffix>
+                                        </DiscountInputWrapper>
                                         {pricing.discountAmountGross > 0 && (
                                             <DiscountAmount>
                                                 Oszczędność: {formatCurrency(pricing.discountAmountGross / 100)}
