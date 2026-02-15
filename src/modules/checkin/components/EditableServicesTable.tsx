@@ -1,6 +1,6 @@
 // src/modules/checkin/components/EditableServicesTable.tsx
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatCurrency } from '@/common/utils';
@@ -125,25 +125,81 @@ const PriceInput = styled(Input)`
     font-weight: ${props => props.theme.fontWeights.semibold};
 `;
 
-const DiscountSelect = styled(Select)`
+const DiscountTypeDropdownContainer = styled.div`
+    position: relative;
     width: 100%;
-    font-size: ${props => props.theme.fontSizes.sm};
+`;
+
+const DiscountTypeTrigger = styled.button`
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.sm};
     padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    background: white;
     border: 2px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.md};
+    background: white;
+    cursor: pointer;
     transition: all ${props => props.theme.transitions.fast};
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: ${props => props.theme.fontWeights.medium};
+    text-align: left;
 
     &:hover {
         border-color: ${props => props.theme.colors.primary};
     }
 
     &:focus {
+        outline: none;
         border-color: ${props => props.theme.colors.primary};
         box-shadow: 0 0 0 3px ${props => props.theme.colors.primary}20;
-        outline: none;
     }
 `;
+
+const DiscountTypeCaret = styled.span`
+    margin-left: auto;
+    border: solid ${props => props.theme.colors.textMuted};
+    border-width: 0 2px 2px 0;
+    display: inline-block;
+    padding: 3px;
+    transform: rotate(45deg);
+`;
+
+const DiscountTypeMenu = styled.div`
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.md};
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    z-index: 2001;
+    max-height: 280px;
+    overflow: auto;
+`;
+
+const DiscountTypeMenuItem = styled.button<{ $selected?: boolean }>`
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: ${props => props.theme.fontSizes.sm};
+
+    ${props => props.$selected ? `
+        background: ${props.theme.colors.surfaceAlt};
+        font-weight: ${props.theme.fontWeights.semibold};
+    ` : ''}
+
+    &:hover {
+        background: ${props => props.theme.colors.surfaceHover};
+    }
+`;
+
 
 const DiscountInputWrapper = styled.div`
     position: relative;
@@ -423,6 +479,74 @@ const ModalInput = styled(Input)`
         box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
     }
 `;
+
+// Discount type options
+const DISCOUNT_TYPE_OPTIONS = [
+    { value: 'PERCENT', label: 'Procent (%)' },
+    { value: 'FIXED_NET', label: 'Rabat netto' },
+    { value: 'FIXED_GROSS', label: 'Rabat brutto' },
+    { value: 'SET_NET', label: 'Ustaw netto' },
+    { value: 'SET_GROSS', label: 'Ustaw brutto' },
+] as const;
+
+interface DiscountTypeDropdownProps {
+    value: AdjustmentType;
+    onChange: (value: AdjustmentType) => void;
+}
+
+const DiscountTypeDropdown = ({ value, onChange }: DiscountTypeDropdownProps) => {
+    const [open, setOpen] = useState(false);
+    const ref = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        const onDocClick = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+        };
+        const onEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setOpen(false);
+        };
+        document.addEventListener('mousedown', onDocClick);
+        document.addEventListener('keydown', onEsc);
+        return () => {
+            document.removeEventListener('mousedown', onDocClick);
+            document.removeEventListener('keydown', onEsc);
+        };
+    }, []);
+
+    const selected = DISCOUNT_TYPE_OPTIONS.find(opt => opt.value === value);
+
+    return (
+        <DiscountTypeDropdownContainer ref={ref}>
+            <DiscountTypeTrigger
+                type="button"
+                onClick={() => setOpen(o => !o)}
+                aria-haspopup="listbox"
+                aria-expanded={open}
+            >
+                <span>{selected?.label || 'Wybierz typ'}</span>
+                <DiscountTypeCaret />
+            </DiscountTypeTrigger>
+            {open && (
+                <DiscountTypeMenu role="listbox">
+                    {DISCOUNT_TYPE_OPTIONS.map(opt => (
+                        <DiscountTypeMenuItem
+                            key={opt.value}
+                            role="option"
+                            aria-selected={opt.value === value}
+                            $selected={opt.value === value}
+                            onClick={() => {
+                                onChange(opt.value as AdjustmentType);
+                                setOpen(false);
+                            }}
+                        >
+                            <span>{opt.label}</span>
+                        </DiscountTypeMenuItem>
+                    ))}
+                </DiscountTypeMenu>
+            )}
+        </DiscountTypeDropdownContainer>
+    );
+};
 
 interface EditableServicesTableProps {
     services: ServiceLineItem[];
@@ -882,16 +1006,10 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
 
                                 <Td>
                                     <DiscountCell>
-                                        <DiscountSelect
+                                        <DiscountTypeDropdown
                                             value={service.adjustment.type}
-                                            onChange={(e) => handleDiscountTypeChange(service.id, e.target.value as AdjustmentType)}
-                                        >
-                                            <option value="PERCENT">Procent (%)</option>
-                                            <option value="FIXED_NET">Rabat netto</option>
-                                            <option value="FIXED_GROSS">Rabat brutto</option>
-                                            <option value="SET_NET">Ustaw netto</option>
-                                            <option value="SET_GROSS">Ustaw brutto</option>
-                                        </DiscountSelect>
+                                            onChange={(type) => handleDiscountTypeChange(service.id, type)}
+                                        />
                                         <DiscountInputWrapper>
                                             <DiscountInput
                                                 type="text"
