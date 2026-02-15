@@ -308,6 +308,7 @@ interface DocumentGalleryProps {
     visitPhotos?: VisitPhoto[];  // Photos from check-in
     isLoadingPhotos?: boolean;
     onUpload: (file: File, type: DocumentType, category: string) => void;
+    onUploadPhoto: (file: File, description?: string) => void;
     onDelete: (documentId: string) => void;
     isUploading: boolean;
 }
@@ -317,6 +318,7 @@ export const DocumentGallery = ({
                                      visitPhotos = [],
                                      isLoadingPhotos = false,
                                      onUpload,
+                                     onUploadPhoto,
                                      onDelete,
                                      isUploading,
                                  }: DocumentGalleryProps) => {
@@ -362,8 +364,19 @@ export const DocumentGallery = ({
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const type: DocumentType = file.type.startsWith('image/') ? 'PHOTO' : 'PDF';
-            onUpload(file, type, 'inne'); // Default category
+            // Check if file is an image based on extension or MIME type
+            const isImage = file.type.startsWith('image/') ||
+                           /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(file.name);
+
+            if (isImage) {
+                // Use new photo upload endpoint for images
+                onUploadPhoto(file);
+            } else {
+                // Use existing document upload for PDFs and other files
+                const type: DocumentType = 'PDF';
+                onUpload(file, type, 'inne');
+            }
+
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }

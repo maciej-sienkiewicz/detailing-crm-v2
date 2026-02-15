@@ -150,6 +150,18 @@ export interface UploadDocumentPayload {
     category?: string;
 }
 
+export interface UploadPhotoPayload {
+    visitId: string;
+    file: File;
+    description?: string;
+}
+
+export interface UploadPhotoResponse {
+    photoId: string;
+    uploadUrl: string;
+    fileId: string;
+}
+
 export interface AddCommentPayload {
     type: CommentType;
     content: string;

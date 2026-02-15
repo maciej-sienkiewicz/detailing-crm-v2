@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useVisitDetail, useVisitDocuments, useVisitPhotos } from '../hooks';
 import { useUpdateVisit } from '../hooks';
-import { useUploadDocument, useDeleteDocument } from '../hooks';
+import { useUploadDocument, useUploadPhoto, useDeleteDocument } from '../hooks';
 import { useVisitComments } from '../hooks';
 import { useUpdateServiceStatus, useSaveServicesChanges } from '../hooks';
 import { VisitHeader } from '../components/VisitHeader';
@@ -180,6 +180,7 @@ export const VisitDetailView = () => {
     const { photos: visitPhotos, isLoading: isLoadingPhotos } = useVisitPhotos(visitId!);
     const { updateVisit } = useUpdateVisit(visitId!);
     const { uploadDocument, isUploading } = useUploadDocument(visitId!);
+    const { uploadPhoto, isUploading: isUploadingPhoto } = useUploadPhoto(visitId!);
     const { deleteDocument } = useDeleteDocument(visitId!);
     const { comments, isLoading: isLoadingComments } = useVisitComments(visitId!);
     const { updateServiceStatus } = useUpdateServiceStatus(visitId!);
@@ -260,6 +261,14 @@ export const VisitDetailView = () => {
             file,
             type,
             category
+        });
+    };
+
+    const handleUploadPhoto = (file: File, description?: string) => {
+        uploadPhoto({
+            visitId: visitId!,
+            file,
+            description
         });
     };
 
@@ -371,8 +380,9 @@ export const VisitDetailView = () => {
                             visitPhotos={visitPhotos}
                             isLoadingPhotos={isLoadingPhotos}
                             onUpload={handleUploadDocument}
+                            onUploadPhoto={handleUploadPhoto}
                             onDelete={handleDeleteDocument}
-                            isUploading={isUploading}
+                            isUploading={isUploading || isUploadingPhoto}
                         />
                     </TabContent>
                 )}
