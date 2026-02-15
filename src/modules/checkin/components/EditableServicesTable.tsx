@@ -397,6 +397,8 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
     const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
     const [discountPriceType, setDiscountPriceType] = useState<'net' | 'gross'>('gross');
     const [targetPrice, setTargetPrice] = useState('');
+    const [discountInputValues, setDiscountInputValues] = useState<Record<string, string>>({});
+    const [focusedDiscountFields, setFocusedDiscountFields] = useState<Record<string, boolean>>({});
     const queryClient = useQueryClient();
 
     const calculateServicePrice = (service: ServiceLineItem) => {
@@ -595,14 +597,43 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
             return s;
         });
         onChange(updatedServices);
+
+        // Clear local input state when type changes
+        setDiscountInputValues(prev => {
+            const newState = { ...prev };
+            delete newState[serviceId];
+            return newState;
+        });
     };
 
     const handleDiscountValueChange = (serviceId: string, value: string) => {
+        // Just update the local input state while user is typing
+        setDiscountInputValues(prev => ({
+            ...prev,
+            [serviceId]: value,
+        }));
+    };
+
+    const handleDiscountFocus = (serviceId: string) => {
+        setFocusedDiscountFields(prev => ({
+            ...prev,
+            [serviceId]: true,
+        }));
+    };
+
+    const handleDiscountBlur = (serviceId: string) => {
+        setFocusedDiscountFields(prev => ({
+            ...prev,
+            [serviceId]: false,
+        }));
+
         const service = services.find(s => s.id === serviceId);
         if (!service) return;
 
+        const inputValue = discountInputValues[serviceId] || '';
+
         // Handle empty string (when user clears the input)
-        if (value === '' || value === '-') {
+        if (inputValue === '' || inputValue === '-') {
             const updatedServices = services.map(s => {
                 if (s.id === serviceId) {
                     return {
@@ -616,14 +647,27 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                 return s;
             });
             onChange(updatedServices);
+            // Clear local input state
+            setDiscountInputValues(prev => {
+                const newState = { ...prev };
+                delete newState[serviceId];
+                return newState;
+            });
             return;
         }
 
         const isMoneyType = ['FIXED_NET', 'FIXED_GROSS', 'SET_NET', 'SET_GROSS'].includes(service.adjustment.type);
-        const parsedValue = parseFloat(value);
+        const parsedValue = parseFloat(inputValue);
 
-        // If parsing fails, ignore the change
-        if (isNaN(parsedValue)) return;
+        // If parsing fails, revert to current value
+        if (isNaN(parsedValue)) {
+            setDiscountInputValues(prev => {
+                const newState = { ...prev };
+                delete newState[serviceId];
+                return newState;
+            });
+            return;
+        }
 
         const numValue = isMoneyType
             ? Math.round(Math.abs(parsedValue) * 100)
@@ -642,6 +686,13 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
             return s;
         });
         onChange(updatedServices);
+
+        // Clear local input state so formatted value is shown
+        setDiscountInputValues(prev => {
+            const newState = { ...prev };
+            delete newState[serviceId];
+            return newState;
+        });
     };
 
     const handleAddService = (service: Service) => {
@@ -789,11 +840,17 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                                             <DiscountInput
                                                 type="text"
                                                 value={
-                                                    service.adjustment.type === 'PERCENT'
-                                                        ? service.adjustment.value === 0 ? '' : String(service.adjustment.value)
-                                                        : service.adjustment.value === 0 ? '' : formatMoneyInput(Math.abs(service.adjustment.value))
+                                                    focusedDiscountFields[service.id]
+                                                        ? (discountInputValues[service.id] ?? '')
+                                                        : (
+                                                            service.adjustment.type === 'PERCENT'
+                                                                ? service.adjustment.value === 0 ? '' : String(service.adjustment.value)
+                                                                : service.adjustment.value === 0 ? '' : formatMoneyInput(Math.abs(service.adjustment.value))
+                                                        )
                                                 }
                                                 onChange={(e) => handleDiscountValueChange(service.id, e.target.value)}
+                                                onFocus={() => handleDiscountFocus(service.id)}
+                                                onBlur={() => handleDiscountBlur(service.id)}
                                                 placeholder="0.00"
                                             />
                                             <DiscountSuffix>
