@@ -1187,16 +1187,6 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                                                 {service.adjustment.type === 'PERCENT' ? '%' : 'PLN'}
                                             </DiscountSuffix>
                                         </DiscountInputWrapper>
-                                        {pricing.discountAmountGross > 0 && (
-                                            <DiscountAmount>
-                                                Oszczędność: {formatCurrency(pricing.discountAmountGross / 100)}
-                                            </DiscountAmount>
-                                        )}
-                                        {pricing.discountAmountGross < 0 && (
-                                            <DiscountAmount style={{ color: '#dc2626', backgroundColor: '#fee' }}>
-                                                Dopłata: {formatCurrency(Math.abs(pricing.discountAmountGross) / 100)}
-                                            </DiscountAmount>
-                                        )}
                                     </DiscountCell>
                                 </Td>
 

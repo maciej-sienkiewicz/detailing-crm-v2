@@ -205,6 +205,41 @@ export const VehicleInfoCard = ({
             </CardHeader>
 
             <ToggleSection style={{ marginTop: '16px' }}>
+                {vehicleHandoff?.isHandedOffByOtherPerson && (
+                    <div style={{
+                        padding: '12px',
+                        background: '#f8fafc',
+                        borderRadius: '8px',
+                        border: '1px solid #e2e8f0'
+                    }}>
+                        <InfoLabel style={{ marginBottom: '8px' }}>Pojazd przekazała inna osoba</InfoLabel>
+                        <InfoGrid>
+                            <InfoItem>
+                                <InfoLabel style={{ fontSize: '11px' }}>Imię i nazwisko</InfoLabel>
+                                <InfoValue style={{ fontSize: '13px' }}>
+                                    {vehicleHandoff.contactPerson.firstName} {vehicleHandoff.contactPerson.lastName}
+                                </InfoValue>
+                            </InfoItem>
+                            {vehicleHandoff.contactPerson.phone && (
+                                <InfoItem>
+                                    <InfoLabel style={{ fontSize: '11px' }}>Telefon</InfoLabel>
+                                    <InfoValue style={{ fontSize: '13px' }}>
+                                        {vehicleHandoff.contactPerson.phone}
+                                    </InfoValue>
+                                </InfoItem>
+                            )}
+                            {vehicleHandoff.contactPerson.email && (
+                                <InfoItem>
+                                    <InfoLabel style={{ fontSize: '11px' }}>E-mail</InfoLabel>
+                                    <InfoValue style={{ fontSize: '13px' }}>
+                                        {vehicleHandoff.contactPerson.email}
+                                    </InfoValue>
+                                </InfoItem>
+                            )}
+                        </InfoGrid>
+                    </div>
+                )}
+
                 <ToggleRow>
                     <InfoLabel>Przebieg przy przyjęciu</InfoLabel>
                     <ValueBox role="text" aria-label={mileageAria} title={hasMileage ? `${mileageNumber} km` : undefined}>
@@ -231,42 +266,6 @@ export const VehicleInfoCard = ({
                     </StatusPill>
                 </ToggleRow>
             </ToggleSection>
-
-            {vehicleHandoff?.isHandedOffByOtherPerson && (
-                <div style={{
-                    marginTop: '16px',
-                    padding: '12px',
-                    background: '#f8fafc',
-                    borderRadius: '8px',
-                    border: '1px solid #e2e8f0'
-                }}>
-                    <InfoLabel style={{ marginBottom: '8px' }}>Pojazd przekazała inna osoba</InfoLabel>
-                    <InfoGrid>
-                        <InfoItem>
-                            <InfoLabel style={{ fontSize: '11px' }}>Imię i nazwisko</InfoLabel>
-                            <InfoValue style={{ fontSize: '13px' }}>
-                                {vehicleHandoff.contactPerson.firstName} {vehicleHandoff.contactPerson.lastName}
-                            </InfoValue>
-                        </InfoItem>
-                        {vehicleHandoff.contactPerson.phone && (
-                            <InfoItem>
-                                <InfoLabel style={{ fontSize: '11px' }}>Telefon</InfoLabel>
-                                <InfoValue style={{ fontSize: '13px' }}>
-                                    {vehicleHandoff.contactPerson.phone}
-                                </InfoValue>
-                            </InfoItem>
-                        )}
-                        {vehicleHandoff.contactPerson.email && (
-                            <InfoItem>
-                                <InfoLabel style={{ fontSize: '11px' }}>E-mail</InfoLabel>
-                                <InfoValue style={{ fontSize: '13px' }}>
-                                    {vehicleHandoff.contactPerson.email}
-                                </InfoValue>
-                            </InfoItem>
-                        )}
-                    </InfoGrid>
-                </div>
-            )}
         </Card>
     );
 };

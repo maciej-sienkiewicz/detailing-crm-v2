@@ -516,7 +516,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                             <IconActionButton onClick={onEditReservationClick} title="Edytuj rezerwację">EDYTUJ</IconActionButton>
                             <IconActionButton $variant="primary" onClick={onStartVisitClick} title="Rozpocznij wizytę">ROZPOCZNIJ</IconActionButton>
                             {!isCancelled && (
-                                <IconActionButton $variant="danger" onClick={onCancelReservationClick} title="Anuluj rezerwację">PORZUC</IconActionButton>
+                                <IconActionButton $variant="danger" onClick={onCancelReservationClick} title="Anuluj rezerwację">PORZUĆ</IconActionButton>
                             )}
                         </FooterActions>
                     ) : (

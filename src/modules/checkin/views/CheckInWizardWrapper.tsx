@@ -234,7 +234,7 @@ export const CheckInWizardWrapper = () => {
         );
     }
 
-    if (reservation.status !== 'CREATED' && reservation.status !== 'SCHEDULED') {
+    if (reservation.status !== 'CREATED' && reservation.status !== 'SCHEDULED' && reservation.status !== 'CANCELLED') {
         return (
             <ErrorContainer>
                 <ErrorIcon>
