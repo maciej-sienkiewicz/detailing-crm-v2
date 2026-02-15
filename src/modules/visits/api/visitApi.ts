@@ -4,6 +4,8 @@ import type {
     UpdateVisitPayload,
     VisitDocument,
     UploadDocumentPayload,
+    UploadPhotoPayload,
+    UploadPhotoResponse,
     AddServicePayload,
     UpdateServicePayload,
     DeleteServicePayload,
@@ -248,6 +250,43 @@ export const visitApi = {
                 },
             }
         );
+        return response.data;
+    },
+
+    uploadPhoto: async (
+        payload: UploadPhotoPayload
+    ): Promise<UploadPhotoResponse> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return {
+                photoId: `photo_${Date.now()}`,
+                uploadUrl: `https://mock-s3.amazonaws.com/upload/${Date.now()}`,
+                fileId: `fileId_${Date.now()}`,
+            };
+        }
+
+        // Step 1: Request presigned URL from backend
+        const requestBody = {
+            fileName: payload.file.name,
+            description: payload.description || undefined,
+        };
+
+        const response = await apiClient.post<UploadPhotoResponse>(
+            `${BASE_PATH}/${payload.visitId}/photos`,
+            requestBody
+        );
+
+        const { uploadUrl } = response.data;
+
+        // Step 2: Upload file directly to S3 using presigned URL
+        await fetch(uploadUrl, {
+            method: 'PUT',
+            body: payload.file,
+            headers: {
+                'Content-Type': payload.file.type,
+            },
+        });
+
         return response.data;
     },
 

@@ -4,6 +4,7 @@ import { visitCommentApi } from '../api/visitCommentApi';
 import type {
     UpdateVisitPayload,
     UploadDocumentPayload,
+    UploadPhotoPayload,
     AddCommentPayload,
     AddServicePayload,
     UpdateServicePayload,
@@ -68,6 +69,25 @@ export const useUploadDocument = (visitId: string) => {
 
     return {
         uploadDocument: mutate,
+        isUploading: isPending,
+    };
+};
+
+export const useUploadPhoto = (visitId: string) => {
+    const queryClient = useQueryClient();
+
+    const { mutate, isPending } = useMutation({
+        mutationFn: (payload: UploadPhotoPayload) =>
+            visitApi.uploadPhoto(payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: visitPhotosQueryKey(visitId),
+            });
+        },
+    });
+
+    return {
+        uploadPhoto: mutate,
         isUploading: isPending,
     };
 };
