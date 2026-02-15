@@ -922,7 +922,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             $accentColor={focusedField === 'services' ? accentColor : undefined}
                                             onFocus={() => {
                                                 setFocusedField('services');
-                                                setShowServiceDropdown(true);
+
+                                                // If no services available, open service creation modal directly
+                                                if (services.length === 0) {
+                                                    setIsQuickServiceModalOpen(true);
+                                                } else {
+                                                    setShowServiceDropdown(true);
+                                                }
                                             }}
                                             onBlur={() => {
                                                 setFocusedField(null);
