@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import styled from 'styled-components';
 import { formatDateTime } from '@/common/utils';
-import type { VisitDocument, DocumentType } from '../types';
+import type { VisitDocument, DocumentType, VisitPhoto } from '../types';
 import { ImageViewerModal } from './ImageViewerModal';
 
 const GalleryContainer = styled.div`
@@ -297,8 +297,16 @@ const EmptyState = styled.div`
     color: ${props => props.theme.colors.textMuted};
 `;
 
+const SectionDivider = styled.div`
+    height: 1px;
+    background: ${props => props.theme.colors.border};
+    margin: ${props => props.theme.spacing.xl} 0;
+`;
+
 interface DocumentGalleryProps {
     documents: VisitDocument[];
+    visitPhotos?: VisitPhoto[];  // Photos from check-in
+    isLoadingPhotos?: boolean;
     onUpload: (file: File, type: DocumentType, category: string) => void;
     onDelete: (documentId: string) => void;
     isUploading: boolean;
@@ -306,12 +314,15 @@ interface DocumentGalleryProps {
 
 export const DocumentGallery = ({
                                      documents,
+                                     visitPhotos = [],
+                                     isLoadingPhotos = false,
                                      onUpload,
                                      onDelete,
                                      isUploading,
                                  }: DocumentGalleryProps) => {
     const [activeCategory, setActiveCategory] = useState<string>('all');
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+    const [selectedVisitPhotoIndex, setSelectedVisitPhotoIndex] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const categories = [
@@ -414,10 +425,58 @@ export const DocumentGallery = ({
             </GalleryHeader>
 
             <GalleryContent>
+                {/* Visit Photos Section (from check-in) */}
+                {visitPhotos.length > 0 && (
+                    <div style={{ marginBottom: '24px' }}>
+                        <h4 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            📸 Zdjęcia z check-in ({visitPhotos.length})
+                        </h4>
+                        <PhotoGrid>
+                            {visitPhotos.map((photo, index) => (
+                                <PhotoCard key={photo.id}>
+                                    <PhotoImage
+                                        src={photo.thumbnailUrl}
+                                        alt={photo.fileName}
+                                        onClick={() => setSelectedVisitPhotoIndex(index)}
+                                    />
+                                    <PhotoOverlay>
+                                        <PhotoInfo>
+                                            <PhotoName>{photo.fileName}</PhotoName>
+                                            {photo.description && (
+                                                <PhotoDate style={{ marginTop: '2px' }}>{photo.description}</PhotoDate>
+                                            )}
+                                            <PhotoDate>{formatDateTime(photo.uploadedAt)}</PhotoDate>
+                                        </PhotoInfo>
+                                        <PhotoActions>
+                                            <IconButton
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDownload(photo.fullSizeUrl, photo.fileName);
+                                                }}
+                                                title="Pobierz"
+                                            >
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                    <polyline points="7 10 12 15 17 10"/>
+                                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                                </svg>
+                                            </IconButton>
+                                        </PhotoActions>
+                                    </PhotoOverlay>
+                                </PhotoCard>
+                            ))}
+                        </PhotoGrid>
+                    </div>
+                )}
+
+                {/* Optional divider between visit photos and document photos */}
+                {visitPhotos.length > 0 && photos.length > 0 && <SectionDivider />}
+
+                {/* Document Photos Section */}
                 {photos.length > 0 && (
                     <div style={{ marginBottom: '24px' }}>
                         <h4 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 600 }}>
-                            Zdjęcia ({photos.length})
+                            📁 Dodatkowe zdjęcia ({photos.length})
                         </h4>
                         <PhotoGrid>
                             {photos.map((photo, index) => (
@@ -522,6 +581,7 @@ export const DocumentGallery = ({
                 )}
             </GalleryContent>
 
+            {/* Modal for document photos */}
             {selectedPhoto && (
                 <ImageViewerModal
                     imageUrl={selectedPhoto.fileUrl}
@@ -533,6 +593,24 @@ export const DocumentGallery = ({
                     hasPrev={selectedImageIndex !== null && selectedImageIndex > 0}
                     onNext={handleNextImage}
                     onPrev={handlePrevImage}
+                />
+            )}
+
+            {/* Modal for visit photos (from check-in) */}
+            {selectedVisitPhotoIndex !== null && visitPhotos[selectedVisitPhotoIndex] && (
+                <ImageViewerModal
+                    imageUrl={visitPhotos[selectedVisitPhotoIndex].fullSizeUrl}
+                    imageName={visitPhotos[selectedVisitPhotoIndex].fileName}
+                    isOpen={selectedVisitPhotoIndex !== null}
+                    onClose={() => setSelectedVisitPhotoIndex(null)}
+                    onDownload={() => handleDownload(
+                        visitPhotos[selectedVisitPhotoIndex].fullSizeUrl,
+                        visitPhotos[selectedVisitPhotoIndex].fileName
+                    )}
+                    hasNext={selectedVisitPhotoIndex < visitPhotos.length - 1}
+                    hasPrev={selectedVisitPhotoIndex > 0}
+                    onNext={() => setSelectedVisitPhotoIndex(prev => (prev !== null && prev < visitPhotos.length - 1) ? prev + 1 : prev)}
+                    onPrev={() => setSelectedVisitPhotoIndex(prev => (prev !== null && prev > 0) ? prev - 1 : prev)}
                 />
             )}
         </GalleryContainer>

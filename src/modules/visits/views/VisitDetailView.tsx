@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { useVisitDetail, useVisitDocuments } from '../hooks';
+import { useVisitDetail, useVisitDocuments, useVisitPhotos } from '../hooks';
 import { useUpdateVisit } from '../hooks';
 import { useUploadDocument, useDeleteDocument } from '../hooks';
 import { useVisitComments } from '../hooks';
@@ -177,6 +177,7 @@ export const VisitDetailView = () => {
 
     const { visitDetail, isLoading, isError, refetch } = useVisitDetail(visitId!);
     const { documents } = useVisitDocuments(visitId!);
+    const { photos: visitPhotos, isLoading: isLoadingPhotos } = useVisitPhotos(visitId!);
     const { updateVisit } = useUpdateVisit(visitId!);
     const { uploadDocument, isUploading } = useUploadDocument(visitId!);
     const { deleteDocument } = useDeleteDocument(visitId!);
@@ -367,6 +368,8 @@ export const VisitDetailView = () => {
                     <TabContent>
                         <DocumentGallery
                             documents={documents}
+                            visitPhotos={visitPhotos}
+                            isLoadingPhotos={isLoadingPhotos}
                             onUpload={handleUploadDocument}
                             onDelete={handleDeleteDocument}
                             isUploading={isUploading}

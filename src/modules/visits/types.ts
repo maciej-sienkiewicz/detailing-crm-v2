@@ -232,3 +232,17 @@ export interface ServicesChangesPayload {
         serviceLineItemId: string;
     }>;
 }
+
+// Visit Photos (from check-in)
+export interface VisitPhoto {
+    id: string;
+    fileName: string;
+    description?: string;
+    uploadedAt: string;
+    thumbnailUrl: string;  // Presigned URL (valid for 10 min)
+    fullSizeUrl: string;   // Presigned URL (valid for 10 min)
+}
+
+export interface VisitPhotosResponse {
+    photos: VisitPhoto[];
+}

@@ -9,11 +9,40 @@ import type {
     DeleteServicePayload,
     UpdateServiceStatusPayload,
     ServiceLineItem,
+    VisitPhotosResponse,
 } from '../types';
 import type { ServicesChangesPayload } from '../types';
 
 const USE_MOCKS = false;
 const BASE_PATH = '/visits';
+
+const mockVisitPhotos: VisitPhotosResponse = {
+    photos: [
+        {
+            id: 'photo_1',
+            fileName: 'vehicle-front.jpg',
+            description: 'Przód pojazdu przy przyjęciu',
+            uploadedAt: '2025-01-15T09:05:00Z',
+            thumbnailUrl: 'https://via.placeholder.com/300x200?text=Front',
+            fullSizeUrl: 'https://via.placeholder.com/1920x1080?text=Front+Full',
+        },
+        {
+            id: 'photo_2',
+            fileName: 'vehicle-back.jpg',
+            uploadedAt: '2025-01-15T09:06:00Z',
+            thumbnailUrl: 'https://via.placeholder.com/300x200?text=Back',
+            fullSizeUrl: 'https://via.placeholder.com/1920x1080?text=Back+Full',
+        },
+        {
+            id: 'photo_3',
+            fileName: 'vehicle-left.jpg',
+            description: 'Lewa strona pojazdu',
+            uploadedAt: '2025-01-15T09:07:00Z',
+            thumbnailUrl: 'https://via.placeholder.com/300x200?text=Left',
+            fullSizeUrl: 'https://via.placeholder.com/1920x1080?text=Left+Full',
+        },
+    ],
+};
 
 const mockVisitDetail: VisitDetailResponse = {
     visit: {
@@ -432,6 +461,19 @@ export const visitApi = {
             };
         }
         const response = await apiClient.post(`${BASE_PATH}/${visitId}/confirm`);
+        return response.data;
+    },
+
+    /**
+     * Get visit photos with presigned URLs
+     * Photos uploaded during check-in
+     */
+    getVisitPhotos: async (visitId: string): Promise<VisitPhotosResponse> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return mockVisitPhotos;
+        }
+        const response = await apiClient.get(`${BASE_PATH}/${visitId}/photos`);
         return response.data;
     },
 };

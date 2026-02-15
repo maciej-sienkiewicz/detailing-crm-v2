@@ -14,6 +14,7 @@ import {useToast} from "@/common/components/Toast";
 
 export const visitDetailQueryKey = (visitId: string) => ['visit', visitId];
 export const visitDocumentsQueryKey = (visitId: string) => ['visit', visitId, 'documents'];
+export const visitPhotosQueryKey = (visitId: string) => ['visit', visitId, 'photos'];
 
 export const useVisitDetail = (visitId: string) => {
     const { data, isLoading, isError, refetch } = useQuery({
@@ -103,6 +104,23 @@ export const useVisitDocuments = (visitId: string) => {
 
     return {
         documents: data || [],
+        isLoading,
+        isError,
+        refetch,
+    };
+};
+
+// Photos hooks (from check-in)
+export const useVisitPhotos = (visitId: string) => {
+    const { data, isLoading, isError, refetch } = useQuery({
+        queryKey: visitPhotosQueryKey(visitId),
+        queryFn: () => visitApi.getVisitPhotos(visitId),
+        enabled: !!visitId,
+        staleTime: 0, // Photos use presigned URLs that expire
+    });
+
+    return {
+        photos: data?.photos || [],
         isLoading,
         isError,
         refetch,
