@@ -290,6 +290,14 @@ export const visitApi = {
         return response.data;
     },
 
+    deletePhoto: async (visitId: string, photoId: string): Promise<void> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+            return;
+        }
+        await apiClient.delete(`${BASE_PATH}/${visitId}/photos/${photoId}`);
+    },
+
     deleteDocument: async (_visitId: string, documentId: string): Promise<void> => {
         if (USE_MOCKS) {
             await new Promise(resolve => setTimeout(resolve, 300));

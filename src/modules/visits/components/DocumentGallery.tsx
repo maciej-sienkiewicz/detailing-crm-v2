@@ -310,6 +310,7 @@ interface DocumentGalleryProps {
     onUpload: (file: File, type: DocumentType, category: string) => void;
     onUploadPhoto: (file: File, description?: string) => void;
     onDelete: (documentId: string) => void;
+    onDeletePhoto: (photoId: string) => void;
     isUploading: boolean;
 }
 
@@ -320,6 +321,7 @@ export const DocumentGallery = ({
                                      onUpload,
                                      onUploadPhoto,
                                      onDelete,
+                                     onDeletePhoto,
                                      isUploading,
                                  }: DocumentGalleryProps) => {
     const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
@@ -479,22 +481,25 @@ export const DocumentGallery = ({
                                                     <line x1="12" y1="15" x2="12" y2="3"/>
                                                 </svg>
                                             </IconButton>
-                                            {!photo.isVisitPhoto && (
-                                                <DeleteIconButton
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
+                                            <DeleteIconButton
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    // Use appropriate delete handler based on photo type
+                                                    if (photo.isVisitPhoto) {
+                                                        onDeletePhoto(photo.id);
+                                                    } else {
                                                         onDelete(photo.id);
-                                                    }}
-                                                    title="Usuń"
-                                                >
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <polyline points="3 6 5 6 21 6"/>
-                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                                        <line x1="10" y1="11" x2="10" y2="17"/>
-                                                        <line x1="14" y1="11" x2="14" y2="17"/>
-                                                    </svg>
-                                                </DeleteIconButton>
-                                            )}
+                                                    }
+                                                }}
+                                                title="Usuń"
+                                            >
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <polyline points="3 6 5 6 21 6"/>
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                                    <line x1="10" y1="11" x2="10" y2="17"/>
+                                                    <line x1="14" y1="11" x2="14" y2="17"/>
+                                                </svg>
+                                            </DeleteIconButton>
                                         </PhotoActions>
                                     </PhotoOverlay>
                                 </PhotoCard>
