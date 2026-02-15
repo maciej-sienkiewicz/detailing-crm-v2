@@ -262,15 +262,33 @@ export const CheckInWizardWrapper = () => {
     // i sformatuj je do lokalnego formatu wejściowego dla input[type="datetime-local"]
 
     const nowIso = new Date().toISOString();
-    const startRaw = (reservationData as any)?.schedule?.startDateTime || (reservationData as any)?.startDateTime || nowIso;
-    const endRawFromApi = (reservationData as any)?.schedule?.endDateTime || (reservationData as any)?.endDateTime || '';
+    const originalStartRaw = (reservationData as any)?.schedule?.startDateTime || (reservationData as any)?.startDateTime || nowIso;
+    const originalEndRaw = (reservationData as any)?.schedule?.endDateTime || (reservationData as any)?.endDateTime || '';
 
-    const endRaw = endRawFromApi || (() => {
+    // Oblicz czas trwania rezerwacji (w milisekundach)
+    let durationMs = 60 * 60 * 1000; // Domyślnie 1 godzina
+    if (originalStartRaw && originalEndRaw) {
         try {
-            const d = new Date(startRaw);
-            if (isNaN(d.getTime())) return '';
-            d.setHours(d.getHours() + 1);
-            return d.toISOString();
+            const startDate = new Date(originalStartRaw);
+            const endDate = new Date(originalEndRaw);
+            if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+                durationMs = endDate.getTime() - startDate.getTime();
+            }
+        } catch {
+            // Zachowaj domyślny czas trwania
+        }
+    }
+
+    // Ustaw datę rozpoczęcia na bieżący czas
+    const startRaw = nowIso;
+
+    // Oblicz datę zakończenia na podstawie czasu trwania
+    const endRaw = (() => {
+        try {
+            const startDate = new Date(startRaw);
+            if (isNaN(startDate.getTime())) return '';
+            const endDate = new Date(startDate.getTime() + durationMs);
+            return endDate.toISOString();
         } catch {
             return '';
         }

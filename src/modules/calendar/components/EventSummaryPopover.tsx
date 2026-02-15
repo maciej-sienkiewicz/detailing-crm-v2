@@ -366,6 +366,10 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
 }) => {
     const isAppointment = event.type === 'APPOINTMENT';
 
+    // Check if appointment is cancelled/abandoned - don't show "Porzuć" button
+    const appointmentStatus = isAppointment ? (event as AppointmentEventData).status : undefined;
+    const isCancelled = appointmentStatus === 'CANCELLED' || appointmentStatus === 'ABANDONED';
+
     // Get appropriate note based on event type
     const eventNote = isAppointment
         ? (event as AppointmentEventData).note
@@ -511,7 +515,9 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                         <FooterActions>
                             <IconActionButton onClick={onEditReservationClick} title="Edytuj rezerwację">EDYTUJ</IconActionButton>
                             <IconActionButton $variant="primary" onClick={onStartVisitClick} title="Rozpocznij wizytę">ROZPOCZNIJ</IconActionButton>
-                            <IconActionButton $variant="danger" onClick={onCancelReservationClick} title="Anuluj rezerwację">PORZUC</IconActionButton>
+                            {!isCancelled && (
+                                <IconActionButton $variant="danger" onClick={onCancelReservationClick} title="Anuluj rezerwację">PORZUC</IconActionButton>
+                            )}
                         </FooterActions>
                     ) : (
                         <ManageButton onClick={onManageClick}>
