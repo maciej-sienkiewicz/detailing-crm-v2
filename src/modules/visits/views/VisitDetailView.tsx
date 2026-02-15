@@ -274,15 +274,11 @@ export const VisitDetailView = () => {
     };
 
     const handleDeleteDocument = (documentId: string) => {
-        if (window.confirm('Czy na pewno chcesz usunąć ten dokument?')) {
-            deleteDocument(documentId);
-        }
+        deleteDocument(documentId);
     };
 
     const handleDeletePhoto = (photoId: string) => {
-        if (window.confirm('Czy na pewno chcesz usunąć to zdjęcie?')) {
-            deletePhoto(photoId);
-        }
+        deletePhoto(photoId);
     };
 
     const handleEditServicesClick = () => {

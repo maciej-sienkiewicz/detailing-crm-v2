@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { formatDateTime } from '@/common/utils';
 import type { VisitDocument, DocumentType, VisitPhoto } from '../types';
 import { ImageViewerModal } from './ImageViewerModal';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 
 const GalleryContainer = styled.div`
     background: white;
@@ -325,6 +326,8 @@ export const DocumentGallery = ({
                                      isUploading,
                                  }: DocumentGalleryProps) => {
     const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
+    const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<{ id: string; isPhoto: boolean; name: string } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Combine visit photos and document photos
@@ -415,6 +418,29 @@ export const DocumentGallery = ({
         }
     };
 
+    const handleDeleteClick = (id: string, isPhoto: boolean, name: string) => {
+        setItemToDelete({ id, isPhoto, name });
+        setDeleteConfirmModalOpen(true);
+    };
+
+    const handleConfirmDelete = () => {
+        if (!itemToDelete) return;
+
+        if (itemToDelete.isPhoto) {
+            onDeletePhoto(itemToDelete.id);
+        } else {
+            onDelete(itemToDelete.id);
+        }
+
+        setDeleteConfirmModalOpen(false);
+        setItemToDelete(null);
+    };
+
+    const handleCancelDelete = () => {
+        setDeleteConfirmModalOpen(false);
+        setItemToDelete(null);
+    };
+
     const selectedPhoto = selectedPhotoIndex !== null ? allPhotos[selectedPhotoIndex] : null;
 
     return (
@@ -484,12 +510,7 @@ export const DocumentGallery = ({
                                             <DeleteIconButton
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    // Use appropriate delete handler based on photo type
-                                                    if (photo.isVisitPhoto) {
-                                                        onDeletePhoto(photo.id);
-                                                    } else {
-                                                        onDelete(photo.id);
-                                                    }
+                                                    handleDeleteClick(photo.id, photo.isVisitPhoto, photo.fileName);
                                                 }}
                                                 title="Usuń"
                                             >
@@ -535,7 +556,7 @@ export const DocumentGallery = ({
                                             Pobierz
                                         </ActionButton>
                                         <DeleteButton
-                                            onClick={() => onDelete(doc.id)}
+                                            onClick={() => handleDeleteClick(doc.id, false, doc.fileName)}
                                         >
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <polyline points="3 6 5 6 21 6"/>
@@ -571,6 +592,18 @@ export const DocumentGallery = ({
                     onPrev={handlePrevImage}
                 />
             )}
+
+            {/* Delete confirmation modal */}
+            <ConfirmationModal
+                isOpen={deleteConfirmModalOpen}
+                title="Usuń plik"
+                message={itemToDelete ? `Czy na pewno chcesz usunąć "${itemToDelete.name}"? Tej operacji nie można cofnąć.` : ''}
+                variant="danger"
+                confirmText="Usuń"
+                cancelText="Anuluj"
+                onConfirm={handleConfirmDelete}
+                onCancel={handleCancelDelete}
+            />
         </GalleryContainer>
     );
 };
