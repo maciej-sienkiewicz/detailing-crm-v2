@@ -5,6 +5,7 @@ import { CheckInWizardView } from './CheckInWizardView';
 import { t } from '@/common/i18n';
 import { appointmentApi } from '@/modules/appointments';
 import { customerDetailApi } from '@/modules/customers/api/customerDetailApi';
+import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
 import { fromInstantToLocalInput } from '@/common/dateTime';
 
 const LoadingContainer = styled.div`
@@ -160,6 +161,15 @@ export const CheckInWizardWrapper = () => {
         retry: 1,
     });
 
+    // Pobierz pełne dane pojazdu (z licensePlate, color, paintType, etc.)
+    const vehicleId = reservationData?.vehicleId;
+    const { data: vehicleDetailData, isLoading: isLoadingVehicleDetail } = useQuery({
+        queryKey: ['vehicleDetail', vehicleId],
+        queryFn: () => vehicleApi.getVehicleDetail(vehicleId!),
+        enabled: !!vehicleId,
+        retry: 1,
+    });
+
     // Mapowanie danych z backendu na format oczekiwany przez CheckInWizardView
     const reservation: ReservationResponse | undefined = reservationData ? {
         id: reservationData.id,
@@ -183,7 +193,16 @@ export const CheckInWizardWrapper = () => {
                 },
             } : null,
         },
-        vehicle: reservationData.vehicle ? {
+        // Użyj pełnych danych pojazdu z vehicleDetailData jeśli są dostępne
+        vehicle: vehicleDetailData?.vehicle ? {
+            id: vehicleDetailData.vehicle.id,
+            brand: vehicleDetailData.vehicle.brand,
+            model: vehicleDetailData.vehicle.model,
+            yearOfProduction: vehicleDetailData.vehicle.yearOfProduction,
+            licensePlate: vehicleDetailData.vehicle.licensePlate,
+            color: vehicleDetailData.vehicle.color,
+            paintType: vehicleDetailData.vehicle.paintType,
+        } : (reservationData.vehicle ? {
             id: reservationData.vehicleId,
             brand: reservationData.vehicle.brand,
             model: reservationData.vehicle.model,
@@ -191,7 +210,7 @@ export const CheckInWizardWrapper = () => {
             licensePlate: reservationData.vehicle.licensePlate,
             color: reservationData.vehicle.color,
             paintType: reservationData.vehicle.paintType,
-        } : null,
+        } : null),
         services: reservationData.services?.map((service: any) => ({
             id: service.id,
             serviceId: service.serviceId,
@@ -209,7 +228,7 @@ export const CheckInWizardWrapper = () => {
         navigate(`/visits/${visitId}`);
     };
 
-    if (isLoading || isLoadingColors || isLoadingCustomerDetail) {
+    if (isLoading || isLoadingColors || isLoadingCustomerDetail || isLoadingVehicleDetail) {
         return (
             <LoadingContainer>
                 <Spinner />
