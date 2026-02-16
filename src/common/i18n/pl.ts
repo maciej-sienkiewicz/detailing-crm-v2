@@ -137,12 +137,6 @@ export const pl: TranslationKeys = {
                 events: 'zdarzeń',
                 event: 'zdarzenie',
                 empty: 'Brak zarejestrowanych aktywności',
-                visitType: {
-                    service: 'Serwis',
-                    repair: 'Naprawa',
-                    inspection: 'Przegląd',
-                    consultation: 'Konsultacja',
-                },
                 visitStatus: {
                     completed: 'Zakończono',
                     inProgress: 'W trakcie',
@@ -159,7 +153,7 @@ export const pl: TranslationKeys = {
                     inbound: 'Przychodzący',
                     outbound: 'Wychodzący',
                 },
-                technician: 'Technik',
+                createdBy: 'Utworzono przez',
                 performedBy: 'Wykonał',
             },
             settingsPlaceholder: 'Panel zarządzania ustawieniami klienta będzie dostępny wkrótce.',

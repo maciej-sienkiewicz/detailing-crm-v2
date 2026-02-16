@@ -196,12 +196,6 @@ export interface TranslationKeys {
                 events: string;
                 event: string;
                 empty: string;
-                visitType: {
-                    service: string;
-                    repair: string;
-                    inspection: string;
-                    consultation: string;
-                };
                 visitStatus: {
                     completed: string;
                     inProgress: string;
@@ -218,7 +212,7 @@ export interface TranslationKeys {
                     inbound: string;
                     outbound: string;
                 };
-                technician: string;
+                createdBy: string;
                 performedBy: string;
             };
             settingsPlaceholder: string;

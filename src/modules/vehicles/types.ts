@@ -180,7 +180,6 @@ export interface VehicleActivity {
 export interface VehicleVisitSummary {
     id: string;
     date: string;
-    type: string;
     description: string;
     status: string;
     totalCost: {
@@ -188,7 +187,7 @@ export interface VehicleVisitSummary {
         grossAmount: number;
         currency: string;
     };
-    technician: string;
+    createdBy: string;
 }
 
 export interface VehicleDetailResponse {

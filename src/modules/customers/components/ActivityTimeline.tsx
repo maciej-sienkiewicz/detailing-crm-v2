@@ -157,10 +157,6 @@ const MetaBadge = styled.span<{ $variant?: string }>`
 
     ${props => {
         const variants: Record<string, string> = {
-            service: 'background: #dbeafe; color: #1e40af;',
-            repair: 'background: #fee2e2; color: #991b1b;',
-            inspection: 'background: #fef3c7; color: #92400e;',
-            consultation: 'background: #f3e8ff; color: #6b21a8;',
             completed: 'background: #dcfce7; color: #166534;',
             scheduled: 'background: #fef3c7; color: #92400e;',
             cancelled: 'background: #f3f4f6; color: #6b7280;',
@@ -168,7 +164,7 @@ const MetaBadge = styled.span<{ $variant?: string }>`
             outbound: 'background: #dcfce7; color: #166534;',
             'in-progress': 'background: #dbeafe; color: #1e40af;',
         };
-        return variants[props.$variant || 'service'];
+        return variants[props.$variant || 'completed'];
     }}
 `;
 
@@ -249,9 +245,6 @@ export const ActivityTimeline = ({ visits, communications }: ActivityTimelinePro
                                         )}
 
                                         <ItemMeta>
-                                            <MetaBadge $variant={activity.type}>
-                                                {t.customers.detail.timeline.visitType[activity.type]}
-                                            </MetaBadge>
                                             <MetaBadge $variant={activity.status}>
                                                 {t.customers.detail.timeline.visitStatus[activity.status === 'in-progress' ? 'inProgress' : activity.status]}
                                             </MetaBadge>
@@ -260,7 +253,9 @@ export const ActivityTimeline = ({ visits, communications }: ActivityTimelinePro
                                                     {formatCurrency(activity.totalCost.grossAmount, activity.totalCost.currency)}
                                                 </MetaText>
                                             )}
-                                            <MetaText>{t.customers.detail.timeline.technician}: {activity.technician}</MetaText>
+                                            {activity.createdBy && (
+                                                <MetaText>{t.customers.detail.timeline.createdBy}: {activity.createdBy}</MetaText>
+                                            )}
                                         </ItemMeta>
                                     </ItemCard>
                                 </TimelineItem>
