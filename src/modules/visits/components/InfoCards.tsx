@@ -13,10 +13,17 @@ const Card = styled.div`
 const CardHeader = styled.div`
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: ${props => props.theme.spacing.md};
     margin-bottom: ${props => props.theme.spacing.md};
     padding-bottom: ${props => props.theme.spacing.md};
     border-bottom: 2px solid ${props => props.theme.colors.border};
+`;
+
+const CardHeaderLeft = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.md};
 `;
 
 const CardIcon = styled.div`
@@ -164,68 +171,69 @@ const LicensePlate = styled.div`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 8px 16px;
-    background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
-    border: 2px solid #1a1a1a;
-    border-radius: 4px;
+    padding: 10px 20px 10px 36px;
+    background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 100%);
+    border: 3px solid #000000;
+    border-radius: 6px;
     font-family: 'Courier New', monospace;
     font-size: ${props => props.theme.fontSizes.lg};
     font-weight: 700;
-    letter-spacing: 0.15em;
-    color: #1a1a1a;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    letter-spacing: 0.2em;
+    color: #000000;
+    box-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
     position: relative;
-    min-width: 140px;
+    text-transform: uppercase;
+    width: fit-content;
 
     &::before {
-        content: 'PL';
+        content: '';
         position: absolute;
-        left: 8px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 10px;
-        font-weight: 700;
-        color: white;
-        background: #003399;
-        padding: 2px 4px;
-        border-radius: 2px;
-        letter-spacing: 0;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 28px;
+        background: linear-gradient(180deg, #003399 0%, #002266 100%);
+        border-right: 2px solid #000000;
+        border-radius: 3px 0 0 3px;
     }
 
     &::after {
-        content: '🇪🇺';
+        content: 'PL';
         position: absolute;
-        left: 8px;
-        top: 8px;
-        font-size: 10px;
-        transform: translateY(-100%);
+        left: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 11px;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: 0.5px;
     }
 `;
 
-const ViewDetailsButton = styled.button`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    background: white;
-    color: var(--brand-primary);
-    border: 1px solid var(--brand-primary);
+const ViewDetailsIconButton = styled.button`
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: transparent;
+    color: ${props => props.theme.colors.textMuted};
+    border: none;
     border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.xs};
-    margin-top: ${props => props.theme.spacing.md};
+    justify-content: center;
 
     &:hover {
-        background: var(--brand-primary);
-        color: white;
-        transform: translateY(-1px);
-        box-shadow: ${props => props.theme.shadows.sm};
+        background: ${props => props.theme.colors.surfaceAlt};
+        color: var(--brand-primary);
     }
 
     &:active {
-        transform: translateY(0);
+        transform: scale(0.95);
     }
 `;
 
@@ -266,13 +274,23 @@ export const VehicleInfoCard = ({
     return (
         <Card>
             <CardHeader>
-                <CardIcon aria-label="Informacje o pojeździe" title="Informacje o pojeździe">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-                        <path d="M12 2l6 2v6c0 5-3.5 9.5-6 10-2.5-.5-6-5-6-10V4l6-2z" fill="currentColor" opacity="0.9"/>
-                        <path d="M9.5 10.5l2-2 1 1 2.5-2.5 1 1L12.5 12l-1-1-2 2-1-1 1-1z" fill="#ffffff" opacity="0.9"/>
-                    </svg>
-                </CardIcon>
-                <CardTitle>Informacje o pojeździe</CardTitle>
+                <CardHeaderLeft>
+                    <CardIcon aria-label="Informacje o pojeździe" title="Informacje o pojeździe">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                            <path d="M12 2l6 2v6c0 5-3.5 9.5-6 10-2.5-.5-6-5-6-10V4l6-2z" fill="currentColor" opacity="0.9"/>
+                            <path d="M9.5 10.5l2-2 1 1 2.5-2.5 1 1L12.5 12l-1-1-2 2-1-1 1-1z" fill="#ffffff" opacity="0.9"/>
+                        </svg>
+                    </CardIcon>
+                    <CardTitle>Informacje o pojeździe</CardTitle>
+                </CardHeaderLeft>
+                {onViewDetails && (
+                    <ViewDetailsIconButton onClick={onViewDetails} title="Pokaż pełne informacje o pojeździe" aria-label="Pokaż pełne informacje o pojeździe">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" fill="currentColor"/>
+                            <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke="currentColor" strokeWidth="2" fill="none"/>
+                        </svg>
+                    </ViewDetailsIconButton>
+                )}
             </CardHeader>
 
             <InfoGrid>
@@ -284,10 +302,12 @@ export const VehicleInfoCard = ({
                     <InfoLabel>Model</InfoLabel>
                     <InfoValue>{vehicle.model}</InfoValue>
                 </InfoItem>
-                <InfoItem style={{ gridColumn: '1 / -1' }}>
-                    <InfoLabel>Numer rejestracyjny</InfoLabel>
-                    <LicensePlate>{vehicle.licensePlate}</LicensePlate>
-                </InfoItem>
+                {vehicle.licensePlate && (
+                    <InfoItem style={{ gridColumn: '1 / -1' }}>
+                        <InfoLabel>Numer rejestracyjny</InfoLabel>
+                        <LicensePlate>{vehicle.licensePlate}</LicensePlate>
+                    </InfoItem>
+                )}
             </InfoGrid>
 
             <ToggleSection style={{ marginTop: '16px' }}>
@@ -352,16 +372,6 @@ export const VehicleInfoCard = ({
                     </StatusPill>
                 </ToggleRow>
             </ToggleSection>
-
-            {onViewDetails && (
-                <ViewDetailsButton onClick={onViewDetails}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" fill="currentColor"/>
-                        <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke="currentColor" strokeWidth="2" fill="none"/>
-                    </svg>
-                    Pełne informacje o pojeździe
-                </ViewDetailsButton>
-            )}
         </Card>
     );
 };
@@ -375,14 +385,24 @@ export const CustomerInfoCard = ({ customer, onViewDetails }: CustomerInfoCardPr
     return (
         <Card>
             <CardHeader>
-                <CardIcon aria-label="Informacje o kliencie" title="Informacje o kliencie">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-                        <circle cx="12" cy="8" r="4" fill="currentColor" opacity="0.9"/>
-                        <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" fill="currentColor" opacity="0.9"/>
-                        <path d="M4 20c0-2.209 3.582-4 8-4s8 1.791 8 4" fill="#ffffff" opacity="0.9"/>
-                    </svg>
-                </CardIcon>
-                <CardTitle>Informacje o kliencie</CardTitle>
+                <CardHeaderLeft>
+                    <CardIcon aria-label="Informacje o kliencie" title="Informacje o kliencie">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                            <circle cx="12" cy="8" r="4" fill="currentColor" opacity="0.9"/>
+                            <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" fill="currentColor" opacity="0.9"/>
+                            <path d="M4 20c0-2.209 3.582-4 8-4s8 1.791 8 4" fill="#ffffff" opacity="0.9"/>
+                        </svg>
+                    </CardIcon>
+                    <CardTitle>Informacje o kliencie</CardTitle>
+                </CardHeaderLeft>
+                {onViewDetails && (
+                    <ViewDetailsIconButton onClick={onViewDetails} title="Pokaż pełne informacje o kliencie" aria-label="Pokaż pełne informacje o kliencie">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" fill="currentColor"/>
+                            <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke="currentColor" strokeWidth="2" fill="none"/>
+                        </svg>
+                    </ViewDetailsIconButton>
+                )}
             </CardHeader>
 
             <InfoGrid>
@@ -420,16 +440,6 @@ export const CustomerInfoCard = ({ customer, onViewDetails }: CustomerInfoCardPr
                     🚗 {customer.stats.vehiclesCount} pojazdów
                 </StatBadge>
             </div>
-
-            {onViewDetails && (
-                <ViewDetailsButton onClick={onViewDetails}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" fill="currentColor"/>
-                        <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke="currentColor" strokeWidth="2" fill="none"/>
-                    </svg>
-                    Pełne informacje o kliencie
-                </ViewDetailsButton>
-            )}
         </Card>
     );
 };
