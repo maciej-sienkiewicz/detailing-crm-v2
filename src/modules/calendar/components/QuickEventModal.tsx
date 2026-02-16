@@ -794,8 +794,27 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             }}
                                             onBlur={() => {
                                                 setFocusedField(null);
-                                                // Dłuższy timeout tylko po to aby dać czas na kliknięcie w dropdown
-                                                setTimeout(() => setShowCustomerDropdown(false), 200);
+                                                // Timeout aby dać czas na kliknięcie w dropdown i sprawdzić czy otworzyć modal
+                                                setTimeout(() => {
+                                                    setShowCustomerDropdown(false);
+
+                                                    // Auto-otwieranie modalu tylko jeśli:
+                                                    // 1. Użytkownik nie wybrał klienta w międzyczasie
+                                                    // 2. Ma wprowadzone imię i nazwisko
+                                                    // 3. Nie ma wyników wyszukiwania
+                                                    if (selectedCustomer) return;
+
+                                                    const trimmed = customerSearch.trim();
+                                                    if (!trimmed) return;
+
+                                                    const parsed = parseCustomerInput(trimmed);
+                                                    const hasFirstAndLastName = parsed.firstName && parsed.lastName;
+
+                                                    if (hasFirstAndLastName && customerResults.length === 0) {
+                                                        setParsedCustomerData(parsed);
+                                                        setIsAddCustomerModalOpen(true);
+                                                    }
+                                                }, 300);
                                             }}
                                         />
                                         {showCustomerDropdown && (
@@ -841,33 +860,69 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         )}
                                     </S.DropdownContainer>
                                     {errors.customer && <S.ErrorMessage>{errors.customer}</S.ErrorMessage>}
-                                    {selectedCustomer && (selectedCustomer.phone || selectedCustomer.email) && (
+                                    {selectedCustomer && (
                                         <div style={{
                                             marginTop: '8px',
-                                            padding: '8px 12px',
-                                            background: 'rgba(99, 102, 241, 0.05)',
-                                            borderRadius: '8px',
+                                            padding: '10px 14px',
+                                            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.03))',
+                                            borderRadius: '10px',
                                             fontSize: '13px',
-                                            color: '#64748b',
+                                            border: '1px solid rgba(99, 102, 241, 0.15)',
                                             display: 'flex',
                                             flexDirection: 'column',
-                                            gap: '4px'
+                                            gap: '6px'
                                         }}>
-                                            {selectedCustomer.phone && (
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '14px', height: '14px', flexShrink: 0 }}>
-                                                        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
-                                                    </svg>
-                                                    <span>{selectedCustomer.phone}</span>
-                                                </div>
-                                            )}
-                                            {selectedCustomer.email && (
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '14px', height: '14px', flexShrink: 0 }}>
-                                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                                                        <polyline points="22,6 12,13 2,6" />
-                                                    </svg>
-                                                    <span>{selectedCustomer.email}</span>
+                                            {/* Nazwa klienta */}
+                                            <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px',
+                                                paddingBottom: '6px',
+                                                borderBottom: (selectedCustomer.phone || selectedCustomer.email) ? '1px solid rgba(99, 102, 241, 0.1)' : 'none',
+                                                fontWeight: 600,
+                                                color: '#4f46e5'
+                                            }}>
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '16px', height: '16px', flexShrink: 0 }}>
+                                                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                                                    <circle cx="12" cy="7" r="4" />
+                                                </svg>
+                                                <span>
+                                                    {selectedCustomer.firstName} {selectedCustomer.lastName}
+                                                    {selectedCustomer.isNew && (
+                                                        <span style={{
+                                                            marginLeft: '6px',
+                                                            fontSize: '10px',
+                                                            padding: '2px 6px',
+                                                            background: '#10b981',
+                                                            color: 'white',
+                                                            borderRadius: '4px',
+                                                            fontWeight: 700,
+                                                            textTransform: 'uppercase'
+                                                        }}>Nowy</span>
+                                                    )}
+                                                </span>
+                                            </div>
+
+                                            {/* Kontakt */}
+                                            {(selectedCustomer.phone || selectedCustomer.email) && (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', color: '#64748b' }}>
+                                                    {selectedCustomer.phone && (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '14px', height: '14px', flexShrink: 0 }}>
+                                                                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
+                                                            </svg>
+                                                            <span>{selectedCustomer.phone}</span>
+                                                        </div>
+                                                    )}
+                                                    {selectedCustomer.email && (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '14px', height: '14px', flexShrink: 0 }}>
+                                                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                                                                <polyline points="22,6 12,13 2,6" />
+                                                            </svg>
+                                                            <span>{selectedCustomer.email}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
