@@ -777,17 +777,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     const parsed = parseCustomerInput(trimmed);
                                                     const hasFirstAndLastName = parsed.firstName && parsed.lastName;
 
-                                                    // Jeśli mamy imię i nazwisko, otwórz modal po krótkiej chwili
-                                                    // aby dać szansę wyszukiwaniu się zakończyć
-                                                    if (hasFirstAndLastName) {
-                                                        setTimeout(() => {
-                                                            // Sprawdź ponownie czy w międzyczasie nie wybrano klienta
-                                                            if (!selectedCustomer && customerResults.length === 0) {
-                                                                setParsedCustomerData(parsed);
-                                                                setIsAddCustomerModalOpen(true);
-                                                                setShowCustomerDropdown(false);
-                                                            }
-                                                        }, 400); // Czas na zakończenie debounced search (300ms) + margines
+                                                    // Jeśli mamy imię i nazwisko i brak wyników, otwórz modal natychmiast
+                                                    if (hasFirstAndLastName && customerResults.length === 0) {
+                                                        setParsedCustomerData(parsed);
+                                                        setIsAddCustomerModalOpen(true);
+                                                        setShowCustomerDropdown(false);
                                                     }
                                                 }
                                             }}
@@ -800,25 +794,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             }}
                                             onBlur={() => {
                                                 setFocusedField(null);
-                                                setTimeout(() => {
-                                                    setShowCustomerDropdown(false);
-
-                                                    // Jeśli użytkownik już coś wybrał, nie rób nic
-                                                    if (selectedCustomer) return;
-
-                                                    const trimmed = customerSearch.trim();
-                                                    if (!trimmed) return;
-
-                                                    // Parsuj wprowadzone dane
-                                                    const parsed = parseCustomerInput(trimmed);
-                                                    const hasFirstAndLastName = parsed.firstName && parsed.lastName;
-
-                                                    // Sprawdź czy nie znaleziono klientów
-                                                    if (hasFirstAndLastName && customerResults.length === 0) {
-                                                        setParsedCustomerData(parsed);
-                                                        setIsAddCustomerModalOpen(true);
-                                                    }
-                                                }, 500); // Dłuższy timeout aby dać czas na debounced search i kliknięcie w dropdown
+                                                // Dłuższy timeout tylko po to aby dać czas na kliknięcie w dropdown
+                                                setTimeout(() => setShowCustomerDropdown(false), 200);
                                             }}
                                         />
                                         {showCustomerDropdown && (
@@ -1254,14 +1231,17 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 isOpen={isAddCustomerModalOpen}
                 onClose={() => setIsAddCustomerModalOpen(false)}
                 onSuccess={(customer) => {
+                    console.log('[QuickEventModal] Customer created:', customer);
+                    console.log('[QuickEventModal] Customer contact:', customer.contact);
                     const mapped = {
                         id: customer.id,
                         firstName: customer.firstName,
                         lastName: customer.lastName,
-                        phone: customer.contact?.phone,
-                        email: customer.contact?.email,
+                        phone: customer.contact?.phone || undefined,
+                        email: customer.contact?.email || undefined,
                         isNew: false,
                     } as SelectedCustomer;
+                    console.log('[QuickEventModal] Mapped customer:', mapped);
                     handleCustomerSelect(mapped);
                     setCustomerSearch(`${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim());
                     setShowCustomerDropdown(false);
