@@ -44,6 +44,11 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
                 validationErrors.vehicle = 'Pojazd jest wymagany';
             }
 
+            // Walidacja usług - wymagana przynajmniej jedna usługa
+            if (!formData.services || formData.services.length === 0) {
+                validationErrors.services = 'Dodaj przynajmniej jedną usługę';
+            }
+
             // Walidacja przekazania pojazdu przez inną osobę
             if (formData.vehicleHandoff.isHandedOffByOtherPerson) {
                 const handoff = formData.vehicleHandoff.contactPerson;

@@ -1465,6 +1465,10 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                     onChange={onServicesChange}
                 />
 
+                {errors.services && (
+                    <ErrorMessage>{errors.services}</ErrorMessage>
+                )}
+
                 <Divider />
 
                 {/* Sekcja: Notatki z oględzin */}
