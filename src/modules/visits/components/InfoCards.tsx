@@ -314,7 +314,7 @@ export const VehicleInfoCard = ({
             <VehicleOverview $columnCount={columnCount}>
                 {vehicle.licensePlate && (
                     <VehicleField>
-                        <InfoLabel>Numer rejestracyjny</InfoLabel>
+                        <InfoLabel>Tablice</InfoLabel>
                         <LicensePlate>{vehicle.licensePlate}</LicensePlate>
                     </VehicleField>
                 )}
