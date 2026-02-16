@@ -1,18 +1,23 @@
 // src/modules/vehicles/views/VehicleDetailView.tsx
 
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useVehicleDetail } from '../hooks/useVehicleDetail';
 import { useUpdateVehicle } from '../hooks/useUpdateVehicle';
 import { VehicleHeader } from '../components/VehicleHeader';
-import { VehicleActivityTimeline } from '../components/VehicleActivityTimeline';
 import { VehicleVisitHistory } from '../components/VehicleVisitHistory';
 import { VehiclePhotoGallery } from '../components/VehiclePhotoGallery';
 import { VehicleDocuments } from '../components/VehicleDocuments';
+import { VehicleActivityTimeline } from '../components/VehicleActivityTimeline';
+import { VehicleMiniGallery } from '../components/VehicleMiniGallery';
 import { EditVehicleModal } from '../components/EditVehicleModal';
 import { EditOwnersModal } from '../components/EditOwnersModal';
+import { formatCurrency } from '@/common/utils';
 import { t } from '@/common/i18n';
+import type { VehicleOwner } from '../types';
+
+/* ─── Layout ──────────────────────────────────────────── */
 
 const ViewContainer = styled.main`
     display: flex;
@@ -32,115 +37,355 @@ const ViewContainer = styled.main`
     }
 `;
 
+/* ─── Metrics ─────────────────────────────────────────── */
 
-const TabsContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
-`;
-
-const TabsList = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.xs};
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    padding: 6px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+const MetricsGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: ${props => props.theme.spacing.md};
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        gap: ${props => props.theme.spacing.sm};
+        grid-template-columns: repeat(4, 1fr);
     }
 `;
 
-const TabButton = styled.button<{ $isActive: boolean }>`
-    flex: 1;
-    min-width: fit-content;
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    border: none;
-    border-radius: ${props => props.theme.radii.md};
-    background: ${props => props.$isActive
-            ? 'linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 90%, black) 100%)'
-            : 'transparent'
+const MetricCard = styled.div<{ $highlight?: boolean }>`
+    background: ${props => props.$highlight
+        ? 'linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 85%, black) 100%)'
+        : 'white'
     };
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
-    color: ${props => props.$isActive ? 'white' : props.theme.colors.textMuted};
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-    box-shadow: ${props => props.$isActive ? '0 2px 8px rgba(14, 165, 233, 0.3)' : 'none'};
+    border: 1px solid ${props => props.$highlight ? 'transparent' : props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.lg};
+    padding: ${props => props.theme.spacing.lg};
+    ${props => props.$highlight ? `
+        box-shadow: 0 4px 16px rgba(14, 165, 233, 0.25);
+    ` : `
+        box-shadow: ${props.theme.shadows.sm};
+    `}
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 
     &:hover {
-        background: ${props => props.$isActive
-                ? 'linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 90%, black) 100%)'
-                : props.theme.colors.surfaceHover
+        transform: translateY(-2px);
+        box-shadow: ${props => props.$highlight
+            ? '0 6px 20px rgba(14, 165, 233, 0.35)'
+            : props.theme.shadows.md
         };
-        color: ${props => props.$isActive ? 'white' : props.theme.colors.text};
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
-        font-size: ${props => props.theme.fontSizes.md};
     }
 `;
 
-const TabContent = styled.div`
-    animation: fadeIn 0.3s ease;
+const MetricIcon = styled.div<{ $highlight?: boolean }>`
+    width: 40px;
+    height: 40px;
+    border-radius: ${props => props.theme.radii.md};
+    background: ${props => props.$highlight ? 'rgba(255,255,255,0.2)' : '#f1f5f9'};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: ${props => props.theme.spacing.sm};
 
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    svg {
+        width: 20px;
+        height: 20px;
+        color: ${props => props.$highlight ? 'white' : 'var(--brand-primary)'};
     }
 `;
 
-const ContentGrid = styled.div`
+const MetricLabel = styled.div<{ $highlight?: boolean }>`
+    font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: ${props => props.$highlight ? 'rgba(255,255,255,0.8)' : props.theme.colors.textMuted};
+    margin-bottom: 4px;
+`;
+
+const MetricValue = styled.div<{ $highlight?: boolean }>`
+    font-size: ${props => props.theme.fontSizes.xl};
+    font-weight: 700;
+    color: ${props => props.$highlight ? 'white' : props.theme.colors.text};
+    letter-spacing: -0.02em;
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        font-size: ${props => props.theme.fontSizes.lg};
+    }
+`;
+
+const MetricSubvalue = styled.div<{ $highlight?: boolean }>`
+    font-size: ${props => props.theme.fontSizes.xs};
+    color: ${props => props.$highlight ? 'rgba(255,255,255,0.7)' : props.theme.colors.textMuted};
+    margin-top: 2px;
+`;
+
+/* ─── Main Content ────────────────────────────────────── */
+
+const ContentLayout = styled.div`
     display: grid;
     grid-template-columns: 1fr;
     gap: ${props => props.theme.spacing.lg};
 
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
-        grid-template-columns: 2fr 1fr;
+        grid-template-columns: 1fr 360px;
     }
 `;
 
-const InfoSection = styled.div`
+const MainColumn = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${props => props.theme.spacing.lg};
+    min-width: 0;
+`;
+
+const Sidebar = styled.aside`
+    display: flex;
+    flex-direction: column;
+    gap: ${props => props.theme.spacing.lg};
+`;
+
+/* ─── Secondary Tabs (Documents, Audit) ───────────────── */
+
+const SecondarySection = styled.div`
     background: white;
     border: 1px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.lg};
+    overflow: hidden;
+`;
+
+const SecondaryTabBar = styled.div`
+    display: flex;
+    border-bottom: 1px solid ${props => props.theme.colors.border};
+`;
+
+const SecondaryTab = styled.button<{ $active: boolean }>`
+    flex: 1;
+    padding: ${props => props.theme.spacing.md};
+    background: ${props => props.$active ? 'white' : '#f8fafc'};
+    border: none;
+    border-bottom: 2px solid ${props => props.$active ? 'var(--brand-primary)' : 'transparent'};
+    color: ${props => props.$active ? 'var(--brand-primary)' : props.theme.colors.textMuted};
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: ${props => props.$active ? '600' : '500'};
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${props => props.theme.spacing.xs};
+
+    &:hover {
+        color: ${props => props.$active ? 'var(--brand-primary)' : props.theme.colors.text};
+        background: white;
+    }
+
+    svg {
+        width: 16px;
+        height: 16px;
+    }
+`;
+
+const SecondaryTabContent = styled.div`
+    animation: fadeSlide 0.25s ease;
+
+    @keyframes fadeSlide {
+        from { opacity: 0; transform: translateY(4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+`;
+
+/* ─── Sidebar Cards ───────────────────────────────────── */
+
+const SidebarCard = styled.div`
+    background: white;
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.lg};
+    overflow: hidden;
+`;
+
+const SidebarCardHeader = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
+    border-bottom: 1px solid ${props => props.theme.colors.border};
+`;
+
+const SidebarCardTitle = styled.h4`
+    margin: 0;
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: 700;
+    color: ${props => props.theme.colors.text};
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.xs};
+
+    svg {
+        width: 16px;
+        height: 16px;
+        color: ${props => props.theme.colors.textMuted};
+    }
+`;
+
+const SidebarCardBadge = styled.span`
+    font-size: ${props => props.theme.fontSizes.xs};
+    color: ${props => props.theme.colors.textMuted};
+    font-weight: 500;
+`;
+
+/* ─── Owners Card ─────────────────────────────────────── */
+
+const OwnersList = styled.div`
+    display: flex;
+    flex-direction: column;
+`;
+
+const OwnerLink = styled(Link)`
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.sm};
+    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.lg};
+    text-decoration: none;
+    transition: background 0.15s ease;
+    border-bottom: 1px solid ${props => props.theme.colors.border};
+
+    &:last-child {
+        border-bottom: none;
+    }
+
+    &:hover {
+        background: #f8fafc;
+    }
+`;
+
+const OwnerAvatar = styled.div`
+    width: 36px;
+    height: 36px;
+    border-radius: ${props => props.theme.radii.full};
+    background: linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 80%, black) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: 700;
+    color: white;
+`;
+
+const OwnerInfo = styled.div`
+    flex: 1;
+    min-width: 0;
+`;
+
+const OwnerName = styled.div`
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: 500;
+    color: ${props => props.theme.colors.text};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+`;
+
+const OwnerRole = styled.div`
+    font-size: ${props => props.theme.fontSizes.xs};
+    color: ${props => props.theme.colors.textMuted};
+`;
+
+const OwnerArrow = styled.div`
+    color: ${props => props.theme.colors.textMuted};
+    flex-shrink: 0;
+
+    svg {
+        width: 16px;
+        height: 16px;
+    }
+`;
+
+/* ─── Gallery Card ────────────────────────────────────── */
+
+const GalleryCardBody = styled.div`
+    height: 260px;
+`;
+
+/* ─── Notes Card ──────────────────────────────────────── */
+
+const NotesBody = styled.div`
     padding: ${props => props.theme.spacing.lg};
 `;
 
-const SectionHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: ${props => props.theme.spacing.md};
-`;
-
-const SectionTitle = styled.h3`
+const NotesText = styled.p`
     margin: 0;
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: 700;
-    color: ${props => props.theme.colors.text};
-    letter-spacing: -0.01em;
+    font-size: ${props => props.theme.fontSizes.sm};
+    color: ${props => props.theme.colors.textSecondary};
+    line-height: 1.6;
+    white-space: pre-wrap;
 `;
 
-const SectionEditButton = styled.button`
+const NotesEmpty = styled.p`
+    margin: 0;
+    font-size: ${props => props.theme.fontSizes.sm};
+    color: ${props => props.theme.colors.textMuted};
+    font-style: italic;
+`;
+
+const NotesTextArea = styled.textarea`
+    width: 100%;
+    min-height: 100px;
+    padding: ${props => props.theme.spacing.md};
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.md};
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-family: inherit;
+    resize: vertical;
+    color: ${props => props.theme.colors.text};
+    line-height: 1.6;
+
+    &:focus {
+        outline: none;
+        border-color: var(--brand-primary);
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+
+    &::placeholder {
+        color: ${props => props.theme.colors.textMuted};
+    }
+`;
+
+const NotesActions = styled.div`
+    display: flex;
+    gap: ${props => props.theme.spacing.sm};
+    margin-top: ${props => props.theme.spacing.sm};
+    justify-content: flex-end;
+`;
+
+const NotesButton = styled.button<{ $primary?: boolean }>`
+    padding: 6px 14px;
+    border-radius: ${props => props.theme.radii.md};
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    ${props => props.$primary ? `
+        background: var(--brand-primary);
+        color: white;
+        border: none;
+
+        &:hover { opacity: 0.9; }
+        &:disabled { opacity: 0.5; cursor: not-allowed; }
+    ` : `
+        background: white;
+        color: ${props.theme.colors.textSecondary};
+        border: 1px solid ${props.theme.colors.border};
+
+        &:hover { background: #f8fafc; }
+    `}
+`;
+
+const EditButton = styled.button`
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: white;
-    color: ${props => props.theme.colors.textSecondary};
+    gap: 4px;
+    padding: 4px 10px;
+    background: transparent;
+    color: ${props => props.theme.colors.textMuted};
     border: 1px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.md};
     font-size: ${props => props.theme.fontSizes.xs};
@@ -151,113 +396,15 @@ const SectionEditButton = styled.button`
     &:hover {
         border-color: var(--brand-primary);
         color: var(--brand-primary);
-        background: #f0f9ff;
     }
 
     svg {
-        width: 14px;
-        height: 14px;
+        width: 12px;
+        height: 12px;
     }
 `;
 
-const InfoGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: ${props => props.theme.spacing.md};
-
-    @media (min-width: ${props => props.theme.breakpoints.sm}) {
-        grid-template-columns: repeat(2, 1fr);
-    }
-`;
-
-const InfoItem = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-`;
-
-const InfoLabel = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 600;
-`;
-
-const InfoValue = styled.span`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.text};
-    font-weight: 500;
-`;
-
-const NotesSection = styled.div`
-    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-    border: 1px solid #fcd34d;
-    border-radius: ${props => props.theme.radii.lg};
-    padding: ${props => props.theme.spacing.lg};
-`;
-
-const NotesText = styled.p`
-    margin: 0;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: #78350f;
-    line-height: 1.6;
-    white-space: pre-wrap;
-`;
-
-const NotesTextArea = styled.textarea`
-    width: 100%;
-    min-height: 120px;
-    padding: ${props => props.theme.spacing.md};
-    border: 1px solid #fcd34d;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-family: inherit;
-    resize: vertical;
-    background: white;
-    color: #78350f;
-    line-height: 1.6;
-
-    &:focus {
-        outline: none;
-        border-color: #f59e0b;
-    }
-
-    &::placeholder {
-        color: #d97706;
-    }
-`;
-
-const SaveButton = styled.button`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.lg};
-    background: #f59e0b;
-    color: white;
-    border: none;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
-    cursor: pointer;
-    transition: opacity 0.2s ease;
-
-    &:hover {
-        opacity: 0.9;
-    }
-
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-`;
-
-const ButtonGroup = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.sm};
-    flex-direction: column;
-
-    @media (min-width: ${props => props.theme.breakpoints.sm}) {
-        flex-direction: row;
-    }
-`;
+/* ─── Loading / Error ─────────────────────────────────── */
 
 const LoadingContainer = styled.div`
     display: flex;
@@ -275,9 +422,7 @@ const Spinner = styled.div`
     animation: spin 0.8s linear infinite;
 
     @keyframes spin {
-        to {
-            transform: rotate(360deg);
-        }
+        to { transform: rotate(360deg); }
     }
 `;
 
@@ -306,42 +451,61 @@ const RetryButton = styled.button`
     font-size: ${props => props.theme.fontSizes.sm};
     font-weight: 500;
     cursor: pointer;
-    transition: opacity 0.2s ease;
 
-    &:hover {
-        opacity: 0.9;
-    }
+    &:hover { opacity: 0.9; }
 `;
 
-type TabValue = 'visits' | 'info' | 'photos' | 'documents' | 'audit';
+/* ─── Helper ──────────────────────────────────────────── */
+
+const roleLabels: Record<string, string> = {
+    PRIMARY: 'Właściciel',
+    CO_OWNER: 'Współwłaściciel',
+    COMPANY: 'Firma',
+};
+
+function getOwnerInitials(owner: VehicleOwner): string {
+    return owner.customerName
+        .split(' ')
+        .map(n => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+}
+
+/* ─── Main Component ──────────────────────────────────── */
+
+type SecondaryTab = 'documents' | 'audit' | 'photos';
 
 export const VehicleDetailView = () => {
     const { vehicleId } = useParams<{ vehicleId: string }>();
-    const [activeTab, setActiveTab] = useState<TabValue>('visits');
+
+    // State
+    const [secondaryTab, setSecondaryTab] = useState<SecondaryTab>('documents');
     const [isEditingNotes, setIsEditingNotes] = useState(false);
     const [notes, setNotes] = useState('');
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isEditOwnersModalOpen, setIsEditOwnersModalOpen] = useState(false);
 
+    // Data
     const {
         vehicleDetail,
         isLoading: isDetailLoading,
         isError: isDetailError,
-        refetch: refetchDetail
+        refetch: refetchDetail,
     } = useVehicleDetail(vehicleId!);
 
     const { updateVehicle, isUpdating } = useUpdateVehicle(vehicleId!);
 
+    // Loading state
     if (isDetailLoading) {
         return (
             <ViewContainer>
-                <LoadingContainer>
-                    <Spinner />
-                </LoadingContainer>
+                <LoadingContainer><Spinner /></LoadingContainer>
             </ViewContainer>
         );
     }
 
+    // Error state
     if (isDetailError || !vehicleDetail) {
         return (
             <ViewContainer>
@@ -358,6 +522,14 @@ export const VehicleDetailView = () => {
 
     const { vehicle, recentVisits, activities, photos } = vehicleDetail;
 
+    // Safe fallbacks for stats
+    const stats = vehicle.stats ?? ({} as any);
+    const totalSpent = stats.totalSpent ?? { grossAmount: 0, netAmount: 0, currency: 'PLN' };
+    const averageVisitCost = stats.averageVisitCost ?? { grossAmount: 0, currency: totalSpent.currency };
+    const totalVisits = typeof stats.totalVisits === 'number' ? stats.totalVisits : 0;
+    const lastVisitDate = stats.lastVisitDate ?? null;
+
+    // Notes handlers
     const handleEditNotes = () => {
         setNotes(vehicle.technicalNotes);
         setIsEditingNotes(true);
@@ -365,9 +537,7 @@ export const VehicleDetailView = () => {
 
     const handleSaveNotes = () => {
         updateVehicle({ technicalNotes: notes }, {
-            onSuccess: () => {
-                setIsEditingNotes(false);
-            },
+            onSuccess: () => setIsEditingNotes(false),
         });
     };
 
@@ -378,186 +548,265 @@ export const VehicleDetailView = () => {
 
     return (
         <ViewContainer>
-            <VehicleHeader vehicle={vehicle} photos={photos} />
+            {/* ─── Header Bar ─────────────────────────────── */}
+            <VehicleHeader
+                vehicle={vehicle}
+                onEditVehicle={() => setIsEditModalOpen(true)}
+                onEditOwners={() => setIsEditOwnersModalOpen(true)}
+            />
 
-            <TabsContainer>
-                <TabsList>
-                    <TabButton
-                        $isActive={activeTab === 'visits'}
-                        onClick={() => setActiveTab('visits')}
-                    >
-                        {t.vehicles.detail.visits} ({recentVisits.length})
-                    </TabButton>
-                    <TabButton
-                        $isActive={activeTab === 'info'}
-                        onClick={() => setActiveTab('info')}
-                    >
-                        Informacje
-                    </TabButton>
-                    <TabButton
-                        $isActive={activeTab === 'photos'}
-                        onClick={() => setActiveTab('photos')}
-                    >
-                        {t.vehicles.detail.photos} ({photos.length})
-                    </TabButton>
-                    <TabButton
-                        $isActive={activeTab === 'documents'}
-                        onClick={() => setActiveTab('documents')}
-                    >
-                        {t.vehicles.detail.documents}
-                    </TabButton>
-                    <TabButton
-                        $isActive={activeTab === 'audit'}
-                        onClick={() => setActiveTab('audit')}
-                    >
-                        Audyt ({activities.length})
-                    </TabButton>
-                </TabsList>
+            {/* ─── Metrics Row ────────────────────────────── */}
+            <MetricsGrid>
+                <MetricCard $highlight>
+                    <MetricIcon $highlight>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="12" y1="1" x2="12" y2="23" />
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                        </svg>
+                    </MetricIcon>
+                    <MetricLabel $highlight>{t.vehicles.detail.stats.totalSpent}</MetricLabel>
+                    <MetricValue $highlight>
+                        {formatCurrency(totalSpent.grossAmount, totalSpent.currency)}
+                    </MetricValue>
+                    <MetricSubvalue $highlight>
+                        {formatCurrency(totalSpent.netAmount, totalSpent.currency)} netto
+                    </MetricSubvalue>
+                </MetricCard>
 
-                {activeTab === 'visits' && (
-                    <TabContent>
-                        <VehicleVisitHistory visits={recentVisits} />
-                    </TabContent>
-                )}
+                <MetricCard>
+                    <MetricIcon>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                    </MetricIcon>
+                    <MetricLabel>{t.vehicles.detail.stats.totalVisits}</MetricLabel>
+                    <MetricValue>{totalVisits}</MetricValue>
+                </MetricCard>
 
-                {activeTab === 'info' && (
-                    <TabContent>
-                        <ContentGrid>
-                            <div>
-                                <InfoSection>
-                                    <SectionHeader>
-                                        <SectionTitle>{t.vehicles.detail.technicalInfo.title}</SectionTitle>
-                                        <SectionEditButton onClick={() => setIsEditModalOpen(true)}>
+                <MetricCard>
+                    <MetricIcon>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                    </MetricIcon>
+                    <MetricLabel>{t.vehicles.detail.stats.lastVisit}</MetricLabel>
+                    <MetricValue>
+                        {lastVisitDate
+                            ? new Date(lastVisitDate).toLocaleDateString('pl-PL', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                            })
+                            : '—'
+                        }
+                    </MetricValue>
+                </MetricCard>
+
+                <MetricCard>
+                    <MetricIcon>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="20" x2="18" y2="10" />
+                            <line x1="12" y1="20" x2="12" y2="4" />
+                            <line x1="6" y1="20" x2="6" y2="14" />
+                        </svg>
+                    </MetricIcon>
+                    <MetricLabel>{t.vehicles.detail.stats.averageCost}</MetricLabel>
+                    <MetricValue>
+                        {formatCurrency(averageVisitCost.grossAmount, averageVisitCost.currency)}
+                    </MetricValue>
+                </MetricCard>
+            </MetricsGrid>
+
+            {/* ─── Two-Column Content ─────────────────────── */}
+            <ContentLayout>
+                {/* ─── Left: Visit History + Secondary Tabs ── */}
+                <MainColumn>
+                    <VehicleVisitHistory visits={recentVisits} />
+
+                    {/* Secondary Tabs: Docs / Audit / Full Gallery */}
+                    <SecondarySection>
+                        <SecondaryTabBar>
+                            <SecondaryTab
+                                $active={secondaryTab === 'documents'}
+                                onClick={() => setSecondaryTab('documents')}
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                    <polyline points="14 2 14 8 20 8" />
+                                </svg>
+                                {t.vehicles.detail.documents}
+                            </SecondaryTab>
+                            <SecondaryTab
+                                $active={secondaryTab === 'audit'}
+                                onClick={() => setSecondaryTab('audit')}
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                                </svg>
+                                Audyt ({activities.length})
+                            </SecondaryTab>
+                            <SecondaryTab
+                                $active={secondaryTab === 'photos'}
+                                onClick={() => setSecondaryTab('photos')}
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                    <circle cx="8.5" cy="8.5" r="1.5" />
+                                    <polyline points="21 15 16 10 5 21" />
+                                </svg>
+                                {t.vehicles.detail.photos} ({photos.length})
+                            </SecondaryTab>
+                        </SecondaryTabBar>
+
+                        <SecondaryTabContent>
+                            {secondaryTab === 'documents' && (
+                                <VehicleDocuments vehicleId={vehicleId!} />
+                            )}
+                            {secondaryTab === 'audit' && (
+                                <VehicleActivityTimeline activities={activities} />
+                            )}
+                            {secondaryTab === 'photos' && (
+                                <VehiclePhotoGallery vehicleId={vehicleId!} photos={photos} />
+                            )}
+                        </SecondaryTabContent>
+                    </SecondarySection>
+                </MainColumn>
+
+                {/* ─── Right: Sidebar ─────────────────────── */}
+                <Sidebar>
+                    {/* Owners */}
+                    <SidebarCard>
+                        <SidebarCardHeader>
+                            <SidebarCardTitle>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                    <circle cx="9" cy="7" r="4" />
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                </svg>
+                                Właściciele
+                            </SidebarCardTitle>
+                            <SidebarCardBadge>{vehicle.owners.length}</SidebarCardBadge>
+                        </SidebarCardHeader>
+                        <OwnersList>
+                            {vehicle.owners.length === 0 ? (
+                                <div style={{ padding: '16px 24px', color: '#94a3b8', fontSize: '14px' }}>
+                                    Brak przypisanych właścicieli
+                                </div>
+                            ) : (
+                                vehicle.owners.map(owner => (
+                                    <OwnerLink
+                                        key={owner.customerId}
+                                        to={`/customers/${owner.customerId}`}
+                                    >
+                                        <OwnerAvatar>{getOwnerInitials(owner)}</OwnerAvatar>
+                                        <OwnerInfo>
+                                            <OwnerName>{owner.customerName}</OwnerName>
+                                            <OwnerRole>
+                                                {roleLabels[owner.role] || owner.role}
+                                            </OwnerRole>
+                                        </OwnerInfo>
+                                        <OwnerArrow>
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                <path d="M9 18l6-6-6-6" />
                                             </svg>
-                                            {t.common.edit}
-                                        </SectionEditButton>
-                                    </SectionHeader>
-                                    <InfoGrid>
-                                        <InfoItem>
-                                            <InfoLabel>{t.vehicles.detail.technicalInfo.licensePlate}</InfoLabel>
-                                            <InfoValue>{vehicle.licensePlate}</InfoValue>
-                                        </InfoItem>
-                                        <InfoItem>
-                                            <InfoLabel>{t.vehicles.detail.technicalInfo.brand}</InfoLabel>
-                                            <InfoValue>{vehicle.brand}</InfoValue>
-                                        </InfoItem>
-                                        <InfoItem>
-                                            <InfoLabel>{t.vehicles.detail.technicalInfo.model}</InfoLabel>
-                                            <InfoValue>{vehicle.model}</InfoValue>
-                                        </InfoItem>
-                                        <InfoItem>
-                                            <InfoLabel>{t.vehicles.detail.technicalInfo.year}</InfoLabel>
-                                            <InfoValue>{vehicle.yearOfProduction}</InfoValue>
-                                        </InfoItem>
-                                        <InfoItem>
-                                            <InfoLabel>{t.vehicles.detail.technicalInfo.color}</InfoLabel>
-                                            <InfoValue>{vehicle.color}</InfoValue>
-                                        </InfoItem>
-                                        {vehicle.paintType && (
-                                            <InfoItem>
-                                                <InfoLabel>{t.vehicles.detail.technicalInfo.paintType}</InfoLabel>
-                                                <InfoValue>{vehicle.paintType}</InfoValue>
-                                            </InfoItem>
-                                        )}
-                                        {vehicle.currentMileage && (
-                                            <InfoItem>
-                                                <InfoLabel>{t.vehicles.detail.technicalInfo.mileage}</InfoLabel>
-                                                <InfoValue>{vehicle.currentMileage.toLocaleString()} km</InfoValue>
-                                            </InfoItem>
-                                        )}
-                                        <InfoItem>
-                                            <InfoLabel>{t.vehicles.detail.technicalInfo.engineType}</InfoLabel>
-                                            <InfoValue>{t.vehicles.detail.engineType[vehicle.engineType.toLowerCase()]}</InfoValue>
-                                        </InfoItem>
-                                    </InfoGrid>
-                                </InfoSection>
+                                        </OwnerArrow>
+                                    </OwnerLink>
+                                ))
+                            )}
+                        </OwnersList>
+                    </SidebarCard>
 
-                                {vehicle.technicalNotes && (
-                                    <NotesSection style={{ marginTop: '24px' }}>
-                                        <SectionHeader>
-                                            <SectionTitle>{t.vehicles.detail.notes.title}</SectionTitle>
-                                            {!isEditingNotes && (
-                                                <SectionEditButton onClick={handleEditNotes}>
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                                    </svg>
-                                                    {t.common.edit}
-                                                </SectionEditButton>
-                                            )}
-                                        </SectionHeader>
-                                        {isEditingNotes ? (
-                                            <>
-                                                <NotesTextArea
-                                                    value={notes}
-                                                    onChange={(e) => setNotes(e.target.value)}
-                                                    placeholder={t.vehicles.detail.notes.placeholder}
-                                                />
-                                                <ButtonGroup style={{ marginTop: '12px' }}>
-                                                    <SaveButton
-                                                        onClick={handleCancelNotes}
-                                                        style={{ background: '#94a3b8' }}
-                                                    >
-                                                        {t.common.cancel}
-                                                    </SaveButton>
-                                                    <SaveButton
-                                                        onClick={handleSaveNotes}
-                                                        disabled={isUpdating}
-                                                    >
-                                                        {isUpdating ? 'Zapisywanie...' : t.vehicles.detail.notes.save}
-                                                    </SaveButton>
-                                                </ButtonGroup>
-                                            </>
-                                        ) : (
-                                            <NotesText>{vehicle.technicalNotes}</NotesText>
-                                        )}
-                                    </NotesSection>
-                                )}
-                            </div>
-                        </ContentGrid>
-                    </TabContent>
-                )}
+                    {/* Photo Gallery Carousel */}
+                    <SidebarCard>
+                        <SidebarCardHeader>
+                            <SidebarCardTitle>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                    <circle cx="8.5" cy="8.5" r="1.5" />
+                                    <polyline points="21 15 16 10 5 21" />
+                                </svg>
+                                Galeria
+                            </SidebarCardTitle>
+                            <SidebarCardBadge>{photos.length}</SidebarCardBadge>
+                        </SidebarCardHeader>
+                        <GalleryCardBody>
+                            <VehicleMiniGallery photos={photos} />
+                        </GalleryCardBody>
+                    </SidebarCard>
 
-                {activeTab === 'photos' && (
-                    <TabContent>
-                        <VehiclePhotoGallery
-                            photos={photos}
-                            vehicleId={vehicleId!}
-                        />
-                    </TabContent>
-                )}
+                    {/* Notes */}
+                    <SidebarCard>
+                        <SidebarCardHeader>
+                            <SidebarCardTitle>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                    <polyline points="14 2 14 8 20 8" />
+                                    <line x1="16" y1="13" x2="8" y2="13" />
+                                    <line x1="16" y1="17" x2="8" y2="17" />
+                                    <polyline points="10 9 9 9 8 9" />
+                                </svg>
+                                Notatki
+                            </SidebarCardTitle>
+                            {!isEditingNotes && (
+                                <EditButton onClick={handleEditNotes}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                    </svg>
+                                    {t.common.edit}
+                                </EditButton>
+                            )}
+                        </SidebarCardHeader>
+                        <NotesBody>
+                            {isEditingNotes ? (
+                                <>
+                                    <NotesTextArea
+                                        value={notes}
+                                        onChange={e => setNotes(e.target.value)}
+                                        placeholder="Dodaj notatki techniczne..."
+                                    />
+                                    <NotesActions>
+                                        <NotesButton onClick={handleCancelNotes}>
+                                            {t.common.cancel}
+                                        </NotesButton>
+                                        <NotesButton
+                                            $primary
+                                            onClick={handleSaveNotes}
+                                            disabled={isUpdating}
+                                        >
+                                            {isUpdating ? 'Zapisywanie...' : t.vehicles.detail.notes.save}
+                                        </NotesButton>
+                                    </NotesActions>
+                                </>
+                            ) : (
+                                vehicle.technicalNotes ? (
+                                    <NotesText>{vehicle.technicalNotes}</NotesText>
+                                ) : (
+                                    <NotesEmpty>Brak notatek. Kliknij "Edytuj" aby dodać.</NotesEmpty>
+                                )
+                            )}
+                        </NotesBody>
+                    </SidebarCard>
+                </Sidebar>
+            </ContentLayout>
 
-                {activeTab === 'documents' && (
-                    <TabContent>
-                        <VehicleDocuments vehicleId={vehicleId!} />
-                    </TabContent>
-                )}
-
-                {activeTab === 'audit' && (
-                    <TabContent>
-                        <VehicleActivityTimeline activities={activities} />
-                    </TabContent>
-                )}
-            </TabsContainer>
-
-            {vehicleDetail && (
-                <>
-                    <EditVehicleModal
-                        isOpen={isEditModalOpen}
-                        onClose={() => setIsEditModalOpen(false)}
-                        vehicle={vehicleDetail.vehicle}
-                    />
-                    <EditOwnersModal
-                        isOpen={isEditOwnersModalOpen}
-                        onClose={() => setIsEditOwnersModalOpen(false)}
-                        vehicleId={vehicleId!}
-                        owners={vehicleDetail.vehicle.owners}
-                    />
-                </>
-            )}
+            {/* ─── Modals ─────────────────────────────────── */}
+            <EditVehicleModal
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                vehicle={vehicle}
+            />
+            <EditOwnersModal
+                isOpen={isEditOwnersModalOpen}
+                onClose={() => setIsEditOwnersModalOpen(false)}
+                vehicleId={vehicleId!}
+                owners={vehicle.owners}
+            />
         </ViewContainer>
     );
 };

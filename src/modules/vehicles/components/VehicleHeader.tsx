@@ -1,71 +1,135 @@
 // src/modules/vehicles/components/VehicleHeader.tsx
 
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import type { Vehicle, VehiclePhoto } from '../types';
-import { formatCurrency } from '@/common/utils';
+import type { Vehicle } from '../types';
 import { t } from '@/common/i18n';
-import { VehicleMiniGallery } from './VehicleMiniGallery';
 
-const HeaderContainer = styled.header`
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.xl};
-    padding: ${props => props.theme.spacing.lg};
-    box-shadow: ${props => props.theme.shadows.md};
-`;
-
-const HeaderTop = styled.div`
+const HeaderBar = styled.header`
     display: flex;
     align-items: center;
     gap: ${props => props.theme.spacing.md};
-    margin-bottom: ${props => props.theme.spacing.lg};
-    padding-bottom: ${props => props.theme.spacing.md};
-    border-bottom: 1px solid ${props => props.theme.colors.border};
+    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
+    background: white;
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.xl};
+    box-shadow: ${props => props.theme.shadows.sm};
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        flex-wrap: wrap;
+        gap: ${props => props.theme.spacing.sm};
+    }
 `;
 
-const VehicleIcon = styled.div`
-    width: 48px;
-    height: 48px;
-    border-radius: ${props => props.theme.radii.lg};
-    background: linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 80%, black) 100%);
-    display: flex;
+const BackButton = styled.button`
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: ${props => props.theme.radii.md};
+    border: 1px solid ${props => props.theme.colors.border};
+    background: white;
+    color: ${props => props.theme.colors.textSecondary};
+    cursor: pointer;
+    transition: all 0.2s ease;
     flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
-    font-size: 24px;
+
+    &:hover {
+        border-color: var(--brand-primary);
+        color: var(--brand-primary);
+        background: #f0f9ff;
+    }
+
+    svg {
+        width: 18px;
+        height: 18px;
+    }
 `;
 
-const VehicleDetails = styled.div`
-    flex: 1;
+const Divider = styled.div`
+    width: 1px;
+    height: 32px;
+    background: ${props => props.theme.colors.border};
+    flex-shrink: 0;
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        display: none;
+    }
 `;
 
-const VehicleTitleRow = styled.div`
+const VehicleIdentity = styled.div`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
-    margin-bottom: 4px;
+    gap: ${props => props.theme.spacing.md};
+    flex: 1;
+    min-width: 0;
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        flex-basis: calc(100% - 52px);
+    }
 `;
 
-const LicensePlate = styled.h1`
+const LicensePlateBox = styled.div`
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border-radius: ${props => props.theme.radii.md};
+    border: 2px solid #475569;
+    flex-shrink: 0;
+`;
+
+const LicensePlateText = styled.span`
+    font-size: ${props => props.theme.fontSizes.md};
+    font-weight: 700;
+    color: white;
+    letter-spacing: 2px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+`;
+
+const VehicleInfo = styled.div`
+    min-width: 0;
+`;
+
+const VehicleName = styled.h1`
     margin: 0;
     font-size: ${props => props.theme.fontSizes.lg};
     font-weight: 700;
     color: ${props => props.theme.colors.text};
-    letter-spacing: 1.5px;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        font-size: ${props => props.theme.fontSizes.md};
+    }
+`;
+
+const VehicleMeta = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.sm};
+    margin-top: 2px;
+`;
+
+const MetaText = styled.span`
+    font-size: ${props => props.theme.fontSizes.sm};
+    color: ${props => props.theme.colors.textMuted};
 `;
 
 const StatusBadge = styled.div<{ $status: string }>`
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 10px;
+    padding: 3px 10px;
     border-radius: ${props => props.theme.radii.full};
     font-size: ${props => props.theme.fontSizes.xs};
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    flex-shrink: 0;
 
     ${props => {
         if (props.$status === 'active') return 'background: #dcfce7; color: #166534;';
@@ -74,260 +138,141 @@ const StatusBadge = styled.div<{ $status: string }>`
     }}
 `;
 
-const VehicleName = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
+const StatusDot = styled.div<{ $status: string }>`
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+
+    ${props => {
+        if (props.$status === 'active') return 'background: #16a34a;';
+        if (props.$status === 'sold') return 'background: #d97706;';
+        return 'background: #9ca3af;';
+    }}
 `;
 
-const ContentGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: ${props => props.theme.spacing.lg};
-
-    @media (min-width: ${props => props.theme.breakpoints.lg}) {
-        grid-template-columns: 1fr 320px;
-    }
-`;
-
-const LeftColumn = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.md};
-`;
-
-const StatsGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: ${props => props.theme.spacing.sm};
-`;
-
-const StatCard = styled.div`
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    padding: ${props => props.theme.spacing.sm};
-`;
-
-const StatLabel = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
-    margin-bottom: 4px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 600;
-`;
-
-const StatValue = styled.div`
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: 700;
-    color: ${props => props.theme.colors.text};
-`;
-
-const StatSubvalue = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
-    margin-top: 2px;
-`;
-
-const OwnersSection = styled.div`
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    padding: ${props => props.theme.spacing.sm};
-`;
-
-const OwnersSectionHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: ${props => props.theme.spacing.sm};
-`;
-
-const OwnersSectionTitle = styled.h4`
-    margin: 0;
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 600;
-    text-transform: uppercase;
-    color: ${props => props.theme.colors.textMuted};
-    letter-spacing: 0.05em;
-`;
-
-const OwnerCount = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
-`;
-
-const OwnersList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.xs};
-`;
-
-const OwnerItem = styled(Link)`
+const Actions = styled.div`
     display: flex;
     align-items: center;
     gap: ${props => props.theme.spacing.sm};
-    padding: ${props => props.theme.spacing.xs};
-    border-radius: ${props => props.theme.radii.sm};
-    transition: background 0.2s ease;
-    text-decoration: none;
-
-    &:hover {
-        background: ${props => props.theme.colors.surfaceHover};
-    }
-`;
-
-const OwnerAvatar = styled.div`
-    width: 32px;
-    height: 32px;
-    border-radius: ${props => props.theme.radii.full};
-    background: linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 80%, black) 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
     flex-shrink: 0;
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 700;
-    color: white;
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        width: 100%;
+        justify-content: flex-end;
+    }
 `;
 
-const OwnerInfo = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
-
-const OwnerName = styled.div`
+const ActionButton = styled.button<{ $primary?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: ${props => props.theme.radii.md};
     font-size: ${props => props.theme.fontSizes.sm};
     font-weight: 500;
-    color: ${props => props.theme.colors.text};
+    cursor: pointer;
+    transition: all 0.2s ease;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-`;
 
-const OwnerRole = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
-`;
+    ${props => props.$primary ? `
+        background: var(--brand-primary);
+        color: white;
+        border: none;
+        box-shadow: 0 1px 3px rgba(14, 165, 233, 0.3);
 
-const GalleryColumn = styled.div`
-    height: 400px;
+        &:hover {
+            opacity: 0.9;
+            box-shadow: 0 2px 6px rgba(14, 165, 233, 0.4);
+        }
+    ` : `
+        background: white;
+        color: ${props.theme.colors.textSecondary};
+        border: 1px solid ${props.theme.colors.border};
 
-    @media (max-width: ${props => props.theme.breakpoints.lg}) {
-        height: 300px;
+        &:hover {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+            background: #f0f9ff;
+        }
+    `}
+
+    svg {
+        width: 16px;
+        height: 16px;
     }
 `;
 
 interface VehicleHeaderProps {
     vehicle: Vehicle;
-    photos: VehiclePhoto[];
+    onEditVehicle: () => void;
+    onEditOwners: () => void;
 }
 
-export const VehicleHeader = ({ vehicle, photos }: VehicleHeaderProps) => {
-    // Safe fallbacks for potentially missing data from API
-    const stats = vehicle.stats ?? ({} as any);
-    const totalSpent = stats.totalSpent ?? { grossAmount: 0, netAmount: 0, currency: 'PLN' };
-    const averageVisitCost = stats.averageVisitCost ?? { grossAmount: 0, currency: totalSpent.currency };
-    const totalVisits = typeof stats.totalVisits === 'number' ? stats.totalVisits : 0;
-    const lastVisitDate = stats.lastVisitDate ?? null;
+export const VehicleHeader = ({ vehicle, onEditVehicle, onEditOwners }: VehicleHeaderProps) => {
+    const navigate = useNavigate();
 
-    const licensePlate = vehicle.licensePlate ?? '—';
     const vehicleNameParts = [vehicle.brand, vehicle.model].filter(Boolean).join(' ');
     const yearSuffix = vehicle.yearOfProduction ? ` (${vehicle.yearOfProduction})` : '';
 
+    const engineLabels: Record<string, string> = {
+        gasoline: 'Benzyna',
+        diesel: 'Diesel',
+        hybrid: 'Hybryda',
+        electric: 'Elektryk',
+    };
+
+    const metaParts = [
+        vehicle.color,
+        engineLabels[vehicle.engineType.toLowerCase()] || vehicle.engineType,
+        vehicle.currentMileage ? `${vehicle.currentMileage.toLocaleString()} km` : null,
+    ].filter(Boolean).join('  ·  ');
+
     return (
-        <HeaderContainer>
-            <HeaderTop>
-                <VehicleIcon>🚗</VehicleIcon>
-                <VehicleDetails>
-                    <VehicleTitleRow>
-                        <LicensePlate>{licensePlate}</LicensePlate>
-                        <StatusBadge $status={vehicle.status}>
-                            {t.vehicles.detail.status[vehicle.status]}
-                        </StatusBadge>
-                    </VehicleTitleRow>
-                    <VehicleName>
-                        {vehicleNameParts}{yearSuffix}
-                    </VehicleName>
-                </VehicleDetails>
-            </HeaderTop>
+        <HeaderBar>
+            <BackButton onClick={() => navigate('/vehicles')} title="Powrót do listy">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 18l-6-6 6-6" />
+                </svg>
+            </BackButton>
 
-            <ContentGrid>
-                <LeftColumn>
-                    <StatsGrid>
-                        <StatCard>
-                            <StatLabel>{t.vehicles.detail.stats.totalVisits}</StatLabel>
-                            <StatValue>{totalVisits}</StatValue>
-                        </StatCard>
+            <Divider />
 
-                        <StatCard>
-                            <StatLabel>{t.vehicles.detail.stats.lastVisit}</StatLabel>
-                            <StatValue>
-                                {lastVisitDate
-                                    ? new Date(lastVisitDate).toLocaleDateString('pl-PL', {
-                                        day: '2-digit',
-                                        month: '2-digit'
-                                    })
-                                    : '—'
-                                }
-                            </StatValue>
-                        </StatCard>
+            <VehicleIdentity>
+                <LicensePlateBox>
+                    <LicensePlateText>{vehicle.licensePlate || '—'}</LicensePlateText>
+                </LicensePlateBox>
 
-                        <StatCard>
-                            <StatLabel>{t.vehicles.detail.stats.totalSpent}</StatLabel>
-                            <StatValue>
-                                {formatCurrency(totalSpent.grossAmount, totalSpent.currency)}
-                            </StatValue>
-                            <StatSubvalue>
-                                {formatCurrency(totalSpent.netAmount, totalSpent.currency)} netto
-                            </StatSubvalue>
-                        </StatCard>
+                <VehicleInfo>
+                    <VehicleName>{vehicleNameParts}{yearSuffix}</VehicleName>
+                    <VehicleMeta>
+                        <MetaText>{metaParts}</MetaText>
+                    </VehicleMeta>
+                </VehicleInfo>
+            </VehicleIdentity>
 
-                        <StatCard>
-                            <StatLabel>{t.vehicles.detail.stats.averageCost}</StatLabel>
-                            <StatValue>
-                                {formatCurrency(averageVisitCost.grossAmount, averageVisitCost.currency)}
-                            </StatValue>
-                        </StatCard>
-                    </StatsGrid>
+            <StatusBadge $status={vehicle.status}>
+                <StatusDot $status={vehicle.status} />
+                {t.vehicles.detail.status[vehicle.status]}
+            </StatusBadge>
 
-                    <OwnersSection>
-                        <OwnersSectionHeader>
-                            <OwnersSectionTitle>Właściciele</OwnersSectionTitle>
-                            <OwnerCount>{vehicle.owners.length}</OwnerCount>
-                        </OwnersSectionHeader>
-                        <OwnersList>
-                            {vehicle.owners.map(owner => {
-                                const initials = owner.customerName
-                                    .split(' ')
-                                    .map(n => n[0])
-                                    .join('')
-                                    .toUpperCase()
-                                    .slice(0, 2);
-
-                                return (
-                                    <OwnerItem key={owner.customerId} to={`/customers/${owner.customerId}`}>
-                                        <OwnerAvatar>{initials}</OwnerAvatar>
-                                        <OwnerInfo>
-                                            <OwnerName>{owner.customerName}</OwnerName>
-                                            <OwnerRole>
-                                                {t.vehicles.detail.owners.role[owner.role]}
-                                            </OwnerRole>
-                                        </OwnerInfo>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M9 18l6-6-6-6"/>
-                                        </svg>
-                                    </OwnerItem>
-                                );
-                            })}
-                        </OwnersList>
-                    </OwnersSection>
-                </LeftColumn>
-
-                <GalleryColumn>
-                    <VehicleMiniGallery photos={photos} />
-                </GalleryColumn>
-            </ContentGrid>
-        </HeaderContainer>
+            <Actions>
+                <ActionButton onClick={onEditOwners}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                    Właściciele
+                </ActionButton>
+                <ActionButton $primary onClick={onEditVehicle}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                    {t.common.edit}
+                </ActionButton>
+            </Actions>
+        </HeaderBar>
     );
 };

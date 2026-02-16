@@ -3,42 +3,21 @@ import styled from 'styled-components';
 import type { VehiclePhoto } from '../types';
 
 const GalleryContainer = styled.div`
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    overflow: hidden;
     height: 100%;
     display: flex;
     flex-direction: column;
-`;
-
-const GalleryHeader = styled.div`
-    padding: ${props => props.theme.spacing.md};
-    border-bottom: 1px solid ${props => props.theme.colors.border};
-    background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
-`;
-
-const GalleryTitle = styled.h4`
-    margin: 0;
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 600;
-    color: ${props => props.theme.colors.text};
-`;
-
-const GalleryCount = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
-    margin-left: ${props => props.theme.spacing.xs};
+    overflow: hidden;
 `;
 
 const ImageContainer = styled.div`
     position: relative;
     flex: 1;
-    background: #f8fafc;
+    background: #f1f5f9;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    min-height: 0;
 `;
 
 const Image = styled.img`
@@ -59,8 +38,14 @@ const EmptyState = styled.div`
 `;
 
 const EmptyIcon = styled.div`
-    font-size: 48px;
-    opacity: 0.5;
+    width: 48px;
+    height: 48px;
+    border-radius: ${props => props.theme.radii.full};
+    background: #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
 `;
 
 const EmptyText = styled.p`
@@ -72,8 +57,8 @@ const NavigationButton = styled.button`
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: ${props => props.theme.radii.full};
     border: none;
     background: rgba(255, 255, 255, 0.95);
@@ -102,27 +87,27 @@ const NavigationButton = styled.button`
     }
 
     svg {
-        width: 20px;
-        height: 20px;
+        width: 18px;
+        height: 18px;
     }
 `;
 
 const PrevButton = styled(NavigationButton)`
-    left: 12px;
+    left: 10px;
 `;
 
 const NextButton = styled(NavigationButton)`
-    right: 12px;
+    right: 10px;
 `;
 
 const ImageCounter = styled.div`
     position: absolute;
-    bottom: 12px;
+    bottom: 10px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.7);
     color: white;
-    padding: 6px 12px;
+    padding: 4px 12px;
     border-radius: ${props => props.theme.radii.full};
     font-size: ${props => props.theme.fontSizes.xs};
     font-weight: 500;
@@ -130,16 +115,15 @@ const ImageCounter = styled.div`
 `;
 
 const ImageDescription = styled.div`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.md};
     background: white;
     border-top: 1px solid ${props => props.theme.colors.border};
     font-size: ${props => props.theme.fontSizes.xs};
     color: ${props => props.theme.colors.textSecondary};
     text-align: center;
-    min-height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 `;
 
 interface VehicleMiniGalleryProps {
@@ -161,13 +145,6 @@ export const VehicleMiniGallery = ({ photos }: VehicleMiniGalleryProps) => {
 
     return (
         <GalleryContainer>
-            <GalleryHeader>
-                <GalleryTitle>
-                    Galeria
-                    <GalleryCount>({photos.length})</GalleryCount>
-                </GalleryTitle>
-            </GalleryHeader>
-
             <ImageContainer>
                 {photos.length === 0 ? (
                     <EmptyState>

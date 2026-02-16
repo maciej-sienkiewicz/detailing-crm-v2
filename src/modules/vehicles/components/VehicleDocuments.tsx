@@ -3,8 +3,6 @@ import type { VehicleDocument } from '../types';
 
 const DocumentsContainer = styled.div`
     background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
     overflow: hidden;
 `;
 

@@ -7,8 +7,6 @@ import { t } from '@/common/i18n';
 
 const GalleryContainer = styled.div`
     background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
 `;
 
 const GalleryHeader = styled.div`
