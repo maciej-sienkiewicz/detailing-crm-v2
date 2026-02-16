@@ -1328,58 +1328,17 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                         <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
                             Typ rabatu:
                         </label>
-                        <RadioGroup>
-                            <RadioLabel>
-                                <input
-                                    type="radio"
-                                    name="discountType"
-                                    value="PERCENT"
-                                    checked={discountType === 'PERCENT'}
-                                    onChange={() => setDiscountType('PERCENT')}
-                                />
-                                Obniż o procent (%)
-                            </RadioLabel>
-                            <RadioLabel>
-                                <input
-                                    type="radio"
-                                    name="discountType"
-                                    value="FIXED_NET"
-                                    checked={discountType === 'FIXED_NET'}
-                                    onChange={() => setDiscountType('FIXED_NET')}
-                                />
-                                Obniż o kwotę netto
-                            </RadioLabel>
-                            <RadioLabel>
-                                <input
-                                    type="radio"
-                                    name="discountType"
-                                    value="FIXED_GROSS"
-                                    checked={discountType === 'FIXED_GROSS'}
-                                    onChange={() => setDiscountType('FIXED_GROSS')}
-                                />
-                                Obniż o kwotę brutto
-                            </RadioLabel>
-                            <RadioLabel>
-                                <input
-                                    type="radio"
-                                    name="discountType"
-                                    value="SET_NET"
-                                    checked={discountType === 'SET_NET'}
-                                    onChange={() => setDiscountType('SET_NET')}
-                                />
-                                Ustaw na kwotę netto
-                            </RadioLabel>
-                            <RadioLabel>
-                                <input
-                                    type="radio"
-                                    name="discountType"
-                                    value="SET_GROSS"
-                                    checked={discountType === 'SET_GROSS'}
-                                    onChange={() => setDiscountType('SET_GROSS')}
-                                />
-                                Ustaw na kwotę brutto
-                            </RadioLabel>
-                        </RadioGroup>
+                        <ModalInput
+                            as="select"
+                            value={discountType}
+                            onChange={(e) => setDiscountType(e.target.value as AdjustmentType)}
+                        >
+                            <option value="PERCENT">Obniż o procent (%)</option>
+                            <option value="FIXED_NET">Obniż o kwotę netto</option>
+                            <option value="FIXED_GROSS">Obniż o kwotę brutto</option>
+                            <option value="SET_NET">Ustaw na kwotę netto</option>
+                            <option value="SET_GROSS">Ustaw na kwotę brutto</option>
+                        </ModalInput>
                         <label style={{ display: 'block', marginTop: '16px', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
                             Wartość {discountType === 'PERCENT' ? '(%)' : '(PLN)'}:
                         </label>
