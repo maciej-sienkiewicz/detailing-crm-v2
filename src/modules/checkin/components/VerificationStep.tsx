@@ -1319,14 +1319,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                         <BrandSelect
                             value={(pendingVehicleUpdates?.brand ?? formData.vehicleData?.brand) || ''}
                             onChange={(val) => {
-                                const previousBrand = (pendingVehicleUpdates?.brand ?? formData.vehicleData?.brand) || '';
-                                // Only show modal if there was a previous brand and it's being changed
-                                if (!vehicleChoiceMade && formData.vehicleData?.id && previousBrand.trim().length > 0 && val !== previousBrand) {
-                                    setPendingVehicleUpdates(prev => ({ ...(prev || {}), brand: val, model: '' }));
-                                    setShowVehicleChoice(true);
-                                    setVehiclePromptScheduled(false);
-                                    return;
-                                }
+                                // Reset model when brand changes, use the standard field change logic
                                 handleVehicleFieldChange({ brand: val, model: '' });
                             }}
                             onBlur={handleVehicleFieldBlur}
