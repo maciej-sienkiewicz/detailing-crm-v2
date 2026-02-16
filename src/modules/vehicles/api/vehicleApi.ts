@@ -207,7 +207,6 @@ const mockGetVehicleDetail = async (_vehicleId: string): Promise<VehicleDetailRe
             {
                 id: 'visit1',
                 date: '2024-12-10T14:30:00Z',
-                type: 'service',
                 description: 'Oklejanie PPF - przednia maska',
                 status: 'completed',
                 totalCost: {
@@ -215,12 +214,11 @@ const mockGetVehicleDetail = async (_vehicleId: string): Promise<VehicleDetailRe
                     grossAmount: 2460.00,
                     currency: 'PLN',
                 },
-                technician: 'Marek Techniczny',
+                createdBy: 'Marek Techniczny',
             },
             {
                 id: 'visit2',
                 date: '2024-10-15T10:00:00Z',
-                type: 'repair',
                 description: 'Naprawa wgnieceń',
                 status: 'completed',
                 totalCost: {
@@ -228,7 +226,7 @@ const mockGetVehicleDetail = async (_vehicleId: string): Promise<VehicleDetailRe
                     grossAmount: 1845.00,
                     currency: 'PLN',
                 },
-                technician: 'Jan Blacharz',
+                createdBy: 'Jan Blacharz',
             },
         ],
         activities: [

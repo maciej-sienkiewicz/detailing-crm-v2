@@ -23,7 +23,6 @@ interface BackendVehicle {
 interface BackendVisit {
     id: string;
     date: string;
-    type: string; // lowercase string from backend
     vehicleId: string;
     vehicleName: string;
     description: string;
@@ -33,7 +32,7 @@ interface BackendVisit {
         currency: string;
     };
     status: string;
-    technician: string;
+    createdBy?: string;
     notes: string;
 }
 
@@ -117,23 +116,6 @@ export const mapBackendVehiclesResponse = (backendVehicles: BackendVehicle[]): C
 });
 
 export const mapBackendVisitToVisit = (backendVisit: BackendVisit): Visit => {
-    // Map backend type string to frontend union type
-    const visitType = (() => {
-        const type = backendVisit.type.toLowerCase();
-        switch (type) {
-            case 'service':
-                return 'service' as const;
-            case 'repair':
-                return 'repair' as const;
-            case 'inspection':
-                return 'inspection' as const;
-            case 'consultation':
-                return 'consultation' as const;
-            default:
-                return 'service' as const; // fallback
-        }
-    })();
-
     // Map backend status string to frontend union type
     const visitStatus = (() => {
         const status = backendVisit.status.toLowerCase();
@@ -155,7 +137,6 @@ export const mapBackendVisitToVisit = (backendVisit: BackendVisit): Visit => {
     return {
         id: backendVisit.id,
         date: backendVisit.date,
-        type: visitType,
         vehicleId: backendVisit.vehicleId,
         vehicleName: backendVisit.vehicleName,
         description: backendVisit.description,
@@ -165,7 +146,7 @@ export const mapBackendVisitToVisit = (backendVisit: BackendVisit): Visit => {
             currency: backendVisit.totalCost.currency,
         },
         status: visitStatus,
-        technician: backendVisit.technician,
+        createdBy: backendVisit.createdBy || '',
         notes: backendVisit.notes,
     };
 };

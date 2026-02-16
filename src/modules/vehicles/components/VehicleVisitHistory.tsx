@@ -76,13 +76,6 @@ const VisitTitle = styled.h4`
     color: ${props => props.theme.colors.text};
 `;
 
-const VisitType = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
 const VisitDate = styled.div`
     text-align: right;
 `;
@@ -151,13 +144,6 @@ interface VehicleVisitHistoryProps {
     visits: VehicleVisitSummary[];
 }
 
-const visitTypeTranslations: Record<string, string> = {
-    service: 'Serwis',
-    repair: 'Naprawa',
-    inspection: 'Przegląd',
-    consultation: 'Konsultacja',
-};
-
 const visitStatusTranslations: Record<string, string> = {
     completed: 'Zakończono',
     'in-progress': 'W trakcie',
@@ -197,7 +183,6 @@ export const VehicleVisitHistory = ({ visits }: VehicleVisitHistoryProps) => {
                         <VisitHeader>
                             <VisitTitleSection>
                                 <VisitTitle>{visit.description}</VisitTitle>
-                                <VisitType>{visitTypeTranslations[visit.type] || visit.type}</VisitType>
                             </VisitTitleSection>
                             <VisitDate>
                                 <DateValue>{formatDateTime(visit.date)}</DateValue>

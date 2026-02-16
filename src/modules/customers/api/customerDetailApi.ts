@@ -30,7 +30,6 @@ interface BackendVehicle {
 interface BackendVisit {
     id: string;
     date: string;
-    type: string;
     vehicleId: string;
     vehicleName: string;
     description: string;
@@ -40,7 +39,7 @@ interface BackendVisit {
         currency: string;
     };
     status: string;
-    technician: string;
+    createdBy?: string;
     notes: string;
 }
 
@@ -144,7 +143,6 @@ const mockVisits: Visit[] = [
     {
         id: 'visit-1',
         date: '2025-01-08T09:00:00Z',
-        type: 'service',
         vehicleId: 'v1',
         vehicleName: 'VW Golf GTI',
         description: 'Wymiana oleju i filtrów, kontrola zawieszenia',
@@ -154,13 +152,12 @@ const mockVisits: Visit[] = [
             currency: 'PLN',
         },
         status: 'completed',
-        technician: 'Marek Nowak',
+        createdBy: 'Marek Nowak',
         notes: 'Zalecono wymianę klocków hamulcowych w ciągu 3 miesięcy',
     },
     {
         id: 'visit-2',
         date: '2024-12-15T11:30:00Z',
-        type: 'inspection',
         vehicleId: 'v2',
         vehicleName: 'Audi A4 Avant',
         description: 'Przegląd okresowy + diagnostyka komputerowa',
@@ -170,13 +167,12 @@ const mockVisits: Visit[] = [
             currency: 'PLN',
         },
         status: 'completed',
-        technician: 'Piotr Wiśniewski',
+        createdBy: 'Piotr Wiśniewski',
         notes: 'Wszystko w normie',
     },
     {
         id: 'visit-3',
         date: '2024-11-20T14:00:00Z',
-        type: 'repair',
         vehicleId: 'v1',
         vehicleName: 'VW Golf GTI',
         description: 'Naprawa klimatyzacji - wymiana sprężarki',
@@ -186,13 +182,12 @@ const mockVisits: Visit[] = [
             currency: 'PLN',
         },
         status: 'completed',
-        technician: 'Tomasz Kowalczyk',
+        createdBy: 'Tomasz Kowalczyk',
         notes: 'Gwarancja 12 miesięcy na części',
     },
     {
         id: 'visit-4',
         date: '2025-02-05T10:00:00Z',
-        type: 'service',
         vehicleId: 'v3',
         vehicleName: 'BMW X5',
         description: 'Wymiana opon na letnie + wyważenie',
@@ -202,7 +197,7 @@ const mockVisits: Visit[] = [
             currency: 'PLN',
         },
         status: 'scheduled',
-        technician: 'Marek Nowak',
+        createdBy: 'Marek Nowak',
         notes: 'Rezerwacja potwierdzona',
     },
 ];

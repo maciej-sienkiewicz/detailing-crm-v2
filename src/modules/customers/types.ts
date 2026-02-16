@@ -125,7 +125,6 @@ export interface Vehicle {
 export interface Visit {
     id: string;
     date: string;
-    type: 'service' | 'repair' | 'inspection' | 'consultation';
     vehicleId: string;
     vehicleName: string;
     description: string;
@@ -135,7 +134,7 @@ export interface Visit {
         currency: string;
     };
     status: 'completed' | 'in-progress' | 'scheduled' | 'cancelled';
-    technician: string;
+    createdBy: string;
     notes: string;
 }
 
