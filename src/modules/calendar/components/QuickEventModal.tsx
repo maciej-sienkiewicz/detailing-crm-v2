@@ -767,16 +767,27 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 if (e.key === 'Enter') {
                                                     e.preventDefault();
 
-                                                    if (customerSearch.trim() && !selectedCustomer) {
-                                                        const parsed = parseCustomerInput(customerSearch);
-                                                        const hasFirstAndLastName = parsed.firstName && parsed.lastName;
-                                                        const noResults = customerResults.length === 0;
+                                                    // Jeśli użytkownik już coś wybrał, nie rób nic
+                                                    if (selectedCustomer) return;
 
-                                                        if (hasFirstAndLastName && noResults) {
-                                                            setParsedCustomerData(parsed);
-                                                            setIsAddCustomerModalOpen(true);
-                                                            setShowCustomerDropdown(false);
-                                                        }
+                                                    const trimmed = customerSearch.trim();
+                                                    if (!trimmed) return;
+
+                                                    // Parsuj wprowadzone dane
+                                                    const parsed = parseCustomerInput(trimmed);
+                                                    const hasFirstAndLastName = parsed.firstName && parsed.lastName;
+
+                                                    // Jeśli mamy imię i nazwisko, otwórz modal po krótkiej chwili
+                                                    // aby dać szansę wyszukiwaniu się zakończyć
+                                                    if (hasFirstAndLastName) {
+                                                        setTimeout(() => {
+                                                            // Sprawdź ponownie czy w międzyczasie nie wybrano klienta
+                                                            if (!selectedCustomer && customerResults.length === 0) {
+                                                                setParsedCustomerData(parsed);
+                                                                setIsAddCustomerModalOpen(true);
+                                                                setShowCustomerDropdown(false);
+                                                            }
+                                                        }, 400); // Czas na zakończenie debounced search (300ms) + margines
                                                     }
                                                 }
                                             }}
@@ -792,21 +803,22 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 setTimeout(() => {
                                                     setShowCustomerDropdown(false);
 
-                                                    // Automatycznie otwórz modal dodawania klienta jeśli:
-                                                    // 1. Użytkownik wprowadził imię i nazwisko
-                                                    // 2. Nie znaleziono żadnych pasujących klientów
-                                                    // 3. Klient nie jest już wybrany
-                                                    if (customerSearch.trim() && !selectedCustomer) {
-                                                        const parsed = parseCustomerInput(customerSearch);
-                                                        const hasFirstAndLastName = parsed.firstName && parsed.lastName;
-                                                        const noResults = customerResults.length === 0;
+                                                    // Jeśli użytkownik już coś wybrał, nie rób nic
+                                                    if (selectedCustomer) return;
 
-                                                        if (hasFirstAndLastName && noResults) {
-                                                            setParsedCustomerData(parsed);
-                                                            setIsAddCustomerModalOpen(true);
-                                                        }
+                                                    const trimmed = customerSearch.trim();
+                                                    if (!trimmed) return;
+
+                                                    // Parsuj wprowadzone dane
+                                                    const parsed = parseCustomerInput(trimmed);
+                                                    const hasFirstAndLastName = parsed.firstName && parsed.lastName;
+
+                                                    // Sprawdź czy nie znaleziono klientów
+                                                    if (hasFirstAndLastName && customerResults.length === 0) {
+                                                        setParsedCustomerData(parsed);
+                                                        setIsAddCustomerModalOpen(true);
                                                     }
-                                                }, 200);
+                                                }, 500); // Dłuższy timeout aby dać czas na debounced search i kliknięcie w dropdown
                                             }}
                                         />
                                         {showCustomerDropdown && (
@@ -852,6 +864,37 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         )}
                                     </S.DropdownContainer>
                                     {errors.customer && <S.ErrorMessage>{errors.customer}</S.ErrorMessage>}
+                                    {selectedCustomer && (selectedCustomer.phone || selectedCustomer.email) && (
+                                        <div style={{
+                                            marginTop: '8px',
+                                            padding: '8px 12px',
+                                            background: 'rgba(99, 102, 241, 0.05)',
+                                            borderRadius: '8px',
+                                            fontSize: '13px',
+                                            color: '#64748b',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '4px'
+                                        }}>
+                                            {selectedCustomer.phone && (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '14px', height: '14px', flexShrink: 0 }}>
+                                                        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
+                                                    </svg>
+                                                    <span>{selectedCustomer.phone}</span>
+                                                </div>
+                                            )}
+                                            {selectedCustomer.email && (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '14px', height: '14px', flexShrink: 0 }}>
+                                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                                                        <polyline points="22,6 12,13 2,6" />
+                                                    </svg>
+                                                    <span>{selectedCustomer.email}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </S.RowContent>
                             </S.Row>
 
