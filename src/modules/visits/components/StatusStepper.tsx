@@ -189,9 +189,6 @@ export const StatusStepper = ({ currentStatus }: StatusStepperProps) => {
                             <StepCircle $isActive={isActive} $isCompleted={isCompleted}>
                                 {isCompleted ? '✓' : step.icon}
                             </StepCircle>
-                            <StepLabel $isActive={isActive}>
-                                {step.label}
-                            </StepLabel>
                         </Step>
                     );
                 })}

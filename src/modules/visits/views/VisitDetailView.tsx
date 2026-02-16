@@ -103,6 +103,27 @@ const ContentGrid = styled.div`
     }
 `;
 
+const InfoGrid = styled.div`
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: ${props => props.theme.spacing.lg};
+    margin-bottom: ${props => props.theme.spacing.lg};
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        grid-template-columns: 1fr 1fr;
+    }
+`;
+
+const ServicesGrid = styled.div`
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: ${props => props.theme.spacing.lg};
+
+    @media (min-width: ${props => props.theme.breakpoints.lg}) {
+        grid-template-columns: 3fr 1fr;
+    }
+`;
+
 const LoadingContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -338,31 +359,29 @@ export const VisitDetailView = () => {
 
                 {activeTab === 'overview' && (
                     <TabContent>
-                        <ContentGrid>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                <ServicesTable
-                                    services={visit.services}
-                                    visitStatus={visit.status}
-                                    visitId={visitId!}
-                                    onEditClick={handleEditServicesClick}
-                                />
-                            </div>
+                        <InfoGrid>
+                            <CustomerInfoCard customer={visit.customer} />
+                            <VehicleInfoCard
+                                vehicle={visit.vehicle}
+                                mileageAtArrival={visit.mileageAtArrival}
+                                keysHandedOver={visit.keysHandedOver}
+                                documentsHandedOver={visit.documentsHandedOver}
+                                vehicleHandoff={visit.vehicleHandoff}
+                                onMileageChange={handleMileageChange}
+                                onKeysToggle={handleKeysToggle}
+                                onDocumentsToggle={handleDocumentsToggle}
+                            />
+                        </InfoGrid>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                {visit.technicalNotes && (<TechnicalNotesCard notes={visit.technicalNotes} />)}
-                                <VehicleInfoCard
-                                    vehicle={visit.vehicle}
-                                    mileageAtArrival={visit.mileageAtArrival}
-                                    keysHandedOver={visit.keysHandedOver}
-                                    documentsHandedOver={visit.documentsHandedOver}
-                                    vehicleHandoff={visit.vehicleHandoff}
-                                    onMileageChange={handleMileageChange}
-                                    onKeysToggle={handleKeysToggle}
-                                    onDocumentsToggle={handleDocumentsToggle}
-                                />
-                                <CustomerInfoCard customer={visit.customer} />
-                            </div>
-                        </ContentGrid>
+                        <ServicesGrid>
+                            <ServicesTable
+                                services={visit.services}
+                                visitStatus={visit.status}
+                                visitId={visitId!}
+                                onEditClick={handleEditServicesClick}
+                            />
+                            {visit.technicalNotes && (<TechnicalNotesCard notes={visit.technicalNotes} />)}
+                        </ServicesGrid>
                     </TabContent>
                 )}
 
