@@ -79,7 +79,7 @@ export const TechnicalNotesCard = ({ notes }: TechnicalNotesCardProps) => {
                         />
                     </svg>
                 </CardIcon>
-                <CardTitle>Notatka techniczna</CardTitle>
+                <CardTitle>Notatka</CardTitle>
             </CardHeader>
 
             {notes ? (
