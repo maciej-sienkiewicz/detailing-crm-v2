@@ -396,6 +396,15 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     const [pendingVehicleUpdates, setPendingVehicleUpdates] = useState<Partial<NonNullable<CheckInFormData['vehicleData']>> | null>(null);
     const [vehiclePromptScheduled, setVehiclePromptScheduled] = useState(false);
 
+    // Auto-set vehicleChoiceMade when vehicle is loaded from appointment
+    useEffect(() => {
+        // If vehicle has ID and is not new, it was loaded from appointment
+        // Mark as "chosen" to prevent unnecessary modals when filling empty fields
+        if (formData.vehicleData?.id && !formData.isNewVehicle && !vehicleChoiceMade) {
+            setVehicleChoiceMade(true);
+        }
+    }, [formData.vehicleData?.id, formData.isNewVehicle, vehicleChoiceMade]);
+
     // Derived badges labels
     const customerBadge = formData.isNewCustomer
         ? 'Dodasz nowego klienta'
