@@ -377,6 +377,16 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         // we no longer auto-open any modal here.
     }, [selectedCustomer, customerVehicles, selectedVehicle]);
 
+    // Clear services error when user adds a service
+    useEffect(() => {
+        if (selectedServiceIds.length > 0 && errors.services) {
+            setErrors(prev => {
+                const { services, ...rest } = prev;
+                return rest;
+            });
+        }
+    }, [selectedServiceIds.length, errors.services]);
+
     // Clear form function
     const clearForm = () => {
         setTitle('');
