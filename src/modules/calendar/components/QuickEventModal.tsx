@@ -798,21 +798,29 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 setTimeout(() => {
                                                     setShowCustomerDropdown(false);
 
-                                                    // Auto-otwieranie modalu tylko jeśli:
-                                                    // 1. Użytkownik nie wybrał klienta w międzyczasie
-                                                    // 2. Ma wprowadzone imię i nazwisko
-                                                    // 3. Nie ma wyników wyszukiwania
-                                                    if (selectedCustomer) return;
-
                                                     const trimmed = customerSearch.trim();
+
+                                                    // Jeśli użytkownik wybrał klienta w międzyczasie, nie rób nic
+                                                    if (selectedCustomer) {
+                                                        // Upewnij się że pole pokazuje wybranego klienta
+                                                        setCustomerSearch(`${selectedCustomer.firstName} ${selectedCustomer.lastName}`.trim());
+                                                        return;
+                                                    }
+
+                                                    // Jeśli pole jest puste, nie rób nic
                                                     if (!trimmed) return;
 
+                                                    // Sprawdź czy można otworzyć modal dodawania klienta
                                                     const parsed = parseCustomerInput(trimmed);
                                                     const hasFirstAndLastName = parsed.firstName && parsed.lastName;
 
                                                     if (hasFirstAndLastName && customerResults.length === 0) {
+                                                        // Otwórz modal dodawania klienta
                                                         setParsedCustomerData(parsed);
                                                         setIsAddCustomerModalOpen(true);
+                                                    } else {
+                                                        // Nie można otworzyć modala i nie wybrano klienta -> wyczyść pole
+                                                        setCustomerSearch('');
                                                     }
                                                 }, 300);
                                             }}
@@ -861,27 +869,41 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     </S.DropdownContainer>
                                     {errors.customer && <S.ErrorMessage>{errors.customer}</S.ErrorMessage>}
                                     {selectedCustomer && (
-                                        <div style={{
-                                            marginTop: '8px',
-                                            padding: '10px 14px',
-                                            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.03))',
-                                            borderRadius: '10px',
-                                            fontSize: '13px',
-                                            border: '1px solid rgba(99, 102, 241, 0.15)',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: '6px'
-                                        }}>
-                                            {/* Nazwa klienta */}
+                                        <>
+                                            {/* Nagłówek */}
                                             <div style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '8px',
-                                                paddingBottom: '6px',
-                                                borderBottom: (selectedCustomer.phone || selectedCustomer.email) ? '1px solid rgba(99, 102, 241, 0.1)' : 'none',
-                                                fontWeight: 600,
-                                                color: '#4f46e5'
+                                                marginTop: '10px',
+                                                marginBottom: '4px',
+                                                fontSize: '11px',
+                                                fontWeight: 700,
+                                                color: '#94a3b8',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.8px'
                                             }}>
+                                                ✓ Obecnie wybrany klient
+                                            </div>
+
+                                            {/* Panel z danymi */}
+                                            <div style={{
+                                                padding: '10px 14px',
+                                                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.03))',
+                                                borderRadius: '10px',
+                                                fontSize: '13px',
+                                                border: '1px solid rgba(99, 102, 241, 0.15)',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '6px'
+                                            }}>
+                                                {/* Nazwa klienta */}
+                                                <div style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '8px',
+                                                    paddingBottom: '6px',
+                                                    borderBottom: (selectedCustomer.phone || selectedCustomer.email) ? '1px solid rgba(99, 102, 241, 0.1)' : 'none',
+                                                    fontWeight: 600,
+                                                    color: '#4f46e5'
+                                                }}>
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '16px', height: '16px', flexShrink: 0 }}>
                                                     <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
                                                     <circle cx="12" cy="7" r="4" />
@@ -925,7 +947,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     )}
                                                 </div>
                                             )}
-                                        </div>
+                                            </div>
+                                        </>
                                     )}
                                 </S.RowContent>
                             </S.Row>
