@@ -230,6 +230,42 @@ const SidebarCardBadge = styled.span`
     font-weight: 500;
 `;
 
+/* ─── Vehicle Info Card ───────────────────────────────── */
+
+const InfoGrid = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+`;
+
+const InfoItem = styled.div<{ $span?: boolean }>`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.lg};
+    border-bottom: 1px solid ${props => props.theme.colors.border};
+    ${props => props.$span && 'grid-column: 1 / -1;'}
+
+    &:nth-last-child(-n+2):nth-child(odd),
+    &:last-child {
+        border-bottom: none;
+    }
+`;
+
+const InfoLabel = styled.span`
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: ${props => props.theme.colors.textMuted};
+`;
+
+const InfoValue = styled.span`
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: 500;
+    color: ${props => props.theme.colors.text};
+`;
+
 /* ─── Owners Card ─────────────────────────────────────── */
 
 const OwnersList = styled.div`
@@ -463,6 +499,20 @@ const roleLabels: Record<string, string> = {
     COMPANY: 'Firma',
 };
 
+const engineLabels: Record<string, string> = {
+    GASOLINE: 'Benzyna',
+    DIESEL: 'Diesel',
+    HYBRID: 'Hybryda',
+    ELECTRIC: 'Elektryk',
+};
+
+const paintLabels: Record<string, string> = {
+    metallic: 'Metalik',
+    matte: 'Mat',
+    pearl: 'Perła',
+    solid: 'Akryl',
+};
+
 function getOwnerInitials(owner: VehicleOwner): string {
     return owner.customerName
         .split(' ')
@@ -678,6 +728,64 @@ export const VehicleDetailView = () => {
 
                 {/* ─── Right: Sidebar ─────────────────────── */}
                 <Sidebar>
+                    {/* Vehicle Info */}
+                    <SidebarCard>
+                        <SidebarCardHeader>
+                            <SidebarCardTitle>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="16" x2="12" y2="12" />
+                                    <line x1="12" y1="8" x2="12.01" y2="8" />
+                                </svg>
+                                Dane pojazdu
+                            </SidebarCardTitle>
+                        </SidebarCardHeader>
+                        <InfoGrid>
+                            <InfoItem>
+                                <InfoLabel>Kolor</InfoLabel>
+                                <InfoValue>{vehicle.color || '—'}</InfoValue>
+                            </InfoItem>
+                            <InfoItem>
+                                <InfoLabel>Lakier</InfoLabel>
+                                <InfoValue>
+                                    {vehicle.paintType
+                                        ? (paintLabels[vehicle.paintType.toLowerCase()] || vehicle.paintType)
+                                        : '—'}
+                                </InfoValue>
+                            </InfoItem>
+                            <InfoItem>
+                                <InfoLabel>Silnik</InfoLabel>
+                                <InfoValue>
+                                    {vehicle.engineType
+                                        ? (engineLabels[vehicle.engineType] || vehicle.engineType)
+                                        : '—'}
+                                </InfoValue>
+                            </InfoItem>
+                            <InfoItem>
+                                <InfoLabel>Przebieg</InfoLabel>
+                                <InfoValue>
+                                    {vehicle.currentMileage
+                                        ? `${vehicle.currentMileage.toLocaleString()} km`
+                                        : '—'}
+                                </InfoValue>
+                            </InfoItem>
+                            <InfoItem>
+                                <InfoLabel>Rok produkcji</InfoLabel>
+                                <InfoValue>{vehicle.yearOfProduction || '—'}</InfoValue>
+                            </InfoItem>
+                            <InfoItem>
+                                <InfoLabel>W systemie od</InfoLabel>
+                                <InfoValue>
+                                    {new Date(vehicle.createdAt).toLocaleDateString('pl-PL', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: 'numeric',
+                                    })}
+                                </InfoValue>
+                            </InfoItem>
+                        </InfoGrid>
+                    </SidebarCard>
+
                     {/* Owners */}
                     <SidebarCard>
                         <SidebarCardHeader>
