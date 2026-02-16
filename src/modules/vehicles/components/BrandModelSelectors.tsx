@@ -239,9 +239,10 @@ interface ModelSelectProps {
   onChange: (model: string) => void;
   placeholder?: string;
   onBlur?: () => void;
+  autoOpen?: boolean;
 }
 
-export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz model', onBlur }: ModelSelectProps) => {
+export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz model', onBlur, autoOpen = false }: ModelSelectProps) => {
   const { data, isLoading } = useVehicleMetadata();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -309,6 +310,17 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [open, onBlur]);
+
+  // Auto-open when autoOpen is true and brand is available
+  useEffect(() => {
+    if (autoOpen && brand && !disabled && !open && models.length > 0) {
+      // Small delay to ensure the component is fully rendered
+      const timer = setTimeout(() => {
+        setOpen(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [autoOpen, brand, disabled, models.length]);
 
   return (
     <DropdownContainer ref={containerRef}>
