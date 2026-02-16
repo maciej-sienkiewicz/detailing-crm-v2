@@ -1231,17 +1231,19 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 isOpen={isAddCustomerModalOpen}
                 onClose={() => setIsAddCustomerModalOpen(false)}
                 onSuccess={(customer) => {
-                    console.log('[QuickEventModal] Customer created:', customer);
-                    console.log('[QuickEventModal] Customer contact:', customer.contact);
+                    // API może zwracać phone/email bezpośrednio lub w contact
+                    const phone = (customer as any).phone || customer.contact?.phone || undefined;
+                    const email = (customer as any).email || customer.contact?.email || undefined;
+
                     const mapped = {
                         id: customer.id,
                         firstName: customer.firstName,
                         lastName: customer.lastName,
-                        phone: customer.contact?.phone || undefined,
-                        email: customer.contact?.email || undefined,
+                        phone,
+                        email,
                         isNew: false,
                     } as SelectedCustomer;
-                    console.log('[QuickEventModal] Mapped customer:', mapped);
+
                     handleCustomerSelect(mapped);
                     setCustomerSearch(`${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim());
                     setShowCustomerDropdown(false);
