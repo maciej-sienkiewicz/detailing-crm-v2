@@ -1,263 +1,264 @@
 // src/modules/customers/components/CustomerHeader.tsx
 
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import type { CustomerDetailData } from '../types';
-import { formatCurrency } from '../utils/customerMappers';
-import { formatDate } from '@/common/utils';
 import { t } from '@/common/i18n';
 
-const HeaderContainer = styled.header`
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+const HeaderBar = styled.header`
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.md};
+    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
+    background: white;
     border: 1px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.xl};
-    padding: ${props => props.theme.spacing.lg};
-    box-shadow: ${props => props.theme.shadows.md};
+    box-shadow: ${props => props.theme.shadows.sm};
 
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.xl};
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        flex-wrap: wrap;
+        gap: ${props => props.theme.spacing.sm};
     }
 `;
 
-const HeaderTop = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.md};
-    margin-bottom: ${props => props.theme.spacing.lg};
+const BackButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: ${props => props.theme.radii.md};
+    border: 1px solid ${props => props.theme.colors.border};
+    background: white;
+    color: ${props => props.theme.colors.textSecondary};
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
 
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: flex-start;
+    &:hover {
+        border-color: var(--brand-primary);
+        color: var(--brand-primary);
+        background: #f0f9ff;
+    }
+
+    svg {
+        width: 18px;
+        height: 18px;
     }
 `;
 
-const CustomerInfo = styled.div`
+const Divider = styled.div`
+    width: 1px;
+    height: 32px;
+    background: ${props => props.theme.colors.border};
+    flex-shrink: 0;
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        display: none;
+    }
+`;
+
+const CustomerIdentity = styled.div`
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: ${props => props.theme.spacing.md};
+    flex: 1;
+    min-width: 0;
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        flex-basis: calc(100% - 52px);
+    }
 `;
 
 const Avatar = styled.div`
-    width: 64px;
-    height: 64px;
+    width: 40px;
+    height: 40px;
     border-radius: ${props => props.theme.radii.full};
     background: linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 80%, black) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    flex-shrink: 0;
+    font-size: ${props => props.theme.fontSizes.sm};
     font-weight: 700;
     color: white;
-    flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        width: 80px;
-        height: 80px;
-        font-size: 32px;
-    }
 `;
 
-const CustomerDetails = styled.div`
-    flex: 1;
+const CustomerInfo = styled.div`
+    min-width: 0;
 `;
 
 const CustomerName = styled.h1`
-    margin: 0 0 ${props => props.theme.spacing.xs};
-    font-size: ${props => props.theme.fontSizes.xl};
+    margin: 0;
+    font-size: ${props => props.theme.fontSizes.lg};
     font-weight: 700;
     color: ${props => props.theme.colors.text};
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes.xxl};
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        font-size: ${props => props.theme.fontSizes.md};
     }
 `;
 
 const CustomerMeta = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.xs};
+    align-items: center;
+    gap: ${props => props.theme.spacing.sm};
+    margin-top: 2px;
+`;
+
+const MetaText = styled.span`
     font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
-`;
-
-const MetaRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${props => props.theme.spacing.xs};
-`;
-
-const MetaIcon = styled.span`
-    display: flex;
-    align-items: center;
     color: ${props => props.theme.colors.textMuted};
 `;
 
 const LoyaltyBadge = styled.div<{ $tier: 'bronze' | 'silver' | 'gold' | 'platinum' }>`
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    border-radius: ${({ theme }) => theme.radii.full};
-    font-size: ${({ theme }) => theme.fontSizes.xs};
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: ${props => props.theme.radii.full};
+    font-size: ${props => props.theme.fontSizes.xs};
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    box-shadow: ${({ theme }) => theme.shadows.sm};
+    flex-shrink: 0;
 
     ${({ $tier }) => {
-        const colors: Record<'bronze' | 'silver' | 'gold' | 'platinum', string> = {
-            bronze: 'background: linear-gradient(135deg, #cd7f32 0%, #a0522d 100%); color: white;',
-            silver: 'background: linear-gradient(135deg, #c0c0c0 0%, #a8a8a8 100%); color: #1f2937;',
-            gold: 'background: linear-gradient(135deg, #ffd700 0%, #daa520 100%); color: #1f2937;',
-            platinum: 'background: linear-gradient(135deg, #e5e4e2 0%, #b0b0b0 100%); color: #1f2937;',
+        const colors: Record<string, string> = {
+            bronze: 'background: linear-gradient(135deg, #cd7f32, #a0522d); color: white;',
+            silver: 'background: linear-gradient(135deg, #c0c0c0, #a8a8a8); color: #1f2937;',
+            gold: 'background: linear-gradient(135deg, #ffd700, #daa520); color: #1f2937;',
+            platinum: 'background: linear-gradient(135deg, #e5e4e2, #b0b0b0); color: #1f2937;',
         };
         return colors[$tier];
     }}
-`;
 
-const StatsGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: ${props => props.theme.spacing.md};
-
-    @media (min-width: ${props => props.theme.breakpoints.sm}) {
-        grid-template-columns: repeat(4, 1fr);
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        gap: ${props => props.theme.spacing.lg};
+    svg {
+        width: 12px;
+        height: 12px;
     }
 `;
 
-const StatCard = styled.div`
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    padding: ${props => props.theme.spacing.md};
+const Actions = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.sm};
+    flex-shrink: 0;
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        width: 100%;
+        justify-content: flex-end;
+    }
+`;
+
+const ActionButton = styled.button<{ $primary?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: ${props => props.theme.radii.md};
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: 500;
+    cursor: pointer;
     transition: all 0.2s ease;
+    white-space: nowrap;
 
-    &:hover {
-        border-color: var(--brand-primary);
-        box-shadow: ${props => props.theme.shadows.md};
+    ${props => props.$primary ? `
+        background: var(--brand-primary);
+        color: white;
+        border: none;
+        box-shadow: 0 1px 3px rgba(14, 165, 233, 0.3);
+
+        &:hover {
+            opacity: 0.9;
+            box-shadow: 0 2px 6px rgba(14, 165, 233, 0.4);
+        }
+    ` : `
+        background: white;
+        color: ${props.theme.colors.textSecondary};
+        border: 1px solid ${props.theme.colors.border};
+
+        &:hover {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+            background: #f0f9ff;
+        }
+    `}
+
+    svg {
+        width: 16px;
+        height: 16px;
     }
-`;
-
-const StatLabel = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
-    margin-bottom: 4px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 600;
-`;
-
-const StatValue = styled.div`
-    font-size: ${props => props.theme.fontSizes.lg};
-    font-weight: 700;
-    color: ${props => props.theme.colors.text};
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes.xl};
-    }
-`;
-
-const StatSubvalue = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
-    margin-top: 2px;
 `;
 
 interface CustomerHeaderProps {
     data: CustomerDetailData;
+    onEditCustomer: () => void;
+    onEditCompany: () => void;
 }
 
-export const CustomerHeader = ({ data }: CustomerHeaderProps) => {
-    const { customer, loyaltyTier, lifetimeValue, lastContactDate } = data;
-    const initials = `${customer.firstName.charAt(0)}${customer.lastName.charAt(0)}`;
+export const CustomerHeader = ({ data, onEditCustomer, onEditCompany }: CustomerHeaderProps) => {
+    const navigate = useNavigate();
+    const { customer, loyaltyTier } = data;
+
+    const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || 'Klient';
+    const initials = `${(customer.firstName || '?').charAt(0)}${(customer.lastName || '?').charAt(0)}`.toUpperCase();
+
+    const metaParts = [
+        customer.contact.email,
+        customer.contact.phone,
+    ].filter(Boolean).join('  ·  ');
 
     return (
-        <HeaderContainer>
-            <HeaderTop>
+        <HeaderBar>
+            <BackButton onClick={() => navigate('/customers')} title="Powrót do listy">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 18l-6-6 6-6" />
+                </svg>
+            </BackButton>
+
+            <Divider />
+
+            <CustomerIdentity>
+                <Avatar>{initials}</Avatar>
+
                 <CustomerInfo>
-                    <Avatar>{initials}</Avatar>
-                    <CustomerDetails>
-                        <CustomerName>
-                            {customer.firstName} {customer.lastName}
-                        </CustomerName>
+                    <CustomerName>{fullName}</CustomerName>
+                    {metaParts && (
                         <CustomerMeta>
-                            <MetaRow>
-                                <MetaIcon>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                                        <polyline points="22,6 12,13 2,6"/>
-                                    </svg>
-                                </MetaIcon>
-                                <span>{customer.contact.email}</span>
-                            </MetaRow>
-                            <MetaRow>
-                                <MetaIcon>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                                    </svg>
-                                </MetaIcon>
-                                <span>{customer.contact.phone}</span>
-                            </MetaRow>
-                            {lastContactDate && (
-                                <MetaRow>
-                                    <MetaIcon>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <circle cx="12" cy="12" r="10"/>
-                                            <polyline points="12,6 12,12 16,14"/>
-                                        </svg>
-                                    </MetaIcon>
-                                    <span>{t.customers.detail.lastContact}: {formatDate(lastContactDate)}</span>
-                                </MetaRow>
-                            )}
+                            <MetaText>{metaParts}</MetaText>
                         </CustomerMeta>
-                    </CustomerDetails>
+                    )}
                 </CustomerInfo>
+            </CustomerIdentity>
 
-                <LoyaltyBadge $tier={loyaltyTier}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            <LoyaltyBadge $tier={loyaltyTier}>
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                {t.customers.detail.loyaltyTier[loyaltyTier]}
+            </LoyaltyBadge>
+
+            <Actions>
+                <ActionButton onClick={onEditCompany}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9,22 9,12 15,12 15,22"/>
                     </svg>
-                    {t.customers.detail.loyaltyTier[loyaltyTier]}
-                </LoyaltyBadge>
-            </HeaderTop>
-
-            <StatsGrid>
-                <StatCard>
-                    <StatLabel>{t.customers.detail.totalRevenue}</StatLabel>
-                    <StatValue>
-                        {formatCurrency(lifetimeValue.netAmount, lifetimeValue.currency)}
-                    </StatValue>
-                    <StatSubvalue>
-                        {t.customers.detail.totalRevenueGross}: {formatCurrency(lifetimeValue.grossAmount, lifetimeValue.currency)}
-                    </StatSubvalue>
-                </StatCard>
-
-                <StatCard>
-                    <StatLabel>{t.customers.detail.numberOfVisits}</StatLabel>
-                    <StatValue>{customer.totalVisits}</StatValue>
-                    <StatSubvalue>
-                        {t.customers.detail.lastVisitDate}: {customer.lastVisitDate ? formatDate(customer.lastVisitDate) : '—'}
-                    </StatSubvalue>
-                </StatCard>
-
-                <StatCard>
-                    <StatLabel>{t.customers.detail.vehiclesCount}</StatLabel>
-                    <StatValue>{customer.vehicleCount}</StatValue>
-                    <StatSubvalue>{t.customers.detail.inDatabase}</StatSubvalue>
-                </StatCard>
-
-                <StatCard>
-                    <StatLabel>{t.customers.detail.customerSince}</StatLabel>
-                    <StatValue>{formatDate(customer.createdAt).split('.')[2]}</StatValue>
-                    <StatSubvalue>{formatDate(customer.createdAt)}</StatSubvalue>
-                </StatCard>
-            </StatsGrid>
-        </HeaderContainer>
+                    Firma
+                </ActionButton>
+                <ActionButton $primary onClick={onEditCustomer}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                    {t.common.edit}
+                </ActionButton>
+            </Actions>
+        </HeaderBar>
     );
 };
