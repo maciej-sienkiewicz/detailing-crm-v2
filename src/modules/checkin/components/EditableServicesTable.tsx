@@ -715,7 +715,7 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
     const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
     const [quickServiceInitialName, setQuickServiceInitialName] = useState('');
     const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
-    const [discountPriceType, setDiscountPriceType] = useState<'net' | 'gross'>('gross');
+    const [discountType, setDiscountType] = useState<AdjustmentType>('PERCENT');
     const [targetPrice, setTargetPrice] = useState('');
     const [discountInputValues, setDiscountInputValues] = useState<Record<string, string>>({});
     const [focusedDiscountFields, setFocusedDiscountFields] = useState<Record<string, boolean>>({});
@@ -804,78 +804,122 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
 
     const closeDiscountModal = () => {
         setIsDiscountModalOpen(false);
+        setDiscountType('PERCENT');
         setTargetPrice('');
     };
 
     const handleApplyDiscount = () => {
         if (!targetPrice || services.length === 0) return;
 
-        const targetAmount = parseFloat(targetPrice) * 100; // Convert to cents
-        if (isNaN(targetAmount) || targetAmount <= 0) return;
+        const inputValue = parseFloat(targetPrice);
+        if (isNaN(inputValue) || inputValue <= 0) return;
 
         const totals = calculateTotals();
-        // Calculate current total based on price type
-        const currentTotal = discountPriceType === 'gross'
-            ? totals.totalGross
-            : totals.totalNet;
+        let updatedServices: ServiceLineItem[] = [];
 
-        // Calculate discount percentage needed
-        const discountPercentage = ((currentTotal - targetAmount) / currentTotal) * 100;
+        if (discountType === 'PERCENT') {
+            // Apply percentage discount directly (negative for discount)
+            if (inputValue > 100) {
+                alert('Procent rabatu nie może być większy niż 100%');
+                return;
+            }
+            updatedServices = services.map(service => ({
+                ...service,
+                adjustment: {
+                    type: 'PERCENT' as const,
+                    value: -inputValue,
+                },
+            }));
+        } else if (discountType === 'FIXED_NET' || discountType === 'FIXED_GROSS') {
+            // Calculate percentage discount needed to achieve the fixed amount
+            const discountAmount = inputValue * 100; // Convert to cents
+            const currentTotal = discountType === 'FIXED_GROSS' ? totals.totalGross : totals.totalNet;
 
-        if (discountPercentage < 0 || discountPercentage > 100) {
-            alert('Podana kwota jest nieprawidłowa. Musi być niższa niż obecna suma.');
-            return;
-        }
+            if (discountAmount >= currentTotal) {
+                alert('Kwota rabatu nie może być większa lub równa obecnej sumie.');
+                return;
+            }
 
-        // Round discount percentage to 2 decimal places
-        const roundedDiscountPercentage = Math.round(discountPercentage * 100) / 100;
+            const discountPercentage = (discountAmount / currentTotal) * 100;
+            const roundedDiscountPercentage = Math.round(discountPercentage * 100) / 100;
 
-        // Apply discount to all services using PERCENT adjustment (negative value = discount)
-        const updatedServices = services.map((service) => {
-            return {
+            updatedServices = services.map(service => ({
                 ...service,
                 adjustment: {
                     type: 'PERCENT' as const,
                     value: -roundedDiscountPercentage,
                 },
-            };
-        });
+            }));
 
-        // Calculate actual total after applying discounts
-        let actualTotal = 0;
-        updatedServices.forEach(service => {
-            const pricing = calculateServicePrice(service);
-            actualTotal += discountPriceType === 'gross' ? pricing.finalPriceGross : pricing.finalPriceNet;
-        });
+            // Adjust for rounding errors
+            let actualTotal = 0;
+            updatedServices.forEach(service => {
+                const pricing = calculateServicePrice(service);
+                actualTotal += discountType === 'FIXED_GROSS' ? pricing.finalPriceGross : pricing.finalPriceNet;
+            });
 
-        // If there's a rounding error, adjust the last service's discount
-        const difference = actualTotal - targetAmount;
-        if (difference !== 0 && updatedServices.length > 0) {
-            const lastIndex = updatedServices.length - 1;
-            const lastService = updatedServices[lastIndex];
+            const targetTotal = currentTotal - discountAmount;
+            const difference = actualTotal - targetTotal;
 
-            // Calculate how much we need to adjust the last service
-            const lastServicePricing = calculateServicePrice(lastService);
-            const lastServiceTotal = discountPriceType === 'gross'
-                ? lastServicePricing.finalPriceGross
-                : lastServicePricing.finalPriceNet;
+            if (difference !== 0 && updatedServices.length > 0) {
+                const lastIndex = updatedServices.length - 1;
+                const lastService = updatedServices[lastIndex];
+                const lastServicePricing = calculateServicePrice(lastService);
+                const lastServiceTotal = discountType === 'FIXED_GROSS'
+                    ? lastServicePricing.finalPriceGross
+                    : lastServicePricing.finalPriceNet;
+                const adjustedLastServiceTotal = lastServiceTotal - difference;
 
-            const adjustedLastServiceTotal = lastServiceTotal - difference;
-
-            // Set the last service to have exact price using SET_NET or SET_GROSS
-            if (discountPriceType === 'gross') {
                 updatedServices[lastIndex] = {
                     ...lastService,
                     adjustment: {
-                        type: 'SET_GROSS' as const,
+                        type: (discountType === 'FIXED_GROSS' ? 'SET_GROSS' : 'SET_NET') as const,
                         value: adjustedLastServiceTotal,
                     },
                 };
-            } else {
+            }
+        } else if (discountType === 'SET_NET' || discountType === 'SET_GROSS') {
+            // Set to target amount
+            const targetAmount = inputValue * 100; // Convert to cents
+            const currentTotal = discountType === 'SET_GROSS' ? totals.totalGross : totals.totalNet;
+
+            if (targetAmount >= currentTotal) {
+                alert('Docelowa kwota musi być niższa niż obecna suma.');
+                return;
+            }
+
+            const discountPercentage = ((currentTotal - targetAmount) / currentTotal) * 100;
+            const roundedDiscountPercentage = Math.round(discountPercentage * 100) / 100;
+
+            updatedServices = services.map(service => ({
+                ...service,
+                adjustment: {
+                    type: 'PERCENT' as const,
+                    value: -roundedDiscountPercentage,
+                },
+            }));
+
+            // Adjust for rounding errors
+            let actualTotal = 0;
+            updatedServices.forEach(service => {
+                const pricing = calculateServicePrice(service);
+                actualTotal += discountType === 'SET_GROSS' ? pricing.finalPriceGross : pricing.finalPriceNet;
+            });
+
+            const difference = actualTotal - targetAmount;
+            if (difference !== 0 && updatedServices.length > 0) {
+                const lastIndex = updatedServices.length - 1;
+                const lastService = updatedServices[lastIndex];
+                const lastServicePricing = calculateServicePrice(lastService);
+                const lastServiceTotal = discountType === 'SET_GROSS'
+                    ? lastServicePricing.finalPriceGross
+                    : lastServicePricing.finalPriceNet;
+                const adjustedLastServiceTotal = lastServiceTotal - difference;
+
                 updatedServices[lastIndex] = {
                     ...lastService,
                     adjustment: {
-                        type: 'SET_NET' as const,
+                        type: discountType as const,
                         value: adjustedLastServiceTotal,
                     },
                 };
@@ -1279,47 +1323,80 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                     </ModalHeader>
                     <ModalBody>
                         <p style={{ marginBottom: '16px' }}>
-                            Podaj docelową kwotę całkowitą. System automatycznie obliczy i zastosuje procentowy rabat do wszystkich usług.
+                            Wybierz typ rabatu i podaj wartość. Rabat zostanie zastosowany do wszystkich usług.
                         </p>
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+                            Typ rabatu:
+                        </label>
                         <RadioGroup>
                             <RadioLabel>
                                 <input
                                     type="radio"
-                                    name="priceType"
-                                    value="gross"
-                                    checked={discountPriceType === 'gross'}
-                                    onChange={() => setDiscountPriceType('gross')}
+                                    name="discountType"
+                                    value="PERCENT"
+                                    checked={discountType === 'PERCENT'}
+                                    onChange={() => setDiscountType('PERCENT')}
                                 />
-                                Brutto
+                                Obniż o procent (%)
                             </RadioLabel>
                             <RadioLabel>
                                 <input
                                     type="radio"
-                                    name="priceType"
-                                    value="net"
-                                    checked={discountPriceType === 'net'}
-                                    onChange={() => setDiscountPriceType('net')}
+                                    name="discountType"
+                                    value="FIXED_NET"
+                                    checked={discountType === 'FIXED_NET'}
+                                    onChange={() => setDiscountType('FIXED_NET')}
                                 />
-                                Netto
+                                Obniż o kwotę netto
+                            </RadioLabel>
+                            <RadioLabel>
+                                <input
+                                    type="radio"
+                                    name="discountType"
+                                    value="FIXED_GROSS"
+                                    checked={discountType === 'FIXED_GROSS'}
+                                    onChange={() => setDiscountType('FIXED_GROSS')}
+                                />
+                                Obniż o kwotę brutto
+                            </RadioLabel>
+                            <RadioLabel>
+                                <input
+                                    type="radio"
+                                    name="discountType"
+                                    value="SET_NET"
+                                    checked={discountType === 'SET_NET'}
+                                    onChange={() => setDiscountType('SET_NET')}
+                                />
+                                Ustaw na kwotę netto
+                            </RadioLabel>
+                            <RadioLabel>
+                                <input
+                                    type="radio"
+                                    name="discountType"
+                                    value="SET_GROSS"
+                                    checked={discountType === 'SET_GROSS'}
+                                    onChange={() => setDiscountType('SET_GROSS')}
+                                />
+                                Ustaw na kwotę brutto
                             </RadioLabel>
                         </RadioGroup>
-                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-                            Docelowa kwota ({discountPriceType === 'gross' ? 'brutto' : 'netto'}):
+                        <label style={{ display: 'block', marginTop: '16px', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+                            Wartość {discountType === 'PERCENT' ? '(%)' : '(PLN)'}:
                         </label>
                         <ModalInput
                             type="number"
-                            step="0.01"
+                            step={discountType === 'PERCENT' ? '0.01' : '0.01'}
                             min="0"
+                            max={discountType === 'PERCENT' ? '100' : undefined}
                             value={targetPrice}
                             onChange={(e) => setTargetPrice(e.target.value)}
-                            placeholder="0.00"
+                            placeholder={discountType === 'PERCENT' ? '0.00' : '0.00'}
                             autoFocus
                         />
                         <div style={{ marginTop: '12px', fontSize: '13px', color: '#6b7280' }}>
-                            Obecna suma {discountPriceType === 'gross' ? 'brutto' : 'netto'}:{' '}
-                            <strong>
-                                {formatCurrency((discountPriceType === 'gross' ? calculateTotals().totalGross : calculateTotals().totalNet) / 100)}
-                            </strong>
+                            Obecna suma brutto: <strong>{formatCurrency(calculateTotals().totalGross / 100)}</strong>
+                            {' | '}
+                            Obecna suma netto: <strong>{formatCurrency(calculateTotals().totalNet / 100)}</strong>
                         </div>
                     </ModalBody>
                     <ModalFooter>
