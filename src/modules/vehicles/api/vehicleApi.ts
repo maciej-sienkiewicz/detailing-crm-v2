@@ -408,7 +408,7 @@ export const vehicleApi = {
         formData.append('file', payload.file);
         formData.append('description', payload.description);
         if (payload.visitId) formData.append('visitId', payload.visitId);
-        await apiClient.post(`/vehicles/${vehicleId}/photos`, formData, {
+        await apiClient.post(`${BASE_PATH}/${vehicleId}/photos`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
     },
@@ -481,7 +481,7 @@ export const vehicleApi = {
             };
         }
 
-        const response = await apiClient.get(`/vehicles/${vehicleId}/photos/gallery`, {
+        const response = await apiClient.get(`${BASE_PATH}/${vehicleId}/photos/gallery`, {
             params: { page, pageSize },
         });
         return response.data;
@@ -496,7 +496,7 @@ export const vehicleApi = {
             };
         }
 
-        const response = await apiClient.post(`/vehicles/${vehicleId}/photos`, payload);
+        const response = await apiClient.post(`${BASE_PATH}/${vehicleId}/photos`, payload);
         return response.data;
     },
 
