@@ -1281,6 +1281,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             <IconPlus />
                                         </S.AddColorButton>
                                     </S.ColorPickerList>
+                                    {selectedColor && (
+                                        <S.SelectedColorName>{selectedColor.name}</S.SelectedColorName>
+                                    )}
                                 </S.ColorPickerSection>
                                 {errors.color && <S.ColorErrorMessage>{errors.color}</S.ColorErrorMessage>}
                             </S.ColorPickerWrapper>

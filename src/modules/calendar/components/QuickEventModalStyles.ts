@@ -625,6 +625,13 @@ export const ColorPickerList = styled.div`
     gap: ${props => props.theme.spacing.sm};
 `;
 
+export const SelectedColorName = styled.div`
+    margin-top: ${props => props.theme.spacing.xs};
+    font-size: ${props => props.theme.fontSizes.sm};
+    color: ${props => props.theme.colors.textSecondary};
+    font-weight: ${props => props.theme.fontWeights.medium};
+`;
+
 export const ColorButton = styled.button<{ $color: string; $isSelected: boolean }>`
     width: 28px;
     height: 28px;
