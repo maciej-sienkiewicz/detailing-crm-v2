@@ -6,3 +6,6 @@ export { useDeleteVehicle } from './useDeleteVehicle';
 export { useVehicleSearch } from './useVehicleSearch';
 export { useVehiclePagination } from './useVehiclePagination';
 export { useOwnerManagement } from './useOwnerManagement';
+export { useVehiclePhotoGallery, vehiclePhotoGalleryQueryKey } from './useVehiclePhotoGallery';
+export { useUploadVehiclePhoto } from './useUploadVehiclePhoto';
+export { useDeleteVehiclePhoto } from './useDeleteVehiclePhoto';

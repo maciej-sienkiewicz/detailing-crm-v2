@@ -11,6 +11,9 @@ import type {
     DocumentListResponse,
     UploadDocumentPayload,
     UploadPhotoPayload,
+    VehiclePhotoGalleryResponse,
+    UploadVehiclePhotoPayload,
+    UploadVehiclePhotoResponse,
     Vehicle,
     VehicleListItem,
 } from '../types';
@@ -408,5 +411,101 @@ export const vehicleApi = {
         await apiClient.post(`${BASE_PATH}/${vehicleId}/photos`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
+    },
+
+    // New photo gallery endpoints
+    getPhotoGallery: async (vehicleId: string, page: number = 1, pageSize: number = 20): Promise<VehiclePhotoGalleryResponse> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const mockPhotos = [
+                {
+                    id: 'photo1',
+                    source: 'VEHICLE' as const,
+                    sourceId: vehicleId,
+                    fileName: 'vehicle-front.jpg',
+                    photoUrl: 'https://via.placeholder.com/800x600/0ea5e9/ffffff?text=Front+View',
+                    thumbnailUrl: 'https://via.placeholder.com/200x150/0ea5e9/ffffff?text=Front',
+                    fullSizeUrl: 'https://via.placeholder.com/1920x1080/0ea5e9/ffffff?text=Front+View+HD',
+                    description: 'Widok z przodu pojazdu',
+                    uploadedAt: '2024-12-10T14:00:00Z',
+                },
+                {
+                    id: 'photo2',
+                    source: 'VISIT' as const,
+                    sourceId: 'visit1',
+                    fileName: 'before-work.jpg',
+                    photoUrl: 'https://via.placeholder.com/800x600/10b981/ffffff?text=Before+Work',
+                    thumbnailUrl: 'https://via.placeholder.com/200x150/10b981/ffffff?text=Before',
+                    fullSizeUrl: 'https://via.placeholder.com/1920x1080/10b981/ffffff?text=Before+Work+HD',
+                    description: 'Stan przed rozpoczęciem prac - wizyta PPF',
+                    uploadedAt: '2024-12-10T14:30:00Z',
+                    visitNumber: 'VIS-2024-00123',
+                },
+                {
+                    id: 'photo3',
+                    source: 'VISIT' as const,
+                    sourceId: 'visit1',
+                    fileName: 'after-work.jpg',
+                    photoUrl: 'https://via.placeholder.com/800x600/f59e0b/ffffff?text=After+Work',
+                    thumbnailUrl: 'https://via.placeholder.com/200x150/f59e0b/ffffff?text=After',
+                    fullSizeUrl: 'https://via.placeholder.com/1920x1080/f59e0b/ffffff?text=After+Work+HD',
+                    description: 'Stan po zakończeniu prac - wizyta PPF',
+                    uploadedAt: '2024-12-10T16:00:00Z',
+                    visitNumber: 'VIS-2024-00123',
+                },
+                {
+                    id: 'photo4',
+                    source: 'VEHICLE' as const,
+                    sourceId: vehicleId,
+                    fileName: 'vehicle-side.jpg',
+                    photoUrl: 'https://via.placeholder.com/800x600/8b5cf6/ffffff?text=Side+View',
+                    thumbnailUrl: 'https://via.placeholder.com/200x150/8b5cf6/ffffff?text=Side',
+                    fullSizeUrl: 'https://via.placeholder.com/1920x1080/8b5cf6/ffffff?text=Side+View+HD',
+                    description: 'Widok z boku',
+                    uploadedAt: '2024-11-20T10:00:00Z',
+                },
+            ];
+
+            const start = (page - 1) * pageSize;
+            const end = start + pageSize;
+            const paginatedPhotos = mockPhotos.slice(start, end);
+
+            return {
+                photos: paginatedPhotos,
+                pagination: {
+                    total: mockPhotos.length,
+                    page,
+                    pageSize,
+                    totalPages: Math.ceil(mockPhotos.length / pageSize),
+                },
+            };
+        }
+
+        const response = await apiClient.get(`${BASE_PATH}/${vehicleId}/photos/gallery`, {
+            params: { page, pageSize },
+        });
+        return response.data;
+    },
+
+    uploadVehiclePhoto: async (vehicleId: string, payload: UploadVehiclePhotoPayload): Promise<UploadVehiclePhotoResponse> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 800));
+            return {
+                photoId: `photo${Date.now()}`,
+                uploadUrl: 'https://mock-upload-url.example.com',
+            };
+        }
+
+        const response = await apiClient.post(`${BASE_PATH}/${vehicleId}/photos`, payload);
+        return response.data;
+    },
+
+    deleteVehiclePhoto: async (vehicleId: string, photoId: string): Promise<void> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return;
+        }
+
+        await apiClient.delete(`${BASE_PATH}/${vehicleId}/photos/${photoId}`);
     },
 };

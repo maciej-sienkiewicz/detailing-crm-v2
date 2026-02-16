@@ -149,15 +149,22 @@ export interface VehicleDocument {
     uploadedBy: string;
 }
 
+export type PhotoSource = 'VEHICLE' | 'VISIT';
+
 export interface VehiclePhoto {
     id: string;
-    vehicleId: string;
+    vehicleId?: string;
+    source: PhotoSource;
+    sourceId: string;
+    fileName: string;
     photoUrl: string;
     thumbnailUrl: string;
+    fullSizeUrl: string;
     description: string;
-    capturedAt: string;
+    capturedAt?: string;
     uploadedAt: string;
-    visitId: string | null;
+    visitId?: string | null;
+    visitNumber?: string;
 }
 
 export interface VehicleActivity {
@@ -206,4 +213,24 @@ export interface UploadPhotoPayload {
     file: File;
     description: string;
     visitId?: string;
+}
+
+export interface VehiclePhotoGalleryResponse {
+    photos: VehiclePhoto[];
+    pagination: {
+        total: number;
+        page: number;
+        pageSize: number;
+        totalPages: number;
+    };
+}
+
+export interface UploadVehiclePhotoPayload {
+    fileName: string;
+    description: string;
+}
+
+export interface UploadVehiclePhotoResponse {
+    photoId: string;
+    uploadUrl: string;
 }
