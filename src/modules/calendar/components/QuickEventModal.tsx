@@ -762,6 +762,24 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 setCustomerSearch(e.target.value);
                                                 setShowCustomerDropdown(true);
                                             }}
+                                            onKeyDown={(e) => {
+                                                // Obsługa Enter - automatyczne otwieranie modalu dodawania klienta
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+
+                                                    if (customerSearch.trim() && !selectedCustomer) {
+                                                        const parsed = parseCustomerInput(customerSearch);
+                                                        const hasFirstAndLastName = parsed.firstName && parsed.lastName;
+                                                        const noResults = customerResults.length === 0;
+
+                                                        if (hasFirstAndLastName && noResults) {
+                                                            setParsedCustomerData(parsed);
+                                                            setIsAddCustomerModalOpen(true);
+                                                            setShowCustomerDropdown(false);
+                                                        }
+                                                    }
+                                                }
+                                            }}
                                             aria-invalid={!!errors.customer}
                                             $accentColor={focusedField === 'customer' ? accentColor : undefined}
                                             $hasError={!!errors.customer}
@@ -771,7 +789,24 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             }}
                                             onBlur={() => {
                                                 setFocusedField(null);
-                                                setTimeout(() => setShowCustomerDropdown(false), 200);
+                                                setTimeout(() => {
+                                                    setShowCustomerDropdown(false);
+
+                                                    // Automatycznie otwórz modal dodawania klienta jeśli:
+                                                    // 1. Użytkownik wprowadził imię i nazwisko
+                                                    // 2. Nie znaleziono żadnych pasujących klientów
+                                                    // 3. Klient nie jest już wybrany
+                                                    if (customerSearch.trim() && !selectedCustomer) {
+                                                        const parsed = parseCustomerInput(customerSearch);
+                                                        const hasFirstAndLastName = parsed.firstName && parsed.lastName;
+                                                        const noResults = customerResults.length === 0;
+
+                                                        if (hasFirstAndLastName && noResults) {
+                                                            setParsedCustomerData(parsed);
+                                                            setIsAddCustomerModalOpen(true);
+                                                        }
+                                                    }
+                                                }, 200);
                                             }}
                                         />
                                         {showCustomerDropdown && (

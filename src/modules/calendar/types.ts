@@ -18,6 +18,7 @@ export interface CalendarEventData {
     type: CalendarEventType;
     customerName: string;
     customerPhone?: string;
+    customerEmail?: string;
     vehicleInfo: string;
     status?: string;
     totalPrice?: number; // gross (brutto) in minor units

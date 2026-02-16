@@ -153,6 +153,7 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         type: 'APPOINTMENT',
         customerName,
         customerPhone: appointment.customer.phone,
+        customerEmail: appointment.customer.email,
         vehicleInfo,
         colorHex,
         appointmentTitle: appointment.appointmentTitle || undefined,
