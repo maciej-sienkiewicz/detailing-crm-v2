@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { useVisitDetail, useVisitDocuments, useVisitPhotos } from '../hooks';
 import { useUpdateVisit } from '../hooks';
@@ -114,13 +114,13 @@ const InfoGrid = styled.div`
     }
 `;
 
-const ServicesGrid = styled.div`
+const ServicesGrid = styled.div<{ $hasNotes: boolean }>`
     display: grid;
     grid-template-columns: 1fr;
     gap: ${props => props.theme.spacing.lg};
 
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
-        grid-template-columns: 3fr 1fr;
+        grid-template-columns: ${props => props.$hasNotes ? '3fr 1fr' : '1fr'};
     }
 `;
 
@@ -190,6 +190,7 @@ type TabValue = 'overview' | 'comments' | 'documentation';
 
 export const VisitDetailView = () => {
     const { visitId } = useParams<{ visitId: string }>();
+    const navigate = useNavigate();
 
     const [activeTab, setActiveTab] = useState<TabValue>('overview');
     const [isTransitionWizardOpen, setIsTransitionWizardOpen] = useState(false);
@@ -322,6 +323,14 @@ export const VisitDetailView = () => {
         });
     };
 
+    const handleViewCustomerDetails = () => {
+        navigate(`/customers/${visit.customer.id}`);
+    };
+
+    const handleViewVehicleDetails = () => {
+        navigate(`/vehicles/${visit.vehicle.id}`);
+    };
+
     return (
         <ViewContainer>
             <VisitHeader
@@ -360,7 +369,10 @@ export const VisitDetailView = () => {
                 {activeTab === 'overview' && (
                     <TabContent>
                         <InfoGrid>
-                            <CustomerInfoCard customer={visit.customer} />
+                            <CustomerInfoCard
+                                customer={visit.customer}
+                                onViewDetails={handleViewCustomerDetails}
+                            />
                             <VehicleInfoCard
                                 vehicle={visit.vehicle}
                                 mileageAtArrival={visit.mileageAtArrival}
@@ -370,10 +382,11 @@ export const VisitDetailView = () => {
                                 onMileageChange={handleMileageChange}
                                 onKeysToggle={handleKeysToggle}
                                 onDocumentsToggle={handleDocumentsToggle}
+                                onViewDetails={handleViewVehicleDetails}
                             />
                         </InfoGrid>
 
-                        <ServicesGrid>
+                        <ServicesGrid $hasNotes={!!visit.technicalNotes}>
                             <ServicesTable
                                 services={visit.services}
                                 visitStatus={visit.status}

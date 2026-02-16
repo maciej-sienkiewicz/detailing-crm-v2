@@ -160,6 +160,75 @@ const StatBadge = styled.div<{ $variant: 'success' | 'info' }>`
     `}
 `;
 
+const LicensePlate = styled.div`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+    border: 2px solid #1a1a1a;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: ${props => props.theme.fontSizes.lg};
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: #1a1a1a;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    position: relative;
+    min-width: 140px;
+
+    &::before {
+        content: 'PL';
+        position: absolute;
+        left: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 700;
+        color: white;
+        background: #003399;
+        padding: 2px 4px;
+        border-radius: 2px;
+        letter-spacing: 0;
+    }
+
+    &::after {
+        content: '🇪🇺';
+        position: absolute;
+        left: 8px;
+        top: 8px;
+        font-size: 10px;
+        transform: translateY(-100%);
+    }
+`;
+
+const ViewDetailsButton = styled.button`
+    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+    background: white;
+    color: var(--brand-primary);
+    border: 1px solid var(--brand-primary);
+    border-radius: ${props => props.theme.radii.md};
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.xs};
+    margin-top: ${props => props.theme.spacing.md};
+
+    &:hover {
+        background: var(--brand-primary);
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: ${props => props.theme.shadows.sm};
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+`;
+
 interface VehicleInfoCardProps {
     vehicle: VehicleInfo;
     mileageAtArrival?: number;
@@ -177,6 +246,7 @@ interface VehicleInfoCardProps {
     onMileageChange: (mileage: number) => void;
     onKeysToggle: (checked: boolean) => void;
     onDocumentsToggle: (checked: boolean) => void;
+    onViewDetails?: () => void;
 }
 
 export const VehicleInfoCard = ({
@@ -185,6 +255,7 @@ export const VehicleInfoCard = ({
                                     keysHandedOver,
                                     documentsHandedOver,
                                     vehicleHandoff,
+                                    onViewDetails,
                                 }: VehicleInfoCardProps) => {
     const hasMileage = typeof mileageAtArrival === 'number' && mileageAtArrival > 0;
     const mileageNumber = hasMileage ? mileageAtArrival!.toLocaleString('pl-PL') : undefined;
@@ -203,6 +274,21 @@ export const VehicleInfoCard = ({
                 </CardIcon>
                 <CardTitle>Informacje o pojeździe</CardTitle>
             </CardHeader>
+
+            <InfoGrid>
+                <InfoItem>
+                    <InfoLabel>Marka</InfoLabel>
+                    <InfoValue>{vehicle.brand}</InfoValue>
+                </InfoItem>
+                <InfoItem>
+                    <InfoLabel>Model</InfoLabel>
+                    <InfoValue>{vehicle.model}</InfoValue>
+                </InfoItem>
+                <InfoItem style={{ gridColumn: '1 / -1' }}>
+                    <InfoLabel>Numer rejestracyjny</InfoLabel>
+                    <LicensePlate>{vehicle.licensePlate}</LicensePlate>
+                </InfoItem>
+            </InfoGrid>
 
             <ToggleSection style={{ marginTop: '16px' }}>
                 {vehicleHandoff?.isHandedOffByOtherPerson && (
@@ -266,15 +352,26 @@ export const VehicleInfoCard = ({
                     </StatusPill>
                 </ToggleRow>
             </ToggleSection>
+
+            {onViewDetails && (
+                <ViewDetailsButton onClick={onViewDetails}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" fill="currentColor"/>
+                        <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke="currentColor" strokeWidth="2" fill="none"/>
+                    </svg>
+                    Pełne informacje o pojeździe
+                </ViewDetailsButton>
+            )}
         </Card>
     );
 };
 
 interface CustomerInfoCardProps {
     customer: CustomerInfo;
+    onViewDetails?: () => void;
 }
 
-export const CustomerInfoCard = ({ customer }: CustomerInfoCardProps) => {
+export const CustomerInfoCard = ({ customer, onViewDetails }: CustomerInfoCardProps) => {
     return (
         <Card>
             <CardHeader>
@@ -323,6 +420,16 @@ export const CustomerInfoCard = ({ customer }: CustomerInfoCardProps) => {
                     🚗 {customer.stats.vehiclesCount} pojazdów
                 </StatBadge>
             </div>
+
+            {onViewDetails && (
+                <ViewDetailsButton onClick={onViewDetails}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" fill="currentColor"/>
+                        <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke="currentColor" strokeWidth="2" fill="none"/>
+                    </svg>
+                    Pełne informacje o kliencie
+                </ViewDetailsButton>
+            )}
         </Card>
     );
 };
