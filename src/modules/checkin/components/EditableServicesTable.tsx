@@ -603,22 +603,59 @@ const PrimaryBtn = styled.button`
     &:disabled { opacity: 0.6; cursor: not-allowed; }
 `;
 
-const RadioGroup = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.md};
+const DiscountTypeDropdownContainer = styled.div`
+    position: relative;
     margin-bottom: ${props => props.theme.spacing.md};
 `;
 
-const RadioLabel = styled.label`
-    display: flex;
-    align-items: center;
-    gap: ${props => props.theme.spacing.xs};
+const DiscountTypeInput = styled(Input)`
+    width: 100%;
+    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+    border: 2px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.md};
+    font-size: ${props => props.theme.fontSizes.sm};
     cursor: pointer;
 
-    input[type="radio"] {
-        width: 16px;
-        height: 16px;
-        cursor: pointer;
+    &:focus {
+        outline: none;
+        border-color: var(--brand-primary);
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+`;
+
+const DiscountTypeDropdown = styled.div`
+    position: absolute;
+    z-index: 2001;
+    width: 100%;
+    margin-top: ${props => props.theme.spacing.xs};
+    background: ${props => props.theme.colors.surface};
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.lg};
+    box-shadow: ${props => props.theme.shadows.xl};
+    max-height: 240px;
+    overflow-y: auto;
+`;
+
+const DiscountTypeOption = styled.button`
+    width: 100%;
+    padding: 12px ${props => props.theme.spacing.md};
+    display: flex;
+    align-items: center;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid ${props => props.theme.colors.surfaceAlt};
+    text-align: left;
+    cursor: pointer;
+    transition: background ${props => props.theme.transitions.fast};
+    font-size: ${props => props.theme.fontSizes.sm};
+    color: ${props => props.theme.colors.text};
+
+    &:last-child {
+        border-bottom: none;
+    }
+
+    &:hover {
+        background: ${props => props.theme.colors.surfaceAlt};
     }
 `;
 
@@ -716,6 +753,7 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
     const [quickServiceInitialName, setQuickServiceInitialName] = useState('');
     const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
     const [discountType, setDiscountType] = useState<AdjustmentType>('PERCENT');
+    const [showDiscountTypeDropdown, setShowDiscountTypeDropdown] = useState(false);
     const [targetPrice, setTargetPrice] = useState('');
     const [discountInputValues, setDiscountInputValues] = useState<Record<string, string>>({});
     const [focusedDiscountFields, setFocusedDiscountFields] = useState<Record<string, boolean>>({});
@@ -805,6 +843,7 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
     const closeDiscountModal = () => {
         setIsDiscountModalOpen(false);
         setDiscountType('PERCENT');
+        setShowDiscountTypeDropdown(false);
         setTargetPrice('');
     };
 
@@ -1328,17 +1367,40 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                         <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
                             Typ rabatu:
                         </label>
-                        <ModalInput
-                            as="select"
-                            value={discountType}
-                            onChange={(e) => setDiscountType(e.target.value as AdjustmentType)}
-                        >
-                            <option value="PERCENT">Obniż o procent (%)</option>
-                            <option value="FIXED_NET">Obniż o kwotę netto</option>
-                            <option value="FIXED_GROSS">Obniż o kwotę brutto</option>
-                            <option value="SET_NET">Ustaw na kwotę netto</option>
-                            <option value="SET_GROSS">Ustaw na kwotę brutto</option>
-                        </ModalInput>
+                        <DiscountTypeDropdownContainer>
+                            <DiscountTypeInput
+                                value={
+                                    discountType === 'PERCENT' ? 'Obniż o procent (%)' :
+                                    discountType === 'FIXED_NET' ? 'Obniż o kwotę netto' :
+                                    discountType === 'FIXED_GROSS' ? 'Obniż o kwotę brutto' :
+                                    discountType === 'SET_NET' ? 'Ustaw na kwotę netto' :
+                                    'Ustaw na kwotę brutto'
+                                }
+                                readOnly
+                                onClick={() => setShowDiscountTypeDropdown(!showDiscountTypeDropdown)}
+                                onFocus={() => setShowDiscountTypeDropdown(true)}
+                                onBlur={() => setTimeout(() => setShowDiscountTypeDropdown(false), 200)}
+                            />
+                            {showDiscountTypeDropdown && (
+                                <DiscountTypeDropdown>
+                                    <DiscountTypeOption onClick={() => { setDiscountType('PERCENT'); setShowDiscountTypeDropdown(false); }}>
+                                        Obniż o procent (%)
+                                    </DiscountTypeOption>
+                                    <DiscountTypeOption onClick={() => { setDiscountType('FIXED_NET'); setShowDiscountTypeDropdown(false); }}>
+                                        Obniż o kwotę netto
+                                    </DiscountTypeOption>
+                                    <DiscountTypeOption onClick={() => { setDiscountType('FIXED_GROSS'); setShowDiscountTypeDropdown(false); }}>
+                                        Obniż o kwotę brutto
+                                    </DiscountTypeOption>
+                                    <DiscountTypeOption onClick={() => { setDiscountType('SET_NET'); setShowDiscountTypeDropdown(false); }}>
+                                        Ustaw na kwotę netto
+                                    </DiscountTypeOption>
+                                    <DiscountTypeOption onClick={() => { setDiscountType('SET_GROSS'); setShowDiscountTypeDropdown(false); }}>
+                                        Ustaw na kwotę brutto
+                                    </DiscountTypeOption>
+                                </DiscountTypeDropdown>
+                            )}
+                        </DiscountTypeDropdownContainer>
                         <label style={{ display: 'block', marginTop: '16px', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
                             Wartość {discountType === 'PERCENT' ? '(%)' : '(PLN)'}:
                         </label>
