@@ -577,13 +577,10 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
 
     const applyVehicleUpdates = (updates: Partial<NonNullable<CheckInFormData['vehicleData']>>) => {
         const base = formData.vehicleData || {
-            id: '',
+            id: `temp-${Date.now()}`,
             brand: '',
             model: '',
-            yearOfProduction: new Date().getFullYear(),
-            licensePlate: '',
-            color: '',
-            paintType: '',
+            // NO default values - null means null!
         };
         onChange({
             vehicleData: {
@@ -637,7 +634,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
 
     const confirmVehicleAddNew = () => {
         const current = formData.vehicleData || {
-            id: '', brand: '', model: '', yearOfProduction: new Date().getFullYear(), licensePlate: '', color: '', paintType: ''
+            id: '', brand: '', model: ''
         };
         onChange({
             isNewVehicle: true,
@@ -1341,7 +1338,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                         <Input
                             type="number"
                             value={(pendingVehicleUpdates?.yearOfProduction ?? formData.vehicleData?.yearOfProduction) ?? ''}
-                            onChange={(e) => handleVehicleFieldChange({ yearOfProduction: parseInt(e.target.value) || new Date().getFullYear() })}
+                            onChange={(e) => handleVehicleFieldChange({ yearOfProduction: parseInt(e.target.value) || undefined })}
                             onBlur={handleVehicleFieldBlur}
                         />
                     </FieldGroup>
@@ -1547,7 +1544,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                     brand: formData.vehicleData?.brand || '',
                     model: formData.vehicleData?.model || '',
                     yearOfProduction: formData.vehicleData?.yearOfProduction,
-                    licensePlate: formData.vehicleData?.licensePlate || '',
+                    licensePlate: formData.vehicleData?.licensePlate,
                     color: formData.vehicleData?.color,
                     paintType: formData.vehicleData?.paintType,
                 }}
