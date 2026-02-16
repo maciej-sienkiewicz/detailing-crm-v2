@@ -167,21 +167,40 @@ const StatBadge = styled.div<{ $variant: 'success' | 'info' }>`
     `}
 `;
 
+const VehicleOverview = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.md};
+    flex-wrap: wrap;
+    margin-bottom: ${props => props.theme.spacing.md};
+`;
+
+const VehicleText = styled.span`
+    font-size: ${props => props.theme.fontSizes.lg};
+    font-weight: 600;
+    color: ${props => props.theme.colors.text};
+`;
+
+const VehicleSeparator = styled.span`
+    color: ${props => props.theme.colors.textMuted};
+    font-weight: 300;
+`;
+
 const LicensePlate = styled.div`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 10px 20px 10px 36px;
+    padding: 4px 10px 4px 20px;
     background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 100%);
-    border: 3px solid #000000;
-    border-radius: 6px;
+    border: 2px solid #000000;
+    border-radius: 4px;
     font-family: 'Courier New', monospace;
-    font-size: ${props => props.theme.fontSizes.lg};
+    font-size: ${props => props.theme.fontSizes.sm};
     font-weight: 700;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.15em;
     color: #000000;
     box-shadow:
-        0 2px 6px rgba(0, 0, 0, 0.15),
+        0 1px 3px rgba(0, 0, 0, 0.12),
         inset 0 1px 0 rgba(255, 255, 255, 0.9),
         inset 0 -1px 0 rgba(0, 0, 0, 0.1);
     position: relative;
@@ -194,22 +213,22 @@ const LicensePlate = styled.div`
         left: 0;
         top: 0;
         bottom: 0;
-        width: 28px;
+        width: 16px;
         background: linear-gradient(180deg, #003399 0%, #002266 100%);
-        border-right: 2px solid #000000;
-        border-radius: 3px 0 0 3px;
+        border-right: 1px solid #000000;
+        border-radius: 2px 0 0 2px;
     }
 
     &::after {
         content: 'PL';
         position: absolute;
-        left: 5px;
+        left: 3px;
         top: 50%;
         transform: translateY(-50%);
-        font-size: 11px;
+        font-size: 8px;
         font-weight: 700;
         color: #ffffff;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.3px;
     }
 `;
 
@@ -293,24 +312,19 @@ export const VehicleInfoCard = ({
                 )}
             </CardHeader>
 
-            <InfoGrid>
-                <InfoItem>
-                    <InfoLabel>Marka</InfoLabel>
-                    <InfoValue>{vehicle.brand}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                    <InfoLabel>Model</InfoLabel>
-                    <InfoValue>{vehicle.model}</InfoValue>
-                </InfoItem>
+            <VehicleOverview>
+                <VehicleText>{vehicle.brand}</VehicleText>
+                <VehicleSeparator>•</VehicleSeparator>
+                <VehicleText>{vehicle.model}</VehicleText>
                 {vehicle.licensePlate && (
-                    <InfoItem style={{ gridColumn: '1 / -1' }}>
-                        <InfoLabel>Numer rejestracyjny</InfoLabel>
+                    <>
+                        <VehicleSeparator>•</VehicleSeparator>
                         <LicensePlate>{vehicle.licensePlate}</LicensePlate>
-                    </InfoItem>
+                    </>
                 )}
-            </InfoGrid>
+            </VehicleOverview>
 
-            <ToggleSection style={{ marginTop: '16px' }}>
+            <ToggleSection>
                 {vehicleHandoff?.isHandedOffByOtherPerson && (
                     <div style={{
                         padding: '12px',
