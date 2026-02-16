@@ -131,9 +131,10 @@ interface BrandSelectProps {
   onChange: (brand: string) => void;
   placeholder?: string;
   onBlur?: () => void;
+  autoOpen?: boolean;
 }
 
-export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', onBlur }: BrandSelectProps) => {
+export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', onBlur, autoOpen = false }: BrandSelectProps) => {
   const { data, isLoading } = useVehicleMetadata();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -196,6 +197,17 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [open, onBlur]);
+
+  // Auto-open when autoOpen is true and brands are available
+  useEffect(() => {
+    if (autoOpen && !isLoading && !open && brands.length > 0) {
+      // Small delay to ensure the component is fully rendered
+      const timer = setTimeout(() => {
+        setOpen(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [autoOpen, isLoading, brands.length]);
 
   return (
     <DropdownContainer ref={containerRef}>

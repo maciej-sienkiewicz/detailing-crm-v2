@@ -195,6 +195,7 @@ export const VehicleModal = ({ isOpen, vehicles, onClose, onSelect, allowSkip = 
                                 onChange={(val) =>
                                     setFormData({ ...formData, brand: val, model: '' })
                                 }
+                                autoOpen={true}
                             />
                             {errors.brand && <ErrorMessage>{errors.brand}</ErrorMessage>}
                         </FieldGroup>
