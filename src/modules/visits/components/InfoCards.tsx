@@ -167,23 +167,17 @@ const StatBadge = styled.div<{ $variant: 'success' | 'info' }>`
     `}
 `;
 
-const VehicleOverview = styled.div`
-    display: flex;
-    align-items: center;
+const VehicleOverview = styled.div<{ $columnCount: number }>`
+    display: grid;
+    grid-template-columns: repeat(${props => props.$columnCount}, 1fr);
     gap: ${props => props.theme.spacing.md};
-    flex-wrap: wrap;
     margin-bottom: ${props => props.theme.spacing.md};
 `;
 
-const VehicleText = styled.span`
-    font-size: ${props => props.theme.fontSizes.lg};
-    font-weight: 600;
-    color: ${props => props.theme.colors.text};
-`;
-
-const VehicleSeparator = styled.span`
-    color: ${props => props.theme.colors.textMuted};
-    font-weight: 300;
+const VehicleField = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 `;
 
 const LicensePlate = styled.div`
@@ -290,6 +284,11 @@ export const VehicleInfoCard = ({
         ? `Przebieg przy przyjęciu: ${mileageNumber} kilometrów`
         : 'Przebieg przy przyjęciu: brak danych';
 
+    // Calculate column count: license plate (optional) + brand + model + year (optional)
+    let columnCount = 2; // brand + model always present
+    if (vehicle.licensePlate) columnCount++;
+    if (vehicle.yearOfProduction) columnCount++;
+
     return (
         <Card>
             <CardHeader>
@@ -312,15 +311,26 @@ export const VehicleInfoCard = ({
                 )}
             </CardHeader>
 
-            <VehicleOverview>
-                <VehicleText>{vehicle.brand}</VehicleText>
-                <VehicleSeparator>•</VehicleSeparator>
-                <VehicleText>{vehicle.model}</VehicleText>
+            <VehicleOverview $columnCount={columnCount}>
                 {vehicle.licensePlate && (
-                    <>
-                        <VehicleSeparator>•</VehicleSeparator>
+                    <VehicleField>
+                        <InfoLabel>Numer rejestracyjny</InfoLabel>
                         <LicensePlate>{vehicle.licensePlate}</LicensePlate>
-                    </>
+                    </VehicleField>
+                )}
+                <VehicleField>
+                    <InfoLabel>Marka</InfoLabel>
+                    <InfoValue>{vehicle.brand}</InfoValue>
+                </VehicleField>
+                <VehicleField>
+                    <InfoLabel>Model</InfoLabel>
+                    <InfoValue>{vehicle.model}</InfoValue>
+                </VehicleField>
+                {vehicle.yearOfProduction && (
+                    <VehicleField>
+                        <InfoLabel>Rok produkcji</InfoLabel>
+                        <InfoValue>{vehicle.yearOfProduction}</InfoValue>
+                    </VehicleField>
                 )}
             </VehicleOverview>
 
