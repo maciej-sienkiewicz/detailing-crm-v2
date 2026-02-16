@@ -45,7 +45,7 @@ const MetricsGrid = styled.div`
     gap: ${props => props.theme.spacing.md};
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(3, 1fr);
     }
 `;
 
@@ -575,7 +575,6 @@ export const VehicleDetailView = () => {
     // Safe fallbacks for stats
     const stats = vehicle.stats ?? ({} as any);
     const totalSpent = stats.totalSpent ?? { grossAmount: 0, netAmount: 0, currency: 'PLN' };
-    const averageVisitCost = stats.averageVisitCost ?? { grossAmount: 0, currency: totalSpent.currency };
     const totalVisits = typeof stats.totalVisits === 'number' ? stats.totalVisits : 0;
     const lastVisitDate = stats.lastVisitDate ?? null;
 
@@ -656,19 +655,6 @@ export const VehicleDetailView = () => {
                     </MetricValue>
                 </MetricCard>
 
-                <MetricCard>
-                    <MetricIcon>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="18" y1="20" x2="18" y2="10" />
-                            <line x1="12" y1="20" x2="12" y2="4" />
-                            <line x1="6" y1="20" x2="6" y2="14" />
-                        </svg>
-                    </MetricIcon>
-                    <MetricLabel>{t.vehicles.detail.stats.averageCost}</MetricLabel>
-                    <MetricValue>
-                        {formatCurrency(averageVisitCost.grossAmount, averageVisitCost.currency)}
-                    </MetricValue>
-                </MetricCard>
             </MetricsGrid>
 
             {/* ─── Two-Column Content ─────────────────────── */}
