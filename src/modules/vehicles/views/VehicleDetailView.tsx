@@ -1,7 +1,7 @@
 // src/modules/vehicles/views/VehicleDetailView.tsx
 
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useVehicleDetail } from '../hooks/useVehicleDetail';
 import { useUpdateVehicle } from '../hooks/useUpdateVehicle';
@@ -9,6 +9,7 @@ import { VehicleHeader } from '../components/VehicleHeader';
 import { VehicleActivityTimeline } from '../components/VehicleActivityTimeline';
 import { VehicleVisitHistory } from '../components/VehicleVisitHistory';
 import { VehiclePhotoGallery } from '../components/VehiclePhotoGallery';
+import { VehicleDocuments } from '../components/VehicleDocuments';
 import { EditVehicleModal } from '../components/EditVehicleModal';
 import { EditOwnersModal } from '../components/EditOwnersModal';
 import { t } from '@/common/i18n';
@@ -258,6 +259,72 @@ const ButtonGroup = styled.div`
     }
 `;
 
+const OwnersList = styled.div`
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: ${props => props.theme.spacing.md};
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        grid-template-columns: repeat(2, 1fr);
+    }
+`;
+
+const OwnerCard = styled(Link)`
+    background: white;
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.lg};
+    padding: ${props => props.theme.spacing.lg};
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.md};
+
+    &:hover {
+        box-shadow: ${props => props.theme.shadows.md};
+        border-color: var(--brand-primary);
+        transform: translateY(-2px);
+    }
+`;
+
+const OwnerAvatar = styled.div`
+    width: 64px;
+    height: 64px;
+    border-radius: ${props => props.theme.radii.full};
+    background: linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 80%, black) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: white;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+`;
+
+const OwnerInfo = styled.div`
+    flex: 1;
+`;
+
+const OwnerName = styled.h4`
+    margin: 0 0 4px;
+    font-size: ${props => props.theme.fontSizes.lg};
+    font-weight: 600;
+    color: ${props => props.theme.colors.text};
+`;
+
+const OwnerRole = styled.span`
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: ${props => props.theme.radii.full};
+    font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: 600;
+    text-transform: uppercase;
+    background: #f0f9ff;
+    color: var(--brand-primary);
+`;
+
 const LoadingContainer = styled.div`
     display: flex;
     align-items: center;
@@ -312,11 +379,11 @@ const RetryButton = styled.button`
     }
 `;
 
-type TabValue = 'overview' | 'visits' | 'changes' | 'photos' | 'settings';
+type TabValue = 'visits' | 'owners' | 'info' | 'photos' | 'documents' | 'audit';
 
 export const VehicleDetailView = () => {
     const { vehicleId } = useParams<{ vehicleId: string }>();
-    const [activeTab, setActiveTab] = useState<TabValue>('overview');
+    const [activeTab, setActiveTab] = useState<TabValue>('visits');
     const [isEditingNotes, setIsEditingNotes] = useState(false);
     const [notes, setNotes] = useState('');
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -382,22 +449,22 @@ export const VehicleDetailView = () => {
             <TabsContainer>
                 <TabsList>
                     <TabButton
-                        $isActive={activeTab === 'overview'}
-                        onClick={() => setActiveTab('overview')}
-                    >
-                        {t.vehicles.detail.overview}
-                    </TabButton>
-                    <TabButton
                         $isActive={activeTab === 'visits'}
                         onClick={() => setActiveTab('visits')}
                     >
                         {t.vehicles.detail.visits} ({recentVisits.length})
                     </TabButton>
                     <TabButton
-                        $isActive={activeTab === 'changes'}
-                        onClick={() => setActiveTab('changes')}
+                        $isActive={activeTab === 'owners'}
+                        onClick={() => setActiveTab('owners')}
                     >
-                        {t.vehicles.detail.changes} ({activities.length})
+                        Właściciele ({vehicle.owners.length})
+                    </TabButton>
+                    <TabButton
+                        $isActive={activeTab === 'info'}
+                        onClick={() => setActiveTab('info')}
+                    >
+                        Informacje
                     </TabButton>
                     <TabButton
                         $isActive={activeTab === 'photos'}
@@ -406,14 +473,68 @@ export const VehicleDetailView = () => {
                         {t.vehicles.detail.photos} ({photos.length})
                     </TabButton>
                     <TabButton
-                        $isActive={activeTab === 'settings'}
-                        onClick={() => setActiveTab('settings')}
+                        $isActive={activeTab === 'documents'}
+                        onClick={() => setActiveTab('documents')}
                     >
-                        {t.vehicles.detail.settings}
+                        {t.vehicles.detail.documents}
+                    </TabButton>
+                    <TabButton
+                        $isActive={activeTab === 'audit'}
+                        onClick={() => setActiveTab('audit')}
+                    >
+                        Audyt ({activities.length})
                     </TabButton>
                 </TabsList>
 
-                {activeTab === 'overview' && (
+                {activeTab === 'visits' && (
+                    <TabContent>
+                        <VehicleVisitHistory visits={recentVisits} />
+                    </TabContent>
+                )}
+
+                {activeTab === 'owners' && (
+                    <TabContent>
+                        <InfoSection>
+                            <SectionHeader>
+                                <SectionTitle>{t.vehicles.detail.owners.title}</SectionTitle>
+                                <SectionEditButton onClick={() => setIsEditOwnersModalOpen(true)}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                    </svg>
+                                    {t.common.edit}
+                                </SectionEditButton>
+                            </SectionHeader>
+                        </InfoSection>
+                        <OwnersList>
+                            {vehicle.owners.map(owner => {
+                                const initials = owner.customerName
+                                    .split(' ')
+                                    .map(n => n[0])
+                                    .join('')
+                                    .toUpperCase()
+                                    .slice(0, 2);
+
+                                return (
+                                    <OwnerCard key={owner.customerId} to={`/customers/${owner.customerId}`}>
+                                        <OwnerAvatar>{initials}</OwnerAvatar>
+                                        <OwnerInfo>
+                                            <OwnerName>{owner.customerName}</OwnerName>
+                                            <OwnerRole>
+                                                {t.vehicles.detail.owners.role[owner.role]}
+                                            </OwnerRole>
+                                        </OwnerInfo>
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M9 18l6-6-6-6"/>
+                                        </svg>
+                                    </OwnerCard>
+                                );
+                            })}
+                        </OwnersList>
+                    </TabContent>
+                )}
+
+                {activeTab === 'info' && (
                     <TabContent>
                         <ContentGrid>
                             <div>
@@ -461,6 +582,10 @@ export const VehicleDetailView = () => {
                                                 <InfoValue>{vehicle.currentMileage.toLocaleString()} km</InfoValue>
                                             </InfoItem>
                                         )}
+                                        <InfoItem>
+                                            <InfoLabel>{t.vehicles.detail.technicalInfo.engineType}</InfoLabel>
+                                            <InfoValue>{t.vehicles.detail.engineType[vehicle.engineType.toLowerCase()]}</InfoValue>
+                                        </InfoItem>
                                     </InfoGrid>
                                 </InfoSection>
 
@@ -506,44 +631,7 @@ export const VehicleDetailView = () => {
                                     </NotesSection>
                                 )}
                             </div>
-
-                            <div>
-                                <InfoSection>
-                                    <SectionHeader>
-                                        <SectionTitle>{t.vehicles.detail.owners.title}</SectionTitle>
-                                        <SectionEditButton onClick={() => setIsEditOwnersModalOpen(true)}>
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                            </svg>
-                                            {t.common.edit}
-                                        </SectionEditButton>
-                                    </SectionHeader>
-                                    <InfoGrid>
-                                        {vehicle.owners.map(owner => (
-                                            <InfoItem key={owner.customerId}>
-                                                <InfoLabel>{owner.customerName}</InfoLabel>
-                                                <InfoValue>
-                                                    {t.vehicles.detail.owners.role[owner.role]}
-                                                </InfoValue>
-                                            </InfoItem>
-                                        ))}
-                                    </InfoGrid>
-                                </InfoSection>
-                            </div>
                         </ContentGrid>
-                    </TabContent>
-                )}
-
-                {activeTab === 'visits' && (
-                    <TabContent>
-                        <VehicleVisitHistory visits={recentVisits} />
-                    </TabContent>
-                )}
-
-                {activeTab === 'changes' && (
-                    <TabContent>
-                        <VehicleActivityTimeline activities={activities} />
                     </TabContent>
                 )}
 
@@ -556,14 +644,15 @@ export const VehicleDetailView = () => {
                     </TabContent>
                 )}
 
-                {activeTab === 'settings' && (
+                {activeTab === 'documents' && (
                     <TabContent>
-                        <InfoSection>
-                            <SectionTitle>{t.vehicles.detail.settings}</SectionTitle>
-                            <InfoValue>
-                                Panel zarządzania ustawieniami pojazdu będzie dostępny wkrótce.
-                            </InfoValue>
-                        </InfoSection>
+                        <VehicleDocuments vehicleId={vehicleId!} />
+                    </TabContent>
+                )}
+
+                {activeTab === 'audit' && (
+                    <TabContent>
+                        <VehicleActivityTimeline activities={activities} />
                     </TabContent>
                 )}
             </TabsContainer>

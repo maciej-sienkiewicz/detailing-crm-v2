@@ -459,6 +459,9 @@ export interface TranslationKeys {
             overview: string;
             visits: string;
             changes: string;
+            audit: string;
+            info: string;
+            ownersTab: string;
             documents: string;
             photos: string;
             settings: string;
