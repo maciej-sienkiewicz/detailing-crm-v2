@@ -219,7 +219,7 @@ export const UploadPhotoModal = ({ isOpen, onClose, vehicleId }: UploadPhotoModa
 
         try {
             await uploadPhotoAsync({
-                fileName: file.name,
+                file: file,
                 description: description || '',
             });
 
@@ -229,6 +229,8 @@ export const UploadPhotoModal = ({ isOpen, onClose, vehicleId }: UploadPhotoModa
             onClose();
         } catch (error) {
             console.error('Failed to upload photo:', error);
+            // Optionally show error to user
+            alert('Nie udało się dodać zdjęcia. Spróbuj ponownie.');
         }
     };
 
