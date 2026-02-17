@@ -8,7 +8,9 @@ import interactionPlugin from '@fullcalendar/interaction';
 import type { DateSelectArg, EventClickArg, DatesSetArg } from '@fullcalendar/core';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { operationApi } from '@/modules/operations';
+import { useToast } from '@/common/components/Toast';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
 import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
 import { QuickEventModal, type QuickEventFormData, type QuickEventModalRef } from './QuickEventModal';
@@ -540,6 +542,8 @@ interface CalendarViewProps {
 
 export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
+    const { showSuccess } = useToast();
     const calendarRef = useRef<FullCalendar>(null);
     const quickEventModalRef = useRef<QuickEventModalRef>(null);
     const [dateRange, setDateRange] = useState<DateRange | null>(null);
@@ -712,11 +716,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         try {
             await operationApi.cancelReservation(popoverEvent.id);
             setPopoverOpen(false);
-            // useCalendarEvents hook should refetch automatically
+            showSuccess('Rezerwacja porzucona', 'Rezerwacja została oznaczona jako porzucona.');
+            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
         } catch (error) {
             console.error('Failed to cancel reservation:', error);
         }
-    }, [popoverEvent]);
+    }, [popoverEvent, showSuccess, queryClient]);
 
     return (
         <CalendarContainer>
