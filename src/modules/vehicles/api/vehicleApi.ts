@@ -8,8 +8,6 @@ import type {
     CreateVehiclePayload,
     UpdateVehiclePayload,
     AssignOwnerPayload,
-    DocumentListResponse,
-    UploadDocumentPayload,
     UploadPhotoPayload,
     VehiclePhotoGalleryResponse,
     UploadVehiclePhotoPayload,
@@ -18,6 +16,9 @@ import type {
     VehicleListItem,
     VehicleVisitsResponse,
     VehicleAppointmentsResponse,
+    VehicleDocument,
+    VehicleDocumentUploadResponse,
+    UploadVehicleDocumentPayload,
 } from '../types';
 
 const BASE_PATH = '/v1/vehicles';
@@ -371,32 +372,70 @@ export const vehicleApi = {
         return response.data.data;
     },
 
-    getDocuments: async (vehicleId: string, page: number, limit: number): Promise<DocumentListResponse> => {
+    getDocuments: async (vehicleId: string): Promise<VehicleDocument[]> => {
         if (USE_MOCKS) {
             await new Promise(resolve => setTimeout(resolve, 400));
-            return {
-                data: [],
-                pagination: { currentPage: page, totalPages: 0, totalItems: 0, itemsPerPage: limit },
-            };
+            return [];
         }
-        const response = await apiClient.get(`${BASE_PATH}/${vehicleId}/documents`, {
-            params: { page, limit },
-        });
-        return response.data;
+        const response = await apiClient.get<{ documents: VehicleDocument[] }>(
+            `${BASE_PATH}/${vehicleId}/documents`
+        );
+        return response.data.documents;
     },
 
-    uploadDocument: async (vehicleId: string, payload: UploadDocumentPayload): Promise<void> => {
+    uploadDocument: async (vehicleId: string, payload: UploadVehicleDocumentPayload): Promise<VehicleDocument> => {
         if (USE_MOCKS) {
             await new Promise(resolve => setTimeout(resolve, 1500));
+            return {
+                id: `doc_${Date.now()}`,
+                name: payload.name || payload.file.name,
+                fileName: payload.file.name,
+                fileUrl: `https://s3.example.com/${payload.file.name}`,
+                uploadedAt: new Date().toISOString(),
+                uploadedByName: 'Current User',
+                source: 'VEHICLE',
+            };
+        }
+
+        // Step 1: Initiate upload — backend returns presigned S3 URL
+        const initiateResponse = await apiClient.post<VehicleDocumentUploadResponse>(
+            `${BASE_PATH}/${vehicleId}/documents`,
+            {
+                name: payload.name || payload.file.name,
+                fileName: payload.file.name,
+                contentType: payload.file.type || 'application/octet-stream',
+            }
+        );
+        const { documentId, uploadUrl } = initiateResponse.data;
+
+        // Step 2: Upload file binary directly to S3 (no auth headers)
+        const s3Response = await fetch(uploadUrl, {
+            method: 'PUT',
+            body: payload.file,
+            headers: { 'Content-Type': payload.file.type || 'application/octet-stream' },
+        });
+
+        if (!s3Response.ok) {
+            throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}`);
+        }
+
+        return {
+            id: documentId,
+            name: payload.name || payload.file.name,
+            fileName: payload.file.name,
+            fileUrl: '',
+            uploadedAt: new Date().toISOString(),
+            uploadedByName: '',
+            source: 'VEHICLE',
+        };
+    },
+
+    deleteDocument: async (vehicleId: string, documentId: string): Promise<void> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 300));
             return;
         }
-        const formData = new FormData();
-        formData.append('file', payload.file);
-        formData.append('category', payload.category);
-        formData.append('description', payload.description);
-        await apiClient.post(`${BASE_PATH}/${vehicleId}/documents`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        await apiClient.delete(`${BASE_PATH}/${vehicleId}/documents/${documentId}`);
     },
 
     uploadPhoto: async (vehicleId: string, payload: UploadPhotoPayload): Promise<void> => {

@@ -135,18 +135,31 @@ export interface AssignOwnerPayload {
     role: OwnershipRole;
 }
 
+export type DocumentSource = 'VEHICLE' | 'VISIT';
+
 export interface VehicleDocument {
     id: string;
-    vehicleId: string;
-    category: DocumentCategory;
+    name: string;
     fileName: string;
-    description: string;
-    fileSize: number;
-    mimeType: string;
-    documentUrl: string;
-    thumbnailUrl: string | null;
+    fileUrl: string;
     uploadedAt: string;
-    uploadedBy: string;
+    uploadedByName: string;
+    source: DocumentSource;
+}
+
+export interface VehicleDocumentsResponse {
+    documents: VehicleDocument[];
+}
+
+export interface UploadVehicleDocumentPayload {
+    file: File;
+    vehicleId: string;
+    name?: string;
+}
+
+export interface VehicleDocumentUploadResponse {
+    documentId: string;
+    uploadUrl: string;
 }
 
 export type PhotoSource = 'VEHICLE' | 'VISIT';
@@ -243,16 +256,6 @@ export interface VehicleDetailResponse {
     photos: VehiclePhoto[];
 }
 
-export interface DocumentListResponse {
-    data: VehicleDocument[];
-    pagination: PaginationMeta;
-}
-
-export interface UploadDocumentPayload {
-    file: File;
-    category: DocumentCategory;
-    description: string;
-}
 
 export interface UploadPhotoPayload {
     file: File;
