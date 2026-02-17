@@ -7,6 +7,8 @@ import type {
     Visit,
     CustomerVisitsResponse,
     PaginationMeta,
+    Reservation,
+    CustomerReservationsResponse,
 } from '../types';
 import type { CreateCustomerFormData } from './customerValidation';
 
@@ -40,6 +42,29 @@ interface BackendVisit {
 interface BackendVisitsResponse {
     visits: BackendVisit[];
     pagination: PaginationMeta;
+}
+
+// Backend appointment/reservation type
+interface BackendAppointment {
+    id: string;
+    customerId: string;
+    vehicle: {
+        brand: string;
+        model: string;
+        year: number;
+        licensePlate: string;
+    } | null;
+    schedule: {
+        isAllDay: boolean;
+        startDateTime: string;
+        endDateTime: string;
+    };
+    status: string;
+    totalNet: number;
+    totalGross: number;
+    totalVat: number;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export const formatCurrency = (amount: number, currency: string): string => {
@@ -147,9 +172,33 @@ export const mapBackendVisitToVisit = (backendVisit: BackendVisit): Visit => {
         },
         status: visitStatus,
         createdBy: backendVisit.createdBy || '',
+        technician: backendVisit.createdBy || '',
         notes: backendVisit.notes,
     };
 };
+
+export const mapBackendReservationToReservation = (appointment: BackendAppointment): Reservation => {
+    const vehicleName = appointment.vehicle
+        ? `${appointment.vehicle.brand} ${appointment.vehicle.model}`
+        : 'Nieznany pojazd';
+
+    return {
+        id: appointment.id,
+        date: appointment.schedule.startDateTime,
+        vehicleName,
+        licensePlate: appointment.vehicle?.licensePlate,
+        status: appointment.status.toUpperCase() as Reservation['status'],
+        totalCost: {
+            netAmount: appointment.totalNet / 100,
+            grossAmount: appointment.totalGross / 100,
+            currency: 'PLN',
+        },
+    };
+};
+
+export const mapBackendReservationsResponse = (appointments: BackendAppointment[]): CustomerReservationsResponse => ({
+    reservations: appointments.map(mapBackendReservationToReservation),
+});
 
 export const mapBackendVisitsResponse = (backendVisits: BackendVisitsResponse): CustomerVisitsResponse => ({
     visits: backendVisits.visits.map(mapBackendVisitToVisit),

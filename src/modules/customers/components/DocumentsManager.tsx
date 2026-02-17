@@ -13,6 +13,7 @@ const Container = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${props => props.theme.spacing.lg};
+    padding: ${props => props.theme.spacing.lg};
 `;
 
 const Header = styled.header`
@@ -126,9 +127,8 @@ const DocumentsGrid = styled.div`
 
 const EmptyState = styled.div`
     text-align: center;
-    padding: ${props => props.theme.spacing.xxl};
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
+    padding: ${props => props.theme.spacing.xxl} ${props => props.theme.spacing.lg};
+    background: ${props => props.theme.colors.surfaceAlt};
     border-radius: ${props => props.theme.radii.lg};
 `;
 

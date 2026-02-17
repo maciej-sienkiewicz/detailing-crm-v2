@@ -127,7 +127,10 @@ export interface Visit {
     date: string;
     vehicleId: string;
     vehicleName: string;
+    licensePlate?: string;
     description: string;
+    type?: string;
+    technician?: string;
     totalCost: {
         netAmount: number;
         grossAmount: number;
@@ -136,6 +139,25 @@ export interface Visit {
     status: 'completed' | 'in-progress' | 'scheduled' | 'cancelled';
     createdBy: string;
     notes: string;
+}
+
+export type ReservationStatus = 'CREATED' | 'ABANDONED' | 'CANCELLED' | 'CONVERTED';
+
+export interface Reservation {
+    id: string;
+    date: string;
+    vehicleName: string;
+    licensePlate?: string;
+    status: ReservationStatus;
+    totalCost: {
+        netAmount: number;
+        grossAmount: number;
+        currency: string;
+    };
+}
+
+export interface CustomerReservationsResponse {
+    reservations: Reservation[];
 }
 
 export interface CommunicationLog {
@@ -169,6 +191,7 @@ export interface CustomerVisitsResponse {
     visits: Visit[];
     communications?: CommunicationLog[];
     pagination: PaginationMeta;
+    reservations?: Reservation[];
 }
 
 export interface UpdateConsentPayload {

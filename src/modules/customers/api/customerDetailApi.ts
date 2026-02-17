@@ -11,8 +11,10 @@ import type {
     MarketingConsent,
     Visit,
     CommunicationLog,
+    Reservation,
+    CustomerReservationsResponse,
 } from '../types';
-import { mapBackendVehiclesResponse, mapBackendVisitsResponse } from '../utils/customerMappers';
+import { mapBackendVehiclesResponse, mapBackendVisitsResponse, mapBackendReservationsResponse } from '../utils/customerMappers';
 
 const CUSTOMERS_BASE_PATH = '/v1/customers';
 const USE_MOCKS = false;
@@ -52,6 +54,33 @@ interface BackendVisitsResponse {
         totalItems: number;
         itemsPerPage: number;
     };
+}
+
+// Backend appointment/reservation response type
+interface BackendAppointment {
+    id: string;
+    customerId: string;
+    vehicle: {
+        brand: string;
+        model: string;
+        year: number;
+        licensePlate: string;
+    } | null;
+    schedule: {
+        isAllDay: boolean;
+        startDateTime: string;
+        endDateTime: string;
+    };
+    status: string;
+    totalNet: number;
+    totalGross: number;
+    totalVat: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
+interface BackendAppointmentsListResponse {
+    appointments: BackendAppointment[];
 }
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -199,6 +228,25 @@ const mockVisits: Visit[] = [
         status: 'scheduled',
         createdBy: 'Marek Nowak',
         notes: 'Rezerwacja potwierdzona',
+    },
+];
+
+const mockReservations: Reservation[] = [
+    {
+        id: 'res-1',
+        date: '2025-03-15T10:00:00Z',
+        vehicleName: 'BMW X5',
+        licensePlate: 'WA 11111',
+        status: 'CREATED',
+        totalCost: { netAmount: 0, grossAmount: 0, currency: 'PLN' },
+    },
+    {
+        id: 'res-2',
+        date: '2024-10-05T14:00:00Z',
+        vehicleName: 'VW Golf GTI',
+        licensePlate: 'WA 12345',
+        status: 'ABANDONED',
+        totalCost: { netAmount: 0, grossAmount: 0, currency: 'PLN' },
     },
 ];
 
@@ -416,5 +464,28 @@ export const customerDetailApi = {
             payload
         );
         return response.data;
+    },
+
+    getCustomerReservations: async (customerId: string): Promise<CustomerReservationsResponse> => {
+        if (USE_MOCKS) {
+            await delay(300);
+            return { reservations: mockReservations };
+        }
+
+        const [createdResponse, abandonedResponse] = await Promise.all([
+            apiClient.get<BackendAppointmentsListResponse>(`/v1/appointments`, {
+                params: { customerId, status: 'CREATED', limit: '100' },
+            }),
+            apiClient.get<BackendAppointmentsListResponse>(`/v1/appointments`, {
+                params: { customerId, status: 'ABANDONED', limit: '100' },
+            }),
+        ]);
+
+        const allAppointments = [
+            ...(createdResponse.data.appointments || []),
+            ...(abandonedResponse.data.appointments || []),
+        ];
+
+        return mapBackendReservationsResponse(allAppointments);
     },
 };

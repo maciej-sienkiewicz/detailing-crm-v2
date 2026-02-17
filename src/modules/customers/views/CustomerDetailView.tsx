@@ -1,11 +1,12 @@
 // src/modules/customers/views/CustomerDetailView.tsx
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useCustomerDetail } from '../hooks/useCustomerDetail';
 import { useCustomerVehicles } from '../hooks/useCustomerVehicles';
 import { useCustomerVisits } from '../hooks/useCustomerVisits';
+import { useCustomerReservations } from '../hooks/useCustomerReservations';
 import { useUpdateConsent } from '../hooks/useUpdateConsent';
 import { useUpdateNotes } from '../hooks/useUpdateNotes';
 import { CustomerHeader } from '../components/CustomerHeader';
@@ -614,9 +615,19 @@ export const CustomerDetailView = () => {
     } = useCustomerVehicles(customerId!);
 
     const {
-        visits,
+        visits: rawVisits,
         communications,
     } = useCustomerVisits(customerId!, visitsPage, visitsLimit);
+
+    const { reservations } = useCustomerReservations(customerId!);
+
+    // Enrich visits with license plate from vehicles list
+    const visits = useMemo(() => {
+        return rawVisits.map(v => ({
+            ...v,
+            licensePlate: v.licensePlate || vehicles.find(vh => vh.id === v.vehicleId)?.licensePlate,
+        }));
+    }, [rawVisits, vehicles]);
 
     const { updateConsent, isUpdating: isConsentUpdating } = useUpdateConsent({
         customerId: customerId!,
@@ -734,7 +745,7 @@ export const CustomerDetailView = () => {
             <ContentLayout>
                 {/* ─── Left: Visit History + Secondary Tabs ── */}
                 <MainColumn>
-                    <CustomerVisitHistory visits={visits} />
+                    <CustomerVisitHistory visits={visits} reservations={reservations} />
 
                     {/* Secondary Tabs: Docs / Communications / Audit */}
                     <SecondarySection>

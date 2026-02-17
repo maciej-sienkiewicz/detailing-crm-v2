@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import styled from 'styled-components';
-import type { Visit } from '../types';
+import type { Visit, Reservation } from '../types';
 import { formatDateTime } from '@/common/utils';
 import { formatCurrency } from '../utils/customerMappers';
 
@@ -120,29 +120,32 @@ const VisitList = styled.div`
     overflow-y: auto;
 `;
 
-const VisitRow = styled.div<{ $status: string }>`
+const VisitRow = styled.div<{ $status: string; $isAbandoned?: boolean }>`
     display: grid;
     grid-template-columns: 4px 1fr auto;
     gap: 0;
     border-bottom: 1px solid ${props => props.theme.colors.border};
     transition: background 0.15s ease;
     cursor: pointer;
+    background: ${props => props.$isAbandoned ? '#fff5f5' : 'transparent'};
 
     &:last-child {
         border-bottom: none;
     }
 
     &:hover {
-        background: #f8fafc;
+        background: ${props => props.$isAbandoned ? '#fee2e2' : '#f8fafc'};
     }
 `;
 
 const VisitAccent = styled.div<{ $status: string }>`
     background: ${props => {
-        if (props.$status === 'scheduled') return '#f59e0b';
+        if (props.$status === 'scheduled' || props.$status === 'CREATED') return '#f59e0b';
         if (props.$status === 'in-progress') return 'var(--brand-primary)';
         if (props.$status === 'completed') return '#10b981';
-        if (props.$status === 'cancelled') return '#ef4444';
+        if (props.$status === 'cancelled' || props.$status === 'CANCELLED') return '#ef4444';
+        if (props.$status === 'ABANDONED') return '#ef4444';
+        if (props.$status === 'CONVERTED') return '#10b981';
         return '#94a3b8';
     }};
 `;
@@ -158,22 +161,69 @@ const VisitTitleRow = styled.div`
     display: flex;
     align-items: center;
     gap: ${props => props.theme.spacing.sm};
+    flex-wrap: wrap;
 `;
 
-const VisitTitle = styled.span`
+const LicensePlate = styled.div`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 8px 3px 18px;
+    background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 100%);
+    border: 2px solid #000000;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: #000000;
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    position: relative;
+    text-transform: uppercase;
+    width: fit-content;
+
+    &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 14px;
+        background: linear-gradient(180deg, #003399 0%, #002266 100%);
+        border-right: 1px solid #000000;
+        border-radius: 2px 0 0 2px;
+    }
+
+    &::after {
+        content: 'PL';
+        position: absolute;
+        left: 2px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 7px;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: 0.3px;
+    }
+`;
+
+const VehicleName = styled.span`
     font-size: ${props => props.theme.fontSizes.sm};
     font-weight: 600;
     color: ${props => props.theme.colors.text};
 `;
 
-const VisitTypeBadge = styled.span`
+const VisitTypeBadge = styled.span<{ $isReservation?: boolean }>`
     display: inline-flex;
     padding: 2px 8px;
     border-radius: ${props => props.theme.radii.sm};
     font-size: 11px;
     font-weight: 500;
-    background: ${props => props.theme.colors.surfaceHover};
-    color: ${props => props.theme.colors.textSecondary};
+    background: ${props => props.$isReservation ? '#ede9fe' : props.theme.colors.surfaceHover};
+    color: ${props => props.$isReservation ? '#5b21b6' : props.theme.colors.textSecondary};
     text-transform: uppercase;
     letter-spacing: 0.3px;
 `;
@@ -211,10 +261,11 @@ const VisitStatusBadge = styled.span<{ $status: string }>`
     font-weight: 600;
 
     ${props => {
-        if (props.$status === 'completed') return 'background: #dcfce7; color: #166534;';
+        if (props.$status === 'completed' || props.$status === 'CONVERTED') return 'background: #dcfce7; color: #166534;';
         if (props.$status === 'in-progress') return 'background: #dbeafe; color: #1e40af;';
-        if (props.$status === 'scheduled') return 'background: #fef3c7; color: #92400e;';
-        if (props.$status === 'cancelled') return 'background: #fee2e2; color: #991b1b;';
+        if (props.$status === 'scheduled' || props.$status === 'CREATED') return 'background: #fef3c7; color: #92400e;';
+        if (props.$status === 'cancelled' || props.$status === 'CANCELLED') return 'background: #fee2e2; color: #991b1b;';
+        if (props.$status === 'ABANDONED') return 'background: #fee2e2; color: #991b1b;';
         return 'background: #f3f4f6; color: #6b7280;';
     }}
 `;
@@ -254,68 +305,86 @@ const EmptyText = styled.p`
     font-size: ${props => props.theme.fontSizes.sm};
 `;
 
+/* ─── Unified entry type ──────────────────────────────── */
+
+type HistoryEntry =
+    | { kind: 'visit'; data: Visit }
+    | { kind: 'reservation'; data: Reservation };
+
 /* ─── Translations ────────────────────────────────────── */
 
-const visitTypeTranslations: Record<string, string> = {
-    service: 'Serwis',
-    repair: 'Naprawa',
-    inspection: 'Przegląd',
-    consultation: 'Konsultacja',
-};
-
-const visitStatusTranslations: Record<string, string> = {
-    completed: 'Zakończono',
+const statusTranslations: Record<string, string> = {
+    completed: 'Zakończona',
     'in-progress': 'W trakcie',
-    scheduled: 'Zaplanowano',
-    cancelled: 'Anulowano',
+    scheduled: 'Zaplanowana',
+    cancelled: 'Anulowana',
+    CREATED: 'Zaplanowana',
+    ABANDONED: 'Porzucona',
+    CANCELLED: 'Anulowana',
+    CONVERTED: 'Zrealizowana',
 };
 
 /* ─── Component ────────────────────────────────────────── */
 
 interface CustomerVisitHistoryProps {
     visits: Visit[];
+    reservations?: Reservation[];
 }
 
-export const CustomerVisitHistory = ({ visits }: CustomerVisitHistoryProps) => {
+export const CustomerVisitHistory = ({ visits, reservations = [] }: CustomerVisitHistoryProps) => {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [typeFilter, setTypeFilter] = useState<string>('all');
 
-    const filteredVisits = useMemo(() => {
-        let result = [...visits].sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    const allEntries: HistoryEntry[] = useMemo(() => {
+        const visitEntries: HistoryEntry[] = visits.map(v => ({ kind: 'visit', data: v }));
+        const reservationEntries: HistoryEntry[] = reservations.map(r => ({ kind: 'reservation', data: r }));
+        return [...visitEntries, ...reservationEntries].sort(
+            (a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
         );
+    }, [visits, reservations]);
+
+    const filtered = useMemo(() => {
+        let result = [...allEntries];
 
         if (search.trim()) {
             const query = search.toLowerCase();
-            result = result.filter(v =>
-                v.description.toLowerCase().includes(query) ||
-                v.technician?.toLowerCase().includes(query) ||
-                v.vehicleName?.toLowerCase().includes(query)
-            );
+            result = result.filter(entry => {
+                const plate = entry.data.licensePlate?.toLowerCase() ?? '';
+                const vehicle = entry.data.vehicleName?.toLowerCase() ?? '';
+                if (entry.kind === 'visit') {
+                    const tech = entry.data.technician?.toLowerCase() ?? '';
+                    return plate.includes(query) || vehicle.includes(query) || tech.includes(query);
+                }
+                return plate.includes(query) || vehicle.includes(query);
+            });
         }
 
         if (statusFilter !== 'all') {
-            result = result.filter(v => v.status === statusFilter);
+            result = result.filter(entry => entry.data.status === statusFilter);
         }
 
         if (typeFilter !== 'all') {
-            result = result.filter(v => v.type === typeFilter);
+            if (typeFilter === 'reservation') {
+                result = result.filter(entry => entry.kind === 'reservation');
+            } else if (typeFilter === 'visit') {
+                result = result.filter(entry => entry.kind === 'visit');
+            }
         }
 
         return result;
-    }, [visits, search, statusFilter, typeFilter]);
+    }, [allEntries, search, statusFilter, typeFilter]);
 
-    const uniqueStatuses = useMemo(() => [...new Set(visits.map(v => v.status))], [visits]);
-    const uniqueTypes = useMemo(() => [...new Set(visits.map(v => v.type))], [visits]);
+    const totalCount = visits.length + reservations.length;
 
     return (
         <Container>
             <Header>
                 <HeaderLeft>
-                    <Title>Historia wizyt</Title>
+                    <Title>Historia wizyt i rezerwacji</Title>
                     <Subtitle>
-                        {visits.length} {visits.length === 1 ? 'wizyta' : visits.length < 5 ? 'wizyty' : 'wizyt'} w systemie
+                        {visits.length} {visits.length === 1 ? 'wizyta' : visits.length < 5 ? 'wizyty' : 'wizyt'}
+                        {reservations.length > 0 && ` · ${reservations.length} ${reservations.length === 1 ? 'rezerwacja' : reservations.length < 5 ? 'rezerwacje' : 'rezerwacji'}`}
                     </Subtitle>
                 </HeaderLeft>
             </Header>
@@ -328,7 +397,7 @@ export const CustomerVisitHistory = ({ visits }: CustomerVisitHistoryProps) => {
                     </svg>
                     <input
                         type="text"
-                        placeholder="Szukaj wizyt..."
+                        placeholder="Szukaj po tablicy, pojeździe..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                     />
@@ -339,85 +408,97 @@ export const CustomerVisitHistory = ({ visits }: CustomerVisitHistoryProps) => {
                     onChange={e => setStatusFilter(e.target.value)}
                 >
                     <option value="all">Wszystkie statusy</option>
-                    {uniqueStatuses.map(status => (
-                        <option key={status} value={status}>
-                            {visitStatusTranslations[status] || status}
-                        </option>
-                    ))}
+                    <option value="completed">Zakończona</option>
+                    <option value="in-progress">W trakcie</option>
+                    <option value="scheduled">Zaplanowana</option>
+                    <option value="cancelled">Anulowana</option>
+                    <option value="CREATED">Rezerwacja aktywna</option>
+                    <option value="ABANDONED">Rezerwacja porzucona</option>
                 </FilterSelect>
 
                 <FilterSelect
                     value={typeFilter}
                     onChange={e => setTypeFilter(e.target.value)}
                 >
-                    <option value="all">Wszystkie typy</option>
-                    {uniqueTypes.map(type => (
-                        <option key={type} value={type}>
-                            {visitTypeTranslations[type] || type}
-                        </option>
-                    ))}
+                    <option value="all">Wizyty i rezerwacje</option>
+                    <option value="visit">Tylko wizyty</option>
+                    <option value="reservation">Tylko rezerwacje</option>
                 </FilterSelect>
 
                 {(search || statusFilter !== 'all' || typeFilter !== 'all') && (
                     <ResultCount>
-                        {filteredVisits.length} z {visits.length}
+                        {filtered.length} z {totalCount}
                     </ResultCount>
                 )}
             </FilterBar>
 
             <VisitList>
-                {filteredVisits.length === 0 ? (
+                {filtered.length === 0 ? (
                     <EmptyState>
                         <EmptyIcon>
-                            {visits.length === 0 ? '📋' : '🔍'}
+                            {totalCount === 0 ? '📋' : '🔍'}
                         </EmptyIcon>
                         <EmptyTitle>
-                            {visits.length === 0 ? 'Brak wizyt' : 'Brak wyników'}
+                            {totalCount === 0 ? 'Brak wizyt' : 'Brak wyników'}
                         </EmptyTitle>
                         <EmptyText>
-                            {visits.length === 0
-                                ? 'Nie znaleziono wizyt przypisanych do tego klienta'
+                            {totalCount === 0
+                                ? 'Nie znaleziono wizyt ani rezerwacji przypisanych do tego klienta'
                                 : 'Spróbuj zmienić kryteria wyszukiwania'
                             }
                         </EmptyText>
                     </EmptyState>
                 ) : (
-                    filteredVisits.map(visit => (
-                        <VisitRow key={visit.id} $status={visit.status}>
-                            <VisitAccent $status={visit.status} />
-                            <VisitContent>
-                                <VisitTitleRow>
-                                    <VisitTitle>{visit.description}</VisitTitle>
-                                    <VisitTypeBadge>
-                                        {visitTypeTranslations[visit.type] || visit.type}
-                                    </VisitTypeBadge>
-                                </VisitTitleRow>
-                                <VisitDetails>
-                                    <span>{formatDateTime(visit.date)}</span>
-                                    {visit.vehicleName && (
-                                        <>
-                                            <span>·</span>
-                                            <span>{visit.vehicleName}</span>
-                                        </>
+                    filtered.map(entry => {
+                        const isReservation = entry.kind === 'reservation';
+                        const status = entry.data.status;
+                        const isAbandoned = status === 'ABANDONED';
+
+                        return (
+                            <VisitRow key={`${entry.kind}-${entry.data.id}`} $status={status} $isAbandoned={isAbandoned}>
+                                <VisitAccent $status={status} />
+                                <VisitContent>
+                                    <VisitTitleRow>
+                                        {entry.data.licensePlate ? (
+                                            <LicensePlate>{entry.data.licensePlate}</LicensePlate>
+                                        ) : (
+                                            <VehicleName>{entry.data.vehicleName || '—'}</VehicleName>
+                                        )}
+                                        <VisitTypeBadge $isReservation={isReservation}>
+                                            {isReservation ? 'Rezerwacja' : 'Wizyta'}
+                                        </VisitTypeBadge>
+                                    </VisitTitleRow>
+                                    <VisitDetails>
+                                        <span>{formatDateTime(entry.data.date)}</span>
+                                        {entry.data.licensePlate && entry.data.vehicleName && (
+                                            <>
+                                                <span>·</span>
+                                                <span>{entry.data.vehicleName}</span>
+                                            </>
+                                        )}
+                                        {entry.kind === 'visit' && entry.data.technician && (
+                                            <>
+                                                <span>·</span>
+                                                <span>{entry.data.technician}</span>
+                                            </>
+                                        )}
+                                    </VisitDetails>
+                                </VisitContent>
+                                <VisitRight>
+                                    {entry.data.totalCost.grossAmount > 0 ? (
+                                        <VisitCost>
+                                            {formatCurrency(entry.data.totalCost.grossAmount, entry.data.totalCost.currency)}
+                                        </VisitCost>
+                                    ) : (
+                                        <VisitCost style={{ color: '#94a3b8' }}>—</VisitCost>
                                     )}
-                                    {visit.technician && (
-                                        <>
-                                            <span>·</span>
-                                            <span>{visit.technician}</span>
-                                        </>
-                                    )}
-                                </VisitDetails>
-                            </VisitContent>
-                            <VisitRight>
-                                <VisitCost>
-                                    {formatCurrency(visit.totalCost.grossAmount, visit.totalCost.currency)}
-                                </VisitCost>
-                                <VisitStatusBadge $status={visit.status}>
-                                    {visitStatusTranslations[visit.status] || visit.status}
-                                </VisitStatusBadge>
-                            </VisitRight>
-                        </VisitRow>
-                    ))
+                                    <VisitStatusBadge $status={status}>
+                                        {statusTranslations[status] || status}
+                                    </VisitStatusBadge>
+                                </VisitRight>
+                            </VisitRow>
+                        );
+                    })
                 )}
             </VisitList>
         </Container>
