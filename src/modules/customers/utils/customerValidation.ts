@@ -62,7 +62,6 @@ export const createCustomerSchema = z.object({
         .or(z.literal('')),
     homeAddress: homeAddressSchema.nullable().optional(),
     company: companyDetailsSchema.nullable().optional(),
-    notes: z.string().max(1000, t.customers.validation.notesMax),
 }).refine(
     (data) => {
         // Wymagane: Przynajmniej jedno z telefonu lub emaila
