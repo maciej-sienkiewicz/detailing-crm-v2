@@ -123,10 +123,11 @@ const VisitList = styled.div`
 
 const VisitRow = styled.div<{ $status: string; $isAbandoned?: boolean }>`
     display: grid;
-    grid-template-columns: 4px 1fr auto;
+    grid-template-columns: 4px 1fr auto auto;
     gap: 0;
+    align-items: center;
     transition: background 0.15s ease;
-    cursor: pointer;
+    cursor: default;
 
     &:hover {
         background: ${props => props.$isAbandoned ? '#fee2e2' : '#f8fafc'};
@@ -300,7 +301,7 @@ const EmptyText = styled.p`
     font-size: ${props => props.theme.fontSizes.sm};
 `;
 
-/* ─── Action Bar (inline, no clipping issues) ─────────── */
+/* ─── Row wrapper & hover actions ────────────────────────── */
 
 const EntryWrapper = styled.div<{ $isAbandoned?: boolean }>`
     border-bottom: 1px solid ${props => props.theme.colors.border};
@@ -311,25 +312,30 @@ const EntryWrapper = styled.div<{ $isAbandoned?: boolean }>`
     }
 `;
 
-const ActionBar = styled.div<{ $visible: boolean }>`
+const RowActions = styled.div`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
-    overflow: hidden;
-    max-height: ${props => props.$visible ? '52px' : '0px'};
-    padding: ${props => props.$visible ? `8px ${props.theme.spacing.lg}` : `0 ${props.theme.spacing.lg}`};
-    background: #f1f5f9;
-    border-top: ${props => props.$visible ? `1px solid ${props.theme.colors.border}` : 'none'};
-    transition: max-height 0.18s ease, padding 0.18s ease;
+    gap: 6px;
+    padding: 0 ${props => props.theme.spacing.md};
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(4px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+
+    ${EntryWrapper}:hover & {
+        opacity: 1;
+        pointer-events: all;
+        transform: translateX(0);
+    }
 `;
 
 const ActionBtn = styled.button<{ $primary?: boolean }>`
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
+    gap: 5px;
+    padding: 5px 11px;
     border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
     white-space: nowrap;
@@ -339,20 +345,21 @@ const ActionBtn = styled.button<{ $primary?: boolean }>`
         background: var(--brand-primary);
         color: white;
         border: 1px solid var(--brand-primary);
-        &:hover { opacity: 0.88; }
+        &:hover { opacity: 0.85; }
     ` : `
         background: white;
-        color: ${props.theme.colors.text};
+        color: ${props.theme.colors.textSecondary};
         border: 1px solid ${props.theme.colors.border};
         &:hover {
             border-color: var(--brand-primary);
             color: var(--brand-primary);
+            background: rgba(14, 165, 233, 0.04);
         }
     `}
 
     svg {
-        width: 14px;
-        height: 14px;
+        width: 13px;
+        height: 13px;
         flex-shrink: 0;
     }
 `;
@@ -388,12 +395,6 @@ export const CustomerVisitHistory = ({ visits, reservations = [] }: CustomerVisi
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [typeFilter, setTypeFilter] = useState<string>('all');
-    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-
-    const handleRowClick = (entryKey: string) => {
-        setOpenMenuId(prev => prev === entryKey ? null : entryKey);
-    };
-
     const allEntries: HistoryEntry[] = useMemo(() => {
         const visitEntries: HistoryEntry[] = visits.map(v => ({ kind: 'visit', data: v }));
         const reservationEntries: HistoryEntry[] = reservations.map(r => ({ kind: 'reservation', data: r }));
@@ -512,15 +513,10 @@ export const CustomerVisitHistory = ({ visits, reservations = [] }: CustomerVisi
                         const status = entry.data.status;
                         const isAbandoned = status === 'ABANDONED';
                         const entryKey = `${entry.kind}-${entry.data.id}`;
-                        const isExpanded = openMenuId === entryKey;
 
                         return (
                             <EntryWrapper key={entryKey} $isAbandoned={isAbandoned}>
-                                <VisitRow
-                                    $status={status}
-                                    $isAbandoned={isAbandoned}
-                                    onClick={() => handleRowClick(entryKey)}
-                                >
+                                <VisitRow $status={status} $isAbandoned={isAbandoned}>
                                     <VisitAccent $status={status} />
                                     <VisitContent>
                                         <VisitTitleRow>
@@ -549,6 +545,38 @@ export const CustomerVisitHistory = ({ visits, reservations = [] }: CustomerVisi
                                             )}
                                         </VisitDetails>
                                     </VisitContent>
+
+                                    <RowActions>
+                                        {isReservation ? (
+                                            <>
+                                                <ActionBtn
+                                                    $primary
+                                                    onClick={() => navigate(`/reservations/${entry.data.id}/checkin`)}
+                                                >
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M5 3l14 9-14 9V3z"/>
+                                                    </svg>
+                                                    Rozpocznij wizytę
+                                                </ActionBtn>
+                                                <ActionBtn onClick={() => navigate(`/appointments/${entry.data.id}/edit`)}>
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                    </svg>
+                                                    Edytuj
+                                                </ActionBtn>
+                                            </>
+                                        ) : (
+                                            <ActionBtn onClick={() => navigate(`/visits/${entry.data.id}`)}>
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                    <circle cx="12" cy="12" r="3"/>
+                                                </svg>
+                                                Podgląd
+                                            </ActionBtn>
+                                        )}
+                                    </RowActions>
+
                                     <VisitRight>
                                         {entry.data.totalCost.grossAmount > 0 ? (
                                             <VisitCost>
@@ -562,41 +590,6 @@ export const CustomerVisitHistory = ({ visits, reservations = [] }: CustomerVisi
                                         </VisitStatusBadge>
                                     </VisitRight>
                                 </VisitRow>
-
-                                <ActionBar $visible={isExpanded}>
-                                    {isReservation ? (
-                                        <>
-                                            <ActionBtn
-                                                $primary
-                                                onClick={e => { e.stopPropagation(); navigate(`/reservations/${entry.data.id}/checkin`); }}
-                                            >
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <path d="M5 3l14 9-14 9V3z"/>
-                                                </svg>
-                                                Rozpocznij wizytę
-                                            </ActionBtn>
-                                            <ActionBtn
-                                                onClick={e => { e.stopPropagation(); navigate(`/appointments/${entry.data.id}/edit`); }}
-                                            >
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                                </svg>
-                                                Edytuj rezerwację
-                                            </ActionBtn>
-                                        </>
-                                    ) : (
-                                        <ActionBtn
-                                            onClick={e => { e.stopPropagation(); navigate(`/visits/${entry.data.id}`); }}
-                                        >
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                                <circle cx="12" cy="12" r="3"/>
-                                            </svg>
-                                            Podgląd wizyty
-                                        </ActionBtn>
-                                    )}
-                                </ActionBar>
                             </EntryWrapper>
                         );
                     })
