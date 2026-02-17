@@ -56,40 +56,28 @@ export const createVehicleSchema = z.object({
 
 export type CreateVehicleFormData = z.infer<typeof createVehicleSchema>;
 
+const nullToUndefinedStr = (val: unknown) => (val === null || val === undefined ? undefined : val);
+const nullToUndefinedNum = (val: unknown) =>
+    val === null || val === undefined || Number.isNaN(val as number) ? undefined : val;
+
 export const updateVehicleSchema = z.object({
-    licensePlate: z
-        .string()
-        .optional(),
+    licensePlate: z.preprocess(nullToUndefinedStr, z.string().optional()),
 
-    brand: z
-        .string()
-        .min(1, t.vehicles.validation.brandMin),
+    brand: z.preprocess(nullToUndefinedStr, z.string().min(1, t.vehicles.validation.brandMin)),
 
-    model: z
-        .string()
-        .min(1, t.vehicles.validation.modelMin),
+    model: z.preprocess(nullToUndefinedStr, z.string().min(1, t.vehicles.validation.modelMin)),
 
-    yearOfProduction: z.preprocess(
-        val => (val === null || val === undefined || Number.isNaN(val as number) ? undefined : val),
-        z.number().optional()
-    ),
+    yearOfProduction: z.preprocess(nullToUndefinedNum, z.number().optional()),
 
-    color: z
-        .string()
-        .optional(),
+    color: z.preprocess(nullToUndefinedStr, z.string().optional()),
 
-    paintType: z
-        .string()
-        .optional(),
+    paintType: z.preprocess(nullToUndefinedStr, z.string().optional()),
 
     engineType: z
         .enum(['GASOLINE', 'DIESEL', 'HYBRID', 'ELECTRIC'])
         .optional(),
 
-    currentMileage: z.preprocess(
-        val => (val === null || val === undefined || Number.isNaN(val as number) ? undefined : val),
-        z.number().optional()
-    ),
+    currentMileage: z.preprocess(nullToUndefinedNum, z.number().optional()),
 
     status: z
         .enum(['active', 'sold', 'archived'])
