@@ -8,41 +8,166 @@ import type { AuditEntry } from '../../types/audit';
 /* ─── Action config ────────────────────────────────────── */
 
 const ACTION_LABELS: Record<string, string> = {
-    CREATE: 'Dodano do systemu',
-    UPDATE: 'Dane zaktualizowane',
-    DELETE: 'Usunięto',
-    PHOTO_ADDED: 'Dodano zdjęcie',
-    PHOTO_REMOVED: 'Usunięto zdjęcie',
-    OWNER_ADDED: 'Dodano właściciela',
-    OWNER_REMOVED: 'Usunięto właściciela',
-    DOCUMENT_ADDED: 'Dodano dokument',
-    DOCUMENT_REMOVED: 'Usunięto dokument',
-    NOTE_ADDED: 'Dodano notatkę',
-    NOTE_UPDATED: 'Zaktualizowano notatkę',
-    NOTE_REMOVED: 'Usunięto notatkę',
-    STATUS_CHANGED: 'Zmiana statusu',
-    SERVICE_ADDED: 'Dodano usługę',
-    SERVICE_UPDATED: 'Zaktualizowano usługę',
-    SERVICE_REMOVED: 'Usunięto usługę',
+    // CRUD
+    CREATE:                 'Dodano do systemu',
+    UPDATE:                 'Dane zaktualizowane',
+    DELETE:                 'Usunięto',
+
+    // Status transitions
+    STATUS_CHANGE:          'Zmiana statusu',
+    STATUS_CHANGED:         'Zmiana statusu',  // legacy alias
+
+    // Photos
+    PHOTO_ADDED:            'Dodano zdjęcie',
+    PHOTO_DELETED:          'Usunięto zdjęcie',
+    PHOTO_REMOVED:          'Usunięto zdjęcie', // legacy alias
+
+    // Documents
+    DOCUMENT_ADDED:         'Dodano dokument',
+    DOCUMENT_DELETED:       'Usunięto dokument',
+    DOCUMENT_REMOVED:       'Usunięto dokument', // legacy alias
+
+    // Comments
+    COMMENT_ADDED:          'Dodano komentarz',
+    COMMENT_UPDATED:        'Zaktualizowano komentarz',
+    COMMENT_DELETED:        'Usunięto komentarz',
+
+    // Notes
+    NOTE_ADDED:             'Dodano notatkę',
+    NOTE_UPDATED:           'Zaktualizowano notatkę',
+    NOTE_DELETED:           'Usunięto notatkę',
+    NOTE_REMOVED:           'Usunięto notatkę', // legacy alias
+
+    // Services (visit)
+    SERVICE_ADDED:          'Dodano usługę',
+    SERVICE_UPDATED:        'Zaktualizowano usługę',
+    SERVICE_REMOVED:        'Usunięto usługę',
+    SERVICES_UPDATED:       'Zaktualizowano usługi',
+
+    // Visit lifecycle
+    VISIT_CONFIRMED:        'Wizyta potwierdzona',
+    VISIT_CANCELLED:        'Wizyta anulowana',
+    VISIT_COMPLETED:        'Wizyta zakończona',
+    VISIT_REJECTED:         'Wizyta odrzucona',
+    VISIT_MARKED_READY:     'Pojazd gotowy do odbioru',
+    VISIT_ARCHIVED:         'Wizyta zarchiwizowana',
+    VISIT_ADDED:            'Dodano wizytę',
+
+    // Appointment
+    APPOINTMENT_CANCELLED:  'Termin anulowany',
+    APPOINTMENT_CONVERTED:  'Termin przekształcony w wizytę',
+    APPOINTMENT_ADDED:      'Dodano termin',
+
+    // Protocol
+    PROTOCOL_GENERATED:     'Wygenerowano protokół',
+    PROTOCOL_SIGNED:        'Podpisano protokół',
+
+    // Consent
+    CONSENT_GRANTED:        'Udzielono zgody',
+    CONSENT_REVOKED:        'Cofnięto zgodę',
+
+    // Lead
+    LEAD_CONVERTED:         'Lead przekształcony w klienta',
+    LEAD_ABANDONED:         'Lead porzucony',
+
+    // Inbound
+    CALL_ACCEPTED:          'Połączenie przyjęte',
+    CALL_REJECTED:          'Połączenie odrzucone',
+
+    // Vehicle
+    OWNER_ADDED:            'Dodano właściciela',
+    OWNER_REMOVED:          'Usunięto właściciela',
+
+    // Company
+    COMPANY_UPDATED:        'Dane firmy zaktualizowane',
+    COMPANY_DELETED:        'Firma usunięta',
 };
 
+// Semantic color palette
+const C_GREEN   = '#10b981'; // positive: create, complete, add, confirm
+const C_BLUE    = 'var(--brand-primary, #3b82f6)'; // neutral edit / update
+const C_RED     = '#ef4444'; // negative: delete, cancel, reject, revoke
+const C_AMBER   = '#f59e0b'; // milestone / ownership
+const C_PURPLE  = '#8b5cf6'; // media / photos
+const C_SKY     = '#0ea5e9'; // documents / protocols
+const C_CYAN    = '#06b6d4'; // status transitions
+const C_SLATE   = '#64748b'; // notes / comments
+const C_GRAY    = '#94a3b8'; // archived / abandoned / inactive
+
 const ACTION_COLORS: Record<string, string> = {
-    CREATE: '#10b981',
-    UPDATE: 'var(--brand-primary, #3b82f6)',
-    DELETE: '#ef4444',
-    PHOTO_ADDED: '#8b5cf6',
-    PHOTO_REMOVED: '#8b5cf6',
-    OWNER_ADDED: '#f59e0b',
-    OWNER_REMOVED: '#f59e0b',
-    DOCUMENT_ADDED: '#0ea5e9',
-    DOCUMENT_REMOVED: '#0ea5e9',
-    NOTE_ADDED: '#64748b',
-    NOTE_UPDATED: '#64748b',
-    NOTE_REMOVED: '#64748b',
-    STATUS_CHANGED: '#06b6d4',
-    SERVICE_ADDED: '#10b981',
-    SERVICE_UPDATED: 'var(--brand-primary, #3b82f6)',
-    SERVICE_REMOVED: '#ef4444',
+    // CRUD
+    CREATE:                 C_GREEN,
+    UPDATE:                 C_BLUE,
+    DELETE:                 C_RED,
+
+    // Status transitions
+    STATUS_CHANGE:          C_CYAN,
+    STATUS_CHANGED:         C_CYAN,
+
+    // Photos
+    PHOTO_ADDED:            C_PURPLE,
+    PHOTO_DELETED:          C_PURPLE,
+    PHOTO_REMOVED:          C_PURPLE,
+
+    // Documents
+    DOCUMENT_ADDED:         C_SKY,
+    DOCUMENT_DELETED:       C_SKY,
+    DOCUMENT_REMOVED:       C_SKY,
+
+    // Comments
+    COMMENT_ADDED:          C_SLATE,
+    COMMENT_UPDATED:        C_SLATE,
+    COMMENT_DELETED:        C_SLATE,
+
+    // Notes
+    NOTE_ADDED:             C_SLATE,
+    NOTE_UPDATED:           C_SLATE,
+    NOTE_DELETED:           C_SLATE,
+    NOTE_REMOVED:           C_SLATE,
+
+    // Services
+    SERVICE_ADDED:          C_GREEN,
+    SERVICE_UPDATED:        C_BLUE,
+    SERVICE_REMOVED:        C_RED,
+    SERVICES_UPDATED:       C_BLUE,
+
+    // Visit lifecycle
+    VISIT_CONFIRMED:        C_GREEN,
+    VISIT_CANCELLED:        C_RED,
+    VISIT_COMPLETED:        C_GREEN,
+    VISIT_REJECTED:         C_RED,
+    VISIT_MARKED_READY:     C_AMBER,
+    VISIT_ARCHIVED:         C_GRAY,
+    VISIT_ADDED:            C_GREEN,
+
+    // Appointment
+    APPOINTMENT_CANCELLED:  C_RED,
+    APPOINTMENT_CONVERTED:  C_GREEN,
+    APPOINTMENT_ADDED:      C_GREEN,
+
+    // Protocol
+    PROTOCOL_GENERATED:     C_SKY,
+    PROTOCOL_SIGNED:        C_GREEN,
+
+    // Consent
+    CONSENT_GRANTED:        C_GREEN,
+    CONSENT_REVOKED:        C_RED,
+
+    // Lead
+    LEAD_CONVERTED:         C_GREEN,
+    LEAD_ABANDONED:         C_GRAY,
+
+    // Inbound
+    CALL_ACCEPTED:          C_GREEN,
+    CALL_REJECTED:          C_RED,
+
+    // Vehicle
+    OWNER_ADDED:            C_AMBER,
+    OWNER_REMOVED:          C_AMBER,
+
+    // Company
+    COMPANY_UPDATED:        C_BLUE,
+    COMPANY_DELETED:        C_RED,
 };
 
 const FIELD_LABELS: Record<string, string> = {
@@ -405,19 +530,47 @@ function renderMetadata(entry: AuditEntry): React.ReactNode {
     const meta = entry.metadata;
     if (!meta || Object.keys(meta).length === 0) return null;
 
+    const { action } = entry;
     const tags: string[] = [];
 
-    if (entry.action === 'PHOTO_ADDED' || entry.action === 'PHOTO_REMOVED') {
+    if (action === 'PHOTO_ADDED' || action === 'PHOTO_DELETED' || action === 'PHOTO_REMOVED') {
         if (meta.fileName) tags.push(`Plik: ${meta.fileName}`);
         if (meta.photoId) tags.push(`ID: ${meta.photoId}`);
-    } else if (entry.action === 'OWNER_ADDED' || entry.action === 'OWNER_REMOVED') {
-        if (meta.customerName) tags.push(`Klient: ${meta.customerName}`);
-    } else if (entry.action === 'DOCUMENT_ADDED' || entry.action === 'DOCUMENT_REMOVED') {
-        if (meta.fileName) tags.push(`Plik: ${meta.fileName}`);
+    } else if (action === 'DOCUMENT_ADDED' || action === 'DOCUMENT_DELETED' || action === 'DOCUMENT_REMOVED') {
         if (meta.documentName) tags.push(`Nazwa: ${meta.documentName}`);
-    } else if (entry.action === 'STATUS_CHANGED') {
+        if (meta.fileName) tags.push(`Plik: ${meta.fileName}`);
+    } else if (action === 'COMMENT_ADDED' || action === 'COMMENT_UPDATED' || action === 'COMMENT_DELETED') {
+        if (meta.commentType) tags.push(`Typ: ${meta.commentType}`);
+    } else if (action === 'NOTE_ADDED' || action === 'NOTE_UPDATED' || action === 'NOTE_DELETED' || action === 'NOTE_REMOVED') {
+        if (meta.noteId) tags.push(`ID: ${meta.noteId}`);
+    } else if (action === 'OWNER_ADDED' || action === 'OWNER_REMOVED') {
+        if (meta.customerName) tags.push(`Klient: ${meta.customerName}`);
+        if (meta.role) tags.push(`Rola: ${meta.role}`);
+    } else if (action === 'STATUS_CHANGE' || action === 'STATUS_CHANGED') {
         if (meta.fromStatus) tags.push(`Z: ${meta.fromStatus}`);
         if (meta.toStatus) tags.push(`Na: ${meta.toStatus}`);
+    } else if (action === 'SERVICE_ADDED' || action === 'SERVICE_UPDATED' || action === 'SERVICE_REMOVED') {
+        if (meta.serviceName) tags.push(`Usługa: ${meta.serviceName}`);
+        if (meta.serviceId) tags.push(`ID: ${meta.serviceId}`);
+    } else if (action === 'SERVICES_UPDATED') {
+        if (meta.count !== undefined) tags.push(`Liczba zmian: ${meta.count}`);
+    } else if (action === 'VISIT_CONFIRMED' || action === 'VISIT_CANCELLED' || action === 'VISIT_COMPLETED'
+            || action === 'VISIT_REJECTED' || action === 'VISIT_MARKED_READY' || action === 'VISIT_ARCHIVED'
+            || action === 'VISIT_ADDED') {
+        if (meta.visitNumber) tags.push(`Nr wizyty: ${meta.visitNumber}`);
+    } else if (action === 'APPOINTMENT_CANCELLED' || action === 'APPOINTMENT_CONVERTED' || action === 'APPOINTMENT_ADDED') {
+        if (meta.appointmentTitle) tags.push(`Temat: ${meta.appointmentTitle}`);
+        if (meta.appointmentId) tags.push(`ID: ${meta.appointmentId}`);
+    } else if (action === 'PROTOCOL_GENERATED' || action === 'PROTOCOL_SIGNED') {
+        if (meta.protocolId) tags.push(`ID: ${meta.protocolId}`);
+        if (meta.protocolType) tags.push(`Typ: ${meta.protocolType}`);
+    } else if (action === 'CONSENT_GRANTED' || action === 'CONSENT_REVOKED') {
+        if (meta.consentType) tags.push(`Rodzaj: ${meta.consentType}`);
+    } else if (action === 'LEAD_CONVERTED' || action === 'LEAD_ABANDONED') {
+        if (meta.leadName) tags.push(`Lead: ${meta.leadName}`);
+    } else if (action === 'CALL_ACCEPTED' || action === 'CALL_REJECTED') {
+        if (meta.phoneNumber) tags.push(`Numer: ${meta.phoneNumber}`);
+        if (meta.duration) tags.push(`Czas: ${meta.duration}`);
     } else {
         Object.entries(meta).forEach(([k, v]) => {
             if (v !== null && v !== undefined && v !== '') {
