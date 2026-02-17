@@ -1,12 +1,11 @@
 // src/modules/customers/components/DocumentCard.tsx
 
 import styled from 'styled-components';
-import { customerEditApi } from '../api/customerEditApi';
-import type { CustomerDocument, DocumentCategory } from '../types';
+import type { CustomerDocument } from '../types';
 import { formatDateTime } from '@/common/utils';
 
 const Card = styled.article<{ $isClickable?: boolean }>`
-    background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+    background: white;
     border: 1px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.lg};
     padding: ${props => props.theme.spacing.md};
@@ -14,6 +13,9 @@ const Card = styled.article<{ $isClickable?: boolean }>`
     position: relative;
     overflow: hidden;
     cursor: ${props => props.$isClickable ? 'pointer' : 'default'};
+    display: flex;
+    flex-direction: column;
+    gap: ${props => props.theme.spacing.md};
 
     &::before {
         content: '';
@@ -21,17 +23,16 @@ const Card = styled.article<{ $isClickable?: boolean }>`
         top: 0;
         left: 0;
         right: 0;
-        height: 4px;
+        height: 3px;
         background: linear-gradient(90deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 70%, white) 100%);
         transform: scaleX(0);
         transform-origin: left;
-        transition: transform 0.3s ease;
+        transition: transform 0.25s ease;
     }
 
     &:hover {
-        border-color: var(--brand-primary);
-        box-shadow: ${props => props.theme.shadows.lg};
-        transform: translateY(-2px);
+        border-color: color-mix(in srgb, var(--brand-primary) 40%, transparent);
+        box-shadow: ${props => props.theme.shadows.md};
 
         &::before {
             transform: scaleX(1);
@@ -39,36 +40,32 @@ const Card = styled.article<{ $isClickable?: boolean }>`
     }
 `;
 
-const CardHeader = styled.header`
+const CardBody = styled.div`
     display: flex;
     gap: ${props => props.theme.spacing.md};
-    margin-bottom: ${props => props.theme.spacing.md};
+    align-items: flex-start;
 `;
 
-const FileIcon = styled.div<{ $category: DocumentCategory }>`
+const FileIcon = styled.div<{ $ext: string }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     border-radius: ${props => props.theme.radii.md};
     flex-shrink: 0;
 
-    ${({ $category }) => {
-    const styles: Record<DocumentCategory, string> = {
-        contracts: 'background: #dbeafe; color: #1e40af;',
-        invoices: 'background: #dcfce7; color: #166534;',
-        correspondence: 'background: #fef3c7; color: #92400e;',
-        identity: 'background: #f3e8ff; color: #6b21a8;',
-        consents: 'background: #fce7f3; color: #be185d;',
-        other: 'background: #f3f4f6; color: #6b7280;',
-    };
-    return styles[$category];
-}}
+    ${({ $ext }) => {
+        if ($ext === 'pdf') return 'background: #fee2e2; color: #dc2626;';
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes($ext)) return 'background: #dbeafe; color: #2563eb;';
+        if (['doc', 'docx'].includes($ext)) return 'background: #dbeafe; color: #1d4ed8;';
+        if (['xls', 'xlsx'].includes($ext)) return 'background: #dcfce7; color: #16a34a;';
+        return 'background: #f3f4f6; color: #6b7280;';
+    }}
 
     svg {
-        width: 24px;
-        height: 24px;
+        width: 22px;
+        height: 22px;
     }
 `;
 
@@ -77,77 +74,36 @@ const FileInfo = styled.div`
     min-width: 0;
 `;
 
-const FileName = styled.h3`
-    margin: 0 0 4px;
+const DocumentName = styled.div`
     font-size: ${props => props.theme.fontSizes.sm};
     font-weight: 600;
     color: ${props => props.theme.colors.text};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-bottom: 2px;
 `;
 
-const FileDescription = styled.p`
-    margin: 0;
+const FileName = styled.div`
     font-size: ${props => props.theme.fontSizes.xs};
     color: ${props => props.theme.colors.textMuted};
-    line-height: 1.4;
-`;
-
-const FileMeta = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: ${props => props.theme.spacing.sm};
-    margin-bottom: ${props => props.theme.spacing.md};
-`;
-
-const MetaBadge = styled.span<{ $variant?: string }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    border-radius: ${props => props.theme.radii.full};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 600;
-    background: ${props => props.theme.colors.surfaceAlt};
-    color: ${props => props.theme.colors.textSecondary};
-`;
-
-const CategoryBadge = styled.span<{ $category: DocumentCategory }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    border-radius: ${props => props.theme.radii.full};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-
-    ${({ $category }) => {
-    const styles: Record<DocumentCategory, string> = {
-        contracts: 'background: #dbeafe; color: #1e40af;',
-        invoices: 'background: #dcfce7; color: #166534;',
-        correspondence: 'background: #fef3c7; color: #92400e;',
-        identity: 'background: #f3e8ff; color: #6b21a8;',
-        consents: 'background: #fce7f3; color: #be185d;',
-        other: 'background: #f3f4f6; color: #6b7280;',
-    };
-    return styles[$category];
-}}
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 `;
 
 const CardFooter = styled.footer`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: ${props => props.theme.spacing.md};
+    padding-top: ${props => props.theme.spacing.sm};
     border-top: 1px solid ${props => props.theme.colors.border};
 `;
 
 const UploadInfo = styled.div`
     font-size: ${props => props.theme.fontSizes.xs};
     color: ${props => props.theme.colors.textMuted};
+    line-height: 1.5;
 `;
 
 const Actions = styled.div`
@@ -163,7 +119,7 @@ const ActionButton = styled.button`
     height: 32px;
     border: none;
     border-radius: ${props => props.theme.radii.md};
-    background: ${props => props.theme.colors.surface};
+    background: ${props => props.theme.colors.surfaceAlt};
     color: ${props => props.theme.colors.textMuted};
     cursor: pointer;
     transition: all 0.2s ease;
@@ -171,16 +127,11 @@ const ActionButton = styled.button`
     &:hover {
         background: var(--brand-primary);
         color: white;
-        transform: scale(1.1);
-    }
-
-    &:active {
-        transform: scale(0.95);
     }
 
     svg {
-        width: 16px;
-        height: 16px;
+        width: 15px;
+        height: 15px;
     }
 `;
 
@@ -191,32 +142,33 @@ const DeleteButton = styled(ActionButton)`
     }
 `;
 
-const categoryLabels: Record<DocumentCategory, string> = {
-    contracts: 'Umowa',
-    invoices: 'Faktura',
-    correspondence: 'Korespondencja',
-    identity: 'Dokument tożsamości',
-    consents: 'Zgoda',
-    other: 'Inne',
-};
-
-const fileIcons: Record<string, React.ReactNode> = {
-    pdf: (
-        <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14,2 14,8 20,8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/>
-            <line x1="16" y1="17" x2="8" y2="17"/>
-            <polyline points="10,9 9,9 8,9"/>
-        </svg>
-    ),
-    default: (
+function getFileIcon(ext: string) {
+    if (ext === 'pdf') {
+        return (
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline fill="none" stroke="currentColor" strokeWidth="2" points="14,2 14,8 20,8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+        );
+    }
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21,15 16,10 5,21"/>
+            </svg>
+        );
+    }
+    return (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <polyline points="14,2 14,8 20,8"/>
         </svg>
-    ),
-};
+    );
+}
 
 interface DocumentCardProps {
     document: CustomerDocument;
@@ -226,12 +178,10 @@ interface DocumentCardProps {
 }
 
 export const DocumentCard = ({ document, onDelete, onImageClick, isDeleting = false }: DocumentCardProps) => {
-    const isImage = document.type === 'PHOTO' ||
-                    document.fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-    const isPDF = document.type === 'PDF' ||
-                  document.fileName.match(/\.pdf$/i);
-
-    const isViewable = !!(isImage || isPDF);
+    const ext = document.fileName.split('.').pop()?.toLowerCase() || '';
+    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+    const isPDF = ext === 'pdf';
+    const isViewable = isImage || isPDF;
 
     const handleCardClick = () => {
         if (isViewable && onImageClick) {
@@ -239,53 +189,36 @@ export const DocumentCard = ({ document, onDelete, onImageClick, isDeleting = fa
         }
     };
 
-    const handleDownload = async (e: React.MouseEvent) => {
+    const handleDownload = (e: React.MouseEvent) => {
         e.stopPropagation();
-        try {
-            const downloadUrl = await customerEditApi.getDocumentDownload(document.id);
-            window.open(downloadUrl, '_blank');
-        } catch (error) {
-            console.error('Download failed:', error);
-        }
+        window.open(document.fileUrl, '_blank');
     };
 
     const handleDelete = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (confirm(`Czy na pewno chcesz usunąć dokument "${document.fileName}"?`)) {
+        if (confirm(`Czy na pewno chcesz usunąć dokument "${document.name}"?`)) {
             onDelete(document.id);
         }
     };
 
-    const fileExtension = document.fileName.split('.').pop()?.toLowerCase() || 'default';
-    const icon = fileIcons[fileExtension] || fileIcons.default;
-
-    // Map category or use 'other' as default
-    const category = (document.category as DocumentCategory) || 'other';
-
     return (
         <Card $isClickable={isViewable} onClick={handleCardClick}>
-            <CardHeader>
-                <FileIcon $category={category}>
-                    {icon}
+            <CardBody>
+                <FileIcon $ext={ext}>
+                    {getFileIcon(ext)}
                 </FileIcon>
                 <FileInfo>
+                    <DocumentName title={document.name}>{document.name}</DocumentName>
                     <FileName title={document.fileName}>{document.fileName}</FileName>
-                    <FileDescription>{document.name}</FileDescription>
                 </FileInfo>
-            </CardHeader>
-
-            <FileMeta>
-                <CategoryBadge $category={category}>
-                    {categoryLabels[category]}
-                </CategoryBadge>
-                <MetaBadge>{document.type}</MetaBadge>
-            </FileMeta>
+            </CardBody>
 
             <CardFooter>
                 <UploadInfo>
-                    Dodano: {formatDateTime(document.uploadedAt)}
-                    <br />
-                    przez {document.uploadedByName}
+                    {formatDateTime(document.uploadedAt)}
+                    {document.uploadedByName && (
+                        <><br />przez {document.uploadedByName}</>
+                    )}
                 </UploadInfo>
 
                 <Actions>

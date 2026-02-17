@@ -6,8 +6,7 @@ import { useCustomerDocuments, useDeleteDocument } from '../hooks/useCustomerDoc
 import { DocumentCard } from './DocumentCard';
 import { UploadDocumentModal } from './UploadDocumentModal';
 import { ImageViewerModal } from './ImageViewerModal';
-import { customerEditApi } from '../api/customerEditApi';
-import type { DocumentCategory, CustomerDocument } from '../types';
+import type { CustomerDocument } from '../types';
 
 const Container = styled.div`
     display: flex;
@@ -95,21 +94,6 @@ const SearchInput = styled.input`
     }
 `;
 
-const CategoryFilter = styled.select`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    background: white;
-    color: ${props => props.theme.colors.text};
-    cursor: pointer;
-    transition: border-color 0.2s ease;
-
-    &:focus {
-        outline: none;
-        border-color: var(--brand-primary);
-    }
-`;
 
 const DocumentsGrid = styled.div`
     display: grid;
@@ -243,7 +227,6 @@ interface DocumentsManagerProps {
 export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState<DocumentCategory | ''>('');
     const [page, setPage] = useState(1);
     const limit = 9;
 
@@ -255,22 +238,13 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
 
     // Filter documents on frontend
     const filteredDocuments = useMemo(() => {
-        let filtered = allDocuments;
-
-        if (searchQuery) {
-            const searchLower = searchQuery.toLowerCase();
-            filtered = filtered.filter(doc =>
-                doc.fileName.toLowerCase().includes(searchLower) ||
-                doc.name.toLowerCase().includes(searchLower)
-            );
-        }
-
-        if (categoryFilter) {
-            filtered = filtered.filter(doc => doc.category === categoryFilter);
-        }
-
-        return filtered;
-    }, [allDocuments, searchQuery, categoryFilter]);
+        if (!searchQuery) return allDocuments;
+        const searchLower = searchQuery.toLowerCase();
+        return allDocuments.filter(doc =>
+            doc.fileName.toLowerCase().includes(searchLower) ||
+            doc.name.toLowerCase().includes(searchLower)
+        );
+    }, [allDocuments, searchQuery]);
 
     // Pagination on frontend
     const { documents, pagination } = useMemo(() => {
@@ -297,11 +271,9 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
 
     // Get viewable documents (images and PDFs) for viewer navigation
     const viewableDocuments = useMemo(() => {
-        return allDocuments.filter(doc => {
-            const isImage = doc.type === 'PHOTO' || doc.fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-            const isPDF = doc.type === 'PDF' || doc.fileName.match(/\.pdf$/i);
-            return isImage || isPDF;
-        });
+        return allDocuments.filter(doc =>
+            doc.fileName.match(/\.(jpg|jpeg|png|gif|webp|pdf)$/i)
+        );
     }, [allDocuments]);
 
     const handleImageClick = (document: CustomerDocument) => {
@@ -324,21 +296,15 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
         }
     };
 
-    const handleDownloadCurrentImage = async () => {
-        try {
-            const currentDoc = viewableDocuments[currentImageIndex];
-            const downloadUrl = await customerEditApi.getDocumentDownload(currentDoc.id);
-            window.open(downloadUrl, '_blank');
-        } catch (error) {
-            console.error('Download failed:', error);
+    const handleDownloadCurrentImage = () => {
+        const currentDoc = viewableDocuments[currentImageIndex];
+        if (currentDoc) {
+            window.open(currentDoc.fileUrl, '_blank');
         }
     };
 
     const currentDocument = viewableDocuments[currentImageIndex];
-    const currentDocumentIsPDF = !!(currentDocument && (
-        currentDocument.type === 'PDF' ||
-        currentDocument.fileName.match(/\.pdf$/i)
-    ));
+    const currentDocumentIsPDF = !!(currentDocument?.fileName.match(/\.pdf$/i));
 
     if (isLoading) {
         return (
@@ -383,21 +349,6 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
                         setPage(1);
                     }}
                 />
-                <CategoryFilter
-                    value={categoryFilter}
-                    onChange={e => {
-                        setCategoryFilter(e.target.value as DocumentCategory | '');
-                        setPage(1);
-                    }}
-                >
-                    <option value="">Wszystkie kategorie</option>
-                    <option value="contracts">Umowy</option>
-                    <option value="invoices">Faktury</option>
-                    <option value="correspondence">Korespondencja</option>
-                    <option value="identity">Dokumenty tożsamości</option>
-                    <option value="consents">Zgody</option>
-                    <option value="other">Inne</option>
-                </CategoryFilter>
             </Filters>
 
             {documents.length === 0 ? (
@@ -409,13 +360,10 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
                         </svg>
                     </EmptyIcon>
                     <EmptyTitle>
-                        {searchQuery || categoryFilter
-                            ? 'Nie znaleziono dokumentów'
-                            : 'Brak dokumentów'
-                        }
+                        {searchQuery ? 'Nie znaleziono dokumentów' : 'Brak dokumentów'}
                     </EmptyTitle>
                     <EmptyDescription>
-                        {searchQuery || categoryFilter
+                        {searchQuery
                             ? 'Spróbuj zmienić kryteria wyszukiwania'
                             : 'Dodaj pierwszy dokument klikając przycisk powyżej'
                         }

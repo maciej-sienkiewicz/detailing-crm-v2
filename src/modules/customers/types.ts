@@ -235,16 +235,11 @@ export type DocumentType = 'PHOTO' | 'PDF' | 'PROTOCOL' | 'INTAKE' | 'OUTTAKE' |
 
 export interface CustomerDocument {
     id: string;
-    customerId: string;
-    visitId?: string;
-    type: DocumentType;
     name: string;
     fileName: string;
     fileUrl: string;
     uploadedAt: string;
-    uploadedBy: string;
     uploadedByName: string;
-    category?: string;
 }
 
 export type DocumentCategory =
@@ -263,10 +258,7 @@ export interface DocumentListResponse {
 export interface UploadDocumentPayload {
     file: File;
     customerId: string;
-    visitId?: string;
-    type: DocumentType;
     name?: string;
-    category?: string;
 }
 
 export interface DocumentDownloadResponse {

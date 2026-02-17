@@ -4,7 +4,6 @@ import { useState, useRef, ChangeEvent } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import styled, { keyframes } from 'styled-components';
 import { useUploadDocument } from '../hooks/useUploadDocument';
-import type { DocumentCategory, DocumentType } from '../types';
 import { t } from '@/common/i18n';
 
 const fadeIn = keyframes`
@@ -310,8 +309,6 @@ export const UploadDocumentModal = ({
                                         customerId
                                     }: UploadDocumentModalProps) => {
     const [file, setFile] = useState<File | null>(null);
-    const [type, setType] = useState<DocumentType>('OTHER');
-    const [category, setCategory] = useState<DocumentCategory>('other');
     const [name, setName] = useState('');
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -326,8 +323,6 @@ export const UploadDocumentModal = ({
 
     const handleReset = () => {
         setFile(null);
-        setType('OTHER');
-        setCategory('other');
         setName('');
         setIsDragging(false);
     };
@@ -366,9 +361,7 @@ export const UploadDocumentModal = ({
         uploadDocument({
             file,
             customerId,
-            type,
             name: name || file.name,
-            category,
         });
     };
 
@@ -433,37 +426,6 @@ export const UploadDocumentModal = ({
                                 onChange={handleFileChange}
                                 accept=".pdf,.docx,.doc,.jpg,.jpeg,.png,.xlsx"
                             />
-
-                            <FormField>
-                                <Label>Typ dokumentu</Label>
-                                <Select
-                                    value={type}
-                                    onChange={e => setType(e.target.value as DocumentType)}
-                                >
-                                    <option value="PHOTO">Zdjęcie</option>
-                                    <option value="PDF">PDF</option>
-                                    <option value="PROTOCOL">Protokół</option>
-                                    <option value="INTAKE">Przyjęcie</option>
-                                    <option value="OUTTAKE">Wydanie</option>
-                                    <option value="DAMAGE_MAP">Mapa uszkodzeń</option>
-                                    <option value="OTHER">Inne</option>
-                                </Select>
-                            </FormField>
-
-                            <FormField>
-                                <Label>Kategoria</Label>
-                                <Select
-                                    value={category}
-                                    onChange={e => setCategory(e.target.value as DocumentCategory)}
-                                >
-                                    <option value="contracts">Umowy</option>
-                                    <option value="invoices">Faktury</option>
-                                    <option value="correspondence">Korespondencja</option>
-                                    <option value="identity">Dokumenty tożsamości</option>
-                                    <option value="consents">Zgody</option>
-                                    <option value="other">Inne</option>
-                                </Select>
-                            </FormField>
 
                             <FormField>
                                 <Label>Nazwa dokumentu</Label>

@@ -8,7 +8,6 @@ import type {
     UpdateNotesPayload,
     CustomerDocument,
     UploadDocumentPayload,
-    DocumentDownloadResponse,
     CompanyDetails,
 } from '../types';
 
@@ -81,39 +80,27 @@ const mockUpdateNotes = async (
 const mockDocuments: CustomerDocument[] = [
     {
         id: 'doc_001',
-        customerId: 'cust_123',
-        type: 'PDF',
         name: 'Umowa serwisowa - pakiet Gold',
         fileName: 'umowa_serwisowa_2023.pdf',
         fileUrl: 'https://s3.example.com/doc1.pdf',
         uploadedAt: '2023-06-15T10:30:00Z',
-        uploadedBy: 'user_123',
         uploadedByName: 'Jan Kowalski',
-        category: 'contracts',
     },
     {
         id: 'doc_002',
-        customerId: 'cust_123',
-        type: 'PDF',
         name: 'Kopia dowodu osobistego',
         fileName: 'dowod_osobisty_skan.pdf',
         fileUrl: 'https://s3.example.com/doc2.pdf',
         uploadedAt: '2023-06-15T10:35:00Z',
-        uploadedBy: 'user_123',
         uploadedByName: 'Jan Kowalski',
-        category: 'identity',
     },
     {
         id: 'doc_003',
-        customerId: 'cust_123',
-        type: 'PDF',
         name: 'Faktura VAT 2024/01/001',
         fileName: 'faktura_2024_01.pdf',
         fileUrl: 'https://s3.example.com/doc3.pdf',
         uploadedAt: '2024-01-15T09:00:00Z',
-        uploadedBy: 'user_456',
         uploadedByName: 'Anna Nowak',
-        category: 'invoices',
     },
 ];
 
@@ -131,15 +118,11 @@ const mockUploadDocument = async (
 
     const newDoc: CustomerDocument = {
         id: `doc_${Date.now()}`,
-        customerId: payload.customerId,
-        type: payload.type,
         name: payload.name || payload.file.name,
         fileName: payload.file.name,
         fileUrl: `https://s3.example.com/${payload.file.name}`,
         uploadedAt: new Date().toISOString(),
-        uploadedBy: 'current_user',
         uploadedByName: 'Current User',
-        category: payload.category,
     };
 
     mockDocuments.unshift(newDoc);
@@ -269,15 +252,11 @@ export const customerEditApi = {
 
         return {
             id: documentId,
-            customerId: payload.customerId,
-            type: payload.type,
             name: payload.name || payload.file.name,
             fileName: payload.file.name,
             fileUrl: '',
             uploadedAt: new Date().toISOString(),
-            uploadedBy: '',
             uploadedByName: '',
-            category: (payload.category as import('../types').DocumentCategory) || 'other',
         };
     },
 
