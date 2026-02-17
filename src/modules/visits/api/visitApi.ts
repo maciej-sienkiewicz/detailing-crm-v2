@@ -59,7 +59,6 @@ const mockVisitDetail: VisitDetailResponse = {
             model: 'X5',
             yearOfProduction: 2021,
             color: 'Czarny metalik',
-            engineType: 'diesel',
             currentMileage: 45230,
         },
         customer: {

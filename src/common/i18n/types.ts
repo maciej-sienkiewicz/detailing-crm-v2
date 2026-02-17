@@ -173,7 +173,6 @@ export interface TranslationKeys {
                 year: string;
                 licensePlate: string;
                 color: string;
-                engine: string;
                 mileage: string;
                 inspection: string;
                 service: string;
@@ -181,12 +180,6 @@ export interface TranslationKeys {
                     active: string;
                     sold: string;
                     archived: string;
-                };
-                engineType: {
-                    gasoline: string;
-                    diesel: string;
-                    hybrid: string;
-                    electric: string;
                 };
                 noVehicles: string;
             };
@@ -467,7 +460,6 @@ export interface TranslationKeys {
                 year: string;
                 color: string;
                 paintType: string;
-                engineType: string;
                 mileage: string;
             };
             owners: {
@@ -493,12 +485,6 @@ export interface TranslationKeys {
                 totalSpent: string;
                 averageCost: string;
                 lastVisit: string;
-            };
-            engineType: {
-                gasoline: string;
-                diesel: string;
-                hybrid: string;
-                electric: string;
             };
             status: {
                 active: string;
@@ -553,8 +539,6 @@ export interface TranslationKeys {
             colorPlaceholder: string;
             paintType: string;
             paintTypePlaceholder: string;
-            engineType: string;
-            engineTypePlaceholder: string;
             mileage: string;
             mileagePlaceholder: string;
             owners: {
@@ -580,7 +564,6 @@ export interface TranslationKeys {
             yearRequired: string;
             yearRange: string;
             colorRequired: string;
-            engineTypeRequired: string;
             mileagePositive: string;
             notesMax: string;
             ownerRequired: string;

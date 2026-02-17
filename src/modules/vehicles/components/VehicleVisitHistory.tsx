@@ -54,7 +54,10 @@ type HistoryEntry =
 const statusTranslations: Record<string, string> = {
     completed: 'Zakończona',
     'in-progress': 'W trakcie',
+    'in_progress': 'W trakcie',
+    'ready_for_pickup': 'Gotowe do odbioru',
     scheduled: 'Zaplanowana',
+    created: 'Zaplanowana',
     cancelled: 'Anulowana',
     CREATED: 'Zaplanowana',
     ABANDONED: 'Porzucona',

@@ -122,7 +122,6 @@ export interface Vehicle {
     licensePlate: string;
     vin: string;
     color: string;
-    engineType: EngineType;
     mileage: number;
     nextInspectionDate: string | null;
     nextServiceDate: string | null;

@@ -125,7 +125,6 @@ export const mapBackendVehicleToVehicle = (backendVehicle: BackendVehicle): Vehi
     year: backendVehicle.year,
     licensePlate: backendVehicle.licensePlate,
     vin: '—',
-    engineType: 'GASOLINE',
     color: '—',
     mileage: 0,
     nextInspectionDate: null,

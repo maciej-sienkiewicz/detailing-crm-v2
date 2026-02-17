@@ -906,13 +906,6 @@ export const CustomerDetailView = () => {
                         </VehiclesList>
                     </SidebarCard>
 
-                    {/* Marketing Consents */}
-                    <ConsentManager
-                        consents={marketingConsents}
-                        onConsentToggle={(consentId, granted) => updateConsent({ consentId, granted })}
-                        isUpdating={isConsentUpdating}
-                    />
-
                     {/* Notes */}
                     <CustomerNotes customerId={customerId!} />
                 </Sidebar>

@@ -223,7 +223,6 @@ export const VehicleHeader = ({ vehicle, onEditVehicle, onEditOwners }: VehicleH
 
     const metaParts = [
         vehicle.color,
-        vehicle.engineType ? (engineLabels[vehicle.engineType.toLowerCase()] || vehicle.engineType) : null,
         vehicle.currentMileage ? `${vehicle.currentMileage.toLocaleString()} km` : null,
     ].filter(Boolean).join('  ·  ');
 

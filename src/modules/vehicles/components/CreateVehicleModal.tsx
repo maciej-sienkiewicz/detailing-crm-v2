@@ -75,7 +75,6 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
             yearOfProduction: new Date().getFullYear(),
             color: '',
             paintType: '',
-            engineType: 'GASOLINE',
             currentMileage: 0,
             technicalNotes: '',
             ownerIds: [],
@@ -89,7 +88,6 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
             model: data.model,
             yearOfProduction: data.yearOfProduction,
             color: data.color,
-            engineType: data.engineType,
             ownerIds: data.ownerIds,
             ...(data.paintType && { paintType: data.paintType }),
             ...(data.currentMileage && { currentMileage: data.currentMileage }),
@@ -209,31 +207,6 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
                                     />
                                     {errors.currentMileage && (
                                         <ErrorMessage>{errors.currentMileage.message}</ErrorMessage>
-                                    )}
-                                </FieldGroup>
-
-                                <FieldGroup>
-                                    <Label>{t.vehicles.form.engineType}</Label>
-                                    <select
-                                        {...register('engineType')}
-                                        disabled={isCreating}
-                                        style={{
-                                            width: '100%',
-                                            padding: '12px 14px',
-                                            border: '1.5px solid #e2e8f0',
-                                            borderRadius: '10px',
-                                            fontSize: '14px',
-                                            background: 'white',
-                                            color: '#0f172a',
-                                        }}
-                                    >
-                                        <option value="GASOLINE">{t.vehicles.detail.engineType.gasoline}</option>
-                                        <option value="DIESEL">{t.vehicles.detail.engineType.diesel}</option>
-                                        <option value="HYBRID">{t.vehicles.detail.engineType.hybrid}</option>
-                                        <option value="ELECTRIC">{t.vehicles.detail.engineType.electric}</option>
-                                    </select>
-                                    {errors.engineType && (
-                                        <ErrorMessage>{errors.engineType.message}</ErrorMessage>
                                     )}
                                 </FieldGroup>
                             </FormGrid>

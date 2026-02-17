@@ -129,7 +129,6 @@ const mockVehicles: Vehicle[] = [
         licensePlate: 'WA 12345',
         vin: 'WVWZZZ1K123456789',
         color: 'Czarny',
-        engineType: 'GASOLINE',
         mileage: 45000,
         nextInspectionDate: '2025-06-15',
         nextServiceDate: '2025-03-01',
@@ -477,7 +476,7 @@ export const customerDetailApi = {
                 params: { customerId, status: 'CREATED', limit: '100' },
             }),
             apiClient.get<BackendAppointmentsListResponse>(`/v1/appointments`, {
-                params: { customerId, status: 'ABANDONED', limit: '100' },
+                params: { customerId, status: 'CANCELLED', limit: '100' },
             }),
         ]);
 
