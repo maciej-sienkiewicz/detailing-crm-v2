@@ -224,7 +224,6 @@ export const EditCustomerModal = ({ isOpen, onClose, customer }: EditCustomerMod
             phone: customer.contact.phone,
             homeAddress: customer.homeAddress,
             company: null,
-            notes: customer.notes,
         },
     });
 
@@ -237,7 +236,6 @@ export const EditCustomerModal = ({ isOpen, onClose, customer }: EditCustomerMod
                 phone: customer.contact.phone,
                 homeAddress: customer.homeAddress,
                 company: null,
-                notes: customer.notes,
             });
         }
     }, [isOpen, customer, methods]);

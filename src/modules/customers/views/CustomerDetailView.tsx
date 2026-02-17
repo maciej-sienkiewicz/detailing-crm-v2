@@ -8,13 +8,13 @@ import { useCustomerVehicles } from '../hooks/useCustomerVehicles';
 import { useCustomerVisits } from '../hooks/useCustomerVisits';
 import { useCustomerReservations } from '../hooks/useCustomerReservations';
 import { useUpdateConsent } from '../hooks/useUpdateConsent';
-import { useUpdateNotes } from '../hooks/useUpdateNotes';
 import { CustomerHeader } from '../components/CustomerHeader';
 import { CustomerVisitHistory } from '../components/CustomerVisitHistory';
 import { DocumentsManager } from '../components/DocumentsManager';
 import { ConsentManager } from '../components/ConsentManager';
 import { EditCustomerModal } from '../components/EditCustomerModal';
 import { EditCompanyModal } from '../components/EditCompanyModal';
+import { CustomerNotes } from '../components/CustomerNotes';
 import { formatCurrency } from '../utils/customerMappers';
 import { formatDate } from '@/common/utils';
 import { t } from '@/common/i18n';
@@ -593,8 +593,6 @@ export const CustomerDetailView = () => {
 
     // State
     const [secondaryTab, setSecondaryTab] = useState<SecondaryTabType>('documents');
-    const [isEditingNotes, setIsEditingNotes] = useState(false);
-    const [notes, setNotes] = useState('');
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isEditCompanyModalOpen, setIsEditCompanyModalOpen] = useState(false);
     const [visitsPage, setVisitsPage] = useState(1);
@@ -632,11 +630,6 @@ export const CustomerDetailView = () => {
         customerId: customerId!,
     });
 
-    const { updateNotes, isUpdating: isNotesUpdating } = useUpdateNotes({
-        customerId: customerId!,
-        onSuccess: () => setIsEditingNotes(false),
-    });
-
     // Reset on customer change
     useEffect(() => {
         setVisitsPage(1);
@@ -667,21 +660,6 @@ export const CustomerDetailView = () => {
     }
 
     const { customer, marketingConsents, lifetimeValue } = customerDetail;
-
-    // Notes handlers
-    const handleEditNotes = () => {
-        setNotes(customer.notes);
-        setIsEditingNotes(true);
-    };
-
-    const handleSaveNotes = () => {
-        updateNotes({ notes });
-    };
-
-    const handleCancelNotes = () => {
-        setNotes(customer.notes);
-        setIsEditingNotes(false);
-    };
 
     return (
         <ViewContainer>
@@ -936,58 +914,7 @@ export const CustomerDetailView = () => {
                     />
 
                     {/* Notes */}
-                    <SidebarCard>
-                        <SidebarCardHeader>
-                            <SidebarCardTitle>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                    <polyline points="14 2 14 8 20 8" />
-                                    <line x1="16" y1="13" x2="8" y2="13" />
-                                    <line x1="16" y1="17" x2="8" y2="17" />
-                                    <polyline points="10 9 9 9 8 9" />
-                                </svg>
-                                Notatki
-                            </SidebarCardTitle>
-                            {!isEditingNotes && (
-                                <EditButton onClick={handleEditNotes}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                    </svg>
-                                    {t.common.edit}
-                                </EditButton>
-                            )}
-                        </SidebarCardHeader>
-                        <NotesBody>
-                            {isEditingNotes ? (
-                                <>
-                                    <NotesTextArea
-                                        value={notes}
-                                        onChange={e => setNotes(e.target.value)}
-                                        placeholder="Dodaj notatki..."
-                                    />
-                                    <NotesActions>
-                                        <NotesButton onClick={handleCancelNotes}>
-                                            {t.common.cancel}
-                                        </NotesButton>
-                                        <NotesButton
-                                            $primary
-                                            onClick={handleSaveNotes}
-                                            disabled={isNotesUpdating}
-                                        >
-                                            {isNotesUpdating ? 'Zapisywanie...' : 'Zapisz'}
-                                        </NotesButton>
-                                    </NotesActions>
-                                </>
-                            ) : (
-                                customer.notes ? (
-                                    <NotesText>{customer.notes}</NotesText>
-                                ) : (
-                                    <NotesEmpty>Brak notatek. Kliknij "Edytuj" aby dodać.</NotesEmpty>
-                                )
-                            )}
-                        </NotesBody>
-                    </SidebarCard>
+                    <CustomerNotes customerId={customerId!} />
                 </Sidebar>
             </ContentLayout>
 

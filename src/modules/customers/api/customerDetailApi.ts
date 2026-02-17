@@ -309,7 +309,7 @@ const mockGetCustomerDetail = async (customerId: string): Promise<CustomerDetail
                 country: 'Polska',
             },
         },
-        notes: 'Stały klient, preferuje kontakt telefoniczny. VIP - zawsze sprawdzać dostępność dodatkowych usług.',
+        notes: [],
         lastVisitDate: '2025-01-08',
         totalVisits: 12,
         vehicleCount: 3,

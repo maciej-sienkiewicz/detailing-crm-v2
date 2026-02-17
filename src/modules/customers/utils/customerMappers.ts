@@ -116,7 +116,6 @@ export const mapFormDataToPayload = (
     phone: (data.phone || '').replace(/[\s-]/g, ''),
     homeAddress: data.homeAddress ?? null,
     companyData: data.company ?? null,
-    notes: data.notes.trim(),
 });
 
 export const mapBackendVehicleToVehicle = (backendVehicle: BackendVehicle): Vehicle => ({

@@ -5,7 +5,9 @@ import type {
     Customer,
     UpdateCustomerPayload,
     UpdateCompanyPayload,
-    UpdateNotesPayload,
+    CustomerNote,
+    CreateNotePayload,
+    UpdateNotePayload,
     CustomerDocument,
     UploadDocumentPayload,
     CompanyDetails,
@@ -65,17 +67,24 @@ const mockDeleteCompany = async (_customerId: string): Promise<void> => {
     await delay(400);
 };
 
-const mockUpdateNotes = async (
-    _customerId: string,
-    payload: UpdateNotesPayload
-): Promise<{ notes: string; updatedAt: string }> => {
-    await delay(300);
-
-    return {
-        notes: payload.notes,
-        updatedAt: new Date().toISOString(),
-    };
-};
+const mockNotes: CustomerNote[] = [
+    {
+        id: 'note_001',
+        content: 'Stały klient, preferuje kontakt telefoniczny.',
+        createdBy: 'user_123',
+        createdByName: 'Jan Kowalski',
+        createdAt: '2023-06-15T10:30:00Z',
+        updatedAt: '2023-06-15T10:30:00Z',
+    },
+    {
+        id: 'note_002',
+        content: 'VIP - zawsze sprawdzać dostępność dodatkowych usług.',
+        createdBy: 'user_456',
+        createdByName: 'Anna Nowak',
+        createdAt: '2024-01-15T09:00:00Z',
+        updatedAt: '2024-01-15T09:00:00Z',
+    },
+];
 
 const mockDocuments: CustomerDocument[] = [
     {
@@ -195,19 +204,63 @@ export const customerEditApi = {
         await apiClient.delete(`${CUSTOMERS_BASE_PATH}/${customerId}/company`);
     },
 
-    updateNotes: async (
-        customerId: string,
-        payload: UpdateNotesPayload
-    ): Promise<{ notes: string; updatedAt: string }> => {
+    getNotes: async (customerId: string): Promise<CustomerNote[]> => {
         if (USE_MOCKS) {
-            return mockUpdateNotes(customerId, payload);
+            await delay(300);
+            return [...mockNotes];
         }
+        const response = await apiClient.get<CustomerNote[]>(
+            `${CUSTOMERS_BASE_PATH}/${customerId}/notes`
+        );
+        return response.data;
+    },
 
-        const response = await apiClient.patch<{ notes: string; updatedAt: string }>(
+    createNote: async (customerId: string, payload: CreateNotePayload): Promise<CustomerNote> => {
+        if (USE_MOCKS) {
+            await delay(300);
+            const note: CustomerNote = {
+                id: `note_${Date.now()}`,
+                content: payload.content,
+                createdBy: 'current_user',
+                createdByName: 'Current User',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            };
+            mockNotes.unshift(note);
+            return note;
+        }
+        const response = await apiClient.post<CustomerNote>(
             `${CUSTOMERS_BASE_PATH}/${customerId}/notes`,
             payload
         );
         return response.data;
+    },
+
+    updateNote: async (customerId: string, noteId: string, payload: UpdateNotePayload): Promise<CustomerNote> => {
+        if (USE_MOCKS) {
+            await delay(300);
+            const note = mockNotes.find(n => n.id === noteId);
+            if (note) {
+                note.content = payload.content;
+                note.updatedAt = new Date().toISOString();
+            }
+            return note!;
+        }
+        const response = await apiClient.patch<CustomerNote>(
+            `${CUSTOMERS_BASE_PATH}/${customerId}/notes/${noteId}`,
+            payload
+        );
+        return response.data;
+    },
+
+    deleteNote: async (customerId: string, noteId: string): Promise<void> => {
+        if (USE_MOCKS) {
+            await delay(300);
+            const idx = mockNotes.findIndex(n => n.id === noteId);
+            if (idx !== -1) mockNotes.splice(idx, 1);
+            return;
+        }
+        await apiClient.delete(`${CUSTOMERS_BASE_PATH}/${customerId}/notes/${noteId}`);
     },
 
     getDocuments: async (customerId: string): Promise<CustomerDocument[]> => {

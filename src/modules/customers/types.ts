@@ -31,6 +31,15 @@ export interface CustomerRevenue {
     currency: string;
 }
 
+export interface CustomerNote {
+    id: string;
+    content: string;
+    createdBy: string;
+    createdByName: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
 export interface Customer {
     id: string;
     firstName: string | null;
@@ -38,7 +47,7 @@ export interface Customer {
     contact: CustomerContact;
     homeAddress: HomeAddress | null;
     company: CompanyDetails | null;
-    notes: string;
+    notes: CustomerNote[];
     lastVisitDate: string | null;
     totalVisits: number;
     vehicleCount: number;
@@ -89,7 +98,6 @@ export interface CreateCustomerPayload {
     phone: string | null;
     homeAddress: HomeAddress | null;
     companyData: Omit<CompanyDetails, 'id'> | null;
-    notes: string;
 }
 
 // src/modules/customers/types.ts
@@ -227,8 +235,12 @@ export interface UpdateCompanyPayload {
     address: CompanyAddress;
 }
 
-export interface UpdateNotesPayload {
-    notes: string;
+export interface CreateNotePayload {
+    content: string;
+}
+
+export interface UpdateNotePayload {
+    content: string;
 }
 
 export type DocumentType = 'PHOTO' | 'PDF' | 'PROTOCOL' | 'INTAKE' | 'OUTTAKE' | 'DAMAGE_MAP' | 'OTHER';
