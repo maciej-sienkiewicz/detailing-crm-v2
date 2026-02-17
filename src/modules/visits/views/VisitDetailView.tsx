@@ -17,6 +17,7 @@ import { EditServicesModal } from '../components/EditServicesModal';
 import { InProgressToReadyWizard, ReadyToCompletedWizard } from '../components/transitions/TransitionWizards';
 import type { DocumentType, ServiceStatus } from '../types';
 import {useToast} from "@/common/components/Toast";
+import { AuditTimeline } from '@/common/components/AuditTimeline';
 
 const ViewContainer = styled.main`
     display: flex;
@@ -186,7 +187,7 @@ const RetryButton = styled.button`
     }
 `;
 
-type TabValue = 'overview' | 'comments' | 'documentation';
+type TabValue = 'overview' | 'comments' | 'documentation' | 'audit';
 
 export const VisitDetailView = () => {
     const { visitId } = useParams<{ visitId: string }>();
@@ -363,6 +364,12 @@ export const VisitDetailView = () => {
                         >
                             📁 Dokumentacja ({documents.length + visitPhotos.length})
                         </TabButton>
+                        <TabButton
+                            $isActive={activeTab === 'audit'}
+                            onClick={() => setActiveTab('audit')}
+                        >
+                            📋 Audyt
+                        </TabButton>
                     </TabsList>
                 </TabsContainer>
 
@@ -420,6 +427,12 @@ export const VisitDetailView = () => {
                             onDeletePhoto={handleDeletePhoto}
                             isUploading={isUploading || isUploadingPhoto}
                         />
+                    </TabContent>
+                )}
+
+                {activeTab === 'audit' && (
+                    <TabContent>
+                        <AuditTimeline module="VISIT" entityId={visitId!} />
                     </TabContent>
                 )}
             </ContentArea>
