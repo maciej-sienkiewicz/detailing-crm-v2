@@ -69,9 +69,10 @@ export const updateVehicleSchema = z.object({
         .string()
         .min(1, t.vehicles.validation.modelMin),
 
-    yearOfProduction: z
-        .number()
-        .optional(),
+    yearOfProduction: z.preprocess(
+        val => (Number.isNaN(val) ? undefined : val),
+        z.number().optional()
+    ),
 
     color: z
         .string()
@@ -85,10 +86,10 @@ export const updateVehicleSchema = z.object({
         .enum(['GASOLINE', 'DIESEL', 'HYBRID', 'ELECTRIC'])
         .optional(),
 
-    currentMileage: z
-        .number()
-        .optional()
-        .or(z.literal(0)),
+    currentMileage: z.preprocess(
+        val => (Number.isNaN(val) ? undefined : val),
+        z.number().optional()
+    ),
 
     status: z
         .enum(['active', 'sold', 'archived'])
