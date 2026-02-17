@@ -176,8 +176,8 @@ export const VisitTypeBadge = styled.span<{ $isReservation?: boolean }>`
     border-radius: ${props => props.theme.radii.sm};
     font-size: 11px;
     font-weight: 500;
-    background: ${props => props.$isReservation ? '#ede9fe' : props.theme.colors.surfaceHover};
-    color: ${props => props.$isReservation ? '#5b21b6' : props.theme.colors.textSecondary};
+    background: ${props => props.$isReservation ? '#ede9fe' : '#dbeafe'};
+    color: ${props => props.$isReservation ? '#5b21b6' : '#1e40af'};
     text-transform: uppercase;
     letter-spacing: 0.3px;
     flex-shrink: 0;
