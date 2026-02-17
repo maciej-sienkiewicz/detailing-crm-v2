@@ -4,13 +4,13 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useVehicleDetail } from '../hooks/useVehicleDetail';
-import { useUpdateVehicle } from '../hooks/useUpdateVehicle';
 import { useVehicleVisits } from '../hooks/useVehicleVisits';
 import { useVehicleAppointments } from '../hooks/useVehicleAppointments';
 import { VehicleHeader } from '../components/VehicleHeader';
 import { VehicleVisitHistory } from '../components/VehicleVisitHistory';
 import { VehiclePhotoGallery } from '../components/VehiclePhotoGallery';
 import { VehicleDocuments } from '../components/VehicleDocuments';
+import { VehicleNotes } from '../components/VehicleNotes';
 import { VehicleActivityTimeline } from '../components/VehicleActivityTimeline';
 import { VehicleMiniGallery } from '../components/VehicleMiniGallery';
 import { EditVehicleModal } from '../components/EditVehicleModal';
@@ -342,106 +342,6 @@ const GalleryCardBody = styled.div`
     height: 260px;
 `;
 
-/* ─── Notes Card ──────────────────────────────────────── */
-
-const NotesBody = styled.div`
-    padding: ${props => props.theme.spacing.lg};
-`;
-
-const NotesText = styled.p`
-    margin: 0;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
-    line-height: 1.6;
-    white-space: pre-wrap;
-`;
-
-const NotesEmpty = styled.p`
-    margin: 0;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
-    font-style: italic;
-`;
-
-const NotesTextArea = styled.textarea`
-    width: 100%;
-    min-height: 100px;
-    padding: ${props => props.theme.spacing.md};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-family: inherit;
-    resize: vertical;
-    color: ${props => props.theme.colors.text};
-    line-height: 1.6;
-
-    &:focus {
-        outline: none;
-        border-color: var(--brand-primary);
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-    }
-
-    &::placeholder {
-        color: ${props => props.theme.colors.textMuted};
-    }
-`;
-
-const NotesActions = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.sm};
-    margin-top: ${props => props.theme.spacing.sm};
-    justify-content: flex-end;
-`;
-
-const NotesButton = styled.button<{ $primary?: boolean }>`
-    padding: 6px 14px;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    ${props => props.$primary ? `
-        background: var(--brand-primary);
-        color: white;
-        border: none;
-
-        &:hover { opacity: 0.9; }
-        &:disabled { opacity: 0.5; cursor: not-allowed; }
-    ` : `
-        background: white;
-        color: ${props.theme.colors.textSecondary};
-        border: 1px solid ${props.theme.colors.border};
-
-        &:hover { background: #f8fafc; }
-    `}
-`;
-
-const EditButton = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    background: transparent;
-    color: ${props => props.theme.colors.textMuted};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        border-color: var(--brand-primary);
-        color: var(--brand-primary);
-    }
-
-    svg {
-        width: 12px;
-        height: 12px;
-    }
-`;
-
 /* ─── Loading / Error ─────────────────────────────────── */
 
 const LoadingContainer = styled.div`
@@ -533,8 +433,6 @@ export const VehicleDetailView = () => {
 
     // State
     const [secondaryTab, setSecondaryTab] = useState<SecondaryTab>('documents');
-    const [isEditingNotes, setIsEditingNotes] = useState(false);
-    const [notes, setNotes] = useState('');
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isEditOwnersModalOpen, setIsEditOwnersModalOpen] = useState(false);
 
@@ -546,7 +444,6 @@ export const VehicleDetailView = () => {
         refetch: refetchDetail,
     } = useVehicleDetail(vehicleId!);
 
-    const { updateVehicle, isUpdating } = useUpdateVehicle(vehicleId!);
     const { visits } = useVehicleVisits(vehicleId!);
     const { appointments } = useVehicleAppointments(vehicleId!);
 
@@ -581,23 +478,6 @@ export const VehicleDetailView = () => {
     const totalSpent = stats.totalSpent ?? { grossAmount: 0, netAmount: 0, currency: 'PLN' };
     const totalVisits = typeof stats.totalVisits === 'number' ? stats.totalVisits : 0;
     const lastVisitDate = stats.lastVisitDate ?? null;
-
-    // Notes handlers
-    const handleEditNotes = () => {
-        setNotes(vehicle.technicalNotes);
-        setIsEditingNotes(true);
-    };
-
-    const handleSaveNotes = () => {
-        updateVehicle({ technicalNotes: notes }, {
-            onSuccess: () => setIsEditingNotes(false),
-        });
-    };
-
-    const handleCancelNotes = () => {
-        setNotes(vehicle.technicalNotes);
-        setIsEditingNotes(false);
-    };
 
     return (
         <ViewContainer>
@@ -838,58 +718,7 @@ export const VehicleDetailView = () => {
                     </SidebarCard>
 
                     {/* Notes */}
-                    <SidebarCard>
-                        <SidebarCardHeader>
-                            <SidebarCardTitle>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                    <polyline points="14 2 14 8 20 8" />
-                                    <line x1="16" y1="13" x2="8" y2="13" />
-                                    <line x1="16" y1="17" x2="8" y2="17" />
-                                    <polyline points="10 9 9 9 8 9" />
-                                </svg>
-                                Notatki
-                            </SidebarCardTitle>
-                            {!isEditingNotes && (
-                                <EditButton onClick={handleEditNotes}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                    </svg>
-                                    {t.common.edit}
-                                </EditButton>
-                            )}
-                        </SidebarCardHeader>
-                        <NotesBody>
-                            {isEditingNotes ? (
-                                <>
-                                    <NotesTextArea
-                                        value={notes}
-                                        onChange={e => setNotes(e.target.value)}
-                                        placeholder="Dodaj notatki techniczne..."
-                                    />
-                                    <NotesActions>
-                                        <NotesButton onClick={handleCancelNotes}>
-                                            {t.common.cancel}
-                                        </NotesButton>
-                                        <NotesButton
-                                            $primary
-                                            onClick={handleSaveNotes}
-                                            disabled={isUpdating}
-                                        >
-                                            {isUpdating ? 'Zapisywanie...' : t.vehicles.detail.notes.save}
-                                        </NotesButton>
-                                    </NotesActions>
-                                </>
-                            ) : (
-                                vehicle.technicalNotes ? (
-                                    <NotesText>{vehicle.technicalNotes}</NotesText>
-                                ) : (
-                                    <NotesEmpty>Brak notatek. Kliknij "Edytuj" aby dodać.</NotesEmpty>
-                                )
-                            )}
-                        </NotesBody>
-                    </SidebarCard>
+                    <VehicleNotes vehicleId={vehicleId!} />
                 </Sidebar>
             </ContentLayout>
 

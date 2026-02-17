@@ -19,6 +19,9 @@ import type {
     VehicleDocument,
     VehicleDocumentUploadResponse,
     UploadVehicleDocumentPayload,
+    VehicleNote,
+    CreateVehicleNotePayload,
+    UpdateVehicleNotePayload,
 } from '../types';
 
 const BASE_PATH = '/v1/vehicles';
@@ -546,6 +549,63 @@ export const vehicleApi = {
         }
 
         await apiClient.delete(`${BASE_PATH}/${vehicleId}/photos/${photoId}`);
+    },
+
+    getNotes: async (vehicleId: string): Promise<VehicleNote[]> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+            return [];
+        }
+        const response = await apiClient.get<{ notes: VehicleNote[] }>(
+            `${BASE_PATH}/${vehicleId}/notes`
+        );
+        return response.data.notes;
+    },
+
+    createNote: async (vehicleId: string, payload: CreateVehicleNotePayload): Promise<VehicleNote> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+            return {
+                id: `note_${Date.now()}`,
+                content: payload.content,
+                createdBy: 'current_user',
+                createdByName: 'Current User',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            };
+        }
+        const response = await apiClient.post<VehicleNote>(
+            `${BASE_PATH}/${vehicleId}/notes`,
+            payload
+        );
+        return response.data;
+    },
+
+    updateNote: async (vehicleId: string, noteId: string, payload: UpdateVehicleNotePayload): Promise<VehicleNote> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+            return {
+                id: noteId,
+                content: payload.content,
+                createdBy: 'current_user',
+                createdByName: 'Current User',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            };
+        }
+        const response = await apiClient.patch<VehicleNote>(
+            `${BASE_PATH}/${vehicleId}/notes/${noteId}`,
+            payload
+        );
+        return response.data;
+    },
+
+    deleteNote: async (vehicleId: string, noteId: string): Promise<void> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+            return;
+        }
+        await apiClient.delete(`${BASE_PATH}/${vehicleId}/notes/${noteId}`);
     },
 
     getVisits: async (vehicleId: string, page = 1, limit = 50): Promise<VehicleVisitsResponse> => {

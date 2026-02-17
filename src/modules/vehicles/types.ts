@@ -282,3 +282,20 @@ export interface UploadVehiclePhotoResponse {
     photoId: string;
     uploadUrl: string;
 }
+
+export interface VehicleNote {
+    id: string;
+    content: string;
+    createdBy: string;
+    createdByName: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CreateVehicleNotePayload {
+    content: string;
+}
+
+export interface UpdateVehicleNotePayload {
+    content: string;
+}
