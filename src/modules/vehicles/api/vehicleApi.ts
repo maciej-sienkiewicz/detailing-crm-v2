@@ -205,10 +205,22 @@ const mockGetVehicleDetail = async (_vehicleId: string): Promise<VehicleDetailRe
         vehicle: mockVehicleDetail,
         recentVisits: [
             {
+                id: 'visit-draft-1',
+                date: '2026-03-15T10:00:00Z',
+                description: 'Korekta lakieru + powłoka ceramiczna',
+                status: 'DRAFT',
+                totalCost: {
+                    netAmount: 0,
+                    grossAmount: 0,
+                    currency: 'PLN',
+                },
+                createdBy: 'Marek Nowak',
+            },
+            {
                 id: 'visit1',
                 date: '2024-12-10T14:30:00Z',
                 description: 'Oklejanie PPF - przednia maska',
-                status: 'completed',
+                status: 'COMPLETED',
                 totalCost: {
                     netAmount: 2000.00,
                     grossAmount: 2460.00,
@@ -220,13 +232,25 @@ const mockGetVehicleDetail = async (_vehicleId: string): Promise<VehicleDetailRe
                 id: 'visit2',
                 date: '2024-10-15T10:00:00Z',
                 description: 'Naprawa wgnieceń',
-                status: 'completed',
+                status: 'COMPLETED',
                 totalCost: {
                     netAmount: 1500.00,
                     grossAmount: 1845.00,
                     currency: 'PLN',
                 },
                 createdBy: 'Jan Blacharz',
+            },
+            {
+                id: 'visit-rejected-1',
+                date: '2024-08-20T09:00:00Z',
+                description: 'Detailing wnętrza',
+                status: 'REJECTED',
+                totalCost: {
+                    netAmount: 0,
+                    grossAmount: 0,
+                    currency: 'PLN',
+                },
+                createdBy: 'Anna Kowalska',
             },
         ],
         activities: [

@@ -416,7 +416,7 @@ export const VehicleDetailView = () => {
 
                 {activeTab === 'visits' && (
                     <TabContent>
-                        <VehicleVisitHistory visits={recentVisits} />
+                        <VehicleVisitHistory visits={recentVisits} licensePlate={vehicle.licensePlate} />
                     </TabContent>
                 )}
 
