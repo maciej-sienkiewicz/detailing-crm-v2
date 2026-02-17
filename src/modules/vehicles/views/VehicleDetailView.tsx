@@ -11,7 +11,7 @@ import { VehicleVisitHistory } from '../components/VehicleVisitHistory';
 import { VehiclePhotoGallery } from '../components/VehiclePhotoGallery';
 import { VehicleDocuments } from '../components/VehicleDocuments';
 import { VehicleNotes } from '../components/VehicleNotes';
-import { VehicleActivityTimeline } from '../components/VehicleActivityTimeline';
+import { VehicleAuditTimeline } from '../components/VehicleAuditTimeline';
 import { VehicleMiniGallery } from '../components/VehicleMiniGallery';
 import { EditVehicleModal } from '../components/EditVehicleModal';
 import { EditOwnersModal } from '../components/EditOwnersModal';
@@ -567,7 +567,7 @@ export const VehicleDetailView = () => {
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                                 </svg>
-                                Audyt ({activities.length})
+                                Audyt
                             </SecondaryTab>
                             <SecondaryTab
                                 $active={secondaryTab === 'photos'}
@@ -587,7 +587,7 @@ export const VehicleDetailView = () => {
                                 <VehicleDocuments vehicleId={vehicleId!} />
                             )}
                             {secondaryTab === 'audit' && (
-                                <VehicleActivityTimeline activities={activities} />
+                                <VehicleAuditTimeline vehicleId={vehicleId!} />
                             )}
                             {secondaryTab === 'photos' && (
                                 <VehiclePhotoGallery vehicleId={vehicleId!} photos={photos} />

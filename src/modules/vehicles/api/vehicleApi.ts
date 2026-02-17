@@ -22,6 +22,7 @@ import type {
     VehicleNote,
     CreateVehicleNotePayload,
     UpdateVehicleNotePayload,
+    AuditLogResponse,
 } from '../types';
 
 const BASE_PATH = '/v1/vehicles';
@@ -630,6 +631,14 @@ export const vehicleApi = {
         const response = await apiClient.get<VehicleAppointmentsResponse>(
             `${BASE_PATH}/${vehicleId}/appointments`,
             { params: { page, limit } }
+        );
+        return response.data;
+    },
+
+    getAuditLog: async (vehicleId: string, page = 1, size = 50): Promise<AuditLogResponse> => {
+        const response = await apiClient.get<AuditLogResponse>(
+            `/v1/audit/VEHICLE/${vehicleId}`,
+            { params: { page, size } }
         );
         return response.data;
     },
