@@ -233,7 +233,7 @@ export const customerEditApi = {
         }
 
         const response = await apiClient.get<CustomerDocument[]>(
-            `customers/${customerId}/documents`
+            `${CUSTOMERS_BASE_PATH}/${customerId}/documents`
         );
         return response.data;
     },
@@ -243,24 +243,42 @@ export const customerEditApi = {
             return mockUploadDocument(payload);
         }
 
-        const formData = new FormData();
-        formData.append('file', payload.file);
-        formData.append('customerId', payload.customerId);
-        formData.append('type', payload.type);
-        formData.append('name', payload.name || payload.file.name);
-        if (payload.visitId) formData.append('visitId', payload.visitId);
-        if (payload.category) formData.append('category', payload.category);
-
-        const response = await apiClient.post<CustomerDocument>(
-            '/documents/external',
-            formData,
+        // Step 1: Initiate upload — backend returns presigned S3 URL
+        const initiateResponse = await apiClient.post<{ documentId: string; uploadUrl: string }>(
+            `${CUSTOMERS_BASE_PATH}/${payload.customerId}/documents`,
             {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
+                name: payload.name || payload.file.name,
+                fileName: payload.file.name,
+                contentType: payload.file.type || 'application/octet-stream',
             }
         );
-        return response.data;
+        const { documentId, uploadUrl } = initiateResponse.data;
+
+        // Step 2: Upload file binary directly to S3 via presigned URL (no auth headers)
+        const s3Response = await fetch(uploadUrl, {
+            method: 'PUT',
+            body: payload.file,
+            headers: {
+                'Content-Type': payload.file.type || 'application/octet-stream',
+            },
+        });
+
+        if (!s3Response.ok) {
+            throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}`);
+        }
+
+        return {
+            id: documentId,
+            customerId: payload.customerId,
+            type: payload.type,
+            name: payload.name || payload.file.name,
+            fileName: payload.file.name,
+            fileUrl: '',
+            uploadedAt: new Date().toISOString(),
+            uploadedBy: '',
+            uploadedByName: '',
+            category: (payload.category as import('../types').DocumentCategory) || 'other',
+        };
     },
 
     getDocumentDownload: async (documentId: string): Promise<string> => {
@@ -275,11 +293,11 @@ export const customerEditApi = {
         return response.data.url;
     },
 
-    deleteDocument: async (documentId: string): Promise<void> => {
+    deleteDocument: async (customerId: string, documentId: string): Promise<void> => {
         if (USE_MOCKS) {
             return mockDeleteDocument(documentId);
         }
 
-        await apiClient.delete(`/documents/${documentId}`);
+        await apiClient.delete(`${CUSTOMERS_BASE_PATH}/${customerId}/documents/${documentId}`);
     },
 };

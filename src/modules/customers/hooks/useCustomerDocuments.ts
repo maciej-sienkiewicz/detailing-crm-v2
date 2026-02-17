@@ -34,7 +34,7 @@ export const useDeleteDocument = (customerId: string) => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (documentId: string) => customerEditApi.deleteDocument(documentId),
+        mutationFn: (documentId: string) => customerEditApi.deleteDocument(customerId, documentId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: customerDocumentsQueryKey(customerId) });
         },
