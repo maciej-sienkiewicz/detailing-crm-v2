@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import styled from 'styled-components';
 import { Modal } from '@/common/components/Modal';
 import { Button, ButtonGroup } from '@/common/components/Button';
-import { FormGrid, FieldGroup, Label, Input, TextArea, ErrorMessage } from '@/common/components/Form';
+import { FormGrid, FieldGroup, Label, Input, ErrorMessage } from '@/common/components/Form';
 import { useUpdateVehicle } from '../hooks/useUpdateVehicle';
 import { updateVehicleSchema, type UpdateVehicleFormData } from '../utils/vehicleValidation';
 import type { Vehicle } from '../types';
@@ -49,7 +49,6 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
             color: vehicle.color,
             paintType: vehicle.paintType || '',
             currentMileage: vehicle.currentMileage || 0,
-            technicalNotes: vehicle.technicalNotes,
         },
     });
 
@@ -69,7 +68,7 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
 
                     <FormGrid $columns={2}>
                         <FieldGroup>
-                            <Label htmlFor="licensePlate">Numer rejestracyjny *</Label>
+                            <Label htmlFor="licensePlate">Numer rejestracyjny</Label>
                             <Input
                                 id="licensePlate"
                                 {...register('licensePlate')}
@@ -120,7 +119,7 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                         </FieldGroup>
 
                         <FieldGroup>
-                            <Label htmlFor="yearOfProduction">Rok produkcji *</Label>
+                            <Label htmlFor="yearOfProduction">Rok produkcji</Label>
                             <Input
                                 id="yearOfProduction"
                                 type="number"
@@ -139,7 +138,7 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
 
                     <FormGrid $columns={2}>
                         <FieldGroup>
-                            <Label htmlFor="color">Kolor *</Label>
+                            <Label htmlFor="color">Kolor</Label>
                             <Input
                                 id="color"
                                 {...register('color')}
@@ -176,19 +175,6 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                             )}
                         </FieldGroup>
                     </FormGrid>
-
-                    <SectionTitle style={{ marginTop: '24px' }}>Notatki techniczne</SectionTitle>
-
-                    <FieldGroup>
-                        <TextArea
-                            {...register('technicalNotes')}
-                            placeholder="Dodatkowe uwagi techniczne..."
-                            rows={4}
-                        />
-                        {errors.technicalNotes && (
-                            <ErrorMessage>{errors.technicalNotes.message}</ErrorMessage>
-                        )}
-                    </FieldGroup>
 
                     <ButtonGroup style={{ marginTop: '24px' }}>
                         <Button type="button" $variant="secondary" onClick={onClose}>
