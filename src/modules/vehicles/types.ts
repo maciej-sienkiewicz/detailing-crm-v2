@@ -190,6 +190,52 @@ export interface VehicleVisitSummary {
     createdBy: string;
 }
 
+export interface VehicleVisit {
+    id: string;
+    date: string;
+    customerId: string;
+    customerName: string;
+    description: string;
+    totalCost: {
+        netAmount: number;
+        grossAmount: number;
+        currency: string;
+    };
+    status: string;
+    createdBy: string;
+    notes: string;
+}
+
+export interface VehicleVisitsResponse {
+    visits: VehicleVisit[];
+    pagination: PaginationMeta;
+}
+
+export type VehicleAppointmentStatus = 'scheduled' | 'CREATED' | 'ABANDONED' | 'CANCELLED' | 'CONVERTED' | 'completed' | 'cancelled';
+
+export interface VehicleAppointment {
+    id: string;
+    title: string;
+    customerId: string;
+    customerName: string;
+    startDateTime: string;
+    endDateTime: string;
+    isAllDay: boolean;
+    status: VehicleAppointmentStatus;
+    totalCost: {
+        netAmount: number;
+        grossAmount: number;
+        currency: string;
+    };
+    note: string;
+    createdAt: string;
+}
+
+export interface VehicleAppointmentsResponse {
+    appointments: VehicleAppointment[];
+    pagination: PaginationMeta;
+}
+
 export interface VehicleDetailResponse {
     vehicle: Vehicle;
     recentVisits: VehicleVisitSummary[];

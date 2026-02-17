@@ -16,6 +16,8 @@ import type {
     UploadVehiclePhotoResponse,
     Vehicle,
     VehicleListItem,
+    VehicleVisitsResponse,
+    VehicleAppointmentsResponse,
 } from '../types';
 
 const BASE_PATH = '/v1/vehicles';
@@ -505,5 +507,31 @@ export const vehicleApi = {
         }
 
         await apiClient.delete(`${BASE_PATH}/${vehicleId}/photos/${photoId}`);
+    },
+
+    getVisits: async (vehicleId: string, page = 1, limit = 50): Promise<VehicleVisitsResponse> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 400));
+            return { visits: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: limit } };
+        }
+
+        const response = await apiClient.get<VehicleVisitsResponse>(
+            `${BASE_PATH}/${vehicleId}/visits`,
+            { params: { page, limit } }
+        );
+        return response.data;
+    },
+
+    getAppointments: async (vehicleId: string, page = 1, limit = 50): Promise<VehicleAppointmentsResponse> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 400));
+            return { appointments: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: limit } };
+        }
+
+        const response = await apiClient.get<VehicleAppointmentsResponse>(
+            `${BASE_PATH}/${vehicleId}/appointments`,
+            { params: { page, limit } }
+        );
+        return response.data;
     },
 };

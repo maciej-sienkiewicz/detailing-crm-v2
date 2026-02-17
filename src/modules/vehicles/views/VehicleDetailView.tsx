@@ -5,6 +5,8 @@ import { useParams, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useVehicleDetail } from '../hooks/useVehicleDetail';
 import { useUpdateVehicle } from '../hooks/useUpdateVehicle';
+import { useVehicleVisits } from '../hooks/useVehicleVisits';
+import { useVehicleAppointments } from '../hooks/useVehicleAppointments';
 import { VehicleHeader } from '../components/VehicleHeader';
 import { VehicleVisitHistory } from '../components/VehicleVisitHistory';
 import { VehiclePhotoGallery } from '../components/VehiclePhotoGallery';
@@ -545,6 +547,8 @@ export const VehicleDetailView = () => {
     } = useVehicleDetail(vehicleId!);
 
     const { updateVehicle, isUpdating } = useUpdateVehicle(vehicleId!);
+    const { visits } = useVehicleVisits(vehicleId!);
+    const { appointments } = useVehicleAppointments(vehicleId!);
 
     // Loading state
     if (isDetailLoading) {
@@ -661,7 +665,7 @@ export const VehicleDetailView = () => {
             <ContentLayout>
                 {/* ─── Left: Visit History + Secondary Tabs ── */}
                 <MainColumn>
-                    <VehicleVisitHistory visits={recentVisits} />
+                    <VehicleVisitHistory visits={visits} appointments={appointments} />
 
                     {/* Secondary Tabs: Docs / Audit / Full Gallery */}
                     <SecondarySection>
