@@ -70,7 +70,7 @@ export const updateVehicleSchema = z.object({
         .min(1, t.vehicles.validation.modelMin),
 
     yearOfProduction: z.preprocess(
-        val => (Number.isNaN(val) ? undefined : val),
+        val => (val === null || val === undefined || Number.isNaN(val as number) ? undefined : val),
         z.number().optional()
     ),
 
@@ -87,7 +87,7 @@ export const updateVehicleSchema = z.object({
         .optional(),
 
     currentMileage: z.preprocess(
-        val => (Number.isNaN(val) ? undefined : val),
+        val => (val === null || val === undefined || Number.isNaN(val as number) ? undefined : val),
         z.number().optional()
     ),
 
