@@ -241,15 +241,14 @@ const InfoGrid = styled.div`
     gap: 0;
 `;
 
-const InfoItem = styled.div<{ $span?: boolean }>`
+const InfoItem = styled.div<{ $span?: boolean; $noBorder?: boolean }>`
     display: flex;
     flex-direction: column;
     gap: 2px;
     padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.lg};
-    border-bottom: 1px solid ${props => props.theme.colors.border};
+    border-bottom: ${props => props.$noBorder ? 'none' : `1px solid ${props.theme.colors.border}`};
     ${props => props.$span && 'grid-column: 1 / -1;'}
 
-    &:nth-last-child(-n+2):nth-child(odd),
     &:last-child {
         border-bottom: none;
     }
@@ -830,7 +829,7 @@ export const CustomerDetailView = () => {
                                     <InfoValue>{formatAddress(customer.homeAddress)}</InfoValue>
                                 </InfoItem>
                             )}
-                            <InfoItem>
+                            <InfoItem $noBorder>
                                 <InfoLabel>W systemie od</InfoLabel>
                                 <InfoValue>{formatDate(customer.createdAt)}</InfoValue>
                             </InfoItem>

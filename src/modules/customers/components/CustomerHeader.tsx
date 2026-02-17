@@ -115,34 +115,6 @@ const MetaText = styled.span`
     color: ${props => props.theme.colors.textMuted};
 `;
 
-const LoyaltyBadge = styled.div<{ $tier: 'bronze' | 'silver' | 'gold' | 'platinum' }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 10px;
-    border-radius: ${props => props.theme.radii.full};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    flex-shrink: 0;
-
-    ${({ $tier }) => {
-        const colors: Record<string, string> = {
-            bronze: 'background: linear-gradient(135deg, #cd7f32, #a0522d); color: white;',
-            silver: 'background: linear-gradient(135deg, #c0c0c0, #a8a8a8); color: #1f2937;',
-            gold: 'background: linear-gradient(135deg, #ffd700, #daa520); color: #1f2937;',
-            platinum: 'background: linear-gradient(135deg, #e5e4e2, #b0b0b0); color: #1f2937;',
-        };
-        return colors[$tier];
-    }}
-
-    svg {
-        width: 12px;
-        height: 12px;
-    }
-`;
-
 const Actions = styled.div`
     display: flex;
     align-items: center;
@@ -203,7 +175,7 @@ interface CustomerHeaderProps {
 
 export const CustomerHeader = ({ data, onEditCustomer, onEditCompany }: CustomerHeaderProps) => {
     const navigate = useNavigate();
-    const { customer, loyaltyTier } = data;
+    const { customer } = data;
 
     const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || 'Klient';
     const initials = `${(customer.firstName || '?').charAt(0)}${(customer.lastName || '?').charAt(0)}`.toUpperCase();
@@ -235,13 +207,6 @@ export const CustomerHeader = ({ data, onEditCustomer, onEditCompany }: Customer
                     )}
                 </CustomerInfo>
             </CustomerIdentity>
-
-            <LoyaltyBadge $tier={loyaltyTier}>
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                </svg>
-                {t.customers.detail.loyaltyTier[loyaltyTier]}
-            </LoyaltyBadge>
 
             <Actions>
                 <ActionButton onClick={onEditCompany}>
