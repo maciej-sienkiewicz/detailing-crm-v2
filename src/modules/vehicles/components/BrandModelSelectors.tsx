@@ -143,6 +143,7 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
   const searchRef = useRef<HTMLInputElement | null>(null);
   const [menuStyle, setMenuStyle] = useState<{ top: number; left: number; width: number } | null>(null);
   const [query, setQuery] = useState('');
+  const didFocusRef = useRef(false);
 
   const brands = useMemo(() => (data || []).map(b => b.marka).sort((a, b) => a.localeCompare(b)), [data]);
   const filteredBrands = useMemo(() => {
@@ -168,14 +169,24 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
     window.addEventListener('scroll', onScroll, true);
     window.addEventListener('resize', onResize);
     window.addEventListener('keydown', onKey);
-    // focus search input when menu opens
-    setTimeout(() => searchRef.current?.focus(), 0);
     return () => {
       window.removeEventListener('scroll', onScroll, true);
       window.removeEventListener('resize', onResize);
       window.removeEventListener('keydown', onKey);
     };
   }, [open, onBlur]);
+
+  // Focus search input after portal is rendered (menuStyle is set means portal is visible)
+  useEffect(() => {
+    if (!open) {
+      didFocusRef.current = false;
+      return;
+    }
+    if (!menuStyle || didFocusRef.current) return;
+    didFocusRef.current = true;
+    const timer = setTimeout(() => searchRef.current?.focus(), 0);
+    return () => clearTimeout(timer);
+  }, [open, menuStyle]);
 
   // Reset query each time menu opens
   useEffect(() => {
@@ -263,6 +274,7 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
   const searchRef = useRef<HTMLInputElement | null>(null);
   const [menuStyle, setMenuStyle] = useState<{ top: number; left: number; width: number } | null>(null);
   const [query, setQuery] = useState('');
+  const didFocusRef = useRef(false);
 
   const models = useMemo(() => {
     if (!brand || !data) return [] as string[];
@@ -295,13 +307,24 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
     window.addEventListener('scroll', onScroll, true);
     window.addEventListener('resize', onResize);
     window.addEventListener('keydown', onKey);
-    setTimeout(() => searchRef.current?.focus(), 0);
     return () => {
       window.removeEventListener('scroll', onScroll, true);
       window.removeEventListener('resize', onResize);
       window.removeEventListener('keydown', onKey);
     };
   }, [open, onBlur]);
+
+  // Focus search input after portal is rendered (menuStyle is set means portal is visible)
+  useEffect(() => {
+    if (!open) {
+      didFocusRef.current = false;
+      return;
+    }
+    if (!menuStyle || didFocusRef.current) return;
+    didFocusRef.current = true;
+    const timer = setTimeout(() => searchRef.current?.focus(), 0);
+    return () => clearTimeout(timer);
+  }, [open, menuStyle]);
 
   useEffect(() => {
     if (open) setQuery('');
