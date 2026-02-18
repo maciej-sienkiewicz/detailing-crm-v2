@@ -667,8 +667,7 @@ export const AuditTimeline = ({ module, entityId }: AuditTimelineProps) => {
                                 <ItemCard>
                                     <ItemHeader>
                                         <ItemLeft>
-                                            <ActionBadge $color={color}>{entry.action}</ActionBadge>
-                                            <ItemTitle>{getActionLabel(entry.action)}</ItemTitle>
+                                            <ActionBadge $color={color}>{getActionLabel(entry.action)}</ActionBadge>
                                         </ItemLeft>
                                         <ItemRight>
                                             <ItemDate>{formatDate(entry.createdAt)}, {formatTime(entry.createdAt)}</ItemDate>
