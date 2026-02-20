@@ -43,8 +43,8 @@ export const PriceInputModal: React.FC<PriceInputModalProps> = ({
 
         const numPrice = parseFloat(price);
 
-        if (!price || isNaN(numPrice) || numPrice <= 0) {
-            setError('Podaj prawidłową cenę większą niż 0');
+        if (price === '' || isNaN(numPrice) || numPrice < 0) {
+            setError('Podaj prawidłową cenę (wartość nie może być ujemna)');
             return;
         }
 
@@ -87,7 +87,7 @@ export const PriceInputModal: React.FC<PriceInputModalProps> = ({
                                 <S.PriceInput
                                     type="number"
                                     step="0.01"
-                                    min="0.01"
+                                    min="0"
                                     value={price}
                                     onChange={(e) => setPrice(e.target.value)}
                                     placeholder="0.00"
