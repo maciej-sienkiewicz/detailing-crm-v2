@@ -341,7 +341,7 @@ export const EditServicesModal = ({
     const rawValue = editingPrices[serviceId];
     if (rawValue === undefined) return;
     const numValue = Math.round(parseFloat(rawValue) * 100);
-    if (!isNaN(numValue) && numValue > 0) {
+    if (!isNaN(numValue) && numValue >= 0) {
       // Do not call API here. Mark as locally changed and reflect new price
       setChangedPriceIds(prev => new Set(prev).add(serviceId));
       setLocalPriceOverrides(prev => ({ ...prev, [serviceId]: numValue }));

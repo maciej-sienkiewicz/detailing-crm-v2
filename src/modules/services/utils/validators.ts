@@ -16,8 +16,8 @@ export const serviceSchema = z.object({
         }),
     requireManualPrice: z.boolean().default(false),
 }).refine((data) => {
-    // Jeśli requireManualPrice jest false, cena musi być większa od 0
-    if (!data.requireManualPrice && data.basePriceNet < 1) {
+    // Jeśli requireManualPrice jest false, cena nie może być ujemna
+    if (!data.requireManualPrice && data.basePriceNet < 0) {
         return false;
     }
     return true;
