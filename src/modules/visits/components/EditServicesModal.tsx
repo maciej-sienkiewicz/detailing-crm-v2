@@ -333,6 +333,7 @@ export const EditServicesModal = ({
   if (!isOpen) return null;
 
   const handlePriceChange = (serviceId: string, value: string) => {
+    if (value !== '' && !/^\d*(\.\d{0,2})?$/.test(value)) return;
     setEditingPrices((prev) => ({ ...prev, [serviceId]: value }));
   };
 
@@ -494,8 +495,8 @@ export const EditServicesModal = ({
 
                         {isEditing ? (
                           <PriceInput
-                            type="number"
-                            step="0.01"
+                            type="text"
+                            inputMode="decimal"
                             value={editingPrices[service.id] ?? ''}
                             onChange={(e) => handlePriceChange(service.id, e.target.value)}
                             onBlur={() => handleSavePrice(service.id)}
