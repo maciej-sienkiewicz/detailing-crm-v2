@@ -305,7 +305,7 @@ export const EditServicesModal = ({
   const { isCollapsed } = useSidebar();
   const contentLeft = typeof window !== 'undefined' ? (isCollapsed ? 64 : 240) : 0;
   const [notifyCustomer, setNotifyCustomer] = useState(true);
-  const [editingPrices, setEditingPrices] = useState<Record<string, number>>({});
+  const [editingPrices, setEditingPrices] = useState<Record<string, string>>({});
   const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
   const [newServiceNamePrefill, setNewServiceNamePrefill] = useState<string>('');
 
@@ -333,24 +333,23 @@ export const EditServicesModal = ({
   if (!isOpen) return null;
 
   const handlePriceChange = (serviceId: string, value: string) => {
-    const numValue = parseFloat(value) * 100; // Convert to cents
-    if (!isNaN(numValue)) {
-      setEditingPrices((prev) => ({ ...prev, [serviceId]: numValue }));
-    }
+    setEditingPrices((prev) => ({ ...prev, [serviceId]: value }));
   };
 
   const handleSavePrice = (serviceId: string) => {
-    const newPrice = editingPrices[serviceId];
-    if (newPrice !== undefined) {
+    const rawValue = editingPrices[serviceId];
+    if (rawValue === undefined) return;
+    const numValue = Math.round(parseFloat(rawValue) * 100);
+    if (!isNaN(numValue) && numValue > 0) {
       // Do not call API here. Mark as locally changed and reflect new price
       setChangedPriceIds(prev => new Set(prev).add(serviceId));
-      setLocalPriceOverrides(prev => ({ ...prev, [serviceId]: newPrice }));
-      // Exit edit mode for this service
-      setEditingPrices((prev) => {
-        const { [serviceId]: _, ...rest } = prev;
-        return rest;
-      });
+      setLocalPriceOverrides(prev => ({ ...prev, [serviceId]: numValue }));
     }
+    // Always exit edit mode for this service
+    setEditingPrices((prev) => {
+      const { [serviceId]: _, ...rest } = prev;
+      return rest;
+    });
   };
 
   const handleDelete = (serviceId: string) => {
@@ -497,7 +496,7 @@ export const EditServicesModal = ({
                           <PriceInput
                             type="number"
                             step="0.01"
-                            value={displayPrice}
+                            value={editingPrices[service.id] ?? ''}
                             onChange={(e) => handlePriceChange(service.id, e.target.value)}
                             onBlur={() => handleSavePrice(service.id)}
                             onKeyDown={(e) => {
@@ -533,7 +532,7 @@ export const EditServicesModal = ({
                           <IconButton
                             $variant="blue"
                             onClick={() =>
-                              setEditingPrices((prev) => ({ ...prev, [service.id]: effectiveNet }))
+                              setEditingPrices((prev) => ({ ...prev, [service.id]: String(effectiveNet / 100) }))
                             }
                             title="Edytuj cenę"
                           >
