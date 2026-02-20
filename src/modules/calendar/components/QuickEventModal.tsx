@@ -787,8 +787,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     const parsed = parseCustomerInput(trimmed);
                                                     const hasFirstAndLastName = parsed.firstName && parsed.lastName;
 
-                                                    // Jeśli mamy imię i nazwisko i brak wyników, otwórz modal natychmiast
-                                                    if (hasFirstAndLastName && customerResults.length === 0) {
+                                                    // Jeśli mamy imię i nazwisko i klient nie został wybrany z listy, otwórz modal
+                                                    if (hasFirstAndLastName) {
                                                         setParsedCustomerData(parsed);
                                                         setIsAddCustomerModalOpen(true);
                                                         setShowCustomerDropdown(false);
@@ -824,7 +824,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     const parsed = parseCustomerInput(trimmed);
                                                     const hasFirstAndLastName = parsed.firstName && parsed.lastName;
 
-                                                    if (hasFirstAndLastName && customerResults.length === 0) {
+                                                    if (hasFirstAndLastName) {
                                                         // Otwórz modal dodawania klienta
                                                         setParsedCustomerData(parsed);
                                                         setIsAddCustomerModalOpen(true);
