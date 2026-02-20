@@ -783,16 +783,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     const trimmed = customerSearch.trim();
                                                     if (!trimmed) return;
 
-                                                    // Parsuj wprowadzone dane
+                                                    // Parsuj wprowadzone dane i otwórz modal
                                                     const parsed = parseCustomerInput(trimmed);
-                                                    const hasFirstAndLastName = parsed.firstName && parsed.lastName;
-
-                                                    // Jeśli mamy imię i nazwisko i klient nie został wybrany z listy, otwórz modal
-                                                    if (hasFirstAndLastName) {
-                                                        setParsedCustomerData(parsed);
-                                                        setIsAddCustomerModalOpen(true);
-                                                        setShowCustomerDropdown(false);
-                                                    }
+                                                    setParsedCustomerData(parsed);
+                                                    setIsAddCustomerModalOpen(true);
+                                                    setShowCustomerDropdown(false);
                                                 }
                                             }}
                                             aria-invalid={!!errors.customer}
@@ -820,18 +815,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     // Jeśli pole jest puste, nie rób nic
                                                     if (!trimmed) return;
 
-                                                    // Sprawdź czy można otworzyć modal dodawania klienta
+                                                    // Otwórz modal dodawania klienta dla dowolnego niepustego wejścia
                                                     const parsed = parseCustomerInput(trimmed);
-                                                    const hasFirstAndLastName = parsed.firstName && parsed.lastName;
-
-                                                    if (hasFirstAndLastName) {
-                                                        // Otwórz modal dodawania klienta
-                                                        setParsedCustomerData(parsed);
-                                                        setIsAddCustomerModalOpen(true);
-                                                    } else {
-                                                        // Nie można otworzyć modala i nie wybrano klienta -> wyczyść pole
-                                                        setCustomerSearch('');
-                                                    }
+                                                    setParsedCustomerData(parsed);
+                                                    setIsAddCustomerModalOpen(true);
                                                 }, 300);
                                             }}
                                         />
