@@ -339,7 +339,7 @@ export const pl: TranslationKeys = {
             phoneInvalid: 'Nieprawidłowy numer telefonu',
             emailInvalid: 'Nieprawidłowy adres email',
             serviceRequired: 'Wybierz usługę',
-            basePricePositive: 'Cena musi być większa od 0',
+            basePricePositive: 'Cena nie może być ujemna',
             vatRange: 'VAT musi być między 0 a 100',
             noteMaxLength: 'Notatka może mieć maksymalnie 500 znaków',
             startDateRequired: 'Data rozpoczęcia jest wymagana',
@@ -741,7 +741,7 @@ export const pl: TranslationKeys = {
             nameMin: 'Nazwa musi mieć minimum 3 znaki',
             nameMax: 'Nazwa może mieć maksymalnie 100 znaków',
             priceRequired: 'Cena jest wymagana',
-            pricePositive: 'Cena musi być większa od 0',
+            pricePositive: 'Cena nie może być ujemna',
             vatRequired: 'Stawka VAT jest wymagana',
         },
         error: {

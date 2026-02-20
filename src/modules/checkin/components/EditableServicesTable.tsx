@@ -793,7 +793,7 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
         if (!targetPrice || services.length === 0) return;
 
         const inputValue = parseFloat(targetPrice);
-        if (isNaN(inputValue) || inputValue <= 0) return;
+        if (isNaN(inputValue) || inputValue < 0) return;
 
         const totals = calculateTotals();
         let updatedServices: ServiceLineItem[] = [];
@@ -1334,7 +1334,7 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                     </ModalBody>
                     <ModalFooter>
                         <SecondaryBtn onClick={closeDiscountModal}>Anuluj</SecondaryBtn>
-                        <PrimaryBtn onClick={handleApplyDiscount} disabled={!targetPrice || parseFloat(targetPrice) <= 0}>
+                        <PrimaryBtn onClick={handleApplyDiscount} disabled={targetPrice === '' || isNaN(parseFloat(targetPrice)) || parseFloat(targetPrice) < 0}>
                             Zastosuj rabat
                         </PrimaryBtn>
                     </ModalFooter>
