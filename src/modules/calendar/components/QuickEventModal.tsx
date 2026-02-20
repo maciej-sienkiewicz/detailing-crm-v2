@@ -766,7 +766,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         <S.Input
                                             ref={customerInputRef}
                                             type="text"
-                                            placeholder={selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : 'Dodaj klienta...'}
+                                            placeholder={selectedCustomer ? (`${selectedCustomer.firstName ?? ''} ${selectedCustomer.lastName ?? ''}`.trim() || '(Nie uzupełniono imienia i nazwiska)') : 'Dodaj klienta...'}
                                             value={customerSearch}
                                             onChange={(e) => {
                                                 setCustomerSearch(e.target.value);
@@ -842,7 +842,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         }}
                                                         $accentColor={accentColor}
                                                     >
-                                                        <span>{c.firstName} {c.lastName}</span>
+                                                        {(c.firstName || c.lastName)
+                                                            ? <span>{c.firstName} {c.lastName}</span>
+                                                            : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>(Nie uzupełniono imienia i nazwiska)</span>
+                                                        }
                                                         <span>{c.phone || c.email}</span>
                                                     </S.DropdownItem>
                                                 ))}
@@ -906,7 +909,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     <circle cx="12" cy="7" r="4" />
                                                 </svg>
                                                 <span>
-                                                    {selectedCustomer.firstName} {selectedCustomer.lastName}
+                                                    {(selectedCustomer.firstName || selectedCustomer.lastName)
+                                                        ? <>{selectedCustomer.firstName} {selectedCustomer.lastName}</>
+                                                        : <span style={{ color: '#94a3b8', fontStyle: 'italic', fontWeight: 400 }}>(Nie uzupełniono imienia i nazwiska)</span>
+                                                    }
                                                     {selectedCustomer.isNew && (
                                                         <span style={{
                                                             marginLeft: '6px',
