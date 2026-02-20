@@ -1320,7 +1320,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
             <QuickCustomerModal
                 isOpen={isAddCustomerModalOpen}
-                onClose={() => setIsAddCustomerModalOpen(false)}
+                onClose={() => { setIsAddCustomerModalOpen(false); setCustomerSearch(''); }}
                 onSuccess={(customer) => {
                     // API może zwracać phone/email bezpośrednio lub w contact
                     const phone = (customer as any).phone || customer.contact?.phone || undefined;
