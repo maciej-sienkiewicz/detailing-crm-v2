@@ -481,7 +481,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             const servicePriceErrors: string[] = [];
             selectedServiceIds.forEach((serviceId) => {
                 const price = servicePrices[serviceId];
-                if (!price || price <= 0) {
+                if (price == null || price < 0) {
                     const service = services.find((s: Service) => s.id === serviceId) ||
                                   tempServices[serviceId];
                     const serviceName = service?.name || 'Nieznana usługa';
