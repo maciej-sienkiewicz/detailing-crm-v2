@@ -125,14 +125,6 @@ export const QuickCustomerModal: React.FC<QuickCustomerModalProps> = ({
 
         const newErrors: Record<string, string> = {};
 
-        if (!firstName.trim() || firstName.trim().length < 2) {
-            newErrors.firstName = 'Imię musi mieć co najmniej 2 znaki';
-        }
-
-        if (!lastName.trim() || lastName.trim().length < 2) {
-            newErrors.lastName = 'Nazwisko musi mieć co najmniej 2 znaki';
-        }
-
         // Phone has real digits if after stripping non-digits we have more than just a country code
         const phoneDigits = phone.replace(/\D/g, '');
         const hasPhone = phoneDigits.length > 3;
