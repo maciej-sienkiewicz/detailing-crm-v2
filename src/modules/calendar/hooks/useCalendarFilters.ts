@@ -22,18 +22,16 @@ const DEFAULT_FILTERS: CalendarFiltersState = {
  */
 function validateAppointmentStatuses(raw: unknown): AppointmentStatus[] {
     if (!Array.isArray(raw)) return ALL_APPOINTMENT_STATUSES;
-    const valid = raw.filter((s): s is AppointmentStatus =>
+    return raw.filter((s): s is AppointmentStatus =>
         ALL_APPOINTMENT_STATUSES.includes(s as AppointmentStatus),
     );
-    return valid.length > 0 ? valid : ALL_APPOINTMENT_STATUSES;
 }
 
 function validateVisitStatuses(raw: unknown): VisitStatus[] {
     if (!Array.isArray(raw)) return ALL_VISIT_STATUSES;
-    const valid = raw.filter((s): s is VisitStatus =>
+    return raw.filter((s): s is VisitStatus =>
         ALL_VISIT_STATUSES.includes(s as VisitStatus),
     );
-    return valid.length > 0 ? valid : ALL_VISIT_STATUSES;
 }
 
 export function useCalendarFilters() {
