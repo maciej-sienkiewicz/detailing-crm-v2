@@ -12,11 +12,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { operationApi } from '@/modules/operations';
 import { useToast } from '@/common/components/Toast';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
+import { useCalendarFilters } from '../hooks/useCalendarFilters';
 import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
 import { QuickEventModal, type QuickEventFormData, type QuickEventModalRef } from './QuickEventModal';
 import { EventSummaryPopover } from './EventSummaryPopover';
 import { CalendarFilterDropdown } from './CalendarFilterDropdown';
-import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData, VisitStatus, AppointmentStatus } from '../types';
+import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData } from '../types';
 import type { Operation } from '@/modules/operations/types';
 import '../calendar.css';
 
@@ -550,19 +551,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const [quickModalOpen, setQuickModalOpen] = useState(false);
     const [selectedEventData, setSelectedEventData] = useState<EventCreationData | null>(null);
 
-    // Filter state - all statuses selected by default
-    const [selectedAppointmentStatuses, setSelectedAppointmentStatuses] = useState<AppointmentStatus[]>([
-        'CREATED',
-        'ABANDONED',
-        'CANCELLED',
-    ]);
-    const [selectedVisitStatuses, setSelectedVisitStatuses] = useState<VisitStatus[]>([
-        'IN_PROGRESS',
-        'READY_FOR_PICKUP',
-        'COMPLETED',
-        'REJECTED',
-        'ARCHIVED',
-    ]);
+    // Filter state - persisted in localStorage
+    const {
+        appointmentStatuses: selectedAppointmentStatuses,
+        visitStatuses: selectedVisitStatuses,
+        setAppointmentStatuses: setSelectedAppointmentStatuses,
+        setVisitStatuses: setSelectedVisitStatuses,
+    } = useCalendarFilters();
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     // Popover state
