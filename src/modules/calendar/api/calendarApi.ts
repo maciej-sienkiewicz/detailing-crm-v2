@@ -285,7 +285,7 @@ const fetchVisits = async (dateRange: DateRange, statuses: VisitStatus[] = []): 
     // Fetch visits for each requested status in parallel (mirrors appointment pattern)
     const requests = statuses.map(status =>
         apiClient.get<{ visits: VisitResponse[] }>(
-            '/v1/visits',
+            '/visits',
             {
                 params: {
                     startDate: dateRange.start,
@@ -314,10 +314,15 @@ export const calendarApi = {
             console.log('[CalendarAPI] Appointment status filters:', appointmentStatuses);
             console.log('[CalendarAPI] Visit status filters:', visitStatuses);
 
-            // Fetch both appointments and visits in parallel
+            // Fetch both appointments and visits in parallel.
+            // Visits are isolated with .catch so a visits-endpoint error
+            // does not prevent appointments from rendering.
             const [appointments, visits] = await Promise.all([
                 fetchAppointments(dateRange, appointmentStatuses),
-                fetchVisits(dateRange, visitStatuses),
+                fetchVisits(dateRange, visitStatuses).catch((err) => {
+                    console.error('[CalendarAPI] Failed to fetch visits:', err);
+                    return [] as VisitResponse[];
+                }),
             ]);
 
             console.log('[CalendarAPI] Fetched appointments:', appointments);

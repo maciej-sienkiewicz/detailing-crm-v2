@@ -1,7 +1,7 @@
 import { useLocalStorage } from '../../../common/hooks';
 import { AppointmentStatus, VisitStatus } from '../types';
 
-const STORAGE_KEY = 'calendar-filters';
+const STORAGE_KEY = 'calendar-filters-v2';
 
 const ALL_APPOINTMENT_STATUSES: AppointmentStatus[] = ['CREATED', 'ABANDONED', 'CANCELLED'];
 const ALL_VISIT_STATUSES: VisitStatus[] = ['IN_PROGRESS', 'READY_FOR_PICKUP', 'COMPLETED', 'REJECTED', 'ARCHIVED'];
