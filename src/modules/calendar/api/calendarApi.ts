@@ -282,18 +282,22 @@ const fetchVisits = async (dateRange: DateRange, statuses: VisitStatus[] = []): 
         return [];
     }
 
-    const response = await apiClient.get<{ visits: VisitResponse[] }>(
-        '/visits',
-        {
-            params: {
-                startDate: dateRange.start,
-                endDate: dateRange.end,
-                statuses: statuses.join(','), // Send as comma-separated string
-            },
-        }
+    // Fetch visits for each requested status in parallel (mirrors appointment pattern)
+    const requests = statuses.map(status =>
+        apiClient.get<{ visits: VisitResponse[] }>(
+            '/v1/visits',
+            {
+                params: {
+                    startDate: dateRange.start,
+                    endDate: dateRange.end,
+                    status,
+                },
+            }
+        )
     );
 
-    return response.data.visits || [];
+    const responses = await Promise.all(requests);
+    return responses.flatMap(response => response.data.visits || []);
 };
 
 export const calendarApi = {

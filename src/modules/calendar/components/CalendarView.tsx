@@ -1,6 +1,6 @@
 // src/modules/calendar/components/CalendarView.tsx
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -559,6 +559,30 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         setVisitStatuses: setSelectedVisitStatuses,
     } = useCalendarFilters();
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+    // Badge on the FullCalendar "Filtruj" button – updated whenever filters change
+    useEffect(() => {
+        const btn = document.querySelector('.fc-filter-button');
+        if (!btn) return;
+
+        btn.querySelector('.fc-filter-badge')?.remove();
+
+        const deselectedCount =
+            (3 - selectedAppointmentStatuses.length) +
+            (5 - selectedVisitStatuses.length);
+
+        if (deselectedCount > 0) {
+            const badge = document.createElement('span');
+            badge.className = 'fc-filter-badge';
+            badge.style.cssText =
+                'display:inline-flex;align-items:center;justify-content:center;' +
+                'min-width:18px;height:18px;padding:0 5px;margin-left:6px;' +
+                'background:rgba(255,255,255,0.85);border-radius:9px;' +
+                'font-size:11px;font-weight:700;color:#4f46e5;';
+            badge.textContent = String(deselectedCount);
+            btn.appendChild(badge);
+        }
+    }, [selectedAppointmentStatuses, selectedVisitStatuses]);
 
     // Popover state
     const [popoverOpen, setPopoverOpen] = useState(false);
