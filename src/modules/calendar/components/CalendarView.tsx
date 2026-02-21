@@ -364,44 +364,7 @@ const CalendarContainer = styled.div`
 
     @media (max-width: 768px) {
         .fc-header-toolbar {
-            padding: 12px 16px;
-            gap: 8px;
-        }
-
-        .fc-header-toolbar .fc-toolbar-chunk {
-            display: flex;
-            align-items: center;
-        }
-
-        .fc-toolbar-title {
-            font-size: 17px;
-        }
-
-        .fc-button-group {
-            border-radius: 10px;
-        }
-
-        .fc-button {
-            padding: 7px 10px !important;
-            font-size: 11px !important;
-        }
-
-        .fc-today-button {
-            margin-right: 8px !important;
-            padding: 7px 12px !important;
-            border-radius: 10px !important;
-        }
-
-        .fc-filter-button {
-            margin-left: 8px !important;
-            padding: 7px 12px !important;
-            border-radius: 10px !important;
-        }
-
-        .fc-prev-button,
-        .fc-next-button {
-            padding: 7px 10px !important;
-            border-radius: 10px !important;
+            display: none !important;
         }
 
         .fc-col-header-cell {
@@ -444,24 +407,6 @@ const CalendarContainer = styled.div`
     }
 
     @media (max-width: 480px) {
-        .fc-header-toolbar {
-            padding: 10px 12px;
-            gap: 6px;
-        }
-
-        .fc-toolbar-title {
-            font-size: 15px;
-        }
-
-        .fc-button {
-            padding: 6px 8px !important;
-            font-size: 10px !important;
-        }
-
-        .fc-today-button {
-            margin-right: 6px !important;
-        }
-
         .fc-col-header-cell {
             padding: 8px 2px;
             font-size: 9px;
@@ -537,6 +482,144 @@ const LoadingSpinner = styled.div`
     }
 `;
 
+/* ===================== MOBILE HEADER ===================== */
+const MobileHeader = styled.div`
+    display: none;
+
+    @media (max-width: 768px) {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px 16px 12px;
+        background: #ffffff;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+    }
+`;
+
+const MobileViewSwitcher = styled.div`
+    display: flex;
+    background: #f1f5f9;
+    border-radius: 12px;
+    padding: 3px;
+    gap: 2px;
+`;
+
+const MobileViewTab = styled.button<{ $active: boolean }>`
+    flex: 1;
+    padding: 8px 0;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: ${p => p.$active ? '#0f172a' : 'transparent'};
+    color: ${p => p.$active ? '#ffffff' : '#64748b'};
+    box-shadow: ${p => p.$active ? '0 2px 8px rgba(0,0,0,0.18)' : 'none'};
+
+    &:active {
+        opacity: 0.85;
+    }
+`;
+
+const MobileNav = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
+const MobileNavBtn = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #0f172a;
+    cursor: pointer;
+    transition: background 0.15s ease;
+
+    &:active { background: #f1f5f9; }
+
+    svg { width: 16px; height: 16px; }
+`;
+
+const MobileNavTitle = styled.div`
+    flex: 1;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.2px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 8px 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+`;
+
+const MobileActions = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
+const MobileFilterPill = styled.button<{ $active: boolean }>`
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 14px;
+    background: ${p => p.$active ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : '#ffffff'};
+    color: ${p => p.$active ? '#ffffff' : '#475569'};
+    border: 1px solid ${p => p.$active ? 'transparent' : '#e2e8f0'};
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    svg { width: 15px; height: 15px; flex-shrink: 0; }
+`;
+
+const MobileFilterBadge = styled.span`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: rgba(255, 255, 255, 0.28);
+    border-radius: 9px;
+    font-size: 11px;
+    font-weight: 700;
+`;
+
+const MobileAddBtn = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 12px;
+    background: #0f172a;
+    color: #ffffff;
+    font-size: 24px;
+    font-weight: 300;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease;
+
+    &:active { background: #1e293b; }
+`;
+
 interface CalendarViewProps {
     onViewChange?: (view: CalendarViewType) => void;
 }
@@ -559,17 +642,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         setVisitStatuses: setSelectedVisitStatuses,
     } = useCalendarFilters();
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [calendarTitle, setCalendarTitle] = useState('');
+    const [currentView, setCurrentView] = useState<CalendarViewType>('dayGridMonth');
 
-    // Badge on the FullCalendar "Filtruj" button – updated whenever filters change
+    const deselectedCount =
+        (3 - selectedAppointmentStatuses.length) +
+        (5 - selectedVisitStatuses.length);
+
+    // Badge on the FullCalendar "Filtruj" button (desktop) – updated whenever filters change
     useEffect(() => {
         const btn = document.querySelector('.fc-filter-button');
         if (!btn) return;
 
         btn.querySelector('.fc-filter-badge')?.remove();
-
-        const deselectedCount =
-            (3 - selectedAppointmentStatuses.length) +
-            (5 - selectedVisitStatuses.length);
 
         if (deselectedCount > 0) {
             const badge = document.createElement('span');
@@ -582,7 +667,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
             badge.textContent = String(deselectedCount);
             btn.appendChild(badge);
         }
-    }, [selectedAppointmentStatuses, selectedVisitStatuses]);
+    }, [deselectedCount]);
+
+    const handleMobileViewChange = useCallback((view: CalendarViewType) => {
+        calendarRef.current?.getApi().changeView(view);
+    }, []);
+
+    const handleMobileAddClick = useCallback(() => {
+        const now = new Date();
+        setSelectedEventData({ start: now, end: now, allDay: true });
+        setQuickModalOpen(true);
+    }, []);
 
     // Popover state
     const [popoverOpen, setPopoverOpen] = useState(false);
@@ -602,6 +697,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
             start: arg.startStr,
             end: arg.endStr,
         });
+
+        setCalendarTitle(arg.view.title);
+        setCurrentView(arg.view.type as CalendarViewType);
 
         // Notify parent of view change
         if (onViewChange) {
@@ -749,6 +847,59 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     <LoadingSpinner />
                 </LoadingOverlay>
             )}
+
+            <MobileHeader>
+                {/* Row 1 – view switcher */}
+                <MobileViewSwitcher>
+                    {([
+                        { view: 'timeGridDay',  label: 'Dzień'   },
+                        { view: 'dayGridMonth', label: 'Miesiąc' },
+                        { view: 'timeGridWeek', label: 'Tydzień' },
+                    ] as { view: CalendarViewType; label: string }[]).map(({ view, label }) => (
+                        <MobileViewTab
+                            key={view}
+                            $active={currentView === view}
+                            onClick={() => handleMobileViewChange(view)}
+                        >
+                            {label}
+                        </MobileViewTab>
+                    ))}
+                </MobileViewSwitcher>
+
+                {/* Row 2 – navigation */}
+                <MobileNav>
+                    <MobileNavBtn onClick={() => calendarRef.current?.getApi().prev()} aria-label="Poprzedni">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                        </svg>
+                    </MobileNavBtn>
+                    <MobileNavTitle>{calendarTitle}</MobileNavTitle>
+                    <MobileNavBtn onClick={() => calendarRef.current?.getApi().next()} aria-label="Następny">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                    </MobileNavBtn>
+                </MobileNav>
+
+                {/* Row 3 – filter + add */}
+                <MobileActions>
+                    <MobileFilterPill
+                        $active={deselectedCount > 0}
+                        onClick={() => setIsFilterOpen(!isFilterOpen)}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+                        </svg>
+                        Filtruj
+                        {deselectedCount > 0 && (
+                            <MobileFilterBadge>{deselectedCount}</MobileFilterBadge>
+                        )}
+                    </MobileFilterPill>
+                    <MobileAddBtn onClick={handleMobileAddClick} aria-label="Dodaj zdarzenie">
+                        +
+                    </MobileAddBtn>
+                </MobileActions>
+            </MobileHeader>
 
             <CalendarWrapper>
                 <CalendarFilterDropdown
