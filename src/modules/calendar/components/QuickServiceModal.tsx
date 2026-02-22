@@ -79,9 +79,6 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
         if (!serviceName || serviceName.trim().length < 3) {
             newErrors.name = 'Nazwa usługi musi mieć co najmniej 3 znaki';
         }
-        if (basePriceNet <= 0) {
-            newErrors.price = 'Cena musi być większa niż 0';
-        }
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
