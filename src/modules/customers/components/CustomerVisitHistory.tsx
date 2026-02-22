@@ -175,41 +175,6 @@ export const CustomerVisitHistory = ({ visits, reservations = [] }: CustomerVisi
                 </HeaderLeft>
             </Header>
 
-            <FilterBar>
-                <SearchInput>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="11" cy="11" r="8" />
-                        <path d="M21 21l-4.35-4.35" />
-                    </svg>
-                    <input
-                        type="text"
-                        placeholder="Szukaj po tablicy, pojeździe..."
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                    />
-                </SearchInput>
-
-                <FilterSelect value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-                    <option value="all">Wszystkie statusy</option>
-                    <option value="completed">Zakończona</option>
-                    <option value="in-progress">W trakcie</option>
-                    <option value="scheduled">Zaplanowana</option>
-                    <option value="cancelled">Anulowana</option>
-                    <option value="CREATED">Rezerwacja aktywna</option>
-                    <option value="ABANDONED">Rezerwacja porzucona</option>
-                </FilterSelect>
-
-                <FilterSelect value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
-                    <option value="all">Wizyty i rezerwacje</option>
-                    <option value="visit">Tylko wizyty</option>
-                    <option value="reservation">Tylko rezerwacje</option>
-                </FilterSelect>
-
-                {(search || statusFilter !== 'all' || typeFilter !== 'all') && (
-                    <ResultCount>{filtered.length} z {totalCount}</ResultCount>
-                )}
-            </FilterBar>
-
             <VisitList>
                 {filtered.length === 0 ? (
                     <EmptyState>

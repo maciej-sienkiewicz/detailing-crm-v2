@@ -32,7 +32,7 @@ export const PriceInputModal: React.FC<PriceInputModalProps> = ({
     // Reset form when modal opens/closes
     useEffect(() => {
         if (isOpen) {
-            setPrice('');
+            setPrice("0.00");
             setError('');
         }
     }, [isOpen]);
