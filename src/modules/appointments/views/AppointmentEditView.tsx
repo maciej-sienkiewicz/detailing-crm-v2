@@ -2,7 +2,7 @@
 
 import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
 import { appointmentApi } from '../api/appointmentApi';
@@ -63,7 +63,7 @@ export const AppointmentEditView = () => {
     const { appointmentId } = useParams<{ appointmentId: string }>();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const { showSuccess } = useToast();
+    const { showSuccess, showInfo } = useToast();
 
     const { data: appointment, isLoading: isLoadingAppointment, isError } = useQuery({
         queryKey: ['appointments', appointmentId],
@@ -131,6 +131,7 @@ export const AppointmentEditView = () => {
     }, [appointment]);
 
     const [formData, setFormData] = useState<CheckInFormData | null>(null);
+    const initialFormDataRef = useRef<CheckInFormData | null>(null);
 
     // preserve appointment title from appointment (not editable in this view)
     const appointmentTitleRef = useMemo(() => appointment?.appointmentTitle ?? '', [appointment]);
@@ -140,7 +141,7 @@ export const AppointmentEditView = () => {
             // fill defaults for required fields of CheckInFormData
             const startRaw = appointment?.schedule?.startDateTime ?? appointment?.startDateTime ?? '';
             const endRaw = appointment?.schedule?.endDateTime ?? appointment?.endDateTime ?? '';
-            setFormData({
+            const snapshot: CheckInFormData = {
                 customerData: {
                     id: '', firstName: '', lastName: '', phone: '', email: '',
                     ...(initialData.customerData || {}),
@@ -171,7 +172,9 @@ export const AppointmentEditView = () => {
                 damagePoints: initialData.damagePoints || [],
                 visitStartAt: fromInstantToLocalInput(startRaw),
                 visitEndAt: fromInstantToLocalInput(endRaw),
-            });
+            };
+            initialFormDataRef.current = snapshot;
+            setFormData(snapshot);
         }
     }, [initialData, formData, appointment]);
 
@@ -194,6 +197,11 @@ export const AppointmentEditView = () => {
 
     const handleSave = () => {
         if (!formData) return;
+
+        if (JSON.stringify(formData) === JSON.stringify(initialFormDataRef.current)) {
+            showInfo('Nie wprowadzono żadnych zmian.');
+            return;
+        }
 
         // build update payload using CheckIn-like state + preserved schedule
         // Convert local input values to Instant (UTC ISO with 'Z') before sending to backend
