@@ -3,7 +3,8 @@
 import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/common/components/Toast';
 import { appointmentApi } from '../api/appointmentApi';
 import { LoadingSkeleton } from '@/modules/appointments/components/common';
 import { VerificationStep } from '@/modules/checkin/components/VerificationStep';
@@ -61,6 +62,8 @@ const FooterActions = styled.div`
 export const AppointmentEditView = () => {
     const { appointmentId } = useParams<{ appointmentId: string }>();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
+    const { showSuccess } = useToast();
 
     const { data: appointment, isLoading: isLoadingAppointment, isError } = useQuery({
         queryKey: ['appointments', appointmentId],
@@ -174,7 +177,13 @@ export const AppointmentEditView = () => {
 
     const updateMutation = useMutation({
         mutationFn: (payload: AppointmentCreateRequest) => appointmentApi.updateAppointment(appointmentId!, payload),
-        onSuccess: () => navigate('/appointments'),
+        onSuccess: () => {
+            showSuccess('Pomyślnie zapisano wprowadzone zmiany');
+            // Unieważnij cache rezerwacji – następne wejście w edycję załaduje świeże dane z serwera
+            queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            // Wyzeruj formData, żeby useEffect wczytał dane ponownie po odświeżeniu zapytania
+            setFormData(null);
+        },
     });
 
     const handleChange = (updates: Partial<CheckInFormData>) => {
