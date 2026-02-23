@@ -228,7 +228,7 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
 
                                 <TableCell>
                                     <OwnersList>
-                                        {vehicle.owners.length > 0 ? (
+                                        {vehicle.owners.length > 0 && vehicle.owners[0].customerName?.trim() ? (
                                             <>
                                                 <OwnerName>{vehicle.owners[0].customerName}</OwnerName>
                                                 {vehicle.owners.length > 1 && (
@@ -239,7 +239,9 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
                                                 )}
                                             </>
                                         ) : (
-                                            <PlaceholderText>Brak właściciela</PlaceholderText>
+                                            <PlaceholderText>
+                                                Nie wprowadzono danych
+                                            </PlaceholderText>
                                         )}
                                     </OwnersList>
                                 </TableCell>
