@@ -10,6 +10,12 @@ const TableWrapper = styled.div`
     -webkit-overflow-scrolling: touch;
 `;
 
+const PlaceholderText = styled.span`
+    color: #94a3b8;
+    font-style: italic;
+    font-size: ${props => props.theme.fontSizes.sm};
+`;
+
 const Table = styled.table`
     width: 100%;
     min-width: 1000px;
@@ -192,79 +198,92 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
                     </tr>
                 </TableHead>
                 <TableBody>
-                    {vehicles.map(vehicle => (
-                        <TableRow
-                            key={vehicle.id}
-                            onClick={() => onRowClick?.(vehicle.id)}
-                        >
-                            <TableCell>
-                                <LicensePlate>{vehicle.licensePlate}</LicensePlate>
-                            </TableCell>
+                    {vehicles.map(vehicle => {
+                        // Sprawdzamy czy rejestracja istnieje i nie jest pustym ciągiem znaków
+                        const hasLicensePlate = vehicle.licensePlate?.trim();
 
-                            <TableCell>
-                                <VehicleInfo>
-                                    <VehicleName>
-                                        {vehicle.brand} {vehicle.model}
-                                    </VehicleName>
-                                    <VehicleYear>{vehicle.yearOfProduction}</VehicleYear>
-                                </VehicleInfo>
-                            </TableCell>
-
-                            <TableCell>
-                                <OwnersList>
-                                    {vehicle.owners.length > 0 && (
-                                        <>
-                                            <OwnerName>{vehicle.owners[0].customerName}</OwnerName>
-                                            {vehicle.owners.length > 1 && (
-                                                <OwnerSecondary>{vehicle.owners[1].customerName}</OwnerSecondary>
-                                            )}
-                                            {vehicle.owners.length > 2 && (
-                                                <MoreOwners>+{vehicle.owners.length - 2} więcej</MoreOwners>
-                                            )}
-                                        </>
+                        return (
+                            <TableRow
+                                key={vehicle.id}
+                                onClick={() => onRowClick?.(vehicle.id)}
+                            >
+                                <TableCell>
+                                    {hasLicensePlate ? (
+                                        <LicensePlate>{vehicle.licensePlate}</LicensePlate>
+                                    ) : (
+                                        <PlaceholderText>
+                                            Nie wprowadzono danych
+                                        </PlaceholderText>
                                     )}
-                                </OwnersList>
-                            </TableCell>
+                                </TableCell>
 
-                            <TableCell>
-                                {vehicle.stats.lastVisitDate
-                                    ? formatDate(vehicle.stats.lastVisitDate)
-                                    : '—'
-                                }
-                            </TableCell>
+                                <TableCell>
+                                    <VehicleInfo>
+                                        <VehicleName>
+                                            {vehicle.brand} {vehicle.model}
+                                        </VehicleName>
+                                        <VehicleYear>{vehicle.yearOfProduction}</VehicleYear>
+                                    </VehicleInfo>
+                                </TableCell>
 
-                            <TableCell>
-                                <VisitBadge>{vehicle.stats.totalVisits}</VisitBadge>
-                            </TableCell>
-
-                            <TableCell>
-                                <RevenueInfo>
-                                    <RevenueValue>
-                                        {formatCurrency(
-                                            vehicle.stats.totalSpent.grossAmount,
-                                            vehicle.stats.totalSpent.currency
+                                <TableCell>
+                                    <OwnersList>
+                                        {vehicle.owners.length > 0 ? (
+                                            <>
+                                                <OwnerName>{vehicle.owners[0].customerName}</OwnerName>
+                                                {vehicle.owners.length > 1 && (
+                                                    <OwnerSecondary>{vehicle.owners[1].customerName}</OwnerSecondary>
+                                                )}
+                                                {vehicle.owners.length > 2 && (
+                                                    <MoreOwners>+{vehicle.owners.length - 2} więcej</MoreOwners>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <PlaceholderText>Brak właściciela</PlaceholderText>
                                         )}
-                                    </RevenueValue>
-                                    <RevenueSubtext>
-                                        {formatCurrency(
-                                            vehicle.stats.totalSpent.netAmount,
-                                            vehicle.stats.totalSpent.currency
-                                        )} netto
-                                    </RevenueSubtext>
-                                </RevenueInfo>
-                            </TableCell>
+                                    </OwnersList>
+                                </TableCell>
 
-                            <ActionsCell>
-                                <DeleteButton
-                                    onClick={(e) => handleDelete(e, vehicle.id, vehicle.licensePlate)}
-                                    disabled={deletingId === vehicle.id}
-                                    title="Usuń pojazd"
-                                >
-                                    {deletingId === vehicle.id ? '...' : 'Usuń'}
-                                </DeleteButton>
-                            </ActionsCell>
-                        </TableRow>
-                    ))}
+                                <TableCell>
+                                    {vehicle.stats.lastVisitDate
+                                        ? formatDate(vehicle.stats.lastVisitDate)
+                                        : '—'
+                                    }
+                                </TableCell>
+
+                                <TableCell>
+                                    <VisitBadge>{vehicle.stats.totalVisits}</VisitBadge>
+                                </TableCell>
+
+                                <TableCell>
+                                    <RevenueInfo>
+                                        <RevenueValue>
+                                            {formatCurrency(
+                                                vehicle.stats.totalSpent.grossAmount,
+                                                vehicle.stats.totalSpent.currency
+                                            )}
+                                        </RevenueValue>
+                                        <RevenueSubtext>
+                                            {formatCurrency(
+                                                vehicle.stats.totalSpent.netAmount,
+                                                vehicle.stats.totalSpent.currency
+                                            )} netto
+                                        </RevenueSubtext>
+                                    </RevenueInfo>
+                                </TableCell>
+
+                                <ActionsCell>
+                                    <DeleteButton
+                                        onClick={(e) => handleDelete(e, vehicle.id, vehicle.licensePlate || '')}
+                                        disabled={deletingId === vehicle.id}
+                                        title="Usuń pojazd"
+                                    >
+                                        {deletingId === vehicle.id ? '...' : 'Usuń'}
+                                    </DeleteButton>
+                                </ActionsCell>
+                            </TableRow>
+                        );
+                    })}
                 </TableBody>
             </Table>
         </TableWrapper>

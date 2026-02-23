@@ -94,6 +94,18 @@ const Badge = styled.span`
   border-radius: ${props => props.theme.radii.full};
 `;
 
+const PlaceholderText = styled.span`
+  color: #94a3b8;
+  font-style: italic;
+  font-size: ${props => props.theme.fontSizes.sm};
+`;
+
+const getRawFullName = (customer: Customer): string => {
+    const first = customer.firstName?.trim() || '';
+    const last = customer.lastName?.trim() || '';
+    return `${first} ${last}`.trim();
+};
+
 interface CustomerTableProps {
     customers: Customer[];
 }
@@ -120,54 +132,65 @@ export const CustomerTable = ({ customers }: CustomerTableProps) => {
                     </tr>
                 </TableHead>
                 <TableBody>
-                    {customers.map(customer => (
-                        <TableRow key={customer.id} onClick={() => handleRowClick(customer.id)}>
-                            <TableCell>
-                                <CellStack>
-                                    <PrimaryText>{getFullName(customer)}</PrimaryText>
-                                </CellStack>
-                            </TableCell>
-                            <TableCell>
-                                <CellStack>
-                                    <PrimaryText>{customer.contact.email}</PrimaryText>
-                                    <SecondaryText>
-                                        {formatPhoneNumber(customer.contact.phone)}
-                                    </SecondaryText>
-                                </CellStack>
-                            </TableCell>
-                            <TableCell>
-                                {customer.company ? (
+                    {customers.map(customer => {
+                        const fullName = getRawFullName(customer);
+
+                        return (
+                            <TableRow key={customer.id} onClick={() => handleRowClick(customer.id)}>
+                                <TableCell>
                                     <CellStack>
-                                        <PrimaryText>{customer.company.name}</PrimaryText>
+                                        {fullName ? (
+                                            <PrimaryText>{fullName}</PrimaryText>
+                                        ) : (
+                                            <PlaceholderText>
+                                                Nie wprowadzono danych
+                                            </PlaceholderText>
+                                        )}
+                                    </CellStack>
+                                </TableCell>
+                                <TableCell>
+                                    <CellStack>
+                                        <PrimaryText>{customer.contact.email}</PrimaryText>
                                         <SecondaryText>
-                                            NIP: {formatNip(customer.company.nip)}
+                                            {formatPhoneNumber(customer.contact.phone)}
                                         </SecondaryText>
                                     </CellStack>
-                                ) : (
-                                    <SecondaryText>—</SecondaryText>
-                                )}
-                            </TableCell>
-                            <TableCell>{formatDate(customer.lastVisitDate)}</TableCell>
-                            <TableCell>
-                                <Badge>{customer.totalVisits}</Badge>
-                            </TableCell>
-                            <TableCell>
-                                <Badge>{customer.vehicleCount}</Badge>
-                            </TableCell>
-                            <TableCell>
-                                <CellStack>
-                                    <PrimaryText>
-                                        <LabelText>{t.customers.table.revenueNet}:</LabelText>
-                                        {formatCurrency(customer.totalRevenue.netAmount, customer.totalRevenue.currency)}
-                                    </PrimaryText>
-                                    <SecondaryText>
-                                        <LabelText>{t.customers.table.revenueGross}:</LabelText>
-                                        {formatCurrency(customer.totalRevenue.grossAmount, customer.totalRevenue.currency)}
-                                    </SecondaryText>
-                                </CellStack>
-                            </TableCell>
-                        </TableRow>
-                    ))}
+                                </TableCell>
+                                {/* ... reszta komórek bez zmian ... */}
+                                <TableCell>
+                                    {customer.company ? (
+                                        <CellStack>
+                                            <PrimaryText>{customer.company.name}</PrimaryText>
+                                            <SecondaryText>
+                                                NIP: {formatNip(customer.company.nip)}
+                                            </SecondaryText>
+                                        </CellStack>
+                                    ) : (
+                                        <SecondaryText>—</SecondaryText>
+                                    )}
+                                </TableCell>
+                                <TableCell>{formatDate(customer.lastVisitDate)}</TableCell>
+                                <TableCell>
+                                    <Badge>{customer.totalVisits}</Badge>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge>{customer.vehicleCount}</Badge>
+                                </TableCell>
+                                <TableCell>
+                                    <CellStack>
+                                        <PrimaryText>
+                                            <LabelText>{t.customers.table.revenueNet}:</LabelText>
+                                            {formatCurrency(customer.totalRevenue.netAmount, customer.totalRevenue.currency)}
+                                        </PrimaryText>
+                                        <SecondaryText>
+                                            <LabelText>{t.customers.table.revenueGross}:</LabelText>
+                                            {formatCurrency(customer.totalRevenue.grossAmount, customer.totalRevenue.currency)}
+                                        </SecondaryText>
+                                    </CellStack>
+                                </TableCell>
+                            </TableRow>
+                        );
+                    })}
                 </TableBody>
             </Table>
         </TableWrapper>

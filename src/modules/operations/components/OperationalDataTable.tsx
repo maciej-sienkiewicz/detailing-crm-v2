@@ -442,9 +442,15 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
                                     </TableCell>
                                     <TableCell>
                                         <CustomerCell>
-                                            <CustomerName>
-                                                {operation.customerFirstName} {operation.customerLastName}
-                                            </CustomerName>
+                                            {operation.customerFirstName?.trim() || operation.customerLastName?.trim() ? (
+                                                <CustomerName>
+                                                    {operation.customerFirstName} {operation.customerLastName}
+                                                </CustomerName>
+                                            ) : (
+                                                <VehicleName style={{ color: '#94a3b8', fontStyle: 'italic' }}>
+                                                    Nie wprowadzono danych
+                                                </VehicleName>
+                                            )}
                                         </CustomerCell>
                                     </TableCell>
                                     <TableCell>
