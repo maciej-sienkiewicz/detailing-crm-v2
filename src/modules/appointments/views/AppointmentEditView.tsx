@@ -181,8 +181,6 @@ export const AppointmentEditView = () => {
             showSuccess('Pomyślnie zapisano wprowadzone zmiany');
             // Unieważnij cache rezerwacji – następne wejście w edycję załaduje świeże dane z serwera
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
-            // Wyzeruj formData, żeby useEffect wczytał dane ponownie po odświeżeniu zapytania
-            setFormData(null);
         },
     });
 

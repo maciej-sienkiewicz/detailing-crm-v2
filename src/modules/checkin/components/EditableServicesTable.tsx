@@ -1101,7 +1101,7 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
         // Create new service line item (with ID if saved to DB, or temporary ID if not)
         const newServiceLine: ServiceLineItem = {
             id: service.id ? `${service.id}_${Date.now()}` : `temp_${Date.now()}`,
-            serviceId: service.id || `temp_${Date.now()}`,
+            serviceId: service.id || null,
             serviceName: service.name,
             basePriceNet: service.basePriceNet,
             vatRate: service.vatRate,
