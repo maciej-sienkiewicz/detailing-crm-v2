@@ -148,11 +148,6 @@ interface ClientBriefingStepProps {
 export const ClientBriefingStep = ({ comments }: ClientBriefingStepProps) => {
     return (
         <Container>
-            <Description>
-                Przed wydaniem pojazdu zapoznaj się z wszystkimi komentarzami przeznaczonymi
-                dla klienta. Upewnij się, że przekazałeś wszystkie istotne informacje.
-            </Description>
-
             <NotesSection>
                 <SectionHeader>
                     <SectionTitle>

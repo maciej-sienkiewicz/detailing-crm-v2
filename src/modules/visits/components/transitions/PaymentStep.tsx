@@ -165,11 +165,6 @@ export const PaymentStep = ({ totalAmount, currency, onComplete }: PaymentStepPr
 
     return (
         <Container>
-            <Description>
-                Sfinalizuj płatność i wydanie pojazdu. Wybierz metodę płatności oraz typ dokumentu
-                księgowego do wystawienia.
-            </Description>
-
             <AmountCard>
                 <AmountLabel>Kwota do zapłaty</AmountLabel>
                 <AmountValue>{formatCurrency(totalAmount / 100, currency)}</AmountValue>
@@ -225,13 +220,6 @@ export const PaymentStep = ({ totalAmount, currency, onComplete }: PaymentStepPr
                 </OptionGrid>
             </OptionsSection>
 
-            <InfoBox>
-                <InfoIcon>💡</InfoIcon>
-                <InfoText>
-                    Po zatwierdzeniu wizyta zostanie oznaczona jako zakończona, a dokument księgowy
-                    zostanie automatycznie wygenerowany. Płatność zostanie zarejestrowana w systemie.
-                </InfoText>
-            </InfoBox>
         </Container>
     );
 };
