@@ -708,10 +708,14 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
 
         switch (adjustment.type) {
             case 'PERCENT': {
-                const percentageAmount = Math.round((basePriceNet * Math.abs(adjustment.value)) / 100);
-                finalPriceNet = adjustment.value > 0
-                    ? basePriceNet + percentageAmount
-                    : basePriceNet - percentageAmount;
+                if (adjustment.value <= 100) {
+                    // 0–100: discount by value% (e.g. 5 = 5% rabat, 95 = 95% rabat)
+                    const discountAmount = Math.round((basePriceNet * adjustment.value) / 100);
+                    finalPriceNet = basePriceNet - discountAmount;
+                } else {
+                    // >100: price increase (e.g. 120 = cena * 1.20, +20%)
+                    finalPriceNet = Math.round((basePriceNet * adjustment.value) / 100);
+                }
                 break;
             }
             case 'FIXED_NET': {
@@ -799,16 +803,12 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
         let updatedServices: ServiceLineItem[] = [];
 
         if (discountType === 'PERCENT') {
-            // Apply percentage discount directly (negative for discount)
-            if (inputValue > 100) {
-                alert('Procent rabatu nie może być większy niż 100%');
-                return;
-            }
+            // 0–100: rabat o value%, >100: podwyżka o (value-100)% (np. 120 = +20%)
             updatedServices = services.map(service => ({
                 ...service,
                 adjustment: {
                     type: 'PERCENT' as const,
-                    value: -inputValue,
+                    value: inputValue,
                 },
             }));
         } else if (discountType === 'FIXED_NET' || discountType === 'FIXED_GROSS') {
@@ -828,7 +828,7 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                 ...service,
                 adjustment: {
                     type: 'PERCENT' as const,
-                    value: -roundedDiscountPercentage,
+                    value: roundedDiscountPercentage,
                 },
             }));
 
@@ -876,7 +876,7 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
                 ...service,
                 adjustment: {
                     type: 'PERCENT' as const,
-                    value: -roundedDiscountPercentage,
+                    value: roundedDiscountPercentage,
                 },
             }));
 
@@ -1032,7 +1032,7 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
 
         const numValue = isMoneyType
             ? Math.round(Math.abs(parsedValue) * 100)
-            : parsedValue;
+            : Math.max(0, parsedValue);
 
         const updatedServices = services.map(s => {
             if (s.id === serviceId) {
