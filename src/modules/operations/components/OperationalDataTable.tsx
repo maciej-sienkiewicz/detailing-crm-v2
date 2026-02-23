@@ -391,11 +391,11 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
                 <Table>
                     <TableHead>
                         <tr>
-                            <TableHeaderCell>Klient</TableHeaderCell>
                             <TableHeaderCell>Pojazd</TableHeaderCell>
+                            <TableHeaderCell>Klient</TableHeaderCell>
                             <TableHeaderCell>Terminy</TableHeaderCell>
                             <TableHeaderCell>Wartość</TableHeaderCell>
-                            <TableHeaderCell>Ostatnia edycja</TableHeaderCell>
+                            <TableHeaderCell>Status</TableHeaderCell>
                             <TableHeaderCell style={{ textAlign: 'right' }}>Akcje</TableHeaderCell>
                         </tr>
                     </TableHead>
@@ -421,14 +421,6 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
                                     onClick={() => handleRowClick(operation)}
                                 >
                                     <TableCell>
-                                        <CustomerCell>
-                                            <CustomerName>
-                                                {operation.customerFirstName} {operation.customerLastName}
-                                            </CustomerName>
-                                            <OperationStatusBadge status={operation.status} />
-                                        </CustomerCell>
-                                    </TableCell>
-                                    <TableCell>
                                         <VehicleCell>
                                             {operation.vehicle ? (
                                                 <>
@@ -449,14 +441,17 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
                                         </VehicleCell>
                                     </TableCell>
                                     <TableCell>
+                                        <CustomerCell>
+                                            <CustomerName>
+                                                {operation.customerFirstName} {operation.customerLastName}
+                                            </CustomerName>
+                                        </CustomerCell>
+                                    </TableCell>
+                                    <TableCell>
                                         <DateTimeCell>
                                             <DateTimeLabel>Przyjazd</DateTimeLabel>
                                             <DateTimeValue>
                                                 {formatDateTime(operation.startDateTime)}
-                                            </DateTimeValue>
-                                            <DateTimeLabel style={{ marginTop: '8px' }}>Koniec</DateTimeLabel>
-                                            <DateTimeValue>
-                                                {formatDate(operation.endDateTime)}
                                             </DateTimeValue>
                                         </DateTimeCell>
                                     </TableCell>
@@ -483,15 +478,7 @@ export const OperationalDataTable = ({ search, page, limit, type, status }: Oper
                                         </FinancialsCell>
                                     </TableCell>
                                     <TableCell>
-                                        <LastModificationCell>
-                                            <ModificationTime>
-                                                {formatDateTime(operation.lastModification.timestamp)}
-                                            </ModificationTime>
-                                            <ModificationPerson>
-                                                {operation.lastModification.performedBy.firstName}{' '}
-                                                {operation.lastModification.performedBy.lastName}
-                                            </ModificationPerson>
-                                        </LastModificationCell>
+                                        <OperationStatusBadge status={operation.status} />
                                     </TableCell>
                                     <TableCell onClick={e => e.stopPropagation()}>
                                         <ActionsCell>
