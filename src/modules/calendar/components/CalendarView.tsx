@@ -840,6 +840,38 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         }
     }, [popoverEvent, showSuccess, queryClient]);
 
+    /**
+     * Handle restore appointment from popover actions (CANCELLED → CREATED)
+     */
+    const handleRestoreAppointmentClick = useCallback(async () => {
+        if (!popoverEvent || popoverEvent.type !== 'APPOINTMENT') return;
+
+        try {
+            await operationApi.restoreAppointment(popoverEvent.id);
+            setPopoverOpen(false);
+            showSuccess('Rezerwacja przywrócona', 'Rezerwacja została przywrócona.');
+            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+        } catch (error) {
+            console.error('Failed to restore appointment:', error);
+        }
+    }, [popoverEvent, showSuccess, queryClient]);
+
+    /**
+     * Handle delete appointment from popover actions (soft delete)
+     */
+    const handleDeleteAppointmentClick = useCallback(async () => {
+        if (!popoverEvent || popoverEvent.type !== 'APPOINTMENT') return;
+
+        try {
+            await operationApi.deleteAppointment(popoverEvent.id);
+            setPopoverOpen(false);
+            showSuccess('Rezerwacja usunięta', 'Rezerwacja została usunięta.');
+            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+        } catch (error) {
+            console.error('Failed to delete appointment:', error);
+        }
+    }, [popoverEvent, showSuccess, queryClient]);
+
     return (
         <CalendarContainer>
             {isLoading && (
@@ -1008,6 +1040,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     onEditReservationClick={handleEditReservationClick}
                     onStartVisitClick={handleStartVisitClick}
                     onCancelReservationClick={handleCancelReservationClick}
+                    onRestoreAppointmentClick={handleRestoreAppointmentClick}
+                    onDeleteAppointmentClick={handleDeleteAppointmentClick}
                 />
             )}
         </CalendarContainer>

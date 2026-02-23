@@ -353,6 +353,8 @@ interface EventSummaryPopoverProps {
     onEditReservationClick?: () => void;
     onStartVisitClick?: () => void;
     onCancelReservationClick?: () => void;
+    onRestoreAppointmentClick?: () => void;
+    onDeleteAppointmentClick?: () => void;
 }
 
 export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
@@ -363,6 +365,8 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
     onEditReservationClick,
     onStartVisitClick,
     onCancelReservationClick,
+    onRestoreAppointmentClick,
+    onDeleteAppointmentClick,
 }) => {
     const isAppointment = event.type === 'APPOINTMENT';
 
@@ -524,10 +528,17 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                 <PopoverFooter>
                     {isAppointment ? (
                         <FooterActions>
-                            <IconActionButton onClick={onEditReservationClick} title="Edytuj rezerwację">EDYTUJ</IconActionButton>
-                            <IconActionButton $variant="primary" onClick={onStartVisitClick} title="Rozpocznij wizytę">ROZPOCZNIJ</IconActionButton>
-                            {!isCancelled && (
-                                <IconActionButton $variant="danger" onClick={onCancelReservationClick} title="Anuluj rezerwację">PORZUĆ</IconActionButton>
+                            {isCancelled ? (
+                                <>
+                                    <IconActionButton $variant="primary" onClick={onRestoreAppointmentClick} title="Przywróć rezerwację">PRZYWRÓĆ</IconActionButton>
+                                    <IconActionButton $variant="danger" onClick={onDeleteAppointmentClick} title="Usuń rezerwację">USUŃ</IconActionButton>
+                                </>
+                            ) : (
+                                <>
+                                    <IconActionButton onClick={onEditReservationClick} title="Edytuj rezerwację">EDYTUJ</IconActionButton>
+                                    <IconActionButton $variant="primary" onClick={onStartVisitClick} title="Rozpocznij wizytę">ROZPOCZNIJ</IconActionButton>
+                                    <IconActionButton $variant="danger" onClick={onCancelReservationClick} title="Anuluj rezerwację">PORZUĆ</IconActionButton>
+                                </>
                             )}
                         </FooterActions>
                     ) : (

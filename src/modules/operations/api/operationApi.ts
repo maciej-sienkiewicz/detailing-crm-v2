@@ -512,4 +512,12 @@ export const operationApi = {
             status: 'CANCELLED',
         });
     },
+
+    restoreAppointment: async (appointmentId: string): Promise<void> => {
+        await apiClient.post(`/v1/appointments/${appointmentId}/restore`);
+    },
+
+    deleteAppointment: async (appointmentId: string): Promise<void> => {
+        await apiClient.delete(`/v1/appointments/${appointmentId}`);
+    },
 };

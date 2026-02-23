@@ -51,3 +51,45 @@ export const useCancelReservation = () => {
         error: mutation.error,
     };
 };
+
+export const useRestoreAppointment = () => {
+    const queryClient = useQueryClient();
+    const { showToast } = useToast();
+
+    const mutation = useMutation({
+        mutationFn: (appointmentId: string) => operationApi.restoreAppointment(appointmentId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['operations'] });
+            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+            showToast('Rezerwacja została przywrócona', 'success');
+        },
+    });
+
+    return {
+        restoreAppointment: mutation.mutate,
+        restoreAppointmentAsync: mutation.mutateAsync,
+        isRestoring: mutation.isPending,
+        error: mutation.error,
+    };
+};
+
+export const useDeleteAppointment = () => {
+    const queryClient = useQueryClient();
+    const { showToast } = useToast();
+
+    const mutation = useMutation({
+        mutationFn: (appointmentId: string) => operationApi.deleteAppointment(appointmentId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['operations'] });
+            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+            showToast('Rezerwacja została usunięta', 'success');
+        },
+    });
+
+    return {
+        deleteAppointment: mutation.mutate,
+        deleteAppointmentAsync: mutation.mutateAsync,
+        isDeletingAppointment: mutation.isPending,
+        error: mutation.error,
+    };
+};
