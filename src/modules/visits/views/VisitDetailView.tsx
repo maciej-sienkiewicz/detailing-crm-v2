@@ -115,13 +115,14 @@ const InfoGrid = styled.div`
     }
 `;
 
-const ServicesGrid = styled.div<{ $hasNotes: boolean }>`
+const ServicesAndCommentsGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr;
     gap: ${props => props.theme.spacing.lg};
+    margin-bottom: ${props => props.theme.spacing.lg};
 
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
-        grid-template-columns: ${props => props.$hasNotes ? '3fr 1fr' : '1fr'};
+        grid-template-columns: 2fr 1fr;
     }
 `;
 
@@ -187,7 +188,7 @@ const RetryButton = styled.button`
     }
 `;
 
-type TabValue = 'overview' | 'comments' | 'documentation' | 'audit';
+type TabValue = 'overview' | 'documentation' | 'audit';
 
 export const VisitDetailView = () => {
     const { visitId } = useParams<{ visitId: string }>();
@@ -353,12 +354,6 @@ export const VisitDetailView = () => {
                             📋 Przegląd
                         </TabButton>
                         <TabButton
-                            $isActive={activeTab === 'comments'}
-                            onClick={() => setActiveTab('comments')}
-                        >
-                            💭 Komentarze ({comments.filter(c => !c.isDeleted).length})
-                        </TabButton>
-                        <TabButton
                             $isActive={activeTab === 'documentation'}
                             onClick={() => setActiveTab('documentation')}
                         >
@@ -393,25 +388,20 @@ export const VisitDetailView = () => {
                             />
                         </InfoGrid>
 
-                        <ServicesGrid $hasNotes={!!visit.technicalNotes}>
+                        <ServicesAndCommentsGrid>
                             <ServicesTable
                                 services={visit.services}
                                 visitStatus={visit.status}
                                 visitId={visitId!}
                                 onEditClick={handleEditServicesClick}
                             />
-                            {visit.technicalNotes && (<TechnicalNotesCard notes={visit.technicalNotes} />)}
-                        </ServicesGrid>
-                    </TabContent>
-                )}
-
-                {activeTab === 'comments' && (
-                    <TabContent>
-                        <VisitComments
-                            visitId={visitId!}
-                            comments={comments}
-                            isLoading={isLoadingComments}
-                        />
+                            <VisitComments
+                                visitId={visitId!}
+                                comments={comments}
+                                isLoading={isLoadingComments}
+                            />
+                        </ServicesAndCommentsGrid>
+                        {visit.technicalNotes && <TechnicalNotesCard notes={visit.technicalNotes} />}
                     </TabContent>
                 )}
 
