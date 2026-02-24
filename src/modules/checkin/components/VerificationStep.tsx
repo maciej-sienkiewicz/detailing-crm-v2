@@ -878,6 +878,10 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                     </SubtleButtonGroup>
                 </SectionHeader>
 
+                {errors.customer && (
+                    <ErrorMessage>{errors.customer}</ErrorMessage>
+                )}
+
                 <FormGrid>
                     <FieldGroup>
                         <Label>{t.checkin.verification.firstName}</Label>
@@ -886,6 +890,9 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                             onChange={(e) => handleCustomerFieldChange({ firstName: e.target.value })}
                             onBlur={handleCustomerFieldBlur}
                         />
+                        {errors.firstName && (
+                            <ErrorMessage>{errors.firstName}</ErrorMessage>
+                        )}
                     </FieldGroup>
 
                     <FieldGroup>
@@ -895,6 +902,9 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                             onChange={(e) => handleCustomerFieldChange({ lastName: e.target.value })}
                             onBlur={handleCustomerFieldBlur}
                         />
+                        {errors.lastName && (
+                            <ErrorMessage>{errors.lastName}</ErrorMessage>
+                        )}
                     </FieldGroup>
 
                     <FieldGroup>
@@ -921,6 +931,9 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                             }}
                             onBlur={handleCustomerFieldBlur}
                         />
+                        {errors.phone && (
+                            <ErrorMessage>{errors.phone}</ErrorMessage>
+                        )}
                     </FieldGroup>
 
                     <FieldGroup>
@@ -931,8 +944,15 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                             onChange={(e) => handleCustomerFieldChange({ email: e.target.value })}
                             onBlur={handleCustomerFieldBlur}
                         />
+                        {errors.email && (
+                            <ErrorMessage>{errors.email}</ErrorMessage>
+                        )}
                     </FieldGroup>
                 </FormGrid>
+
+                {errors.contact && (
+                    <ErrorMessage>{errors.contact}</ErrorMessage>
+                )}
 
                 {/* Collapsible Panel: Adres domowy */}
                 <CollapsiblePanel>
@@ -1325,6 +1345,10 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                         </SubtleButton>
                     </SubtleButtonGroup>
                 </SectionHeader>
+
+                {errors.vehicle && (
+                    <ErrorMessage>{errors.vehicle}</ErrorMessage>
+                )}
 
                 <FormGrid $columns={3}>
                     <FieldGroup>
