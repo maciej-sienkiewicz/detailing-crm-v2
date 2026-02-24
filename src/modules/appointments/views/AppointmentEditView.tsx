@@ -184,6 +184,8 @@ export const AppointmentEditView = () => {
             showSuccess('Pomyślnie zapisano wprowadzone zmiany');
             // Unieważnij cache rezerwacji – następne wejście w edycję załaduje świeże dane z serwera
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            // Unieważnij cache kalendarza, żeby zmiany były widoczne od razu po przekierowaniu
+            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
         },
     });
 
