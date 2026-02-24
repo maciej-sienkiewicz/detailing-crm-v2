@@ -585,18 +585,25 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     };
 
     const applyVehicleUpdates = (updates: Partial<NonNullable<CheckInFormData['vehicleData']>>) => {
-        const base = formData.vehicleData || {
-            id: `temp-${Date.now()}`,
-            brand: '',
-            model: '',
-            // NO default values - null means null!
-        };
-        onChange({
-            vehicleData: {
-                ...base,
-                ...updates,
-            },
-        });
+        if (!formData.vehicleData) {
+            // No existing vehicle — user is adding a brand new one
+            onChange({
+                isNewVehicle: true,
+                vehicleData: {
+                    id: '',
+                    brand: '',
+                    model: '',
+                    ...updates,
+                },
+            });
+        } else {
+            onChange({
+                vehicleData: {
+                    ...formData.vehicleData,
+                    ...updates,
+                },
+            });
+        }
     };
 
     const handleVehicleFieldChange = (updates: Partial<NonNullable<CheckInFormData['vehicleData']>>) => {
