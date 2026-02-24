@@ -223,7 +223,7 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
     // Visits are typically all-day events
     return {
         id: visit.id,
-        title: `🔧 ${visit.visitNumber} | ${customerName}`,
+        title: visit.title || `${visit.visitNumber} | ${customerName}`,
         start: visit.scheduledDate,
         end: visit.estimatedCompletionDate,
         allDay: false,

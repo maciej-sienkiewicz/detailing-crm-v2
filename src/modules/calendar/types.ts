@@ -99,6 +99,7 @@ export interface AppointmentResponse {
  */
 export interface VisitResponse {
     id: string;
+    title: string | null;
     visitNumber: string;
     status: VisitStatus;
     scheduledDate: string;
