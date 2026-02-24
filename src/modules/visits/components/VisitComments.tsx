@@ -424,7 +424,7 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
                 </EmptyState>
             ) : (
                 <CommentsList>
-                    {comments.map((comment) => (
+                    {[...comments].reverse().map((comment) => (
                         <CommentCard key={comment.id} $isDeleted={comment.isDeleted}>
                             {comment.isDeleted && (
                                 <DeletedNotice>
