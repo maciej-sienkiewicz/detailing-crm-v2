@@ -33,19 +33,19 @@ const TypeSelector = styled.div`
 
 const TypeButton = styled.button<{ $isActive: boolean }>`
     flex: 1;
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
     border: 1px solid ${props => props.$isActive ? 'var(--brand-primary)' : props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    background: ${props => props.$isActive ? 'var(--brand-primary)' : 'white'};
-    color: ${props => props.$isActive ? 'white' : props.theme.colors.text};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
+    border-radius: ${props => props.theme.radii.sm};
+    background: ${props => props.$isActive ? '#eef2ff' : 'transparent'};
+    color: ${props => props.$isActive ? 'var(--brand-primary)' : props.theme.colors.textSecondary};
+    font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: ${props => props.$isActive ? '600' : '400'};
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
 
     &:hover {
         border-color: var(--brand-primary);
-        background: ${props => props.$isActive ? 'var(--brand-primary)' : props.theme.colors.surfaceHover};
+        color: var(--brand-primary);
     }
 `;
 
@@ -383,13 +383,13 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
                         $isActive={newCommentType === 'INTERNAL'}
                         onClick={() => setNewCommentType('INTERNAL')}
                     >
-                        🔒 Notatka wewnętrzna
+                        Notatka wewnętrzna
                     </TypeButton>
                     <TypeButton
                         $isActive={newCommentType === 'FOR_CUSTOMER'}
                         onClick={() => setNewCommentType('FOR_CUSTOMER')}
                     >
-                        👤 Dla klienta
+                        Dla klienta
                     </TypeButton>
                 </TypeSelector>
 
@@ -428,7 +428,7 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
                         <CommentCard key={comment.id} $isDeleted={comment.isDeleted}>
                             {comment.isDeleted && (
                                 <DeletedNotice>
-                                    🗑️ Komentarz został usunięty przez {comment.deletedByName} dnia{' '}
+                                    Komentarz został usunięty przez {comment.deletedByName} dnia{' '}
                                     {formatDate(comment.deletedAt!)}
                                 </DeletedNotice>
                             )}
@@ -445,7 +445,7 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
                                     )}
                                 </CommentMeta>
                                 <CommentBadge $type={comment.type}>
-                                    {comment.type === 'INTERNAL' ? '🔒 Wewnętrzna' : '👤 Dla klienta'}
+                                    {comment.type === 'INTERNAL' ? 'Wewnętrzna' : 'Dla klienta'}
                                 </CommentBadge>
                             </CommentHeader>
 
@@ -482,14 +482,14 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
                                     {!comment.isDeleted && (
                                         <CommentActions>
                                             <ActionButton onClick={() => startEditing(comment)}>
-                                                ✏️ Edytuj
+                                                Edytuj
                                             </ActionButton>
                                             <ActionButton
                                                 className="danger"
                                                 onClick={() => handleDeleteComment(comment.id)}
                                                 disabled={isDeleting}
                                             >
-                                                🗑️ Usuń
+                                                Usuń
                                             </ActionButton>
                                         </CommentActions>
                                     )}

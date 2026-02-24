@@ -120,6 +120,7 @@ const ServicesAndCommentsGrid = styled.div`
     grid-template-columns: 1fr;
     gap: ${props => props.theme.spacing.lg};
     margin-bottom: ${props => props.theme.spacing.lg};
+    align-items: start;
 
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
         grid-template-columns: 2fr 1fr;

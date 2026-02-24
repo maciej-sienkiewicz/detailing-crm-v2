@@ -92,6 +92,71 @@ const RowActions = styled.div`
     gap: ${props => props.theme.spacing.sm};
 `;
 
+const ActionMenuWrapper = styled.div`
+    position: relative;
+    display: inline-flex;
+`;
+
+const ActionMenuBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.md};
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.md};
+    background: white;
+    font-size: ${props => props.theme.fontSizes.xs};
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+
+    &:hover:not(:disabled) {
+        border-color: var(--brand-primary);
+        color: var(--brand-primary);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+`;
+
+const ContextMenu = styled.div`
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 100;
+    background: white;
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.md};
+    box-shadow: ${props => props.theme.shadows.md};
+    min-width: 180px;
+    overflow: hidden;
+`;
+
+const ContextMenuItem = styled.button<{ $variant?: 'danger' }>`
+    display: block;
+    width: 100%;
+    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+    border: none;
+    background: transparent;
+    text-align: left;
+    font-size: ${props => props.theme.fontSizes.sm};
+    cursor: pointer;
+    color: ${props => props.$variant === 'danger' ? props.theme.colors.error : props.theme.colors.text};
+    transition: background 0.15s ease;
+
+    &:hover:not(:disabled) {
+        background: ${props => props.theme.colors.surfaceHover};
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+`;
+
 // Minimalist confirm modal
 const ModalOverlay = styled.div`
     position: fixed;
@@ -340,6 +405,8 @@ interface ServicesTableProps {
 export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: ServicesTableProps) => {
     const { calculateServicePrice } = useServicePricing();
 
+    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
     // Confirm modal state
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [confirmAction, setConfirmAction] = useState<null | 'approve' | 'reject'>(null);
@@ -400,6 +467,12 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
 
     return (
         <>
+        {openMenuId && (
+            <div
+                style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                onClick={() => setOpenMenuId(null)}
+            />
+        )}
         <TableContainer>
             <TableHeader>
                 <TableHeaderLeft>
@@ -548,27 +621,36 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
                                 {hasPendingServices && <ActionsCell>
                                     <RowActions>
                                         {(service.hasPendingChange ?? (service.status === 'PENDING')) && (
-                                            <>
-                                                <ActionButton
-                                                    onClick={() => {
-                                                        if (!visitId) return;
-                                                        openConfirm(service, 'approve');
-                                                    }}
-                                                    disabled={!visitId || isApproving}
+                                            <ActionMenuWrapper>
+                                                <ActionMenuBtn
+                                                    onClick={() => setOpenMenuId(openMenuId === service.id ? null : service.id)}
+                                                    disabled={!visitId || isApproving || isRejecting}
                                                 >
-                                                    Zatwierdź zmianę
-                                                </ActionButton>
-                                                <ActionButton
-                                                    $variant="danger"
-                                                    onClick={() => {
-                                                        if (!visitId) return;
-                                                        openConfirm(service, 'reject');
-                                                    }}
-                                                    disabled={!visitId || isRejecting}
-                                                >
-                                                    Wycofaj zmianę
-                                                </ActionButton>
-                                            </>
+                                                    Podejmij akcję
+                                                    <span style={{ fontSize: '10px' }}>▾</span>
+                                                </ActionMenuBtn>
+                                                {openMenuId === service.id && (
+                                                    <ContextMenu>
+                                                        <ContextMenuItem
+                                                            onClick={() => {
+                                                                setOpenMenuId(null);
+                                                                openConfirm(service, 'approve');
+                                                            }}
+                                                        >
+                                                            Zatwierdź zmianę
+                                                        </ContextMenuItem>
+                                                        <ContextMenuItem
+                                                            $variant="danger"
+                                                            onClick={() => {
+                                                                setOpenMenuId(null);
+                                                                openConfirm(service, 'reject');
+                                                            }}
+                                                        >
+                                                            Wycofaj zmianę
+                                                        </ContextMenuItem>
+                                                    </ContextMenu>
+                                                )}
+                                            </ActionMenuWrapper>
                                         )}
                                     </RowActions>
                                 </ActionsCell>}
