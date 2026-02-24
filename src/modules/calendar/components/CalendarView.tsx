@@ -1017,6 +1017,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     day: 'Dzień',
                 }}
 
+                // Hide event time from calendar tiles
+                displayEventTime={false}
+
                 // Other options
                 height="100%"
                 expandRows={true}
