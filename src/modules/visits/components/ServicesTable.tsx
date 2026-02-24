@@ -423,7 +423,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
                     <Th>Cena netto</Th>
                     <Th>VAT</Th>
                     <Th>Cena brutto</Th>
-                    <Th style={{ textAlign: 'right' }}>Akcje</Th>
+                    {hasPendingServices && <Th style={{ textAlign: 'right' }}>Akcje</Th>}
                 </Tr>
                 </Thead>
                 <Tbody>
@@ -545,7 +545,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
                                         })()}
                                     </PriceStack>
                                 </Td>
-                                <ActionsCell>
+                                {hasPendingServices && <ActionsCell>
                                     <RowActions>
                                         {(service.hasPendingChange ?? (service.status === 'PENDING')) && (
                                             <>
@@ -571,7 +571,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
                                             </>
                                         )}
                                     </RowActions>
-                                </ActionsCell>
+                                </ActionsCell>}
                             </Tr>
                         );
                     })}
