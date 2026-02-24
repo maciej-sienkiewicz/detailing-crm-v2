@@ -312,6 +312,29 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
                             </NavigationButtons>
                         </ActionsContent>
 
+                        {!canProceed && Object.keys(errors).length > 0 && (
+                            <div
+                                style={{
+                                    marginTop: '16px',
+                                    padding: '12px',
+                                    backgroundColor: '#fffbeb',
+                                    border: '1px solid #fcd34d',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    color: '#92400e',
+                                }}
+                            >
+                                <div style={{ fontWeight: 600, marginBottom: '6px' }}>
+                                    Uzupełnij wymagane pola, aby kontynuować:
+                                </div>
+                                <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                                    {Object.values(errors).map((msg, i) => (
+                                        <li key={i}>{msg}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
                         {submitError && (
                             <div
                                 style={{
