@@ -1,6 +1,7 @@
 // src/modules/calendar/components/QuickEventModal.tsx
 
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import { DateTimePicker } from './DateTimePicker';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/core';
 import type { EventCreationData } from '../types';
@@ -181,81 +182,6 @@ const IconPlus = () => (
     </svg>
 );
 
-// --- TIME PART INPUT ---
-interface TimePartInputProps {
-    value: string;
-    onChange: (formattedValue: string) => void;
-    max: number;
-    placeholder: string;
-    accentColor?: string;
-    hasError?: boolean;
-    onFocus?: () => void;
-    onBlur?: () => void;
-}
-
-const TimePartInput: React.FC<TimePartInputProps> = ({
-    value,
-    onChange,
-    max,
-    placeholder,
-    accentColor,
-    hasError,
-    onFocus,
-    onBlur,
-}) => {
-    const [localValue, setLocalValue] = useState(value);
-    const isFocused = useRef(false);
-
-    useEffect(() => {
-        if (!isFocused.current) {
-            setLocalValue(value);
-        }
-    }, [value]);
-
-    const handleFocus = () => {
-        isFocused.current = true;
-        onFocus?.();
-    };
-
-    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-        isFocused.current = false;
-        const raw = e.target.value.replace(/\D/g, '');
-        if (raw !== '') {
-            const num = Math.min(max, Math.max(0, parseInt(raw, 10)));
-            const formatted = String(num).padStart(2, '0');
-            setLocalValue(formatted);
-            onChange(formatted);
-        }
-        onBlur?.();
-    };
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const raw = e.target.value.replace(/\D/g, '').slice(0, 2);
-        setLocalValue(raw);
-        if (raw !== '') {
-            const num = parseInt(raw, 10);
-            if (!isNaN(num) && num <= max) {
-                onChange(String(num).padStart(2, '0'));
-            }
-        }
-    };
-
-    return (
-        <S.TimePartInput
-            type="text"
-            inputMode="numeric"
-            maxLength={2}
-            placeholder={placeholder}
-            value={localValue}
-            $accentColor={accentColor}
-            $hasError={hasError}
-            onChange={handleChange}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-        />
-    );
-};
-
 // --- TYPES ---
 interface QuickEventModalProps {
     isOpen: boolean;
@@ -348,8 +274,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     // Focus states
     const [focusedField, setFocusedField] = useState<string | null>(null);
     const titleInputRef = useRef<HTMLInputElement>(null);
-    const startInputRef = useRef<HTMLInputElement>(null);
-    const endInputRef = useRef<HTMLInputElement>(null);
+    const startInputRef = useRef<HTMLDivElement>(null);
+    const endInputRef = useRef<HTMLDivElement>(null);
     const customerInputRef = useRef<HTMLInputElement>(null);
     const vehicleInputRef = useRef<HTMLInputElement>(null);
     const serviceInputRef = useRef<HTMLInputElement>(null);
@@ -786,112 +712,38 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <S.InputGrid>
                                         <S.InputGroup>
                                             <S.Label>{isAllDay ? 'Data' : 'Początek'}</S.Label>
-                                            <S.Input
-                                                ref={startInputRef}
-                                                type="date"
-                                                value={startDateTime.split('T')[0] || ''}
-                                                onChange={(e) => {
-                                                    const date = e.target.value;
+                                            <DateTimePicker
+                                                value={startDateTime}
+                                                onChange={(val) => {
+                                                    setStartDateTime(val);
                                                     if (isAllDay) {
-                                                        setStartDateTime(date);
-                                                        setEndDateTime(`${date}T23:59:59`);
-                                                    } else {
-                                                        const time = startDateTime.includes('T') ? startDateTime.split('T')[1] : '09:00';
-                                                        setStartDateTime(`${date}T${time}`);
+                                                        setEndDateTime(`${val.split('T')[0]}T23:59:59`);
                                                     }
                                                 }}
-                                                required
-                                                aria-invalid={!!errors.startDateTime}
-                                                $accentColor={focusedField === 'time-start' ? accentColor : undefined}
-                                                $hasError={!!errors.startDateTime}
+                                                showTime={!isAllDay}
+                                                placeholder="Wybierz datę"
+                                                accentColor={focusedField === 'time-start' ? accentColor : undefined}
+                                                hasError={!!errors.startDateTime}
+                                                containerRef={startInputRef}
                                                 onFocus={() => setFocusedField('time-start')}
                                                 onBlur={() => setFocusedField(null)}
                                             />
-                                            {!isAllDay && (
-                                                <S.TimeRow>
-                                                    <TimePartInput
-                                                        value={startDateTime.includes('T') ? startDateTime.split('T')[1].split(':')[0] : '09'}
-                                                        max={23}
-                                                        placeholder="GG"
-                                                        accentColor={focusedField === 'time-start' ? accentColor : undefined}
-                                                        hasError={!!errors.startDateTime}
-                                                        onChange={(hour) => {
-                                                            const date = startDateTime.split('T')[0];
-                                                            const min = startDateTime.includes('T') ? startDateTime.split('T')[1].split(':')[1] : '00';
-                                                            setStartDateTime(`${date}T${hour}:${min}`);
-                                                        }}
-                                                        onFocus={() => setFocusedField('time-start')}
-                                                        onBlur={() => setFocusedField(null)}
-                                                    />
-                                                    <S.TimeSeparator>:</S.TimeSeparator>
-                                                    <TimePartInput
-                                                        value={startDateTime.includes('T') ? startDateTime.split('T')[1].split(':')[1] : '00'}
-                                                        max={59}
-                                                        placeholder="MM"
-                                                        accentColor={focusedField === 'time-start' ? accentColor : undefined}
-                                                        hasError={!!errors.startDateTime}
-                                                        onChange={(minute) => {
-                                                            const date = startDateTime.split('T')[0];
-                                                            const hour = startDateTime.includes('T') ? startDateTime.split('T')[1].split(':')[0] : '09';
-                                                            setStartDateTime(`${date}T${hour}:${minute}`);
-                                                        }}
-                                                        onFocus={() => setFocusedField('time-start')}
-                                                        onBlur={() => setFocusedField(null)}
-                                                    />
-                                                </S.TimeRow>
-                                            )}
                                             {errors.startDateTime && <S.ErrorMessage>{errors.startDateTime}</S.ErrorMessage>}
                                         </S.InputGroup>
                                         {!isAllDay && (
                                             <S.InputGroup>
                                                 <S.Label>Koniec</S.Label>
-                                                <S.Input
-                                                    ref={endInputRef}
-                                                    type="date"
-                                                    value={endDateTime.split('T')[0] || ''}
-                                                    onChange={(e) => {
-                                                        const date = e.target.value;
-                                                        const time = endDateTime.includes('T') ? endDateTime.split('T')[1] : '10:00';
-                                                        setEndDateTime(`${date}T${time}`);
-                                                    }}
-                                                    required
-                                                    aria-invalid={!!errors.endDateTime}
-                                                    $accentColor={focusedField === 'time-end' ? accentColor : undefined}
-                                                    $hasError={!!errors.endDateTime}
+                                                <DateTimePicker
+                                                    value={endDateTime}
+                                                    onChange={setEndDateTime}
+                                                    showTime={true}
+                                                    placeholder="Wybierz datę i godzinę"
+                                                    accentColor={focusedField === 'time-end' ? accentColor : undefined}
+                                                    hasError={!!errors.endDateTime}
+                                                    containerRef={endInputRef}
                                                     onFocus={() => setFocusedField('time-end')}
                                                     onBlur={() => setFocusedField(null)}
                                                 />
-                                                <S.TimeRow>
-                                                    <TimePartInput
-                                                        value={endDateTime.includes('T') ? endDateTime.split('T')[1].split(':')[0] : '10'}
-                                                        max={23}
-                                                        placeholder="GG"
-                                                        accentColor={focusedField === 'time-end' ? accentColor : undefined}
-                                                        hasError={!!errors.endDateTime}
-                                                        onChange={(hour) => {
-                                                            const date = endDateTime.split('T')[0];
-                                                            const min = endDateTime.includes('T') ? endDateTime.split('T')[1].split(':')[1] : '00';
-                                                            setEndDateTime(`${date}T${hour}:${min}`);
-                                                        }}
-                                                        onFocus={() => setFocusedField('time-end')}
-                                                        onBlur={() => setFocusedField(null)}
-                                                    />
-                                                    <S.TimeSeparator>:</S.TimeSeparator>
-                                                    <TimePartInput
-                                                        value={endDateTime.includes('T') ? endDateTime.split('T')[1].split(':')[1] : '00'}
-                                                        max={59}
-                                                        placeholder="MM"
-                                                        accentColor={focusedField === 'time-end' ? accentColor : undefined}
-                                                        hasError={!!errors.endDateTime}
-                                                        onChange={(minute) => {
-                                                            const date = endDateTime.split('T')[0];
-                                                            const hour = endDateTime.includes('T') ? endDateTime.split('T')[1].split(':')[0] : '10';
-                                                            setEndDateTime(`${date}T${hour}:${minute}`);
-                                                        }}
-                                                        onFocus={() => setFocusedField('time-end')}
-                                                        onBlur={() => setFocusedField(null)}
-                                                    />
-                                                </S.TimeRow>
                                                 {errors.endDateTime && <S.ErrorMessage>{errors.endDateTime}</S.ErrorMessage>}
                                             </S.InputGroup>
                                         )}
