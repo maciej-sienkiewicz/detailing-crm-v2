@@ -1,6 +1,7 @@
 // src/modules/calendar/components/QuickEventModal.tsx
 
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import { DateTimePicker } from './DateTimePicker';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/core';
 import type { EventCreationData } from '../types';
@@ -273,8 +274,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     // Focus states
     const [focusedField, setFocusedField] = useState<string | null>(null);
     const titleInputRef = useRef<HTMLInputElement>(null);
-    const startInputRef = useRef<HTMLInputElement>(null);
-    const endInputRef = useRef<HTMLInputElement>(null);
+    const startInputRef = useRef<HTMLDivElement>(null);
+    const endInputRef = useRef<HTMLDivElement>(null);
     const customerInputRef = useRef<HTMLInputElement>(null);
     const vehicleInputRef = useRef<HTMLInputElement>(null);
     const serviceInputRef = useRef<HTMLInputElement>(null);
@@ -711,22 +712,19 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <S.InputGrid>
                                         <S.InputGroup>
                                             <S.Label>{isAllDay ? 'Data' : 'Początek'}</S.Label>
-                                            <S.Input
-                                                ref={startInputRef}
-                                                type={isAllDay ? 'date' : 'datetime-local'}
+                                            <DateTimePicker
                                                 value={startDateTime}
-                                                onChange={(e) => {
-                                                    const value = e.target.value;
-                                                    setStartDateTime(value);
+                                                onChange={(val) => {
+                                                    setStartDateTime(val);
                                                     if (isAllDay) {
-                                                        const date = value.split('T')[0];
-                                                        setEndDateTime(`${date}T23:59:59`);
+                                                        setEndDateTime(`${val.split('T')[0]}T23:59:59`);
                                                     }
                                                 }}
-                                                required
-                                                aria-invalid={!!errors.startDateTime}
-                                                $accentColor={focusedField === 'time-start' ? accentColor : undefined}
-                                                $hasError={!!errors.startDateTime}
+                                                showTime={!isAllDay}
+                                                placeholder="Wybierz datę"
+                                                accentColor={focusedField === 'time-start' ? accentColor : undefined}
+                                                hasError={!!errors.startDateTime}
+                                                containerRef={startInputRef}
                                                 onFocus={() => setFocusedField('time-start')}
                                                 onBlur={() => setFocusedField(null)}
                                             />
@@ -735,18 +733,17 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         {!isAllDay && (
                                             <S.InputGroup>
                                                 <S.Label>Koniec</S.Label>
-                                                <S.Input
-                                                ref={endInputRef}
-                                                type="datetime-local"
-                                                value={endDateTime}
-                                                onChange={(e) => setEndDateTime(e.target.value)}
-                                                required
-                                                aria-invalid={!!errors.endDateTime}
-                                                $accentColor={focusedField === 'time-end' ? accentColor : undefined}
-                                                $hasError={!!errors.endDateTime}
-                                                onFocus={() => setFocusedField('time-end')}
-                                                onBlur={() => setFocusedField(null)}
-                                            />
+                                                <DateTimePicker
+                                                    value={endDateTime}
+                                                    onChange={setEndDateTime}
+                                                    showTime={true}
+                                                    placeholder="Wybierz datę i godzinę"
+                                                    accentColor={focusedField === 'time-end' ? accentColor : undefined}
+                                                    hasError={!!errors.endDateTime}
+                                                    containerRef={endInputRef}
+                                                    onFocus={() => setFocusedField('time-end')}
+                                                    onBlur={() => setFocusedField(null)}
+                                                />
                                                 {errors.endDateTime && <S.ErrorMessage>{errors.endDateTime}</S.ErrorMessage>}
                                             </S.InputGroup>
                                         )}
