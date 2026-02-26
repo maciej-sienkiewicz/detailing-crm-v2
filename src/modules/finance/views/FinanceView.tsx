@@ -210,14 +210,6 @@ const SelectPanel = styled.div`
   border: 1px solid rgba(0, 0, 0, 0.08);
 `;
 
-const SelectPanelHeader = styled.div`
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(99, 102, 241, 0.02) 100%);
-  font-size: 13px;
-  font-weight: 700;
-  color: #0f172a;
-`;
 
 const SelectPanelBody = styled.div`
   padding: 8px;
@@ -256,10 +248,9 @@ interface FinanceSelectProps {
   onChange: (value: string) => void;
   options: SelectOptionItem[];
   placeholder: string;
-  title: string;
 }
 
-const FinanceFilterSelect: React.FC<FinanceSelectProps> = ({ value, onChange, options, placeholder, title }) => {
+const FinanceFilterSelect: React.FC<FinanceSelectProps> = ({ value, onChange, options, placeholder }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -288,7 +279,6 @@ const FinanceFilterSelect: React.FC<FinanceSelectProps> = ({ value, onChange, op
       </SelectTrigger>
       {isOpen && panelPos && createPortal(
         <SelectPanel style={{ top: panelPos.top, left: panelPos.left }}>
-          <SelectPanelHeader>{title}</SelectPanelHeader>
           <SelectPanelBody>
             <SelectPanelOption $active={value === ''} onClick={() => handleSelect('')}>
               {placeholder}
@@ -442,7 +432,6 @@ const DocumentsTabContent: React.FC<{
             { value: 'OTHER', label: 'Inny' },
           ]}
           placeholder="Wszystkie typy"
-          title="Typ dokumentu"
         />
 
         <FinanceFilterSelect
@@ -454,7 +443,6 @@ const DocumentsTabContent: React.FC<{
             { value: DocumentStatus.OVERDUE, label: 'Przeterminowana' },
           ]}
           placeholder="Wszystkie statusy"
-          title="Status dokumentu"
         />
 
         <DateInput
