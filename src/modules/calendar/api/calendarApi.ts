@@ -241,9 +241,9 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
         start: visit.scheduledDate,
         end: visit.estimatedCompletionDate,
         allDay: false,
-        backgroundColor: overdue ? '#f97316' : colorHex,
+        backgroundColor: colorHex,
         borderColor: 'transparent',
-        textColor: overdue ? '#ffffff' : textColor,
+        textColor,
         extendedProps: eventData,
         classNames: overdue ? ['fc-event-overdue'] : [],
     };
