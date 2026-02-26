@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import type { FinanceTab } from '../types';
 import { DocumentDirection, DocumentStatus } from '../types';
@@ -169,21 +170,141 @@ const FiltersBar = styled.div`
   }
 `;
 
-const FilterSelect = styled.select`
-  padding: 8px 12px;
-  font-size: 13px;
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: ${(p) => p.theme.radii.md};
-  background: ${(p) => p.theme.colors.surface};
-  color: ${(p) => p.theme.colors.text};
-  outline: none;
-  cursor: pointer;
+// ─── Custom Select Dropdown ───────────────────────────────────────────────────
 
-  &:focus {
-    border-color: var(--brand-primary);
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+const SelectTrigger = styled.button<{ $active: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.06)' : '#ffffff')};
+  color: ${(p) => (p.$active ? '#4f46e5' : '#475569')};
+  border: 1px solid ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.3)' : '#e2e8f0')};
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: ${(p) => (p.$active ? 600 : 400)};
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.1)' : '#f8fafc')};
+    border-color: ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.4)' : '#cbd5e1')};
   }
 `;
+
+const SelectBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+`;
+
+const SelectPanel = styled.div`
+  position: fixed;
+  min-width: 220px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+`;
+
+const SelectPanelHeader = styled.div`
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(99, 102, 241, 0.02) 100%);
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+`;
+
+const SelectPanelBody = styled.div`
+  padding: 8px;
+`;
+
+const SelectPanelOption = styled.button<{ $active: boolean }>`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: ${(p) => (p.$active ? 600 : 400)};
+  border: 1px solid ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.2)' : 'transparent')};
+  border-radius: 10px;
+  background: ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.06)' : 'transparent')};
+  color: ${(p) => (p.$active ? '#0f172a' : '#64748b')};
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.08)' : 'rgba(0, 0, 0, 0.02)')};
+    color: #0f172a;
+  }
+`;
+
+const ChevronDownIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+interface SelectOptionItem { value: string; label: string; }
+interface FinanceSelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: SelectOptionItem[];
+  placeholder: string;
+  title: string;
+}
+
+const FinanceFilterSelect: React.FC<FinanceSelectProps> = ({ value, onChange, options, placeholder, title }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  const selectedLabel = options.find((o) => o.value === value)?.label ?? placeholder;
+
+  const handleToggle = () => {
+    if (!isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const vw = window.innerWidth;
+      let left = rect.left;
+      if (left + 220 > vw - 8) left = vw - 228;
+      setPanelPos({ top: rect.bottom + 4, left });
+    }
+    setIsOpen((prev) => !prev);
+  };
+
+  const handleSelect = (val: string) => { onChange(val); setIsOpen(false); };
+
+  return (
+    <>
+      {isOpen && <SelectBackdrop onClick={() => setIsOpen(false)} />}
+      <SelectTrigger ref={triggerRef} $active={!!value} onClick={handleToggle}>
+        {selectedLabel}
+        <ChevronDownIcon />
+      </SelectTrigger>
+      {isOpen && panelPos && createPortal(
+        <SelectPanel style={{ top: panelPos.top, left: panelPos.left }}>
+          <SelectPanelHeader>{title}</SelectPanelHeader>
+          <SelectPanelBody>
+            <SelectPanelOption $active={value === ''} onClick={() => handleSelect('')}>
+              {placeholder}
+            </SelectPanelOption>
+            {options.map((opt) => (
+              <SelectPanelOption key={opt.value} $active={value === opt.value} onClick={() => handleSelect(opt.value)}>
+                {opt.label}
+              </SelectPanelOption>
+            ))}
+          </SelectPanelBody>
+        </SelectPanel>,
+        document.body
+      )}
+    </>
+  );
+};
 
 const DateInput = styled.input`
   padding: 8px 12px;
@@ -312,19 +433,29 @@ const DocumentsTabContent: React.FC<{
   return (
     <>
       <FiltersBar>
-        <FilterSelect value={filters.documentType} onChange={(e) => setFilter('documentType', e.target.value)}>
-          <option value="">Wszystkie typy</option>
-          <option value="INVOICE">Faktura</option>
-          <option value="RECEIPT">Paragon</option>
-          <option value="OTHER">Inny</option>
-        </FilterSelect>
+        <FinanceFilterSelect
+          value={filters.documentType}
+          onChange={(val) => setFilter('documentType', val)}
+          options={[
+            { value: 'INVOICE', label: 'Faktura' },
+            { value: 'RECEIPT', label: 'Paragon' },
+            { value: 'OTHER', label: 'Inny' },
+          ]}
+          placeholder="Wszystkie typy"
+          title="Typ dokumentu"
+        />
 
-        <FilterSelect value={filters.status} onChange={(e) => setFilter('status', e.target.value)}>
-          <option value="">Wszystkie statusy</option>
-          <option value={DocumentStatus.PAID}>Opłacona</option>
-          <option value={DocumentStatus.PENDING}>Oczekująca</option>
-          <option value={DocumentStatus.OVERDUE}>Przeterminowana</option>
-        </FilterSelect>
+        <FinanceFilterSelect
+          value={filters.status}
+          onChange={(val) => setFilter('status', val)}
+          options={[
+            { value: DocumentStatus.PAID, label: 'Opłacona' },
+            { value: DocumentStatus.PENDING, label: 'Oczekująca' },
+            { value: DocumentStatus.OVERDUE, label: 'Przeterminowana' },
+          ]}
+          placeholder="Wszystkie statusy"
+          title="Status dokumentu"
+        />
 
         <DateInput
           type="date"

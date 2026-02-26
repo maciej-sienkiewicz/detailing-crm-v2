@@ -104,35 +104,61 @@ const StatusBadge = styled.button<{ $status: string }>`
   &:hover { filter: brightness(0.93); }
 `;
 
-const Dropdown = styled.div<{ $open: boolean }>`
+const StatusDropdownBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1190;
+`;
+
+const Dropdown = styled.div`
   position: fixed;
   z-index: 1200;
-  min-width: 160px;
-  background: ${(p) => p.theme.colors.surface};
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: ${(p) => p.theme.radii.md};
-  box-shadow: ${(p) => p.theme.shadows.lg};
-  opacity: ${(p) => (p.$open ? 1 : 0)};
-  visibility: ${(p) => (p.$open ? 'visible' : 'hidden')};
-  transform: ${(p) => (p.$open ? 'translateY(0)' : 'translateY(-6px)')};
-  transition: all 0.12s ease;
+  min-width: 200px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+`;
+
+const DropdownHead = styled.div`
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(99, 102, 241, 0.02) 100%);
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+`;
+
+const DropdownBody = styled.div`
+  padding: 8px;
 `;
 
 const DropdownItem = styled.button<{ $active?: boolean; $danger?: boolean }>`
-  display: block;
+  display: flex;
+  align-items: center;
   width: 100%;
-  padding: ${(p) => p.theme.spacing.sm} ${(p) => p.theme.spacing.md};
+  padding: 10px 12px;
   text-align: left;
-  font-size: ${(p) => p.theme.fontSizes.sm};
-  border: none;
-  background: ${(p) => (p.$active ? p.theme.colors.surfaceAlt : 'transparent')};
-  color: ${(p) => (p.$danger ? p.theme.colors.error : p.theme.colors.text)};
+  font-size: 14px;
+  font-weight: ${(p) => (p.$active ? 600 : 400)};
+  border: 1px solid ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.2)' : 'transparent')};
+  border-radius: 10px;
+  background: ${(p) =>
+    p.$danger ? 'transparent' : p.$active ? 'rgba(99, 102, 241, 0.06)' : 'transparent'};
+  color: ${(p) => (p.$danger ? '#ef4444' : p.$active ? '#0f172a' : '#64748b')};
   cursor: pointer;
+  transition: all 0.15s ease;
 
-  &:first-child { border-radius: ${(p) => p.theme.radii.md} ${(p) => p.theme.radii.md} 0 0; }
-  &:last-child  { border-radius: 0 0 ${(p) => p.theme.radii.md} ${(p) => p.theme.radii.md}; }
-
-  &:hover { background: ${(p) => p.theme.colors.surfaceHover}; }
+  &:hover {
+    background: ${(p) =>
+      p.$danger
+        ? 'rgba(239, 68, 68, 0.06)'
+        : p.$active
+        ? 'rgba(99, 102, 241, 0.08)'
+        : 'rgba(0, 0, 0, 0.02)'};
+    color: ${(p) => (p.$danger ? '#ef4444' : '#0f172a')};
+  }
 `;
 
 // ─── Misc ─────────────────────────────────────────────────────────────────────
@@ -433,28 +459,33 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
       {openStatusId &&
         dropdownPos &&
         createPortal(
-          <Dropdown ref={dropdownRef} $open={true} style={{ top: dropdownPos.top, left: dropdownPos.left }}>
-            {allStatuses.map((s) => (
-              <DropdownItem
-                key={s}
-                $active={documents.find((d) => d.id === openStatusId)?.status === s}
-                onClick={() => handleStatusChange(openStatusId, s)}
-              >
-                {statusLabels[s]}
-              </DropdownItem>
-            ))}
-            <div style={{ borderTop: '1px solid #e5e7eb', marginTop: 4, paddingTop: 4 }}>
-              <DropdownItem
-                $danger
-                onClick={(e) => {
-                  handleDelete(openStatusId, e);
-                  setOpenStatusId(null);
-                }}
-              >
-                Usuń dokument
-              </DropdownItem>
-            </div>
-          </Dropdown>,
+          <>
+            <StatusDropdownBackdrop onClick={() => setOpenStatusId(null)} />
+            <Dropdown ref={dropdownRef} style={{ top: dropdownPos.top, left: dropdownPos.left }}>
+              <DropdownHead>Zmień status</DropdownHead>
+              <DropdownBody>
+                {allStatuses.map((s) => (
+                  <DropdownItem
+                    key={s}
+                    $active={documents.find((d) => d.id === openStatusId)?.status === s}
+                    onClick={() => handleStatusChange(openStatusId, s)}
+                  >
+                    {statusLabels[s]}
+                  </DropdownItem>
+                ))}
+                <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', margin: '4px 0' }} />
+                <DropdownItem
+                  $danger
+                  onClick={(e) => {
+                    handleDelete(openStatusId, e);
+                    setOpenStatusId(null);
+                  }}
+                >
+                  Usuń dokument
+                </DropdownItem>
+              </DropdownBody>
+            </Dropdown>
+          </>,
           document.body
         )}
     </>
