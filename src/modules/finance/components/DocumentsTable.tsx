@@ -27,7 +27,7 @@ const Wrapper = styled.div`
 
 const Table = styled.table`
   width: 100%;
-  min-width: 860px;
+  min-width: 700px;
   border-collapse: collapse;
   background: ${(p) => p.theme.colors.surface};
   border-radius: ${(p) => p.theme.radii.lg};
@@ -190,6 +190,14 @@ const SourceText = styled.span`
   color: ${(p) => p.theme.colors.textMuted};
 `;
 
+const PriceNet = styled.span`
+  display: block;
+  font-size: ${(p) => p.theme.fontSizes.xs};
+  color: ${(p) => p.theme.colors.textMuted};
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-feature-settings: 'tnum';
+`;
+
 const ActionsCell = styled(Td)`
   width: 48px;
   opacity: 0;
@@ -297,17 +305,16 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
           <Thead>
             <tr>
               <Th>Data</Th><Th>Numer</Th><Th>Klient</Th>
-              <Th $align="right">Netto</Th><Th $align="right">Brutto</Th>
-              <Th $align="right">VAT</Th><Th>Status</Th>
+              <Th $align="right">Kwota</Th><Th>Status</Th>
               <Th>Metoda</Th><Th>Źródło</Th><Th>Termin</Th><Th $width="48px"></Th>
             </tr>
           </Thead>
           <tbody>
             {[1,2,3,4,5].map((i) => (
               <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                {Array.from({ length: 10 }).map((_, j) => (
+                {Array.from({ length: 8 }).map((_, j) => (
                   <td key={j} style={{ padding: '12px 16px' }}>
-                    <Skeleton $w={j === 0 ? '70px' : j === 1 ? '100px' : j >= 3 && j <= 5 ? '70px' : '90px'} />
+                    <Skeleton $w={j === 0 ? '70px' : j === 1 ? '100px' : j === 3 ? '80px' : '90px'} />
                   </td>
                 ))}
                 <td style={{ padding: '12px 16px' }} />
@@ -332,9 +339,7 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
               <Th>Data sprzedaży</Th>
               <Th>Numer</Th>
               <Th>Klient</Th>
-              <Th $align="right">Netto</Th>
-              <Th $align="right">Brutto</Th>
-              <Th $align="right">VAT</Th>
+              <Th $align="right">Kwota</Th>
               <Th>Status</Th>
               <Th>Metoda</Th>
               <Th>Źródło</Th>
@@ -370,9 +375,10 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                     );
                   })()}
                 </Td>
-                <Td $align="right" $mono>{formatMoney(doc.totalNet)}</Td>
-                <Td $align="right" $mono>{formatMoney(doc.totalGross)}</Td>
-                <Td $align="right" $mono>{formatMoney(doc.totalVat)}</Td>
+                <Td $align="right" $mono>
+                  {formatMoney(doc.totalGross)}
+                  <PriceNet>{formatMoney(doc.totalNet)} netto</PriceNet>
+                </Td>
                 <Td onClick={(e) => e.stopPropagation()}>
                   <StatusBadge
                     $status={doc.status}
