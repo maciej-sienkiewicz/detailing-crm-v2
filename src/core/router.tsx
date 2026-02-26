@@ -19,6 +19,7 @@ import { LeadListView } from "@/modules/leads";
 import { ProtectedRoute } from './components/ProtectedRoute';
 import {DashboardView} from "@/modules/dashboard";
 import {GrowthEngineView} from "@/modules/growth-engine";
+import {FinanceView} from "@/modules/finance";
 
 export const router = createBrowserRouter([
     {
@@ -184,6 +185,14 @@ export const router = createBrowserRouter([
         element: (
             <ProtectedRoute>
                 <Layout><GrowthEngineView /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/finance',
+        element: (
+            <ProtectedRoute>
+                <Layout><FinanceView /></Layout>
             </ProtectedRoute>
         ),
     },

@@ -32,7 +32,7 @@ const menuSections: MenuSection[] = [
         items: [
             { path: '/vehicles', label: 'Pojazdy', icon: '▣' },
             { path: '/services', label: 'Usługi', icon: '◐' },
-            { path: '/invoices', label: 'Faktury', icon: '◫' },
+            { path: '/finance', label: 'Finanse', icon: '◫' },
             { path: '/appointment-colors', label: 'Raporty', icon: '◧' },
             { path: '/growth-engine', label: 'Growth Engine', icon: '◆' },
         ],
