@@ -462,7 +462,6 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
           <>
             <StatusDropdownBackdrop onClick={() => setOpenStatusId(null)} />
             <Dropdown ref={dropdownRef} style={{ top: dropdownPos.top, left: dropdownPos.left }}>
-              <DropdownHead>Status dokumentu</DropdownHead>
               <DropdownBody>
                 {allStatuses.map((s) => (
                   <DropdownItem

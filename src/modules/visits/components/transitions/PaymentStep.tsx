@@ -158,8 +158,8 @@ export const PaymentStep = ({ totalAmount, currency, onComplete }: PaymentStepPr
     ];
 
     const invoiceTypes: Array<{ value: InvoiceType; label: string; icon: string }> = [
-        { value: 'vat', label: 'Faktura VAT', icon: '📄' },
-        { value: 'receipt', label: 'Paragon', icon: '🧾' },
+        { value: 'INVOICE', label: 'Faktura VAT', icon: '📄' },
+        { value: 'RECEIPT', label: 'Paragon', icon: '🧾' },
         { value: 'other', label: 'Inny', icon: '📋' },
     ];
 
