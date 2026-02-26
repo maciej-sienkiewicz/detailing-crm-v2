@@ -675,6 +675,51 @@ export const AddColorButton = styled.button`
     }
 `;
 
+export const TimeRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.sm};
+    margin-top: ${props => props.theme.spacing.sm};
+`;
+
+export const TimePartInput = styled.input<{ $accentColor?: string; $hasError?: boolean }>`
+    width: 60px;
+    padding: 10px 0;
+    text-align: center;
+    background: ${props => props.theme.colors.surfaceAlt};
+    border: 1px solid ${props => props.$hasError ? props.theme.colors.error : 'transparent'};
+    border-radius: ${props => props.theme.radii.lg};
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: ${props => props.theme.fontWeights.medium};
+    color: ${props => props.theme.colors.text};
+    outline: none;
+    transition: all ${props => props.theme.transitions.fast};
+
+    &::placeholder {
+        color: ${props => props.theme.colors.textMuted};
+        font-weight: ${props => props.theme.fontWeights.normal};
+    }
+
+    &:focus {
+        background: ${props => props.theme.colors.surface};
+        border-color: ${props => props.$hasError ? props.theme.colors.error : (props.$accentColor || props.theme.colors.primary)};
+    }
+
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+    }
+    -moz-appearance: textfield;
+`;
+
+export const TimeSeparator = styled.span`
+    font-size: 18px;
+    font-weight: ${props => props.theme.fontWeights.semibold};
+    color: ${props => props.theme.colors.textSecondary};
+    line-height: 1;
+    user-select: none;
+`;
+
 export const FooterActions = styled.div`
     display: flex;
     align-items: center;
