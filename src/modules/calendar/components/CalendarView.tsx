@@ -272,6 +272,23 @@ const CalendarContainer = styled.div`
         text-decoration: line-through;
     }
 
+    /* Overdue IN_PROGRESS visits — blinking orange */
+    @keyframes fc-overdue-blink {
+        0%, 100% {
+            opacity: 1;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08), 0 0 0 0 rgba(249, 115, 22, 0.5);
+        }
+        50% {
+            opacity: 0.55;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08), 0 0 14px rgba(249, 115, 22, 0.7);
+        }
+    }
+
+    .fc-event-overdue {
+        background-color: #f97316 !important;
+        animation: fc-overdue-blink 1.4s ease-in-out infinite;
+    }
+
     /* ===================== TIME GRID ===================== */
     .fc-timegrid-slot {
         height: 52px;

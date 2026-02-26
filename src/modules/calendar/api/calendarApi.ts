@@ -182,6 +182,18 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
 };
 
 /**
+ * Check if an IN_PROGRESS visit is overdue (estimatedCompletionDate is at least the previous day)
+ */
+const isVisitOverdue = (status: VisitResponse['status'], estimatedCompletionDate: string): boolean => {
+    if (status !== 'IN_PROGRESS') return false;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const completionDate = new Date(estimatedCompletionDate);
+    completionDate.setHours(0, 0, 0, 0);
+    return todayStart > completionDate;
+};
+
+/**
  * Transform visit data to calendar event format
  */
 const transformVisit = (visit: VisitResponse): CalendarEvent => {
@@ -203,6 +215,8 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
     // Use appointmentColor if available, otherwise fall back to status color
     const colorHex = visit.appointmentColor?.hexColor || statusColors[status];
     const textColor = getContrastingTextColor(colorHex);
+
+    const overdue = isVisitOverdue(status, visit.estimatedCompletionDate);
 
     const eventData: VisitEventData = {
         id: visit.id,
@@ -227,10 +241,11 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
         start: visit.scheduledDate,
         end: visit.estimatedCompletionDate,
         allDay: false,
-        backgroundColor: colorHex,
+        backgroundColor: overdue ? '#f97316' : colorHex,
         borderColor: 'transparent',
-        textColor,
+        textColor: overdue ? '#ffffff' : textColor,
         extendedProps: eventData,
+        classNames: overdue ? ['fc-event-overdue'] : [],
     };
 };
 
