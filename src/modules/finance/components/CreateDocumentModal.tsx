@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { DocumentType, DocumentDirection, PaymentMethod } from '../types';
 import { useCreateDocument } from '../hooks/useFinance';
@@ -99,12 +100,133 @@ const inputStyle = (p: { theme: Record<string, unknown> }) => `
 `;
 
 const Input = styled.input`${inputStyle}`;
-const Select = styled.select`${inputStyle}`;
 const Textarea = styled.textarea`
   ${inputStyle}
   resize: vertical;
   min-height: 72px;
 `;
+
+// ─── Custom Select ─────────────────────────────────────────────────────────────
+
+const ModalSelectTrigger = styled.button`
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: 8px;
+  background: ${(p) => p.theme.colors.surface};
+  color: ${(p) => p.theme.colors.text};
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover, &:focus {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+  }
+`;
+
+const ModalSelectBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1199;
+`;
+
+const ModalSelectPanel = styled.div`
+  position: fixed;
+  min-width: 200px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
+  z-index: 1200;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+`;
+
+const ModalSelectBody = styled.div`
+  padding: 8px;
+`;
+
+const ModalSelectOption = styled.button<{ $active: boolean }>`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: ${(p) => (p.$active ? 600 : 400)};
+  border: 1px solid ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.2)' : 'transparent')};
+  border-radius: 10px;
+  background: ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.06)' : 'transparent')};
+  color: ${(p) => (p.$active ? '#0f172a' : '#64748b')};
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.08)' : 'rgba(0, 0, 0, 0.02)')};
+    color: #0f172a;
+  }
+`;
+
+const ChevronIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+interface ModalSelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+}
+
+const ModalSelect: React.FC<ModalSelectProps> = ({ value, onChange, options }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  const selectedLabel = options.find((o) => o.value === value)?.label ?? '';
+
+  const handleToggle = () => {
+    if (!isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPanelPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    }
+    setIsOpen((prev) => !prev);
+  };
+
+  const handleSelect = (val: string) => { onChange(val); setIsOpen(false); };
+
+  return (
+    <>
+      {isOpen && <ModalSelectBackdrop onClick={() => setIsOpen(false)} />}
+      <ModalSelectTrigger ref={triggerRef} type="button" onClick={handleToggle}>
+        <span>{selectedLabel}</span>
+        <ChevronIcon />
+      </ModalSelectTrigger>
+      {isOpen && panelPos && createPortal(
+        <ModalSelectPanel style={{ top: panelPos.top, left: panelPos.left, minWidth: panelPos.width }}>
+          <ModalSelectBody>
+            {options.map((opt) => (
+              <ModalSelectOption key={opt.value} $active={value === opt.value} onClick={() => handleSelect(opt.value)}>
+                {opt.label}
+              </ModalSelectOption>
+            ))}
+          </ModalSelectBody>
+        </ModalSelectPanel>,
+        document.body
+      )}
+    </>
+  );
+};
+
+// ─── Footer / Buttons ──────────────────────────────────────────────────────────
 
 const Footer = styled.div`
   display: flex;
@@ -231,8 +353,11 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose, defaultD
     }));
   };
 
-  const set = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+  const set = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
+
+  const setField = (key: keyof FormState) => (value: string) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -286,37 +411,53 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose, defaultD
           <FieldRow>
             <Field>
               <Label>Typ dokumentu</Label>
-              <Select value={form.documentType} onChange={set('documentType')}>
-                <option value={DocumentType.INVOICE}>Faktura</option>
-                <option value={DocumentType.RECEIPT}>Paragon</option>
-                <option value={DocumentType.OTHER}>Inny</option>
-              </Select>
+              <ModalSelect
+                value={form.documentType}
+                onChange={setField('documentType')}
+                options={[
+                  { value: DocumentType.INVOICE, label: 'Faktura' },
+                  { value: DocumentType.RECEIPT, label: 'Paragon' },
+                  { value: DocumentType.OTHER, label: 'Inny' },
+                ]}
+              />
             </Field>
             <Field>
               <Label>Kierunek</Label>
-              <Select value={form.direction} onChange={set('direction')}>
-                <option value={DocumentDirection.INCOME}>Przychód</option>
-                <option value={DocumentDirection.EXPENSE}>Koszt</option>
-              </Select>
+              <ModalSelect
+                value={form.direction}
+                onChange={setField('direction')}
+                options={[
+                  { value: DocumentDirection.INCOME, label: 'Przychód' },
+                  { value: DocumentDirection.EXPENSE, label: 'Koszt' },
+                ]}
+              />
             </Field>
           </FieldRow>
 
           <FieldRow>
             <Field>
               <Label>Metoda płatności</Label>
-              <Select value={form.paymentMethod} onChange={set('paymentMethod')}>
-                <option value={PaymentMethod.CASH}>Gotówka</option>
-                <option value={PaymentMethod.CARD}>Karta</option>
-                <option value={PaymentMethod.TRANSFER}>Przelew</option>
-              </Select>
+              <ModalSelect
+                value={form.paymentMethod}
+                onChange={setField('paymentMethod')}
+                options={[
+                  { value: PaymentMethod.CASH, label: 'Gotówka' },
+                  { value: PaymentMethod.CARD, label: 'Karta' },
+                  { value: PaymentMethod.TRANSFER, label: 'Przelew' },
+                ]}
+              />
             </Field>
             <Field>
               <Label>Waluta</Label>
-              <Select value={form.currency} onChange={set('currency')}>
-                <option value="PLN">PLN</option>
-                <option value="EUR">EUR</option>
-                <option value="USD">USD</option>
-              </Select>
+              <ModalSelect
+                value={form.currency}
+                onChange={setField('currency')}
+                options={[
+                  { value: 'PLN', label: 'PLN' },
+                  { value: 'EUR', label: 'EUR' },
+                  { value: 'USD', label: 'USD' },
+                ]}
+              />
             </Field>
           </FieldRow>
 
