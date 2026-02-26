@@ -26,6 +26,8 @@ export enum PaymentMethod {
 export interface FinancialDocument {
   id: string;
   documentNumber: string;
+  source: string;
+  sourceLabel: string;
   documentType: string;
   documentTypeLabel: string;
   direction: string;
@@ -45,6 +47,10 @@ export interface FinancialDocument {
   counterpartyName: string | null;
   counterpartyNip: string | null;
   visitId: string | null;
+  vehicleBrand: string | null;
+  vehicleModel: string | null;
+  customerFirstName: string | null;
+  customerLastName: string | null;
   ksefInvoiceId: string | null;
   ksefNumber: string | null;
   createdBy: string;

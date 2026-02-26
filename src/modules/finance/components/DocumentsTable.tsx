@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import styled, { css, keyframes } from 'styled-components';
 import type { FinancialDocument } from '../types';
 import { DocumentStatus } from '../types';
@@ -155,6 +156,40 @@ const Nip = styled.span`
   color: ${(p) => p.theme.colors.textMuted};
 `;
 
+const VehicleInfo = styled.span`
+  display: block;
+  font-size: ${(p) => p.theme.fontSizes.xs};
+  color: ${(p) => p.theme.colors.textMuted};
+`;
+
+const SourceLink = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: ${(p) => p.theme.radii.full};
+  border: 1px solid ${(p) => p.theme.colors.border};
+  background: transparent;
+  color: var(--brand-primary);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+  text-decoration: none;
+
+  &:hover {
+    background: var(--brand-primary);
+    color: white;
+    border-color: var(--brand-primary);
+  }
+`;
+
+const SourceText = styled.span`
+  font-size: ${(p) => p.theme.fontSizes.sm};
+  color: ${(p) => p.theme.colors.textMuted};
+`;
+
 const ActionsCell = styled(Td)`
   width: 48px;
   opacity: 0;
@@ -218,6 +253,7 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
   const [openStatusId, setOpenStatusId] = useState<string | null>(null);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   const updateStatus = useUpdateDocumentStatus();
   const deleteDocument = useDeleteDocument();
@@ -263,13 +299,13 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
               <Th>Data</Th><Th>Numer</Th><Th>Klient</Th>
               <Th $align="right">Netto</Th><Th $align="right">Brutto</Th>
               <Th $align="right">VAT</Th><Th>Status</Th>
-              <Th>Metoda</Th><Th>Termin</Th><Th $width="48px"></Th>
+              <Th>Metoda</Th><Th>Źródło</Th><Th>Termin</Th><Th $width="48px"></Th>
             </tr>
           </Thead>
           <tbody>
             {[1,2,3,4,5].map((i) => (
               <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                {Array.from({ length: 9 }).map((_, j) => (
+                {Array.from({ length: 10 }).map((_, j) => (
                   <td key={j} style={{ padding: '12px 16px' }}>
                     <Skeleton $w={j === 0 ? '70px' : j === 1 ? '100px' : j >= 3 && j <= 5 ? '70px' : '90px'} />
                   </td>
@@ -300,6 +336,7 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
               <Th $align="right">Brutto</Th>
               <Th $align="right">VAT</Th>
               <Th>Status</Th>
+              <Th>Metoda</Th>
               <Th>Źródło</Th>
               <Th>Termin płatności</Th>
               <Th $width="48px"></Th>
@@ -313,14 +350,25 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                   <DocNumber>{doc.documentNumber}</DocNumber>
                 </Td>
                 <Td>
-                  {doc.counterpartyName ? (
-                    <>
-                      <ClientText title={doc.counterpartyName}>{doc.counterpartyName}</ClientText>
-                      {doc.counterpartyNip && <Nip>NIP: {doc.counterpartyNip}</Nip>}
-                    </>
-                  ) : (
-                    <span style={{ color: '#9ca3af' }}>—</span>
-                  )}
+                  {(() => {
+                    const clientName = doc.counterpartyName
+                      ?? (doc.customerFirstName || doc.customerLastName
+                          ? `${doc.customerFirstName ?? ''} ${doc.customerLastName ?? ''}`.trim()
+                          : null);
+                    return clientName ? (
+                      <>
+                        <ClientText title={clientName}>{clientName}</ClientText>
+                        {doc.counterpartyNip && <Nip>NIP: {doc.counterpartyNip}</Nip>}
+                        {doc.visitId && (doc.vehicleBrand || doc.vehicleModel) && (
+                          <VehicleInfo>
+                            {[doc.vehicleBrand, doc.vehicleModel].filter(Boolean).join(' ')}
+                          </VehicleInfo>
+                        )}
+                      </>
+                    ) : (
+                      <span style={{ color: '#9ca3af' }}>—</span>
+                    );
+                  })()}
                 </Td>
                 <Td $align="right" $mono>{formatMoney(doc.totalNet)}</Td>
                 <Td $align="right" $mono>{formatMoney(doc.totalGross)}</Td>
@@ -335,6 +383,18 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                   </StatusBadge>
                 </Td>
                 <Td>{doc.paymentMethodLabel}</Td>
+                <Td onClick={(e) => e.stopPropagation()}>
+                  {doc.source === 'VISIT' && doc.visitId ? (
+                    <SourceLink
+                      onClick={() => navigate(`/visits/${doc.visitId}`)}
+                      title="Przejdź do wizyty"
+                    >
+                      {doc.sourceLabel}
+                    </SourceLink>
+                  ) : (
+                    <SourceText>{doc.sourceLabel}</SourceText>
+                  )}
+                </Td>
                 <Td>
                   {doc.dueDate ? (
                     <span
