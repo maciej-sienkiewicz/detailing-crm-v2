@@ -272,6 +272,11 @@ const CalendarContainer = styled.div`
         text-decoration: line-through;
     }
 
+    /* Completed visits — 30% opacity */
+    .fc-event-completed {
+        opacity: 0.3;
+    }
+
     /* Overdue IN_PROGRESS visits — blink from original color to orange */
     @keyframes fc-overdue-blink {
         0%, 100% { opacity: 0; }

@@ -245,7 +245,7 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
         borderColor: 'transparent',
         textColor,
         extendedProps: eventData,
-        classNames: overdue ? ['fc-event-overdue'] : [],
+        classNames: overdue ? ['fc-event-overdue'] : status === 'COMPLETED' ? ['fc-event-completed'] : [],
     };
 };
 
