@@ -178,6 +178,7 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         extendedProps: eventData,
         // Add custom class name for ABANDONED/CANCELLED appointments
         classNames: isCancelled ? ['fc-event-abandoned'] : [],
+        order: 2,
     };
 };
 
@@ -246,6 +247,7 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
         textColor,
         extendedProps: eventData,
         classNames: overdue ? ['fc-event-overdue'] : status === 'COMPLETED' ? ['fc-event-completed'] : [],
+        order: status === 'IN_PROGRESS' ? 1 : status === 'COMPLETED' ? 3 : 2,
     };
 };
 
