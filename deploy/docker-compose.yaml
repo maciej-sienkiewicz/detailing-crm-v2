@@ -4,7 +4,17 @@ services:
     container_name: ${DETAILING_CRM_FRONTEND_CONTAINER_NAME}
     ports:
       - '${ENV_DETAILING_CRM_FRONTEND_EXTERNAL_PORT}:80'
+    restart: always
+    networks:
+      - network
 
+  detailing-crm-scheduler:
+    image: ${ENV_DETAILING_CRM_SCHEDULER_IMAGE}
+    container_name: ${DETAILING_CRM_SCHEDULER_CONTAINER_NAME}
+    environment:
+      - BACKEND_URL=${SCHEDULER_BACKEND_URL}
+      - SCHEDULER_EMAIL=${SCHEDULER_EMAIL}
+      - SCHEDULER_PASSWORD=${SCHEDULER_PASSWORD}
     restart: always
     networks:
       - network

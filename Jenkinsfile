@@ -2,8 +2,8 @@ pipeline {
     agent none
 
     environment {
-
-        IMAGE_NAME = '127.0.0.1:5000/crm-frontend'
+        FRONTEND_IMAGE_NAME = '127.0.0.1:5000/crm-frontend'
+        SCHEDULER_IMAGE_NAME = '127.0.0.1:5000/crm-scheduler'
     }
     stages {
         stage('Docker Build & Push') {
@@ -35,7 +35,7 @@ pipeline {
                         returnStdout: true
                     ).trim()
 
-                    echo "🏗️ Building ${IMAGE_NAME}:${tag}"
+                    echo "🏗️ Building ${FRONTEND_IMAGE_NAME}:${tag}"
                     echo "📅 Build Date: ${buildDate}"
                     echo "🔖 Git Commit: ${gitCommit}"
 
@@ -45,23 +45,39 @@ pipeline {
                         --build-arg BUILD_DATE="${buildDate}" \
                         --build-arg GIT_COMMIT="${gitCommit}" \
                         -f ./deploy/Dockerfile \
-                        -t ${IMAGE_NAME}:${tag} \
+                        -t ${FRONTEND_IMAGE_NAME}:${tag} \
                         .
                     """
 
                     // Verify build
-                    echo "🔍 Verifying build..."
+                    echo "🔍 Verifying frontend build..."
                     sh """
-                      docker run --rm ${IMAGE_NAME}:${tag} cat /usr/share/nginx/html/build-info.txt
+                      docker run --rm ${FRONTEND_IMAGE_NAME}:${tag} cat /usr/share/nginx/html/build-info.txt
                     """
 
                     // Push to registry
-                    echo "📤 Pushing to registry..."
+                    echo "📤 Pushing frontend to registry..."
                     sh """
-                      docker push ${IMAGE_NAME}:${tag}
+                      docker push ${FRONTEND_IMAGE_NAME}:${tag}
                     """
 
-                    echo "✅ Image ${IMAGE_NAME}:${tag} built and pushed successfully"
+                    echo "✅ Image ${FRONTEND_IMAGE_NAME}:${tag} built and pushed successfully"
+
+                    echo "🏗️ Building ${SCHEDULER_IMAGE_NAME}:${tag}"
+
+                    sh """
+                      docker build \
+                        -f ./deploy/Dockerfile.scheduler \
+                        -t ${SCHEDULER_IMAGE_NAME}:${tag} \
+                        .
+                    """
+
+                    echo "📤 Pushing scheduler to registry..."
+                    sh """
+                      docker push ${SCHEDULER_IMAGE_NAME}:${tag}
+                    """
+
+                    echo "✅ Image ${SCHEDULER_IMAGE_NAME}:${tag} built and pushed successfully"
                 }
             }
         }

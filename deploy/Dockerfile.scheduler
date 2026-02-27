@@ -1,0 +1,20 @@
+FROM node:current-alpine AS build-stage
+
+WORKDIR /app
+
+COPY scheduler/package*.json ./
+RUN npm ci
+
+COPY scheduler/ .
+RUN npm run build
+
+FROM node:current-alpine AS production-stage
+
+WORKDIR /app
+
+COPY --from=build-stage /app/package*.json ./
+RUN npm ci --omit=dev
+
+COPY --from=build-stage /app/dist ./dist
+
+CMD ["node", "dist/index.js"]
