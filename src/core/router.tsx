@@ -20,6 +20,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import {DashboardView} from "@/modules/dashboard";
 import {GrowthEngineView} from "@/modules/growth-engine";
 import {FinanceView} from "@/modules/finance";
+import { StatisticsView, CategoryDetailView } from "@/modules/statistics";
 
 export const router = createBrowserRouter([
     {
@@ -193,6 +194,22 @@ export const router = createBrowserRouter([
         element: (
             <ProtectedRoute>
                 <Layout><FinanceView /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/statistics',
+        element: (
+            <ProtectedRoute>
+                <Layout><StatisticsView /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/statistics/categories/:categoryId',
+        element: (
+            <ProtectedRoute>
+                <Layout><CategoryDetailView /></Layout>
             </ProtectedRoute>
         ),
     },

@@ -950,6 +950,76 @@ export interface TranslationKeys {
             updated: string;
         };
     };
+    statistics: {
+        title: string;
+        subtitle: string;
+        filters: {
+            startDate: string;
+            endDate: string;
+            granularity: string;
+        };
+        granularity: {
+            daily: string;
+            weekly: string;
+            monthly: string;
+            quarterly: string;
+            yearly: string;
+        };
+        totals: {
+            orderCount: string;
+            revenueGross: string;
+        };
+        chart: {
+            noData: string;
+            ordersLabel: string;
+            revenueLabel: string;
+        };
+        overview: {
+            title: string;
+            error: string;
+            unassignedWarning: string;
+        };
+        categories: {
+            title: string;
+            add: string;
+            showInactive: string;
+            services: string;
+            statusActive: string;
+            statusInactive: string;
+            error: string;
+            deleteConfirm: string;
+            empty: {
+                title: string;
+                description: string;
+            };
+        };
+        categoryForm: {
+            titleCreate: string;
+            titleEdit: string;
+            nameLabel: string;
+            namePlaceholder: string;
+            nameRequired: string;
+            nameMin: string;
+            descriptionLabel: string;
+            descriptionPlaceholder: string;
+            colorLabel: string;
+            submitting: string;
+        };
+        categoryDetail: {
+            error: string;
+            assignServices: string;
+            servicesTitle: string;
+            noServices: string;
+            serviceNameCol: string;
+            serviceStatusCol: string;
+        };
+        assignServices: {
+            title: string;
+            searchPlaceholder: string;
+            selected: string;
+            saving: string;
+        };
+    };
 }
 
 export type TranslationKey = keyof TranslationKeys;
