@@ -8,8 +8,9 @@ import { StatsTotalsBar } from '../components/StatsTotalsBar';
 import { StatsChart } from '../components/StatsChart';
 import { CategoryFormModal } from '../components/CategoryFormModal';
 import { AssignServicesModal } from '../components/AssignServicesModal';
+import { BreakdownTable } from '../components/BreakdownTable';
 import { useCategoryDetail } from '../hooks/useCategories';
-import { useCategoryStats } from '../hooks/useStats';
+import { useCategoryStats, useServicesBreakdown } from '../hooks/useStats';
 import type { Granularity } from '../types';
 
 const ViewContainer = styled.main`
@@ -131,56 +132,6 @@ const SectionTitle = styled.h2`
     color: ${props => props.theme.colors.text};
 `;
 
-const ServicesList = styled.div`
-    background: ${props => props.theme.colors.surface};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    overflow: hidden;
-`;
-
-const ServicesTable = styled.table`
-    width: 100%;
-    border-collapse: collapse;
-`;
-
-const Th = styled.th`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.lg};
-    text-align: left;
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 600;
-    color: ${props => props.theme.colors.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border-bottom: 1px solid ${props => props.theme.colors.border};
-    background: ${props => props.theme.colors.surfaceAlt};
-`;
-
-const Td = styled.td`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.lg};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.text};
-    border-bottom: 1px solid ${props => props.theme.colors.border};
-
-    &:last-child {
-        border-bottom: none;
-    }
-`;
-
-const Tr = styled.tr`
-    &:last-child td {
-        border-bottom: none;
-    }
-`;
-
-const StatusDot = styled.span<{ $active: boolean }>`
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: ${props => (props.$active ? props.theme.colors.success : props.theme.colors.error)};
-    margin-right: ${props => props.theme.spacing.xs};
-`;
-
 const LoadingOverlay = styled.div`
     display: flex;
     align-items: center;
@@ -229,6 +180,14 @@ export const CategoryDetailView = () => {
     const { category, isLoading: catLoading, isError: catError } = useCategoryDetail(categoryId || '');
     const { stats, isLoading: statsLoading, isError: statsError } = useCategoryStats(
         categoryId || '',
+        granularity,
+        startDate,
+        endDate
+    );
+
+    const serviceIds = category?.services.map(s => s.serviceId) ?? [];
+    const { servicesStats, isLoading: breakdownLoading } = useServicesBreakdown(
+        serviceIds,
         granularity,
         startDate,
         endDate
@@ -303,35 +262,17 @@ export const CategoryDetailView = () => {
                     {t.statistics.categoryDetail.servicesTitle} ({category.services.length})
                 </SectionTitle>
 
-                <ServicesList>
-                    {category.services.length === 0 ? (
-                        <div style={{ padding: '24px', textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>
-                            {t.statistics.categoryDetail.noServices}
-                        </div>
-                    ) : (
-                        <ServicesTable>
-                            <thead>
-                                <tr>
-                                    <Th>{t.statistics.categoryDetail.serviceNameCol}</Th>
-                                    <Th>{t.statistics.categoryDetail.serviceStatusCol}</Th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {category.services.map(service => (
-                                    <Tr key={service.serviceId}>
-                                        <Td>{service.serviceName}</Td>
-                                        <Td>
-                                            <StatusDot $active={service.isActive} />
-                                            {service.isActive
-                                                ? t.statistics.categories.statusActive
-                                                : t.statistics.categories.statusInactive}
-                                        </Td>
-                                    </Tr>
-                                ))}
-                            </tbody>
-                        </ServicesTable>
-                    )}
-                </ServicesList>
+                <BreakdownTable
+                    rows={servicesStats.map(s => ({
+                        id: s.serviceId,
+                        name: s.serviceName,
+                        orderCount: s.totals.orderCount,
+                        totalRevenueGross: s.totals.totalRevenueGross,
+                        isActive: s.isActive,
+                    }))}
+                    isLoading={breakdownLoading && serviceIds.length > 0}
+                    emptyText={t.statistics.categoryDetail.noServices}
+                />
             </Section>
 
             <CategoryFormModal

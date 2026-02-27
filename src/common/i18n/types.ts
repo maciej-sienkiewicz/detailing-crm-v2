@@ -1019,6 +1019,16 @@ export interface TranslationKeys {
             selected: string;
             saving: string;
         };
+        breakdown: {
+            categoriesTitle: string;
+            name: string;
+            bar: string;
+            orders: string;
+            revenue: string;
+            share: string;
+            total: string;
+            empty: string;
+        };
     };
 }
 

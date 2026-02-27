@@ -1004,5 +1004,15 @@ export const pl: TranslationKeys = {
             selected: 'zaznaczonych',
             saving: 'Zapisywanie...',
         },
+        breakdown: {
+            categoriesTitle: 'Zestawienie per kategoria',
+            name: 'Nazwa',
+            bar: '',
+            orders: 'Zlecenia',
+            revenue: 'Przychód brutto',
+            share: 'Udział',
+            total: 'Razem',
+            empty: 'Brak danych dla wybranego okresu',
+        },
     },
 }

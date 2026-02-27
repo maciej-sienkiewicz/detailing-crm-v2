@@ -7,10 +7,11 @@ import { EmptyState } from '@/common/components/EmptyState';
 import { StatsFilters } from '../components/StatsFilters';
 import { StatsTotalsBar } from '../components/StatsTotalsBar';
 import { StatsChart } from '../components/StatsChart';
+import { BreakdownTable } from '../components/BreakdownTable';
 import { CategoryCard } from '../components/CategoryCard';
 import { CategoryFormModal } from '../components/CategoryFormModal';
 import { useCategories, useDeleteCategory } from '../hooks/useCategories';
-import { useOverviewStats } from '../hooks/useStats';
+import { useOverviewStats, useCategoriesBreakdown } from '../hooks/useStats';
 import type { Category, Granularity } from '../types';
 
 const ViewContainer = styled.main`
@@ -186,6 +187,14 @@ export const StatisticsView = () => {
     const { categories, isLoading: catLoading, isError: catError, refetch: catRefetch } = useCategories(showInactive);
     const deleteMutation = useDeleteCategory();
 
+    const activeCategoryIds = categories.filter(c => c.isActive).map(c => c.id);
+    const { categoriesStats, isLoading: catBreakdownLoading } = useCategoriesBreakdown(
+        activeCategoryIds,
+        granularity,
+        startDate,
+        endDate
+    );
+
     const handleEditCategory = (category: Category) => {
         setEditingCategory(category);
         setIsFormModalOpen(true);
@@ -246,6 +255,28 @@ export const StatisticsView = () => {
                         )}
                         <StatsTotalsBar totals={stats.totals} />
                         <StatsChart data={stats.data} />
+                    </>
+                )}
+
+                {(categoriesStats.length > 0 || catBreakdownLoading) && (
+                    <>
+                        <SectionTitle style={{ marginTop: 0 }}>
+                            {t.statistics.breakdown.categoriesTitle}
+                        </SectionTitle>
+                        <BreakdownTable
+                            rows={categoriesStats.map(cs => {
+                                const cat = categories.find(c => c.id === cs.categoryId);
+                                return {
+                                    id: cs.categoryId,
+                                    name: cs.categoryName,
+                                    orderCount: cs.totals.orderCount,
+                                    totalRevenueGross: cs.totals.totalRevenueGross,
+                                    color: cat?.color ?? undefined,
+                                };
+                            })}
+                            isLoading={catBreakdownLoading}
+                            showColorDot
+                        />
                     </>
                 )}
             </Section>
