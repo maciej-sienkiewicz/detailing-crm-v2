@@ -2,7 +2,6 @@
 import { useState, useMemo } from 'react';
 import styled from 'styled-components';
 import { t } from '@/common/i18n';
-import { Toggle } from '@/common/components/Toggle';
 import { StatsFilters } from '../components/StatsFilters';
 import { StatsTotalsBar } from '../components/StatsTotalsBar';
 import { StatsChart } from '../components/StatsChart';
@@ -243,7 +242,6 @@ export const StatisticsView = () => {
     const [granularity, setGranularity] = useState<Granularity>('MONTHLY');
     const [startDate, setStartDate] = useState(oneYearAgo());
     const [endDate, setEndDate] = useState(today());
-    const [showInactive, setShowInactive] = useState(false);
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | undefined>();
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -272,7 +270,7 @@ export const StatisticsView = () => {
         isLoading: catLoading,
         isError: catError,
         refetch: catRefetch,
-    } = useCategories(showInactive);
+    } = useCategories();
 
     const deleteMutation = useDeleteCategory();
     const assignServicesMutation = useAssignServices();
@@ -479,11 +477,6 @@ export const StatisticsView = () => {
                         <TableColumnHeader>
                             <TableColumnTitle>{t.statistics.breakdown.categoriesTitle}</TableColumnTitle>
                             <TableColumnControls>
-                                <Toggle
-                                    checked={showInactive}
-                                    onChange={setShowInactive}
-                                    label={t.statistics.categories.showInactive}
-                                />
                                 <AddButton
                                     onClick={() => { setEditingCategory(undefined); setIsFormModalOpen(true); }}
                                 >

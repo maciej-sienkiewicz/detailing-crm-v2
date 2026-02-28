@@ -64,6 +64,8 @@ export const useDeleteCategory = () => {
         mutationFn: (categoryId: string) => categoriesApi.delete(categoryId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [CATEGORIES_KEY] });
+            // Services that were in this category become unassigned
+            queryClient.invalidateQueries({ queryKey: ['statistics', 'unassigned-services'] });
         },
     });
 };
