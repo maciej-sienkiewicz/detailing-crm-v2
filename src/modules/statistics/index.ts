@@ -8,10 +8,11 @@ export {
     useCreateCategory,
     useUpdateCategory,
     useDeleteCategory,
-    useAssignServices,
+    useAssignService,
+    useUnassignService,
 } from './hooks/useCategories';
 
-export { useCategoryStats, useOverviewStats, useUnassignedServices } from './hooks/useStats';
+export { useBreakdown, useCategoryStats } from './hooks/useStats';
 
 export type {
     Category,
@@ -20,7 +21,8 @@ export type {
     StatsDataPoint,
     StatsTotals,
     CategoryStats,
-    OverviewStats,
-    UnassignedService,
+    ServiceBreakdownItem,
+    CategoryBreakdownItem,
+    BreakdownStats,
     Granularity,
 } from './types';

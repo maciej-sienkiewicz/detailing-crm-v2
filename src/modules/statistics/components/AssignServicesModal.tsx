@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { Modal } from '@/common/components/Modal';
 import { t } from '@/common/i18n';
 import { useServices } from '@/modules/services';
-import { useAssignServices } from '../hooks/useCategories';
+import { useAssignService, useUnassignService } from '../hooks/useCategories';
 import type { CategoryDetail } from '../types';
 
 const Content = styled.div`
@@ -136,9 +136,11 @@ interface AssignServicesModalProps {
 export const AssignServicesModal = ({ isOpen, onClose, category }: AssignServicesModalProps) => {
     const [search, setSearch] = useState('');
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [isSaving, setIsSaving] = useState(false);
 
     const { services } = useServices({ search: '', page: 1, limit: 200, showInactive: false });
-    const assignMutation = useAssignServices();
+    const assignMutation = useAssignService();
+    const unassignMutation = useUnassignService();
 
     useEffect(() => {
         if (isOpen) {
@@ -160,11 +162,20 @@ export const AssignServicesModal = ({ isOpen, onClose, category }: AssignService
     };
 
     const handleSave = async () => {
-        await assignMutation.mutateAsync({
-            categoryId: category.id,
-            serviceIds: [...selectedIds],
-        });
-        onClose();
+        const originalIds = new Set(category.services.map(s => s.serviceId));
+        const toAdd = [...selectedIds].filter(id => !originalIds.has(id));
+        const toRemove = [...originalIds].filter(id => !selectedIds.has(id));
+
+        setIsSaving(true);
+        try {
+            await Promise.all([
+                ...toAdd.map(serviceId => assignMutation.mutateAsync({ categoryId: category.id, serviceId })),
+                ...toRemove.map(serviceId => unassignMutation.mutateAsync({ categoryId: category.id, serviceId })),
+            ]);
+            onClose();
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -206,11 +217,11 @@ export const AssignServicesModal = ({ isOpen, onClose, category }: AssignService
                         {selectedIds.size} {t.statistics.assignServices.selected}
                     </SelectionInfo>
                     <ButtonGroup>
-                        <CancelButton onClick={onClose} disabled={assignMutation.isPending}>
+                        <CancelButton onClick={onClose} disabled={isSaving}>
                             {t.common.cancel}
                         </CancelButton>
-                        <SaveButton onClick={handleSave} disabled={assignMutation.isPending}>
-                            {assignMutation.isPending
+                        <SaveButton onClick={handleSave} disabled={isSaving}>
+                            {isSaving
                                 ? t.statistics.assignServices.saving
                                 : t.common.save}
                         </SaveButton>

@@ -7,6 +7,7 @@ export interface Category {
     color: string | null;
     isActive: boolean;
     serviceCount: number;
+    serviceIds: string[];
     createdAt: string;
     updatedAt: string;
 }
@@ -44,31 +45,34 @@ export interface CategoryStats {
     totals: StatsTotals;
 }
 
-export interface ServiceStats {
+export interface ServiceBreakdownItem {
     serviceId: string;
     serviceName: string;
     isActive: boolean;
-    granularity: Granularity;
-    startDate: string;
-    endDate: string;
-    data: StatsDataPoint[];
     totals: StatsTotals;
 }
 
-export interface OverviewStats {
-    granularity: Granularity;
-    startDate: string;
-    endDate: string;
-    data: StatsDataPoint[];
+export interface CategoryBreakdownItem {
+    categoryId: string;
+    categoryName: string;
+    description: string | null;
+    color: string | null;
     totals: StatsTotals;
-    unassignedServiceCount: number;
+    services: ServiceBreakdownItem[];
 }
 
-export interface UnassignedService {
-    serviceId: string;
-    serviceName: string;
-    basePriceNet: number;
-    vatRate: number;
+export interface BreakdownStats {
+    period: {
+        granularity: Granularity;
+        startDate: string;
+        endDate: string;
+    };
+    overview: {
+        data: StatsDataPoint[];
+        totals: StatsTotals;
+    };
+    categories: CategoryBreakdownItem[];
+    unassignedServices: ServiceBreakdownItem[];
 }
 
 export interface CreateCategoryRequest {

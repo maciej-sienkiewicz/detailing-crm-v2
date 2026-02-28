@@ -10,7 +10,7 @@ import { CategoryFormModal } from '../components/CategoryFormModal';
 import { AssignServicesModal } from '../components/AssignServicesModal';
 import { BreakdownTable } from '../components/BreakdownTable';
 import { useCategoryDetail } from '../hooks/useCategories';
-import { useCategoryStats, useServicesBreakdown } from '../hooks/useStats';
+import { useCategoryStats, useBreakdown } from '../hooks/useStats';
 import type { Granularity } from '../types';
 
 const ViewContainer = styled.main`
@@ -185,13 +185,10 @@ export const CategoryDetailView = () => {
         endDate
     );
 
-    const serviceIds = category?.services.map(s => s.serviceId) ?? [];
-    const { servicesStats, isLoading: breakdownLoading } = useServicesBreakdown(
-        serviceIds,
-        granularity,
-        startDate,
-        endDate
-    );
+    // Service-level stats come from breakdown (replaces N individual service calls)
+    const { breakdown, isLoading: breakdownLoading } = useBreakdown(granularity, startDate, endDate);
+    const categoryBreakdown = breakdown?.categories.find(c => c.categoryId === categoryId);
+    const servicesStats = categoryBreakdown?.services ?? [];
 
     if (catLoading) {
         return (
@@ -270,7 +267,7 @@ export const CategoryDetailView = () => {
                         totalRevenueGross: s.totals.totalRevenueGross,
                         isActive: s.isActive,
                     }))}
-                    isLoading={breakdownLoading && serviceIds.length > 0}
+                    isLoading={breakdownLoading && category.services.length > 0}
                     emptyText={t.statistics.categoryDetail.noServices}
                 />
             </Section>

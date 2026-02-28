@@ -1,14 +1,15 @@
 // src/modules/statistics/hooks/useCategories.ts
-import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { categoriesApi } from '../api/categoriesApi';
-import type { CategoryDetail, CreateCategoryRequest, UpdateCategoryRequest } from '../types';
+import type { CreateCategoryRequest, UpdateCategoryRequest } from '../types';
+import { BREAKDOWN_KEY } from './useStats';
 
 export const CATEGORIES_KEY = 'statistics-categories';
 
-export const useCategories = (includeInactive = false) => {
+export const useCategories = () => {
     const { data, isLoading, isError, refetch } = useQuery({
-        queryKey: [CATEGORIES_KEY, includeInactive],
-        queryFn: () => categoriesApi.list(includeInactive),
+        queryKey: [CATEGORIES_KEY],
+        queryFn: () => categoriesApi.list(),
     });
 
     return {
@@ -41,6 +42,7 @@ export const useCreateCategory = () => {
         mutationFn: (data: CreateCategoryRequest) => categoriesApi.create(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [CATEGORIES_KEY] });
+            queryClient.invalidateQueries({ queryKey: [BREAKDOWN_KEY] });
         },
     });
 };
@@ -53,6 +55,7 @@ export const useUpdateCategory = () => {
             categoriesApi.update(categoryId, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [CATEGORIES_KEY] });
+            queryClient.invalidateQueries({ queryKey: [BREAKDOWN_KEY] });
         },
     });
 };
@@ -64,39 +67,33 @@ export const useDeleteCategory = () => {
         mutationFn: (categoryId: string) => categoriesApi.delete(categoryId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [CATEGORIES_KEY] });
-            // Services that were in this category become unassigned
-            queryClient.invalidateQueries({ queryKey: ['statistics', 'unassigned-services'] });
+            queryClient.invalidateQueries({ queryKey: [BREAKDOWN_KEY] });
         },
     });
 };
 
-export const useCategoriesDetails = (categoryIds: string[]) => {
-    const results = useQueries({
-        queries: categoryIds.map(categoryId => ({
-            queryKey: [CATEGORIES_KEY, 'detail', categoryId],
-            queryFn: () => categoriesApi.get(categoryId),
-            enabled: categoryIds.length > 0,
-        })),
-    });
-
-    const isLoading = results.some(r => r.isLoading);
-    const categoriesDetails = results
-        .map(r => r.data)
-        .filter((d): d is CategoryDetail => !!d);
-
-    return { categoriesDetails, isLoading };
-};
-
-export const useAssignServices = () => {
+export const useAssignService = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ categoryId, serviceIds }: { categoryId: string; serviceIds: string[] }) =>
-            categoriesApi.assignServices(categoryId, serviceIds),
-        onSuccess: (_data, { categoryId }: { categoryId: string; serviceIds: string[] }) => {
+        mutationFn: ({ categoryId, serviceId }: { categoryId: string; serviceId: string }) =>
+            categoriesApi.assignService(categoryId, serviceId),
+        onSuccess: (_data, { categoryId }) => {
             queryClient.invalidateQueries({ queryKey: [CATEGORIES_KEY, 'detail', categoryId] });
-            queryClient.invalidateQueries({ queryKey: [CATEGORIES_KEY] });
-            queryClient.invalidateQueries({ queryKey: ['statistics', 'unassigned-services'] });
+            queryClient.invalidateQueries({ queryKey: [BREAKDOWN_KEY] });
+        },
+    });
+};
+
+export const useUnassignService = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ categoryId, serviceId }: { categoryId: string; serviceId: string }) =>
+            categoriesApi.unassignService(categoryId, serviceId),
+        onSuccess: (_data, { categoryId }) => {
+            queryClient.invalidateQueries({ queryKey: [CATEGORIES_KEY, 'detail', categoryId] });
+            queryClient.invalidateQueries({ queryKey: [BREAKDOWN_KEY] });
         },
     });
 };

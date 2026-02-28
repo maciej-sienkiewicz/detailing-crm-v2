@@ -1,3 +1,3 @@
 // src/modules/statistics/hooks/index.ts
-export { useCategories, useCategoryDetail, useCategoriesDetails, useCreateCategory, useUpdateCategory, useDeleteCategory, useAssignServices, CATEGORIES_KEY } from './useCategories';
-export { useCategoryStats, useOverviewStats, useUnassignedServices, useServicesBreakdown, useCategoriesBreakdown } from './useStats';
+export { useCategories, useCategoryDetail, useCreateCategory, useUpdateCategory, useDeleteCategory, useAssignService, useUnassignService, CATEGORIES_KEY } from './useCategories';
+export { useBreakdown, useCategoryStats, BREAKDOWN_KEY } from './useStats';

@@ -7,8 +7,8 @@ import { StatsTotalsBar } from '../components/StatsTotalsBar';
 import { StatsChart } from '../components/StatsChart';
 import { BreakdownTable } from '../components/BreakdownTable';
 import { CategoryFormModal } from '../components/CategoryFormModal';
-import { useCategories, useCategoriesDetails, useDeleteCategory, useAssignServices } from '../hooks/useCategories';
-import { useOverviewStats, useCategoryStats, useCategoriesBreakdown, useServicesBreakdown, useUnassignedServices } from '../hooks/useStats';
+import { useCategories, useDeleteCategory, useAssignService, useUnassignService } from '../hooks/useCategories';
+import { useBreakdown, useCategoryStats } from '../hooks/useStats';
 import type { Category, Granularity } from '../types';
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
@@ -246,14 +246,15 @@ export const StatisticsView = () => {
     const [editingCategory, setEditingCategory] = useState<Category | undefined>();
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
-    // ── Overview / per-category stats for chart ──────────────────────────────
+    // ── Single breakdown call replaces all N+M stats fetches ─────────────────
     const {
-        stats: overviewStats,
-        isLoading: statsLoading,
-        isError: statsError,
-        refetch: statsRefetch,
-    } = useOverviewStats(granularity, startDate, endDate);
+        breakdown,
+        isLoading: breakdownLoading,
+        isError: breakdownError,
+        refetch: breakdownRefetch,
+    } = useBreakdown(granularity, startDate, endDate);
 
+    // ── Per-category chart (only when a category is selected) ─────────────────
     const { stats: categoryStats, isLoading: catStatsLoading } = useCategoryStats(
         selectedCategoryId || '',
         granularity,
@@ -261,10 +262,7 @@ export const StatisticsView = () => {
         endDate
     );
 
-    const chartStats = selectedCategoryId ? categoryStats : overviewStats;
-    const chartLoading = selectedCategoryId ? catStatsLoading : statsLoading;
-
-    // ── Categories ───────────────────────────────────────────────────────────
+    // ── Category list for management (edit / delete actions) ──────────────────
     const {
         categories,
         isLoading: catLoading,
@@ -273,100 +271,73 @@ export const StatisticsView = () => {
     } = useCategories();
 
     const deleteMutation = useDeleteCategory();
-    const assignServicesMutation = useAssignServices();
+    const assignMutation = useAssignService();
+    const unassignMutation = useUnassignService();
 
-    const activeCategoryIds = useMemo(
-        () => categories.filter(c => c.isActive).map(c => c.id),
-        [categories]
-    );
-
-    const { categoriesStats, isLoading: catBreakdownLoading } = useCategoriesBreakdown(
-        activeCategoryIds,
-        granularity,
-        startDate,
-        endDate
-    );
-
-    // Full service lists per category (for filtering + assign/unpin)
-    const { categoriesDetails, isLoading: catDetailsLoading } = useCategoriesDetails(activeCategoryIds);
-
-    // ── Unassigned services ──────────────────────────────────────────────────
-    const { services: unassignedList } = useUnassignedServices();
-    const unassignedIds = useMemo(() => unassignedList.map(s => s.serviceId), [unassignedList]);
-    const unassignedSet = useMemo(() => new Set(unassignedIds), [unassignedIds]);
-
-    // ── All service IDs (assigned + unassigned) ──────────────────────────────
-    const assignedServiceIds = useMemo(
-        () => categoriesDetails.flatMap(cd => cd.services.map(s => s.serviceId)),
-        [categoriesDetails]
-    );
-
-    const allServiceIds = useMemo(
-        () => [...new Set([...assignedServiceIds, ...unassignedIds])],
-        [assignedServiceIds, unassignedIds]
-    );
-
-    // Stats for ALL services in one call
-    const { servicesStats, isLoading: servicesLoading } = useServicesBreakdown(
-        allServiceIds,
-        granularity,
-        startDate,
-        endDate
-    );
-
-    // ── Derived data ─────────────────────────────────────────────────────────
+    // ── Derived data from breakdown ───────────────────────────────────────────
 
     const selectedCategory = selectedCategoryId
         ? categories.find(c => c.id === selectedCategoryId) ?? null
         : null;
 
-    const selectedCategoryDetail = selectedCategoryId
-        ? categoriesDetails.find(cd => cd.id === selectedCategoryId) ?? null
-        : null;
+    const chartData = selectedCategoryId ? categoryStats : breakdown?.overview;
+    const chartLoading = selectedCategoryId ? catStatsLoading : breakdownLoading;
 
-    const selectedCategoryServiceIds = useMemo(
-        () => new Set(selectedCategoryDetail?.services.map(s => s.serviceId) ?? []),
-        [selectedCategoryDetail]
-    );
+    const unassignedCount = breakdown?.unassignedServices.length ?? 0;
 
-    // Color lookup: serviceId → category color
+    // Color lookup: serviceId → category color (for "all services" view)
     const serviceCategoryColor = useMemo(() => {
         const map = new Map<string, string>();
-        categoriesDetails.forEach(cd => {
-            const cat = categories.find(c => c.id === cd.id);
-            if (cat?.color) {
-                cd.services.forEach(s => map.set(s.serviceId, cat.color!));
+        breakdown?.categories.forEach(cat => {
+            if (cat.color) {
+                cat.services.forEach(s => map.set(s.serviceId, cat.color!));
             }
         });
         return map;
-    }, [categoriesDetails, categories]);
+    }, [breakdown]);
 
-    // Service rows – filtered when a category is selected
+    // Service rows for the right-side table
     const serviceRows = useMemo(() => {
-        const base = selectedCategoryId
-            ? servicesStats.filter(s => selectedCategoryServiceIds.has(s.serviceId))
-            : servicesStats;
+        if (!breakdown) return [];
 
-        return base.map(s => ({
+        if (selectedCategoryId) {
+            const cat = breakdown.categories.find(c => c.categoryId === selectedCategoryId);
+            return (cat?.services ?? []).map(s => ({
+                id: s.serviceId,
+                name: s.serviceName,
+                orderCount: s.totals.orderCount,
+                totalRevenueGross: s.totals.totalRevenueGross,
+                isActive: s.isActive,
+                isDraggable: false,
+            }));
+        }
+
+        const assigned = breakdown.categories.flatMap(cat =>
+            cat.services.map(s => ({
+                id: s.serviceId,
+                name: s.serviceName,
+                orderCount: s.totals.orderCount,
+                totalRevenueGross: s.totals.totalRevenueGross,
+                isActive: s.isActive,
+                color: cat.color ?? undefined,
+                isUnassigned: false,
+                isDraggable: false,
+            }))
+        );
+
+        const unassigned = breakdown.unassignedServices.map(s => ({
             id: s.serviceId,
             name: s.serviceName,
             orderCount: s.totals.orderCount,
             totalRevenueGross: s.totals.totalRevenueGross,
             isActive: s.isActive,
-            color: selectedCategoryId ? undefined : serviceCategoryColor.get(s.serviceId),
-            isUnassigned: unassignedSet.has(s.serviceId),
-            // Only draggable when no category is selected and the service is unassigned
-            isDraggable: !selectedCategoryId && unassignedSet.has(s.serviceId),
+            color: undefined,
+            isUnassigned: true,
+            isDraggable: true,
         }));
-    }, [
-        servicesStats,
-        selectedCategoryId,
-        selectedCategoryServiceIds,
-        serviceCategoryColor,
-        unassignedSet,
-    ]);
 
-    const hasUnassignedInView = !selectedCategoryId && unassignedIds.length > 0;
+        return [...assigned, ...unassigned];
+    }, [breakdown, selectedCategoryId, serviceCategoryColor]);
 
     // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -393,24 +364,13 @@ export const StatisticsView = () => {
 
     /** Drag service from right table → drop on category row in left table */
     const handleAssignServiceToCategory = async (serviceId: string, categoryId: string) => {
-        const catDetail = categoriesDetails.find(cd => cd.id === categoryId);
-        const currentIds = catDetail?.services.map(s => s.serviceId) ?? [];
-        if (!currentIds.includes(serviceId)) {
-            await assignServicesMutation.mutateAsync({
-                categoryId,
-                serviceIds: [...currentIds, serviceId],
-            });
-        }
+        await assignMutation.mutateAsync({ categoryId, serviceId });
     };
 
     /** Unpin button in service rows when a category is selected */
     const handleUnpinService = async (serviceId: string) => {
-        if (!selectedCategoryId || !selectedCategoryDetail) return;
-        const currentIds = selectedCategoryDetail.services.map(s => s.serviceId);
-        await assignServicesMutation.mutateAsync({
-            categoryId: selectedCategoryId,
-            serviceIds: currentIds.filter(id => id !== serviceId),
-        });
+        if (!selectedCategoryId) return;
+        await unassignMutation.mutateAsync({ categoryId: selectedCategoryId, serviceId });
     };
 
     // ── Render ────────────────────────────────────────────────────────────────
@@ -431,14 +391,14 @@ export const StatisticsView = () => {
                     onEndDateChange={setEndDate}
                 />
 
-                {(statsLoading || chartLoading) && (
+                {(breakdownLoading || chartLoading) && (
                     <LoadingOverlay><Spinner /></LoadingOverlay>
                 )}
 
-                {statsError && !selectedCategoryId && (
+                {breakdownError && !selectedCategoryId && (
                     <div style={{ textAlign: 'center' }}>
                         <ErrorText>{t.statistics.overview.error}</ErrorText>
-                        <RetryButton onClick={() => statsRefetch()}>{t.common.retry}</RetryButton>
+                        <RetryButton onClick={() => breakdownRefetch()}>{t.common.retry}</RetryButton>
                     </div>
                 )}
 
@@ -463,10 +423,10 @@ export const StatisticsView = () => {
                     </SelectedCategoryBanner>
                 )}
 
-                {chartStats && !chartLoading && (
+                {chartData && !chartLoading && (
                     <>
-                        <StatsTotalsBar totals={chartStats.totals} />
-                        <StatsChart data={chartStats.data} />
+                        <StatsTotalsBar totals={chartData.totals} />
+                        <StatsChart data={chartData.data} />
                     </>
                 )}
 
@@ -494,17 +454,14 @@ export const StatisticsView = () => {
                         )}
 
                         <BreakdownTable
-                            rows={categoriesStats.map(cs => {
-                                const cat = categories.find(c => c.id === cs.categoryId);
-                                return {
-                                    id: cs.categoryId,
-                                    name: cs.categoryName,
-                                    orderCount: cs.totals.orderCount,
-                                    totalRevenueGross: cs.totals.totalRevenueGross,
-                                    color: cat?.color ?? undefined,
-                                };
-                            })}
-                            isLoading={catBreakdownLoading}
+                            rows={(breakdown?.categories ?? []).map(cs => ({
+                                id: cs.categoryId,
+                                name: cs.categoryName,
+                                orderCount: cs.totals.orderCount,
+                                totalRevenueGross: cs.totals.totalRevenueGross,
+                                color: cs.color ?? undefined,
+                            }))}
+                            isLoading={breakdownLoading}
                             showColorDot
                             selectedId={selectedCategoryId}
                             onRowClick={handleCategoryRowClick}
@@ -555,15 +512,15 @@ export const StatisticsView = () => {
                             </TableColumnControls>
                         </TableColumnHeader>
 
-                        {hasUnassignedInView && (
+                        {!selectedCategoryId && unassignedCount > 0 && (
                             <DragHint>
-                                ⚠ {unassignedIds.length} usług bez kategorii — przeciągnij na wybraną kategorię po lewej.
+                                ⚠ {unassignedCount} usług bez kategorii — przeciągnij na wybraną kategorię po lewej.
                             </DragHint>
                         )}
 
                         <BreakdownTable
                             rows={serviceRows}
-                            isLoading={servicesLoading || catDetailsLoading}
+                            isLoading={breakdownLoading}
                             showColorDot={!selectedCategoryId}
                             emptyText={
                                 selectedCategoryId

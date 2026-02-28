@@ -10,10 +10,8 @@ import type {
 const BASE_PATH = '/v1/service-categories';
 
 export const categoriesApi = {
-    list: async (includeInactive = false): Promise<Category[]> => {
-        const response = await apiClient.get<{ categories: Category[] }>(
-            `${BASE_PATH}?includeInactive=${includeInactive}`
-        );
+    list: async (): Promise<Category[]> => {
+        const response = await apiClient.get<{ categories: Category[] }>(BASE_PATH);
         return response.data.categories;
     },
 
@@ -35,7 +33,11 @@ export const categoriesApi = {
         await apiClient.delete(`${BASE_PATH}/${categoryId}`);
     },
 
-    assignServices: async (categoryId: string, serviceIds: string[]): Promise<void> => {
-        await apiClient.put(`${BASE_PATH}/${categoryId}/services`, { serviceIds });
+    assignService: async (categoryId: string, serviceId: string): Promise<void> => {
+        await apiClient.post(`${BASE_PATH}/${categoryId}/services/${serviceId}`);
+    },
+
+    unassignService: async (categoryId: string, serviceId: string): Promise<void> => {
+        await apiClient.delete(`${BASE_PATH}/${categoryId}/services/${serviceId}`);
     },
 };
