@@ -1,7 +1,7 @@
 // src/modules/statistics/hooks/useCategories.ts
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { categoriesApi } from '../api/categoriesApi';
-import type { CreateCategoryRequest, UpdateCategoryRequest } from '../types';
+import type { CategoryDetail, CreateCategoryRequest, UpdateCategoryRequest } from '../types';
 
 export const CATEGORIES_KEY = 'statistics-categories';
 
@@ -66,6 +66,23 @@ export const useDeleteCategory = () => {
             queryClient.invalidateQueries({ queryKey: [CATEGORIES_KEY] });
         },
     });
+};
+
+export const useCategoriesDetails = (categoryIds: string[]) => {
+    const results = useQueries({
+        queries: categoryIds.map(categoryId => ({
+            queryKey: [CATEGORIES_KEY, 'detail', categoryId],
+            queryFn: () => categoriesApi.get(categoryId),
+            enabled: categoryIds.length > 0,
+        })),
+    });
+
+    const isLoading = results.some(r => r.isLoading);
+    const categoriesDetails = results
+        .map(r => r.data)
+        .filter((d): d is CategoryDetail => !!d);
+
+    return { categoriesDetails, isLoading };
 };
 
 export const useAssignServices = () => {

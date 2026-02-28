@@ -1021,6 +1021,10 @@ export interface TranslationKeys {
         };
         breakdown: {
             categoriesTitle: string;
+            servicesTitle: string;
+            unassignedTitle: string;
+            viewCategories: string;
+            viewServices: string;
             name: string;
             bar: string;
             orders: string;
@@ -1028,6 +1032,7 @@ export interface TranslationKeys {
             share: string;
             total: string;
             empty: string;
+            unassignedEmpty: string;
         };
         presets: {
             last7days: string;

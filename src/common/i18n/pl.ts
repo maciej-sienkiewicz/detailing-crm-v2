@@ -1006,6 +1006,10 @@ export const pl: TranslationKeys = {
         },
         breakdown: {
             categoriesTitle: 'Wg kategorii',
+            servicesTitle: 'Wg usług',
+            unassignedTitle: 'Nieprzypisane usługi',
+            viewCategories: 'Kategorie',
+            viewServices: 'Usługi',
             name: 'Nazwa',
             bar: '',
             orders: 'Zlecenia',
@@ -1013,6 +1017,7 @@ export const pl: TranslationKeys = {
             share: 'Udział',
             total: 'Razem',
             empty: 'Brak danych dla wybranego okresu',
+            unassignedEmpty: 'Brak danych dla nieprzypisanych usług',
         },
         presets: {
             last7days: '7 dni',

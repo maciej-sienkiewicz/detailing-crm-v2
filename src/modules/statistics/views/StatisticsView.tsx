@@ -1,5 +1,5 @@
 // src/modules/statistics/views/StatisticsView.tsx
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import styled from 'styled-components';
 import { t } from '@/common/i18n';
 import { Toggle } from '@/common/components/Toggle';
@@ -10,8 +10,8 @@ import { StatsChart } from '../components/StatsChart';
 import { BreakdownTable } from '../components/BreakdownTable';
 import { CategoryCard } from '../components/CategoryCard';
 import { CategoryFormModal } from '../components/CategoryFormModal';
-import { useCategories, useDeleteCategory } from '../hooks/useCategories';
-import { useOverviewStats, useCategoriesBreakdown } from '../hooks/useStats';
+import { useCategories, useCategoriesDetails, useDeleteCategory } from '../hooks/useCategories';
+import { useOverviewStats, useCategoriesBreakdown, useServicesBreakdown, useUnassignedServices } from '../hooks/useStats';
 import type { Category, Granularity } from '../types';
 
 const ViewContainer = styled.main`
@@ -51,12 +51,6 @@ const PageTitle = styled.h1`
     font-size: ${props => props.theme.fontSizes.xxl};
     font-weight: 700;
     color: ${props => props.theme.colors.text};
-`;
-
-const PageSubtitle = styled.p`
-    margin: ${props => props.theme.spacing.xs} 0 0;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
 `;
 
 const Section = styled.section`
@@ -156,16 +150,51 @@ const RetryButton = styled.button`
     cursor: pointer;
 `;
 
-const WarningBanner = styled.div`
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
-    background: ${props => props.theme.colors.warningLight};
-    border: 1px solid ${props => props.theme.colors.warning};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.text};
+const BreakdownHeader = styled.div`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
+    gap: ${props => props.theme.spacing.md};
+`;
+
+const SegmentedControl = styled.div`
+    display: flex;
+    background: ${props => props.theme.colors.surfaceAlt};
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.md};
+    padding: 3px;
+    gap: 2px;
+`;
+
+const SegmentBtn = styled.button<{ $active: boolean }>`
+    padding: 5px ${props => props.theme.spacing.md};
+    border-radius: 6px;
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all ${props => props.theme.transitions.fast};
+    background: ${props => props.$active ? props.theme.colors.surface : 'transparent'};
+    color: ${props => props.$active ? props.theme.colors.text : props.theme.colors.textMuted};
+    box-shadow: ${props => props.$active ? props.theme.shadows.sm : 'none'};
+
+    &:hover {
+        color: ${props => props.theme.colors.text};
+    }
+`;
+
+const UnassignedSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${props => props.theme.spacing.md};
+    padding-top: ${props => props.theme.spacing.lg};
+    border-top: 1px solid ${props => props.theme.colors.border};
+`;
+
+const UnassignedLabel = styled.p`
+    margin: 0;
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: 600;
+    color: ${props => props.theme.colors.warning};
 `;
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -182,18 +211,62 @@ export const StatisticsView = () => {
     const [showInactive, setShowInactive] = useState(false);
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | undefined>();
+    const [breakdownMode, setBreakdownMode] = useState<'categories' | 'services'>('categories');
 
     const { stats, isLoading: statsLoading, isError: statsError, refetch: statsRefetch } = useOverviewStats(granularity, startDate, endDate);
     const { categories, isLoading: catLoading, isError: catError, refetch: catRefetch } = useCategories(showInactive);
     const deleteMutation = useDeleteCategory();
 
     const activeCategoryIds = categories.filter(c => c.isActive).map(c => c.id);
+
+    // Category-level breakdown (existing)
     const { categoriesStats, isLoading: catBreakdownLoading } = useCategoriesBreakdown(
         activeCategoryIds,
         granularity,
         startDate,
         endDate
     );
+
+    // Fetch details of all active categories to get their service lists
+    const { categoriesDetails, isLoading: catDetailsLoading } = useCategoriesDetails(activeCategoryIds);
+
+    // Collect all service IDs from all active categories
+    const allServiceIds = useMemo(
+        () => categoriesDetails.flatMap(cd => cd.services.map(s => s.serviceId)),
+        [categoriesDetails]
+    );
+
+    // Build serviceId → category color lookup
+    const serviceCategoryColor = useMemo(() => {
+        const map = new Map<string, string>();
+        categoriesDetails.forEach(cd => {
+            const cat = categories.find(c => c.id === cd.id);
+            if (cat?.color) {
+                cd.services.forEach(s => map.set(s.serviceId, cat.color!));
+            }
+        });
+        return map;
+    }, [categoriesDetails, categories]);
+
+    // Service-level breakdown across all categories
+    const { servicesStats, isLoading: servicesLoading } = useServicesBreakdown(
+        allServiceIds,
+        granularity,
+        startDate,
+        endDate
+    );
+
+    // Unassigned services
+    const { services: unassignedList } = useUnassignedServices();
+    const unassignedIds = useMemo(() => unassignedList.map(s => s.serviceId), [unassignedList]);
+    const { servicesStats: unassignedStats, isLoading: unassignedLoading } = useServicesBreakdown(
+        unassignedIds,
+        granularity,
+        startDate,
+        endDate
+    );
+
+    const hasBreakdownData = categoriesStats.length > 0 || catBreakdownLoading || servicesStats.length > 0 || servicesLoading;
 
     const handleEditCategory = (category: Category) => {
         setEditingCategory(category);
@@ -242,35 +315,80 @@ export const StatisticsView = () => {
 
                 {stats && (
                     <>
-                        {stats.unassignedServiceCount > 0 && (
-                            <WarningBanner>
-                                ⚠️ {t.statistics.overview.unassignedWarning.replace(
-                                    '{count}',
-                                    String(stats.unassignedServiceCount)
-                                )}
-                            </WarningBanner>
-                        )}
                         <StatsTotalsBar totals={stats.totals} />
                         <StatsChart data={stats.data} />
                     </>
                 )}
 
-                {(categoriesStats.length > 0 || catBreakdownLoading) && (
+                {hasBreakdownData && (
                     <>
-                        <BreakdownTable
-                            rows={categoriesStats.map(cs => {
-                                const cat = categories.find(c => c.id === cs.categoryId);
-                                return {
-                                    id: cs.categoryId,
-                                    name: cs.categoryName,
-                                    orderCount: cs.totals.orderCount,
-                                    totalRevenueGross: cs.totals.totalRevenueGross,
-                                    color: cat?.color ?? undefined,
-                                };
-                            })}
-                            isLoading={catBreakdownLoading}
-                            showColorDot
-                        />
+                        <BreakdownHeader>
+                            <SegmentedControl>
+                                <SegmentBtn
+                                    $active={breakdownMode === 'categories'}
+                                    onClick={() => setBreakdownMode('categories')}
+                                >
+                                    {t.statistics.breakdown.viewCategories}
+                                </SegmentBtn>
+                                <SegmentBtn
+                                    $active={breakdownMode === 'services'}
+                                    onClick={() => setBreakdownMode('services')}
+                                >
+                                    {t.statistics.breakdown.viewServices}
+                                </SegmentBtn>
+                            </SegmentedControl>
+                        </BreakdownHeader>
+
+                        {breakdownMode === 'categories' && (
+                            <BreakdownTable
+                                rows={categoriesStats.map(cs => {
+                                    const cat = categories.find(c => c.id === cs.categoryId);
+                                    return {
+                                        id: cs.categoryId,
+                                        name: cs.categoryName,
+                                        orderCount: cs.totals.orderCount,
+                                        totalRevenueGross: cs.totals.totalRevenueGross,
+                                        color: cat?.color ?? undefined,
+                                    };
+                                })}
+                                isLoading={catBreakdownLoading}
+                                showColorDot
+                            />
+                        )}
+
+                        {breakdownMode === 'services' && (
+                            <BreakdownTable
+                                rows={servicesStats.map(s => ({
+                                    id: s.serviceId,
+                                    name: s.serviceName,
+                                    orderCount: s.totals.orderCount,
+                                    totalRevenueGross: s.totals.totalRevenueGross,
+                                    isActive: s.isActive,
+                                    color: serviceCategoryColor.get(s.serviceId),
+                                }))}
+                                isLoading={servicesLoading || catDetailsLoading}
+                                showColorDot
+                            />
+                        )}
+
+                        {unassignedIds.length > 0 && (
+                            <UnassignedSection>
+                                <UnassignedLabel>
+                                    ⚠ {t.statistics.breakdown.unassignedTitle} ({unassignedIds.length})
+                                </UnassignedLabel>
+                                <BreakdownTable
+                                    rows={unassignedStats.map(s => ({
+                                        id: s.serviceId,
+                                        name: s.serviceName,
+                                        orderCount: s.totals.orderCount,
+                                        totalRevenueGross: s.totals.totalRevenueGross,
+                                        isActive: s.isActive,
+                                    }))}
+                                    isLoading={unassignedLoading}
+                                    emptyText={t.statistics.breakdown.unassignedEmpty}
+                                />
+                            </UnassignedSection>
+                        )}
                     </>
                 )}
             </Section>
