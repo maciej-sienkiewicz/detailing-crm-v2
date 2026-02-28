@@ -11,11 +11,13 @@ export interface BreakdownRow {
     color?: string;
 }
 
-const Wrapper = styled.div`
+const Wrapper = styled.div<{ $isDropTarget?: boolean }>`
     background: ${props => props.theme.colors.surface};
-    border: 1px solid ${props => props.theme.colors.border};
+    border: 1px solid ${props =>
+        props.$isDropTarget ? 'var(--brand-primary, #3B82F6)' : props.theme.colors.border};
     border-radius: ${props => props.theme.radii.lg};
     overflow: hidden;
+    transition: border-color 200ms ease;
 `;
 
 const Table = styled.table`
@@ -39,11 +41,36 @@ const Th = styled.th<{ $align?: 'left' | 'right' }>`
     white-space: nowrap;
 `;
 
-const Tr = styled.tr`
-    transition: background ${props => props.theme.transitions.fast};
+const Tr = styled.tr<{
+    $clickable?: boolean;
+    $selected?: boolean;
+    $dimmed?: boolean;
+    $isDragOver?: boolean;
+    $isDraggable?: boolean;
+}>`
+    transition: background ${props => props.theme.transitions.fast},
+        opacity ${props => props.theme.transitions.fast};
+    cursor: ${props => {
+        if (props.$isDraggable) return 'grab';
+        if (props.$clickable) return 'pointer';
+        return 'default';
+    }};
+    opacity: ${props => (props.$dimmed ? 0.3 : 1)};
+    box-shadow: ${props =>
+        props.$selected ? 'inset 3px 0 0 var(--brand-primary, #3B82F6)' : 'none'};
+    background: ${props => {
+        if (props.$isDragOver) return 'rgba(59, 130, 246, 0.08)';
+        if (props.$selected) return 'rgba(59, 130, 246, 0.05)';
+        return 'transparent';
+    }};
 
     &:hover {
-        background: ${props => props.theme.colors.surfaceHover};
+        background: ${props =>
+            props.$dimmed
+                ? 'transparent'
+                : props.$isDragOver || props.$selected
+                ? 'rgba(59, 130, 246, 0.08)'
+                : props.theme.colors.surfaceHover};
     }
 
     &:not(:last-child) td {
@@ -71,6 +98,15 @@ const NameCell = styled.div`
     display: flex;
     align-items: center;
     gap: ${props => props.theme.spacing.sm};
+`;
+
+const DragHandle = styled.span`
+    color: ${props => props.theme.colors.textMuted};
+    font-size: 14px;
+    cursor: grab;
+    flex-shrink: 0;
+    user-select: none;
+    line-height: 1;
 `;
 
 const ColorDot = styled.span<{ $color: string }>`
@@ -153,6 +189,20 @@ interface BreakdownTableProps {
     isLoading: boolean;
     showColorDot?: boolean;
     emptyText?: string;
+    // Row selection
+    selectedId?: string | null;
+    onRowClick?: (id: string) => void;
+    // Drag source (rows can be dragged out)
+    draggableRows?: boolean;
+    onRowDragStart?: (id: string) => void;
+    onDragEnd?: () => void;
+    // Drop target (rows accept drops)
+    dropTargetRows?: boolean;
+    isDragInProgress?: boolean;
+    dragOverRowId?: string | null;
+    onRowDragOver?: (id: string) => void;
+    onTableDragLeave?: () => void;
+    onRowDrop?: (id: string) => void;
 }
 
 export const BreakdownTable = ({
@@ -160,16 +210,38 @@ export const BreakdownTable = ({
     isLoading,
     showColorDot = false,
     emptyText,
+    selectedId,
+    onRowClick,
+    draggableRows,
+    onRowDragStart,
+    onDragEnd,
+    dropTargetRows,
+    isDragInProgress,
+    dragOverRowId,
+    onRowDragOver,
+    onTableDragLeave,
+    onRowDrop,
 }: BreakdownTableProps) => {
     const sorted = [...rows].sort((a, b) => b.totalRevenueGross - a.totalRevenueGross);
     const totalRevenue = rows.reduce((sum, r) => sum + r.totalRevenueGross, 0);
     const totalOrders = rows.reduce((sum, r) => sum + r.orderCount, 0);
     const maxRevenue = Math.max(...rows.map(r => r.totalRevenueGross), 1);
 
-    const colSpan = showColorDot ? 5 : 5;
-
     return (
-        <Wrapper>
+        <Wrapper
+            $isDropTarget={dropTargetRows && isDragInProgress}
+            onDragLeave={dropTargetRows ? (e: React.DragEvent<HTMLDivElement>) => {
+                if (onTableDragLeave && !e.currentTarget.contains(e.relatedTarget as Node)) {
+                    onTableDragLeave();
+                }
+            } : undefined}
+            onDragOver={dropTargetRows ? (e: React.DragEvent<HTMLDivElement>) => {
+                e.preventDefault();
+            } : undefined}
+            onDrop={dropTargetRows ? (e: React.DragEvent<HTMLDivElement>) => {
+                e.preventDefault();
+            } : undefined}
+        >
             <Table>
                 <Thead>
                     <tr>
@@ -183,7 +255,7 @@ export const BreakdownTable = ({
                 <tbody>
                     {isLoading && (
                         <EmptyRow>
-                            <LoadingCell colSpan={colSpan}>
+                            <LoadingCell colSpan={5}>
                                 <Spinner />
                             </LoadingCell>
                         </EmptyRow>
@@ -191,7 +263,7 @@ export const BreakdownTable = ({
 
                     {!isLoading && sorted.length === 0 && (
                         <EmptyRow>
-                            <EmptyCell colSpan={colSpan}>
+                            <EmptyCell colSpan={5}>
                                 {emptyText || t.statistics.breakdown.empty}
                             </EmptyCell>
                         </EmptyRow>
@@ -203,14 +275,40 @@ export const BreakdownTable = ({
                             ? ((row.totalRevenueGross / totalRevenue) * 100).toFixed(1)
                             : '0.0';
                         const barColor = row.color || DEFAULT_BAR_COLOR;
+                        const isSelected = selectedId != null && selectedId === row.id;
+                        const isDimmed = selectedId != null && selectedId !== row.id;
+                        const isDragOver = dragOverRowId === row.id;
 
                         return (
-                            <Tr key={row.id}>
+                            <Tr
+                                key={row.id}
+                                $clickable={!!onRowClick}
+                                $selected={isSelected}
+                                $dimmed={isDimmed}
+                                $isDragOver={isDragOver}
+                                $isDraggable={draggableRows}
+                                onClick={onRowClick ? () => onRowClick(row.id) : undefined}
+                                draggable={draggableRows || undefined}
+                                onDragStart={draggableRows ? (e: React.DragEvent) => {
+                                    e.dataTransfer.effectAllowed = 'move';
+                                    e.dataTransfer.setData('text/plain', row.id);
+                                    onRowDragStart?.(row.id);
+                                } : undefined}
+                                onDragEnd={draggableRows ? onDragEnd : undefined}
+                                onDragOver={dropTargetRows ? (e: React.DragEvent) => {
+                                    e.preventDefault();
+                                    e.dataTransfer.dropEffect = 'move';
+                                    onRowDragOver?.(row.id);
+                                } : undefined}
+                                onDrop={dropTargetRows ? (e: React.DragEvent) => {
+                                    e.preventDefault();
+                                    onRowDrop?.(row.id);
+                                } : undefined}
+                            >
                                 <Td>
                                     <NameCell>
-                                        {showColorDot && (
-                                            <ColorDot $color={barColor} />
-                                        )}
+                                        {draggableRows && <DragHandle>⠿</DragHandle>}
+                                        {showColorDot && <ColorDot $color={barColor} />}
                                         <NameText>{row.name}</NameText>
                                         {row.isActive === false && (
                                             <InactiveBadge>({t.statistics.categories.statusInactive})</InactiveBadge>
