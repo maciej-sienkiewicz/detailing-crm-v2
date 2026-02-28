@@ -94,6 +94,7 @@ export const useAssignServices = () => {
         onSuccess: (_data, { categoryId }: { categoryId: string; serviceIds: string[] }) => {
             queryClient.invalidateQueries({ queryKey: [CATEGORIES_KEY, 'detail', categoryId] });
             queryClient.invalidateQueries({ queryKey: [CATEGORIES_KEY] });
+            queryClient.invalidateQueries({ queryKey: ['statistics', 'unassigned-services'] });
         },
     });
 };

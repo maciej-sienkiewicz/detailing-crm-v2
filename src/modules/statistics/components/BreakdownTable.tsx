@@ -1,5 +1,6 @@
 // src/modules/statistics/components/BreakdownTable.tsx
-import styled from 'styled-components';
+import { useState } from 'react';
+import styled, { css } from 'styled-components';
 import { t } from '@/common/i18n';
 
 export interface BreakdownRow {
@@ -39,8 +40,28 @@ const Th = styled.th<{ $align?: 'left' | 'right' }>`
     white-space: nowrap;
 `;
 
-const Tr = styled.tr`
-    transition: background ${props => props.theme.transitions.fast};
+const Tr = styled.tr<{
+    $selected?: boolean;
+    $dimmed?: boolean;
+    $clickable?: boolean;
+    $dragOver?: boolean;
+    $draggable?: boolean;
+}>`
+    transition: background ${props => props.theme.transitions.fast}, opacity 0.2s ease;
+    cursor: ${props => props.$clickable || props.$draggable ? 'pointer' : 'default'};
+    opacity: ${props => props.$dimmed ? 0.35 : 1};
+    position: relative;
+
+    ${props => props.$selected && css`
+        background: ${props.theme.colors.surfaceHover} !important;
+        box-shadow: inset 3px 0 0 var(--brand-primary, #3B82F6);
+    `}
+
+    ${props => props.$dragOver && css`
+        background: rgba(59, 130, 246, 0.08) !important;
+        outline: 2px dashed var(--brand-primary, #3B82F6);
+        outline-offset: -2px;
+    `}
 
     &:hover {
         background: ${props => props.theme.colors.surfaceHover};
@@ -118,6 +139,12 @@ const ShareText = styled.span`
     color: ${props => props.theme.colors.textMuted};
 `;
 
+const ActionsCell = styled.td`
+    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.md};
+    white-space: nowrap;
+    text-align: right;
+`;
+
 const EmptyRow = styled.tr``;
 
 const EmptyCell = styled.td`
@@ -143,6 +170,16 @@ const Spinner = styled.div`
     }
 `;
 
+const DragHandle = styled.span`
+    display: inline-block;
+    margin-right: 6px;
+    color: ${props => props.theme.colors.textMuted};
+    font-size: 14px;
+    cursor: grab;
+    user-select: none;
+    flex-shrink: 0;
+`;
+
 const formatRevenue = (grosz: number) =>
     (grosz / 100).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 });
 
@@ -153,6 +190,18 @@ interface BreakdownTableProps {
     isLoading: boolean;
     showColorDot?: boolean;
     emptyText?: string;
+    /** ID of the currently selected row (highlights it, dims others) */
+    selectedId?: string | null;
+    /** Called when a row is clicked */
+    onRowClick?: (id: string) => void;
+    /** Makes rows draggable (for unassigned services) */
+    draggableRows?: boolean;
+    /** Makes rows accept drops (for category rows) */
+    droppable?: boolean;
+    /** Called when a draggable row is dropped onto this table's row */
+    onDrop?: (draggedId: string, targetId: string) => void;
+    /** Optional render function for action buttons in each row */
+    rowActions?: (row: BreakdownRow) => React.ReactNode;
 }
 
 export const BreakdownTable = ({
@@ -160,16 +209,32 @@ export const BreakdownTable = ({
     isLoading,
     showColorDot = false,
     emptyText,
+    selectedId,
+    onRowClick,
+    draggableRows = false,
+    droppable = false,
+    onDrop,
+    rowActions,
 }: BreakdownTableProps) => {
+    const [dragOverRowId, setDragOverRowId] = useState<string | null>(null);
+
     const sorted = [...rows].sort((a, b) => b.totalRevenueGross - a.totalRevenueGross);
     const totalRevenue = rows.reduce((sum, r) => sum + r.totalRevenueGross, 0);
     const totalOrders = rows.reduce((sum, r) => sum + r.orderCount, 0);
     const maxRevenue = Math.max(...rows.map(r => r.totalRevenueGross), 1);
 
-    const colSpan = showColorDot ? 5 : 5;
+    const hasSelection = selectedId != null;
+    const hasActions = !!rowActions;
+    const colSpan = 5 + (hasActions ? 1 : 0);
 
     return (
-        <Wrapper>
+        <Wrapper
+            onDragLeave={(e) => {
+                if (droppable && !e.currentTarget.contains(e.relatedTarget as Node)) {
+                    setDragOverRowId(null);
+                }
+            }}
+        >
             <Table>
                 <Thead>
                     <tr>
@@ -178,6 +243,7 @@ export const BreakdownTable = ({
                         <Th $align="right">{t.statistics.breakdown.orders}</Th>
                         <Th $align="right">{t.statistics.breakdown.revenue}</Th>
                         <Th $align="right">{t.statistics.breakdown.share}</Th>
+                        {hasActions && <Th $align="right" />}
                     </tr>
                 </Thead>
                 <tbody>
@@ -203,11 +269,40 @@ export const BreakdownTable = ({
                             ? ((row.totalRevenueGross / totalRevenue) * 100).toFixed(1)
                             : '0.0';
                         const barColor = row.color || DEFAULT_BAR_COLOR;
+                        const isSelected = selectedId === row.id;
+                        const isDimmed = hasSelection && !isSelected;
 
                         return (
-                            <Tr key={row.id}>
+                            <Tr
+                                key={row.id}
+                                $selected={isSelected}
+                                $dimmed={isDimmed}
+                                $clickable={!!onRowClick}
+                                $draggable={draggableRows}
+                                $dragOver={dragOverRowId === row.id}
+                                draggable={draggableRows}
+                                onClick={() => onRowClick?.(row.id)}
+                                onDragStart={draggableRows ? (e) => {
+                                    e.dataTransfer.setData('text/plain', row.id);
+                                    e.dataTransfer.effectAllowed = 'move';
+                                } : undefined}
+                                onDragOver={droppable ? (e) => {
+                                    e.preventDefault();
+                                    e.dataTransfer.dropEffect = 'move';
+                                    setDragOverRowId(row.id);
+                                } : undefined}
+                                onDrop={droppable ? (e) => {
+                                    e.preventDefault();
+                                    setDragOverRowId(null);
+                                    const draggedId = e.dataTransfer.getData('text/plain');
+                                    if (draggedId && draggedId !== row.id) {
+                                        onDrop?.(draggedId, row.id);
+                                    }
+                                } : undefined}
+                            >
                                 <Td>
                                     <NameCell>
+                                        {draggableRows && <DragHandle>⠿</DragHandle>}
                                         {showColorDot && (
                                             <ColorDot $color={barColor} />
                                         )}
@@ -227,6 +322,11 @@ export const BreakdownTable = ({
                                 <Td $align="right">
                                     <ShareText>{share}%</ShareText>
                                 </Td>
+                                {hasActions && (
+                                    <ActionsCell onClick={(e) => e.stopPropagation()}>
+                                        {rowActions(row)}
+                                    </ActionsCell>
+                                )}
                             </Tr>
                         );
                     })}
@@ -241,6 +341,7 @@ export const BreakdownTable = ({
                             <Td $align="right">
                                 <ShareText>100%</ShareText>
                             </Td>
+                            {hasActions && <Td />}
                         </TotalsRow>
                     </tfoot>
                 )}
