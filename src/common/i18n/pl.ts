@@ -936,12 +936,12 @@ export const pl: TranslationKeys = {
         },
     },
     statistics: {
-        title: 'Analityka Biznesowa',
-        subtitle: 'Wymiary analityczne – rentowność działów i trendy sezonowe',
+        title: 'Statystyki',
+        subtitle: 'Przychody i zlecenia w czasie',
         filters: {
-            startDate: 'Data od',
-            endDate: 'Data do',
-            granularity: 'Granularność',
+            startDate: 'Od',
+            endDate: 'Do',
+            granularity: 'Grupowanie',
         },
         granularity: {
             daily: 'Dziennie',
@@ -951,22 +951,22 @@ export const pl: TranslationKeys = {
             yearly: 'Rocznie',
         },
         totals: {
-            orderCount: 'Liczba zleceń',
+            orderCount: 'Zlecenia',
             revenueGross: 'Przychód brutto',
         },
         chart: {
             noData: 'Brak danych dla wybranego okresu',
             ordersLabel: 'Zlecenia',
-            revenueLabel: 'Przychód (PLN)',
+            revenueLabel: 'Przychód',
         },
         overview: {
-            title: 'Przegląd studia',
+            title: 'Przegląd',
             error: 'Nie udało się załadować statystyk. Spróbuj ponownie.',
-            unassignedWarning: '{count} aktywnych usług nie jest przypisanych do żadnej kategorii – raporty działów mogą być niekompletne.',
+            unassignedWarning: '{count} usług nie jest przypisanych do żadnej kategorii – zestawienie może być niekompletne.',
         },
         categories: {
-            title: 'Kategorie (wymiary analityczne)',
-            add: 'Dodaj kategorię',
+            title: 'Kategorie',
+            add: 'Nowa kategoria',
             showInactive: 'Pokaż nieaktywne',
             services: 'usług',
             statusActive: 'Aktywna',
@@ -975,7 +975,7 @@ export const pl: TranslationKeys = {
             deleteConfirm: 'Czy na pewno chcesz dezaktywować kategorię „{name}"? Istniejące statystyki i przypisania zostaną zachowane.',
             empty: {
                 title: 'Brak kategorii',
-                description: 'Utwórz pierwszą kategorię, aby grupować usługi według działów i analizować rentowność.',
+                description: 'Utwórz pierwszą kategorię, aby grupować usługi i analizować przychody wg działów.',
             },
         },
         categoryForm: {
@@ -993,7 +993,7 @@ export const pl: TranslationKeys = {
         categoryDetail: {
             error: 'Nie udało się załadować szczegółów kategorii.',
             assignServices: 'Zarządzaj usługami',
-            servicesTitle: 'Przypisane usługi',
+            servicesTitle: 'Usługi',
             noServices: 'Brak przypisanych usług. Kliknij „Zarządzaj usługami" aby przypisać usługi do tej kategorii.',
             serviceNameCol: 'Nazwa usługi',
             serviceStatusCol: 'Status',
@@ -1005,7 +1005,7 @@ export const pl: TranslationKeys = {
             saving: 'Zapisywanie...',
         },
         breakdown: {
-            categoriesTitle: 'Zestawienie per kategoria',
+            categoriesTitle: 'Wg kategorii',
             name: 'Nazwa',
             bar: '',
             orders: 'Zlecenia',
@@ -1013,6 +1013,12 @@ export const pl: TranslationKeys = {
             share: 'Udział',
             total: 'Razem',
             empty: 'Brak danych dla wybranego okresu',
+        },
+        presets: {
+            last7days: '7 dni',
+            last30days: '30 dni',
+            last3months: '3 miesiące',
+            last12months: '12 miesięcy',
         },
     },
 }

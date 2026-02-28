@@ -161,11 +161,11 @@ export const CategoryCard = ({ category, onEdit, onDelete }: CategoryCardProps) 
                     {category.serviceCount} {t.statistics.categories.services}
                 </ServiceCount>
                 <Actions>
-                    <StatusBadge $active={category.isActive}>
-                        {category.isActive
-                            ? t.statistics.categories.statusActive
-                            : t.statistics.categories.statusInactive}
-                    </StatusBadge>
+                    {!category.isActive && (
+                        <StatusBadge $active={false}>
+                            {t.statistics.categories.statusInactive}
+                        </StatusBadge>
+                    )}
                     <ActionButton onClick={handleEdit}>{t.common.edit}</ActionButton>
                     <DeleteButton onClick={handleDelete}>{t.common.delete}</DeleteButton>
                 </Actions>

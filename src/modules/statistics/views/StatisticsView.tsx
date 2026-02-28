@@ -216,13 +216,10 @@ export const StatisticsView = () => {
             <PageHeader>
                 <TitleSection>
                     <PageTitle>{t.statistics.title}</PageTitle>
-                    <PageSubtitle>{t.statistics.subtitle}</PageSubtitle>
                 </TitleSection>
             </PageHeader>
 
             <Section>
-                <SectionTitle>{t.statistics.overview.title}</SectionTitle>
-
                 <StatsFilters
                     granularity={granularity}
                     startDate={startDate}
@@ -260,9 +257,6 @@ export const StatisticsView = () => {
 
                 {(categoriesStats.length > 0 || catBreakdownLoading) && (
                     <>
-                        <SectionTitle style={{ marginTop: 0 }}>
-                            {t.statistics.breakdown.categoriesTitle}
-                        </SectionTitle>
                         <BreakdownTable
                             rows={categoriesStats.map(cs => {
                                 const cat = categories.find(c => c.id === cs.categoryId);

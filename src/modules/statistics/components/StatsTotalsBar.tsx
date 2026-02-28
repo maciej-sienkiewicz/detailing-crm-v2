@@ -18,19 +18,18 @@ const TotalCard = styled.div`
 
 const TotalLabel = styled.p`
     margin: 0 0 ${props => props.theme.spacing.xs};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 600;
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: 400;
     color: ${props => props.theme.colors.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
 `;
 
 const TotalValue = styled.p`
     margin: 0;
-    font-size: ${props => props.theme.fontSizes.xxl};
+    font-size: ${props => props.theme.fontSizes.xxxl};
     font-weight: 700;
     color: ${props => props.theme.colors.text};
     font-variant-numeric: tabular-nums;
+    line-height: 1.1;
 `;
 
 interface StatsTotalsBarProps {

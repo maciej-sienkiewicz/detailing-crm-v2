@@ -35,6 +35,8 @@ const formatRevenue = (grosz: number) =>
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
+    const orders = payload.find((e: any) => e.dataKey === 'orderCount');
+    const revenue = payload.find((e: any) => e.dataKey === 'totalRevenueGross');
     return (
         <div
             style={{
@@ -43,16 +45,20 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                 borderRadius: 8,
                 padding: '10px 14px',
                 fontSize: 13,
+                minWidth: 160,
             }}
         >
-            <p style={{ margin: '0 0 6px', fontWeight: 600 }}>{label}</p>
-            {payload.map((entry: any) => (
-                <p key={entry.dataKey} style={{ margin: '2px 0', color: entry.color }}>
-                    {entry.name}: {entry.dataKey === 'totalRevenueGross'
-                        ? formatRevenue(entry.value)
-                        : entry.value}
+            <p style={{ margin: '0 0 8px', fontWeight: 600, color: '#0f172a' }}>{label}</p>
+            {revenue && (
+                <p style={{ margin: '0 0 4px', color: '#10B981', fontWeight: 600 }}>
+                    {formatRevenue(revenue.value)}
                 </p>
-            ))}
+            )}
+            {orders && (
+                <p style={{ margin: 0, color: '#94a3b8', fontSize: 12 }}>
+                    {orders.value} {orders.value === 1 ? 'zlecenie' : orders.value < 5 ? 'zlecenia' : 'zleceń'}
+                </p>
+            )}
         </div>
     );
 };
@@ -87,7 +93,7 @@ export const StatsChart = ({ data }: StatsChartProps) => {
                         axisLine={false}
                         tick={{ fontSize: 12 }}
                         allowDecimals={false}
-                        label={{ value: t.statistics.chart.ordersLabel, angle: -90, position: 'insideLeft', offset: 10, style: { fontSize: 11 } }}
+                        width={32}
                     />
                     <YAxis
                         yAxisId="revenue"
@@ -95,7 +101,11 @@ export const StatsChart = ({ data }: StatsChartProps) => {
                         tickLine={false}
                         axisLine={false}
                         tick={{ fontSize: 12 }}
-                        tickFormatter={v => `${(v / 100).toFixed(0)} PLN`}
+                        tickFormatter={v => {
+                            const pln = v / 100;
+                            return pln >= 1000 ? `${(pln / 1000).toFixed(0)}k` : `${pln.toFixed(0)}`;
+                        }}
+                        width={42}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend

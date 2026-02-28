@@ -1029,6 +1029,12 @@ export interface TranslationKeys {
             total: string;
             empty: string;
         };
+        presets: {
+            last7days: string;
+            last30days: string;
+            last3months: string;
+            last12months: string;
+        };
     };
 }
 
