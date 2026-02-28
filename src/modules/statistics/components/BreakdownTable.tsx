@@ -1,5 +1,5 @@
 // src/modules/statistics/components/BreakdownTable.tsx
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import styled, { css } from 'styled-components';
 import { t } from '@/common/i18n';
 
@@ -10,6 +10,10 @@ export interface BreakdownRow {
     totalRevenueGross: number;
     isActive?: boolean;
     color?: string;
+    /** When true – shows ⚠ icon next to name */
+    isUnassigned?: boolean;
+    /** When true – makes this specific row draggable via HTML5 DnD */
+    isDraggable?: boolean;
 }
 
 const Wrapper = styled.div`
@@ -29,7 +33,7 @@ const Thead = styled.thead`
 `;
 
 const Th = styled.th<{ $align?: 'left' | 'right' }>`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.lg};
+    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
     text-align: ${props => props.$align || 'left'};
     font-size: ${props => props.theme.fontSizes.xs};
     font-weight: 600;
@@ -44,11 +48,11 @@ const Tr = styled.tr<{
     $selected?: boolean;
     $dimmed?: boolean;
     $clickable?: boolean;
-    $dragOver?: boolean;
     $draggable?: boolean;
+    $dragOver?: boolean;
 }>`
     transition: background ${props => props.theme.transitions.fast}, opacity 0.2s ease;
-    cursor: ${props => props.$clickable || props.$draggable ? 'pointer' : 'default'};
+    cursor: ${props => (props.$clickable || props.$draggable) ? 'pointer' : 'default'};
     opacity: ${props => props.$dimmed ? 0.35 : 1};
     position: relative;
 
@@ -61,6 +65,11 @@ const Tr = styled.tr<{
         background: rgba(59, 130, 246, 0.08) !important;
         outline: 2px dashed var(--brand-primary, #3B82F6);
         outline-offset: -2px;
+    `}
+
+    ${props => props.$draggable && css`
+        cursor: grab;
+        &:active { cursor: grabbing; }
     `}
 
     &:hover {
@@ -81,7 +90,7 @@ const TotalsRow = styled.tr`
 `;
 
 const Td = styled.td<{ $align?: 'left' | 'right' }>`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.lg};
+    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
     font-size: ${props => props.theme.fontSizes.sm};
     color: ${props => props.theme.colors.text};
     text-align: ${props => props.$align || 'left'};
@@ -91,14 +100,14 @@ const Td = styled.td<{ $align?: 'left' | 'right' }>`
 const NameCell = styled.div`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
+    gap: ${props => props.theme.spacing.xs};
 `;
 
 const ColorDot = styled.span<{ $color: string }>`
     flex-shrink: 0;
     display: inline-block;
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background-color: ${props => props.$color};
 `;
@@ -113,14 +122,30 @@ const InactiveBadge = styled.span`
     font-weight: 400;
 `;
 
+const UnassignedIcon = styled.span`
+    font-size: 12px;
+    flex-shrink: 0;
+    opacity: 0.7;
+    title: 'Nieprzypisana do kategorii';
+`;
+
+const DragHandle = styled.span`
+    flex-shrink: 0;
+    color: ${props => props.theme.colors.textMuted};
+    font-size: 14px;
+    line-height: 1;
+    user-select: none;
+    margin-right: 2px;
+`;
+
 const BarCell = styled.td`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.lg};
-    width: 120px;
+    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+    width: 80px;
 `;
 
 const BarTrack = styled.div`
     width: 100%;
-    height: 6px;
+    height: 5px;
     background: ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.full};
     overflow: hidden;
@@ -140,7 +165,7 @@ const ShareText = styled.span`
 `;
 
 const ActionsCell = styled.td`
-    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.md};
+    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
     white-space: nowrap;
     text-align: right;
 `;
@@ -170,16 +195,6 @@ const Spinner = styled.div`
     }
 `;
 
-const DragHandle = styled.span`
-    display: inline-block;
-    margin-right: 6px;
-    color: ${props => props.theme.colors.textMuted};
-    font-size: 14px;
-    cursor: grab;
-    user-select: none;
-    flex-shrink: 0;
-`;
-
 const formatRevenue = (grosz: number) =>
     (grosz / 100).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 });
 
@@ -190,18 +205,16 @@ interface BreakdownTableProps {
     isLoading: boolean;
     showColorDot?: boolean;
     emptyText?: string;
-    /** ID of the currently selected row (highlights it, dims others) */
+    /** ID of the currently selected row – highlights it and dims others */
     selectedId?: string | null;
     /** Called when a row is clicked */
     onRowClick?: (id: string) => void;
-    /** Makes rows draggable (for unassigned services) */
-    draggableRows?: boolean;
-    /** Makes rows accept drops (for category rows) */
+    /** Makes this table's rows accept drops */
     droppable?: boolean;
-    /** Called when a draggable row is dropped onto this table's row */
+    /** Called when a draggable row is dropped onto a row in this table */
     onDrop?: (draggedId: string, targetId: string) => void;
-    /** Optional render function for action buttons in each row */
-    rowActions?: (row: BreakdownRow) => React.ReactNode;
+    /** Optional per-row action buttons rendered as an extra column */
+    rowActions?: (row: BreakdownRow) => ReactNode;
 }
 
 export const BreakdownTable = ({
@@ -211,7 +224,6 @@ export const BreakdownTable = ({
     emptyText,
     selectedId,
     onRowClick,
-    draggableRows = false,
     droppable = false,
     onDrop,
     rowActions,
@@ -243,7 +255,7 @@ export const BreakdownTable = ({
                         <Th $align="right">{t.statistics.breakdown.orders}</Th>
                         <Th $align="right">{t.statistics.breakdown.revenue}</Th>
                         <Th $align="right">{t.statistics.breakdown.share}</Th>
-                        {hasActions && <Th $align="right" />}
+                        {hasActions && <Th />}
                     </tr>
                 </Thead>
                 <tbody>
@@ -278,11 +290,11 @@ export const BreakdownTable = ({
                                 $selected={isSelected}
                                 $dimmed={isDimmed}
                                 $clickable={!!onRowClick}
-                                $draggable={draggableRows}
+                                $draggable={row.isDraggable}
                                 $dragOver={dragOverRowId === row.id}
-                                draggable={draggableRows}
+                                draggable={row.isDraggable ?? false}
                                 onClick={() => onRowClick?.(row.id)}
-                                onDragStart={draggableRows ? (e) => {
+                                onDragStart={row.isDraggable ? (e) => {
                                     e.dataTransfer.setData('text/plain', row.id);
                                     e.dataTransfer.effectAllowed = 'move';
                                 } : undefined}
@@ -302,9 +314,10 @@ export const BreakdownTable = ({
                             >
                                 <Td>
                                     <NameCell>
-                                        {draggableRows && <DragHandle>⠿</DragHandle>}
-                                        {showColorDot && (
-                                            <ColorDot $color={barColor} />
+                                        {row.isDraggable && <DragHandle>⠿</DragHandle>}
+                                        {showColorDot && <ColorDot $color={barColor} />}
+                                        {row.isUnassigned && (
+                                            <UnassignedIcon title="Nieprzypisana do kategorii">⚠</UnassignedIcon>
                                         )}
                                         <NameText>{row.name}</NameText>
                                         {row.isActive === false && (
