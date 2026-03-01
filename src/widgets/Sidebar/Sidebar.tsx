@@ -18,28 +18,33 @@ import {
 
 const menuSections: MenuSection[] = [
     {
-        title: 'Główne',
+        title: 'Operacje',
         items: [
             { path: '/dashboard', label: 'Dashboard', icon: '◉' },
             { path: '/calendar', label: 'Kalendarz', icon: '◳' },
-            { path: '/leads', label: 'Leady', icon: '◈' },
             { path: '/operations', label: 'Wizyty', icon: '◷', badge: '3' },
-            { path: '/customers', label: 'Klienci', icon: '◇' },
+            { path: '/leads', label: 'Leady', icon: '◈' },
         ],
     },
     {
-        title: 'Zarządzanie',
+        title: 'Klienci & Pojazdy',
         items: [
+            { path: '/customers', label: 'Klienci', icon: '◇' },
             { path: '/vehicles', label: 'Pojazdy', icon: '▣' },
-            { path: '/services', label: 'Usługi', icon: '◐' },
+        ],
+    },
+    {
+        title: 'Finanse & Analityka',
+        items: [
             { path: '/finance', label: 'Finanse', icon: '◫' },
-            { path: '/appointment-colors', label: 'Raporty', icon: '◧' },
+            { path: '/statistics', label: 'Statystyki', icon: '◧' },
             { path: '/growth-engine', label: 'Growth Engine', icon: '◆' },
         ],
     },
     {
-        title: 'System',
+        title: 'Konfiguracja',
         items: [
+            { path: '/services', label: 'Usługi', icon: '◐' },
             { path: '/consents', label: 'Zgody', icon: '◎' },
             { path: '/protocols', label: 'Protokoły', icon: '◰' },
             { path: '/team', label: 'Zespół', icon: '◕' },
