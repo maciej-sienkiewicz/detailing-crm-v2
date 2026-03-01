@@ -184,6 +184,15 @@ const Spinner = styled.div`
     }
 `;
 
+const ChartArea = styled.div<{ $fading: boolean }>`
+    display: flex;
+    flex-direction: column;
+    gap: ${props => props.theme.spacing.lg};
+    opacity: ${props => props.$fading ? 0.45 : 1};
+    transition: opacity 0.18s ease;
+    pointer-events: ${props => props.$fading ? 'none' : 'auto'};
+`;
+
 const ErrorText = styled.p`
     color: ${props => props.theme.colors.error};
     font-size: ${props => props.theme.fontSizes.sm};
@@ -250,12 +259,13 @@ export const StatisticsView = () => {
     const {
         breakdown,
         isLoading: breakdownLoading,
+        isFetching: breakdownFetching,
         isError: breakdownError,
         refetch: breakdownRefetch,
     } = useBreakdown(granularity, startDate, endDate);
 
     // ── Per-category chart (only when a category is selected) ─────────────────
-    const { stats: categoryStats, isLoading: catStatsLoading } = useCategoryStats(
+    const { stats: categoryStats, isLoading: catStatsLoading, isFetching: catStatsFetching } = useCategoryStats(
         selectedCategoryId || '',
         granularity,
         startDate,
@@ -281,7 +291,10 @@ export const StatisticsView = () => {
         : null;
 
     const chartData = selectedCategoryId ? categoryStats : breakdown?.overview;
-    const chartLoading = selectedCategoryId ? catStatsLoading : breakdownLoading;
+    // isLoading: true only on first fetch (no cached data yet) → show spinner
+    // isFetching: true on any background refetch → show subtle fade instead
+    const chartInitialLoading = selectedCategoryId ? catStatsLoading : breakdownLoading;
+    const chartFetching = selectedCategoryId ? catStatsFetching : breakdownFetching;
 
     const unassignedCount = breakdown?.unassignedServices.length ?? 0;
 
@@ -391,7 +404,8 @@ export const StatisticsView = () => {
                     onEndDateChange={setEndDate}
                 />
 
-                {(breakdownLoading || chartLoading) && (
+                {/* Initial spinner — only when there's no data yet */}
+                {chartInitialLoading && !chartData && (
                     <LoadingOverlay><Spinner /></LoadingOverlay>
                 )}
 
@@ -423,11 +437,12 @@ export const StatisticsView = () => {
                     </SelectedCategoryBanner>
                 )}
 
-                {chartData && !chartLoading && (
-                    <>
+                {/* Chart stays mounted; fades when refetching — no blink */}
+                {chartData && (
+                    <ChartArea $fading={chartFetching}>
                         <StatsTotalsBar totals={chartData.totals} />
                         <StatsChart data={chartData.data} />
-                    </>
+                    </ChartArea>
                 )}
 
                 {/* ── Two-column breakdown ─────────────────────────────── */}

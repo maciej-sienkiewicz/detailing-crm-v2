@@ -1,5 +1,5 @@
 // src/modules/statistics/hooks/useStats.ts
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { statsApi } from '../api/statsApi';
 import type { Granularity } from '../types';
 
@@ -10,13 +10,14 @@ export const useBreakdown = (
     startDate: string,
     endDate: string
 ) => {
-    const { data, isLoading, isError, refetch } = useQuery({
+    const { data, isLoading, isFetching, isError, refetch } = useQuery({
         queryKey: [BREAKDOWN_KEY, granularity, startDate, endDate],
         queryFn: () => statsApi.getBreakdown(granularity, startDate, endDate),
         enabled: !!startDate && !!endDate,
+        placeholderData: keepPreviousData,
     });
 
-    return { breakdown: data, isLoading, isError, refetch };
+    return { breakdown: data, isLoading, isFetching, isError, refetch };
 };
 
 export const useCategoryStats = (
@@ -25,11 +26,12 @@ export const useCategoryStats = (
     startDate: string,
     endDate: string
 ) => {
-    const { data, isLoading, isError, refetch } = useQuery({
+    const { data, isLoading, isFetching, isError, refetch } = useQuery({
         queryKey: ['statistics', 'category', categoryId, granularity, startDate, endDate],
         queryFn: () => statsApi.getCategoryStats(categoryId, granularity, startDate, endDate),
         enabled: !!categoryId && !!startDate && !!endDate,
+        placeholderData: keepPreviousData,
     });
 
-    return { stats: data, isLoading, isError, refetch };
+    return { stats: data, isLoading, isFetching, isError, refetch };
 };
