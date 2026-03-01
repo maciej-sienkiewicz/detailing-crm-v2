@@ -1,135 +1,170 @@
 import styled from 'styled-components';
 import type { Visit } from '../types';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 
 const HeaderContainer = styled.header`
     position: sticky;
     top: 0;
     z-index: 100;
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    border-bottom: 1px solid ${props => props.theme.colors.border};
-    box-shadow: ${props => props.theme.shadows.md};
+    background: ${st.bgCard};
+    border-bottom: 1px solid ${st.border};
+    box-shadow: ${st.shadowMd};
 `;
 
 const HeaderContent = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.md};
-    padding: ${props => props.theme.spacing.lg};
+    gap: 12px;
+    padding: 16px 24px;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
-        padding: ${props => props.theme.spacing.lg} ${props => props.theme.spacing.xl};
+        padding: 14px 32px;
     }
 `;
 
 const HeaderLeft = styled.div`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.md};
+    gap: 12px;
     flex-wrap: wrap;
 `;
 
 const VisitNumber = styled.h1`
     margin: 0;
-    font-size: ${props => props.theme.fontSizes.lg};
-    font-weight: 700;
-    color: ${props => props.theme.colors.text};
+    font-size: 18px;
+    font-weight: 800;
+    color: ${st.text};
+    letter-spacing: -0.3px;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes.xl};
+        font-size: 20px;
     }
 `;
 
 const LicensePlateBadge = styled.div`
     display: inline-flex;
     align-items: center;
-    padding: 8px 16px;
-    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-    color: white;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.md};
+    padding: 6px 14px 6px 22px;
+    background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 100%);
+    border: 2px solid #1a1a1a;
+    border-radius: 5px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
     font-weight: 700;
-    letter-spacing: 2px;
-    box-shadow: ${props => props.theme.shadows.md};
-    border: 2px solid #475569;
+    letter-spacing: 0.18em;
+    color: #000000;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.9);
+    position: relative;
+    text-transform: uppercase;
+
+    &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 18px;
+        background: linear-gradient(180deg, #003399 0%, #002266 100%);
+        border-right: 1px solid #111;
+        border-radius: 3px 0 0 3px;
+    }
+
+    &::after {
+        content: 'PL';
+        position: absolute;
+        left: 3px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 7px;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: 0.2px;
+    }
 `;
 
 const VehicleName = styled.span`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
+    font-size: 13px;
+    color: ${st.textMuted};
     font-weight: 500;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes.md};
+        font-size: 14px;
     }
 `;
 
 const HeaderActions = styled.div`
     display: flex;
-    gap: ${props => props.theme.spacing.sm};
+    gap: 8px;
     flex-wrap: wrap;
+    align-items: center;
 `;
 
 const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'danger' }>`
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
+    padding: 8px 18px;
+    border-radius: ${st.radiusFull};
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all ${st.transition};
+    white-space: nowrap;
+    border: 1px solid transparent;
 
     ${props => {
-    switch (props.$variant) {
-        case 'primary':
-            return `
-                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        switch (props.$variant) {
+            case 'primary':
+                return `
+                    background: ${st.accentGreen};
                     color: white;
-                    border-color: #10b981;
-                    box-shadow: ${props.theme.shadows.sm};
+                    border-color: ${st.accentGreen};
+                    box-shadow: ${st.shadowSm};
 
                     &:hover:not(:disabled) {
-                        box-shadow: ${props.theme.shadows.md};
+                        background: #059669;
+                        box-shadow: ${st.shadowMd};
                         transform: translateY(-1px);
                     }
                 `;
-        case 'danger':
-            return `
-                    background: white;
-                    color: ${props.theme.colors.error};
-                    border-color: ${props.theme.colors.error};
+            case 'danger':
+                return `
+                    background: transparent;
+                    color: ${st.accentRed};
+                    border-color: ${st.accentRed}66;
 
                     &:hover:not(:disabled) {
-                        background: ${props.theme.colors.error};
-                        color: white;
+                        background: ${st.accentRedDim};
+                        border-color: ${st.accentRed};
                     }
                 `;
-        default:
-            return `
-                    background: white;
-                    color: ${props.theme.colors.text};
+            default:
+                return `
+                    background: ${st.bgCard};
+                    color: ${st.textSecondary};
+                    border-color: ${st.border};
+                    box-shadow: ${st.shadowXs};
 
                     &:hover:not(:disabled) {
-                        background: ${props.theme.colors.surfaceHover};
-                        border-color: var(--brand-primary);
+                        background: ${st.bg};
+                        border-color: ${st.borderHover};
+                        color: ${st.text};
                     }
                 `;
-    }
-}}
+        }
+    }}
 
     &:disabled {
-        opacity: 0.5;
+        opacity: 0.45;
         cursor: not-allowed;
     }
 
     svg {
-        width: 16px;
-        height: 16px;
+        width: 15px;
+        height: 15px;
     }
 `;
 
@@ -141,11 +176,11 @@ interface VisitHeaderProps {
 }
 
 export const VisitHeader = ({
-                                visit,
-                                onCompleteVisit,
-                                onPrintProtocol,
-                                onCancelVisit,
-                            }: VisitHeaderProps) => {
+    visit,
+    onCompleteVisit,
+    onPrintProtocol,
+    onCancelVisit,
+}: VisitHeaderProps) => {
     const isCompleted = visit.status === 'COMPLETED';
     const isRejected = visit.status === 'REJECTED';
     const isArchived = visit.status === 'ARCHIVED';
@@ -165,9 +200,12 @@ export const VisitHeader = ({
             <HeaderContent>
                 <HeaderLeft>
                     <VisitNumber>{visit.visitNumber}</VisitNumber>
-                    {visit.vehicle.licensePlate ? (<LicensePlateBadge>{visit.vehicle.licensePlate}</LicensePlateBadge>) : null}
+                    {visit.vehicle.licensePlate && (
+                        <LicensePlateBadge>{visit.vehicle.licensePlate}</LicensePlateBadge>
+                    )}
                     <VehicleName>
-                        {visit.vehicle.brand} {visit.vehicle.model} {visit.vehicle.yearOfProduction ? ((visit.vehicle.yearOfProduction)) : null}
+                        {visit.vehicle.brand} {visit.vehicle.model}
+                        {visit.vehicle.yearOfProduction ? ` · ${visit.vehicle.yearOfProduction}` : ''}
                     </VehicleName>
                 </HeaderLeft>
 
@@ -177,7 +215,7 @@ export const VisitHeader = ({
                         onClick={onCompleteVisit}
                         disabled={isDisabled}
                     >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <polyline points="20 6 9 17 4 12"/>
                         </svg>
                         {getCompleteButtonText()}
@@ -188,7 +226,7 @@ export const VisitHeader = ({
                         onClick={onCancelVisit}
                         disabled={isDisabled}
                     >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <line x1="18" y1="6" x2="6" y2="18"/>
                             <line x1="6" y1="6" x2="18" y2="18"/>
                         </svg>

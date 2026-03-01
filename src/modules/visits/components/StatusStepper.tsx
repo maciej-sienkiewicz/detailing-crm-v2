@@ -1,28 +1,35 @@
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import type { VisitStatus } from '../types';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
+
+const pulseRing = keyframes`
+    0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+    50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
+`;
 
 const StepperContainer = styled.div`
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    padding: ${props => props.theme.spacing.lg};
-    margin-bottom: ${props => props.theme.spacing.lg};
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    padding: 20px 28px;
+    margin-bottom: 20px;
+    box-shadow: ${st.shadowSm};
 `;
 
 const StepsList = styled.div`
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     position: relative;
 `;
 
 const ProgressLine = styled.div<{ $progress: number }>`
     position: absolute;
-    top: 20px;
+    top: 17px;
     left: 0;
     right: 0;
-    height: 3px;
-    background: ${props => props.theme.colors.border};
+    height: 2px;
+    background: ${st.border};
     z-index: 0;
 
     &::after {
@@ -32,8 +39,9 @@ const ProgressLine = styled.div<{ $progress: number }>`
         left: 0;
         height: 100%;
         width: ${props => props.$progress}%;
-        background: linear-gradient(90deg, var(--brand-primary) 0%, #10b981 100%);
+        background: ${st.gradientBlue};
         transition: width 0.5s ease;
+        border-radius: 2px;
     }
 `;
 
@@ -41,7 +49,7 @@ const Step = styled.div<{ $isActive: boolean; $isCompleted: boolean }>`
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
+    gap: 8px;
     position: relative;
     z-index: 1;
     flex: 1;
@@ -49,64 +57,91 @@ const Step = styled.div<{ $isActive: boolean; $isCompleted: boolean }>`
 `;
 
 const StepCircle = styled.div<{ $isActive: boolean; $isCompleted: boolean }>`
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    font-size: ${props => props.theme.fontSizes.sm};
+    font-size: 13px;
     transition: all 0.3s ease;
-    box-shadow: ${props => props.theme.shadows.md};
 
     ${props => {
-    if (props.$isCompleted) {
-        return `
-                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        if (props.$isCompleted) {
+            return `
+                background: ${st.accentGreen};
                 color: white;
+                box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
             `;
-    }
-    if (props.$isActive) {
-        return `
-                background: linear-gradient(135deg, var(--brand-primary) 0%, #0284c7 100%);
+        }
+        if (props.$isActive) {
+            return `
+                background: ${st.accentBlue};
                 color: white;
-                animation: pulse 2s infinite;
-
-                @keyframes pulse {
-                    0%, 100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.7); }
-                    50% { box-shadow: 0 0 0 10px rgba(14, 165, 233, 0); }
-                }
+                animation: ${pulseRing} 2s infinite;
             `;
-    }
-    return `
-            background: white;
-            color: ${props.theme.colors.textMuted};
-            border: 2px solid ${props.theme.colors.border};
+        }
+        return `
+            background: ${st.bgCard};
+            color: ${st.textMuted};
+            border: 2px solid ${st.border};
         `;
-}}
+    }}
 `;
 
-const StepLabel = styled.span<{ $isActive: boolean }>`
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: ${props => props.$isActive ? 600 : 500};
-    color: ${props => props.$isActive ? props.theme.colors.text : props.theme.colors.textMuted};
+const StepLabel = styled.span<{ $isActive: boolean; $isCompleted: boolean }>`
+    font-size: ${st.fontXs};
+    font-weight: ${props => props.$isActive ? 700 : 500};
+    color: ${props => props.$isActive ? st.text : props.$isCompleted ? st.accentGreen : st.textMuted};
     text-align: center;
+    white-space: nowrap;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes.sm};
+        font-size: ${st.fontSm};
     }
 `;
 
+const SpecialStatusContainer = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 16px;
+`;
+
+const StatusIcon = styled.div<{ $color: string; $bg: string }>`
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: ${props => props.$bg};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    color: ${props => props.$color};
+`;
+
+const StatusTitle = styled.h3`
+    margin: 0 0 2px;
+    font-size: ${st.fontMd};
+    font-weight: 700;
+    color: ${st.text};
+`;
+
+const StatusDesc = styled.p`
+    margin: 0;
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
+`;
 
 interface StatusStepperProps {
     currentStatus: VisitStatus;
 }
 
 const steps = [
-    { status: 'IN_PROGRESS', label: 'W realizacji', icon: '🔧' },
-    { status: 'READY_FOR_PICKUP', label: 'Do odbioru', icon: '✅' },
-    { status: 'COMPLETED', label: 'Zakończona', icon: '🚗' },
+    { status: 'IN_PROGRESS', label: 'W realizacji' },
+    { status: 'READY_FOR_PICKUP', label: 'Do odbioru' },
+    { status: 'COMPLETED', label: 'Zakończona' },
 ];
 
 const getStepIndex = (status: VisitStatus): number => {
@@ -115,10 +150,15 @@ const getStepIndex = (status: VisitStatus): number => {
 };
 
 const calculateProgress = (currentIndex: number): number => {
-    if (currentIndex === -1) return 0;
-    if (currentIndex === 0) return 0;
-    return ((currentIndex) / (steps.length - 1)) * 100;
+    if (currentIndex <= 0) return 0;
+    return (currentIndex / (steps.length - 1)) * 100;
 };
+
+const CheckSvg = () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+        <polyline points="20 6 9 17 4 12"/>
+    </svg>
+);
 
 export const StatusStepper = ({ currentStatus }: StatusStepperProps) => {
     const currentIndex = getStepIndex(currentStatus);
@@ -127,15 +167,13 @@ export const StatusStepper = ({ currentStatus }: StatusStepperProps) => {
     if (currentStatus === 'DRAFT') {
         return (
             <StepperContainer>
-                <div style={{ textAlign: 'center', padding: '20px' }}>
-                    <span style={{ fontSize: '48px' }}>📝</span>
-                    <h3 style={{ margin: '16px 0 4px', fontSize: '18px', fontWeight: 600 }}>
-                        Wizyta w przygotowaniu
-                    </h3>
-                    <p style={{ margin: 0, fontSize: '14px', color: '#94a3b8' }}>
-                        Wizyta oczekuje na potwierdzenie i podpisanie dokumentów
-                    </p>
-                </div>
+                <SpecialStatusContainer>
+                    <StatusIcon $color={st.accentAmber} $bg={st.accentAmberDim}>✏️</StatusIcon>
+                    <div>
+                        <StatusTitle>Wizyta w przygotowaniu</StatusTitle>
+                        <StatusDesc>Wizyta oczekuje na potwierdzenie i podpisanie dokumentów</StatusDesc>
+                    </div>
+                </SpecialStatusContainer>
             </StepperContainer>
         );
     }
@@ -143,15 +181,13 @@ export const StatusStepper = ({ currentStatus }: StatusStepperProps) => {
     if (currentStatus === 'REJECTED') {
         return (
             <StepperContainer>
-                <div style={{ textAlign: 'center', padding: '20px' }}>
-                    <span style={{ fontSize: '48px' }}>🚫</span>
-                    <h3 style={{ margin: '16px 0 4px', fontSize: '18px', fontWeight: 600 }}>
-                        Wizyta odrzucona
-                    </h3>
-                    <p style={{ margin: 0, fontSize: '14px', color: '#94a3b8' }}>
-                        Ta wizyta została odrzucona
-                    </p>
-                </div>
+                <SpecialStatusContainer>
+                    <StatusIcon $color={st.accentRed} $bg={st.accentRedDim}>✕</StatusIcon>
+                    <div>
+                        <StatusTitle>Wizyta odrzucona</StatusTitle>
+                        <StatusDesc>Ta wizyta została odrzucona</StatusDesc>
+                    </div>
+                </SpecialStatusContainer>
             </StepperContainer>
         );
     }
@@ -159,15 +195,13 @@ export const StatusStepper = ({ currentStatus }: StatusStepperProps) => {
     if (currentStatus === 'ARCHIVED') {
         return (
             <StepperContainer>
-                <div style={{ textAlign: 'center', padding: '20px' }}>
-                    <span style={{ fontSize: '48px' }}>📦</span>
-                    <h3 style={{ margin: '16px 0 4px', fontSize: '18px', fontWeight: 600 }}>
-                        Wizyta zarchiwizowana
-                    </h3>
-                    <p style={{ margin: 0, fontSize: '14px', color: '#94a3b8' }}>
-                        Ta wizyta została przeniesiona do archiwum
-                    </p>
-                </div>
+                <SpecialStatusContainer>
+                    <StatusIcon $color={st.textMuted} $bg={st.bg}>📦</StatusIcon>
+                    <div>
+                        <StatusTitle>Wizyta zarchiwizowana</StatusTitle>
+                        <StatusDesc>Ta wizyta została przeniesiona do archiwum</StatusDesc>
+                    </div>
+                </SpecialStatusContainer>
             </StepperContainer>
         );
     }
@@ -181,14 +215,13 @@ export const StatusStepper = ({ currentStatus }: StatusStepperProps) => {
                     const isActive = index === currentIndex;
 
                     return (
-                        <Step
-                            key={step.status}
-                            $isActive={isActive}
-                            $isCompleted={isCompleted}
-                        >
+                        <Step key={step.status} $isActive={isActive} $isCompleted={isCompleted}>
                             <StepCircle $isActive={isActive} $isCompleted={isCompleted}>
-                                {isCompleted ? '✓' : step.icon}
+                                {isCompleted ? <CheckSvg /> : index + 1}
                             </StepCircle>
+                            <StepLabel $isActive={isActive} $isCompleted={isCompleted}>
+                                {step.label}
+                            </StepLabel>
                         </Step>
                     );
                 })}
