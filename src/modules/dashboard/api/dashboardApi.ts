@@ -297,17 +297,6 @@ const mockDashboardData: DashboardData = {
 };
 
 /**
- * Mock implementation of getStats with simulated network delay
- */
-const mockGetStats = async (): Promise<DashboardData> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(mockDashboardData);
-    }, 800);
-  });
-};
-
-/**
  * Dashboard API methods
  */
 export const dashboardApi = {
@@ -316,9 +305,13 @@ export const dashboardApi = {
    * @returns Promise resolving to dashboard data
    */
   getStats: async (): Promise<DashboardData> => {
-    if (USE_MOCKS) return mockGetStats();
     const response = await apiClient.get('/v1/dashboard/stats');
-    return response.data;
+    const data = response.data as DashboardData;
+    return {
+      ...data,
+      instagramPhotos: data.instagramPhotos ?? mockDashboardData.instagramPhotos,
+      googleReviews: data.googleReviews ?? mockDashboardData.googleReviews,
+    };
   },
 
   /**

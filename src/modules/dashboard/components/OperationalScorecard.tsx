@@ -596,9 +596,9 @@ const KpiCard = ({
           {subLabel && <SubLabel $variant={variant}>{subLabel}</SubLabel>}
         </BadgeRow>
 
-        {isExpandable && (
-          <ClickHint>Kliknij aby zobaczyć szczegóły</ClickHint>
-        )}
+        <ClickHint style={{ visibility: isExpandable ? 'visible' : 'hidden' }}>
+          Kliknij aby zobaczyć szczegóły
+        </ClickHint>
       </Card>
 
       {isExpandable && details && (
