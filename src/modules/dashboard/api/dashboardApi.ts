@@ -316,8 +316,9 @@ export const dashboardApi = {
    * @returns Promise resolving to dashboard data
    */
   getStats: async (): Promise<DashboardData> => {
-      const response = await apiClient.get('/v1/dashboard/stats');
-      return response.data;
+    if (USE_MOCKS) return mockGetStats();
+    const response = await apiClient.get('/v1/dashboard/stats');
+    return response.data;
   },
 
   /**

@@ -8,7 +8,6 @@ import styled, { keyframes } from 'styled-components';
 import { RefreshCw, AlertCircle } from 'lucide-react';
 import { OperationalScorecard } from '../components/OperationalScorecard';
 import { AnalyticsSection } from '../components/AnalyticsSection';
-import { LeadInbox } from '../components/LeadInbox';
 import { GoogleReviewsSection } from '../components/GoogleReviewsSection';
 import { useDashboard, useDashboardSocket } from '../hooks';
 
@@ -127,24 +126,6 @@ const RefreshBtn = styled.button<{ $spinning?: boolean }>`
   }
 `;
 
-// ─── Main Grid ────────────────────────────────────────────────────────────────
-
-const ContentGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: ${(p) => p.theme.spacing.lg};
-
-  @media (min-width: ${(p) => p.theme.breakpoints.lg}) {
-    grid-template-columns: 2fr 1fr;
-  }
-`;
-
-const LeftColumn = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${(p) => p.theme.spacing.lg};
-`;
-
 // ─── Error State ──────────────────────────────────────────────────────────────
 
 const ErrorBox = styled.div`
@@ -206,14 +187,10 @@ export const DashboardView = () => {
     revenue,
     callActivity,
     instagramPhotos,
-    recentCalls,
     googleReviews,
     isFetching,
     isError,
     refetch,
-    onAccept,
-    onReject,
-    onEdit,
   } = useDashboard();
 
   const greeting = useMemo(() => getGreeting(), []);
@@ -255,23 +232,12 @@ export const DashboardView = () => {
       {/* ── KPI Strip ── */}
       <OperationalScorecard stats={stats} />
 
-      {/* ── Main Content Grid ── */}
-      <ContentGrid>
-        <LeftColumn>
-          <AnalyticsSection
-            revenue={revenue}
-            callActivity={callActivity}
-            instagramPhotos={instagramPhotos}
-          />
-        </LeftColumn>
-
-        <LeadInbox
-          calls={recentCalls}
-          onAccept={onAccept}
-          onEdit={onEdit}
-          onReject={onReject}
-        />
-      </ContentGrid>
+      {/* ── Metrics (full width — 3 columns) ── */}
+      <AnalyticsSection
+        revenue={revenue}
+        callActivity={callActivity}
+        instagramPhotos={instagramPhotos}
+      />
 
       {/* ── Google Reviews (full width) ── */}
       <GoogleReviewsSection data={googleReviews} />
