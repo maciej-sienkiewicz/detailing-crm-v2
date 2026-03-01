@@ -1,5 +1,5 @@
 // src/modules/statistics/views/StatisticsView.tsx
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import styled from 'styled-components';
 import { t } from '@/common/i18n';
 import { StatsFilters } from '../components/StatsFilters';
@@ -302,6 +302,13 @@ export const StatisticsView = () => {
     const chartInitialLoading = selectedCategoryId ? catStatsLoading : breakdownLoading;
     const chartFetching = selectedCategoryId ? catStatsFetching : breakdownFetching;
 
+    // Keep the last successfully loaded data so the ChartArea never unmounts
+    // during transitions (e.g. first category selection). The chart fades via
+    // $fading while stale data is shown, then snaps to fresh data — no scroll jump.
+    const lastChartDataRef = useRef(chartData);
+    if (chartData !== undefined) lastChartDataRef.current = chartData;
+    const displayData = chartData ?? lastChartDataRef.current;
+
     const unassignedCount = breakdown?.unassignedServices.length ?? 0;
 
     // Color lookup: serviceId → category color (for "all services" view)
@@ -410,8 +417,8 @@ export const StatisticsView = () => {
                     onEndDateChange={setEndDate}
                 />
 
-                {/* Initial spinner — only when there's no data yet */}
-                {chartInitialLoading && !chartData && (
+                {/* Initial spinner — only on very first load before any data is available */}
+                {chartInitialLoading && !displayData && (
                     <LoadingOverlay><Spinner /></LoadingOverlay>
                 )}
 
@@ -440,11 +447,11 @@ export const StatisticsView = () => {
                     </ClearSelectionBtn>
                 </SelectedCategoryBanner>
 
-                {/* Chart stays mounted; fades when refetching — no blink */}
-                {chartData && (
-                    <ChartArea $fading={chartFetching}>
-                        <StatsTotalsBar totals={chartData.totals} />
-                        <StatsChart data={chartData.data} />
+                {/* Chart stays mounted via displayData (last known); fades during transitions — no scroll jump */}
+                {displayData && (
+                    <ChartArea $fading={chartFetching || (chartInitialLoading && !chartData)}>
+                        <StatsTotalsBar totals={displayData.totals} />
+                        <StatsChart data={displayData.data} />
                     </ChartArea>
                 )}
 
