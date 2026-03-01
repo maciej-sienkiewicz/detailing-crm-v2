@@ -5,276 +5,412 @@ import styled from 'styled-components';
 import type { VisitComment, CommentType } from '../types';
 import { useAddComment, useUpdateComment, useDeleteComment } from '../hooks';
 
-const Container = styled.div`
+/* ─── Panel shell ─────────────────────────────────────────────────────────── */
+
+const Panel = styled.div`
+    background: #fff;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.xl};
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
 `;
 
-const AddCommentForm = styled.div`
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    padding: ${props => props.theme.spacing.lg};
-`;
-
-const FormHeader = styled.h3`
-    margin: 0 0 ${props => props.theme.spacing.md};
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: 600;
-    color: ${props => props.theme.colors.text};
-`;
-
-const TypeSelector = styled.div`
+const PanelHeader = styled.div`
     display: flex;
-    gap: ${props => props.theme.spacing.sm};
-    margin-bottom: ${props => props.theme.spacing.md};
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px 13px;
+    border-bottom: 1px solid ${p => p.theme.colors.border};
+    background: #fafbfc;
 `;
 
-const TypeButton = styled.button<{ $isActive: boolean }>`
-    flex: 1;
-    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
-    border: 1px solid ${props => props.$isActive ? 'var(--brand-primary)' : props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.sm};
-    background: ${props => props.$isActive ? '#eef2ff' : 'transparent'};
-    color: ${props => props.$isActive ? 'var(--brand-primary)' : props.theme.colors.textSecondary};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: ${props => props.$isActive ? '600' : '400'};
-    cursor: pointer;
-    transition: all 0.15s ease;
+const PanelTitle = styled.h3`
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: ${p => p.theme.colors.text};
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 7px;
 
-    &:hover {
-        border-color: var(--brand-primary);
+    svg {
+        width: 15px;
+        height: 15px;
         color: var(--brand-primary);
+        opacity: 0.75;
     }
 `;
 
-const TextArea = styled.textarea`
+const CountPill = styled.span`
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: ${p => p.theme.colors.surface};
+    border: 1px solid ${p => p.theme.colors.border};
+    color: ${p => p.theme.colors.textSecondary};
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+`;
+
+/* ─── Add-comment form ────────────────────────────────────────────────────── */
+
+const AddFormArea = styled.div`
+    padding: 14px 20px 16px;
+    background: #fafbfc;
+    border-bottom: 1px solid ${p => p.theme.colors.border};
+`;
+
+const TypeToggle = styled.div`
+    display: inline-flex;
+    background: ${p => p.theme.colors.border};
+    border-radius: 8px;
+    padding: 2px;
+    gap: 2px;
+    margin-bottom: 10px;
+`;
+
+const TypeOpt = styled.button<{ $active: boolean; $accent: string }>`
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: ${p => p.$active ? 600 : 400};
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: ${p => p.$active ? '#fff' : 'transparent'};
+    color: ${p => p.$active ? p.$accent : '#94a3b8'};
+    box-shadow: ${p => p.$active ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'};
+
+    &:hover:not([data-active="true"]) {
+        color: ${p => p.theme.colors.textSecondary};
+    }
+`;
+
+const NoteArea = styled.textarea`
     width: 100%;
-    min-height: 100px;
-    padding: ${props => props.theme.spacing.md};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
+    box-sizing: border-box;
+    padding: 10px 13px;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: 8px;
+    font-size: 13px;
     font-family: inherit;
+    line-height: 1.55;
+    min-height: 82px;
     resize: vertical;
-    transition: border-color 0.2s ease;
+    background: #fff;
+    color: ${p => p.theme.colors.text};
+    transition: border-color 0.15s, box-shadow 0.15s;
+
+    &:focus {
+        outline: none;
+        border-color: var(--brand-primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    &::placeholder {
+        color: ${p => p.theme.colors.textMuted};
+        font-size: 12px;
+    }
+
+    &:disabled { opacity: 0.6; }
+`;
+
+const FormActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: 8px;
+`;
+
+const BtnGhost = styled.button`
+    padding: 6px 12px;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: 7px;
+    background: transparent;
+    color: ${p => p.theme.colors.textSecondary};
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+
+    &:hover { background: ${p => p.theme.colors.surface}; }
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
+`;
+
+const BtnPrimary = styled.button`
+    padding: 6px 14px;
+    border: none;
+    border-radius: 7px;
+    background: var(--brand-primary);
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+
+    &:hover:not(:disabled) { opacity: 0.87; }
+    &:disabled { opacity: 0.42; cursor: not-allowed; }
+`;
+
+/* ─── Comments list ───────────────────────────────────────────────────────── */
+
+const CommentsScroll = styled.div`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+`;
+
+const CommentRow = styled.div<{ $type: CommentType; $deleted: boolean }>`
+    padding: 12px 20px;
+    border-bottom: 1px solid ${p => p.theme.colors.border};
+    position: relative;
+    opacity: ${p => p.$deleted ? 0.62 : 1};
+    background: ${p => p.$deleted ? '#fafafa' : '#fff'};
+    transition: background 0.15s;
+
+    &:last-child { border-bottom: none; }
+
+    &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        border-radius: 0 2px 2px 0;
+        background: ${p =>
+            p.$deleted
+                ? '#d1d5db'
+                : p.$type === 'INTERNAL'
+                ? '#f59e0b'
+                : 'var(--brand-primary)'};
+        opacity: ${p => p.$deleted ? 0.5 : 1};
+    }
+`;
+
+const CommentHead = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+`;
+
+const Initials = styled.span<{ $type: CommentType }>`
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: ${p => p.$type === 'INTERNAL' ? '#fef3c7' : '#dbeafe'};
+    color: ${p => p.$type === 'INTERNAL' ? '#b45309' : '#1d4ed8'};
+`;
+
+const AuthorName = styled.span`
+    font-size: 12px;
+    font-weight: 600;
+    color: ${p => p.theme.colors.text};
+`;
+
+const TypePill = styled.span<{ $type: CommentType }>`
+    padding: 1px 6px;
+    border-radius: 99px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: ${p => p.$type === 'INTERNAL' ? '#fef3c7' : '#dbeafe'};
+    color: ${p => p.$type === 'INTERNAL' ? '#b45309' : '#1d4ed8'};
+`;
+
+const CommentDate = styled.span`
+    font-size: 10px;
+    color: ${p => p.theme.colors.textMuted};
+    margin-left: auto;
+`;
+
+const DeletedBanner = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    margin-left: 34px;
+    margin-bottom: 6px;
+    font-size: 10px;
+    color: #b91c1c;
+    background: #fff1f2;
+    border-radius: 5px;
+`;
+
+const CommentBody = styled.div<{ $deleted: boolean }>`
+    font-size: 13px;
+    line-height: 1.6;
+    color: ${p => p.$deleted ? p.theme.colors.textMuted : p.theme.colors.text};
+    white-space: pre-wrap;
+    word-break: break-word;
+    text-decoration: ${p => p.$deleted ? 'line-through' : 'none'};
+    padding-left: 34px;
+`;
+
+const EditedLabel = styled.div`
+    font-size: 9px;
+    color: #94a3b8;
+    padding-left: 34px;
+    margin-top: 3px;
+`;
+
+const ActionStrip = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    padding-left: 34px;
+    margin-top: 5px;
+`;
+
+const MicroBtn = styled.button<{ $danger?: boolean }>`
+    padding: 2px 7px;
+    border: none;
+    background: transparent;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 4px;
+    color: ${p => p.$danger ? '#dc2626' : p.theme.colors.textMuted};
+    transition: all 0.12s;
+
+    &:hover {
+        background: ${p => p.$danger ? '#fee2e2' : '#f0f4ff'};
+        color: ${p => p.$danger ? '#b91c1c' : 'var(--brand-primary)'};
+    }
+
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
+`;
+
+const InlineEditArea = styled.textarea`
+    width: calc(100% - 34px);
+    margin-left: 34px;
+    box-sizing: border-box;
+    padding: 7px 10px;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: inherit;
+    line-height: 1.5;
+    min-height: 62px;
+    resize: vertical;
+    transition: border-color 0.15s;
 
     &:focus {
         outline: none;
         border-color: var(--brand-primary);
     }
-
-    &::placeholder {
-        color: ${props => props.theme.colors.textMuted};
-    }
 `;
 
-const ButtonGroup = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.sm};
-    justify-content: flex-end;
-    margin-top: ${props => props.theme.spacing.md};
-`;
+/* ─── Revision history ────────────────────────────────────────────────────── */
 
-const Button = styled.button<{ $variant?: 'primary' | 'secondary' | 'danger' }>`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.lg};
-    border: none;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    ${props => {
-        switch (props.$variant) {
-            case 'primary':
-                return `
-                    background: var(--brand-primary);
-                    color: white;
-                    &:hover { opacity: 0.9; }
-                `;
-            case 'danger':
-                return `
-                    background: ${props.theme.colors.error};
-                    color: white;
-                    &:hover { opacity: 0.9; }
-                `;
-            default:
-                return `
-                    background: ${props.theme.colors.surface};
-                    color: ${props.theme.colors.text};
-                    border: 1px solid ${props.theme.colors.border};
-                    &:hover { background: ${props.theme.colors.surfaceHover}; }
-                `;
-        }
-    }}
-
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-`;
-
-const CommentsList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.md};
-`;
-
-const CommentCard = styled.div<{ $isDeleted: boolean }>`
-    background: ${props => props.$isDeleted ? '#f3f4f6' : 'white'};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    padding: ${props => props.theme.spacing.lg};
-    opacity: ${props => props.$isDeleted ? 0.7 : 1};
-    transition: all 0.2s ease;
-`;
-
-const CommentHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: ${props => props.theme.spacing.sm};
-`;
-
-const CommentMeta = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.xs};
-`;
-
-const CommentAuthor = styled.span`
-    font-weight: 600;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.text};
-`;
-
-const CommentDate = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
-`;
-
-const CommentBadge = styled.span<{ $type: CommentType }>`
+const RevToggleBtn = styled.button`
     display: inline-flex;
-    padding: 4px 8px;
-    border-radius: ${props => props.theme.radii.sm};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 500;
-    background: ${props => props.$type === 'INTERNAL' ? '#fef3c7' : '#dbeafe'};
-    color: ${props => props.$type === 'INTERNAL' ? '#92400e' : '#1e40af'};
-`;
-
-const CommentContent = styled.div<{ $isDeleted: boolean }>`
-    margin-bottom: ${props => props.theme.spacing.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.$isDeleted ? props.theme.colors.textMuted : props.theme.colors.text};
-    line-height: 1.6;
-    white-space: pre-wrap;
-    word-break: break-word;
-    text-decoration: ${props => props.$isDeleted ? 'line-through' : 'none'};
-`;
-
-const DeletedNotice = styled.div`
-    display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.xs};
-    padding: ${props => props.theme.spacing.sm};
-    background: #fee2e2;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: #991b1b;
-    margin-bottom: ${props => props.theme.spacing.sm};
-`;
-
-const CommentActions = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.sm};
-`;
-
-const ActionButton = styled.button`
-    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
+    gap: 4px;
+    padding: 2px 0;
+    padding-left: 34px;
+    margin-top: 6px;
     border: none;
     background: transparent;
-    color: ${props => props.theme.colors.textMuted};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 500;
+    font-size: 10px;
+    color: ${p => p.theme.colors.textMuted};
     cursor: pointer;
-    transition: color 0.2s ease;
+    transition: color 0.15s;
 
-    &:hover {
-        color: var(--brand-primary);
-    }
-
-    &.danger:hover {
-        color: ${props => props.theme.colors.error};
-    }
+    &:hover { color: var(--brand-primary); }
 `;
 
-const EditingTextArea = styled(TextArea)`
-    min-height: 80px;
-    margin-bottom: ${props => props.theme.spacing.sm};
-`;
-
-const EmptyState = styled.div`
-    text-align: center;
-    padding: ${props => props.theme.spacing.xxl};
-    color: ${props => props.theme.colors.textMuted};
-`;
-
-const RevisionsList = styled.div`
-    margin-top: ${props => props.theme.spacing.md};
-    padding-top: ${props => props.theme.spacing.md};
-    border-top: 1px solid ${props => props.theme.colors.border};
-`;
-
-const RevisionHeader = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 600;
-    color: ${props => props.theme.colors.textMuted};
-    margin-bottom: ${props => props.theme.spacing.sm};
-    cursor: pointer;
-    user-select: none;
+const RevBlock = styled.div`
+    margin-top: 6px;
+    margin-left: 34px;
+    padding: 8px 10px;
+    background: #fafbfc;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: 6px;
     display: flex;
-    align-items: center;
-    gap: ${props => props.theme.spacing.xs};
-
-    &:hover {
-        color: ${props => props.theme.colors.text};
-    }
+    flex-direction: column;
+    gap: 8px;
 `;
 
-const RevisionItem = styled.div`
-    padding: ${props => props.theme.spacing.sm};
-    background: ${props => props.theme.colors.surface};
-    border-radius: ${props => props.theme.radii.sm};
-    margin-bottom: ${props => props.theme.spacing.xs};
-    font-size: ${props => props.theme.fontSizes.xs};
+const RevEntry = styled.div`
+    font-size: 10px;
 `;
 
-const RevisionMeta = styled.div`
-    color: ${props => props.theme.colors.textMuted};
-    margin-bottom: ${props => props.theme.spacing.xs};
+const RevMeta = styled.div`
+    color: ${p => p.theme.colors.textMuted};
+    margin-bottom: 4px;
 `;
 
-const RevisionContent = styled.div`
+const RevDiff = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: ${props => props.theme.spacing.sm};
-    margin-top: ${props => props.theme.spacing.xs};
+    gap: 5px;
 `;
 
-const RevisionColumn = styled.div`
-    padding: ${props => props.theme.spacing.xs};
-    background: white;
-    border-radius: ${props => props.theme.radii.sm};
+const DiffBox = styled.div<{ $old: boolean }>`
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    line-height: 1.4;
+    background: ${p => p.$old ? '#fee2e2' : '#dcfce7'};
+    color: ${p => p.$old ? '#991b1b' : '#166534'};
 `;
 
-const RevisionLabel = styled.div`
-    font-weight: 600;
-    margin-bottom: ${props => props.theme.spacing.xs};
-    font-size: ${props => props.theme.fontSizes.xs};
+const DiffBoxLabel = styled.div`
+    font-size: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 3px;
+    opacity: 0.65;
 `;
+
+/* ─── Empty / loading ─────────────────────────────────────────────────────── */
+
+const EmptyMsg = styled.div`
+    padding: 28px 20px;
+    text-align: center;
+    font-size: 12px;
+    color: ${p => p.theme.colors.textMuted};
+`;
+
+/* ─── Helpers ─────────────────────────────────────────────────────────────── */
+
+function getInitials(name: string): string {
+    return name
+        .split(' ')
+        .map(part => part[0] ?? '')
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+}
+
+function formatDate(iso: string): string {
+    return new Date(iso).toLocaleString('pl-PL', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
+/* ─── Props ───────────────────────────────────────────────────────────────── */
 
 interface VisitCommentsProps {
     visitId: string;
@@ -282,10 +418,12 @@ interface VisitCommentsProps {
     isLoading: boolean;
 }
 
+/* ─── Component ───────────────────────────────────────────────────────────── */
+
 export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsProps) => {
-    const [newCommentType, setNewCommentType] = useState<CommentType>('INTERNAL');
-    const [newCommentContent, setNewCommentContent] = useState('');
-    const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+    const [newType, setNewType] = useState<CommentType>('INTERNAL');
+    const [newContent, setNewContent] = useState('');
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [editingContent, setEditingContent] = useState('');
     const [expandedRevisions, setExpandedRevisions] = useState<Set<string>>(new Set());
 
@@ -293,243 +431,237 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
     const { updateComment, isUpdating } = useUpdateComment(visitId);
     const { deleteComment, isDeleting } = useDeleteComment(visitId);
 
-    const handleAddComment = () => {
-        if (!newCommentContent.trim()) return;
-
+    const handleAdd = () => {
+        if (!newContent.trim()) return;
         addComment(
-            {
-                type: newCommentType,
-                content: newCommentContent.trim(),
-            },
-            {
-                onSuccess: () => {
-                    setNewCommentContent('');
-                },
-            }
+            { type: newType, content: newContent.trim() },
+            { onSuccess: () => setNewContent('') }
         );
     };
 
-    const startEditing = (comment: VisitComment) => {
-        setEditingCommentId(comment.id);
-        setEditingContent(comment.content);
+    const startEdit = (c: VisitComment) => {
+        setEditingId(c.id);
+        setEditingContent(c.content);
     };
 
-    const cancelEditing = () => {
-        setEditingCommentId(null);
+    const cancelEdit = () => {
+        setEditingId(null);
         setEditingContent('');
     };
 
-    const handleUpdateComment = (commentId: string) => {
+    const saveEdit = (id: string) => {
         if (!editingContent.trim()) return;
-
         updateComment(
-            {
-                commentId,
-                content: editingContent.trim(),
-            },
-            {
-                onSuccess: () => {
-                    setEditingCommentId(null);
-                    setEditingContent('');
-                },
-            }
+            { commentId: id, content: editingContent.trim() },
+            { onSuccess: () => { setEditingId(null); setEditingContent(''); } }
         );
     };
 
-    const handleDeleteComment = (commentId: string) => {
+    const handleDelete = (id: string) => {
         if (window.confirm('Czy na pewno chcesz usunąć ten komentarz?')) {
-            deleteComment(commentId);
+            deleteComment(id);
         }
     };
 
-    const toggleRevisions = (commentId: string) => {
+    const toggleRevisions = (id: string) => {
         setExpandedRevisions(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(commentId)) {
-                newSet.delete(commentId);
-            } else {
-                newSet.add(commentId);
-            }
-            return newSet;
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
         });
     };
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleString('pl-PL', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
-    };
-
-    if (isLoading) {
-        return (
-            <Container>
-                <EmptyState>Ładowanie komentarzy...</EmptyState>
-            </Container>
-        );
-    }
+    const visibleCount = comments.filter(c => !c.isDeleted).length;
+    const sortedComments = [...comments].reverse();
 
     return (
-        <Container>
-            <AddCommentForm>
-                <FormHeader>Dodaj komentarz</FormHeader>
+        <Panel>
+            {/* ── Header ── */}
+            <PanelHeader>
+                <PanelTitle>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    Komentarze
+                </PanelTitle>
+                <CountPill>{isLoading ? '—' : visibleCount}</CountPill>
+            </PanelHeader>
 
-                <TypeSelector>
-                    <TypeButton
-                        $isActive={newCommentType === 'INTERNAL'}
-                        onClick={() => setNewCommentType('INTERNAL')}
+            {/* ── Add form ── */}
+            <AddFormArea>
+                <TypeToggle>
+                    <TypeOpt
+                        $active={newType === 'INTERNAL'}
+                        $accent="#b45309"
+                        onClick={() => setNewType('INTERNAL')}
                     >
-                        Notatka wewnętrzna
-                    </TypeButton>
-                    <TypeButton
-                        $isActive={newCommentType === 'FOR_CUSTOMER'}
-                        onClick={() => setNewCommentType('FOR_CUSTOMER')}
+                        Wewnętrzna
+                    </TypeOpt>
+                    <TypeOpt
+                        $active={newType === 'FOR_CUSTOMER'}
+                        $accent="#1d4ed8"
+                        onClick={() => setNewType('FOR_CUSTOMER')}
                     >
                         Dla klienta
-                    </TypeButton>
-                </TypeSelector>
+                    </TypeOpt>
+                </TypeToggle>
 
-                <TextArea
-                    value={newCommentContent}
-                    onChange={(e) => setNewCommentContent(e.target.value)}
-                    placeholder="Wpisz treść komentarza..."
+                <NoteArea
+                    value={newContent}
+                    onChange={e => setNewContent(e.target.value)}
+                    placeholder={
+                        newType === 'INTERNAL'
+                            ? 'Notatka widoczna tylko dla personelu…'
+                            : 'Treść wiadomości dla klienta…'
+                    }
                     disabled={isAdding}
                 />
 
-                <ButtonGroup>
-                    <Button
-                        $variant="secondary"
-                        onClick={() => setNewCommentContent('')}
-                        disabled={isAdding || !newCommentContent}
+                <FormActions>
+                    <BtnGhost
+                        onClick={() => setNewContent('')}
+                        disabled={isAdding || !newContent}
                     >
                         Wyczyść
-                    </Button>
-                    <Button
-                        $variant="primary"
-                        onClick={handleAddComment}
-                        disabled={isAdding || !newCommentContent.trim()}
+                    </BtnGhost>
+                    <BtnPrimary
+                        onClick={handleAdd}
+                        disabled={isAdding || !newContent.trim()}
                     >
-                        {isAdding ? 'Dodawanie...' : 'Dodaj komentarz'}
-                    </Button>
-                </ButtonGroup>
-            </AddCommentForm>
+                        {isAdding ? 'Dodawanie…' : 'Dodaj'}
+                    </BtnPrimary>
+                </FormActions>
+            </AddFormArea>
 
-            {comments.length === 0 ? (
-                <EmptyState>
-                    Brak komentarzy. Dodaj pierwszy komentarz powyżej.
-                </EmptyState>
-            ) : (
-                <CommentsList>
-                    {[...comments].reverse().map((comment) => (
-                        <CommentCard key={comment.id} $isDeleted={comment.isDeleted}>
+            {/* ── List ── */}
+            <CommentsScroll>
+                {isLoading ? (
+                    <EmptyMsg>Ładowanie komentarzy…</EmptyMsg>
+                ) : sortedComments.length === 0 ? (
+                    <EmptyMsg>Brak komentarzy. Dodaj pierwszy powyżej.</EmptyMsg>
+                ) : (
+                    sortedComments.map(comment => (
+                        <CommentRow
+                            key={comment.id}
+                            $type={comment.type}
+                            $deleted={comment.isDeleted}
+                        >
+                            {/* Author row */}
+                            <CommentHead>
+                                <Initials $type={comment.type}>
+                                    {getInitials(comment.createdByName)}
+                                </Initials>
+                                <AuthorName>{comment.createdByName}</AuthorName>
+                                <TypePill $type={comment.type}>
+                                    {comment.type === 'INTERNAL' ? 'Wewnętrzna' : 'Klient'}
+                                </TypePill>
+                                <CommentDate>{formatDate(comment.createdAt)}</CommentDate>
+                            </CommentHead>
+
+                            {/* Deleted notice */}
                             {comment.isDeleted && (
-                                <DeletedNotice>
-                                    Komentarz został usunięty przez {comment.deletedByName} dnia{' '}
-                                    {formatDate(comment.deletedAt!)}
-                                </DeletedNotice>
+                                <DeletedBanner>
+                                    Usunięto przez {comment.deletedByName} · {formatDate(comment.deletedAt!)}
+                                </DeletedBanner>
                             )}
 
-                            <CommentHeader>
-                                <CommentMeta>
-                                    <CommentAuthor>{comment.createdByName}</CommentAuthor>
-                                    <CommentDate>{formatDate(comment.createdAt)}</CommentDate>
-                                    {comment.updatedAt && (
-                                        <CommentDate>
-                                            Edytowano: {formatDate(comment.updatedAt)} przez{' '}
-                                            {comment.updatedByName}
-                                        </CommentDate>
-                                    )}
-                                </CommentMeta>
-                                <CommentBadge $type={comment.type}>
-                                    {comment.type === 'INTERNAL' ? 'Wewnętrzna' : 'Dla klienta'}
-                                </CommentBadge>
-                            </CommentHeader>
-
-                            {editingCommentId === comment.id ? (
+                            {/* Inline edit or body */}
+                            {editingId === comment.id ? (
                                 <>
-                                    <EditingTextArea
+                                    <InlineEditArea
                                         value={editingContent}
-                                        onChange={(e) => setEditingContent(e.target.value)}
+                                        onChange={e => setEditingContent(e.target.value)}
                                         disabled={isUpdating}
                                     />
-                                    <ButtonGroup>
-                                        <Button
-                                            $variant="secondary"
-                                            onClick={cancelEditing}
-                                            disabled={isUpdating}
-                                        >
+                                    <ActionStrip>
+                                        <MicroBtn onClick={cancelEdit} disabled={isUpdating}>
                                             Anuluj
-                                        </Button>
-                                        <Button
-                                            $variant="primary"
-                                            onClick={() => handleUpdateComment(comment.id)}
+                                        </MicroBtn>
+                                        <BtnPrimary
+                                            onClick={() => saveEdit(comment.id)}
                                             disabled={isUpdating || !editingContent.trim()}
+                                            style={{ padding: '3px 10px', fontSize: 11 }}
                                         >
-                                            {isUpdating ? 'Zapisywanie...' : 'Zapisz'}
-                                        </Button>
-                                    </ButtonGroup>
+                                            {isUpdating ? 'Zapisywanie…' : 'Zapisz'}
+                                        </BtnPrimary>
+                                    </ActionStrip>
                                 </>
                             ) : (
                                 <>
-                                    <CommentContent $isDeleted={comment.isDeleted}>
+                                    <CommentBody $deleted={comment.isDeleted}>
                                         {comment.content}
-                                    </CommentContent>
+                                    </CommentBody>
+
+                                    {comment.updatedAt && !comment.isDeleted && (
+                                        <EditedLabel>
+                                            Edytowano {formatDate(comment.updatedAt)} · {comment.updatedByName}
+                                        </EditedLabel>
+                                    )}
 
                                     {!comment.isDeleted && (
-                                        <CommentActions>
-                                            <ActionButton onClick={() => startEditing(comment)}>
+                                        <ActionStrip>
+                                            <MicroBtn onClick={() => startEdit(comment)}>
                                                 Edytuj
-                                            </ActionButton>
-                                            <ActionButton
-                                                className="danger"
-                                                onClick={() => handleDeleteComment(comment.id)}
+                                            </MicroBtn>
+                                            <MicroBtn
+                                                $danger
+                                                onClick={() => handleDelete(comment.id)}
                                                 disabled={isDeleting}
                                             >
                                                 Usuń
-                                            </ActionButton>
-                                        </CommentActions>
+                                            </MicroBtn>
+                                        </ActionStrip>
                                     )}
                                 </>
                             )}
 
+                            {/* Revision history */}
                             {comment.revisions.length > 0 && (
-                                <RevisionsList>
-                                    <RevisionHeader onClick={() => toggleRevisions(comment.id)}>
-                                        {expandedRevisions.has(comment.id) ? '▼' : '▶'} Historia zmian (
-                                        {comment.revisions.length})
-                                    </RevisionHeader>
+                                <>
+                                    <RevToggleBtn onClick={() => toggleRevisions(comment.id)}>
+                                        <svg
+                                            width="8"
+                                            height="8"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2.5"
+                                        >
+                                            {expandedRevisions.has(comment.id)
+                                                ? <polyline points="18 15 12 9 6 15" />
+                                                : <polyline points="6 9 12 15 18 9" />
+                                            }
+                                        </svg>
+                                        Historia zmian ({comment.revisions.length})
+                                    </RevToggleBtn>
+
                                     {expandedRevisions.has(comment.id) && (
-                                        <div>
-                                            {comment.revisions.map((revision) => (
-                                                <RevisionItem key={revision.id}>
-                                                    <RevisionMeta>
-                                                        Zmieniono przez {revision.changedByName} dnia{' '}
-                                                        {formatDate(revision.changedAt)}
-                                                    </RevisionMeta>
-                                                    <RevisionContent>
-                                                        <RevisionColumn>
-                                                            <RevisionLabel>Poprzednia treść:</RevisionLabel>
-                                                            {revision.oldContent}
-                                                        </RevisionColumn>
-                                                        <RevisionColumn>
-                                                            <RevisionLabel>Nowa treść:</RevisionLabel>
-                                                            {revision.newContent}
-                                                        </RevisionColumn>
-                                                    </RevisionContent>
-                                                </RevisionItem>
+                                        <RevBlock>
+                                            {comment.revisions.map(rev => (
+                                                <RevEntry key={rev.id}>
+                                                    <RevMeta>
+                                                        {rev.changedByName} · {formatDate(rev.changedAt)}
+                                                    </RevMeta>
+                                                    <RevDiff>
+                                                        <DiffBox $old>
+                                                            <DiffBoxLabel>Poprzednia</DiffBoxLabel>
+                                                            {rev.oldContent}
+                                                        </DiffBox>
+                                                        <DiffBox $old={false}>
+                                                            <DiffBoxLabel>Nowa</DiffBoxLabel>
+                                                            {rev.newContent}
+                                                        </DiffBox>
+                                                    </RevDiff>
+                                                </RevEntry>
                                             ))}
-                                        </div>
+                                        </RevBlock>
                                     )}
-                                </RevisionsList>
+                                </>
                             )}
-                        </CommentCard>
-                    ))}
-                </CommentsList>
-            )}
-        </Container>
+                        </CommentRow>
+                    ))
+                )}
+            </CommentsScroll>
+        </Panel>
     );
 };
