@@ -65,6 +65,7 @@ export const useDashboard = () => {
     stats: data?.stats,
     revenue: data?.revenue,
     callActivity: data?.callActivity,
+    instagramPhotos: data?.instagramPhotos,
     recentCalls: data?.recentCalls || [],
     googleReviews: data?.googleReviews,
 

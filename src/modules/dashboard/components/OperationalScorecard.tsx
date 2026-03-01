@@ -5,9 +5,9 @@
  */
 
 import { useState } from 'react';
-import styled, { css } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, ArrowRight, Clock, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ExternalLink, Clock, AlertTriangle, ChevronRight } from 'lucide-react';
 import { t } from '@/common/i18n';
 import { formatCurrency, formatPhoneNumber, formatDate } from '@/common/utils/formatters';
 import type { OperationalStats, VisitDetail } from '../types';
@@ -49,7 +49,14 @@ interface OperationalScorecardProps {
   stats?: OperationalStats;
 }
 
-// ─── Styled Components ───────────────────────────────────────────────────────
+// ─── Animations ──────────────────────────────────────────────────────────────
+
+const panelFadeIn = keyframes`
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
+// ─── Scorecard Grid ───────────────────────────────────────────────────────────
 
 const ScorecardContainer = styled.div`
   display: grid;
@@ -64,6 +71,8 @@ const ScorecardContainer = styled.div`
     grid-template-columns: repeat(4, 1fr);
   }
 `;
+
+// ─── KPI Card ────────────────────────────────────────────────────────────────
 
 const CardWrapper = styled.div`
   position: relative;
@@ -152,12 +161,8 @@ const CardSkeleton = styled.div`
   margin-bottom: ${(p) => p.theme.spacing.sm};
 
   @keyframes shimmer {
-    0% {
-      background-position: 200% 0;
-    }
-    100% {
-      background-position: -200% 0;
-    }
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
   }
 `;
 
@@ -180,10 +185,7 @@ const OverdueBadge = styled.span`
   font-size: ${(p) => p.theme.fontSizes.xs};
   font-weight: ${(p) => p.theme.fontWeights.semibold};
 
-  svg {
-    width: 11px;
-    height: 11px;
-  }
+  svg { width: 11px; height: 11px; }
 `;
 
 const SubLabel = styled.span<{ $variant: CardVariant }>`
@@ -202,24 +204,26 @@ const ClickHint = styled.div`
   gap: 3px;
 `;
 
-// ─── Expanded Visit List ──────────────────────────────────────────────────────
+// ─── Expanded Panel ───────────────────────────────────────────────────────────
 
 const ExpandedPanel = styled.div<{ $isVisible: boolean }>`
   position: absolute;
-  top: calc(100% + ${(p) => p.theme.spacing.sm});
+  top: calc(100% + 8px);
   left: 0;
   right: 0;
+  min-width: 320px;
   background-color: ${(p) => p.theme.colors.surface};
   border-radius: ${(p) => p.theme.radii.lg};
-  box-shadow: ${(p) => p.theme.shadows.xl};
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.14), 0 4px 12px rgba(0, 0, 0, 0.08);
   border: 1px solid ${(p) => p.theme.colors.border};
   z-index: 20;
-  max-height: 420px;
-  overflow-y: auto;
+  max-height: 480px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   opacity: ${(p) => (p.$isVisible ? 1 : 0)};
-  transform: ${(p) => (p.$isVisible ? 'translateY(0)' : 'translateY(-8px)')};
   pointer-events: ${(p) => (p.$isVisible ? 'auto' : 'none')};
-  transition: opacity 200ms ease, transform 200ms ease;
+  animation: ${(p) => (p.$isVisible ? panelFadeIn : 'none')} 180ms ease both;
 
   @media (max-width: ${(p) => p.theme.breakpoints.sm}) {
     position: fixed;
@@ -227,121 +231,46 @@ const ExpandedPanel = styled.div<{ $isVisible: boolean }>`
     bottom: 0;
     left: 0;
     right: 0;
-    max-height: 60vh;
+    min-width: unset;
+    max-height: 70vh;
     border-radius: ${(p) => p.theme.radii.lg} ${(p) => p.theme.radii.lg} 0 0;
   }
 `;
 
 const PanelHeader = styled.div`
-  padding: ${(p) => p.theme.spacing.md};
-  background-color: ${(p) => p.theme.colors.surfaceAlt};
-  border-bottom: 1px solid ${(p) => p.theme.colors.border};
-  font-size: ${(p) => p.theme.fontSizes.sm};
-  font-weight: ${(p) => p.theme.fontWeights.semibold};
-  color: ${(p) => p.theme.colors.text};
-  position: sticky;
-  top: 0;
-  z-index: 1;
-`;
-
-const VisitRow = styled.div<{ $overdue?: boolean }>`
-  padding: ${(p) => p.theme.spacing.md};
-  border-bottom: 1px solid ${(p) => p.theme.colors.border};
-  background-color: ${(p) => (p.$overdue ? p.theme.colors.errorLight : 'transparent')};
-  transition: background-color 150ms ease;
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &:hover {
-    background-color: ${(p) =>
-      p.$overdue ? 'rgba(254, 226, 226, 0.8)' : p.theme.colors.surfaceHover};
-  }
-`;
-
-const VisitTopRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: ${(p) => p.theme.spacing.md};
-  flex-wrap: wrap;
-
-  @media (min-width: ${(p) => p.theme.breakpoints.sm}) {
-    flex-wrap: nowrap;
-  }
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid ${(p) => p.theme.colors.border};
+  flex-shrink: 0;
 `;
 
-const VehicleName = styled.span`
-  font-size: ${(p) => p.theme.fontSizes.md};
-  font-weight: ${(p) => p.theme.fontWeights.semibold};
-  color: ${(p) => p.theme.colors.text};
-`;
-
-const VisitAmount = styled.span`
-  font-size: ${(p) => p.theme.fontSizes.md};
+const PanelTitle = styled.span`
+  font-size: ${(p) => p.theme.fontSizes.sm};
   font-weight: ${(p) => p.theme.fontWeights.bold};
-  color: var(--brand-primary);
-  margin-left: ${(p) => p.theme.spacing.md};
+  color: ${(p) => p.theme.colors.text};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 `;
 
-const VisitSubRow = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: ${(p) => p.theme.spacing.xs};
-`;
-
-const CustomerText = styled.span`
-  font-size: ${(p) => p.theme.fontSizes.sm};
-  color: ${(p) => p.theme.colors.textSecondary};
-`;
-
-const PhoneText = styled.span`
-  font-size: ${(p) => p.theme.fontSizes.sm};
-  color: ${(p) => p.theme.colors.textMuted};
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-`;
-
-const DateRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: ${(p) => p.theme.fontSizes.xs};
-  color: ${(p) => p.theme.colors.textMuted};
-  margin-top: 2px;
-`;
-
-const OverdueIcon = styled(Clock)`
-  width: 12px;
-  height: 12px;
-  color: ${(p) => p.theme.colors.error};
-`;
-
-const ViewBtn = styled.button`
+const PanelCount = styled.span<{ $variant: CardVariant }>`
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  background-color: var(--brand-primary);
-  color: white;
-  border: none;
-  border-radius: ${(p) => p.theme.radii.md};
-  font-size: ${(p) => p.theme.fontSizes.xs};
-  font-weight: ${(p) => p.theme.fontWeights.semibold};
-  cursor: pointer;
-  transition: opacity 150ms ease;
-  white-space: nowrap;
-  flex-shrink: 0;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  background-color: ${(p) => CARD_CONFIG[p.$variant].accentColor}18;
+  color: ${(p) => CARD_CONFIG[p.$variant].accentColor};
+  border-radius: ${(p) => p.theme.radii.full};
+  font-size: 11px;
+  font-weight: ${(p) => p.theme.fontWeights.bold};
+`;
 
-  &:hover {
-    opacity: 0.88;
-  }
-
-  svg {
-    width: 12px;
-    height: 12px;
-  }
+const VisitScrollArea = styled.div`
+  overflow-y: auto;
+  flex: 1;
 `;
 
 const EmptyPanel = styled.div`
@@ -351,65 +280,262 @@ const EmptyPanel = styled.div`
   font-size: ${(p) => p.theme.fontSizes.sm};
 `;
 
-// ─── Visit List Sub-Component ─────────────────────────────────────────────────
+// ─── Visit Item ───────────────────────────────────────────────────────────────
 
-const VisitList = ({
+const VisitItem = styled.div<{ $overdue: boolean }>`
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid ${(p) => p.theme.colors.border};
+  border-left: 3px solid ${(p) => (p.$overdue ? p.theme.colors.error : 'transparent')};
+  transition: background-color 120ms ease;
+
+  &:last-child { border-bottom: none; }
+
+  &:hover {
+    background-color: ${(p) => p.theme.colors.surfaceHover};
+  }
+`;
+
+const BrandAvatar = styled.div<{ $variant: CardVariant }>`
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 8px;
+  background-color: ${(p) => CARD_CONFIG[p.$variant].accentColor}15;
+  border: 1.5px solid ${(p) => CARD_CONFIG[p.$variant].accentColor}35;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: ${(p) => CARD_CONFIG[p.$variant].accentColor};
+  flex-shrink: 0;
+  margin-top: 1px;
+`;
+
+const VisitBody = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const VisitMainRow = styled.div`
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+`;
+
+const VehicleName = styled.span`
+  font-size: ${(p) => p.theme.fontSizes.md};
+  font-weight: ${(p) => p.theme.fontWeights.semibold};
+  color: ${(p) => p.theme.colors.text};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+`;
+
+const VisitAmount = styled.span`
+  font-size: ${(p) => p.theme.fontSizes.md};
+  font-weight: ${(p) => p.theme.fontWeights.bold};
+  color: var(--brand-primary);
+  white-space: nowrap;
+  flex-shrink: 0;
+`;
+
+const VisitSecondRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+  flex-wrap: wrap;
+`;
+
+const CustomerName = styled.span`
+  font-size: ${(p) => p.theme.fontSizes.sm};
+  color: ${(p) => p.theme.colors.textSecondary};
+`;
+
+const Dot = styled.span`
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background-color: ${(p) => p.theme.colors.textMuted};
+  flex-shrink: 0;
+`;
+
+const PhoneChip = styled.span`
+  font-size: 11px;
+  color: ${(p) => p.theme.colors.textMuted};
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  letter-spacing: -0.3px;
+`;
+
+const DateLine = styled.div<{ $overdue: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+  font-size: 11px;
+  font-weight: ${(p) => (p.$overdue ? p.theme.fontWeights.semibold : p.theme.fontWeights.normal)};
+  color: ${(p) => (p.$overdue ? p.theme.colors.error : p.theme.colors.textMuted)};
+
+  svg { width: 11px; height: 11px; flex-shrink: 0; }
+`;
+
+const OpenButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: 8px;
+  background: transparent;
+  color: ${(p) => p.theme.colors.textMuted};
+  cursor: pointer;
+  flex-shrink: 0;
+  align-self: center;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+
+  svg { width: 14px; height: 14px; }
+
+  &:hover {
+    background-color: var(--brand-primary);
+    color: white;
+    border-color: var(--brand-primary);
+  }
+`;
+
+const PanelFooter = styled.div`
+  padding: 10px 16px;
+  border-top: 1px solid ${(p) => p.theme.colors.border};
+  background-color: ${(p) => p.theme.colors.surfaceAlt};
+  flex-shrink: 0;
+`;
+
+const ViewAllBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: ${(p) => p.theme.fontSizes.xs};
+  font-weight: ${(p) => p.theme.fontWeights.semibold};
+  color: var(--brand-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 120ms ease;
+
+  svg { width: 13px; height: 13px; }
+
+  &:hover { opacity: 0.72; }
+`;
+
+// ─── Visit Row Component ──────────────────────────────────────────────────────
+
+const VisitRow = ({
+  visit,
+  variant,
+  showActions,
+  onOpen,
+}: {
+  visit: VisitDetail;
+  variant: CardVariant;
+  showActions: boolean;
+  onOpen: () => void;
+}) => {
+  const isOverdue = Boolean(
+    visit.estimatedCompletionDate && new Date(visit.estimatedCompletionDate) < new Date()
+  );
+
+  return (
+    <VisitItem $overdue={isOverdue}>
+      <BrandAvatar $variant={variant}>{visit.brand.charAt(0).toUpperCase()}</BrandAvatar>
+
+      <VisitBody>
+        <VisitMainRow>
+          <VehicleName>{visit.brand} {visit.model}</VehicleName>
+          <VisitAmount>{formatCurrency(visit.amount)}</VisitAmount>
+        </VisitMainRow>
+
+        <VisitSecondRow>
+          <CustomerName>{visit.customerFirstName} {visit.customerLastName}</CustomerName>
+          {visit.phoneNumber && (
+            <>
+              <Dot />
+              <PhoneChip>{formatPhoneNumber(visit.phoneNumber)}</PhoneChip>
+            </>
+          )}
+        </VisitSecondRow>
+
+        {visit.estimatedCompletionDate && (
+          <DateLine $overdue={isOverdue}>
+            {isOverdue ? <AlertTriangle /> : <Clock />}
+            {t.dashboard.stats.estimatedCompletion}: {formatDate(visit.estimatedCompletionDate)}
+            {isOverdue && ' — po terminie'}
+          </DateLine>
+        )}
+      </VisitBody>
+
+      {showActions && (
+        <OpenButton onClick={onOpen} title="Otwórz wizytę">
+          <ExternalLink />
+        </OpenButton>
+      )}
+    </VisitItem>
+  );
+};
+
+// ─── Visits Panel ─────────────────────────────────────────────────────────────
+
+const VisitsPanel = ({
   visits,
   label,
+  variant,
   showActions = false,
 }: {
   visits: VisitDetail[];
   label: string;
+  variant: CardVariant;
   showActions?: boolean;
 }) => {
   const navigate = useNavigate();
 
   return (
     <>
-      <PanelHeader>{label}</PanelHeader>
-      {visits.length === 0 ? (
-        <EmptyPanel>Brak wizyt</EmptyPanel>
-      ) : (
-        visits.map((visit) => {
-          const isOverdue = Boolean(
-            visit.estimatedCompletionDate && new Date(visit.estimatedCompletionDate) < new Date()
-          );
-          return (
-            <VisitRow key={visit.id} $overdue={isOverdue}>
-              <VisitTopRow>
-                <div>
-                  <VehicleName>
-                    {visit.brand} {visit.model}
-                  </VehicleName>
-                  <VisitAmount>{formatCurrency(visit.amount)}</VisitAmount>
-                </div>
-                {showActions && (
-                  <ViewBtn onClick={() => navigate(`/visits/${visit.id}`)}>
-                    Otwórz
-                    <ArrowRight />
-                  </ViewBtn>
-                )}
-              </VisitTopRow>
-              <VisitSubRow>
-                <CustomerText>
-                  {visit.customerFirstName} {visit.customerLastName}
-                </CustomerText>
-                {visit.phoneNumber && (
-                  <PhoneText>{formatPhoneNumber(visit.phoneNumber)}</PhoneText>
-                )}
-                {visit.estimatedCompletionDate && (
-                  <DateRow>
-                    {isOverdue && <OverdueIcon />}
-                    <span>
-                      {t.dashboard.stats.estimatedCompletion}:{' '}
-                      {formatDate(visit.estimatedCompletionDate)}
-                    </span>
-                  </DateRow>
-                )}
-              </VisitSubRow>
-            </VisitRow>
-          );
-        })
+      <PanelHeader>
+        <PanelTitle>{label}</PanelTitle>
+        <PanelCount $variant={variant}>{visits.length}</PanelCount>
+      </PanelHeader>
+
+      <VisitScrollArea>
+        {visits.length === 0 ? (
+          <EmptyPanel>Brak wizyt w tej kategorii</EmptyPanel>
+        ) : (
+          visits.map((visit) => (
+            <VisitRow
+              key={visit.id}
+              visit={visit}
+              variant={variant}
+              showActions={showActions}
+              onOpen={() => navigate(`/visits/${visit.id}`)}
+            />
+          ))
+        )}
+      </VisitScrollArea>
+
+      {visits.length > 0 && (
+        <PanelFooter>
+          <ViewAllBtn onClick={() => navigate('/calendar')}>
+            Pokaż w kalendarzu
+            <ChevronRight />
+          </ViewAllBtn>
+        </PanelFooter>
       )}
     </>
   );
@@ -480,7 +606,12 @@ const KpiCard = ({
           $isVisible={isExpanded}
           onClick={(e) => e.stopPropagation()}
         >
-          <VisitList visits={details} label={label} showActions={showActions} />
+          <VisitsPanel
+            visits={details}
+            label={label}
+            variant={variant}
+            showActions={showActions}
+          />
         </ExpandedPanel>
       )}
     </CardWrapper>
@@ -504,8 +635,9 @@ const SkeletonCard = ({ variant }: { variant: CardVariant }) => (
 const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: rgba(0, 0, 0, 0.35);
   z-index: 15;
+  backdrop-filter: blur(1px);
 `;
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -517,12 +649,9 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
     setExpandedCard((prev) => (prev === key ? null : key));
   };
 
-  const handleClose = () => setExpandedCard(null);
-
   return (
     <>
       <ScorecardContainer>
-        {/* In Progress */}
         {stats ? (
           <KpiCard
             variant="inProgress"
@@ -539,7 +668,6 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
           <SkeletonCard variant="inProgress" />
         )}
 
-        {/* Ready for Pickup */}
         {stats ? (
           <KpiCard
             variant="readyForPickup"
@@ -555,7 +683,6 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
           <SkeletonCard variant="readyForPickup" />
         )}
 
-        {/* Incoming Today */}
         {stats ? (
           <KpiCard
             variant="incomingToday"
@@ -570,7 +697,6 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
           <SkeletonCard variant="incomingToday" />
         )}
 
-        {/* Abandoned (last 30 days) */}
         {stats ? (
           <KpiCard
             variant="abandoned"
@@ -586,8 +712,7 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
         )}
       </ScorecardContainer>
 
-      {/* Mobile overlay to close expanded panel */}
-      {expandedCard && <Overlay onClick={handleClose} />}
+      {expandedCard && <Overlay onClick={() => setExpandedCard(null)} />}
     </>
   );
 };

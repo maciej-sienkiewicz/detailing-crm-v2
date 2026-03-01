@@ -1,10 +1,11 @@
 /**
  * Analytics Section Component
- * Premium business metrics: revenue and call activity with trend comparison.
+ * Premium business metrics: revenue, call activity, and Instagram activity
+ * with week-over-week trend comparison.
  */
 
 import styled from 'styled-components';
-import { TrendingUp, TrendingDown, DollarSign, Phone } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Phone, Instagram } from 'lucide-react';
 import { t } from '@/common/i18n';
 import { formatCurrency, formatNumber } from '@/common/utils/formatters';
 import type { BusinessMetric } from '../types';
@@ -12,19 +13,26 @@ import type { BusinessMetric } from '../types';
 interface AnalyticsSectionProps {
   revenue?: BusinessMetric;
   callActivity?: BusinessMetric;
+  instagramPhotos?: BusinessMetric;
 }
 
-// ─── Styled Components ───────────────────────────────────────────────────────
+// ─── Layout ───────────────────────────────────────────────────────────────────
 
-const AnalyticsGrid = styled.div`
+const AnalyticsGrid = styled.div<{ $count: number }>`
   display: grid;
   grid-template-columns: 1fr;
   gap: ${(p) => p.theme.spacing.md};
 
-  @media (min-width: ${(p) => p.theme.breakpoints.md}) {
-    grid-template-columns: repeat(2, 1fr);
+  @media (min-width: ${(p) => p.theme.breakpoints.sm}) {
+    grid-template-columns: repeat(${(p) => Math.min(p.$count, 2)}, 1fr);
+  }
+
+  @media (min-width: ${(p) => p.theme.breakpoints.xl}) {
+    grid-template-columns: repeat(${(p) => p.$count}, 1fr);
   }
 `;
+
+// ─── Metric Card ─────────────────────────────────────────────────────────────
 
 const MetricCard = styled.div`
   background-color: ${(p) => p.theme.colors.surface};
@@ -112,23 +120,6 @@ const Divider = styled.div`
   background-color: ${(p) => p.theme.colors.border};
 `;
 
-const CompareRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const CompareLabel = styled.span`
-  font-size: ${(p) => p.theme.fontSizes.sm};
-  color: ${(p) => p.theme.colors.textSecondary};
-`;
-
-const CompareValue = styled.span`
-  font-size: ${(p) => p.theme.fontSizes.sm};
-  font-weight: ${(p) => p.theme.fontWeights.semibold};
-  color: ${(p) => p.theme.colors.textSecondary};
-`;
-
 const ProgressBar = styled.div`
   position: relative;
   height: 4px;
@@ -147,6 +138,25 @@ const ProgressFill = styled.div<{ $percent: number; $positive: boolean }>`
   border-radius: ${(p) => p.theme.radii.full};
   transition: width 600ms ease;
 `;
+
+const CompareRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const CompareLabel = styled.span`
+  font-size: ${(p) => p.theme.fontSizes.sm};
+  color: ${(p) => p.theme.colors.textSecondary};
+`;
+
+const CompareValue = styled.span`
+  font-size: ${(p) => p.theme.fontSizes.sm};
+  font-weight: ${(p) => p.theme.fontWeights.semibold};
+  color: ${(p) => p.theme.colors.textSecondary};
+`;
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
 
 const SkeletonCard = styled.div`
   background-color: ${(p) => p.theme.colors.surface};
@@ -171,12 +181,8 @@ const SkeletonLine = styled.div<{ $w?: string; $h?: string }>`
   margin-bottom: ${(p) => p.theme.spacing.sm};
 
   @keyframes shimmer {
-    0% {
-      background-position: 200% 0;
-    }
-    100% {
-      background-position: -200% 0;
-    }
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
   }
 `;
 
@@ -245,11 +251,26 @@ const MetricItem = ({
   );
 };
 
+const MetricSkeleton = () => (
+  <SkeletonCard>
+    <SkeletonLine $w="40px" $h="40px" />
+    <SkeletonLine $w="60%" />
+    <SkeletonLine $h="34px" $w="80%" />
+    <SkeletonLine />
+  </SkeletonCard>
+);
+
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
-export const AnalyticsSection = ({ revenue, callActivity }: AnalyticsSectionProps) => {
+export const AnalyticsSection = ({
+  revenue,
+  callActivity,
+  instagramPhotos,
+}: AnalyticsSectionProps) => {
+  const count = [revenue, callActivity, instagramPhotos].filter(Boolean).length || 3;
+
   return (
-    <AnalyticsGrid>
+    <AnalyticsGrid $count={count}>
       {revenue ? (
         <MetricItem
           metric={revenue}
@@ -260,12 +281,7 @@ export const AnalyticsSection = ({ revenue, callActivity }: AnalyticsSectionProp
           iconBg="rgba(14, 165, 233, 0.1)"
         />
       ) : (
-        <SkeletonCard>
-          <SkeletonLine $w="40px" $h="40px" />
-          <SkeletonLine $w="60%" />
-          <SkeletonLine $h="34px" $w="80%" />
-          <SkeletonLine />
-        </SkeletonCard>
+        <MetricSkeleton />
       )}
 
       {callActivity ? (
@@ -278,12 +294,20 @@ export const AnalyticsSection = ({ revenue, callActivity }: AnalyticsSectionProp
           iconBg="rgba(124, 58, 237, 0.1)"
         />
       ) : (
-        <SkeletonCard>
-          <SkeletonLine $w="40px" $h="40px" />
-          <SkeletonLine $w="60%" />
-          <SkeletonLine $h="34px" $w="80%" />
-          <SkeletonLine />
-        </SkeletonCard>
+        <MetricSkeleton />
+      )}
+
+      {instagramPhotos ? (
+        <MetricItem
+          metric={instagramPhotos}
+          title={t.dashboard.metrics.instagramTitle}
+          period={t.dashboard.metrics.instagramSubLabel}
+          icon={Instagram}
+          iconColor="#e1306c"
+          iconBg="rgba(225, 48, 108, 0.1)"
+        />
+      ) : (
+        <MetricSkeleton />
       )}
     </AnalyticsGrid>
   );

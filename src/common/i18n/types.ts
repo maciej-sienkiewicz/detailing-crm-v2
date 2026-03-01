@@ -885,6 +885,8 @@ export interface TranslationKeys {
             plannedThisWeek: string;
             realizedLastWeek: string;
             wowTrend: string;
+            instagramTitle: string;
+            instagramSubLabel: string;
         };
         calls: {
             title: string;

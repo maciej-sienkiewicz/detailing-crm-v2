@@ -5,16 +5,7 @@
 
 import { useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { useNavigate } from 'react-router-dom';
-import {
-  RefreshCw,
-  CalendarPlus,
-  Users,
-  BarChart2,
-  Wrench,
-  TrendingUp,
-  AlertCircle,
-} from 'lucide-react';
+import { RefreshCw, AlertCircle } from 'lucide-react';
 import { OperationalScorecard } from '../components/OperationalScorecard';
 import { AnalyticsSection } from '../components/AnalyticsSection';
 import { LeadInbox } from '../components/LeadInbox';
@@ -39,16 +30,6 @@ const formatLocalDate = (): string =>
   });
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
-// ─── Quick Actions ────────────────────────────────────────────────────────────
-
-const QUICK_ACTIONS = [
-  { label: 'Nowa wizyta', icon: CalendarPlus, path: '/appointments/create', accent: 'var(--brand-primary)', bg: 'rgba(14,165,233,0.08)' },
-  { label: 'Klienci', icon: Users, path: '/customers', accent: '#7c3aed', bg: 'rgba(124,58,237,0.08)' },
-  { label: 'Statystyki', icon: BarChart2, path: '/statistics', accent: '#059669', bg: 'rgba(5,150,105,0.08)' },
-  { label: 'Usługi', icon: Wrench, path: '/services', accent: '#d97706', bg: 'rgba(217,119,6,0.08)' },
-  { label: 'Growth Engine', icon: TrendingUp, path: '/growth-engine', accent: '#00F5A0', bg: 'rgba(0,245,160,0.08)' },
-] as const;
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -146,40 +127,6 @@ const RefreshBtn = styled.button<{ $spinning?: boolean }>`
   }
 `;
 
-// ─── Quick Actions Bar ────────────────────────────────────────────────────────
-
-const QuickActionsBar = styled.div`
-  display: flex;
-  gap: ${(p) => p.theme.spacing.sm};
-  flex-wrap: wrap;
-`;
-
-const QuickActionBtn = styled.button<{ $accent: string; $bg: string }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background-color: ${(p) => p.$bg};
-  border: 1px solid transparent;
-  border-radius: ${(p) => p.theme.radii.md};
-  font-size: ${(p) => p.theme.fontSizes.sm};
-  font-weight: ${(p) => p.theme.fontWeights.medium};
-  color: ${(p) => p.$accent};
-  cursor: pointer;
-  transition: background-color 150ms ease, box-shadow 150ms ease;
-  white-space: nowrap;
-
-  svg {
-    width: 15px;
-    height: 15px;
-  }
-
-  &:hover {
-    background-color: ${(p) => p.$bg.replace('0.08', '0.14')};
-    box-shadow: 0 0 0 1px ${(p) => p.$accent}40;
-  }
-`;
-
 // ─── Main Grid ────────────────────────────────────────────────────────────────
 
 const ContentGrid = styled.div`
@@ -239,9 +186,7 @@ const RetryBtn = styled.button`
   cursor: pointer;
   transition: opacity 150ms ease;
 
-  &:hover {
-    opacity: 0.88;
-  }
+  &:hover { opacity: 0.88; }
 `;
 
 const ErrorIcon = styled(AlertCircle)`
@@ -260,6 +205,7 @@ export const DashboardView = () => {
     stats,
     revenue,
     callActivity,
+    instagramPhotos,
     recentCalls,
     googleReviews,
     isFetching,
@@ -269,8 +215,6 @@ export const DashboardView = () => {
     onReject,
     onEdit,
   } = useDashboard();
-
-  const navigate = useNavigate();
 
   const greeting = useMemo(() => getGreeting(), []);
   const localDate = useMemo(() => capitalize(formatLocalDate()), []);
@@ -308,32 +252,19 @@ export const DashboardView = () => {
         </ErrorBox>
       )}
 
-      {/* ── Quick Actions ── */}
-      <QuickActionsBar>
-        {QUICK_ACTIONS.map((action) => (
-          <QuickActionBtn
-            key={action.path}
-            $accent={action.accent}
-            $bg={action.bg}
-            onClick={() => navigate(action.path)}
-          >
-            <action.icon />
-            {action.label}
-          </QuickActionBtn>
-        ))}
-      </QuickActionsBar>
-
       {/* ── KPI Strip ── */}
       <OperationalScorecard stats={stats} />
 
       {/* ── Main Content Grid ── */}
       <ContentGrid>
-        {/* Left: Metrics */}
         <LeftColumn>
-          <AnalyticsSection revenue={revenue} callActivity={callActivity} />
+          <AnalyticsSection
+            revenue={revenue}
+            callActivity={callActivity}
+            instagramPhotos={instagramPhotos}
+          />
         </LeftColumn>
 
-        {/* Right: Lead Inbox */}
         <LeadInbox
           calls={recentCalls}
           onAccept={onAccept}

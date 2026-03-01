@@ -870,6 +870,8 @@ export const pl: TranslationKeys = {
             plannedThisWeek: 'Zaplanowane (ten tydzień)',
             realizedLastWeek: 'Zrealizowane (poprzedni tydzień)',
             wowTrend: 'vs poprzedni tydzień',
+            instagramTitle: 'Posty na Instagramie',
+            instagramSubLabel: 'ten tydzień vs poprzedni',
         },
         calls: {
             title: 'Poczekalnia połączeń',

@@ -177,6 +177,12 @@ const mockDashboardData: DashboardData = {
     deltaPercentage: 20.0,
     unit: 'calls',
   },
+  instagramPhotos: {
+    currentValue: 14,
+    previousValue: 9,
+    deltaPercentage: 55.6,
+    unit: 'posts',
+  },
   recentCalls: [
     {
       id: '1',

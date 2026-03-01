@@ -137,6 +137,8 @@ export interface DashboardData {
   revenue: BusinessMetric;
   /** Call activity metric with week-over-week comparison */
   callActivity: BusinessMetric;
+  /** Instagram photos posted this week vs last week */
+  instagramPhotos?: BusinessMetric;
   /** List of recent incoming calls */
   recentCalls: IncomingCall[];
   /** Google reviews statistics */
