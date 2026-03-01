@@ -334,6 +334,7 @@ export const StatisticsView = () => {
                 orderCount: s.totals.orderCount,
                 totalRevenueGross: s.totals.totalRevenueGross,
                 isActive: s.isActive,
+                categoryId: selectedCategoryId,
                 isDraggable: false,
             }));
         }
@@ -346,6 +347,7 @@ export const StatisticsView = () => {
                 totalRevenueGross: s.totals.totalRevenueGross,
                 isActive: s.isActive,
                 color: cat.color ?? undefined,
+                categoryId: cat.categoryId,
                 isUnassigned: false,
                 isDraggable: false,
             }))
@@ -393,10 +395,9 @@ export const StatisticsView = () => {
         await assignMutation.mutateAsync({ categoryId, serviceId });
     };
 
-    /** Unpin button in service rows when a category is selected */
-    const handleUnpinService = async (serviceId: string) => {
-        if (!selectedCategoryId) return;
-        await unassignMutation.mutateAsync({ categoryId: selectedCategoryId, serviceId });
+    /** Unpin button in service rows — works regardless of which category is selected */
+    const handleUnpinService = async (serviceId: string, categoryId: string) => {
+        await unassignMutation.mutateAsync({ categoryId, serviceId });
     };
 
     // ── Render ────────────────────────────────────────────────────────────────
@@ -552,14 +553,14 @@ export const StatisticsView = () => {
                                     ? 'Brak usług przypisanych do tej kategorii'
                                     : t.statistics.breakdown.empty
                             }
-                            rowActions={selectedCategoryId ? (row) => (
+                            rowActions={(row) => row.categoryId ? (
                                 <RowActionBtn
                                     title="Odepnij od kategorii"
-                                    onClick={() => handleUnpinService(row.id)}
+                                    onClick={() => handleUnpinService(row.id, row.categoryId!)}
                                 >
                                     ✕
                                 </RowActionBtn>
-                            ) : undefined}
+                            ) : null}
                         />
                     </TableColumn>
                 </TablesGrid>

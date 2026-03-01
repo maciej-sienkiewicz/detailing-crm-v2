@@ -10,6 +10,8 @@ export interface BreakdownRow {
     totalRevenueGross: number;
     isActive?: boolean;
     color?: string;
+    /** ID of the category this service belongs to — used for the unpin action */
+    categoryId?: string;
     /** When true – shows ⚠ icon next to name */
     isUnassigned?: boolean;
     /** When true – makes this specific row draggable via HTML5 DnD */
