@@ -171,7 +171,8 @@ export const StatsFilters = ({
         <FiltersPanel>
             {/* Row 1: Quick presets */}
             <FilterRow>
-                <FilterLabel>Szybki wybór</FilterLabel>
+                <FilterLabel>
+                    Zakres dat</FilterLabel>
                 <ChipGroup>
                     {presets.map((preset, idx) => (
                         <Chip

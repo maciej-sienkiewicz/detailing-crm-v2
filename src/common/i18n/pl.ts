@@ -1005,8 +1005,8 @@ export const pl: TranslationKeys = {
             saving: 'Zapisywanie...',
         },
         breakdown: {
-            categoriesTitle: 'Wg kategorii',
-            servicesTitle: 'Wg usług',
+            categoriesTitle: 'Lista dostępnych kategorii',
+            servicesTitle: 'Lista usług',
             unassignedTitle: 'Nieprzypisane usługi',
             viewCategories: 'Kategorie',
             viewServices: 'Usługi',
