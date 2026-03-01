@@ -58,7 +58,9 @@ const Section = styled.section`
 
 // ─── Chart area ───────────────────────────────────────────────────────────────
 
-const SelectedCategoryBanner = styled.div`
+// Banner is always rendered to avoid layout shift when a category is selected.
+// Visibility is toggled via opacity/pointer-events so height stays constant.
+const SelectedCategoryBanner = styled.div<{ $visible: boolean }>`
     display: flex;
     align-items: center;
     gap: ${props => props.theme.spacing.sm};
@@ -68,6 +70,9 @@ const SelectedCategoryBanner = styled.div`
     border-radius: ${props => props.theme.radii.md};
     font-size: ${props => props.theme.fontSizes.sm};
     color: ${props => props.theme.colors.text};
+    opacity: ${props => props.$visible ? 1 : 0};
+    pointer-events: ${props => props.$visible ? 'auto' : 'none'};
+    transition: opacity 0.15s ease;
 `;
 
 const ClearSelectionBtn = styled.button`
@@ -188,8 +193,9 @@ const ChartArea = styled.div<{ $fading: boolean }>`
     display: flex;
     flex-direction: column;
     gap: ${props => props.theme.spacing.lg};
-    opacity: ${props => props.$fading ? 0.45 : 1};
-    transition: opacity 0.18s ease;
+    opacity: ${props => props.$fading ? 0.4 : 1};
+    transform: ${props => props.$fading ? 'scale(0.995)' : 'scale(1)'};
+    transition: opacity 0.2s ease, transform 0.2s ease;
     pointer-events: ${props => props.$fading ? 'none' : 'auto'};
 `;
 
@@ -416,26 +422,23 @@ export const StatisticsView = () => {
                     </div>
                 )}
 
-                {selectedCategory && (
-                    <SelectedCategoryBanner>
-                        {selectedCategory.color && (
-                            <span style={{
-                                display: 'inline-block',
-                                width: 10,
-                                height: 10,
-                                borderRadius: '50%',
-                                background: selectedCategory.color,
-                                flexShrink: 0,
-                            }} />
-                        )}
-                        <span>
-                            {t.statistics.overview.title}: <strong>{selectedCategory.name}</strong>
-                        </span>
-                        <ClearSelectionBtn onClick={() => setSelectedCategoryId(null)}>
-                            ✕ Wszystkie kategorie
-                        </ClearSelectionBtn>
-                    </SelectedCategoryBanner>
-                )}
+                {/* Always rendered — prevents layout shift when category is selected */}
+                <SelectedCategoryBanner $visible={!!selectedCategory}>
+                    <span style={{
+                        display: 'inline-block',
+                        width: 10,
+                        height: 10,
+                        borderRadius: '50%',
+                        background: selectedCategory?.color ?? 'transparent',
+                        flexShrink: 0,
+                    }} />
+                    <span>
+                        {t.statistics.overview.title}: <strong>{selectedCategory?.name ?? ''}</strong>
+                    </span>
+                    <ClearSelectionBtn onClick={() => setSelectedCategoryId(null)}>
+                        ✕ Wszystkie kategorie
+                    </ClearSelectionBtn>
+                </SelectedCategoryBanner>
 
                 {/* Chart stays mounted; fades when refetching — no blink */}
                 {chartData && (
