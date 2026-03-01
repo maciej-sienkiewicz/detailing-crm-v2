@@ -10,13 +10,14 @@ import { CategoryFormModal } from '../components/CategoryFormModal';
 import { useCategories, useDeleteCategory, useAssignService, useUnassignService } from '../hooks/useCategories';
 import { useBreakdown, useCategoryStats } from '../hooks/useStats';
 import type { Category, Granularity } from '../types';
+import { st } from '../components/StatisticsTheme';
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
 
 const ViewContainer = styled.main`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.xl};
+    gap: 24px;
     padding: ${props => props.theme.spacing.lg};
     max-width: 1800px;
     margin: 0 auto;
@@ -34,7 +35,7 @@ const ViewContainer = styled.main`
 const PageHeader = styled.header`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.md};
+    gap: 4px;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         flex-direction: row;
@@ -43,33 +44,67 @@ const PageHeader = styled.header`
     }
 `;
 
+const PageTitleGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
 const PageTitle = styled.h1`
     margin: 0;
-    font-size: ${props => props.theme.fontSizes.xxl};
-    font-weight: 700;
-    color: ${props => props.theme.colors.text};
+    font-size: 28px;
+    font-weight: 800;
+    color: ${st.text};
+    letter-spacing: -0.5px;
+`;
+
+const PageSubtitle = styled.p`
+    margin: 0;
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
 `;
 
 const Section = styled.section`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
+    gap: 16px;
 `;
 
-// ─── Chart area ───────────────────────────────────────────────────────────────
+// ─── Section heading ──────────────────────────────────────────────────────────
 
-// Banner is always rendered to avoid layout shift when a category is selected.
-// Visibility is toggled via opacity/pointer-events so height stays constant.
+const SectionHeading = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+`;
+
+const SectionTitle = styled.h2`
+    margin: 0;
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+`;
+
+const SectionRule = styled.div`
+    flex: 1;
+    height: 1px;
+    background: ${st.border};
+`;
+
+// ─── Selected category banner ─────────────────────────────────────────────────
+
 const SelectedCategoryBanner = styled.div<{ $visible: boolean }>`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    background: rgba(59, 130, 246, 0.08);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.text};
+    gap: 10px;
+    padding: 10px 16px;
+    background: ${st.accentBlueDim};
+    border: 1px solid ${st.accentBlue}33;
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    color: ${st.text};
     opacity: ${props => props.$visible ? 1 : 0};
     pointer-events: ${props => props.$visible ? 'auto' : 'none'};
     transition: opacity 0.15s ease;
@@ -77,17 +112,20 @@ const SelectedCategoryBanner = styled.div<{ $visible: boolean }>`
 
 const ClearSelectionBtn = styled.button`
     margin-left: auto;
-    padding: 2px 8px;
+    padding: 3px 10px;
     background: transparent;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.sm};
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontXs};
+    font-weight: 500;
+    color: ${st.textSecondary};
     cursor: pointer;
+    transition: all ${st.transition};
 
     &:hover {
-        color: ${props => props.theme.colors.text};
-        border-color: ${props => props.theme.colors.text};
+        color: ${st.text};
+        border-color: ${st.borderHover};
+        background: ${st.bg};
     }
 `;
 
@@ -96,7 +134,7 @@ const ClearSelectionBtn = styled.button`
 const TablesGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: ${props => props.theme.spacing.lg};
+    gap: 20px;
     align-items: start;
 
     @media (max-width: ${props => props.theme.breakpoints.lg}) {
@@ -107,7 +145,7 @@ const TablesGrid = styled.div`
 const TableColumn = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.md};
+    gap: 12px;
     min-width: 0;
 `;
 
@@ -115,15 +153,15 @@ const TableColumnHeader = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: ${props => props.theme.spacing.sm};
+    gap: 8px;
     flex-wrap: wrap;
 `;
 
 const TableColumnTitle = styled.h3`
     margin: 0;
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: 600;
-    color: ${props => props.theme.colors.text};
+    font-size: ${st.fontMd};
+    font-weight: 700;
+    color: ${st.text};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -132,20 +170,26 @@ const TableColumnTitle = styled.h3`
 const TableColumnControls = styled.div`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
+    gap: 8px;
     flex-shrink: 0;
 `;
 
 const ServiceTableFilterLabel = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
     font-style: italic;
 `;
 
-const DragHint = styled.p`
-    margin: 0;
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
+const DragHint = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: ${st.accentAmberDim};
+    border: 1px solid ${st.accentAmber}44;
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontXs};
+    color: ${st.textSecondary};
 `;
 
 // ─── Common ───────────────────────────────────────────────────────────────────
@@ -153,19 +197,27 @@ const DragHint = styled.p`
 const AddButton = styled.button`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.xs};
-    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.md};
-    background: var(--brand-primary);
-    color: white;
+    gap: 6px;
+    padding: 7px 16px;
+    background: ${st.accentBlue};
+    color: #fff;
     border: none;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontSm};
+    font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
+    box-shadow: ${st.shadowXs};
+    transition: all ${st.transition};
 
     &:hover {
-        opacity: 0.9;
+        background: #2563EB;
+        box-shadow: ${st.shadowSm};
+        transform: translateY(-1px);
+    }
+
+    &:active {
+        transform: translateY(0);
     }
 `;
 
@@ -179,8 +231,8 @@ const LoadingOverlay = styled.div`
 const Spinner = styled.div`
     width: 36px;
     height: 36px;
-    border: 3px solid ${props => props.theme.colors.border};
-    border-top-color: ${props => props.theme.colors.primary};
+    border: 3px solid ${st.border};
+    border-top-color: ${st.accentBlue};
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 
@@ -192,49 +244,68 @@ const Spinner = styled.div`
 const ChartArea = styled.div<{ $fading: boolean }>`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
+    gap: 16px;
     opacity: ${props => props.$fading ? 0.4 : 1};
     transform: ${props => props.$fading ? 'scale(0.995)' : 'scale(1)'};
     transition: opacity 0.2s ease, transform 0.2s ease;
     pointer-events: ${props => props.$fading ? 'none' : 'auto'};
 `;
 
-const ErrorText = styled.p`
-    color: ${props => props.theme.colors.error};
-    font-size: ${props => props.theme.fontSizes.sm};
+const ErrorBox = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 32px;
+    background: ${st.accentRedDim};
+    border: 1px solid ${st.accentRed}33;
+    border-radius: ${st.radius};
     text-align: center;
 `;
 
+const ErrorText = styled.p`
+    margin: 0;
+    color: ${st.accentRed};
+    font-size: ${st.fontSm};
+    font-weight: 500;
+`;
+
 const RetryButton = styled.button`
-    margin-top: ${props => props.theme.spacing.sm};
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.lg};
+    padding: 8px 20px;
     background: transparent;
-    border: 1px solid ${props => props.theme.colors.primary};
-    color: ${props => props.theme.colors.primary};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
+    border: 1px solid ${st.accentBlue};
+    color: ${st.accentBlue};
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontSm};
+    font-weight: 500;
     cursor: pointer;
+    transition: all ${st.transition};
+
+    &:hover {
+        background: ${st.accentBlueDim};
+    }
 `;
 
 const RowActionBtn = styled.button`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     padding: 0;
     background: transparent;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.sm};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
     font-size: 13px;
     cursor: pointer;
-    color: ${props => props.theme.colors.textMuted};
-    transition: all ${props => props.theme.transitions.fast};
+    color: ${st.textMuted};
+    transition: all ${st.transition};
 
     &:hover {
-        background: ${props => props.theme.colors.surfaceHover};
-        color: ${props => props.theme.colors.text};
-        border-color: ${props => props.theme.colors.text};
+        background: ${st.bg};
+        color: ${st.text};
+        border-color: ${st.borderHover};
+        box-shadow: ${st.shadowXs};
     }
 
     &:not(:last-child) {
@@ -261,7 +332,6 @@ export const StatisticsView = () => {
     const [editingCategory, setEditingCategory] = useState<Category | undefined>();
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
-    // ── Single breakdown call replaces all N+M stats fetches ─────────────────
     const {
         breakdown,
         isLoading: breakdownLoading,
@@ -270,7 +340,6 @@ export const StatisticsView = () => {
         refetch: breakdownRefetch,
     } = useBreakdown(granularity, startDate, endDate);
 
-    // ── Per-category chart (only when a category is selected) ─────────────────
     const { stats: categoryStats, isLoading: catStatsLoading, isFetching: catStatsFetching } = useCategoryStats(
         selectedCategoryId || '',
         granularity,
@@ -278,7 +347,6 @@ export const StatisticsView = () => {
         endDate
     );
 
-    // ── Category list for management (edit / delete actions) ──────────────────
     const {
         categories,
         isLoading: catLoading,
@@ -290,28 +358,20 @@ export const StatisticsView = () => {
     const assignMutation = useAssignService();
     const unassignMutation = useUnassignService();
 
-    // ── Derived data from breakdown ───────────────────────────────────────────
-
     const selectedCategory = selectedCategoryId
         ? categories.find(c => c.id === selectedCategoryId) ?? null
         : null;
 
     const chartData = selectedCategoryId ? categoryStats : breakdown?.overview;
-    // isLoading: true only on first fetch (no cached data yet) → show spinner
-    // isFetching: true on any background refetch → show subtle fade instead
     const chartInitialLoading = selectedCategoryId ? catStatsLoading : breakdownLoading;
     const chartFetching = selectedCategoryId ? catStatsFetching : breakdownFetching;
 
-    // Keep the last successfully loaded data so the ChartArea never unmounts
-    // during transitions (e.g. first category selection). The chart fades via
-    // $fading while stale data is shown, then snaps to fresh data — no scroll jump.
     const lastChartDataRef = useRef(chartData);
     if (chartData !== undefined) lastChartDataRef.current = chartData;
     const displayData = chartData ?? lastChartDataRef.current;
 
     const unassignedCount = breakdown?.unassignedServices.length ?? 0;
 
-    // Color lookup: serviceId → category color (for "all services" view)
     const serviceCategoryColor = useMemo(() => {
         const map = new Map<string, string>();
         breakdown?.categories.forEach(cat => {
@@ -322,7 +382,6 @@ export const StatisticsView = () => {
         return map;
     }, [breakdown]);
 
-    // Service rows for the right-side table
     const serviceRows = useMemo(() => {
         if (!breakdown) return [];
 
@@ -367,8 +426,6 @@ export const StatisticsView = () => {
         return [...assigned, ...unassigned];
     }, [breakdown, selectedCategoryId, serviceCategoryColor]);
 
-    // ── Handlers ─────────────────────────────────────────────────────────────
-
     const handleCategoryRowClick = (id: string) => {
         setSelectedCategoryId(prev => prev === id ? null : id);
     };
@@ -390,24 +447,25 @@ export const StatisticsView = () => {
         setEditingCategory(undefined);
     };
 
-    /** Drag service from right table → drop on category row in left table */
     const handleAssignServiceToCategory = async (serviceId: string, categoryId: string) => {
         await assignMutation.mutateAsync({ categoryId, serviceId });
     };
 
-    /** Unpin button in service rows — works regardless of which category is selected */
     const handleUnpinService = async (serviceId: string, categoryId: string) => {
         await unassignMutation.mutateAsync({ categoryId, serviceId });
     };
 
-    // ── Render ────────────────────────────────────────────────────────────────
-
     return (
         <ViewContainer>
+            {/* ── Page header ──────────────────────────────── */}
             <PageHeader>
-                <PageTitle>{t.statistics.title}</PageTitle>
+                <PageTitleGroup>
+                    <PageTitle>{t.statistics.title}</PageTitle>
+                    <PageSubtitle>Analiza przychodów i struktury usług</PageSubtitle>
+                </PageTitleGroup>
             </PageHeader>
 
+            {/* ── Filters ──────────────────────────────────── */}
             <Section>
                 <StatsFilters
                     granularity={granularity}
@@ -417,20 +475,26 @@ export const StatisticsView = () => {
                     onStartDateChange={setStartDate}
                     onEndDateChange={setEndDate}
                 />
+            </Section>
 
-                {/* Initial spinner — only on very first load before any data is available */}
+            {/* ── Overview section ─────────────────────────── */}
+            <Section>
+                <SectionHeading>
+                    <SectionTitle>Przegląd okresu</SectionTitle>
+                    <SectionRule />
+                </SectionHeading>
+
                 {chartInitialLoading && !displayData && (
                     <LoadingOverlay><Spinner /></LoadingOverlay>
                 )}
 
                 {breakdownError && !selectedCategoryId && (
-                    <div style={{ textAlign: 'center' }}>
+                    <ErrorBox>
                         <ErrorText>{t.statistics.overview.error}</ErrorText>
                         <RetryButton onClick={() => breakdownRefetch()}>{t.common.retry}</RetryButton>
-                    </div>
+                    </ErrorBox>
                 )}
 
-                {/* Always rendered — prevents layout shift when category is selected */}
                 <SelectedCategoryBanner $visible={!!selectedCategory}>
                     <span style={{
                         display: 'inline-block',
@@ -439,6 +503,7 @@ export const StatisticsView = () => {
                         borderRadius: '50%',
                         background: selectedCategory?.color ?? 'transparent',
                         flexShrink: 0,
+                        boxShadow: `0 0 0 3px ${selectedCategory?.color ?? 'transparent'}33`,
                     }} />
                     <span>
                         {t.statistics.overview.title}: <strong>{selectedCategory?.name ?? ''}</strong>
@@ -448,15 +513,21 @@ export const StatisticsView = () => {
                     </ClearSelectionBtn>
                 </SelectedCategoryBanner>
 
-                {/* Chart stays mounted via displayData (last known); fades during transitions — no scroll jump */}
                 {displayData && (
                     <ChartArea $fading={chartFetching || (chartInitialLoading && !chartData)}>
                         <StatsTotalsBar totals={displayData.totals} />
                         <StatsChart data={displayData.data} />
                     </ChartArea>
                 )}
+            </Section>
 
-                {/* ── Two-column breakdown ─────────────────────────────── */}
+            {/* ── Breakdown section ─────────────────────────── */}
+            <Section>
+                <SectionHeading>
+                    <SectionTitle>Podział według kategorii</SectionTitle>
+                    <SectionRule />
+                </SectionHeading>
+
                 <TablesGrid>
                     {/* LEFT: Categories */}
                     <TableColumn>
@@ -473,10 +544,10 @@ export const StatisticsView = () => {
 
                         {catLoading && <LoadingOverlay><Spinner /></LoadingOverlay>}
                         {catError && (
-                            <div style={{ textAlign: 'center' }}>
+                            <ErrorBox>
                                 <ErrorText>{t.statistics.categories.error}</ErrorText>
                                 <RetryButton onClick={() => catRefetch()}>{t.common.retry}</RetryButton>
-                            </div>
+                            </ErrorBox>
                         )}
 
                         <BreakdownTable

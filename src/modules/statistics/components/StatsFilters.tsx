@@ -3,40 +3,41 @@ import { useEffect } from 'react';
 import styled, { css } from 'styled-components';
 import type { Granularity } from '../types';
 import { t } from '@/common/i18n';
+import { st } from './StatisticsTheme';
 
 // ─── Container ────────────────────────────────────────────────────────────────
 
 const FiltersPanel = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.md};
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
-    background: ${props => props.theme.colors.surface};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
+    gap: 0;
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowSm};
+    overflow: hidden;
 `;
 
 const FilterRow = styled.div`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
+    gap: 16px;
+    padding: 12px 20px;
     flex-wrap: wrap;
+
+    &:not(:last-child) {
+        border-bottom: 1px solid ${st.border};
+    }
 `;
 
 const FilterLabel = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 600;
-    color: ${props => props.theme.colors.textMuted};
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    color: ${st.textMuted};
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.7px;
     white-space: nowrap;
     min-width: 88px;
-`;
-
-const Divider = styled.div`
-    height: 1px;
-    background: ${props => props.theme.colors.border};
-    margin: 0 calc(-1 * ${props => props.theme.spacing.lg});
 `;
 
 // ─── Chip buttons ─────────────────────────────────────────────────────────────
@@ -49,23 +50,27 @@ const ChipGroup = styled.div`
 
 const Chip = styled.button<{ $active: boolean; $disabled?: boolean }>`
     padding: 5px 14px;
-    border-radius: ${props => props.theme.radii.full};
-    font-size: ${props => props.theme.fontSizes.sm};
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontSm};
     font-weight: 500;
     cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
+    transition: all ${st.transition};
     white-space: nowrap;
     border: 1px solid ${props =>
-        props.$active ? 'var(--brand-primary)' : props.theme.colors.border};
+        props.$active ? st.accentBlue : st.border};
     background: ${props =>
-        props.$active ? 'var(--brand-primary)' : 'transparent'};
+        props.$active
+            ? st.accentBlue
+            : 'transparent'};
     color: ${props =>
-        props.$active ? '#fff' : props.theme.colors.textSecondary};
+        props.$active ? '#fff' : st.textSecondary};
+    box-shadow: ${props => props.$active ? st.shadowXs : 'none'};
 
-    &:hover {
-        border-color: var(--brand-primary);
-        color: ${props => props.$active ? '#fff' : 'var(--brand-primary)'};
-        background: ${props => props.$active ? 'var(--brand-primary)' : 'rgba(59,130,246,0.06)'};
+    &:hover:not(:disabled) {
+        border-color: ${st.accentBlue};
+        color: ${props => props.$active ? '#fff' : st.accentBlue};
+        background: ${props =>
+            props.$active ? st.accentBlue : st.accentBlueDim};
     }
 
     ${props => props.$disabled && css`
@@ -80,28 +85,29 @@ const Chip = styled.button<{ $active: boolean; $disabled?: boolean }>`
 const DateRangeGroup = styled.div`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.xs};
+    gap: 8px;
 `;
 
 const DateInput = styled.input`
-    padding: 5px ${props => props.theme.spacing.sm};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    background: ${props => props.theme.colors.surface};
-    color: ${props => props.theme.colors.text};
+    padding: 6px 10px;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    background: ${st.bgInput};
+    color: ${st.text};
     cursor: pointer;
+    transition: border-color ${st.transition}, box-shadow ${st.transition};
 
     &:focus {
         outline: none;
-        border-color: var(--brand-primary);
-        box-shadow: 0 0 0 2px rgba(59,130,246,0.15);
+        border-color: ${st.accentBlue};
+        box-shadow: ${st.shadowBlue};
     }
 `;
 
 const DateSep = styled.span`
-    color: ${props => props.theme.colors.textMuted};
-    font-size: ${props => props.theme.fontSizes.sm};
+    color: ${st.textMuted};
+    font-size: ${st.fontSm};
     user-select: none;
 `;
 
@@ -136,11 +142,6 @@ const getDaysDiff = (start: string, end: string) => {
     return Math.max(0, Math.round(diff / 86_400_000));
 };
 
-// Maps a date-range length to the set of allowed granularities:
-//   ≤  7 days  → daily
-//   ≤ 30 days  → daily, weekly
-//   ≤ 90 days  → daily, weekly, monthly
-//   anything larger → all
 const getAllowedGranularities = (days: number): Set<Granularity> => {
     if (days <= 7)  return new Set<Granularity>(['DAILY']);
     if (days <= 30) return new Set<Granularity>(['DAILY', 'WEEKLY']);
@@ -148,7 +149,6 @@ const getAllowedGranularities = (days: number): Set<Granularity> => {
     return new Set<Granularity>(['DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY']);
 };
 
-// Coarsest-first order: when auto-switching, pick the coarsest that is still allowed.
 const GRANULARITY_ORDER: Granularity[] = ['YEARLY', 'QUARTERLY', 'MONTHLY', 'WEEKLY', 'DAILY'];
 
 type Preset = {
@@ -184,8 +184,6 @@ export const StatsFilters = ({
     const days = getDaysDiff(startDate, endDate);
     const allowedGranularities = getAllowedGranularities(days);
 
-    // When the date range changes and the current granularity is no longer valid,
-    // auto-switch to the coarsest granularity still allowed for that range.
     useEffect(() => {
         if (!allowedGranularities.has(granularity)) {
             const best = GRANULARITY_ORDER.find(g => allowedGranularities.has(g)) ?? 'DAILY';
@@ -218,8 +216,6 @@ export const StatsFilters = ({
                 </ChipGroup>
             </FilterRow>
 
-            <Divider />
-
             {/* Row 2: Custom date range */}
             <FilterRow>
                 <FilterLabel>Zakres dat</FilterLabel>
@@ -238,7 +234,7 @@ export const StatsFilters = ({
                 </DateRangeGroup>
             </FilterRow>
 
-            {/* Row 3: Granularity chips — some disabled depending on date range */}
+            {/* Row 3: Granularity chips */}
             <FilterRow>
                 <FilterLabel>Grupowanie</FilterLabel>
                 <ChipGroup>

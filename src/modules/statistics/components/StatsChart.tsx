@@ -13,12 +13,52 @@ import {
 } from 'recharts';
 import type { StatsDataPoint } from '../types';
 import { t } from '@/common/i18n';
+import { st } from './StatisticsTheme';
 
 const ChartWrapper = styled.div`
-    padding: ${props => props.theme.spacing.lg};
-    background: ${props => props.theme.colors.surface};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
+    padding: 24px 24px 16px;
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowSm};
+`;
+
+const ChartHeader = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+`;
+
+const ChartTitle = styled.span`
+    font-size: ${st.fontSm};
+    font-weight: 700;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+`;
+
+const LegendDots = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 16px;
+`;
+
+const LegendItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: ${st.fontXs};
+    color: ${st.textSecondary};
+`;
+
+const LegendDot = styled.span<{ $color: string; $variant?: 'bar' | 'line' }>`
+    display: inline-block;
+    width: ${p => p.$variant === 'line' ? '20px' : '10px'};
+    height: ${p => p.$variant === 'line' ? '3px' : '10px'};
+    border-radius: ${p => p.$variant === 'line' ? '2px' : '3px'};
+    background: ${p => p.$color};
+    flex-shrink: 0;
 `;
 
 const EmptyChart = styled.div`
@@ -26,8 +66,8 @@ const EmptyChart = styled.div`
     align-items: center;
     justify-content: center;
     height: 300px;
-    color: ${props => props.theme.colors.textMuted};
-    font-size: ${props => props.theme.fontSizes.sm};
+    color: ${st.textMuted};
+    font-size: ${st.fontSm};
 `;
 
 const formatRevenue = (grosz: number) =>
@@ -40,24 +80,31 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return (
         <div
             style={{
-                background: 'var(--surface, #fff)',
-                border: '1px solid #e0e0e0',
-                borderRadius: 8,
-                padding: '10px 14px',
+                background: '#FFFFFF',
+                border: `1px solid ${st.border}`,
+                borderRadius: 10,
+                padding: '12px 16px',
                 fontSize: 13,
-                minWidth: 160,
+                minWidth: 170,
+                boxShadow: st.shadowMd,
             }}
         >
-            <p style={{ margin: '0 0 8px', fontWeight: 600, color: '#0f172a' }}>{label}</p>
+            <p style={{ margin: '0 0 10px', fontWeight: 700, color: st.text, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</p>
             {revenue && (
-                <p style={{ margin: '0 0 4px', color: '#10B981', fontWeight: 600 }}>
-                    {formatRevenue(revenue.value)}
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 3, background: st.accentGreen, flexShrink: 0 }} />
+                    <span style={{ color: st.accentGreen, fontWeight: 700, fontSize: 15 }}>
+                        {formatRevenue(revenue.value)}
+                    </span>
+                </div>
             )}
             {orders && (
-                <p style={{ margin: 0, color: '#94a3b8', fontSize: 12 }}>
-                    {orders.value} {orders.value === 1 ? 'wizyta' : orders.value < 5 ? 'wizyty' : 'wizyt'}
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ display: 'inline-block', width: 10, height: 3, borderRadius: 2, background: st.accentBlue, flexShrink: 0 }} />
+                    <span style={{ color: st.textSecondary, fontSize: 13 }}>
+                        {orders.value} {orders.value === 1 ? 'wizyta' : orders.value < 5 ? 'wizyty' : 'wizyt'}
+                    </span>
+                </div>
             )}
         </div>
     );
@@ -78,61 +125,68 @@ export const StatsChart = ({ data }: StatsChartProps) => {
 
     return (
         <ChartWrapper>
-            <ResponsiveContainer width="100%" height={320}>
+            <ChartHeader>
+                <ChartTitle>Przychody i wizyty</ChartTitle>
+                <LegendDots>
+                    <LegendItem>
+                        <LegendDot $color={st.accentGreen} $variant="bar" />
+                        {t.statistics.chart.revenueLabel}
+                    </LegendItem>
+                    <LegendItem>
+                        <LegendDot $color={st.accentBlue} $variant="line" />
+                        {t.statistics.chart.ordersLabel}
+                    </LegendItem>
+                </LegendDots>
+            </ChartHeader>
+            <ResponsiveContainer width="100%" height={300}>
                 <ComposedChart data={data} margin={{ top: 4, right: 24, left: 8, bottom: 4 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={st.border} vertical={false} />
                     <XAxis
                         dataKey="period"
-                        tick={{ fontSize: 12 }}
+                        tick={{ fontSize: 12, fill: st.textMuted }}
                         tickLine={false}
+                        axisLine={{ stroke: st.border }}
                     />
-                    {/* Left axis: revenue (bars) */}
                     <YAxis
                         yAxisId="revenue"
                         orientation="left"
                         tickLine={false}
                         axisLine={false}
-                        tick={{ fontSize: 12 }}
+                        tick={{ fontSize: 12, fill: st.textMuted }}
                         tickFormatter={v => {
                             const pln = v / 100;
                             return pln >= 1000 ? `${(pln / 1000).toFixed(0)}k` : `${pln.toFixed(0)}`;
                         }}
                         width={42}
                     />
-                    {/* Right axis: order count (line) */}
                     <YAxis
                         yAxisId="orders"
                         orientation="right"
                         tickLine={false}
                         axisLine={false}
-                        tick={{ fontSize: 12 }}
+                        tick={{ fontSize: 12, fill: st.textMuted }}
                         allowDecimals={false}
                         width={32}
                     />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend
-                        formatter={(value) => value === t.statistics.chart.revenueLabel
-                            ? t.statistics.chart.revenueLabel
-                            : t.statistics.chart.ordersLabel}
-                    />
-                    {/* Bars = revenue */}
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(15,23,42,0.03)' }} />
                     <Bar
                         yAxisId="revenue"
                         dataKey="totalRevenueGross"
                         name={t.statistics.chart.revenueLabel}
-                        fill="#10B981"
-                        radius={[4, 4, 0, 0]}
+                        fill={st.accentGreen}
+                        radius={[5, 5, 0, 0]}
                         maxBarSize={48}
+                        opacity={0.85}
                     />
-                    {/* Line = visit count */}
                     <Line
                         yAxisId="orders"
                         dataKey="orderCount"
                         name={t.statistics.chart.ordersLabel}
                         type="monotone"
-                        stroke="var(--brand-primary, #3B82F6)"
-                        strokeWidth={2}
-                        dot={{ r: 4, fill: 'var(--brand-primary, #3B82F6)' }}
+                        stroke={st.accentBlue}
+                        strokeWidth={2.5}
+                        dot={{ r: 4, fill: st.accentBlue, strokeWidth: 2, stroke: '#fff' }}
+                        activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }}
                     />
                 </ComposedChart>
             </ResponsiveContainer>

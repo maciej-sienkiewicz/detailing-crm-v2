@@ -2,6 +2,7 @@
 import { useState, type ReactNode } from 'react';
 import styled, { css } from 'styled-components';
 import { t } from '@/common/i18n';
+import { st } from './StatisticsTheme';
 
 export interface BreakdownRow {
     id: string;
@@ -19,10 +20,11 @@ export interface BreakdownRow {
 }
 
 const Wrapper = styled.div`
-    background: ${props => props.theme.colors.surface};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
     overflow: hidden;
+    box-shadow: ${st.shadowSm};
 `;
 
 const Table = styled.table`
@@ -31,18 +33,18 @@ const Table = styled.table`
 `;
 
 const Thead = styled.thead`
-    background: ${props => props.theme.colors.surfaceAlt};
+    background: ${st.bg};
+    border-bottom: 1px solid ${st.border};
 `;
 
 const Th = styled.th<{ $align?: 'left' | 'right' }>`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+    padding: 10px 16px;
     text-align: ${props => props.$align || 'left'};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 600;
-    color: ${props => props.theme.colors.textMuted};
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    color: ${st.textMuted};
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border-bottom: 1px solid ${props => props.theme.colors.border};
+    letter-spacing: 0.6px;
     white-space: nowrap;
 `;
 
@@ -53,19 +55,19 @@ const Tr = styled.tr<{
     $draggable?: boolean;
     $dragOver?: boolean;
 }>`
-    transition: background ${props => props.theme.transitions.fast}, opacity 0.2s ease;
+    transition: background ${st.transition}, opacity 0.2s ease;
     cursor: ${props => (props.$clickable || props.$draggable) ? 'pointer' : 'default'};
-    opacity: ${props => props.$dimmed ? 0.35 : 1};
+    opacity: ${props => props.$dimmed ? 0.3 : 1};
     position: relative;
 
     ${props => props.$selected && css`
-        background: ${props.theme.colors.surfaceHover} !important;
-        box-shadow: inset 3px 0 0 var(--brand-primary, #3B82F6);
+        background: ${st.accentBlueDim} !important;
+        box-shadow: inset 3px 0 0 ${st.accentBlue};
     `}
 
     ${props => props.$dragOver && css`
-        background: rgba(59, 130, 246, 0.08) !important;
-        outline: 2px dashed var(--brand-primary, #3B82F6);
+        background: ${st.accentBlueDim} !important;
+        outline: 2px dashed ${st.accentBlue};
         outline-offset: -2px;
     `}
 
@@ -75,26 +77,26 @@ const Tr = styled.tr<{
     `}
 
     &:hover {
-        background: ${props => props.theme.colors.surfaceHover};
+        background: ${st.bg};
     }
 
     &:not(:last-child) td {
-        border-bottom: 1px solid ${props => props.theme.colors.border};
+        border-bottom: 1px solid ${st.border};
     }
 `;
 
 const TotalsRow = styled.tr`
-    background: ${props => props.theme.colors.surfaceAlt};
+    background: ${st.bg};
 
     td {
-        border-top: 2px solid ${props => props.theme.colors.border};
+        border-top: 2px solid ${st.border};
     }
 `;
 
 const Td = styled.td<{ $align?: 'left' | 'right' }>`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.text};
+    padding: 11px 16px;
+    font-size: ${st.fontSm};
+    color: ${st.text};
     text-align: ${props => props.$align || 'left'};
     font-variant-numeric: tabular-nums;
 `;
@@ -102,7 +104,7 @@ const Td = styled.td<{ $align?: 'left' | 'right' }>`
 const NameCell = styled.div`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.xs};
+    gap: 8px;
 `;
 
 const ColorDot = styled.span<{ $color: string }>`
@@ -112,15 +114,17 @@ const ColorDot = styled.span<{ $color: string }>`
     height: 8px;
     border-radius: 50%;
     background-color: ${props => props.$color};
+    box-shadow: 0 0 0 2px ${props => props.$color}22;
 `;
 
 const NameText = styled.span`
     font-weight: 500;
+    color: ${st.text};
 `;
 
 const InactiveBadge = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
     font-weight: 400;
 `;
 
@@ -128,12 +132,11 @@ const UnassignedIcon = styled.span`
     font-size: 12px;
     flex-shrink: 0;
     opacity: 0.7;
-    title: 'Nieprzypisana do kategorii';
 `;
 
 const DragHandle = styled.span`
     flex-shrink: 0;
-    color: ${props => props.theme.colors.textMuted};
+    color: ${st.textMuted};
     font-size: 14px;
     line-height: 1;
     user-select: none;
@@ -141,15 +144,15 @@ const DragHandle = styled.span`
 `;
 
 const BarCell = styled.td`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+    padding: 11px 16px;
     width: 80px;
 `;
 
 const BarTrack = styled.div`
     width: 100%;
-    height: 5px;
-    background: ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.full};
+    height: 4px;
+    background: ${st.border};
+    border-radius: ${st.radiusFull};
     overflow: hidden;
 `;
 
@@ -157,17 +160,23 @@ const BarFill = styled.div<{ $pct: number; $color: string }>`
     height: 100%;
     width: ${props => props.$pct}%;
     background-color: ${props => props.$color};
-    border-radius: ${props => props.theme.radii.full};
+    border-radius: ${st.radiusFull};
     transition: width 0.4s ease;
 `;
 
 const ShareText = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+    font-weight: 500;
+`;
+
+const RevenueText = styled.span`
+    font-weight: 600;
+    color: ${st.text};
 `;
 
 const ActionsCell = styled.td`
-    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
+    padding: 8px 12px;
     white-space: nowrap;
     text-align: right;
 `;
@@ -175,10 +184,10 @@ const ActionsCell = styled.td`
 const EmptyRow = styled.tr``;
 
 const EmptyCell = styled.td`
-    padding: ${props => props.theme.spacing.xl};
+    padding: 40px 16px;
     text-align: center;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
 `;
 
 const LoadingCell = styled(EmptyCell)``;
@@ -187,8 +196,8 @@ const Spinner = styled.div`
     display: inline-block;
     width: 24px;
     height: 24px;
-    border: 2px solid ${props => props.theme.colors.border};
-    border-top-color: ${props => props.theme.colors.primary};
+    border: 2px solid ${st.border};
+    border-top-color: ${st.accentBlue};
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 
@@ -200,22 +209,17 @@ const Spinner = styled.div`
 const formatRevenue = (grosz: number) =>
     (grosz / 100).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 });
 
-const DEFAULT_BAR_COLOR = 'var(--brand-primary, #3B82F6)';
+const DEFAULT_BAR_COLOR = st.accentBlue;
 
 interface BreakdownTableProps {
     rows: BreakdownRow[];
     isLoading: boolean;
     showColorDot?: boolean;
     emptyText?: string;
-    /** ID of the currently selected row – highlights it and dims others */
     selectedId?: string | null;
-    /** Called when a row is clicked */
     onRowClick?: (id: string) => void;
-    /** Makes this table's rows accept drops */
     droppable?: boolean;
-    /** Called when a draggable row is dropped onto a row in this table */
     onDrop?: (draggedId: string, targetId: string) => void;
-    /** Optional per-row action buttons rendered as an extra column */
     rowActions?: (row: BreakdownRow) => ReactNode;
 }
 
@@ -333,7 +337,9 @@ export const BreakdownTable = ({
                                     </BarTrack>
                                 </BarCell>
                                 <Td $align="right">{row.orderCount}</Td>
-                                <Td $align="right">{formatRevenue(row.totalRevenueGross)}</Td>
+                                <Td $align="right">
+                                    <RevenueText>{formatRevenue(row.totalRevenueGross)}</RevenueText>
+                                </Td>
                                 <Td $align="right">
                                     <ShareText>{share}%</ShareText>
                                 </Td>
@@ -349,10 +355,12 @@ export const BreakdownTable = ({
                 {!isLoading && sorted.length > 1 && (
                     <tfoot>
                         <TotalsRow>
-                            <Td style={{ fontWeight: 600 }}>{t.statistics.breakdown.total}</Td>
+                            <Td style={{ fontWeight: 700, color: st.text }}>{t.statistics.breakdown.total}</Td>
                             <BarCell />
-                            <Td $align="right" style={{ fontWeight: 600 }}>{totalOrders}</Td>
-                            <Td $align="right" style={{ fontWeight: 600 }}>{formatRevenue(totalRevenue)}</Td>
+                            <Td $align="right" style={{ fontWeight: 700 }}>{totalOrders}</Td>
+                            <Td $align="right">
+                                <RevenueText>{formatRevenue(totalRevenue)}</RevenueText>
+                            </Td>
                             <Td $align="right">
                                 <ShareText>100%</ShareText>
                             </Td>

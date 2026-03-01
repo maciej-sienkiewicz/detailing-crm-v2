@@ -2,34 +2,65 @@
 import styled from 'styled-components';
 import type { StatsTotals } from '../types';
 import { t } from '@/common/i18n';
+import { st } from './StatisticsTheme';
 
 const Bar = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: ${props => props.theme.spacing.md};
+    gap: 16px;
 `;
 
-const TotalCard = styled.div`
-    padding: ${props => props.theme.spacing.lg};
-    background: ${props => props.theme.colors.surface};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
+const KpiCard = styled.div<{ $accent: string; $bg: string }>`
+    background: ${(p) => p.$bg};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: ${st.shadowSm};
+    transition: box-shadow ${st.transition}, transform ${st.transition};
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: ${(p) => p.$accent};
+        border-radius: 0 2px 2px 0;
+    }
+
+    &:hover {
+        box-shadow: ${st.shadowMd};
+        transform: translateY(-1px);
+    }
 `;
 
-const TotalLabel = styled.p`
-    margin: 0 0 ${props => props.theme.spacing.xs};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 400;
-    color: ${props => props.theme.colors.textMuted};
+const KpiLabel = styled.span`
+    font-size: ${st.fontXs};
+    font-weight: 600;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
 `;
 
-const TotalValue = styled.p`
-    margin: 0;
-    font-size: ${props => props.theme.fontSizes.xxxl};
-    font-weight: 700;
-    color: ${props => props.theme.colors.text};
+const KpiValue = styled.span<{ $color: string }>`
+    font-size: ${st.fontHero};
+    font-weight: 800;
+    color: ${(p) => p.$color};
+    line-height: 1;
     font-variant-numeric: tabular-nums;
-    line-height: 1.1;
+    letter-spacing: -0.5px;
+`;
+
+const KpiDetail = styled.span`
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+    margin-top: 2px;
 `;
 
 interface StatsTotalsBarProps {
@@ -41,13 +72,15 @@ const formatRevenue = (grosz: number) =>
 
 export const StatsTotalsBar = ({ totals }: StatsTotalsBarProps) => (
     <Bar>
-        <TotalCard>
-            <TotalLabel>{t.statistics.totals.orderCount}</TotalLabel>
-            <TotalValue>{totals.orderCount}</TotalValue>
-        </TotalCard>
-        <TotalCard>
-            <TotalLabel>{t.statistics.totals.revenueGross}</TotalLabel>
-            <TotalValue>{formatRevenue(totals.totalRevenueGross)}</TotalValue>
-        </TotalCard>
+        <KpiCard $accent={st.accentBlue} $bg={st.gradientCardBlue}>
+            <KpiLabel>{t.statistics.totals.orderCount}</KpiLabel>
+            <KpiValue $color={st.accentBlue}>{totals.orderCount}</KpiValue>
+            <KpiDetail>zleceń w wybranym okresie</KpiDetail>
+        </KpiCard>
+        <KpiCard $accent={st.accentGreen} $bg={st.gradientCardGreen}>
+            <KpiLabel>{t.statistics.totals.revenueGross}</KpiLabel>
+            <KpiValue $color={st.accentGreen}>{formatRevenue(totals.totalRevenueGross)}</KpiValue>
+            <KpiDetail>łączny przychód brutto</KpiDetail>
+        </KpiCard>
     </Bar>
 );
