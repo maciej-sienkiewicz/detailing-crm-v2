@@ -76,6 +76,7 @@ const SectionHeading = styled.div`
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-wrap: wrap;
 `;
 
 const SectionTitle = styled.h2`
@@ -99,15 +100,17 @@ const SelectedCategoryBanner = styled.div<{ $visible: boolean }>`
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 16px;
+    padding: ${props => props.$visible ? '10px 16px' : '0 16px'};
     background: ${st.accentBlueDim};
     border: 1px solid ${st.accentBlue}33;
     border-radius: ${st.radiusSm};
     font-size: ${st.fontSm};
     color: ${st.text};
+    max-height: ${props => props.$visible ? '60px' : '0'};
+    overflow: hidden;
     opacity: ${props => props.$visible ? 1 : 0};
     pointer-events: ${props => props.$visible ? 'auto' : 'none'};
-    transition: opacity 0.15s ease;
+    transition: max-height 0.2s ease, opacity 0.15s ease, padding 0.2s ease;
 `;
 
 const ClearSelectionBtn = styled.button`
@@ -526,6 +529,11 @@ export const StatisticsView = () => {
                 <SectionHeading>
                     <SectionTitle>Podział według kategorii</SectionTitle>
                     <SectionRule />
+                    <AddButton
+                        onClick={() => { setEditingCategory(undefined); setIsFormModalOpen(true); }}
+                    >
+                        + {t.statistics.categories.add}
+                    </AddButton>
                 </SectionHeading>
 
                 <TablesGrid>
@@ -533,13 +541,6 @@ export const StatisticsView = () => {
                     <TableColumn>
                         <TableColumnHeader>
                             <TableColumnTitle>{t.statistics.breakdown.categoriesTitle}</TableColumnTitle>
-                            <TableColumnControls>
-                                <AddButton
-                                    onClick={() => { setEditingCategory(undefined); setIsFormModalOpen(true); }}
-                                >
-                                    + {t.statistics.categories.add}
-                                </AddButton>
-                            </TableColumnControls>
                         </TableColumnHeader>
 
                         {catLoading && <LoadingOverlay><Spinner /></LoadingOverlay>}
