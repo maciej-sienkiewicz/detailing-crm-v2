@@ -22,7 +22,8 @@ interface EditServicesModalProps {
   isSavingChanges?: boolean;
 }
 
-// Styled Components
+/* ─── Overlay & shell ─────────────────────────────────────────────────────── */
+
 const Overlay = styled.div<{ $contentLeft: number }>`
   position: fixed;
   top: 0;
@@ -33,11 +34,10 @@ const Overlay = styled.div<{ $contentLeft: number }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(2px);
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
 
-  /* On desktop, align overlay to content area (exclude sidebar width) */
   @media (min-width: ${props => props.theme.breakpoints.md}) {
     left: ${props => props.$contentLeft}px;
   }
@@ -45,254 +45,368 @@ const Overlay = styled.div<{ $contentLeft: number }>`
 
 const ModalContainer = styled.div`
   background: #fff;
-  border-radius: 24px;
-  box-shadow: 0 20px 50px rgba(2, 6, 23, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(2, 6, 23, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.04);
   width: 100%;
-  max-width: 64rem; /* ~ max-w-4xl */
-  max-height: 90vh;
+  max-width: 680px;
+  max-height: 88vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 `;
 
+/* ─── Header ──────────────────────────────────────────────────────────────── */
+
 const Header = styled.div`
-  position: relative;
-  padding: 24px 32px 16px 32px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 28px 20px;
   border-bottom: 1px solid ${props => props.theme.colors.border};
 `;
 
-const DragHandle = styled.div`
+const HeaderLeft = styled.div`
   display: flex;
+  align-items: flex-start;
+  gap: 12px;
+`;
+
+const HeaderIcon = styled.div`
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: ${props => props.theme.colors.surface};
+  border: 1px solid ${props => props.theme.colors.border};
+  display: flex;
+  align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
-`;
+  flex-shrink: 0;
+  margin-top: 1px;
 
-const DragBar = styled.div`
-  width: 48px;
-  height: 6px;
-  background: #e5e7eb;
-  border-radius: 9999px;
-`;
-
-const CloseButton = styled.button`
-  position: absolute;
-  top: 24px;
-  right: 24px;
-  padding: 8px;
-  color: #9ca3af;
-  border-radius: 9999px;
-  transition: all 0.15s ease;
-
-  &:hover {
-    color: #4b5563;
-    background: #f3f4f6;
+  svg {
+    width: 18px;
+    height: 18px;
+    color: var(--brand-primary);
   }
-
-  svg { width: 24px; height: 24px; }
 `;
+
+const HeaderText = styled.div``;
 
 const Title = styled.h2`
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #111827;
+  font-size: 16px;
+  font-weight: 700;
+  color: ${props => props.theme.colors.text};
+  letter-spacing: -0.02em;
+  margin: 0 0 3px;
 `;
 
 const Subtitle = styled.p`
-  margin-top: 4px;
-  font-size: 0.875rem;
-  color: #6b7280;
+  font-size: 12px;
+  color: ${props => props.theme.colors.textMuted};
+  margin: 0;
 `;
+
+const CloseButton = styled.button`
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  border: 1px solid ${props => props.theme.colors.border};
+  background: transparent;
+  color: ${props => props.theme.colors.textMuted};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  svg { width: 16px; height: 16px; }
+
+  &:hover {
+    background: ${props => props.theme.colors.surface};
+    color: ${props => props.theme.colors.text};
+  }
+`;
+
+/* ─── Content ─────────────────────────────────────────────────────────────── */
 
 const Content = styled.div`
   flex: 1;
   overflow-y: auto;
-  padding: 24px 32px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
 `;
 
-const ServiceCard = styled.div<{ $pending: boolean; $deleted?: boolean; $added?: boolean }>`
-  padding: 16px;
-  border-radius: 16px;
-  border: 2px solid;
-  border-color: ${p =>
-    p.$deleted ? '#fecaca' : p.$pending ? '#fcd34d' : p.$added ? '#86efac' : '#e5e7eb'};
-  background: ${p =>
-    p.$deleted ? '#fff1f2' : p.$pending ? '#fffbeb' : p.$added ? '#f0fdf4' : '#fff'};
-  transition: border-color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
-  opacity: ${p => (p.$deleted ? 0.9 : 1)};
+const AddSection = styled.div`
+  padding: 16px 28px;
+  border-bottom: 1px solid ${props => props.theme.colors.border};
+  background: #fafbfc;
+`;
 
-  &:hover {
-    border-color: ${p =>
-      p.$deleted ? '#fca5a5' : p.$pending ? '#fcd34d' : p.$added ? '#4ade80' : '#d1d5db'};
+const SectionLabel = styled.div`
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: ${props => props.theme.colors.textMuted};
+  margin-bottom: 8px;
+`;
+
+const ServicesList = styled.div`
+  flex: 1;
+`;
+
+/* ─── Service row ─────────────────────────────────────────────────────────── */
+
+type RowState = 'added' | 'pending' | 'deleted' | 'confirmed';
+
+const accentColor = (state: RowState) => {
+  switch (state) {
+    case 'added':    return '#16a34a';
+    case 'pending':  return '#d97706';
+    case 'deleted':  return '#dc2626';
+    default:         return '#e2e8f0';
   }
-`;
+};
 
-const ServiceRow = styled.div`
+const rowBg = (state: RowState) => {
+  switch (state) {
+    case 'added':    return '#f0fdf4';
+    case 'pending':  return '#fffbeb';
+    case 'deleted':  return '#fafafa';
+    default:         return '#fff';
+  }
+};
+
+const ServiceRow = styled.div<{ $state: RowState }>`
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  padding: 12px 28px 12px 25px;
+  border-bottom: 1px solid ${props => props.theme.colors.border};
+  background: ${p => rowBg(p.$state)};
+  opacity: ${p => p.$state === 'deleted' ? 0.7 : 1};
+  position: relative;
+  transition: background 0.15s;
+
+  &:last-child { border-bottom: none; }
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: ${p => accentColor(p.$state)};
+    border-radius: 0 2px 2px 0;
+  }
 `;
 
 const ServiceInfo = styled.div`
   flex: 1;
+  min-width: 0;
 `;
 
-const ServiceHeader = styled.div`
+const ServiceTop = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  gap: 7px;
+  margin-bottom: 3px;
+  flex-wrap: wrap;
 `;
 
-const ServiceName = styled.h3<{ $deleted?: boolean }>`
+const ServiceName = styled.span<{ $deleted?: boolean }>`
+  font-size: 13px;
   font-weight: 600;
-  color: ${p => (p.$deleted ? '#b91c1c' : '#111827')};
-  text-decoration: ${p => (p.$deleted ? 'line-through' : 'none')};
+  color: ${p => p.$deleted ? p.theme.colors.textMuted : p.theme.colors.text};
+  text-decoration: ${p => p.$deleted ? 'line-through' : 'none'};
 `;
 
-const StatusChip = styled.span<{ $pending: boolean }>`
-  padding: 2px 10px;
-  border-radius: 9999px;
+const StateBadge = styled.span<{ $state: RowState }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  ${p => {
+    switch (p.$state) {
+      case 'added':    return css`background: #dcfce7; color: #166534;`;
+      case 'pending':  return css`background: #fef3c7; color: #92400e;`;
+      case 'deleted':  return css`background: #fee2e2; color: #991b1b;`;
+      default:         return css`background: #f1f5f9; color: #475569;`;
+    }
+  }}
+`;
+
+const PriceRow = styled.div<{ $deleted?: boolean }>`
   font-size: 12px;
-  font-weight: 600;
-  ${p =>
-    p.$pending
-      ? css`
-          background: #fef3c7;
-          color: #92400e;
-        `
-      : css`
-          background: #d1fae5;
-          color: #065f46;
-        `}
+  color: ${p => p.$deleted ? p.theme.colors.textMuted : p.theme.colors.textSecondary};
+  text-decoration: ${p => p.$deleted ? 'line-through' : 'none'};
 `;
 
-const DeletedChip = styled.span`
-  padding: 2px 10px;
-  border-radius: 9999px;
-  font-size: 12px;
+const PriceStrong = styled.span`
   font-weight: 600;
-  background: #fee2e2;
-  color: #991b1b;
+  color: inherit;
 `;
 
-const PriceText = styled.p<{ $deleted?: boolean }>`
-  font-size: 0.875rem;
-  color: ${p => (p.$deleted ? '#b91c1c' : '#4b5563')};
-  text-decoration: ${p => (p.$deleted ? 'line-through' : 'none')};
-
-  .strong { font-weight: 600; color: ${p => (p.$deleted ? '#b91c1c' : '#111827')}; }
+const PriceSep = styled.span`
+  margin: 0 5px;
+  opacity: 0.4;
 `;
 
 const PriceInput = styled.input`
-  width: 8rem;
-  padding: 6px 12px;
+  width: 100px;
+  padding: 5px 10px;
   background: #fff;
-  border: 1px solid #93c5fd;
-  border-radius: 10px;
-  font-size: 0.875rem;
+  border: 1px solid ${props => props.theme.colors.border};
+  border-radius: 7px;
+  font-size: 12px;
+  color: ${props => props.theme.colors.text};
   outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
 
   &:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
 `;
 
-const Actions = styled.div`
+/* ─── Action buttons ──────────────────────────────────────────────────────── */
+
+const ActionGroup = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+  flex-shrink: 0;
 `;
 
-const IconButton = styled.button<{ $variant?: 'blue' | 'red' | 'green' }>`
-  padding: 8px;
-  border-radius: 10px;
-  transition: background 0.15s ease, color 0.15s ease;
-  color: ${p =>
-    p.$variant === 'red' ? '#dc2626' : p.$variant === 'green' ? '#059669' : '#2563eb'};
+const ActionBtn = styled.button<{ $variant?: 'confirm' | 'edit' | 'delete' }>`
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: 1px solid ${p =>
+    p.$variant === 'delete' ? '#fca5a5'
+    : p.$variant === 'confirm' ? '#86efac'
+    : p.theme.colors.border};
   background: ${p =>
-    p.$variant === 'red' ? '#fee2e2' : p.$variant === 'green' ? '#ecfdf5' : '#eff6ff'};
-
-  &:hover {
-    background: ${p =>
-      p.$variant === 'red' ? '#fecaca' : p.$variant === 'green' ? '#d1fae5' : '#dbeafe'};
-  }
-
-  svg { width: 20px; height: 20px; }
-`;
-
-const AddServiceButton = styled.button`
-  width: 100%;
-  padding: 16px;
-  border: 2px dashed #d1d5db;
-  border-radius: 16px;
-  color: #4b5563;
-  background: #fff;
+    p.$variant === 'delete' ? '#fff1f2'
+    : p.$variant === 'confirm' ? '#f0fdf4'
+    : p.theme.colors.surface};
+  color: ${p =>
+    p.$variant === 'delete' ? '#dc2626'
+    : p.$variant === 'confirm' ? '#16a34a'
+    : p.theme.colors.textSecondary};
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  font-weight: 500;
-  transition: all 0.15s ease;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  svg { width: 14px; height: 14px; }
 
   &:hover {
-    border-color: #60a5fa;
-    color: #2563eb;
-    background: #eff6ff;
+    border-color: ${p =>
+      p.$variant === 'delete' ? '#f87171'
+      : p.$variant === 'confirm' ? '#4ade80'
+      : 'var(--brand-primary)'};
+    color: ${p =>
+      p.$variant === 'delete' ? '#b91c1c'
+      : p.$variant === 'confirm' ? '#15803d'
+      : 'var(--brand-primary)'};
+    background: ${p =>
+      p.$variant === 'delete' ? '#fee2e2'
+      : p.$variant === 'confirm' ? '#dcfce7'
+      : '#eff6ff'};
   }
-
-  svg { width: 20px; height: 20px; }
 `;
 
-const NotifyBox = styled.div`
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 12px;
-  padding: 16px;
-`;
+/* ─── Notify section ──────────────────────────────────────────────────────── */
 
-const NotifyLabel = styled.label`
+const NotifyRow = styled.div`
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
+  padding: 14px 28px;
+  border-top: 1px solid ${props => props.theme.colors.border};
+  background: #fafbfc;
+`;
+
+const NotifyCheckbox = styled.input`
+  width: 15px;
+  height: 15px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--brand-primary);
+`;
+
+const NotifyTextBlock = styled.label`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   cursor: pointer;
 `;
 
-const NotifyText = styled.span`
-  font-size: 0.875rem;
+const NotifyTitle = styled.span`
+  font-size: 12px;
   font-weight: 600;
-  color: #111827;
+  color: ${props => props.theme.colors.text};
 `;
 
-const NotifyHint = styled.p`
-  margin-top: 4px;
-  font-size: 0.75rem;
-  color: #4b5563;
+const NotifyHint = styled.span`
+  font-size: 11px;
+  color: ${props => props.theme.colors.textMuted};
 `;
+
+/* ─── Footer ──────────────────────────────────────────────────────────────── */
 
 const Footer = styled.div`
-  padding: 24px 32px;
+  padding: 16px 28px;
   border-top: 1px solid ${props => props.theme.colors.border};
-  background: #fff;
+  background: #fafbfc;
   display: flex;
   align-items: center;
-  justify-content: end;
-  gap: 12px;
+  justify-content: flex-end;
+  gap: 8px;
 `;
 
-const CloseSecondary = styled.button`
-  padding: 10px 16px;
-  font-size: 0.875rem;
+const CancelBtn = styled.button`
+  padding: 8px 16px;
+  font-size: 13px;
   font-weight: 500;
-  color: #374151;
-  border-radius: 9999px;
-  transition: background 0.15s ease;
+  color: ${props => props.theme.colors.textSecondary};
+  border: 1px solid ${props => props.theme.colors.border};
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s;
 
-  &:hover { background: #f3f4f6; }
+  &:hover {
+    background: ${props => props.theme.colors.surface};
+    color: ${props => props.theme.colors.text};
+  }
 `;
+
+const SaveBtn = styled.button`
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  background: var(--brand-primary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+
+  &:hover:not(:disabled) { opacity: 0.87; }
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+`;
+
+/* ─── Component ───────────────────────────────────────────────────────────── */
 
 export const EditServicesModal = ({
   isOpen,
@@ -309,23 +423,19 @@ export const EditServicesModal = ({
   const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
   const [newServiceNamePrefill, setNewServiceNamePrefill] = useState<string>('');
 
-  // Local UI state: optimistic added services (temporary), deleted snapshots for existing items, and local price change tracking
   const [tempAdded, setTempAdded] = useState<ServiceLineItem[]>([]);
   const [deletedSnapshots, setDeletedSnapshots] = useState<Record<string, ServiceLineItem>>({});
   const [changedPriceIds, setChangedPriceIds] = useState<Set<string>>(new Set());
   const [localPriceOverrides, setLocalPriceOverrides] = useState<Record<string, number>>({});
 
-  // When real services update, clear matching temps and deleted snapshots that reappear
   useEffect(() => {
     if (!services) return;
-    // Remove temp items that match existing by serviceId+serviceName
-    setTempAdded(prev => prev.filter(t => !services.some(s => s.serviceId === t.serviceId && s.serviceName === t.serviceName)));
-    // If any deleted item somehow reappeared, drop snapshot
+    setTempAdded(prev =>
+      prev.filter(t => !services.some(s => s.serviceId === t.serviceId && s.serviceName === t.serviceName))
+    );
     setDeletedSnapshots(prev => {
       const next = { ...prev };
-      services.forEach(s => {
-        if (next[s.id]) delete next[s.id];
-      });
+      services.forEach(s => { if (next[s.id]) delete next[s.id]; });
       return next;
     });
   }, [services]);
@@ -334,7 +444,7 @@ export const EditServicesModal = ({
 
   const handlePriceChange = (serviceId: string, value: string) => {
     if (value !== '' && !/^\d*(\.\d{0,2})?$/.test(value)) return;
-    setEditingPrices((prev) => ({ ...prev, [serviceId]: value }));
+    setEditingPrices(prev => ({ ...prev, [serviceId]: value }));
   };
 
   const handleSavePrice = (serviceId: string) => {
@@ -342,12 +452,10 @@ export const EditServicesModal = ({
     if (rawValue === undefined) return;
     const numValue = Math.round(parseFloat(rawValue) * 100);
     if (!isNaN(numValue) && numValue >= 0) {
-      // Do not call API here. Mark as locally changed and reflect new price
       setChangedPriceIds(prev => new Set(prev).add(serviceId));
       setLocalPriceOverrides(prev => ({ ...prev, [serviceId]: numValue }));
     }
-    // Always exit edit mode for this service
-    setEditingPrices((prev) => {
+    setEditingPrices(prev => {
       const { [serviceId]: _, ...rest } = prev;
       return rest;
     });
@@ -355,23 +463,18 @@ export const EditServicesModal = ({
 
   const handleDelete = (serviceId: string) => {
     if (!window.confirm('Czy na pewno chcesz usunąć tę usługę?')) return;
-
     const isTemp = serviceId.startsWith('temp-') || tempAdded.some(s => s.id === serviceId);
-
     if (isTemp) {
-      // Nowo dodana w tym modalu: usuń całkowicie z listy lokalnie
       setTempAdded(prev => prev.filter(s => s.id !== serviceId));
       return;
     }
-
-    // Istniejąca pozycja przypisana wcześniej do wizyty: oznacz jako usunięta (czerwone przekreślenie)
     const current = services.find(s => s.id === serviceId);
     if (current) {
       setDeletedSnapshots(prev => ({ ...prev, [serviceId]: current }));
     }
   };
 
-  const hasPendingChanges = services.some((s) => (s.hasPendingChange ?? (s.status === 'PENDING')));
+  const hasPendingChanges = services.some(s => s.hasPendingChange ?? s.status === 'PENDING');
 
   const handleServiceCreate = (service: {
     id?: string;
@@ -379,210 +482,240 @@ export const EditServicesModal = ({
     basePriceNet: number;
     vatRate: number;
   }) => {
-    // Optimistic local add for immediate feedback (green 'Dodano')
     const tempId = `temp-${Date.now()}`;
-    const basePriceNet = service.basePriceNet;
-    const vatRate = service.vatRate as number;
     const tempItem: ServiceLineItem = {
       id: tempId,
       serviceId: service.id || 'custom',
       serviceName: service.name,
-      basePriceNet,
-      vatRate,
+      basePriceNet: service.basePriceNet,
+      vatRate: service.vatRate as number,
       requireManualPrice: false,
       adjustment: { type: 'FIXED_NET', value: 0 },
       note: '',
-      finalPriceNet: basePriceNet,
-      finalPriceGross: Math.round(basePriceNet * (1 + vatRate / 100)),
+      finalPriceNet: service.basePriceNet,
+      finalPriceGross: Math.round(service.basePriceNet * (1 + service.vatRate / 100)),
       status: 'PENDING',
     };
-    setTempAdded((prev) => [tempItem, ...prev]);
-
-    // Do not call API now; wait until user clicks Save
+    setTempAdded(prev => [tempItem, ...prev]);
     setIsQuickServiceModalOpen(false);
   };
 
+  /* Build merged list */
+  const byId: Record<string, ServiceLineItem> = {};
+  services.forEach(s => { byId[s.id] = s; });
+  tempAdded.forEach(t => { byId[t.id] = t; });
+  Object.values(deletedSnapshots).forEach(d => { byId[d.id] = d; });
+  const allItems = Object.values(byId);
+
+  const hasUnsaved =
+    tempAdded.length > 0 ||
+    Object.keys(deletedSnapshots).length > 0 ||
+    changedPriceIds.size > 0;
+
+  const totalCount = services.length + tempAdded.length;
+
   return (
     <>
-      <Overlay $contentLeft={contentLeft} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <Overlay
+        $contentLeft={contentLeft}
+        onMouseDown={e => e.target === e.currentTarget && onClose()}
+      >
         <ModalContainer>
-          <Header>
-            <DragHandle>
-              <DragBar />
-            </DragHandle>
 
-            <CloseButton type="button" onClick={onClose}>
+          {/* ── Header ── */}
+          <Header>
+            <HeaderLeft>
+              <HeaderIcon>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+                  <rect x="9" y="3" width="6" height="4" rx="2" />
+                  <path d="M9 12h6M9 16h4" />
+                </svg>
+              </HeaderIcon>
+              <HeaderText>
+                <Title>Zarządzanie usługami</Title>
+                <Subtitle>
+                  {totalCount}{' '}
+                  {totalCount === 1 ? 'usługa' : totalCount < 5 ? 'usługi' : 'usług'}
+                  {hasPendingChanges && ' · oczekuje na potwierdzenie'}
+                </Subtitle>
+              </HeaderText>
+            </HeaderLeft>
+            <CloseButton type="button" onClick={onClose} title="Zamknij">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </CloseButton>
-
-            <Title>Zarządzanie usługami</Title>
-            <Subtitle>
-              {services.length} {services.length === 1 ? 'usługa' : services.length < 5 ? 'usługi' : 'usług'}
-              {hasPendingChanges && ' • Zawiera usługi oczekujące na potwierdzenie'}
-            </Subtitle>
           </Header>
 
+          {/* ── Content ── */}
           <Content>
-            {/* Select existing service */}
-            <ServiceAutocomplete
-              onSelect={(service) => {
-                // Optimistic local add for immediate feedback
-                const tempId = `temp-${Date.now()}`;
-                const basePriceNet = service.basePriceNet;
-                const vatRate = service.vatRate as number;
-                const tempItem: ServiceLineItem = {
-                  id: tempId,
-                  serviceId: service.id,
-                  serviceName: service.name,
-                  basePriceNet,
-                  vatRate,
-                  requireManualPrice: service.requireManualPrice,
-                  adjustment: { type: 'FIXED_NET', value: 0 },
-                  note: '',
-                  finalPriceNet: basePriceNet,
-                  finalPriceGross: Math.round(basePriceNet * (1 + vatRate / 100)),
-                  status: 'PENDING',
-                };
-                setTempAdded((prev) => [tempItem, ...prev]);
-                // Do not call API here; it will be sent on Save
-              }}
-              onAddNew={(q) => {
-                setNewServiceNamePrefill(q);
-                setIsQuickServiceModalOpen(true);
-              }}
-            />
 
-            {(() => {
-              // Build list: start with services, then tempAdded (avoid id collision), then deletedSnapshots that are not in services
-              const byId: Record<string, ServiceLineItem> = {};
-              services.forEach(s => { byId[s.id] = s; });
-              tempAdded.forEach(t => { byId[t.id] = t; });
-              Object.values(deletedSnapshots).forEach(d => { byId[d.id] = d; });
-              const items = Object.values(byId);
+            {/* Add service */}
+            <AddSection>
+              <SectionLabel>Dodaj usługę</SectionLabel>
+              <ServiceAutocomplete
+                onSelect={service => {
+                  const tempId = `temp-${Date.now()}`;
+                  const tempItem: ServiceLineItem = {
+                    id: tempId,
+                    serviceId: service.id,
+                    serviceName: service.name,
+                    basePriceNet: service.basePriceNet,
+                    vatRate: service.vatRate as number,
+                    requireManualPrice: service.requireManualPrice,
+                    adjustment: { type: 'FIXED_NET', value: 0 },
+                    note: '',
+                    finalPriceNet: service.basePriceNet,
+                    finalPriceGross: Math.round(service.basePriceNet * (1 + service.vatRate / 100)),
+                    status: 'PENDING',
+                  };
+                  setTempAdded(prev => [tempItem, ...prev]);
+                }}
+                onAddNew={q => {
+                  setNewServiceNamePrefill(q);
+                  setIsQuickServiceModalOpen(true);
+                }}
+              />
+            </AddSection>
 
-              return items.map((service) => {
+            {/* Services list */}
+            <ServicesList>
+              {allItems.map(service => {
                 const isDeleted = !!deletedSnapshots[service.id];
-                const isEditing = !isDeleted && editingPrices[service.id] !== undefined;
-                const isAdded = tempAdded.some(t => t.id === service.id);
+                const isAdded   = tempAdded.some(t => t.id === service.id);
                 const isPriceChanged = changedPriceIds.has(service.id);
-                const effectiveNet = isEditing
-                  ? editingPrices[service.id]
-                  : localPriceOverrides[service.id] ?? service.finalPriceNet;
-                const displayPrice = effectiveNet / 100;
+                const isEditing = !isDeleted && editingPrices[service.id] !== undefined;
+
+                const effectiveNet   = isEditing
+                  ? Number(editingPrices[service.id]) * 100
+                  : (localPriceOverrides[service.id] ?? service.finalPriceNet);
                 const effectiveGross = Math.round(effectiveNet * (1 + (service.vatRate || 0) / 100));
 
+                const rowState: RowState =
+                  isDeleted ? 'deleted'
+                  : isAdded  ? 'added'
+                  : isPriceChanged || service.status === 'PENDING' ? 'pending'
+                  : 'confirmed';
+
+                const badgeLabel =
+                  isDeleted   ? 'Usunięto'
+                  : isAdded    ? 'Dodano'
+                  : isPriceChanged ? 'Zmieniono cenę'
+                  : service.status === 'PENDING' ? 'Oczekuje'
+                  : 'Potwierdzona';
+
                 return (
-                  <ServiceCard key={service.id} $pending={!isAdded && (isPriceChanged || service.status === 'PENDING')} $deleted={isDeleted} $added={isAdded}>
-                    <ServiceRow>
-                      <ServiceInfo>
-                        <ServiceHeader>
-                          <ServiceName $deleted={isDeleted}>{service.serviceName}</ServiceName>
-                          {isDeleted ? (
-                            <DeletedChip>Usunięto</DeletedChip>
-                          ) : isAdded ? (
-                            <StatusChip $pending={false}>Dodano</StatusChip>
-                          ) : isPriceChanged ? (
-                            <StatusChip $pending={true}>Zmieniono cenę</StatusChip>
-                          ) : (
-                            <StatusChip $pending={service.status === 'PENDING'}>
-                              {service.status === 'PENDING' ? 'Oczekuje' : 'Potwierdzona'}
-                            </StatusChip>
-                          )}
-                        </ServiceHeader>
+                  <ServiceRow key={service.id} $state={rowState}>
+                    <ServiceInfo>
+                      <ServiceTop>
+                        <ServiceName $deleted={isDeleted}>
+                          {service.serviceName}
+                        </ServiceName>
+                        <StateBadge $state={rowState}>
+                          {badgeLabel}
+                        </StateBadge>
+                      </ServiceTop>
 
-                        {isEditing ? (
-                          <PriceInput
-                            type="text"
-                            inputMode="decimal"
-                            value={editingPrices[service.id] ?? ''}
-                            onChange={(e) => handlePriceChange(service.id, e.target.value)}
-                            onBlur={() => handleSavePrice(service.id)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                handleSavePrice(service.id);
-                              }
-                            }}
-                            autoFocus
-                          />
-                        ) : (
-                          <PriceText $deleted={isDeleted}>
-                            Netto: <span className="strong">{formatCurrency(effectiveNet / 100)}</span> • Brutto{' '}
-                            <span className="strong">{formatCurrency(effectiveGross / 100)}</span>
-                          </PriceText>
-                        )}
-                      </ServiceInfo>
-
-                      <Actions>
-                        {!isDeleted && !isAdded && service.status === 'PENDING' && (
-                          <IconButton
-                            $variant="green"
-                            onClick={() => onUpdateServiceStatus(service.id, 'CONFIRMED')}
-                            title="Zatwierdź ręcznie"
-                          >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          </IconButton>
-                        )}
-
-                        {!isDeleted && (
-                          <IconButton
-                            $variant="blue"
-                            onClick={() =>
-                              setEditingPrices((prev) => ({ ...prev, [service.id]: String(effectiveNet / 100) }))
+                      {isEditing ? (
+                        <PriceInput
+                          type="text"
+                          inputMode="decimal"
+                          value={editingPrices[service.id] ?? ''}
+                          onChange={e => handlePriceChange(service.id, e.target.value)}
+                          onBlur={() => handleSavePrice(service.id)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleSavePrice(service.id);
                             }
-                            title="Edytuj cenę"
-                          >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
-                          </IconButton>
-                        )}
+                          }}
+                          autoFocus
+                        />
+                      ) : (
+                        <PriceRow $deleted={isDeleted}>
+                          Netto <PriceStrong>{formatCurrency(effectiveNet / 100)}</PriceStrong>
+                          <PriceSep>·</PriceSep>
+                          Brutto <PriceStrong>{formatCurrency(effectiveGross / 100)}</PriceStrong>
+                        </PriceRow>
+                      )}
+                    </ServiceInfo>
 
-                        {!isDeleted && (
-                          <IconButton $variant="red" onClick={() => handleDelete(service.id)} title="Usuń usługę">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <polyline points="3 6 5 6 21 6" />
-                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                            </svg>
-                          </IconButton>
-                        )}
-                      </Actions>
-                    </ServiceRow>
-                  </ServiceCard>
+                    <ActionGroup>
+                      {!isDeleted && !isAdded && service.status === 'PENDING' && (
+                        <ActionBtn
+                          $variant="confirm"
+                          onClick={() => onUpdateServiceStatus(service.id, 'CONFIRMED')}
+                          title="Zatwierdź"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        </ActionBtn>
+                      )}
+
+                      {!isDeleted && (
+                        <ActionBtn
+                          $variant="edit"
+                          onClick={() =>
+                            setEditingPrices(prev => ({
+                              ...prev,
+                              [service.id]: String(effectiveNet / 100),
+                            }))
+                          }
+                          title="Edytuj cenę"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                        </ActionBtn>
+                      )}
+
+                      {!isDeleted && (
+                        <ActionBtn
+                          $variant="delete"
+                          onClick={() => handleDelete(service.id)}
+                          title="Usuń usługę"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </ActionBtn>
+                      )}
+                    </ActionGroup>
+                  </ServiceRow>
                 );
-              });
-            })()}
+              })}
+            </ServicesList>
 
-            <NotifyBox>
-              <NotifyLabel>
-                <input
-                  type="checkbox"
-                  checked={notifyCustomer}
-                  onChange={(e) => setNotifyCustomer(e.target.checked)}
-                  style={{ marginTop: 2, width: 16, height: 16 }}
-                />
-                <div style={{ flex: 1 }}>
-                  <NotifyText>Poinformuj klienta SMS-em o zmianach w usługach</NotifyText>
-                  {hasPendingChanges && (
-                    <NotifyHint>⚠️ Zmiany wymagają akceptacji klienta</NotifyHint>
-                  )}
-                </div>
-              </NotifyLabel>
-            </NotifyBox>
+            {/* Notify customer */}
+            <NotifyRow>
+              <NotifyCheckbox
+                id="notify-sms"
+                type="checkbox"
+                checked={notifyCustomer}
+                onChange={e => setNotifyCustomer(e.target.checked)}
+              />
+              <NotifyTextBlock htmlFor="notify-sms">
+                <NotifyTitle>Poinformuj klienta SMS-em o zmianach</NotifyTitle>
+                {hasPendingChanges && (
+                  <NotifyHint>Zmiany wymagają akceptacji klienta</NotifyHint>
+                )}
+              </NotifyTextBlock>
+            </NotifyRow>
           </Content>
 
+          {/* ── Footer ── */}
           <Footer>
-            <CloseSecondary type="button" onClick={onClose}>
+            <CancelBtn type="button" onClick={onClose}>
               Zamknij
-            </CloseSecondary>
-            <button
+            </CancelBtn>
+            <SaveBtn
               type="button"
+              disabled={!hasUnsaved || !!isSavingChanges}
               onClick={() => {
                 const payload: ServicesChangesPayload = {
                   notifyCustomer,
@@ -604,26 +737,14 @@ export const EditServicesModal = ({
                 };
                 onSaveChanges(payload);
               }}
-              disabled={
-                (tempAdded.length === 0 && Object.keys(deletedSnapshots).length === 0 && changedPriceIds.size === 0) ||
-                !!isSavingChanges
-              }
-              style={{
-                padding: '10px 16px',
-                borderRadius: 9999,
-                background: 'var(--brand-primary)',
-                color: 'white',
-                fontWeight: 600,
-                opacity: ((tempAdded.length === 0 && Object.keys(deletedSnapshots).length === 0 && changedPriceIds.size === 0) || !!isSavingChanges) ? 0.6 : 1,
-              }}
             >
-              {isSavingChanges ? 'Zapisywanie…' : 'Zapisz'}
-            </button>
+              {isSavingChanges ? 'Zapisywanie…' : 'Zapisz zmiany'}
+            </SaveBtn>
           </Footer>
+
         </ModalContainer>
       </Overlay>
 
-      {/* QuickServiceModal with higher z-index */}
       <div style={{ zIndex: 1100 }}>
         <QuickServiceModal
           isOpen={isQuickServiceModalOpen}
