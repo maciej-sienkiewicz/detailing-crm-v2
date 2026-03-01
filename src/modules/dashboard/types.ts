@@ -37,6 +37,8 @@ export interface OperationalStats {
   readyForPickup: number;
   /** Number of new orders scheduled to arrive today */
   incomingToday: number;
+  /** Number of reservations abandoned in the last 30 days */
+  abandonedLast30Days: number;
   /** Details of visits in progress */
   inProgressDetails: VisitDetail[];
   /** Details of visits ready for pickup */

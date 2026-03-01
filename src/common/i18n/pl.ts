@@ -861,6 +861,8 @@ export const pl: TranslationKeys = {
             arrivals: 'Do przyjęcia dzisiaj',
             overdue: 'Po terminie',
             estimatedCompletion: 'Szacowana data zakończenia',
+            abandoned: 'Porzucone rezerwacje',
+            abandonedSubLabel: 'ostatnie 30 dni',
         },
         metrics: {
             revenueTitle: 'Wartość zleceń',

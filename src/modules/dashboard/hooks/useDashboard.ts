@@ -20,7 +20,7 @@ export const useDashboard = () => {
   const queryClient = useQueryClient();
 
   // Fetch dashboard statistics
-  const { data, isLoading, isError, refetch } = useQuery<DashboardData>({
+  const { data, isLoading, isFetching, isError, refetch } = useQuery<DashboardData>({
     queryKey: DASHBOARD_STATS_KEY,
     queryFn: () => dashboardApi.getStats(),
     refetchInterval: 30_000, // 30 seconds - temporary fallback for WebSockets
@@ -70,6 +70,7 @@ export const useDashboard = () => {
 
     // Loading states
     isLoading,
+    isFetching,
     isError,
 
     // Actions

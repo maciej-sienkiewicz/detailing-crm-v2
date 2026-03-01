@@ -1,10 +1,10 @@
 /**
  * Analytics Section Component
- * Displays revenue and call activity metrics with week-over-week comparison
+ * Premium business metrics: revenue and call activity with trend comparison.
  */
 
 import styled from 'styled-components';
-import { TrendingUp, TrendingDown, Phone } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Phone } from 'lucide-react';
 import { t } from '@/common/i18n';
 import { formatCurrency, formatNumber } from '@/common/utils/formatters';
 import type { BusinessMetric } from '../types';
@@ -14,98 +14,161 @@ interface AnalyticsSectionProps {
   callActivity?: BusinessMetric;
 }
 
-const AnalyticsContainer = styled.div`
+// ─── Styled Components ───────────────────────────────────────────────────────
+
+const AnalyticsGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${(props) => props.theme.spacing.md};
+  gap: ${(p) => p.theme.spacing.md};
 
-  @media (min-width: ${(props) => props.theme.breakpoints.md}) {
+  @media (min-width: ${(p) => p.theme.breakpoints.md}) {
     grid-template-columns: repeat(2, 1fr);
   }
 `;
 
 const MetricCard = styled.div`
-  background-color: ${(props) => props.theme.colors.surface};
-  border-radius: ${(props) => props.theme.radii.lg};
-  padding: ${(props) => props.theme.spacing.lg};
-  box-shadow: ${(props) => props.theme.shadows.md};
-  border: 1px solid ${(props) => props.theme.colors.border};
+  background-color: ${(p) => p.theme.colors.surface};
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: ${(p) => p.theme.radii.lg};
+  padding: ${(p) => p.theme.spacing.lg};
+  box-shadow: ${(p) => p.theme.shadows.sm};
+  display: flex;
+  flex-direction: column;
+  gap: ${(p) => p.theme.spacing.md};
 `;
 
-const MetricHeader = styled.div`
+const MetricTop = styled.div`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: ${(props) => props.theme.spacing.lg};
+  gap: ${(p) => p.theme.spacing.md};
 `;
 
-const MetricTitle = styled.h3`
-  font-size: ${(props) => props.theme.fontSizes.lg};
-  font-weight: ${(props) => props.theme.fontWeights.semibold};
-  color: ${(props) => props.theme.colors.text};
-  margin: 0;
-`;
-
-const TrendBadge = styled.div<{ $isPositive: boolean }>`
+const MetricIconWrap = styled.div<{ $color: string; $bg: string }>`
+  width: 40px;
+  height: 40px;
+  border-radius: ${(p) => p.theme.radii.md};
+  background-color: ${(p) => p.$bg};
   display: flex;
   align-items: center;
-  gap: ${(props) => props.theme.spacing.xs};
-  padding: ${(props) => props.theme.spacing.xs} ${(props) => props.theme.spacing.sm};
-  border-radius: ${(props) => props.theme.radii.full};
-  font-size: ${(props) => props.theme.fontSizes.sm};
-  font-weight: ${(props) => props.theme.fontWeights.semibold};
-  background-color: ${(props) =>
-    props.$isPositive ? props.theme.colors.successLight : props.theme.colors.errorLight};
-  color: ${(props) => (props.$isPositive ? props.theme.colors.success : props.theme.colors.error)};
+  justify-content: center;
+  flex-shrink: 0;
 
   svg {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
+    color: ${(p) => p.$color};
   }
 `;
 
-const ComparisonContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${(props) => props.theme.spacing.md};
+const MetricTitleGroup = styled.div`
+  flex: 1;
 `;
 
-const ValueRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding: ${(props) => props.theme.spacing.sm} 0;
+const MetricTitle = styled.h3`
+  font-size: ${(p) => p.theme.fontSizes.xs};
+  font-weight: ${(p) => p.theme.fontWeights.semibold};
+  color: ${(p) => p.theme.colors.textSecondary};
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin: 0 0 2px 0;
 `;
 
-const ValueLabel = styled.div`
-  font-size: ${(props) => props.theme.fontSizes.sm};
-  font-weight: ${(props) => props.theme.fontWeights.medium};
-  color: ${(props) => props.theme.colors.textSecondary};
+const MetricPeriod = styled.span`
+  font-size: ${(p) => p.theme.fontSizes.xs};
+  color: ${(p) => p.theme.colors.textMuted};
 `;
 
-const ValueAmount = styled.div<{ $isPrimary?: boolean }>`
-  font-size: ${(props) => (props.$isPrimary ? props.theme.fontSizes.xxl : props.theme.fontSizes.lg)};
-  font-weight: ${(props) => props.theme.fontWeights.bold};
-  color: ${(props) => (props.$isPrimary ? props.theme.colors.primary : props.theme.colors.text)};
+const TrendBadge = styled.div<{ $positive: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 10px;
+  border-radius: ${(p) => p.theme.radii.full};
+  font-size: ${(p) => p.theme.fontSizes.xs};
+  font-weight: ${(p) => p.theme.fontWeights.semibold};
+  background-color: ${(p) =>
+    p.$positive ? p.theme.colors.successLight : p.theme.colors.errorLight};
+  color: ${(p) => (p.$positive ? p.theme.colors.success : p.theme.colors.error)};
+  flex-shrink: 0;
+
+  svg {
+    width: 13px;
+    height: 13px;
+  }
+`;
+
+const CurrentValue = styled.div`
+  font-size: 34px;
+  font-weight: ${(p) => p.theme.fontWeights.bold};
+  color: ${(p) => p.theme.colors.text};
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
 `;
 
 const Divider = styled.div`
   height: 1px;
-  background-color: ${(props) => props.theme.colors.border};
-  margin: ${(props) => props.theme.spacing.sm} 0;
+  background-color: ${(p) => p.theme.colors.border};
 `;
 
-const MetricSkeleton = styled.div`
-  height: 120px;
+const CompareRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const CompareLabel = styled.span`
+  font-size: ${(p) => p.theme.fontSizes.sm};
+  color: ${(p) => p.theme.colors.textSecondary};
+`;
+
+const CompareValue = styled.span`
+  font-size: ${(p) => p.theme.fontSizes.sm};
+  font-weight: ${(p) => p.theme.fontWeights.semibold};
+  color: ${(p) => p.theme.colors.textSecondary};
+`;
+
+const ProgressBar = styled.div`
+  position: relative;
+  height: 4px;
+  background-color: ${(p) => p.theme.colors.surfaceAlt};
+  border-radius: ${(p) => p.theme.radii.full};
+  overflow: hidden;
+`;
+
+const ProgressFill = styled.div<{ $percent: number; $positive: boolean }>`
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: ${(p) => Math.min(p.$percent, 100)}%;
+  background-color: ${(p) => (p.$positive ? p.theme.colors.success : p.theme.colors.error)};
+  border-radius: ${(p) => p.theme.radii.full};
+  transition: width 600ms ease;
+`;
+
+const SkeletonCard = styled.div`
+  background-color: ${(p) => p.theme.colors.surface};
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: ${(p) => p.theme.radii.lg};
+  padding: ${(p) => p.theme.spacing.lg};
+  box-shadow: ${(p) => p.theme.shadows.sm};
+`;
+
+const SkeletonLine = styled.div<{ $w?: string; $h?: string }>`
+  height: ${(p) => p.$h ?? '16px'};
+  width: ${(p) => p.$w ?? '100%'};
   background: linear-gradient(
     90deg,
-    ${(props) => props.theme.colors.surfaceAlt} 0%,
-    ${(props) => props.theme.colors.surfaceHover} 50%,
-    ${(props) => props.theme.colors.surfaceAlt} 100%
+    ${(p) => p.theme.colors.surfaceAlt} 0%,
+    ${(p) => p.theme.colors.surfaceHover} 50%,
+    ${(p) => p.theme.colors.surfaceAlt} 100%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: ${(props) => props.theme.radii.md};
+  border-radius: ${(p) => p.theme.radii.sm};
+  margin-bottom: ${(p) => p.theme.spacing.sm};
 
   @keyframes shimmer {
     0% {
@@ -117,70 +180,111 @@ const MetricSkeleton = styled.div`
   }
 `;
 
-const formatMetricValue = (value: number, unit: string): string => {
-  if (unit === 'PLN') {
-    return formatCurrency(value);
-  }
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const formatValue = (value: number, unit: string): string => {
+  if (unit === 'PLN') return formatCurrency(value);
   return formatNumber(value);
 };
 
-const MetricComparison = ({
+const getProgressPercent = (current: number, previous: number): number => {
+  if (previous === 0) return 0;
+  return (current / previous) * 100;
+};
+
+// ─── Metric Card Component ────────────────────────────────────────────────────
+
+const MetricItem = ({
   metric,
   title,
+  period,
+  icon: Icon,
+  iconColor,
+  iconBg,
 }: {
   metric: BusinessMetric;
   title: string;
+  period: string;
+  icon: typeof DollarSign;
+  iconColor: string;
+  iconBg: string;
 }) => {
   const isPositive = metric.deltaPercentage >= 0;
   const formattedDelta = Math.abs(metric.deltaPercentage).toFixed(1);
+  const progressPercent = getProgressPercent(metric.currentValue, metric.previousValue);
 
   return (
     <MetricCard>
-      <MetricHeader>
-        <MetricTitle>{title}</MetricTitle>
-        <TrendBadge $isPositive={isPositive}>
+      <MetricTop>
+        <MetricIconWrap $color={iconColor} $bg={iconBg}>
+          <Icon />
+        </MetricIconWrap>
+        <MetricTitleGroup>
+          <MetricTitle>{title}</MetricTitle>
+          <MetricPeriod>{period}</MetricPeriod>
+        </MetricTitleGroup>
+        <TrendBadge $positive={isPositive}>
           {isPositive ? <TrendingUp /> : <TrendingDown />}
           {formattedDelta}%
         </TrendBadge>
-      </MetricHeader>
+      </MetricTop>
 
-      <ComparisonContainer>
-        <ValueRow>
-          <ValueLabel>{t.dashboard.metrics.plannedThisWeek}</ValueLabel>
-          <ValueAmount $isPrimary>
-            {formatMetricValue(metric.currentValue, metric.unit)}
-          </ValueAmount>
-        </ValueRow>
+      <CurrentValue>{formatValue(metric.currentValue, metric.unit)}</CurrentValue>
 
-        <Divider />
+      <ProgressBar>
+        <ProgressFill $percent={progressPercent} $positive={isPositive} />
+      </ProgressBar>
 
-        <ValueRow>
-          <ValueLabel>{t.dashboard.metrics.realizedLastWeek}</ValueLabel>
-          <ValueAmount>{formatMetricValue(metric.previousValue, metric.unit)}</ValueAmount>
-        </ValueRow>
-      </ComparisonContainer>
+      <Divider />
+
+      <CompareRow>
+        <CompareLabel>{t.dashboard.metrics.realizedLastWeek}</CompareLabel>
+        <CompareValue>{formatValue(metric.previousValue, metric.unit)}</CompareValue>
+      </CompareRow>
     </MetricCard>
   );
 };
 
+// ─── Main Export ──────────────────────────────────────────────────────────────
+
 export const AnalyticsSection = ({ revenue, callActivity }: AnalyticsSectionProps) => {
   return (
-    <AnalyticsContainer>
+    <AnalyticsGrid>
       {revenue ? (
-        <MetricComparison metric={revenue} title={t.dashboard.metrics.revenueTitle} />
+        <MetricItem
+          metric={revenue}
+          title={t.dashboard.metrics.revenueTitle}
+          period={t.dashboard.metrics.plannedThisWeek}
+          icon={DollarSign}
+          iconColor="var(--brand-primary)"
+          iconBg="rgba(14, 165, 233, 0.1)"
+        />
       ) : (
-        <MetricCard>
-          <MetricSkeleton />
-        </MetricCard>
+        <SkeletonCard>
+          <SkeletonLine $w="40px" $h="40px" />
+          <SkeletonLine $w="60%" />
+          <SkeletonLine $h="34px" $w="80%" />
+          <SkeletonLine />
+        </SkeletonCard>
       )}
 
       {callActivity ? (
-        <MetricComparison metric={callActivity} title={t.dashboard.metrics.callsTitle} />
+        <MetricItem
+          metric={callActivity}
+          title={t.dashboard.metrics.callsTitle}
+          period={t.dashboard.metrics.plannedThisWeek}
+          icon={Phone}
+          iconColor="#7c3aed"
+          iconBg="rgba(124, 58, 237, 0.1)"
+        />
       ) : (
-        <MetricCard>
-          <MetricSkeleton />
-        </MetricCard>
+        <SkeletonCard>
+          <SkeletonLine $w="40px" $h="40px" />
+          <SkeletonLine $w="60%" />
+          <SkeletonLine $h="34px" $w="80%" />
+          <SkeletonLine />
+        </SkeletonCard>
       )}
-    </AnalyticsContainer>
+    </AnalyticsGrid>
   );
 };

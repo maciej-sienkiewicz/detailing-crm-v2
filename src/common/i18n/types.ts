@@ -876,6 +876,8 @@ export interface TranslationKeys {
             arrivals: string;
             overdue: string;
             estimatedCompletion: string;
+            abandoned: string;
+            abandonedSubLabel: string;
         };
         metrics: {
             revenueTitle: string;

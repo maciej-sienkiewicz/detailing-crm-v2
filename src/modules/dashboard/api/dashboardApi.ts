@@ -17,6 +17,7 @@ const mockDashboardData: DashboardData = {
     inProgress: 8,
     readyForPickup: 3,
     incomingToday: 5,
+    abandonedLast30Days: 7,
     inProgressDetails: [
       {
         id: 'v1',
