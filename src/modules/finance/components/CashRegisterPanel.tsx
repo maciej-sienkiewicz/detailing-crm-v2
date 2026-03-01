@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useCashRegister, useCashHistory, useAdjustCash } from '../hooks/useFinance';
 import { formatMoney, formatDate, inputValueToGrosze } from '../utils/formatters';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 
 const shimmer = keyframes`
   0% { background-position: -200% 0; }
@@ -11,7 +12,7 @@ const shimmer = keyframes`
 const Grid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${(p) => p.theme.spacing.lg};
+  gap: 20px;
 
   @media (min-width: ${(p) => p.theme.breakpoints.lg}) {
     grid-template-columns: 360px 1fr;
@@ -19,128 +20,155 @@ const Grid = styled.div`
 `;
 
 const Panel = styled.div`
-  background: ${(p) => p.theme.colors.surface};
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: ${(p) => p.theme.radii.lg};
-  padding: ${(p) => p.theme.spacing.lg};
+  background: ${st.bgCard};
+  border: 1px solid ${st.border};
+  border-radius: ${st.radius};
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: ${(p) => p.theme.spacing.md};
+  gap: 20px;
+  box-shadow: ${st.shadowSm};
 `;
 
 const PanelTitle = styled.h3`
-  font-size: ${(p) => p.theme.fontSizes.md};
-  font-weight: ${(p) => p.theme.fontWeights.semibold};
-  color: ${(p) => p.theme.colors.text};
+  font-size: ${st.fontXs};
+  font-weight: 700;
+  color: ${st.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
   margin: 0;
 `;
 
+const BalanceBlock = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 24px;
+  background: ${st.gradientCardGreen};
+  border: 1px solid ${st.accentGreen}22;
+  border-radius: ${st.radiusSm};
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: ${st.accentGreen};
+    border-radius: 0 2px 2px 0;
+  }
+`;
+
+const BalanceLabel = styled.span`
+  font-size: ${st.fontXs};
+  font-weight: 700;
+  color: ${st.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+`;
+
 const BalanceAmount = styled.div`
-  font-size: 2.5rem;
-  font-weight: ${(p) => p.theme.fontWeights.bold};
-  color: ${(p) => p.theme.colors.text};
+  font-size: ${st.fontHero};
+  font-weight: 800;
+  color: ${st.accentGreen};
   font-feature-settings: 'tnum';
   line-height: 1;
+  letter-spacing: -1px;
 `;
 
 const BalanceSub = styled.div`
-  font-size: ${(p) => p.theme.fontSizes.xs};
-  color: ${(p) => p.theme.colors.textMuted};
+  font-size: ${st.fontXs};
+  color: ${st.textMuted};
+  margin-top: 2px;
 `;
 
 const Divider = styled.hr`
   border: none;
-  border-top: 1px solid ${(p) => p.theme.colors.border};
+  border-top: 1px solid ${st.border};
   margin: 0;
 `;
 
 const AdjustForm = styled.form`
   display: flex;
   flex-direction: column;
-  gap: ${(p) => p.theme.spacing.sm};
+  gap: 10px;
 `;
 
 const AdjustTitle = styled.div`
-  font-size: ${(p) => p.theme.fontSizes.sm};
-  font-weight: ${(p) => p.theme.fontWeights.semibold};
-  color: ${(p) => p.theme.colors.text};
+  font-size: ${st.fontXs};
+  font-weight: 700;
+  color: ${st.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
 `;
 
 const InputRow = styled.div`
   display: flex;
-  gap: ${(p) => p.theme.spacing.sm};
+  gap: 8px;
 `;
 
 const AmountInput = styled.input`
   flex: 1;
-  padding: 8px 12px;
-  font-size: 14px;
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: ${(p) => p.theme.radii.md};
-  background: ${(p) => p.theme.colors.surface};
-  color: ${(p) => p.theme.colors.text};
+  padding: 9px 12px;
+  font-size: ${st.fontSm};
+  border: 1px solid ${st.border};
+  border-radius: ${st.radiusSm};
+  background: ${st.bgCard};
+  color: ${st.text};
   outline: none;
-  font-family: 'JetBrains Mono', monospace;
   font-feature-settings: 'tnum';
+  transition: border-color ${st.transition}, box-shadow ${st.transition};
 
   &:focus {
-    border-color: var(--brand-primary);
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    border-color: ${st.accentBlue};
+    box-shadow: ${st.shadowBlue};
   }
 `;
 
 const CommentInput = styled.input`
   width: 100%;
-  padding: 8px 12px;
-  font-size: 14px;
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: ${(p) => p.theme.radii.md};
-  background: ${(p) => p.theme.colors.surface};
-  color: ${(p) => p.theme.colors.text};
+  padding: 9px 12px;
+  font-size: ${st.fontSm};
+  border: 1px solid ${st.border};
+  border-radius: ${st.radiusSm};
+  background: ${st.bgCard};
+  color: ${st.text};
   outline: none;
   box-sizing: border-box;
+  transition: border-color ${st.transition}, box-shadow ${st.transition};
 
   &:focus {
-    border-color: var(--brand-primary);
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    border-color: ${st.accentBlue};
+    box-shadow: ${st.shadowBlue};
   }
 `;
 
 const AdjustBtn = styled.button<{ $variant?: 'positive' | 'negative' }>`
-  padding: 8px 14px;
-  font-size: 13px;
+  padding: 9px 16px;
+  font-size: ${st.fontSm};
   font-weight: 600;
-  border: none;
-  border-radius: ${(p) => p.theme.radii.md};
+  border: 1px solid ${(p) => (p.$variant === 'negative' ? `${st.accentRed}44` : `${st.accentGreen}44`)};
+  border-radius: ${st.radiusSm};
   cursor: pointer;
-  transition: filter 0.12s ease;
+  transition: all ${st.transition};
   white-space: nowrap;
 
-  background: ${(p) => (p.$variant === 'negative' ? '#fee2e2' : '#dcfce7')};
-  color: ${(p) => (p.$variant === 'negative' ? '#991b1b' : '#166534')};
+  background: ${(p) => (p.$variant === 'negative' ? st.accentRedDim : st.accentGreenDim)};
+  color: ${(p) => (p.$variant === 'negative' ? st.accentRed : st.accentGreen)};
 
-  &:hover { filter: brightness(0.93); }
-  &:disabled { opacity: 0.6; cursor: not-allowed; }
-`;
-
-const SubmitBtn = styled.button`
-  padding: 8px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  border: none;
-  background: linear-gradient(135deg, var(--brand-primary) 0%, #0284c7 100%);
-  color: white;
-  border-radius: ${(p) => p.theme.radii.md};
-  cursor: pointer;
-  transition: filter 0.12s ease;
-
-  &:hover { filter: brightness(1.08); }
-  &:disabled { opacity: 0.6; cursor: not-allowed; }
+  &:hover:not(:disabled) {
+    background: ${(p) => (p.$variant === 'negative' ? '#fee2e2' : '#dcfce7')};
+    box-shadow: ${st.shadowXs};
+  }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
 const ErrorMsg = styled.p`
-  font-size: ${(p) => p.theme.fontSizes.xs};
-  color: ${(p) => p.theme.colors.error};
+  font-size: ${st.fontXs};
+  color: ${st.accentRed};
   margin: 0;
 `;
 
@@ -152,42 +180,53 @@ const HistoryTable = styled.table`
 `;
 
 const HTh = styled.th<{ $align?: string }>`
-  padding: ${(p) => p.theme.spacing.sm} ${(p) => p.theme.spacing.md};
+  padding: 10px 14px;
   text-align: ${(p) => p.$align || 'left'};
-  font-size: ${(p) => p.theme.fontSizes.xs};
-  font-weight: 600;
-  color: ${(p) => p.theme.colors.textMuted};
+  font-size: ${st.fontXs};
+  font-weight: 700;
+  color: ${st.textMuted};
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid ${(p) => p.theme.colors.border};
+  letter-spacing: 0.6px;
+  border-bottom: 1px solid ${st.border};
+  background: ${st.bg};
 `;
 
 const HTr = styled.tr`
-  border-bottom: 1px solid ${(p) => p.theme.colors.border};
+  border-bottom: 1px solid ${st.border};
+  transition: background ${st.transition};
+
   &:last-child { border-bottom: none; }
+  &:hover { background: ${st.bg}; }
 `;
 
 const HTd = styled.td<{ $align?: string; $mono?: boolean }>`
-  padding: ${(p) => p.theme.spacing.sm} ${(p) => p.theme.spacing.md};
-  font-size: ${(p) => p.theme.fontSizes.sm};
-  color: ${(p) => p.theme.colors.text};
+  padding: 10px 14px;
+  font-size: ${st.fontSm};
+  color: ${st.text};
   text-align: ${(p) => p.$align || 'left'};
-  ${(p) => p.$mono && `font-family: 'JetBrains Mono', monospace; font-feature-settings: 'tnum';`}
+  ${(p) => p.$mono && `font-feature-settings: 'tnum';`}
 `;
 
 const AmountBadge = styled.span<{ $positive: boolean }>`
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 600;
-  color: ${(p) => (p.$positive ? '#166534' : '#991b1b')};
+  font-weight: 700;
+  color: ${(p) => (p.$positive ? st.accentGreen : st.accentRed)};
+  font-feature-settings: 'tnum';
 `;
 
 const Skeleton = styled.div<{ $w?: string; $h?: string }>`
   width: ${(p) => p.$w || '100%'};
   height: ${(p) => p.$h || '14px'};
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
   background-size: 200% 100%;
   animation: ${shimmer} 1.5s infinite;
-  border-radius: 4px;
+  border-radius: 6px;
+`;
+
+const EmptyHistory = styled.div`
+  padding: 32px;
+  text-align: center;
+  font-size: ${st.fontSm};
+  color: ${st.textMuted};
 `;
 
 export const CashRegisterPanel: React.FC = () => {
@@ -221,17 +260,19 @@ export const CashRegisterPanel: React.FC = () => {
         <PanelTitle>Stan kasy</PanelTitle>
 
         {cashLoading ? (
-          <>
-            <Skeleton $h="40px" $w="70%" />
-            <Skeleton $h="12px" $w="50%" />
-          </>
+          <BalanceBlock>
+            <BalanceLabel>Saldo</BalanceLabel>
+            <Skeleton $h="44px" $w="70%" />
+            <Skeleton $h="11px" $w="50%" />
+          </BalanceBlock>
         ) : (
-          <>
+          <BalanceBlock>
+            <BalanceLabel>Saldo</BalanceLabel>
             <BalanceAmount>{formatMoney(cashRegister?.balance ?? 0)}</BalanceAmount>
             <BalanceSub>
               Aktualizacja: {cashRegister ? formatDate(cashRegister.updatedAt) : '—'}
             </BalanceSub>
-          </>
+          </BalanceBlock>
         )}
 
         <Divider />
@@ -266,12 +307,6 @@ export const CashRegisterPanel: React.FC = () => {
             <AdjustBtn $variant="negative" onClick={() => handleAdjust(-1)} disabled={adjustCash.isPending}>
               − Wypłata
             </AdjustBtn>
-            <SubmitBtn
-              type="button"
-              onClick={() => handleAdjust(amountDisplay.startsWith('-') ? -1 : 1)}
-              disabled={adjustCash.isPending}
-              style={{ display: 'none' }}
-            />
           </InputRow>
         </AdjustForm>
       </Panel>
@@ -282,10 +317,10 @@ export const CashRegisterPanel: React.FC = () => {
 
         {histLoading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {[1,2,3,4].map((i) => <Skeleton key={i} $h="32px" />)}
+            {[1,2,3,4,5].map((i) => <Skeleton key={i} $h="36px" />)}
           </div>
         ) : operations.length === 0 ? (
-          <div style={{ color: '#9ca3af', fontSize: 14 }}>Brak operacji kasowych</div>
+          <EmptyHistory>Brak operacji kasowych</EmptyHistory>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <HistoryTable>
@@ -310,7 +345,7 @@ export const CashRegisterPanel: React.FC = () => {
                     </HTd>
                     <HTd $align="right" $mono>{formatMoney(op.balanceAfter)}</HTd>
                     <HTd>
-                      <span style={{ color: '#6b7280', fontSize: 13 }}>
+                      <span style={{ color: st.textMuted, fontSize: st.fontSm }}>
                         {op.comment || '—'}
                       </span>
                     </HTd>
