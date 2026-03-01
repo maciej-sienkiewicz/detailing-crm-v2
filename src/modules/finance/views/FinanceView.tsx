@@ -11,18 +11,19 @@ import {
   CashRegisterPanel,
   FinanceSummaryReport,
 } from '../components';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
 const PlusIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
     <line x1="12" y1="5" x2="12" y2="19" />
     <line x1="5" y1="12" x2="19" y2="12" />
   </svg>
 );
 
 const RefreshIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <polyline points="23 4 23 10 17 10" />
     <polyline points="1 20 1 14 7 14" />
     <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
@@ -34,11 +35,18 @@ const RefreshIcon = () => (
 const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${(p) => p.theme.spacing.lg};
-  padding: ${(p) => p.theme.spacing.md};
+  gap: 24px;
+  padding: ${(p) => p.theme.spacing.lg};
+  max-width: 1800px;
+  margin: 0 auto;
+  width: 100%;
 
   @media (min-width: ${(p) => p.theme.breakpoints.md}) {
-    padding: ${(p) => p.theme.spacing.lg};
+    padding: ${(p) => p.theme.spacing.xl};
+  }
+
+  @media (min-width: ${(p) => p.theme.breakpoints.xl}) {
+    padding: ${(p) => p.theme.spacing.xxl};
   }
 `;
 
@@ -49,7 +57,7 @@ const PageHeader = styled.div`
 
   @media (min-width: ${(p) => p.theme.breakpoints.md}) {
     flex-direction: row;
-    align-items: flex-start;
+    align-items: flex-end;
     justify-content: space-between;
   }
 `;
@@ -57,50 +65,49 @@ const PageHeader = styled.div`
 const TitleSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${(p) => p.theme.spacing.xs};
+  gap: 4px;
 `;
 
 const PageTitle = styled.h1`
-  font-size: ${(p) => p.theme.fontSizes.xl};
-  font-weight: ${(p) => p.theme.fontWeights.bold};
-  color: ${(p) => p.theme.colors.text};
+  font-size: 28px;
+  font-weight: 800;
+  color: ${st.text};
   margin: 0;
-
-  @media (min-width: ${(p) => p.theme.breakpoints.md}) {
-    font-size: ${(p) => p.theme.fontSizes.xxl};
-  }
+  letter-spacing: -0.5px;
 `;
 
 const PageSubtitle = styled.p`
-  font-size: ${(p) => p.theme.fontSizes.sm};
-  color: ${(p) => p.theme.colors.textSecondary};
+  font-size: ${st.fontSm};
+  color: ${st.textMuted};
   margin: 0;
 `;
 
 const HeaderActions = styled.div`
   display: flex;
-  gap: ${(p) => p.theme.spacing.sm};
+  gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
 `;
 
 const AddButton = styled.button`
   display: flex;
   align-items: center;
-  gap: ${(p) => p.theme.spacing.xs};
-  padding: ${(p) => p.theme.spacing.sm} ${(p) => p.theme.spacing.lg};
-  font-size: ${(p) => p.theme.fontSizes.sm};
-  font-weight: ${(p) => p.theme.fontWeights.semibold};
-  background: linear-gradient(135deg, var(--brand-primary) 0%, #0284c7 100%);
+  gap: 6px;
+  padding: 8px 18px;
+  font-size: ${st.fontSm};
+  font-weight: 600;
+  background: ${st.accentBlue};
   color: white;
   border: none;
-  border-radius: ${(p) => p.theme.radii.md};
+  border-radius: ${st.radiusFull};
   cursor: pointer;
-  box-shadow: ${(p) => p.theme.shadows.md};
-  transition: all ${(p) => p.theme.transitions.fast};
+  box-shadow: ${st.shadowXs};
+  transition: all ${st.transition};
 
   &:hover {
+    background: #2563EB;
+    box-shadow: ${st.shadowSm};
     transform: translateY(-1px);
-    box-shadow: ${(p) => p.theme.shadows.lg};
   }
 
   &:active { transform: translateY(0); }
@@ -110,17 +117,19 @@ const RefreshButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: ${(p) => p.theme.spacing.sm} ${(p) => p.theme.spacing.md};
-  background: ${(p) => p.theme.colors.surface};
-  color: ${(p) => p.theme.colors.textSecondary};
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: ${(p) => p.theme.radii.md};
+  padding: 8px 12px;
+  background: ${st.bgCard};
+  color: ${st.textSecondary};
+  border: 1px solid ${st.border};
+  border-radius: ${st.radiusSm};
   cursor: pointer;
-  transition: all ${(p) => p.theme.transitions.fast};
+  box-shadow: ${st.shadowXs};
+  transition: all ${st.transition};
 
   &:hover {
-    background: ${(p) => p.theme.colors.surfaceHover};
-    color: ${(p) => p.theme.colors.text};
+    background: ${st.bg};
+    color: ${st.text};
+    border-color: ${st.borderHover};
   }
 `;
 
@@ -129,45 +138,45 @@ const RefreshButton = styled.button`
 const TabsRow = styled.div`
   display: flex;
   gap: 0;
-  border-bottom: 2px solid ${(p) => p.theme.colors.border};
+  background: ${st.bgCard};
+  border: 1px solid ${st.border};
+  border-radius: ${st.radius};
+  padding: 4px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  box-shadow: ${st.shadowXs};
 `;
 
 const Tab = styled.button<{ $active: boolean }>`
-  padding: ${(p) => p.theme.spacing.sm} ${(p) => p.theme.spacing.lg};
-  font-size: ${(p) => p.theme.fontSizes.sm};
-  font-weight: ${(p) => (p.$active ? p.theme.fontWeights.semibold : p.theme.fontWeights.normal)};
-  color: ${(p) => (p.$active ? 'var(--brand-primary)' : p.theme.colors.textSecondary)};
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid ${(p) => (p.$active ? 'var(--brand-primary)' : 'transparent')};
-  margin-bottom: -2px;
+  padding: 8px 20px;
+  font-size: ${st.fontSm};
+  font-weight: ${(p) => (p.$active ? 600 : 400)};
+  color: ${(p) => (p.$active ? st.accentBlue : st.textSecondary)};
+  background: ${(p) => (p.$active ? st.accentBlueDim : 'transparent')};
+  border: 1px solid ${(p) => (p.$active ? `${st.accentBlue}33` : 'transparent')};
+  border-radius: ${st.radiusSm};
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.15s ease;
+  transition: all ${st.transition};
 
   &:hover {
-    color: ${(p) => (p.$active ? 'var(--brand-primary)' : p.theme.colors.text)};
+    color: ${(p) => (p.$active ? st.accentBlue : st.text)};
+    background: ${(p) => (p.$active ? st.accentBlueDim : st.bg)};
   }
 `;
 
 // ─── Filters ──────────────────────────────────────────────────────────────────
 
-const FiltersBar = styled.div`
+const FiltersPanel = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: ${(p) => p.theme.spacing.sm};
-  padding: ${(p) => p.theme.spacing.md};
-  background: ${(p) => p.theme.colors.surface};
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: ${(p) => p.theme.radii.lg};
-
-  @media (min-width: ${(p) => p.theme.breakpoints.md}) {
-    flex-direction: row;
-    align-items: center;
-    flex-wrap: wrap;
-  }
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+  background: ${st.bgCard};
+  border: 1px solid ${st.border};
+  border-radius: ${st.radius};
+  box-shadow: ${st.shadowXs};
 `;
 
 // ─── Custom Select Dropdown ───────────────────────────────────────────────────
@@ -176,20 +185,21 @@ const SelectTrigger = styled.button<{ $active: boolean }>`
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
-  background: ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.06)' : '#ffffff')};
-  color: ${(p) => (p.$active ? '#4f46e5' : '#475569')};
-  border: 1px solid ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.3)' : '#e2e8f0')};
-  border-radius: 10px;
-  font-size: 13px;
+  padding: 7px 12px;
+  background: ${(p) => (p.$active ? st.accentBlueDim : st.bgCard)};
+  color: ${(p) => (p.$active ? st.accentBlue : st.textSecondary)};
+  border: 1px solid ${(p) => (p.$active ? `${st.accentBlue}44` : st.border)};
+  border-radius: ${st.radiusSm};
+  font-size: ${st.fontSm};
   font-weight: ${(p) => (p.$active ? 600 : 400)};
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all ${st.transition};
   white-space: nowrap;
 
   &:hover {
-    background: ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.1)' : '#f8fafc')};
-    border-color: ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.4)' : '#cbd5e1')};
+    background: ${(p) => (p.$active ? st.accentBlueDim : st.bg)};
+    border-color: ${(p) => (p.$active ? `${st.accentBlue}55` : st.borderHover)};
+    color: ${(p) => (p.$active ? st.accentBlue : st.text)};
   }
 `;
 
@@ -202,42 +212,41 @@ const SelectBackdrop = styled.div`
 const SelectPanel = styled.div`
   position: fixed;
   min-width: 220px;
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  background: ${st.bgCard};
+  border-radius: ${st.radius};
+  box-shadow: ${st.shadowLg};
   z-index: 1000;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid ${st.border};
 `;
 
-
 const SelectPanelBody = styled.div`
-  padding: 8px;
+  padding: 6px;
 `;
 
 const SelectPanelOption = styled.button<{ $active: boolean }>`
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 10px 12px;
+  padding: 9px 12px;
   text-align: left;
-  font-size: 14px;
+  font-size: ${st.fontSm};
   font-weight: ${(p) => (p.$active ? 600 : 400)};
-  border: 1px solid ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.2)' : 'transparent')};
-  border-radius: 10px;
-  background: ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.06)' : 'transparent')};
-  color: ${(p) => (p.$active ? '#0f172a' : '#64748b')};
+  border: 1px solid ${(p) => (p.$active ? `${st.accentBlue}22` : 'transparent')};
+  border-radius: ${st.radiusSm};
+  background: ${(p) => (p.$active ? st.accentBlueDim : 'transparent')};
+  color: ${(p) => (p.$active ? st.text : st.textSecondary)};
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all ${st.transition};
 
   &:hover {
-    background: ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.08)' : 'rgba(0, 0, 0, 0.02)')};
-    color: #0f172a;
+    background: ${(p) => (p.$active ? st.accentBlueDim : st.bg)};
+    color: ${st.text};
   }
 `;
 
 const ChevronDownIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
     <polyline points="6 9 12 15 18 9" />
   </svg>
 );
@@ -297,17 +306,18 @@ const FinanceFilterSelect: React.FC<FinanceSelectProps> = ({ value, onChange, op
 };
 
 const DateInput = styled.input`
-  padding: 8px 12px;
-  font-size: 13px;
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: ${(p) => p.theme.radii.md};
-  background: ${(p) => p.theme.colors.surface};
-  color: ${(p) => p.theme.colors.text};
+  padding: 7px 10px;
+  font-size: ${st.fontSm};
+  border: 1px solid ${st.border};
+  border-radius: ${st.radiusSm};
+  background: ${st.bgCard};
+  color: ${st.text};
   outline: none;
+  transition: border-color ${st.transition}, box-shadow ${st.transition};
 
   &:focus {
-    border-color: var(--brand-primary);
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    border-color: ${st.accentBlue};
+    box-shadow: ${st.shadowBlue};
   }
 `;
 
@@ -316,15 +326,21 @@ const FilterSeparator = styled.div`
 `;
 
 const ClearFiltersBtn = styled.button`
-  padding: 7px 14px;
-  font-size: 13px;
-  border: 1px solid ${(p) => p.theme.colors.border};
+  padding: 6px 12px;
+  font-size: ${st.fontSm};
+  font-weight: 500;
+  border: 1px solid ${st.border};
   background: transparent;
-  color: ${(p) => p.theme.colors.textSecondary};
-  border-radius: ${(p) => p.theme.radii.md};
+  color: ${st.textSecondary};
+  border-radius: ${st.radiusFull};
   cursor: pointer;
+  transition: all ${st.transition};
 
-  &:hover { background: ${(p) => p.theme.colors.surfaceHover}; }
+  &:hover {
+    background: ${st.bg};
+    color: ${st.text};
+    border-color: ${st.borderHover};
+  }
 `;
 
 // ─── Pagination ───────────────────────────────────────────────────────────────
@@ -333,46 +349,53 @@ const PaginationBar = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${(p) => p.theme.spacing.md};
-  background: ${(p) => p.theme.colors.surface};
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: ${(p) => p.theme.radii.lg};
+  padding: 12px 16px;
+  background: ${st.bgCard};
+  border: 1px solid ${st.border};
+  border-radius: ${st.radius};
   flex-wrap: wrap;
-  gap: ${(p) => p.theme.spacing.sm};
+  gap: 8px;
+  box-shadow: ${st.shadowXs};
 `;
 
 const PaginationInfo = styled.span`
-  font-size: ${(p) => p.theme.fontSizes.sm};
-  color: ${(p) => p.theme.colors.textSecondary};
+  font-size: ${st.fontSm};
+  color: ${st.textSecondary};
 `;
 
 const PaginationBtns = styled.div`
   display: flex;
-  gap: ${(p) => p.theme.spacing.xs};
+  gap: 6px;
 `;
 
 const PageBtn = styled.button<{ $disabled?: boolean }>`
-  padding: ${(p) => p.theme.spacing.sm} ${(p) => p.theme.spacing.md};
-  font-size: ${(p) => p.theme.fontSizes.sm};
-  font-weight: ${(p) => p.theme.fontWeights.medium};
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: ${(p) => p.theme.radii.md};
-  background: ${(p) => p.theme.colors.surface};
-  color: ${(p) => (p.$disabled ? p.theme.colors.textMuted : p.theme.colors.text)};
+  padding: 7px 14px;
+  font-size: ${st.fontSm};
+  font-weight: 500;
+  border: 1px solid ${st.border};
+  border-radius: ${st.radiusSm};
+  background: ${st.bgCard};
+  color: ${(p) => (p.$disabled ? st.textMuted : st.text)};
   cursor: ${(p) => (p.$disabled ? 'not-allowed' : 'pointer')};
   opacity: ${(p) => (p.$disabled ? 0.5 : 1)};
-  transition: background 0.12s ease;
+  transition: all ${st.transition};
+  box-shadow: ${st.shadowXs};
 
-  &:hover:not(:disabled) { background: ${(p) => p.theme.colors.surfaceHover}; }
+  &:hover:not(:disabled) {
+    background: ${st.bg};
+    border-color: ${st.borderHover};
+  }
 `;
 
-const ErrorState = styled.div`
-  padding: ${(p) => p.theme.spacing.xl};
+const ErrorBox = styled.div`
+  padding: 32px;
   text-align: center;
-  background: ${(p) => p.theme.colors.errorLight};
-  border: 1px solid ${(p) => p.theme.colors.error};
-  border-radius: ${(p) => p.theme.radii.lg};
-  color: ${(p) => p.theme.colors.error};
+  background: ${st.accentRedDim};
+  border: 1px solid ${st.accentRed}33;
+  border-radius: ${st.radius};
+  color: ${st.accentRed};
+  font-size: ${st.fontSm};
+  font-weight: 500;
 `;
 
 // ─── Filters state ────────────────────────────────────────────────────────────
@@ -422,7 +445,7 @@ const DocumentsTabContent: React.FC<{
 
   return (
     <>
-      <FiltersBar>
+      <FiltersPanel>
         <FinanceFilterSelect
           value={filters.documentType}
           onChange={(val) => setFilter('documentType', val)}
@@ -467,15 +490,15 @@ const DocumentsTabContent: React.FC<{
         <RefreshButton onClick={() => refetch()} title="Odśwież">
           <RefreshIcon />
         </RefreshButton>
-      </FiltersBar>
+      </FiltersPanel>
 
       {isError ? (
-        <ErrorState>
-          <p>Nie udało się załadować dokumentów.</p>
-          <button onClick={() => refetch()} style={{ marginTop: 8, cursor: 'pointer' }}>
+        <ErrorBox>
+          Nie udało się załadować dokumentów.{' '}
+          <button onClick={() => refetch()} style={{ cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', color: 'inherit', font: 'inherit' }}>
             Spróbuj ponownie
           </button>
-        </ErrorState>
+        </ErrorBox>
       ) : (
         <DocumentsTable documents={documents} isLoading={isLoading} />
       )}
@@ -540,10 +563,10 @@ export const FinanceView: React.FC = () => {
 
       <TabsRow>
         <Tab $active={activeTab === 'income'} onClick={() => setActiveTab('income')}>
-          Dokumenty Przychodowe
+          Dokumenty przychodowe
         </Tab>
         <Tab $active={activeTab === 'expense'} onClick={() => setActiveTab('expense')}>
-          Dokumenty Kosztowe
+          Dokumenty kosztowe
         </Tab>
         <Tab $active={activeTab === 'cash'} onClick={() => setActiveTab('cash')}>
           Kasa
