@@ -35,8 +35,8 @@ const formatRevenue = (grosz: number) =>
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
-    const orders = payload.find((e: any) => e.dataKey === 'orderCount');
     const revenue = payload.find((e: any) => e.dataKey === 'totalRevenueGross');
+    const orders = payload.find((e: any) => e.dataKey === 'orderCount');
     return (
         <div
             style={{
@@ -56,7 +56,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             )}
             {orders && (
                 <p style={{ margin: 0, color: '#94a3b8', fontSize: 12 }}>
-                    {orders.value} {orders.value === 1 ? 'zlecenie' : orders.value < 5 ? 'zlecenia' : 'zleceń'}
+                    {orders.value} {orders.value === 1 ? 'wizyta' : orders.value < 5 ? 'wizyty' : 'wizyt'}
                 </p>
             )}
         </div>
@@ -86,18 +86,10 @@ export const StatsChart = ({ data }: StatsChartProps) => {
                         tick={{ fontSize: 12 }}
                         tickLine={false}
                     />
-                    <YAxis
-                        yAxisId="orders"
-                        orientation="left"
-                        tickLine={false}
-                        axisLine={false}
-                        tick={{ fontSize: 12 }}
-                        allowDecimals={false}
-                        width={32}
-                    />
+                    {/* Left axis: revenue (bars) */}
                     <YAxis
                         yAxisId="revenue"
-                        orientation="right"
+                        orientation="left"
                         tickLine={false}
                         axisLine={false}
                         tick={{ fontSize: 12 }}
@@ -107,28 +99,40 @@ export const StatsChart = ({ data }: StatsChartProps) => {
                         }}
                         width={42}
                     />
+                    {/* Right axis: order count (line) */}
+                    <YAxis
+                        yAxisId="orders"
+                        orientation="right"
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fontSize: 12 }}
+                        allowDecimals={false}
+                        width={32}
+                    />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend
-                        formatter={(value) => value === 'orderCount'
-                            ? t.statistics.chart.ordersLabel
-                            : t.statistics.chart.revenueLabel}
+                        formatter={(value) => value === t.statistics.chart.revenueLabel
+                            ? t.statistics.chart.revenueLabel
+                            : t.statistics.chart.ordersLabel}
                     />
+                    {/* Bars = revenue */}
                     <Bar
-                        yAxisId="orders"
-                        dataKey="orderCount"
-                        name={t.statistics.chart.ordersLabel}
-                        fill="var(--brand-primary, #3B82F6)"
-                        radius={[4, 4, 0, 0]}
-                        maxBarSize={48}
-                    />
-                    <Line
                         yAxisId="revenue"
                         dataKey="totalRevenueGross"
                         name={t.statistics.chart.revenueLabel}
+                        fill="#10B981"
+                        radius={[4, 4, 0, 0]}
+                        maxBarSize={48}
+                    />
+                    {/* Line = visit count */}
+                    <Line
+                        yAxisId="orders"
+                        dataKey="orderCount"
+                        name={t.statistics.chart.ordersLabel}
                         type="monotone"
-                        stroke="#10B981"
+                        stroke="var(--brand-primary, #3B82F6)"
                         strokeWidth={2}
-                        dot={{ r: 4, fill: '#10B981' }}
+                        dot={{ r: 4, fill: 'var(--brand-primary, #3B82F6)' }}
                     />
                 </ComposedChart>
             </ResponsiveContainer>
