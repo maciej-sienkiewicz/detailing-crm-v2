@@ -4,18 +4,20 @@ import { useServicePricing } from '@/modules/appointments/hooks/useServicePricin
 import { formatCurrency } from '@/common/utils';
 import type { ServiceLineItem, VisitStatus } from '../types';
 import { useApproveServiceChange, useRejectServiceChange } from '../hooks';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 
 const TableContainer = styled.div`
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
     overflow: hidden;
+    box-shadow: ${st.shadowSm};
 `;
 
 const TableHeader = styled.div`
-    padding: ${props => props.theme.spacing.lg};
-    background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
-    border-bottom: 2px solid ${props => props.theme.colors.border};
+    padding: 20px 24px;
+    background: ${st.bgCard};
+    border-bottom: 1px solid ${st.border};
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -24,39 +26,38 @@ const TableHeader = styled.div`
 const TableHeaderLeft = styled.div``;
 
 const TableTitle = styled.h3`
-    margin: 0 0 4px;
-    font-size: ${props => props.theme.fontSizes.md};
+    margin: 0 0 2px;
+    font-size: ${st.fontMd};
     font-weight: 700;
-    color: ${props => props.theme.colors.text};
+    color: ${st.text};
 `;
 
 const TableSubtitle = styled.p`
     margin: 0;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
 `;
 
 const EditButton = styled.button`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    background: var(--brand-primary);
+    padding: 8px 16px;
+    background: ${st.accentBlue};
     color: white;
     border: none;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontSm};
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: ${props => props.theme.spacing.xs};
+    transition: all ${st.transition};
+    box-shadow: ${st.shadowXs};
 
     &:hover:not(:disabled) {
-        opacity: 0.9;
+        background: #2563EB;
+        box-shadow: ${st.shadowSm};
         transform: translateY(-1px);
     }
 
     &:disabled {
-        opacity: 0.5;
+        opacity: 0.45;
         cursor: not-allowed;
     }
 `;
@@ -67,29 +68,29 @@ const Table = styled.table`
 `;
 
 const Thead = styled.thead`
-    background: ${props => props.theme.colors.surfaceAlt};
+    background: ${st.bg};
 `;
 
 const Th = styled.th`
-    padding: ${props => props.theme.spacing.md};
+    padding: 10px 16px;
     text-align: left;
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 600;
-    color: ${props => props.theme.colors.textSecondary};
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    color: ${st.textMuted};
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border-bottom: 1px solid ${props => props.theme.colors.border};
+    letter-spacing: 0.6px;
+    border-bottom: 1px solid ${st.border};
 `;
 
 const ActionsCell = styled.td`
-    padding: ${props => props.theme.spacing.md};
+    padding: 12px 16px;
     text-align: right;
 `;
 
 const RowActions = styled.div`
     display: flex;
     justify-content: flex-end;
-    gap: ${props => props.theme.spacing.sm};
+    gap: 8px;
 `;
 
 const ActionMenuWrapper = styled.div`
@@ -101,23 +102,26 @@ const ActionMenuBtn = styled.button`
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.md};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    background: white;
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 500;
+    padding: 6px 12px;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusFull};
+    background: ${st.bgCard};
+    font-size: ${st.fontXs};
+    font-weight: 600;
+    color: ${st.textSecondary};
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all ${st.transition};
     white-space: nowrap;
+    box-shadow: ${st.shadowXs};
 
     &:hover:not(:disabled) {
-        border-color: var(--brand-primary);
-        color: var(--brand-primary);
+        border-color: ${st.accentBlue};
+        color: ${st.accentBlue};
+        background: ${st.accentBlueDim};
     }
 
     &:disabled {
-        opacity: 0.5;
+        opacity: 0.45;
         cursor: not-allowed;
     }
 `;
@@ -127,10 +131,10 @@ const ContextMenu = styled.div`
     right: 0;
     top: calc(100% + 4px);
     z-index: 100;
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    box-shadow: ${props => props.theme.shadows.md};
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowLg};
     min-width: 180px;
     overflow: hidden;
 `;
@@ -138,175 +142,154 @@ const ContextMenu = styled.div`
 const ContextMenuItem = styled.button<{ $variant?: 'danger' }>`
     display: block;
     width: 100%;
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+    padding: 10px 14px;
     border: none;
     background: transparent;
     text-align: left;
-    font-size: ${props => props.theme.fontSizes.sm};
+    font-size: ${st.fontSm};
     cursor: pointer;
-    color: ${props => props.$variant === 'danger' ? props.theme.colors.error : props.theme.colors.text};
-    transition: background 0.15s ease;
+    color: ${props => props.$variant === 'danger' ? st.accentRed : st.text};
+    transition: background ${st.transition};
 
     &:hover:not(:disabled) {
-        background: ${props => props.theme.colors.surfaceHover};
+        background: ${props => props.$variant === 'danger' ? st.accentRedDim : st.bg};
     }
 
     &:disabled {
-        opacity: 0.5;
+        opacity: 0.45;
         cursor: not-allowed;
     }
 `;
 
-// Minimalist confirm modal
+// Confirm modal
 const ModalOverlay = styled.div`
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.4);
+    background: ${st.bgOverlay};
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
+    backdrop-filter: blur(2px);
 `;
 
 const ModalCard = styled.div`
     width: 100%;
     max-width: 440px;
-    background: #fff;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    box-shadow: 0 20px 50px rgba(2,6,23,0.15);
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowLg};
     overflow: hidden;
 `;
 
 const ModalHeader = styled.div`
-    padding: ${props => props.theme.spacing.lg};
-    border-bottom: 1px solid ${props => props.theme.colors.border};
+    padding: 20px 24px;
+    border-bottom: 1px solid ${st.border};
 `;
 
 const ModalTitle = styled.h4`
     margin: 0;
-    font-size: ${props => props.theme.fontSizes.md};
+    font-size: ${st.fontMd};
     font-weight: 700;
+    color: ${st.text};
 `;
 
 const ModalBody = styled.div`
-    padding: ${props => props.theme.spacing.lg};
-    color: ${props => props.theme.colors.textSecondary};
-    font-size: ${props => props.theme.fontSizes.sm};
+    padding: 20px 24px;
+    color: ${st.textSecondary};
+    font-size: ${st.fontSm};
+    line-height: 1.6;
 `;
 
 const ModalFooter = styled.div`
-    padding: ${props => props.theme.spacing.md};
+    padding: 14px 20px;
     display: flex;
     justify-content: flex-end;
-    gap: ${props => props.theme.spacing.sm};
-    background: ${props => props.theme.colors.surfaceAlt};
-    border-top: 1px solid ${props => props.theme.colors.border};
+    gap: 8px;
+    background: ${st.bg};
+    border-top: 1px solid ${st.border};
 `;
 
 const SecondaryBtn = styled.button`
-    padding: 6px 10px;
-    border-radius: ${props => props.theme.radii.md};
-    border: 1px solid ${props => props.theme.colors.border};
-    background: transparent;
-    color: ${props => props.theme.colors.text};
-    font-size: ${props => props.theme.fontSizes.xs};
+    padding: 7px 14px;
+    border-radius: ${st.radiusFull};
+    border: 1px solid ${st.border};
+    background: ${st.bgCard};
+    color: ${st.textSecondary};
+    font-size: ${st.fontSm};
+    font-weight: 500;
     cursor: pointer;
+    transition: all ${st.transition};
 
-    &:hover { background: ${props => props.theme.colors.surfaceAlt}; }
+    &:hover { background: ${st.bg}; border-color: ${st.borderHover}; }
 `;
 
 const PrimaryBtn = styled.button<{ $danger?: boolean }>`
-    padding: 6px 10px;
-    border-radius: ${props => props.theme.radii.md};
-    border: 1px solid ${props => props.theme.colors.border};
-    background: ${props => props.theme.colors.surfaceAlt};
-    color: ${props => props.$danger ? props.theme.colors.error : 'var(--brand-primary)'};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: ${st.radiusFull};
+    border: 1px solid ${props => props.$danger ? `${st.accentRed}44` : `${st.accentBlue}44`};
+    background: ${props => props.$danger ? st.accentRedDim : st.accentBlueDim};
+    color: ${props => props.$danger ? st.accentRed : st.accentBlue};
+    font-size: ${st.fontSm};
+    font-weight: 700;
     cursor: pointer;
-
-    &:disabled { opacity: 0.6; cursor: not-allowed; }
-`;
-
-const ActionButton = styled.button<{ $variant?: 'primary' | 'danger' }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 8px;
-    border-radius: ${props => props.theme.radii.md};
-    border: 1px solid ${props => props.theme.colors.border};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 500;
-    cursor: pointer;
-    background: transparent;
-    color: ${p => p.$variant === 'danger' ? p.theme.colors.error : p.theme.colors.text};
-    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+    transition: all ${st.transition};
 
     &:hover:not(:disabled) {
-        background: ${props => props.theme.colors.surfaceAlt};
+        background: ${props => props.$danger ? '#fee2e2' : '#dbeafe'};
     }
 
-    &:active:not(:disabled) {
-        background: ${props => (props.theme.colors as any).surfaceHover || props.theme.colors.surfaceAlt};
-    }
-
-    &:focus-visible {
-        outline: none;
-        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
 const Tbody = styled.tbody``;
 
 const Tr = styled.tr<{ $pendingOp?: 'ADD' | 'EDIT' | 'DELETE' | null }>`
-    transition: background-color 0.2s ease;
-    background: ${props => props.$pendingOp === 'DELETE' ? '#fff1f2'
-        : props.$pendingOp === 'EDIT' ? '#fffbeb'
-        : props.$pendingOp === 'ADD' ? '#f0fdf4'
+    transition: background-color ${st.transition};
+    background: ${props => props.$pendingOp === 'DELETE' ? 'rgba(239,68,68,0.04)'
+        : props.$pendingOp === 'EDIT' ? 'rgba(245,158,11,0.04)'
+        : props.$pendingOp === 'ADD' ? 'rgba(16,185,129,0.04)'
         : 'transparent'};
 
     &:hover {
-        background: ${props => props.$pendingOp ? 'inherit' : props.theme.colors.surfaceAlt};
+        background: ${props => props.$pendingOp ? 'inherit' : st.bg};
     }
 
     &:not(:last-child) {
-        border-bottom: 1px solid ${props => props.theme.colors.border};
+        border-bottom: 1px solid ${st.border};
     }
 `;
 
 const Td = styled.td`
-    padding: ${props => props.theme.spacing.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.text};
+    padding: 12px 16px;
+    font-size: ${st.fontSm};
+    color: ${st.text};
 `;
 
 const ServiceName = styled.div`
-    font-weight: 500;
-    margin-bottom: 4px;
+    font-weight: 600;
+    margin-bottom: 2px;
+    color: ${st.text};
 `;
 
 const ServiceNote = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
     font-style: italic;
 `;
 
 const ServiceStatusBadge = styled.div<{ $status: 'CONFIRMED' | 'PENDING' }>`
     display: inline-flex;
     align-items: center;
-    padding: 4px 8px;
-    background: ${props => props.$status === 'PENDING' ? '#fef3c7' : '#dcfce7'};
-    color: ${props => props.$status === 'PENDING' ? '#92400e' : '#166534'};
-    border-radius: ${props => props.theme.radii.full};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 600;
-    margin-left: ${props => props.theme.spacing.xs};
+    padding: 3px 8px;
+    background: ${props => props.$status === 'PENDING' ? st.accentAmberDim : st.accentGreenDim};
+    color: ${props => props.$status === 'PENDING' ? st.accentAmber : st.accentGreen};
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    margin-left: 8px;
+    white-space: nowrap;
 `;
 
 const PriceStack = styled.div`
@@ -319,46 +302,45 @@ const PriceValue = styled.div<{ $strikethrough?: boolean; $secondary?: boolean }
     font-weight: 500;
     ${props => props.$strikethrough && `
         text-decoration: line-through;
-        opacity: 0.6;
-        font-size: ${props.theme.fontSizes.xs};
+        opacity: 0.5;
+        font-size: ${st.fontXs};
     `}
     ${props => props.$secondary && `
-        color: ${props.theme.colors.textSecondary};
-        font-size: ${props.theme.fontSizes.xs};
+        color: ${st.textSecondary};
+        font-size: ${st.fontXs};
         font-weight: 500;
     `}
 `;
 
 const PriceLabel = styled.span`
     display: inline-block;
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
     margin-left: 6px;
 `;
 
 const ChangePill = styled.span<{ $trend: 'up' | 'down' | 'neutral' }>`
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
     padding: 2px 6px;
-    border-radius: ${props => props.theme.radii.full};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 600;
-    margin-left: 8px;
-    background: ${p => p.$trend === 'up' ? '#fee2e2' : p.$trend === 'down' ? '#ecfdf5' : '#f3f4f6'};
-    color: ${p => p.$trend === 'up' ? '#991b1b' : p.$trend === 'down' ? '#065f46' : '#374151'};
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    margin-left: 6px;
+    background: ${p => p.$trend === 'up' ? st.accentRedDim : p.$trend === 'down' ? st.accentGreenDim : st.bg};
+    color: ${p => p.$trend === 'up' ? st.accentRed : p.$trend === 'down' ? st.accentGreen : st.textMuted};
 `;
-
 
 const DiscountBadge = styled.div`
     display: inline-flex;
     align-items: center;
-    padding: 4px 8px;
-    background: #fef3c7;
-    color: #92400e;
-    border-radius: ${props => props.theme.radii.full};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 600;
+    padding: 2px 7px;
+    background: ${st.accentAmberDim};
+    color: ${st.accentAmber};
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontXs};
+    font-weight: 700;
     margin-top: 4px;
 `;
 
@@ -366,33 +348,36 @@ const TotalRow = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${props => props.theme.spacing.lg};
-    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-    border-top: 2px solid ${props => props.theme.colors.border};
+    padding: 16px 24px;
+    background: ${st.bg};
+    border-top: 1px solid ${st.border};
 `;
 
 const TotalLabel = styled.span`
-    font-size: ${props => props.theme.fontSizes.md};
+    font-size: ${st.fontMd};
     font-weight: 700;
-    color: ${props => props.theme.colors.text};
+    color: ${st.text};
 `;
 
 const TotalValue = styled.span`
-    font-size: ${props => props.theme.fontSizes.xl};
-    font-weight: 700;
-    color: var(--brand-primary);
+    font-size: 22px;
+    font-weight: 800;
+    color: ${st.accentBlue};
+    font-feature-settings: 'tnum';
+    letter-spacing: -0.5px;
 `;
 
 const TotalBreakdown = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
     align-items: flex-end;
 `;
 
 const BreakdownItem = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+    font-feature-settings: 'tnum';
 `;
 
 interface ServicesTableProps {
@@ -407,7 +392,6 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
 
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-    // Confirm modal state
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [confirmAction, setConfirmAction] = useState<null | 'approve' | 'reject'>(null);
     const [targetService, setTargetService] = useState<ServiceLineItem | null>(null);
@@ -424,12 +408,11 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
         setTargetService(null);
     };
 
-    // Totals should use previous (approved) price if an EDIT is pending
     const totals = (() => {
         let totalFinalNet = 0;
         let totalFinalGross = 0;
         let totalVat = 0;
-        let totalOriginalGross = 0; // for hasTotalDiscount flag
+        let totalOriginalGross = 0;
 
         services.forEach(service => {
             const isPending = (service.hasPendingChange ?? (service.status === 'PENDING'));
@@ -440,7 +423,6 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
                 totalFinalNet += net;
                 totalFinalGross += gross;
                 totalVat += Math.max(gross - net, 0);
-                // originalGross for discount comparison: use gross (we don't track 'original' vs 'final' here)
                 totalOriginalGross += gross;
             } else {
                 const pricing = calculateServicePrice(service);
@@ -479,7 +461,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
                     <TableTitle>Wykaz usług</TableTitle>
                     <TableSubtitle>
                         {services.length} pozycji
-                        {hasPendingServices && ' • Zawiera usługi oczekujące na potwierdzenie'}
+                        {hasPendingServices && ' · Zawiera usługi oczekujące na potwierdzenie'}
                     </TableSubtitle>
                 </TableHeaderLeft>
                 {canEdit && onEditClick && (
@@ -492,12 +474,12 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
             <Table>
                 <Thead>
                     <Tr>
-                    <Th>Usługa</Th>
-                    <Th>Cena netto</Th>
-                    <Th>VAT</Th>
-                    <Th>Cena brutto</Th>
-                    {hasPendingServices && <Th style={{ textAlign: 'right' }}>Akcje</Th>}
-                </Tr>
+                        <Th>Usługa</Th>
+                        <Th>Cena netto</Th>
+                        <Th>VAT</Th>
+                        <Th>Cena brutto</Th>
+                        {hasPendingServices && <Th style={{ textAlign: 'right' }}>Akcje</Th>}
+                    </Tr>
                 </Thead>
                 <Tbody>
                     {services.map(service => {
@@ -627,7 +609,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
                                                     disabled={!visitId || isApproving || isRejecting}
                                                 >
                                                     Podejmij akcję
-                                                    <span style={{ fontSize: '10px' }}>▾</span>
+                                                    <span style={{ fontSize: '9px' }}>▾</span>
                                                 </ActionMenuBtn>
                                                 {openMenuId === service.id && (
                                                     <ContextMenu>
@@ -664,21 +646,15 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
                 <div>
                     <TotalLabel>Razem do zapłaty</TotalLabel>
                     {totals.hasTotalDiscount && (
-                        <div style={{ fontSize: '12px', color: '#92400e', marginTop: '4px' }}>
+                        <div style={{ fontSize: st.fontXs, color: st.accentAmber, marginTop: '3px', fontWeight: 600 }}>
                             Uwzględniono rabaty
                         </div>
                     )}
                 </div>
                 <TotalBreakdown>
-                    <BreakdownItem>
-                        Netto: {formatCurrency(totals.totalFinalNet / 100)}
-                    </BreakdownItem>
-                    <BreakdownItem>
-                        VAT: {formatCurrency(totals.totalVat / 100)}
-                    </BreakdownItem>
-                    <TotalValue>
-                        {formatCurrency(totals.totalFinalGross / 100)}
-                    </TotalValue>
+                    <BreakdownItem>Netto: {formatCurrency(totals.totalFinalNet / 100)}</BreakdownItem>
+                    <BreakdownItem>VAT: {formatCurrency(totals.totalVat / 100)}</BreakdownItem>
+                    <TotalValue>{formatCurrency(totals.totalFinalGross / 100)}</TotalValue>
                 </TotalBreakdown>
             </TotalRow>
         </TableContainer>
