@@ -1,4 +1,4 @@
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import type { VisitStatus } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
@@ -69,20 +69,20 @@ const StepCircle = styled.div<{ $isActive: boolean; $isCompleted: boolean }>`
 
     ${props => {
         if (props.$isCompleted) {
-            return `
+            return css`
                 background: ${st.accentGreen};
                 color: white;
                 box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
             `;
         }
         if (props.$isActive) {
-            return `
+            return css`
                 background: ${st.accentBlue};
                 color: white;
                 animation: ${pulseRing} 2s infinite;
             `;
         }
-        return `
+        return css`
             background: ${st.bgCard};
             color: ${st.textMuted};
             border: 2px solid ${st.border};
