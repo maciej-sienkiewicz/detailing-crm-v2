@@ -4,14 +4,16 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import type { VisitComment, CommentType } from '../types';
 import { useAddComment, useUpdateComment, useDeleteComment } from '../hooks';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 
-/* ─── Panel shell ─────────────────────────────────────────────────────────── */
+/* ─── Container ───────────────────────────────────────────────────────────── */
 
 const Panel = styled.div`
-    background: #fff;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.xl};
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
     overflow: hidden;
+    box-shadow: ${st.shadowSm};
     display: flex;
     flex-direction: column;
 `;
@@ -20,159 +22,162 @@ const PanelHeader = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 20px 13px;
-    border-bottom: 1px solid ${p => p.theme.colors.border};
-    background: #fafbfc;
+    padding: 20px 24px;
+    background: ${st.bgCard};
+    border-bottom: 1px solid ${st.border};
 `;
+
+const HeaderLeft = styled.div``;
 
 const PanelTitle = styled.h3`
-    margin: 0;
-    font-size: 13px;
+    margin: 0 0 2px;
+    font-size: ${st.fontMd};
     font-weight: 700;
-    color: ${p => p.theme.colors.text};
-    letter-spacing: -0.01em;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-
-    svg {
-        width: 15px;
-        height: 15px;
-        color: var(--brand-primary);
-        opacity: 0.75;
-    }
+    color: ${st.text};
 `;
 
-const CountPill = styled.span`
-    min-width: 20px;
-    height: 20px;
-    padding: 0 6px;
-    border-radius: 10px;
-    background: ${p => p.theme.colors.surface};
-    border: 1px solid ${p => p.theme.colors.border};
-    color: ${p => p.theme.colors.textSecondary};
-    font-size: 11px;
-    font-weight: 700;
+const PanelSubtitle = styled.p`
+    margin: 0;
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
+`;
+
+const CountBadge = styled.span`
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    padding: 2px 8px;
+    border-radius: ${st.radiusFull};
+    background: ${st.accentBlueDim};
+    color: ${st.accentBlue};
+    font-size: ${st.fontXs};
+    font-weight: 700;
 `;
 
 /* ─── Add-comment form ────────────────────────────────────────────────────── */
 
-const AddFormArea = styled.div`
-    padding: 14px 20px 16px;
-    background: #fafbfc;
-    border-bottom: 1px solid ${p => p.theme.colors.border};
+const FormArea = styled.div`
+    padding: 16px 24px 20px;
+    background: ${st.bg};
+    border-bottom: 1px solid ${st.border};
 `;
 
-const TypeToggle = styled.div`
-    display: inline-flex;
-    background: ${p => p.theme.colors.border};
-    border-radius: 8px;
-    padding: 2px;
-    gap: 2px;
-    margin-bottom: 10px;
+const TypeRow = styled.div`
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
 `;
 
-const TypeOpt = styled.button<{ $active: boolean; $accent: string }>`
-    padding: 4px 12px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: ${p => p.$active ? 600 : 400};
-    border: none;
+const TypeBtn = styled.button<{ $active: boolean; $kind: CommentType }>`
+    padding: 5px 14px;
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontXs};
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.15s;
-    background: ${p => p.$active ? '#fff' : 'transparent'};
-    color: ${p => p.$active ? p.$accent : '#94a3b8'};
-    box-shadow: ${p => p.$active ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'};
+    transition: all ${st.transition};
+    border: 1px solid ${p =>
+        p.$active
+            ? (p.$kind === 'INTERNAL' ? `${st.accentAmber}66` : `${st.accentBlue}66`)
+            : st.border};
+    background: ${p =>
+        p.$active
+            ? (p.$kind === 'INTERNAL' ? st.accentAmberDim : st.accentBlueDim)
+            : st.bgCard};
+    color: ${p =>
+        p.$active
+            ? (p.$kind === 'INTERNAL' ? st.accentAmber : st.accentBlue)
+            : st.textSecondary};
 
-    &:hover:not([data-active="true"]) {
-        color: ${p => p.theme.colors.textSecondary};
+    &:hover {
+        border-color: ${p => p.$kind === 'INTERNAL' ? `${st.accentAmber}66` : `${st.accentBlue}66`};
+        background: ${p => p.$kind === 'INTERNAL' ? st.accentAmberDim : st.accentBlueDim};
+        color: ${p => p.$kind === 'INTERNAL' ? st.accentAmber : st.accentBlue};
     }
 `;
 
 const NoteArea = styled.textarea`
     width: 100%;
     box-sizing: border-box;
-    padding: 10px 13px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 8px;
-    font-size: 13px;
+    padding: 10px 14px;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
     font-family: inherit;
     line-height: 1.55;
-    min-height: 82px;
+    min-height: 80px;
     resize: vertical;
-    background: #fff;
-    color: ${p => p.theme.colors.text};
-    transition: border-color 0.15s, box-shadow 0.15s;
+    background: ${st.bgCard};
+    color: ${st.text};
+    transition: border-color ${st.transition}, box-shadow ${st.transition};
 
     &:focus {
         outline: none;
-        border-color: var(--brand-primary);
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        border-color: ${st.borderFocus};
+        box-shadow: ${st.shadowBlue};
     }
 
-    &::placeholder {
-        color: ${p => p.theme.colors.textMuted};
-        font-size: 12px;
-    }
-
+    &::placeholder { color: ${st.textMuted}; }
     &:disabled { opacity: 0.6; }
 `;
 
-const FormActions = styled.div`
+const FormFooter = styled.div`
     display: flex;
     justify-content: flex-end;
-    gap: 6px;
-    margin-top: 8px;
+    gap: 8px;
+    margin-top: 10px;
 `;
 
-const BtnGhost = styled.button`
-    padding: 6px 12px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 7px;
-    background: transparent;
-    color: ${p => p.theme.colors.textSecondary};
-    font-size: 12px;
+const GhostBtn = styled.button`
+    padding: 7px 14px;
+    border-radius: ${st.radiusFull};
+    border: 1px solid ${st.border};
+    background: ${st.bgCard};
+    color: ${st.textSecondary};
+    font-size: ${st.fontSm};
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all ${st.transition};
 
-    &:hover { background: ${p => p.theme.colors.surface}; }
+    &:hover { background: ${st.bg}; border-color: ${st.borderHover}; }
     &:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
 
-const BtnPrimary = styled.button`
-    padding: 6px 14px;
+const PrimaryBtn = styled.button`
+    padding: 7px 14px;
+    border-radius: ${st.radiusFull};
     border: none;
-    border-radius: 7px;
-    background: var(--brand-primary);
+    background: ${st.accentBlue};
     color: white;
-    font-size: 12px;
+    font-size: ${st.fontSm};
     font-weight: 600;
     cursor: pointer;
-    transition: opacity 0.15s;
+    transition: all ${st.transition};
+    box-shadow: ${st.shadowXs};
 
-    &:hover:not(:disabled) { opacity: 0.87; }
-    &:disabled { opacity: 0.42; cursor: not-allowed; }
+    &:hover:not(:disabled) {
+        background: #2563EB;
+        box-shadow: ${st.shadowSm};
+        transform: translateY(-1px);
+    }
+
+    &:disabled { opacity: 0.45; cursor: not-allowed; }
 `;
 
-/* ─── Comments list ───────────────────────────────────────────────────────── */
+/* ─── Comment list ────────────────────────────────────────────────────────── */
 
-const CommentsScroll = styled.div`
+const CommentsList = styled.div`
     flex: 1;
     display: flex;
     flex-direction: column;
 `;
 
-const CommentRow = styled.div<{ $type: CommentType; $deleted: boolean }>`
-    padding: 12px 20px;
-    border-bottom: 1px solid ${p => p.theme.colors.border};
+const CommentItem = styled.div<{ $type: CommentType; $deleted: boolean }>`
+    padding: 14px 24px;
+    border-bottom: 1px solid ${st.border};
     position: relative;
-    opacity: ${p => p.$deleted ? 0.62 : 1};
-    background: ${p => p.$deleted ? '#fafafa' : '#fff'};
-    transition: background 0.15s;
+    background: ${p => p.$deleted ? st.bg : st.bgCard};
+    opacity: ${p => p.$deleted ? 0.72 : 1};
+    transition: background ${st.transition};
 
     &:last-child { border-bottom: none; }
 
@@ -183,14 +188,12 @@ const CommentRow = styled.div<{ $type: CommentType; $deleted: boolean }>`
         top: 0;
         bottom: 0;
         width: 3px;
-        border-radius: 0 2px 2px 0;
         background: ${p =>
             p.$deleted
-                ? '#d1d5db'
+                ? st.border
                 : p.$type === 'INTERNAL'
-                ? '#f59e0b'
-                : 'var(--brand-primary)'};
-        opacity: ${p => p.$deleted ? 0.5 : 1};
+                ? st.accentAmber
+                : st.accentBlue};
     }
 `;
 
@@ -198,162 +201,162 @@ const CommentHead = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 7px;
+    margin-bottom: 8px;
 `;
 
-const Initials = styled.span<{ $type: CommentType }>`
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    flex-shrink: 0;
+const Avatar = styled.div<{ $type: CommentType }>`
+    width: 28px;
+    height: 28px;
+    border-radius: ${st.radiusFull};
+    background: ${p => p.$type === 'INTERNAL' ? st.accentAmberDim : st.accentBlueDim};
+    color: ${p => p.$type === 'INTERNAL' ? st.accentAmber : st.accentBlue};
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.03em;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: ${p => p.$type === 'INTERNAL' ? '#fef3c7' : '#dbeafe'};
-    color: ${p => p.$type === 'INTERNAL' ? '#b45309' : '#1d4ed8'};
+    flex-shrink: 0;
+    letter-spacing: 0.02em;
 `;
 
 const AuthorName = styled.span`
-    font-size: 12px;
+    font-size: ${st.fontSm};
     font-weight: 600;
-    color: ${p => p.theme.colors.text};
+    color: ${st.text};
 `;
 
-const TypePill = styled.span<{ $type: CommentType }>`
-    padding: 1px 6px;
-    border-radius: 99px;
-    font-size: 9px;
+const TypeBadge = styled.span<{ $type: CommentType }>`
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontXs};
     font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    background: ${p => p.$type === 'INTERNAL' ? '#fef3c7' : '#dbeafe'};
-    color: ${p => p.$type === 'INTERNAL' ? '#b45309' : '#1d4ed8'};
+    background: ${p => p.$type === 'INTERNAL' ? st.accentAmberDim : st.accentBlueDim};
+    color: ${p => p.$type === 'INTERNAL' ? st.accentAmber : st.accentBlue};
 `;
 
-const CommentDate = styled.span`
-    font-size: 10px;
-    color: ${p => p.theme.colors.textMuted};
+const DateText = styled.span`
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
     margin-left: auto;
 `;
 
-const DeletedBanner = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 5px 8px;
-    margin-left: 34px;
-    margin-bottom: 6px;
-    font-size: 10px;
-    color: #b91c1c;
-    background: #fff1f2;
-    border-radius: 5px;
-`;
-
 const CommentBody = styled.div<{ $deleted: boolean }>`
-    font-size: 13px;
+    font-size: ${st.fontSm};
     line-height: 1.6;
-    color: ${p => p.$deleted ? p.theme.colors.textMuted : p.theme.colors.text};
+    color: ${p => p.$deleted ? st.textMuted : st.text};
     white-space: pre-wrap;
     word-break: break-word;
     text-decoration: ${p => p.$deleted ? 'line-through' : 'none'};
-    padding-left: 34px;
+    padding-left: 36px;
 `;
 
-const EditedLabel = styled.div`
-    font-size: 9px;
-    color: #94a3b8;
-    padding-left: 34px;
+const DeletedNote = styled.div`
+    display: inline-flex;
+    font-size: ${st.fontXs};
+    color: ${st.accentRed};
+    background: ${st.accentRedDim};
+    border-radius: ${st.radiusSm};
+    padding: 4px 10px;
+    margin-left: 36px;
+    margin-bottom: 6px;
+`;
+
+const EditedHint = styled.div`
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+    padding-left: 36px;
     margin-top: 3px;
 `;
 
-const ActionStrip = styled.div`
+const ActionRow = styled.div`
     display: flex;
     align-items: center;
-    gap: 1px;
-    padding-left: 34px;
-    margin-top: 5px;
+    gap: 2px;
+    padding-left: 36px;
+    margin-top: 6px;
 `;
 
-const MicroBtn = styled.button<{ $danger?: boolean }>`
-    padding: 2px 7px;
+const InlineBtn = styled.button<{ $danger?: boolean }>`
+    padding: 3px 10px;
     border: none;
     background: transparent;
-    font-size: 11px;
-    font-weight: 500;
+    font-size: ${st.fontXs};
+    font-weight: 600;
     cursor: pointer;
-    border-radius: 4px;
-    color: ${p => p.$danger ? '#dc2626' : p.theme.colors.textMuted};
-    transition: all 0.12s;
+    border-radius: ${st.radiusFull};
+    color: ${p => p.$danger ? st.accentRed : st.textMuted};
+    transition: all ${st.transition};
 
     &:hover {
-        background: ${p => p.$danger ? '#fee2e2' : '#f0f4ff'};
-        color: ${p => p.$danger ? '#b91c1c' : 'var(--brand-primary)'};
+        background: ${p => p.$danger ? st.accentRedDim : st.bg};
+        color: ${p => p.$danger ? st.accentRed : st.textSecondary};
     }
 
     &:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
 
 const InlineEditArea = styled.textarea`
-    width: calc(100% - 34px);
-    margin-left: 34px;
+    width: calc(100% - 36px);
+    margin-left: 36px;
     box-sizing: border-box;
-    padding: 7px 10px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 6px;
-    font-size: 12px;
+    padding: 8px 12px;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
     font-family: inherit;
     line-height: 1.5;
-    min-height: 62px;
+    min-height: 66px;
     resize: vertical;
-    transition: border-color 0.15s;
+    transition: border-color ${st.transition};
 
     &:focus {
         outline: none;
-        border-color: var(--brand-primary);
+        border-color: ${st.borderFocus};
+        box-shadow: ${st.shadowBlue};
     }
 `;
 
 /* ─── Revision history ────────────────────────────────────────────────────── */
 
-const RevToggleBtn = styled.button`
+const RevToggle = styled.button`
     display: inline-flex;
     align-items: center;
     gap: 4px;
     padding: 2px 0;
-    padding-left: 34px;
+    padding-left: 36px;
     margin-top: 6px;
     border: none;
     background: transparent;
-    font-size: 10px;
-    color: ${p => p.theme.colors.textMuted};
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
     cursor: pointer;
-    transition: color 0.15s;
+    transition: color ${st.transition};
 
-    &:hover { color: var(--brand-primary); }
+    &:hover { color: ${st.accentBlue}; }
 `;
 
 const RevBlock = styled.div`
     margin-top: 6px;
-    margin-left: 34px;
-    padding: 8px 10px;
-    background: #fafbfc;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    margin-left: 36px;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    overflow: hidden;
 `;
 
 const RevEntry = styled.div`
-    font-size: 10px;
+    padding: 8px 12px;
+    font-size: ${st.fontXs};
+    background: ${st.bg};
+    border-bottom: 1px solid ${st.border};
+
+    &:last-child { border-bottom: none; }
 `;
 
 const RevMeta = styled.div`
-    color: ${p => p.theme.colors.textMuted};
-    margin-bottom: 4px;
+    color: ${st.textMuted};
+    margin-bottom: 5px;
 `;
 
 const RevDiff = styled.div`
@@ -362,31 +365,31 @@ const RevDiff = styled.div`
     gap: 5px;
 `;
 
-const DiffBox = styled.div<{ $old: boolean }>`
+const DiffCell = styled.div<{ $old: boolean }>`
     padding: 5px 8px;
-    border-radius: 4px;
-    font-size: 10px;
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontXs};
     line-height: 1.4;
-    background: ${p => p.$old ? '#fee2e2' : '#dcfce7'};
-    color: ${p => p.$old ? '#991b1b' : '#166534'};
+    background: ${p => p.$old ? st.accentRedDim : st.accentGreenDim};
+    color: ${p => p.$old ? st.accentRed : st.accentGreen};
 `;
 
-const DiffBoxLabel = styled.div`
-    font-size: 8px;
+const DiffLabel = styled.div`
+    font-size: 9px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    margin-bottom: 3px;
-    opacity: 0.65;
+    opacity: 0.7;
+    margin-bottom: 2px;
 `;
 
 /* ─── Empty / loading ─────────────────────────────────────────────────────── */
 
-const EmptyMsg = styled.div`
-    padding: 28px 20px;
+const EmptyState = styled.div`
+    padding: 32px 24px;
     text-align: center;
-    font-size: 12px;
-    color: ${p => p.theme.colors.textMuted};
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
 `;
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
@@ -408,6 +411,12 @@ function formatDate(iso: string): string {
         hour: '2-digit',
         minute: '2-digit',
     });
+}
+
+function pluralComments(n: number): string {
+    if (n === 1) return '1 komentarz';
+    if (n >= 2 && n <= 4) return `${n} komentarze`;
+    return `${n} komentarzy`;
 }
 
 /* ─── Props ───────────────────────────────────────────────────────────────── */
@@ -439,15 +448,8 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
         );
     };
 
-    const startEdit = (c: VisitComment) => {
-        setEditingId(c.id);
-        setEditingContent(c.content);
-    };
-
-    const cancelEdit = () => {
-        setEditingId(null);
-        setEditingContent('');
-    };
+    const startEdit = (c: VisitComment) => { setEditingId(c.id); setEditingContent(c.content); };
+    const cancelEdit = () => { setEditingId(null); setEditingContent(''); };
 
     const saveEdit = (id: string) => {
         if (!editingContent.trim()) return;
@@ -458,9 +460,7 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
     };
 
     const handleDelete = (id: string) => {
-        if (window.confirm('Czy na pewno chcesz usunąć ten komentarz?')) {
-            deleteComment(id);
-        }
+        if (window.confirm('Czy na pewno chcesz usunąć ten komentarz?')) deleteComment(id);
     };
 
     const toggleRevisions = (id: string) => {
@@ -478,33 +478,33 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
         <Panel>
             {/* ── Header ── */}
             <PanelHeader>
-                <PanelTitle>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                    </svg>
-                    Komentarze
-                </PanelTitle>
-                <CountPill>{isLoading ? '—' : visibleCount}</CountPill>
+                <HeaderLeft>
+                    <PanelTitle>Komentarze</PanelTitle>
+                    <PanelSubtitle>
+                        {isLoading ? 'Ładowanie…' : pluralComments(visibleCount)}
+                    </PanelSubtitle>
+                </HeaderLeft>
+                {!isLoading && <CountBadge>{visibleCount}</CountBadge>}
             </PanelHeader>
 
             {/* ── Add form ── */}
-            <AddFormArea>
-                <TypeToggle>
-                    <TypeOpt
+            <FormArea>
+                <TypeRow>
+                    <TypeBtn
                         $active={newType === 'INTERNAL'}
-                        $accent="#b45309"
+                        $kind="INTERNAL"
                         onClick={() => setNewType('INTERNAL')}
                     >
                         Wewnętrzna
-                    </TypeOpt>
-                    <TypeOpt
+                    </TypeBtn>
+                    <TypeBtn
                         $active={newType === 'FOR_CUSTOMER'}
-                        $accent="#1d4ed8"
+                        $kind="FOR_CUSTOMER"
                         onClick={() => setNewType('FOR_CUSTOMER')}
                     >
                         Dla klienta
-                    </TypeOpt>
-                </TypeToggle>
+                    </TypeBtn>
+                </TypeRow>
 
                 <NoteArea
                     value={newContent}
@@ -517,55 +517,52 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
                     disabled={isAdding}
                 />
 
-                <FormActions>
-                    <BtnGhost
+                <FormFooter>
+                    <GhostBtn
                         onClick={() => setNewContent('')}
                         disabled={isAdding || !newContent}
                     >
                         Wyczyść
-                    </BtnGhost>
-                    <BtnPrimary
+                    </GhostBtn>
+                    <PrimaryBtn
                         onClick={handleAdd}
                         disabled={isAdding || !newContent.trim()}
                     >
-                        {isAdding ? 'Dodawanie…' : 'Dodaj'}
-                    </BtnPrimary>
-                </FormActions>
-            </AddFormArea>
+                        {isAdding ? 'Dodawanie…' : 'Dodaj komentarz'}
+                    </PrimaryBtn>
+                </FormFooter>
+            </FormArea>
 
             {/* ── List ── */}
-            <CommentsScroll>
+            <CommentsList>
                 {isLoading ? (
-                    <EmptyMsg>Ładowanie komentarzy…</EmptyMsg>
+                    <EmptyState>Ładowanie komentarzy…</EmptyState>
                 ) : sortedComments.length === 0 ? (
-                    <EmptyMsg>Brak komentarzy. Dodaj pierwszy powyżej.</EmptyMsg>
+                    <EmptyState>Brak komentarzy. Dodaj pierwszy powyżej.</EmptyState>
                 ) : (
                     sortedComments.map(comment => (
-                        <CommentRow
+                        <CommentItem
                             key={comment.id}
                             $type={comment.type}
                             $deleted={comment.isDeleted}
                         >
-                            {/* Author row */}
                             <CommentHead>
-                                <Initials $type={comment.type}>
+                                <Avatar $type={comment.type}>
                                     {getInitials(comment.createdByName)}
-                                </Initials>
+                                </Avatar>
                                 <AuthorName>{comment.createdByName}</AuthorName>
-                                <TypePill $type={comment.type}>
-                                    {comment.type === 'INTERNAL' ? 'Wewnętrzna' : 'Klient'}
-                                </TypePill>
-                                <CommentDate>{formatDate(comment.createdAt)}</CommentDate>
+                                <TypeBadge $type={comment.type}>
+                                    {comment.type === 'INTERNAL' ? 'Wewnętrzna' : 'Dla klienta'}
+                                </TypeBadge>
+                                <DateText>{formatDate(comment.createdAt)}</DateText>
                             </CommentHead>
 
-                            {/* Deleted notice */}
                             {comment.isDeleted && (
-                                <DeletedBanner>
+                                <DeletedNote>
                                     Usunięto przez {comment.deletedByName} · {formatDate(comment.deletedAt!)}
-                                </DeletedBanner>
+                                </DeletedNote>
                             )}
 
-                            {/* Inline edit or body */}
                             {editingId === comment.id ? (
                                 <>
                                     <InlineEditArea
@@ -573,18 +570,18 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
                                         onChange={e => setEditingContent(e.target.value)}
                                         disabled={isUpdating}
                                     />
-                                    <ActionStrip>
-                                        <MicroBtn onClick={cancelEdit} disabled={isUpdating}>
+                                    <ActionRow>
+                                        <InlineBtn onClick={cancelEdit} disabled={isUpdating}>
                                             Anuluj
-                                        </MicroBtn>
-                                        <BtnPrimary
+                                        </InlineBtn>
+                                        <PrimaryBtn
                                             onClick={() => saveEdit(comment.id)}
                                             disabled={isUpdating || !editingContent.trim()}
-                                            style={{ padding: '3px 10px', fontSize: 11 }}
+                                            style={{ padding: '4px 12px', fontSize: st.fontXs }}
                                         >
                                             {isUpdating ? 'Zapisywanie…' : 'Zapisz'}
-                                        </BtnPrimary>
-                                    </ActionStrip>
+                                        </PrimaryBtn>
+                                    </ActionRow>
                                 </>
                             ) : (
                                 <>
@@ -593,35 +590,33 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
                                     </CommentBody>
 
                                     {comment.updatedAt && !comment.isDeleted && (
-                                        <EditedLabel>
+                                        <EditedHint>
                                             Edytowano {formatDate(comment.updatedAt)} · {comment.updatedByName}
-                                        </EditedLabel>
+                                        </EditedHint>
                                     )}
 
                                     {!comment.isDeleted && (
-                                        <ActionStrip>
-                                            <MicroBtn onClick={() => startEdit(comment)}>
+                                        <ActionRow>
+                                            <InlineBtn onClick={() => startEdit(comment)}>
                                                 Edytuj
-                                            </MicroBtn>
-                                            <MicroBtn
+                                            </InlineBtn>
+                                            <InlineBtn
                                                 $danger
                                                 onClick={() => handleDelete(comment.id)}
                                                 disabled={isDeleting}
                                             >
                                                 Usuń
-                                            </MicroBtn>
-                                        </ActionStrip>
+                                            </InlineBtn>
+                                        </ActionRow>
                                     )}
                                 </>
                             )}
 
-                            {/* Revision history */}
                             {comment.revisions.length > 0 && (
                                 <>
-                                    <RevToggleBtn onClick={() => toggleRevisions(comment.id)}>
+                                    <RevToggle onClick={() => toggleRevisions(comment.id)}>
                                         <svg
-                                            width="8"
-                                            height="8"
+                                            width="8" height="8"
                                             viewBox="0 0 24 24"
                                             fill="none"
                                             stroke="currentColor"
@@ -633,7 +628,7 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
                                             }
                                         </svg>
                                         Historia zmian ({comment.revisions.length})
-                                    </RevToggleBtn>
+                                    </RevToggle>
 
                                     {expandedRevisions.has(comment.id) && (
                                         <RevBlock>
@@ -643,14 +638,14 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
                                                         {rev.changedByName} · {formatDate(rev.changedAt)}
                                                     </RevMeta>
                                                     <RevDiff>
-                                                        <DiffBox $old>
-                                                            <DiffBoxLabel>Poprzednia</DiffBoxLabel>
+                                                        <DiffCell $old>
+                                                            <DiffLabel>Poprzednia</DiffLabel>
                                                             {rev.oldContent}
-                                                        </DiffBox>
-                                                        <DiffBox $old={false}>
-                                                            <DiffBoxLabel>Nowa</DiffBoxLabel>
+                                                        </DiffCell>
+                                                        <DiffCell $old={false}>
+                                                            <DiffLabel>Nowa</DiffLabel>
                                                             {rev.newContent}
-                                                        </DiffBox>
+                                                        </DiffCell>
                                                     </RevDiff>
                                                 </RevEntry>
                                             ))}
@@ -658,10 +653,10 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
                                     )}
                                 </>
                             )}
-                        </CommentRow>
+                        </CommentItem>
                     ))
                 )}
-            </CommentsScroll>
+            </CommentsList>
         </Panel>
     );
 };

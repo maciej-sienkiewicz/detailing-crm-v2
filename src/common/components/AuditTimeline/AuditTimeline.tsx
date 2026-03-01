@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useAuditLog } from '../../hooks/useAuditLog';
 import type { AuditEntry } from '../../types/audit';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 
 /* ─── Action config ───────────────────────────────────────────────────────── */
 
@@ -54,62 +55,51 @@ const ACTION_LABELS: Record<string, string> = {
     COMPANY_DELETED:        'Firma usunięta',
 };
 
-/* Semantic palette */
-const C_GREEN  = '#16a34a';
-const C_BLUE   = 'var(--brand-primary, #3b82f6)';
-const C_RED    = '#dc2626';
-const C_AMBER  = '#d97706';
-const C_PURPLE = '#7c3aed';
-const C_SKY    = '#0284c7';
-const C_CYAN   = '#0891b2';
-const C_SLATE  = '#475569';
-const C_GRAY   = '#94a3b8';
-
 const ACTION_COLORS: Record<string, string> = {
-    CREATE:                 C_GREEN,
-    UPDATE:                 C_BLUE,
-    DELETE:                 C_RED,
-    STATUS_CHANGE:          C_CYAN,
-    STATUS_CHANGED:         C_CYAN,
-    PHOTO_ADDED:            C_PURPLE,
-    PHOTO_DELETED:          C_PURPLE,
-    PHOTO_REMOVED:          C_PURPLE,
-    DOCUMENT_ADDED:         C_SKY,
-    DOCUMENT_DELETED:       C_SKY,
-    DOCUMENT_REMOVED:       C_SKY,
-    COMMENT_ADDED:          C_SLATE,
-    COMMENT_UPDATED:        C_SLATE,
-    COMMENT_DELETED:        C_SLATE,
-    NOTE_ADDED:             C_SLATE,
-    NOTE_UPDATED:           C_SLATE,
-    NOTE_DELETED:           C_SLATE,
-    NOTE_REMOVED:           C_SLATE,
-    SERVICE_ADDED:          C_GREEN,
-    SERVICE_UPDATED:        C_BLUE,
-    SERVICE_REMOVED:        C_RED,
-    SERVICES_UPDATED:       C_BLUE,
-    VISIT_CONFIRMED:        C_GREEN,
-    VISIT_CANCELLED:        C_RED,
-    VISIT_COMPLETED:        C_GREEN,
-    VISIT_REJECTED:         C_RED,
-    VISIT_MARKED_READY:     C_AMBER,
-    VISIT_ARCHIVED:         C_GRAY,
-    VISIT_ADDED:            C_GREEN,
-    APPOINTMENT_CANCELLED:  C_RED,
-    APPOINTMENT_CONVERTED:  C_GREEN,
-    APPOINTMENT_ADDED:      C_GREEN,
-    PROTOCOL_GENERATED:     C_SKY,
-    PROTOCOL_SIGNED:        C_GREEN,
-    CONSENT_GRANTED:        C_GREEN,
-    CONSENT_REVOKED:        C_RED,
-    LEAD_CONVERTED:         C_GREEN,
-    LEAD_ABANDONED:         C_GRAY,
-    CALL_ACCEPTED:          C_GREEN,
-    CALL_REJECTED:          C_RED,
-    OWNER_ADDED:            C_AMBER,
-    OWNER_REMOVED:          C_AMBER,
-    COMPANY_UPDATED:        C_BLUE,
-    COMPANY_DELETED:        C_RED,
+    CREATE:                 st.accentGreen,
+    UPDATE:                 st.accentBlue,
+    DELETE:                 st.accentRed,
+    STATUS_CHANGE:          st.accentBlue,
+    STATUS_CHANGED:         st.accentBlue,
+    PHOTO_ADDED:            '#7c3aed',
+    PHOTO_DELETED:          '#7c3aed',
+    PHOTO_REMOVED:          '#7c3aed',
+    DOCUMENT_ADDED:         '#0284c7',
+    DOCUMENT_DELETED:       '#0284c7',
+    DOCUMENT_REMOVED:       '#0284c7',
+    COMMENT_ADDED:          st.textSecondary,
+    COMMENT_UPDATED:        st.textSecondary,
+    COMMENT_DELETED:        st.textSecondary,
+    NOTE_ADDED:             st.textSecondary,
+    NOTE_UPDATED:           st.textSecondary,
+    NOTE_DELETED:           st.textSecondary,
+    NOTE_REMOVED:           st.textSecondary,
+    SERVICE_ADDED:          st.accentGreen,
+    SERVICE_UPDATED:        st.accentBlue,
+    SERVICE_REMOVED:        st.accentRed,
+    SERVICES_UPDATED:       st.accentBlue,
+    VISIT_CONFIRMED:        st.accentGreen,
+    VISIT_CANCELLED:        st.accentRed,
+    VISIT_COMPLETED:        st.accentGreen,
+    VISIT_REJECTED:         st.accentRed,
+    VISIT_MARKED_READY:     st.accentAmber,
+    VISIT_ARCHIVED:         st.textMuted,
+    VISIT_ADDED:            st.accentGreen,
+    APPOINTMENT_CANCELLED:  st.accentRed,
+    APPOINTMENT_CONVERTED:  st.accentGreen,
+    APPOINTMENT_ADDED:      st.accentGreen,
+    PROTOCOL_GENERATED:     '#0284c7',
+    PROTOCOL_SIGNED:        st.accentGreen,
+    CONSENT_GRANTED:        st.accentGreen,
+    CONSENT_REVOKED:        st.accentRed,
+    LEAD_CONVERTED:         st.accentGreen,
+    LEAD_ABANDONED:         st.textMuted,
+    CALL_ACCEPTED:          st.accentGreen,
+    CALL_REJECTED:          st.accentRed,
+    OWNER_ADDED:            st.accentAmber,
+    OWNER_REMOVED:          st.accentAmber,
+    COMPANY_UPDATED:        st.accentBlue,
+    COMPANY_DELETED:        st.accentRed,
 };
 
 const FIELD_LABELS: Record<string, string> = {
@@ -132,64 +122,44 @@ const FIELD_LABELS: Record<string, string> = {
 
 /* ─── Styled components ───────────────────────────────────────────────────── */
 
-const Wrapper = styled.div`
-    background: #fff;
+const Container = styled.div`
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
     overflow: hidden;
+    box-shadow: ${st.shadowSm};
 `;
 
-/* Header */
+/* Header — mirrors TableHeader from ServicesTable */
 
-const AuditHeader = styled.header`
+const AuditHeader = styled.div`
+    padding: 20px 24px;
+    background: ${st.bgCard};
+    border-bottom: 1px solid ${st.border};
     display: flex;
-    align-items: flex-start;
     justify-content: space-between;
-    gap: 12px;
-    padding: 20px 24px 18px;
-    border-bottom: 1px solid ${p => p.theme.colors.border};
-`;
-
-const HeaderLeft = styled.div`
-    display: flex;
     align-items: center;
-    gap: 10px;
 `;
 
-const HeaderIcon = styled.div`
-    width: 34px;
-    height: 34px;
-    border-radius: 9px;
-    background: ${p => p.theme.colors.surface};
-    border: 1px solid ${p => p.theme.colors.border};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+const HeaderLeft = styled.div``;
 
-    svg {
-        width: 16px;
-        height: 16px;
-        color: var(--brand-primary);
-    }
-`;
-
-const HeaderTitle = styled.h3`
+const AuditTitle = styled.h3`
     margin: 0 0 2px;
-    font-size: 14px;
+    font-size: ${st.fontMd};
     font-weight: 700;
-    color: ${p => p.theme.colors.text};
-    letter-spacing: -0.01em;
+    color: ${st.text};
 `;
 
-const HeaderSub = styled.p`
+const AuditSubtitle = styled.p`
     margin: 0;
-    font-size: 11px;
-    color: ${p => p.theme.colors.textMuted};
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
 `;
 
-/* Timeline */
+/* ─── Timeline ────────────────────────────────────────────────────────────── */
 
 const TimelineWrap = styled.div`
-    padding: 24px 24px 8px;
+    padding: 20px 24px;
 `;
 
 const Track = styled.div`
@@ -200,33 +170,29 @@ const Track = styled.div`
         content: '';
         position: absolute;
         left: 11px;
-        top: 6px;
+        top: 8px;
         bottom: 16px;
         width: 1px;
-        background: ${p => p.theme.colors.border};
+        background: ${st.border};
     }
 `;
 
-/* Individual entry */
-
 const EntryWrap = styled.div`
     position: relative;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
 
-    &:last-child {
-        margin-bottom: 0;
-    }
+    &:last-child { margin-bottom: 0; }
 `;
 
 const DotRing = styled.div<{ $color: string }>`
     position: absolute;
     left: -25px;
-    top: 10px;
+    top: 11px;
     width: 14px;
     height: 14px;
     border-radius: 50%;
     border: 2px solid ${p => p.$color};
-    background: #fff;
+    background: ${st.bgCard};
     z-index: 2;
 
     &::after {
@@ -235,23 +201,23 @@ const DotRing = styled.div<{ $color: string }>`
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        width: 6px;
-        height: 6px;
+        width: 5px;
+        height: 5px;
         border-radius: 50%;
         background: ${p => p.$color};
     }
 `;
 
-const Card = styled.div`
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: 10px;
-    background: #fff;
-    overflow: hidden;
-    transition: box-shadow 0.15s;
+/* Entry card — same border/radius pattern as rest of visit module */
 
-    &:hover {
-        box-shadow: ${p => p.theme.shadows.sm};
-    }
+const EntryCard = styled.div`
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    overflow: hidden;
+    transition: box-shadow ${st.transition};
+
+    &:hover { box-shadow: ${st.shadowXs}; }
 `;
 
 const CardTop = styled.div`
@@ -267,25 +233,24 @@ const CardLeft = styled.div`
     min-width: 0;
 `;
 
-const ActionTag = styled.span<{ $color: string }>`
+/* Action badge — same pattern as ServiceStatusBadge from ServicesTable */
+
+const ActionBadge = styled.span<{ $color: string }>`
     display: inline-flex;
     align-items: center;
     padding: 2px 8px;
-    border-radius: 99px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
     background: ${p => `${p.$color}18`};
     color: ${p => p.$color};
-    border: 1px solid ${p => `${p.$color}28`};
-    margin-bottom: 4px;
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    margin-bottom: 3px;
 `;
 
-const CardTitle = styled.div`
-    font-size: 13px;
+const EntityName = styled.div`
+    font-size: ${st.fontSm};
     font-weight: 600;
-    color: ${p => p.theme.colors.text};
+    color: ${st.text};
 `;
 
 const CardRight = styled.div`
@@ -293,33 +258,33 @@ const CardRight = styled.div`
     text-align: right;
 `;
 
-const CardDate = styled.time`
+const EntryDate = styled.time`
     display: block;
-    font-size: 11px;
-    color: ${p => p.theme.colors.textMuted};
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
     white-space: nowrap;
 `;
 
-const CardUser = styled.div`
-    font-size: 11px;
-    color: ${p => p.theme.colors.textMuted};
+const EntryUser = styled.div`
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
     margin-top: 1px;
 `;
 
 /* Changes section */
 
 const ChangesPanel = styled.div`
-    border-top: 1px solid ${p => p.theme.colors.border};
-    background: #fafbfc;
+    border-top: 1px solid ${st.border};
+    background: ${st.bg};
     padding: 8px 14px;
 `;
 
-const ChangesTitle = styled.div`
-    font-size: 10px;
+const ChangesLabel = styled.div`
+    font-size: ${st.fontXs};
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.07em;
-    color: ${p => p.theme.colors.textMuted};
+    letter-spacing: 0.6px;
+    color: ${st.textMuted};
     margin-bottom: 6px;
 `;
 
@@ -331,41 +296,40 @@ const ChangeTable = styled.div`
 
 const ChangeRow = styled.div`
     display: grid;
-    grid-template-columns: minmax(90px, auto) 1fr 12px 1fr;
+    grid-template-columns: minmax(90px, auto) 1fr 14px 1fr;
     align-items: center;
     gap: 6px;
-    font-size: 11px;
+    font-size: ${st.fontXs};
 `;
 
 const FieldName = styled.span`
-    font-weight: 600;
-    color: ${p => p.theme.colors.textSecondary};
-    font-size: 11px;
+    font-weight: 700;
+    color: ${st.textSecondary};
 `;
 
 const FieldVal = styled.span<{ $variant: 'old' | 'new' }>`
-    font-size: 11px;
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontXs};
     word-break: break-word;
     font-family: ui-monospace, 'SF Mono', Consolas, monospace;
-    background: ${p => p.$variant === 'old' ? '#fee2e2' : '#dcfce7'};
-    color: ${p => p.$variant === 'old' ? '#991b1b' : '#166534'};
+    background: ${p => p.$variant === 'old' ? st.accentRedDim : st.accentGreenDim};
+    color: ${p => p.$variant === 'old' ? st.accentRed : st.accentGreen};
     text-decoration: ${p => p.$variant === 'old' ? 'line-through' : 'none'};
 `;
 
-const ArrowGlyph = styled.span`
-    color: ${p => p.theme.colors.textMuted};
-    font-size: 10px;
+const Arrow = styled.span`
+    color: ${st.textMuted};
+    font-size: ${st.fontXs};
     text-align: center;
-    opacity: 0.6;
+    opacity: 0.5;
 `;
 
-/* Metadata section */
+/* Metadata */
 
 const MetaPanel = styled.div`
-    border-top: 1px solid ${p => p.theme.colors.border};
-    background: #fafbfc;
+    border-top: 1px solid ${st.border};
+    background: ${st.bg};
     padding: 6px 14px 8px;
     display: flex;
     flex-wrap: wrap;
@@ -375,47 +339,53 @@ const MetaPanel = styled.div`
 const MetaChip = styled.span`
     display: inline-flex;
     align-items: center;
-    padding: 2px 7px;
-    border-radius: 5px;
-    background: ${p => p.theme.colors.surface};
-    border: 1px solid ${p => p.theme.colors.border};
-    font-size: 10px;
-    color: ${p => p.theme.colors.textSecondary};
+    gap: 3px;
+    padding: 2px 8px;
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontXs};
+    color: ${st.textSecondary};
 `;
 
 const MetaKey = styled.span`
-    font-weight: 600;
-    margin-right: 3px;
-    opacity: 0.7;
+    font-weight: 700;
+    color: ${st.textMuted};
 `;
 
-/* Pagination */
+/* ─── Pagination ──────────────────────────────────────────────────────────── */
 
 const PaginationBar = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 14px 24px 18px;
-    border-top: 1px solid ${p => p.theme.colors.border};
+    gap: 8px;
+    padding: 14px 24px;
+    border-top: 1px solid ${st.border};
+    background: ${st.bg};
 `;
 
 const PageBtn = styled.button<{ $active?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     min-width: 32px;
     height: 32px;
-    padding: 0 8px;
-    border-radius: 7px;
-    border: 1px solid ${p => p.$active ? 'var(--brand-primary)' : p.theme.colors.border};
-    background: ${p => p.$active ? 'var(--brand-primary)' : '#fff'};
-    color: ${p => p.$active ? '#fff' : p.theme.colors.textSecondary};
-    font-size: 12px;
-    font-weight: ${p => p.$active ? 700 : 400};
+    padding: 0 10px;
+    border-radius: ${st.radiusFull};
+    border: 1px solid ${p => p.$active ? `${st.accentBlue}44` : st.border};
+    background: ${p => p.$active ? st.accentBlueDim : st.bgCard};
+    color: ${p => p.$active ? st.accentBlue : st.textSecondary};
+    font-size: ${st.fontXs};
+    font-weight: ${p => p.$active ? 700 : 500};
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all ${st.transition};
+    box-shadow: ${p => p.$active ? 'none' : st.shadowXs};
 
     &:hover:not(:disabled) {
-        border-color: var(--brand-primary);
-        color: ${p => p.$active ? '#fff' : 'var(--brand-primary)'};
+        border-color: ${st.accentBlue};
+        color: ${st.accentBlue};
+        background: ${st.accentBlueDim};
     }
 
     &:disabled {
@@ -424,29 +394,29 @@ const PageBtn = styled.button<{ $active?: boolean }>`
     }
 `;
 
-const PageLabel = styled.span`
-    font-size: 11px;
-    color: ${p => p.theme.colors.textMuted};
+const PageInfo = styled.span`
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
     padding: 0 4px;
 `;
 
-/* Loading / empty / error */
+/* ─── States ──────────────────────────────────────────────────────────────── */
 
 const CenterBox = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 10px;
     padding: 48px 24px;
-    gap: 12px;
-    color: ${p => p.theme.colors.textMuted};
+    color: ${st.textMuted};
 `;
 
 const Spinner = styled.div`
     width: 28px;
     height: 28px;
-    border: 2px solid ${p => p.theme.colors.border};
-    border-top-color: var(--brand-primary);
+    border: 2px solid ${st.border};
+    border-top-color: ${st.accentBlue};
     border-radius: 50%;
     animation: auditSpin 0.7s linear infinite;
 
@@ -455,48 +425,33 @@ const Spinner = styled.div`
     }
 `;
 
-const EmptyCircle = styled.div`
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: ${p => p.theme.colors.surface};
-    border: 1px solid ${p => p.theme.colors.border};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    svg {
-        width: 20px;
-        height: 20px;
-        opacity: 0.4;
-    }
-`;
-
 const StateTitle = styled.div`
-    font-size: 13px;
+    font-size: ${st.fontSm};
     font-weight: 600;
-    color: ${p => p.theme.colors.textSecondary};
+    color: ${st.textSecondary};
 `;
 
 const StateHint = styled.div`
-    font-size: 12px;
-    color: ${p => p.theme.colors.textMuted};
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
 `;
 
 const RetryBtn = styled.button`
-    padding: 6px 14px;
-    border-radius: 7px;
-    border: 1px solid ${p => p.theme.colors.border};
-    background: transparent;
-    color: var(--brand-primary);
-    font-size: 12px;
-    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: ${st.radiusFull};
+    border: 1px solid ${st.border};
+    background: ${st.bgCard};
+    color: ${st.accentBlue};
+    font-size: ${st.fontSm};
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all ${st.transition};
+    box-shadow: ${st.shadowXs};
     margin-top: 4px;
 
     &:hover {
-        background: ${p => p.theme.colors.surface};
+        background: ${st.accentBlueDim};
+        border-color: ${st.accentBlue};
     }
 `;
 
@@ -522,7 +477,7 @@ function getActionLabel(action: string): string {
 }
 
 function getActionColor(action: string): string {
-    return ACTION_COLORS[action] ?? '#64748b';
+    return ACTION_COLORS[action] ?? st.textSecondary;
 }
 
 function getFieldLabel(field: string): string {
@@ -563,7 +518,8 @@ function renderMetadata(entry: AuditEntry): React.ReactNode {
         if (meta.serviceId)   pairs.push({ key: 'ID', value: meta.serviceId });
     } else if (action === 'SERVICES_UPDATED') {
         if (meta.count !== undefined) pairs.push({ key: 'Zmiany', value: String(meta.count) });
-    } else if (['VISIT_CONFIRMED','VISIT_CANCELLED','VISIT_COMPLETED','VISIT_REJECTED','VISIT_MARKED_READY','VISIT_ARCHIVED','VISIT_ADDED'].includes(action)) {
+    } else if (['VISIT_CONFIRMED','VISIT_CANCELLED','VISIT_COMPLETED','VISIT_REJECTED',
+                'VISIT_MARKED_READY','VISIT_ARCHIVED','VISIT_ADDED'].includes(action)) {
         if (meta.visitNumber) pairs.push({ key: 'Nr wizyty', value: meta.visitNumber });
     } else if (action === 'APPOINTMENT_CANCELLED' || action === 'APPOINTMENT_CONVERTED' || action === 'APPOINTMENT_ADDED') {
         if (meta.appointmentTitle) pairs.push({ key: 'Temat', value: meta.appointmentTitle });
@@ -619,112 +575,91 @@ export const AuditTimeline = ({ module, entityId }: AuditTimelineProps) => {
     const header = (
         <AuditHeader>
             <HeaderLeft>
-                <HeaderIcon>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 20h9" />
-                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                    </svg>
-                </HeaderIcon>
-                <div>
-                    <HeaderTitle>Historia zmian</HeaderTitle>
-                    <HeaderSub>
-                        {isLoading ? 'Ładowanie…' : pluralEntries(total)}
-                    </HeaderSub>
-                </div>
+                <AuditTitle>Historia zmian</AuditTitle>
+                <AuditSubtitle>
+                    {isLoading ? 'Ładowanie…' : pluralEntries(total)}
+                </AuditSubtitle>
             </HeaderLeft>
         </AuditHeader>
     );
 
     if (isLoading) {
         return (
-            <Wrapper>
+            <Container>
                 {header}
                 <CenterBox>
                     <Spinner />
                     <StateHint>Ładowanie historii zmian…</StateHint>
                 </CenterBox>
-            </Wrapper>
+            </Container>
         );
     }
 
     if (isError) {
         return (
-            <Wrapper>
+            <Container>
                 {header}
                 <CenterBox>
-                    <EmptyCircle>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="12" y1="8" x2="12" y2="12" />
-                            <line x1="12" y1="16" x2="12.01" y2="16" />
-                        </svg>
-                    </EmptyCircle>
-                    <StateTitle>Błąd ładowania</StateTitle>
-                    <StateHint>Nie udało się załadować historii zmian.</StateHint>
+                    <StateTitle>Nie udało się załadować historii zmian.</StateTitle>
                     <RetryBtn onClick={() => refetch()}>Spróbuj ponownie</RetryBtn>
                 </CenterBox>
-            </Wrapper>
+            </Container>
         );
     }
 
     if (items.length === 0) {
         return (
-            <Wrapper>
+            <Container>
                 {header}
                 <CenterBox>
-                    <EmptyCircle>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                        </svg>
-                    </EmptyCircle>
                     <StateTitle>Brak zdarzeń audytu</StateTitle>
                     <StateHint>Historia zmian jest pusta.</StateHint>
                 </CenterBox>
-            </Wrapper>
+            </Container>
         );
     }
 
     return (
-        <Wrapper>
+        <Container>
             {header}
 
             <TimelineWrap>
                 <Track>
                     {items.map(entry => {
-                        const color = getActionColor(entry.action);
-                        const hasChanges  = entry.changes.length > 0;
-                        const hasMeta     = renderMetadata(entry) !== null;
+                        const color      = getActionColor(entry.action);
+                        const hasChanges = entry.changes.length > 0;
+                        const hasMeta    = renderMetadata(entry) !== null;
 
                         return (
                             <EntryWrap key={entry.id}>
                                 <DotRing $color={color} />
-                                <Card>
+                                <EntryCard>
                                     <CardTop>
                                         <CardLeft>
-                                            <ActionTag $color={color}>
+                                            <ActionBadge $color={color}>
                                                 {getActionLabel(entry.action)}
-                                            </ActionTag>
+                                            </ActionBadge>
                                             {entry.entityDisplayName && (
-                                            <CardTitle>{entry.entityDisplayName}</CardTitle>
-                                        )}
+                                                <EntityName>{entry.entityDisplayName}</EntityName>
+                                            )}
                                         </CardLeft>
                                         <CardRight>
-                                            <CardDate>
+                                            <EntryDate>
                                                 {formatDate(entry.createdAt)}, {formatTime(entry.createdAt)}
-                                            </CardDate>
-                                            <CardUser>{entry.userDisplayName}</CardUser>
+                                            </EntryDate>
+                                            <EntryUser>{entry.userDisplayName}</EntryUser>
                                         </CardRight>
                                     </CardTop>
 
                                     {hasChanges && (
                                         <ChangesPanel>
-                                            <ChangesTitle>Zmiany</ChangesTitle>
+                                            <ChangesLabel>Zmiany</ChangesLabel>
                                             <ChangeTable>
                                                 {entry.changes.map((change, idx) => (
                                                     <ChangeRow key={idx}>
                                                         <FieldName>{getFieldLabel(change.field)}</FieldName>
                                                         <FieldVal $variant="old">{change.oldValue ?? '—'}</FieldVal>
-                                                        <ArrowGlyph>→</ArrowGlyph>
+                                                        <Arrow>→</Arrow>
                                                         <FieldVal $variant="new">{change.newValue ?? '—'}</FieldVal>
                                                     </ChangeRow>
                                                 ))}
@@ -733,7 +668,7 @@ export const AuditTimeline = ({ module, entityId }: AuditTimelineProps) => {
                                     )}
 
                                     {hasMeta && renderMetadata(entry)}
-                                </Card>
+                                </EntryCard>
                             </EntryWrap>
                         );
                     })}
@@ -745,22 +680,18 @@ export const AuditTimeline = ({ module, entityId }: AuditTimelineProps) => {
                     <PageBtn
                         onClick={() => setPage(p => Math.max(1, p - 1))}
                         disabled={page === 1}
-                        title="Poprzednia strona"
                     >
                         ‹
                     </PageBtn>
-
-                    <PageLabel>Strona {page} z {totalPages}</PageLabel>
-
+                    <PageInfo>Strona {page} z {totalPages}</PageInfo>
                     <PageBtn
                         onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                         disabled={page === totalPages}
-                        title="Następna strona"
                     >
                         ›
                     </PageBtn>
                 </PaginationBar>
             )}
-        </Wrapper>
+        </Container>
     );
 };
