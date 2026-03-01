@@ -1,5 +1,6 @@
 // src/modules/statistics/components/StatsFilters.tsx
-import styled from 'styled-components';
+import { useEffect } from 'react';
+import styled, { css } from 'styled-components';
 import type { Granularity } from '../types';
 import { t } from '@/common/i18n';
 
@@ -46,7 +47,7 @@ const ChipGroup = styled.div`
     flex-wrap: wrap;
 `;
 
-const Chip = styled.button<{ $active: boolean }>`
+const Chip = styled.button<{ $active: boolean; $disabled?: boolean }>`
     padding: 5px 14px;
     border-radius: ${props => props.theme.radii.full};
     font-size: ${props => props.theme.fontSizes.sm};
@@ -66,6 +67,12 @@ const Chip = styled.button<{ $active: boolean }>`
         color: ${props => props.$active ? '#fff' : 'var(--brand-primary)'};
         background: ${props => props.$active ? 'var(--brand-primary)' : 'rgba(59,130,246,0.06)'};
     }
+
+    ${props => props.$disabled && css`
+        opacity: 0.35;
+        cursor: not-allowed;
+        pointer-events: none;
+    `}
 `;
 
 // ─── Date inputs ──────────────────────────────────────────────────────────────
@@ -122,6 +129,28 @@ const today = () => toIso(new Date());
 const daysAgo = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return toIso(d); };
 const monthsAgo = (n: number) => { const d = new Date(); d.setMonth(d.getMonth() - n); return toIso(d); };
 
+// ─── Granularity constraints ───────────────────────────────────────────────────
+
+const getDaysDiff = (start: string, end: string) => {
+    const diff = new Date(end).getTime() - new Date(start).getTime();
+    return Math.max(0, Math.round(diff / 86_400_000));
+};
+
+// Maps a date-range length to the set of allowed granularities:
+//   ≤  7 days  → daily
+//   ≤ 30 days  → daily, weekly
+//   ≤ 90 days  → daily, weekly, monthly
+//   anything larger → all
+const getAllowedGranularities = (days: number): Set<Granularity> => {
+    if (days <= 7)  return new Set<Granularity>(['DAILY']);
+    if (days <= 30) return new Set<Granularity>(['DAILY', 'WEEKLY']);
+    if (days <= 90) return new Set<Granularity>(['DAILY', 'WEEKLY', 'MONTHLY']);
+    return new Set<Granularity>(['DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY']);
+};
+
+// Coarsest-first order: when auto-switching, pick the coarsest that is still allowed.
+const GRANULARITY_ORDER: Granularity[] = ['YEARLY', 'QUARTERLY', 'MONTHLY', 'WEEKLY', 'DAILY'];
+
 type Preset = {
     label: string;
     startDate: string;
@@ -151,6 +180,19 @@ export const StatsFilters = ({
 }: StatsFiltersProps) => {
     const presets = getPresets();
     const activePresetIdx = presets.findIndex(p => matchesPreset(p, startDate, endDate));
+
+    const days = getDaysDiff(startDate, endDate);
+    const allowedGranularities = getAllowedGranularities(days);
+
+    // When the date range changes and the current granularity is no longer valid,
+    // auto-switch to the coarsest granularity still allowed for that range.
+    useEffect(() => {
+        if (!allowedGranularities.has(granularity)) {
+            const best = GRANULARITY_ORDER.find(g => allowedGranularities.has(g)) ?? 'DAILY';
+            onGranularityChange(best);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [startDate, endDate]);
 
     const applyPreset = (preset: Preset) => {
         onStartDateChange(preset.startDate);
@@ -196,19 +238,25 @@ export const StatsFilters = ({
                 </DateRangeGroup>
             </FilterRow>
 
-            {/* Row 3: Granularity chips */}
+            {/* Row 3: Granularity chips — some disabled depending on date range */}
             <FilterRow>
                 <FilterLabel>Grupowanie</FilterLabel>
                 <ChipGroup>
-                    {GRANULARITIES.map(g => (
-                        <Chip
-                            key={g.value}
-                            $active={granularity === g.value}
-                            onClick={() => onGranularityChange(g.value)}
-                        >
-                            {g.label}
-                        </Chip>
-                    ))}
+                    {GRANULARITIES.map(g => {
+                        const disabled = !allowedGranularities.has(g.value);
+                        return (
+                            <Chip
+                                key={g.value}
+                                $active={granularity === g.value}
+                                $disabled={disabled}
+                                disabled={disabled}
+                                onClick={() => onGranularityChange(g.value)}
+                                title={disabled ? `Niedostępne dla zakresu ${days} dni` : undefined}
+                            >
+                                {g.label}
+                            </Chip>
+                        );
+                    })}
                 </ChipGroup>
             </FilterRow>
         </FiltersPanel>
