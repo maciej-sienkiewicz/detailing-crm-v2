@@ -265,7 +265,7 @@ const mockDashboardData: DashboardData = {
         isOurs: false,
       },
       {
-        name: 'Twoja Firma', // This will be replaced with actual name
+        name: 'CarsLab', // This will be replaced with actual name
         rating: 4.8,
         reviewCount: 247,
         position: 2,
