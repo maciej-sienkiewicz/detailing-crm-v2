@@ -80,37 +80,6 @@ const Chip = styled.button<{ $active: boolean; $disabled?: boolean }>`
     `}
 `;
 
-// ─── Date inputs ──────────────────────────────────────────────────────────────
-
-const DateRangeGroup = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-`;
-
-const DateInput = styled.input`
-    padding: 6px 10px;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontSm};
-    background: ${st.bgInput};
-    color: ${st.text};
-    cursor: pointer;
-    transition: border-color ${st.transition}, box-shadow ${st.transition};
-
-    &:focus {
-        outline: none;
-        border-color: ${st.accentBlue};
-        box-shadow: ${st.shadowBlue};
-    }
-`;
-
-const DateSep = styled.span`
-    color: ${st.textMuted};
-    font-size: ${st.fontSm};
-    user-select: none;
-`;
-
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 interface StatsFiltersProps {
@@ -216,25 +185,7 @@ export const StatsFilters = ({
                 </ChipGroup>
             </FilterRow>
 
-            {/* Row 2: Custom date range */}
-            <FilterRow>
-                <FilterLabel>Zakres dat</FilterLabel>
-                <DateRangeGroup>
-                    <DateInput
-                        type="date"
-                        value={startDate}
-                        onChange={e => onStartDateChange(e.target.value)}
-                    />
-                    <DateSep>→</DateSep>
-                    <DateInput
-                        type="date"
-                        value={endDate}
-                        onChange={e => onEndDateChange(e.target.value)}
-                    />
-                </DateRangeGroup>
-            </FilterRow>
-
-            {/* Row 3: Granularity chips */}
+            {/* Row 2: Granularity chips */}
             <FilterRow>
                 <FilterLabel>Grupowanie</FilterLabel>
                 <ChipGroup>
