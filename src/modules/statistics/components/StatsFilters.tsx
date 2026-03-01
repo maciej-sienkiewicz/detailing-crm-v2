@@ -136,8 +136,8 @@ const getPresets = (): Preset[] => [
     { label: t.statistics.presets.last12months, startDate: monthsAgo(12), endDate: today(), granularity: 'MONTHLY' },
 ];
 
-const matchesPreset = (p: Preset, startDate: string, endDate: string, granularity: Granularity) =>
-    p.startDate === startDate && p.endDate === endDate && p.granularity === granularity;
+const matchesPreset = (p: Preset, startDate: string, endDate: string) =>
+    p.startDate === startDate && p.endDate === endDate;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -150,7 +150,7 @@ export const StatsFilters = ({
     onEndDateChange,
 }: StatsFiltersProps) => {
     const presets = getPresets();
-    const activePresetIdx = presets.findIndex(p => matchesPreset(p, startDate, endDate, granularity));
+    const activePresetIdx = presets.findIndex(p => matchesPreset(p, startDate, endDate));
 
     const applyPreset = (preset: Preset) => {
         onStartDateChange(preset.startDate);
