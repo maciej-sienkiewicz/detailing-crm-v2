@@ -16,8 +16,8 @@ import type { AppointmentColor } from '@/modules/appointments/types';
 // ─── Animations ───────────────────────────────────────────────────────────────
 
 const fadeSlide = keyframes`
-    from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; }
+    to   { opacity: 1; }
 `;
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
@@ -167,8 +167,30 @@ const FooterInner = styled.div`
         padding: 16px 40px;
         flex-direction: row;
         align-items: center;
-        justify-content: space-between;
+        gap: 16px;
     }
+`;
+
+const FooterStepHint = styled.div`
+    display: none;
+
+    @media (min-width: 768px) {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: ${st.textMuted};
+        flex: 1;
+        min-width: 0;
+    }
+`;
+
+const FooterStepDot = styled.span`
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: ${st.accentBlue};
+    flex-shrink: 0;
 `;
 
 const ValidationAlert = styled.div`
@@ -221,6 +243,7 @@ const FooterActions = styled.div`
     gap: 8px;
     align-items: center;
     flex-shrink: 0;
+    margin-left: auto;
 `;
 
 const BackBtn = styled.button`
@@ -441,8 +464,8 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
                 {/* ── Sticky footer ──────────────────────────────────────── */}
                 <StickyFooter>
                     <FooterInner>
-                        {/* Validation / submit errors */}
-                        {hasErrors && (
+                        {/* Left side: validation errors / step hint */}
+                        {hasErrors ? (
                             <ValidationAlert>
                                 <ValidationIcon>⚠</ValidationIcon>
                                 <div>
@@ -454,9 +477,7 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
                                     </ValidationErrors>
                                 </div>
                             </ValidationAlert>
-                        )}
-
-                        {submitError && (
+                        ) : submitError ? (
                             <ErrorAlert>
                                 {(() => {
                                     const anyErr: any = submitError as any;
@@ -466,6 +487,13 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
                                         : (anyErr?.message ?? t.checkin.errors.createFailed);
                                 })()}
                             </ErrorAlert>
+                        ) : (
+                            <FooterStepHint>
+                                <FooterStepDot />
+                                Krok {steps.findIndex(s => s.id === currentStep) + 1} z {steps.length}
+                                {' · '}
+                                {steps.find(s => s.id === currentStep)?.label}
+                            </FooterStepHint>
                         )}
 
                         {/* Navigation */}

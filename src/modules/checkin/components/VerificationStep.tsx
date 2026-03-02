@@ -237,13 +237,13 @@ const ColorTrigger = styled.button`
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 9px 12px;
-    border: 1.5px solid ${st.border};
-    border-radius: ${st.radiusSm};
+    padding: 16px;
+    border: 1px solid ${st.border};
+    border-radius: 8px;
     background: ${st.bgCardAlt};
     cursor: pointer;
     transition: all ${st.transition};
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 500;
     color: ${st.text};
 
@@ -1267,6 +1267,7 @@ export const VerificationStep = ({
                         value={formData.technicalState.inspectionNotes}
                         onChange={(e) => onChange({ technicalState: { ...formData.technicalState, inspectionNotes: e.target.value } })}
                         placeholder={t.checkin.technical.inspectionNotesPlaceholder}
+                        style={{ width: '100%', boxSizing: 'border-box', minHeight: '120px' }}
                     />
                 </SectionBody>
             </SectionCard>
