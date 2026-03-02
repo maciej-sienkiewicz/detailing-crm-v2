@@ -596,6 +596,9 @@ export const OperationalDataTable = ({
                                                         {op.vehicle.licensePlate && (
                                                             <LicensePlate>{op.vehicle.licensePlate}</LicensePlate>
                                                         )}
+                                                        <TypeTag $isVisit={isVisit}>
+                                                            {isVisit ? 'Wizyta' : 'Rezerwacja'}
+                                                        </TypeTag>
                                                     </RowMeta>
                                                 </>
                                             ) : (

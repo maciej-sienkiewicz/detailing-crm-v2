@@ -369,9 +369,6 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
 
                                 <Td>
                                     <VehicleMainCell>
-                                        <CarBubble>
-                                            <CarIcon />
-                                        </CarBubble>
                                         <VehicleBlock>
                                             <VehicleNamePrimary>
                                                 {vehicle.brand} {vehicle.model}
