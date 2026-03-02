@@ -6,76 +6,118 @@ import { useOperationSearch } from '../hooks/useOperationSearch';
 import { useOperationPagination } from '../hooks/useOperationPagination';
 import { useOperationFilters } from '../hooks/useOperationFilters';
 import { OperationalDataTable } from '../components/OperationalDataTable';
-import { OperationSearchFilter } from '../components/OperationSearchFilter';
 import { OperationFilterBar } from '../components/OperationFilterBar';
 import { OperationPagination } from '../components/OperationPagination';
-import { Button } from '@/common/components/Button';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
+
+// ─── Styled components ────────────────────────────────────────────────────────
 
 const ViewContainer = styled.main`
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 20px;
     padding: 24px;
-    max-width: 1600px;
-    margin: 0 auto;
-    width: 100%;
+    min-height: 100vh;
+    background: ${st.bg};
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         padding: 32px;
     }
 
     @media (min-width: ${props => props.theme.breakpoints.xl}) {
-        padding: 48px;
+        padding: 40px 48px;
     }
 `;
 
-const ViewHeader = styled.header`
+const PageHeader = styled.header`
     display: flex;
-    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
     gap: 16px;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: flex-start;
-    }
+    flex-wrap: wrap;
 `;
 
-const TitleSection = styled.div`
+const TitleBlock = styled.div`
     flex: 1;
+    min-width: 0;
 `;
 
 const PageTitle = styled.h1`
     margin: 0;
-    font-size: 24px;
+    font-size: ${st.fontXl};
     font-weight: 700;
-    color: #0f172a;
+    color: ${st.text};
+    letter-spacing: -0.3px;
+    line-height: 1.2;
 `;
 
-const PageSubtitle = styled.p`
-    margin: 4px 0 0;
-    font-size: 14px;
-    color: #64748b;
-`;
-
-const HeaderActions = styled.div`
+const PageMeta = styled.div`
     display: flex;
-    gap: ${props => props.theme.spacing.md};
     align-items: center;
+    gap: 10px;
+    margin-top: 6px;
     flex-wrap: wrap;
+`;
 
-    @media (max-width: ${props => props.theme.breakpoints.md}) {
-        width: 100%;
-        flex-direction: column;
+const PageSubtitle = styled.span`
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
+`;
+
+const TotalChip = styled.span`
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    background: ${st.accentBlueDim};
+    color: ${st.accentBlue};
+    border-radius: ${st.radiusFull};
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+`;
+
+const NewButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 20px;
+    background: ${st.accentBlue};
+    color: #fff;
+    border: none;
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all ${st.transition};
+    box-shadow: 0 1px 4px rgba(37, 99, 235, 0.25);
+
+    &:hover {
+        background: #1D4ED8;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    }
+
+    &:active {
+        transform: translateY(0);
+        box-shadow: 0 1px 4px rgba(37, 99, 235, 0.25);
+    }
+
+    svg {
+        flex-shrink: 0;
     }
 `;
 
-const ContentSection = styled.section`
-    background: white;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
+const ContentCard = styled.section`
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowSm};
     overflow: hidden;
 `;
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export const OperationListView = () => {
     const navigate = useNavigate();
@@ -120,28 +162,30 @@ export const OperationListView = () => {
 
     return (
         <ViewContainer>
-            <ViewHeader>
-                <TitleSection>
+            <PageHeader>
+                <TitleBlock>
                     <PageTitle>Wizyty i Rezerwacje</PageTitle>
-                    <PageSubtitle>Zarządzaj aktywnymi operacjami w warsztacie</PageSubtitle>
-                </TitleSection>
+                    <PageMeta>
+                        <PageSubtitle>Zarządzaj aktywnymi operacjami w warsztacie</PageSubtitle>
+                        {pagination && (
+                            <TotalChip>{pagination.totalItems} rekordów</TotalChip>
+                        )}
+                    </PageMeta>
+                </TitleBlock>
 
-                <HeaderActions>
-                    <OperationSearchFilter
-                        value={searchInput}
-                        onChange={handleSearchChange}
-                    />
-                    <Button
-                        $variant="primary"
-                        onClick={() => navigate('/appointments/create')}
-                    >
-                        Stwórz rezerwację
-                    </Button>
-                </HeaderActions>
-            </ViewHeader>
+                <NewButton onClick={() => navigate('/appointments/create')}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Nowa rezerwacja
+                </NewButton>
+            </PageHeader>
 
-            <ContentSection>
+            <ContentCard>
                 <OperationFilterBar
+                    search={searchInput}
+                    onSearchChange={handleSearchChange}
                     selectedFilter={selectedFilter}
                     selectedDate={selectedDate}
                     onFilterChange={handleFilterChangeWithReset}
@@ -155,6 +199,7 @@ export const OperationListView = () => {
                     limit={limit}
                     type={apiFilters.type}
                     status={apiFilters.status}
+                    scheduledDate={selectedDate}
                 />
 
                 {pagination && pagination.totalPages > 1 && (
@@ -163,7 +208,7 @@ export const OperationListView = () => {
                         onPageChange={goToPage}
                     />
                 )}
-            </ContentSection>
+            </ContentCard>
         </ViewContainer>
     );
 };

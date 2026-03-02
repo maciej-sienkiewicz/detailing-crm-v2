@@ -1,15 +1,16 @@
 // src/modules/operations/components/OperationPagination.tsx
 
 import styled from 'styled-components';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { OperationListResponse } from '../types';
 
-const PaginationContainer = styled.div`
+const Container = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    padding: 16px 24px;
-    border-top: 1px solid ${props => props.theme.colors.border};
-    background: ${props => props.theme.colors.surface};
+    gap: 12px;
+    padding: 14px 20px;
+    border-top: 1px solid ${st.border};
+    background: ${st.bg};
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         flex-direction: row;
@@ -18,9 +19,9 @@ const PaginationContainer = styled.div`
     }
 `;
 
-const PaginationInfo = styled.div`
-    font-size: 14px;
-    color: ${props => props.theme.colors.textSecondary};
+const Info = styled.span`
+    font-size: 13px;
+    color: ${st.textMuted};
     text-align: center;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
@@ -28,34 +29,71 @@ const PaginationInfo = styled.div`
     }
 `;
 
-const PaginationControls = styled.div`
+const Controls = styled.div`
     display: flex;
-    gap: 8px;
+    gap: 4px;
     justify-content: center;
+    align-items: center;
 `;
 
-const PageButton = styled.button<{ $isActive?: boolean; $isDisabled?: boolean }>`
-    min-width: 36px;
-    height: 36px;
-    padding: 0 12px;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: 6px;
-    background: ${props => props.$isActive ? 'var(--brand-primary)' : 'white'};
-    color: ${props => props.$isActive ? 'white' : props.theme.colors.text};
+const NavBtn = styled.button<{ $disabled?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    background: ${st.bgCard};
+    color: ${props => props.$disabled ? st.textMuted : st.textSecondary};
     font-size: 14px;
-    font-weight: 500;
-    cursor: ${props => props.$isDisabled ? 'not-allowed' : 'pointer'};
-    transition: all 0.15s ease;
-    opacity: ${props => props.$isDisabled ? 0.5 : 1};
+    cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
+    opacity: ${props => props.$disabled ? 0.45 : 1};
+    transition: all ${st.transition};
 
     &:hover:not(:disabled) {
-        border-color: var(--brand-primary);
-        background: ${props => props.$isActive ? 'var(--brand-primary)' : '#f0f9ff'};
+        border-color: ${st.accentBlue};
+        color: ${st.accentBlue};
+        background: ${st.accentBlueDim};
     }
 
-    &:disabled {
-        cursor: not-allowed;
+    svg {
+        width: 14px;
+        height: 14px;
     }
+`;
+
+const PageBtn = styled.button<{ $active?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 4px;
+    border: 1px solid ${props => props.$active ? st.accentBlue : st.border};
+    border-radius: ${st.radiusSm};
+    background: ${props => props.$active ? st.accentBlue : st.bgCard};
+    color: ${props => props.$active ? '#fff' : st.textSecondary};
+    font-size: 13px;
+    font-weight: ${props => props.$active ? 700 : 500};
+    cursor: pointer;
+    transition: all ${st.transition};
+
+    &:hover {
+        border-color: ${st.accentBlue};
+        background: ${props => props.$active ? st.accentBlue : st.accentBlueDim};
+        color: ${props => props.$active ? '#fff' : st.accentBlue};
+    }
+`;
+
+const Ellipsis = styled.span`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    font-size: 13px;
+    color: ${st.textMuted};
 `;
 
 interface OperationPaginationProps {
@@ -69,77 +107,65 @@ export const OperationPagination = ({ pagination, onPageChange }: OperationPagin
     const startItem = (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
-    const getPageNumbers = () => {
-        const pages: (number | string)[] = [];
-        const maxVisible = 5;
+    const getPages = (): (number | '...')[] => {
+        if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
 
-        if (totalPages <= maxVisible) {
-            for (let i = 1; i <= totalPages; i++) {
-                pages.push(i);
-            }
-        } else {
-            pages.push(1);
+        const pages: (number | '...')[] = [1];
+        if (currentPage > 3) pages.push('...');
 
-            if (currentPage > 3) {
-                pages.push('...');
-            }
+        const start = Math.max(2, currentPage - 1);
+        const end = Math.min(totalPages - 1, currentPage + 1);
+        for (let i = start; i <= end; i++) pages.push(i);
 
-            const start = Math.max(2, currentPage - 1);
-            const end = Math.min(totalPages - 1, currentPage + 1);
-
-            for (let i = start; i <= end; i++) {
-                pages.push(i);
-            }
-
-            if (currentPage < totalPages - 2) {
-                pages.push('...');
-            }
-
-            pages.push(totalPages);
-        }
+        if (currentPage < totalPages - 2) pages.push('...');
+        pages.push(totalPages);
 
         return pages;
     };
 
     return (
-        <PaginationContainer>
-            <PaginationInfo>
-                Wyświetlanie {startItem} - {endItem} z {totalItems} operacji
-            </PaginationInfo>
+        <Container>
+            <Info>
+                {startItem}–{endItem} z {totalItems} rekordów
+            </Info>
 
-            <PaginationControls>
-                <PageButton
+            <Controls>
+                <NavBtn
                     onClick={() => onPageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    $isDisabled={currentPage === 1}
+                    $disabled={currentPage === 1}
+                    aria-label="Poprzednia strona"
                 >
-                    ←
-                </PageButton>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <polyline points="15 18 9 12 15 6" />
+                    </svg>
+                </NavBtn>
 
-                {getPageNumbers().map((page, index) => (
-                    typeof page === 'number' ? (
-                        <PageButton
-                            key={index}
-                            onClick={() => onPageChange(page)}
-                            $isActive={page === currentPage}
-                        >
-                            {page}
-                        </PageButton>
-                    ) : (
-                        <PageButton key={index} disabled $isDisabled>
-                            {page}
-                        </PageButton>
-                    )
-                ))}
+                {getPages().map((p, i) =>
+                    p === '...'
+                        ? <Ellipsis key={`e-${i}`}>···</Ellipsis>
+                        : (
+                            <PageBtn
+                                key={p}
+                                $active={p === currentPage}
+                                onClick={() => onPageChange(p as number)}
+                            >
+                                {p}
+                            </PageBtn>
+                        )
+                )}
 
-                <PageButton
+                <NavBtn
                     onClick={() => onPageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    $isDisabled={currentPage === totalPages}
+                    $disabled={currentPage === totalPages}
+                    aria-label="Następna strona"
                 >
-                    →
-                </PageButton>
-            </PaginationControls>
-        </PaginationContainer>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                </NavBtn>
+            </Controls>
+        </Container>
     );
 };

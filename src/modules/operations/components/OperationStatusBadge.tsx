@@ -3,87 +3,54 @@
 import styled from 'styled-components';
 import type { OperationStatus } from '../types';
 
-const StyledBadge = styled.span<{ $status: OperationStatus }>`
+const statusConfig: Record<OperationStatus, { label: string; color: string; bg: string }> = {
+    IN_PROGRESS:      { label: 'W realizacji',     color: '#059669', bg: 'rgba(5, 150, 105, 0.10)'   },
+    READY_FOR_PICKUP: { label: 'Do odbioru',        color: '#D97706', bg: 'rgba(217, 119, 6, 0.10)'   },
+    COMPLETED:        { label: 'Zakończona',         color: '#64748B', bg: '#F1F5F9'                   },
+    REJECTED:         { label: 'Odrzucona',          color: '#DC2626', bg: 'rgba(220, 38, 38, 0.10)'  },
+    ARCHIVED:         { label: 'Zarchiwizowana',     color: '#94A3B8', bg: '#F8FAFC'                   },
+    CREATED:          { label: 'Zaplanowano',        color: '#2563EB', bg: 'rgba(37, 99, 235, 0.10)'  },
+    ABANDONED:        { label: 'Porzucono',          color: '#D97706', bg: 'rgba(217, 119, 6, 0.10)'  },
+    CANCELLED:        { label: 'Anulowano',          color: '#DC2626', bg: 'rgba(220, 38, 38, 0.10)'  },
+    CONVERTED:        { label: 'Rozpoczęto wizytę', color: '#059669', bg: 'rgba(5, 150, 105, 0.10)'  },
+};
+
+const Badge = styled.span<{ $color: string; $bg: string }>`
     display: inline-flex;
     align-items: center;
-    padding: 4px 12px;
-    border-radius: 9999px;
+    gap: 6px;
+    padding: 5px 11px;
+    background: ${props => props.$bg};
+    color: ${props => props.$color};
+    border-radius: 20px;
     font-size: 12px;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-
-    ${props => {
-        switch (props.$status) {
-            // Statusy wizyt
-            case 'IN_PROGRESS':
-                return `
-                    background-color: ${props.theme.colors.successLight};
-                    color: ${props.theme.colors.success};
-                `;
-            case 'READY_FOR_PICKUP':
-                return `
-                    background-color: #fef3c7;
-                    color: #92400e;
-                `;
-            case 'COMPLETED':
-                return `
-                    background-color: ${props.theme.colors.surfaceAlt};
-                    color: ${props.theme.colors.textSecondary};
-                `;
-            case 'REJECTED':
-                return `
-                    background-color: ${props.theme.colors.errorLight};
-                    color: ${props.theme.colors.error};
-                `;
-            case 'ARCHIVED':
-                return `
-                    background-color: #f3f4f6;
-                    color: #6b7280;
-                `;
-            // Statusy rezerwacji
-            case 'CREATED':
-                return `
-                    background-color: #dbeafe;
-                    color: #1e40af;
-                `;
-            case 'ABANDONED':
-                return `
-                    background-color: #fef3c7;
-                    color: #92400e;
-                `;
-            case 'CANCELLED':
-                return `
-                    background-color: ${props.theme.colors.errorLight};
-                    color: ${props.theme.colors.error};
-                `;
-            case 'CONVERTED':
-                return `
-                    background-color: ${props.theme.colors.successLight};
-                    color: ${props.theme.colors.success};
-                `;
-        }
-    }}
+    letter-spacing: 0.1px;
+    white-space: nowrap;
+    line-height: 1;
 `;
 
-const statusLabels: Record<OperationStatus, string> = {
-    // Statusy wizyt
-    IN_PROGRESS: 'W realizacji',
-    READY_FOR_PICKUP: 'Do odbioru',
-    COMPLETED: 'Zakończona',
-    REJECTED: 'Odrzucona',
-    ARCHIVED: 'Zarchiwizowana',
-    // Statusy rezerwacji
-    CREATED: 'Zaplanowano',
-    ABANDONED: 'Porzucono',
-    CANCELLED: 'Anulowano',
-    CONVERTED: 'Rozpoczęto wizytę',
-};
+const Dot = styled.span<{ $color: string }>`
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: ${props => props.$color};
+    flex-shrink: 0;
+`;
 
 interface OperationStatusBadgeProps {
     status: OperationStatus;
 }
 
 export const OperationStatusBadge = ({ status }: OperationStatusBadgeProps) => {
-    return <StyledBadge $status={status}>{statusLabels[status]}</StyledBadge>;
+    const { label, color, bg } = statusConfig[status];
+    return (
+        <Badge $color={color} $bg={bg}>
+            <Dot $color={color} />
+            {label}
+        </Badge>
+    );
 };
+
+export const getStatusAccentColor = (status: OperationStatus): string =>
+    statusConfig[status]?.color ?? '#CBD5E1';
