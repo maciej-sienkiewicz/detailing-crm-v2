@@ -1,98 +1,288 @@
-// src/modules/checkin/views/CheckInWizardViewV2.tsx
+// src/modules/checkin/views/CheckInWizardView.tsx
 
 import { useState } from 'react';
-import styled from 'styled-components';
-import { Stepper } from '@/common/components/Stepper/Stepper';
-import { Button, ButtonGroup } from '@/common/components/Button';
-import { Card } from '@/common/components/Card';
-import { t } from '@/common/i18n';
+import styled, { keyframes } from 'styled-components';
 import { useToast } from '@/common/components/Toast';
 import { useCheckInWizard } from '../hooks/useCheckInWizard';
 import { useCheckInValidation } from '../hooks/useCheckInValidation';
 import { VerificationStep } from '../components/VerificationStep';
 import { PhotoDocumentationStep } from '../components/PhotoDocumentationStep';
 import { SigningRequirementModal } from '../components/SigningRequirementModal';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { t } from '@/common/i18n';
 import type { CheckInFormData, ProtocolResponse } from '../types';
 import type { AppointmentColor } from '@/modules/appointments/types';
 
-const Container = styled.div`
+// ─── Animations ───────────────────────────────────────────────────────────────
+
+const fadeSlide = keyframes`
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+`;
+
+// ─── Layout ───────────────────────────────────────────────────────────────────
+
+const PageWrap = styled.div`
     min-height: 100vh;
-    background-color: ${props => props.theme.colors.background};
-    padding: ${props => props.theme.spacing.lg};
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.xl};
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.lg}) {
-        padding: ${props => props.theme.spacing.xxl};
-    }
-`;
-
-const ContentWrapper = styled.div`
-    max-width: 1400px;
-    margin: 0 auto;
-`;
-
-const Header = styled.div`
-    margin-bottom: ${props => props.theme.spacing.xl};
-`;
-
-const Title = styled.h1`
-    font-size: ${props => props.theme.fontSizes.xxl};
-    font-weight: ${props => props.theme.fontWeights.bold};
-    color: ${props => props.theme.colors.text};
-    margin: 0 0 ${props => props.theme.spacing.xs} 0;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes.xxxl};
-    }
-`;
-
-const Subtitle = styled.p`
-    font-size: ${props => props.theme.fontSizes.md};
-    color: ${props => props.theme.colors.textSecondary};
-    margin: 0;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes.lg};
-    }
-`;
-
-const StepContent = styled.div`
-    margin-bottom: ${props => props.theme.spacing.xl};
-`;
-
-const ActionsCard = styled(Card)`
-    margin-top: ${props => props.theme.spacing.xl};
-    background-color: ${props => props.theme.colors.surface};
-    box-shadow: ${props => props.theme.shadows.lg};
-    border-top: 3px solid ${props => props.theme.colors.primary};
-`;
-
-const ActionsContent = styled.div`
+    background: ${st.bg};
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.md};
+`;
 
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
+const PageHeader = styled.header`
+    background: ${st.bgCard};
+    border-bottom: 1px solid ${st.border};
+    padding: 20px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-shadow: ${st.shadowXs};
+
+    @media (min-width: 768px) {
+        padding: 20px 40px;
+    }
+`;
+
+const HeaderInner = styled.div`
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+`;
+
+const TitleBlock = styled.div``;
+
+const PageTitle = styled.h1`
+    margin: 0;
+    font-size: ${st.fontLg};
+    font-weight: 700;
+    color: ${st.text};
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+`;
+
+const PageSubtitle = styled.p`
+    margin: 3px 0 0;
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
+`;
+
+const StepPills = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+`;
+
+const StepPill = styled.div<{ $state: 'done' | 'active' | 'pending' }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: ${st.radiusFull};
+    font-size: 12px;
+    font-weight: 600;
+    transition: all ${st.transition};
+
+    ${props => {
+        switch (props.$state) {
+            case 'done':
+                return `
+                    background: rgba(5, 150, 105, 0.10);
+                    color: #059669;
+                    border: 1.5px solid rgba(5, 150, 105, 0.30);
+                `;
+            case 'active':
+                return `
+                    background: ${st.accentBlueDim};
+                    color: ${st.accentBlue};
+                    border: 1.5px solid ${st.accentBlue};
+                `;
+            case 'pending':
+            default:
+                return `
+                    background: transparent;
+                    color: ${st.textMuted};
+                    border: 1.5px solid ${st.border};
+                `;
+        }
+    }}
+`;
+
+const StepDot = styled.span<{ $state: 'done' | 'active' | 'pending' }>`
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+`;
+
+const StepArrow = styled.span`
+    font-size: 12px;
+    color: ${st.textMuted};
+    flex-shrink: 0;
+`;
+
+// ─── Scrollable content ───────────────────────────────────────────────────────
+
+const ScrollArea = styled.main`
+    flex: 1;
+    padding: 28px 24px 120px;
+
+    @media (min-width: 768px) {
+        padding: 32px 40px 120px;
+    }
+`;
+
+const ContentWrap = styled.div`
+    max-width: 1100px;
+    margin: 0 auto;
+    animation: ${fadeSlide} 220ms ease both;
+`;
+
+// ─── Sticky footer ────────────────────────────────────────────────────────────
+
+const StickyFooter = styled.footer`
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: ${st.bgCard};
+    border-top: 1px solid ${st.border};
+    box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08);
+    z-index: 50;
+`;
+
+const FooterInner = styled.div`
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    @media (min-width: 768px) {
+        padding: 16px 40px;
         flex-direction: row;
-        justify-content: space-between;
         align-items: center;
+        justify-content: space-between;
     }
 `;
 
-const NavigationButtons = styled(ButtonGroup)`
-    @media (max-width: ${props => props.theme.breakpoints.sm}) {
-        flex-direction: column;
+const ValidationAlert = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    background: rgba(217, 119, 6, 0.08);
+    border: 1px solid rgba(217, 119, 6, 0.30);
+    border-radius: ${st.radiusSm};
+    font-size: 13px;
+    color: #92400E;
+    flex: 1;
+    min-width: 0;
+`;
+
+const ValidationIcon = styled.span`
+    flex-shrink: 0;
+    font-size: 15px;
+    line-height: 1.4;
+`;
+
+const ValidationErrors = styled.ul`
+    margin: 0;
+    padding: 0 0 0 16px;
+    list-style: disc;
+
+    li {
+        line-height: 1.5;
     }
 `;
 
-const DraftButton = styled(Button)`
-    @media (max-width: ${props => props.theme.breakpoints.md}) {
-        width: 100%;
+const ValidationTitle = styled.div`
+    font-weight: 600;
+    margin-bottom: 4px;
+`;
+
+const ErrorAlert = styled.div`
+    padding: 10px 14px;
+    background: rgba(220, 38, 38, 0.08);
+    border: 1px solid rgba(220, 38, 38, 0.30);
+    border-radius: ${st.radiusSm};
+    font-size: 13px;
+    color: #991B1B;
+    flex: 1;
+`;
+
+const FooterActions = styled.div`
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+`;
+
+const BackBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    background: ${st.bgCard};
+    color: ${st.textSecondary};
+    border: 1.5px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    cursor: pointer;
+    transition: all ${st.transition};
+    white-space: nowrap;
+
+    &:hover {
+        border-color: ${st.borderHover};
+        color: ${st.text};
+        background: ${st.bgCardAlt};
+    }
+
+    svg {
+        width: 14px;
+        height: 14px;
     }
 `;
+
+const NextBtn = styled.button<{ $disabled?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 22px;
+    background: ${props => props.$disabled ? '#94A3B8' : st.accentBlue};
+    color: #fff;
+    border: none;
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
+    transition: all ${st.transition};
+    white-space: nowrap;
+    box-shadow: ${props => props.$disabled ? 'none' : '0 1px 4px rgba(37, 99, 235, 0.25)'};
+
+    &:hover:not(:disabled) {
+        background: #1D4ED8;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    }
+
+    &:disabled {
+        cursor: not-allowed;
+    }
+
+    svg {
+        width: 14px;
+        height: 14px;
+    }
+`;
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface CheckInWizardViewProps {
     reservationId: string;
@@ -100,6 +290,8 @@ interface CheckInWizardViewProps {
     colors: AppointmentColor[];
     onComplete: (visitId: string) => void;
 }
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export const CheckInWizardView = ({ reservationId, initialData, colors, onComplete }: CheckInWizardViewProps) => {
     const {
@@ -111,7 +303,6 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
         nextStep,
         previousStep,
         submitCheckIn,
-        saveDraft,
         isSubmitting,
         submitError,
     } = useCheckInWizard(reservationId, initialData);
@@ -119,7 +310,6 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
     const { errors, isStepValid } = useCheckInValidation(formData, currentStep);
     const { showSuccess } = useToast();
 
-    // State for Signing Requirement Modal
     const [signingModalState, setSigningModalState] = useState<{
         isOpen: boolean;
         isCreating: boolean;
@@ -135,28 +325,16 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
     });
 
     const handleNext = () => {
-        if (isStepValid) {
-            nextStep();
-        }
+        if (isStepValid) nextStep();
     };
 
     const handleSubmit = async () => {
         if (!isStepValid) return;
 
-        // Step 1: Open modal immediately with loading state
-        setSigningModalState({
-            isOpen: true,
-            isCreating: true,
-            visitId: null,
-            visitNumber: null,
-            protocols: [],
-        });
+        setSigningModalState({ isOpen: true, isCreating: true, visitId: null, visitNumber: null, protocols: [] });
 
         try {
-            // Step 2: Create the DRAFT visit with protocols in background
             const result = await submitCheckIn();
-
-            // Step 3: Update modal with visit data
             setSigningModalState({
                 isOpen: true,
                 isCreating: false,
@@ -164,204 +342,173 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
                 visitNumber: `VIS-${result.visitId.slice(0, 8)}`,
                 protocols: result.protocols || [],
             });
-        } catch (error) {
-            console.error('Check-in failed:', error);
-            // Close modal on error
-            setSigningModalState({
-                isOpen: false,
-                isCreating: false,
-                visitId: null,
-                visitNumber: null,
-                protocols: [],
-            });
+        } catch {
+            setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [] });
         }
     };
 
     const handleSigningModalConfirm = () => {
-        // Close modal and complete the check-in flow
         if (signingModalState.visitId) {
             const visitNumber = signingModalState.visitNumber || signingModalState.visitId.slice(0, 8);
-
-            // Show success toast
-            showSuccess(
-                `Wizyta ${visitNumber} rozpoczęta pomyślnie!`,
-                'Możesz teraz przejść do obsługi klienta.'
-            );
-
-            setSigningModalState({
-                isOpen: false,
-                isCreating: false,
-                visitId: null,
-                visitNumber: null,
-                protocols: [],
-            });
+            showSuccess(`Wizyta ${visitNumber} rozpoczęta pomyślnie!`, 'Możesz teraz przejść do obsługi klienta.');
+            setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [] });
             onComplete(signingModalState.visitId);
         }
     };
 
     const handleSigningModalCancel = () => {
-        // Visit was cancelled (deleted), reset state
-        setSigningModalState({
-            isOpen: false,
-            isCreating: false,
-            visitId: null,
-            visitNumber: null,
-            protocols: [],
-        });
+        setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [] });
     };
 
     const handleSigningModalClose = () => {
-        // Allow closing without completing (user can handle documents later)
-        setSigningModalState({
-            isOpen: false,
-            isCreating: false,
-            visitId: null,
-            visitNumber: null,
-        });
+        setSigningModalState(s => ({ ...s, isOpen: false }));
     };
 
     const handleServicesChange = (services: CheckInFormData['services']) => {
         updateFormData({ services });
     };
 
-    const renderStepContent = () => {
-        switch (currentStep) {
-            case 'verification':
-                return (
-                    <VerificationStep
-                        formData={formData}
-                        errors={errors}
-                        onChange={updateFormData}
-                        onServicesChange={handleServicesChange}
-                        colors={colors}
-                        initialCustomerData={initialData.customerData}
-                        initialHasFullCustomerData={initialData.hasFullCustomerData}
-                        initialIsNewCustomer={initialData.isNewCustomer}
-                        initialHomeAddress={initialData.homeAddress}
-                        initialCompany={initialData.company}
-                        initialVehicleData={initialData.vehicleData === undefined ? undefined : (initialData.vehicleData ?? null)}
-                        initialIsNewVehicle={initialData.isNewVehicle}
-                    />
-                );
-            case 'photos':
-                return (
-                    <PhotoDocumentationStep
-                        formData={formData}
-                        reservationId={reservationId}
-                        onChange={updateFormData}
-                    />
-                );
-            default:
-                return null;
-        }
-    };
-
     const isFirstStep = currentStep === 'verification';
     const isLastStep = currentStep === 'photos';
     const canProceed = isStepValid;
+    const hasErrors = !canProceed && Object.keys(errors).length > 0;
+
+    const getStepState = (stepId: string): 'done' | 'active' | 'pending' => {
+        if (completedSteps.includes(stepId)) return 'done';
+        if (stepId === currentStep) return 'active';
+        return 'pending';
+    };
 
     return (
         <>
-            <Container>
-                <ContentWrapper>
-                    <Header>
-                        <Title>{t.checkin.title}</Title>
-                    </Header>
+            <PageWrap>
+                {/* ── Sticky header ─────────────────────────────────────── */}
+                <PageHeader>
+                    <HeaderInner>
+                        <TitleBlock>
+                            <PageTitle>{t.checkin.title}</PageTitle>
+                            {formData.customerData.firstName && (
+                                <PageSubtitle>
+                                    {formData.customerData.firstName} {formData.customerData.lastName}
+                                    {formData.vehicleData && ` · ${formData.vehicleData.brand} ${formData.vehicleData.model}`}
+                                </PageSubtitle>
+                            )}
+                        </TitleBlock>
 
-                    <Stepper
-                        steps={steps}
-                        currentStepId={currentStep}
-                        completedSteps={completedSteps}
-                    />
+                        <StepPills>
+                            {steps.map((step, i) => (
+                                <>
+                                    {i > 0 && <StepArrow key={`arrow-${step.id}`}>›</StepArrow>}
+                                    <StepPill key={step.id} $state={getStepState(step.id)}>
+                                        <StepDot $state={getStepState(step.id)} />
+                                        {step.label}
+                                    </StepPill>
+                                </>
+                            ))}
+                        </StepPills>
+                    </HeaderInner>
+                </PageHeader>
 
-                    <StepContent>{renderStepContent()}</StepContent>
+                {/* ── Main content ───────────────────────────────────────── */}
+                <ScrollArea>
+                    <ContentWrap key={currentStep}>
+                        {currentStep === 'verification' && (
+                            <VerificationStep
+                                formData={formData}
+                                errors={errors}
+                                onChange={updateFormData}
+                                onServicesChange={handleServicesChange}
+                                colors={colors}
+                                initialCustomerData={initialData.customerData}
+                                initialHasFullCustomerData={initialData.hasFullCustomerData}
+                                initialIsNewCustomer={initialData.isNewCustomer}
+                                initialHomeAddress={initialData.homeAddress}
+                                initialCompany={initialData.company}
+                                initialVehicleData={initialData.vehicleData === undefined ? undefined : (initialData.vehicleData ?? null)}
+                                initialIsNewVehicle={initialData.isNewVehicle}
+                            />
+                        )}
+                        {currentStep === 'photos' && (
+                            <PhotoDocumentationStep
+                                formData={formData}
+                                reservationId={reservationId}
+                                onChange={updateFormData}
+                            />
+                        )}
+                    </ContentWrap>
+                </ScrollArea>
 
-                    <ActionsCard>
-                        <ActionsContent>
-
-                            <NavigationButtons>
-                                {!isFirstStep && (
-                                    <Button
-                                        $variant="secondary"
-                                        onClick={previousStep}
-                                        disabled={isSubmitting}
-                                    >
-                                        {t.checkin.actions.previousStep}
-                                    </Button>
-                                )}
-
-                                {!isLastStep ? (
-                                    <Button
-                                        $variant="primary"
-                                        onClick={handleNext}
-                                        disabled={!canProceed}
-                                    >
-                                        {t.checkin.actions.nextStep}
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        $variant="primary"
-                                        onClick={handleSubmit}
-                                        disabled={!canProceed || isSubmitting}
-                                    >
-                                        {isSubmitting
-                                            ? t.checkin.summary.creating
-                                            : t.checkin.summary.createVisit}
-                                    </Button>
-                                )}
-                            </NavigationButtons>
-                        </ActionsContent>
-
-                        {!canProceed && Object.keys(errors).length > 0 && (
-                            <div
-                                style={{
-                                    marginTop: '16px',
-                                    padding: '12px',
-                                    backgroundColor: '#fffbeb',
-                                    border: '1px solid #fcd34d',
-                                    borderRadius: '8px',
-                                    fontSize: '14px',
-                                    color: '#92400e',
-                                }}
-                            >
-                                <div style={{ fontWeight: 600, marginBottom: '6px' }}>
-                                    Uzupełnij wymagane pola, aby kontynuować:
+                {/* ── Sticky footer ──────────────────────────────────────── */}
+                <StickyFooter>
+                    <FooterInner>
+                        {/* Validation / submit errors */}
+                        {hasErrors && (
+                            <ValidationAlert>
+                                <ValidationIcon>⚠</ValidationIcon>
+                                <div>
+                                    <ValidationTitle>Uzupełnij wymagane pola:</ValidationTitle>
+                                    <ValidationErrors>
+                                        {Object.values(errors).map((msg, i) => (
+                                            <li key={i}>{msg}</li>
+                                        ))}
+                                    </ValidationErrors>
                                 </div>
-                                <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                                    {Object.values(errors).map((msg, i) => (
-                                        <li key={i}>{msg}</li>
-                                    ))}
-                                </ul>
-                            </div>
+                            </ValidationAlert>
                         )}
 
                         {submitError && (
-                            <div
-                                style={{
-                                    marginTop: '16px',
-                                    padding: '12px',
-                                    backgroundColor: '#fef2f2',
-                                    border: '1px solid #fca5a5',
-                                    borderRadius: '8px',
-                                    fontSize: '14px',
-                                    color: '#dc2626',
-                                }}
-                            >
+                            <ErrorAlert>
                                 {(() => {
                                     const anyErr: any = submitError as any;
                                     const backendMsg = anyErr?.response?.data?.message;
-                                    const msg = typeof backendMsg === 'string' && backendMsg.trim().length > 0
+                                    return (typeof backendMsg === 'string' && backendMsg.trim().length > 0)
                                         ? backendMsg
                                         : (anyErr?.message ?? t.checkin.errors.createFailed);
-                                    return msg;
                                 })()}
-                            </div>
+                            </ErrorAlert>
                         )}
-                    </ActionsCard>
-                </ContentWrapper>
-            </Container>
 
-            {/* Signing Requirement Modal */}
+                        {/* Navigation */}
+                        <FooterActions>
+                            {!isFirstStep && (
+                                <BackBtn onClick={previousStep} disabled={isSubmitting}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <polyline points="15 18 9 12 15 6" />
+                                    </svg>
+                                    {t.checkin.actions.previousStep}
+                                </BackBtn>
+                            )}
+
+                            {!isLastStep ? (
+                                <NextBtn onClick={handleNext} disabled={!canProceed} $disabled={!canProceed}>
+                                    {t.checkin.actions.nextStep}
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <polyline points="9 18 15 12 9 6" />
+                                    </svg>
+                                </NextBtn>
+                            ) : (
+                                <NextBtn
+                                    onClick={handleSubmit}
+                                    disabled={!canProceed || isSubmitting}
+                                    $disabled={!canProceed || isSubmitting}
+                                >
+                                    {isSubmitting ? (
+                                        <>{t.checkin.summary.creating}…</>
+                                    ) : (
+                                        <>{t.checkin.summary.createVisit}</>
+                                    )}
+                                    {!isSubmitting && (
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                            <polyline points="9 18 15 12 9 6" />
+                                        </svg>
+                                    )}
+                                </NextBtn>
+                            )}
+                        </FooterActions>
+                    </FooterInner>
+                </StickyFooter>
+            </PageWrap>
+
             {signingModalState.isOpen && (
                 <SigningRequirementModal
                     isOpen={signingModalState.isOpen}

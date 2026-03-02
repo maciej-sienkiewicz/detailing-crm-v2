@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { Card, CardHeader, CardTitle } from '@/common/components/Card';
 import { FormGrid, FieldGroup, Label, Input, TextArea, ErrorMessage } from '@/common/components/Form';
-import { Divider } from '@/common/components/Divider';
 import { Button } from '@/common/components/Button';
 import { Toggle } from '@/common/components/Toggle';
 import { EditableServicesTable } from './EditableServicesTable';
@@ -18,200 +16,218 @@ import { Modal } from '@/common/components/Modal';
 import { PhoneInput } from '@/common/components/PhoneInput';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { customerDetailApi } from '@/modules/customers/api/customerDetailApi';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
+
+// ─── Section Card ─────────────────────────────────────────────────────────────
 
 const StepContainer = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        gap: ${props => props.theme.spacing.xl};
-    }
+    gap: 16px;
 `;
 
-const SectionTitle = styled.h3`
-    font-size: ${props => props.theme.fontSizes.lg};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    color: ${props => props.theme.colors.text};
-    margin-bottom: ${props => props.theme.spacing.md};
-    display: flex;
-    align-items: center;
-    gap: ${props => props.theme.spacing.sm};
-
-    svg {
-        width: 24px;
-        height: 24px;
-        color: ${props => props.theme.colors.primary};
-    }
+const SectionCard = styled.div`
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowSm};
+    overflow: hidden;
 `;
 
-const SectionHeader = styled.div`
+const SectionHead = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: ${props => props.theme.spacing.md};
-    gap: ${props => props.theme.spacing.md};
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid ${st.border};
+    background: ${st.bg};
+    flex-wrap: wrap;
 `;
 
-const SectionTitleWithActions = styled(SectionTitle)`
-    margin-bottom: 0;
+const SectionTitleRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
     flex: 1;
 `;
 
-const SubtleButtonGroup = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.sm};
-    align-items: center;
-`;
-
-const Badge = styled.span`
+const SectionNum = styled.span`
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 2px 8px;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.text};
-    background-color: ${props => props.theme.colors.surfaceAlt};
-    border: 1px solid ${props => props.theme.colors.border};
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: ${st.accentBlue};
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
 `;
 
-const SubtleButton = styled.button`
-    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.primary};
-    background: transparent;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
+const SectionLabel = styled.h3`
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: ${st.text};
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+
+    svg {
+        width: 17px;
+        height: 17px;
+        color: ${st.accentBlue};
+        flex-shrink: 0;
+    }
+`;
+
+const StatusPill = styled.span`
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 9px;
+    background: ${st.accentBlueDim};
+    color: ${st.accentBlue};
+    border-radius: ${st.radiusFull};
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+`;
+
+const SectionActions = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+`;
+
+const ActionBtn = styled.button<{ $primary?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 13px;
+    border: 1.5px solid ${props => props.$primary ? st.accentBlue : st.border};
+    border-radius: ${st.radiusSm};
+    background: ${props => props.$primary ? st.accentBlueDim : st.bgCard};
+    color: ${props => props.$primary ? st.accentBlue : st.textSecondary};
+    font-size: 12px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
+    transition: all ${st.transition};
     white-space: nowrap;
 
-    &:hover {
-        background: ${props => props.theme.colors.surfaceHover};
-        border-color: ${props => props.theme.colors.primary};
-    }
-
-    &:active {
-        transform: scale(0.98);
+    &:hover:not(:disabled) {
+        border-color: ${st.accentBlue};
+        color: ${st.accentBlue};
+        background: ${st.accentBlueDim};
     }
 
     &:disabled {
-        color: ${props => props.theme.colors.textMuted};
-        background: ${props => props.theme.colors.surfaceAlt};
-        border-color: ${props => props.theme.colors.border};
+        opacity: 0.38;
         cursor: not-allowed;
-        opacity: 0.7;
-        pointer-events: none;
     }
 `;
 
-const ReadOnlyField = styled.div`
-    padding: ${props => props.theme.spacing.md};
-    background-color: ${props => props.theme.colors.surfaceAlt};
-    border-radius: ${props => props.theme.radii.md};
-    border: 1px solid ${props => props.theme.colors.border};
+const SectionBody = styled.div`
+    padding: 20px;
 `;
 
-const ReadOnlyLabel = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: ${props => props.theme.spacing.xs};
+// ─── Collapsible panel ────────────────────────────────────────────────────────
+
+const CollapsibleWrap = styled.div`
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    margin-top: 12px;
+    overflow: hidden;
+    background: ${st.bgCard};
 `;
 
-const ReadOnlyValue = styled.div`
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.text};
-`;
-
-const CustomerSelectButton = styled(Button)`
+const CollapsibleBtn = styled.button<{ $open: boolean }>`
     width: 100%;
-    justify-content: center;
-    padding: ${props => props.theme.spacing.lg};
-    font-size: ${props => props.theme.fontSizes.md};
-`;
-
-const CheckboxWrapper = styled.label`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
+    justify-content: space-between;
+    padding: 11px 16px;
+    background: ${props => props.$open ? st.bgCardAlt : 'transparent'};
+    border: none;
     cursor: pointer;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
-    margin: ${props => props.theme.spacing.md} 0;
+    transition: background ${st.transition};
+    font-size: 13px;
+    font-weight: 600;
+    color: ${st.text};
+    gap: 10px;
+
+    &:hover {
+        background: ${st.bgCardAlt};
+    }
+`;
+
+const CollapsibleBtnLeft = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    svg {
+        width: 16px;
+        height: 16px;
+        color: ${st.textMuted};
+        flex-shrink: 0;
+    }
+`;
+
+const ChevronSvg = styled.svg<{ $open: boolean }>`
+    width: 16px;
+    height: 16px;
+    color: ${st.textMuted};
+    transition: transform ${st.transition};
+    transform: ${props => props.$open ? 'rotate(180deg)' : 'rotate(0)'};
+    flex-shrink: 0;
+`;
+
+const CollapsibleContent = styled.div<{ $open: boolean }>`
+    max-height: ${props => props.$open ? '2000px' : '0'};
+    overflow: hidden;
+    transition: max-height 250ms ease;
+    padding: ${props => props.$open ? '16px' : '0 16px'};
+    border-top: ${props => props.$open ? `1px solid ${st.border}` : 'none'};
+`;
+
+const FilledBadge = styled.span`
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 8px;
+    background: rgba(5, 150, 105, 0.10);
+    color: #059669;
+    border-radius: ${st.radiusFull};
+    font-size: 11px;
+    font-weight: 600;
+`;
+
+// ─── Checkbox / handoff ───────────────────────────────────────────────────────
+
+const CheckRow = styled.label`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    color: ${st.textSecondary};
+    margin: 12px 0 6px;
     user-select: none;
 
     input[type="checkbox"] {
         width: 16px;
         height: 16px;
         cursor: pointer;
+        accent-color: ${st.accentBlue};
     }
 `;
 
-// Collapsible Panel Components
-const CollapsiblePanel = styled.div`
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    margin: ${props => props.theme.spacing.md} 0;
-    overflow: hidden;
-    background: ${props => props.theme.colors.surface};
-`;
+// ─── Color dropdown ───────────────────────────────────────────────────────────
 
-const CollapsibleHeader = styled.button<{ $isOpen: boolean }>`
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: ${props => props.theme.spacing.md};
-    background: ${props => props.$isOpen ? props.theme.colors.surfaceAlt : 'transparent'};
-    border: none;
-    cursor: pointer;
-    transition: background ${props => props.theme.transitions.fast};
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.text};
-
-    &:hover {
-        background: ${props => props.theme.colors.surfaceHover};
-    }
-
-    svg {
-        width: 20px;
-        height: 20px;
-        color: ${props => props.theme.colors.primary};
-        flex-shrink: 0;
-    }
-`;
-
-const CollapsibleHeaderContent = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${props => props.theme.spacing.sm};
-`;
-
-const ChevronIcon = styled.svg<{ $isOpen: boolean }>`
-    width: 20px;
-    height: 20px;
-    color: ${props => props.theme.colors.textMuted};
-    transition: transform ${props => props.theme.transitions.fast};
-    transform: ${props => props.$isOpen ? 'rotate(180deg)' : 'rotate(0deg)'};
-    flex-shrink: 0;
-`;
-
-const CollapsibleContent = styled.div<{ $isOpen: boolean }>`
-    max-height: ${props => props.$isOpen ? '2000px' : '0'};
-    overflow: hidden;
-    transition: max-height ${props => props.theme.transitions.normal};
-    padding: ${props => props.$isOpen ? props.theme.spacing.md : '0'} ${props => props.theme.spacing.md};
-`;
-
-// New Google Calendar-like dropdown for appointment color
 const ColorDropdownContainer = styled.div`
     position: relative;
 `;
@@ -220,23 +236,27 @@ const ColorTrigger = styled.button`
     width: 100%;
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
-    padding: ${props => props.theme.spacing.md};
-    border: 2px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    background: ${props => props.theme.colors.surface};
+    gap: 8px;
+    padding: 9px 12px;
+    border: 1.5px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    background: ${st.bgCardAlt};
     cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
-    font-weight: ${props => props.theme.fontWeights.medium};
+    transition: all ${st.transition};
+    font-size: 13px;
+    font-weight: 500;
+    color: ${st.text};
 
     &:hover {
-        background: ${props => props.theme.colors.surfaceHover};
+        border-color: ${st.borderHover};
+        background: ${st.bgCard};
     }
 
     &:focus {
         outline: none;
-        border-color: ${props => props.theme.colors.primary};
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        border-color: ${st.accentBlue};
+        box-shadow: ${st.shadowBlue};
+        background: ${st.bgCard};
     }
 `;
 
@@ -245,13 +265,13 @@ const ColorSwatch = styled.span<{ $color: string }>`
     height: 16px;
     border-radius: 4px;
     background-color: ${props => props.$color};
-    border: 1px solid rgba(0,0,0,0.1);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2);
+    border: 1px solid rgba(0, 0, 0, 0.10);
+    flex-shrink: 0;
 `;
 
-const Caret = styled.span`
+const ColorCaret = styled.span`
     margin-left: auto;
-    border: solid ${props => props.theme.colors.textMuted};
+    border: solid ${st.textMuted};
     border-width: 0 2px 2px 0;
     display: inline-block;
     padding: 3px;
@@ -260,16 +280,16 @@ const Caret = styled.span`
 
 const ColorMenu = styled.div`
     position: absolute;
-    top: calc(100% + 6px);
+    top: calc(100% + 4px);
     left: 0;
     right: 0;
-    background: ${props => props.theme.colors.surface};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    box-shadow: ${props => props.theme.shadows.lg};
-    padding: ${props => props.theme.spacing.xs} 0;
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    box-shadow: ${st.shadowLg};
+    padding: 4px 0;
     z-index: 2001;
-    max-height: 320px;
+    max-height: 300px;
     overflow: auto;
 `;
 
@@ -277,21 +297,19 @@ const ColorMenuItem = styled.button<{ $selected?: boolean }>`
     width: 100%;
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.md};
-    padding: 10px 14px;
-    background: transparent;
+    gap: 10px;
+    padding: 9px 14px;
+    background: ${props => props.$selected ? st.bgCardAlt : 'transparent'};
     border: none;
     text-align: left;
     cursor: pointer;
-    font-size: ${props => props.theme.fontSizes.md};
-
-    ${props => props.$selected ? `
-        background: ${props.theme.colors.surfaceAlt};
-        font-weight: ${props.theme.fontWeights.semibold};
-    ` : ''}
+    font-size: 13px;
+    font-weight: ${props => props.$selected ? 600 : 400};
+    color: ${st.text};
+    transition: background ${st.transition};
 
     &:hover {
-        background: ${props => props.theme.colors.surfaceHover};
+        background: ${st.bgCardAlt};
     }
 `;
 
@@ -327,7 +345,7 @@ const ColorDropdown = ({ colors, value, onChange }: ColorDropdownProps) => {
             <ColorTrigger type="button" onClick={() => setOpen(o => !o)} aria-haspopup="listbox" aria-expanded={open}>
                 <ColorSwatch $color={selected?.hexColor || '#cccccc'} />
                 <span>{selected?.name || 'Wybierz kolor'}</span>
-                <Caret />
+                <ColorCaret />
             </ColorTrigger>
             {open && (
                 <ColorMenu role="listbox">
@@ -349,6 +367,8 @@ const ColorDropdown = ({ colors, value, onChange }: ColorDropdownProps) => {
     );
 };
 
+// ─── Props ────────────────────────────────────────────────────────────────────
+
 interface VerificationStepProps {
     formData: CheckInFormData;
     errors: Record<string, string>;
@@ -359,7 +379,6 @@ interface VerificationStepProps {
     hideVehicleColorAndPaint?: boolean;
     hideLicensePlate?: boolean;
     hideVehicleHandoff?: boolean;
-    // Initial snapshots for Reset functionality
     initialCustomerData?: CheckInFormData['customerData'];
     initialHasFullCustomerData?: boolean;
     initialIsNewCustomer?: boolean;
@@ -369,23 +388,39 @@ interface VerificationStepProps {
     initialIsNewVehicle?: boolean;
 }
 
-export const VerificationStep    = ({ formData, errors, onChange, onServicesChange, colors, showTechnicalSection = true, hideVehicleColorAndPaint = false, hideLicensePlate = false, hideVehicleHandoff = false, initialCustomerData, initialHasFullCustomerData, initialIsNewCustomer, initialHomeAddress, initialCompany, initialVehicleData, initialIsNewVehicle }: VerificationStepProps) => {
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export const VerificationStep = ({
+    formData,
+    errors,
+    onChange,
+    onServicesChange,
+    colors,
+    showTechnicalSection = true,
+    hideVehicleColorAndPaint = false,
+    hideLicensePlate = false,
+    hideVehicleHandoff = false,
+    initialCustomerData,
+    initialHasFullCustomerData,
+    initialIsNewCustomer,
+    initialHomeAddress,
+    initialCompany,
+    initialVehicleData,
+    initialIsNewVehicle,
+}: VerificationStepProps) => {
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isCustomerDetailsModalOpen, setIsCustomerDetailsModalOpen] = useState(false);
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
     const [isVehicleDetailsModalOpen, setIsVehicleDetailsModalOpen] = useState(false);
 
-    // Collapsible panels state
     const [isHomeAddressOpen, setIsHomeAddressOpen] = useState(false);
     const [isCompanyOpen, setIsCompanyOpen] = useState(false);
 
-    // Debug log
     useEffect(() => {
         console.log('[DEBUG VerificationStep] formData.homeAddress changed:', formData.homeAddress);
         console.log('[DEBUG VerificationStep] formData.company changed:', formData.company);
     }, [formData.homeAddress, formData.company]);
 
-    // New inline choice modals state
     const [showCustomerChoice, setShowCustomerChoice] = useState(false);
     const [customerChoiceMade, setCustomerChoiceMade] = useState(false);
     const [pendingCustomerUpdates, setPendingCustomerUpdates] = useState<Partial<CheckInFormData['customerData']> | null>(null);
@@ -396,16 +431,12 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     const [pendingVehicleUpdates, setPendingVehicleUpdates] = useState<Partial<NonNullable<CheckInFormData['vehicleData']>> | null>(null);
     const [vehiclePromptScheduled, setVehiclePromptScheduled] = useState(false);
 
-    // Auto-set vehicleChoiceMade when vehicle is loaded from appointment
     useEffect(() => {
-        // If vehicle has ID and is not new, it was loaded from appointment
-        // Mark as "chosen" to prevent unnecessary modals when filling empty fields
         if (formData.vehicleData?.id && !formData.isNewVehicle && !vehicleChoiceMade) {
             setVehicleChoiceMade(true);
         }
     }, [formData.vehicleData?.id, formData.isNewVehicle, vehicleChoiceMade]);
 
-    // Derived badges labels
     const customerBadge = formData.isNewCustomer
         ? 'Dodasz nowego klienta'
         : (formData.customerData.id ? 'Aktualizujesz dane istniejącego klienta' : undefined);
@@ -429,7 +460,6 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
         formData.company.address.postalCode
     );
 
-    // Compute whether there are changes to enable/disable Reset buttons
     const canResetCustomer = !(initialCustomerData === undefined && initialHasFullCustomerData === undefined && initialIsNewCustomer === undefined && initialHomeAddress === undefined && initialCompany === undefined);
     const customerDataEqual = initialCustomerData === undefined ? true : (
         initialCustomerData.id === formData.customerData.id &&
@@ -441,7 +471,6 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     const customerHasFullEqual = initialHasFullCustomerData === undefined ? true : (initialHasFullCustomerData === formData.hasFullCustomerData);
     const customerIsNewEqual = initialIsNewCustomer === undefined ? true : (initialIsNewCustomer === formData.isNewCustomer);
 
-    // Compare homeAddress
     const homeAddressEqual = initialHomeAddress === undefined ? true : (
         (initialHomeAddress === null && formData.homeAddress === null) ||
         (initialHomeAddress !== null && formData.homeAddress !== null &&
@@ -452,7 +481,6 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
         )
     );
 
-    // Compare company
     const companyEqual = initialCompany === undefined ? true : (
         (initialCompany === null && formData.company === null) ||
         (initialCompany !== null && formData.company !== null &&
@@ -484,7 +512,6 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     const vehicleIsNewEqual = initialIsNewVehicle === undefined ? true : (initialIsNewVehicle === formData.isNewVehicle);
     const hasVehicleChanges = canResetVehicle && !(vehicleDataEqual && vehicleIsNewEqual);
 
-    // Reset handlers
     const handleResetCustomer = () => {
         if (!initialCustomerData && initialCustomerData !== null && initialHasFullCustomerData === undefined && initialIsNewCustomer === undefined) return;
         onChange({
@@ -522,13 +549,11 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     };
 
     const handleCustomerFieldBlur = () => {
-        // Show modal only when leaving the field, not on first input
         if (!customerChoiceMade && formData.customerData.id && customerPromptScheduled && pendingCustomerUpdates) {
             setShowCustomerChoice(true);
             setCustomerPromptScheduled(false);
             return;
         }
-        // If no existing id (new customer) or choice already made, just apply queued updates
         if (pendingCustomerUpdates) {
             applyCustomerUpdates(pendingCustomerUpdates);
             setPendingCustomerUpdates(null);
@@ -537,28 +562,22 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     };
 
     const handleCustomerFieldChange = (updates: Partial<CheckInFormData['customerData']>) => {
-        // If user edits while an existing customer is selected
         if (!customerChoiceMade && formData.customerData.id) {
-            // Check if any of the updated fields had a non-empty value before
             const hasExistingValue = Object.keys(updates).some(key => {
                 const fieldKey = key as keyof CheckInFormData['customerData'];
                 const currentValue = formData.customerData[fieldKey];
                 return currentValue && String(currentValue).trim().length > 0;
             });
-
-            // Only schedule the prompt if we're changing an existing value
             if (hasExistingValue) {
                 setPendingCustomerUpdates(prev => ({ ...(prev || {}), ...updates }));
                 setCustomerPromptScheduled(true);
                 return;
             }
         }
-        // Otherwise, apply immediately (new customer, decision already made, or filling empty field)
         applyCustomerUpdates(updates);
     };
 
     const confirmCustomerEditExisting = () => {
-        // Keep existing id, mark as not new and ensure full data mode for inline editing
         onChange({ isNewCustomer: false, hasFullCustomerData: true });
         setCustomerChoiceMade(true);
         setShowCustomerChoice(false);
@@ -570,7 +589,6 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     };
 
     const confirmCustomerAddNew = () => {
-        // Clear id and mark as new; switch to full data mode so validation expects inline fields, not selected id
         onChange({
             isNewCustomer: true,
             hasFullCustomerData: true,
@@ -586,36 +604,22 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
 
     const applyVehicleUpdates = (updates: Partial<NonNullable<CheckInFormData['vehicleData']>>) => {
         if (!formData.vehicleData) {
-            // No existing vehicle — user is adding a brand new one
             onChange({
                 isNewVehicle: true,
-                vehicleData: {
-                    id: '',
-                    brand: '',
-                    model: '',
-                    ...updates,
-                },
+                vehicleData: { id: '', brand: '', model: '', ...updates },
             });
         } else {
-            onChange({
-                vehicleData: {
-                    ...formData.vehicleData,
-                    ...updates,
-                },
-            });
+            onChange({ vehicleData: { ...formData.vehicleData, ...updates } });
         }
     };
 
     const handleVehicleFieldChange = (updates: Partial<NonNullable<CheckInFormData['vehicleData']>>) => {
         if (!vehicleChoiceMade && formData.vehicleData?.id) {
-            // Check if any of the updated fields had a non-empty value before
             const hasExistingValue = Object.keys(updates).some(key => {
                 const fieldKey = key as keyof NonNullable<CheckInFormData['vehicleData']>;
                 const currentValue = formData.vehicleData?.[fieldKey];
                 return currentValue && String(currentValue).trim().length > 0;
             });
-
-            // Only schedule the prompt if we're changing an existing value
             if (hasExistingValue) {
                 setPendingVehicleUpdates(prev => ({ ...(prev || {}), ...updates }));
                 setVehiclePromptScheduled(true);
@@ -649,13 +653,8 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     };
 
     const confirmVehicleAddNew = () => {
-        const current = formData.vehicleData || {
-            id: '', brand: '', model: ''
-        };
-        onChange({
-            isNewVehicle: true,
-            vehicleData: { ...current, id: '' },
-        });
+        const current = formData.vehicleData || { id: '', brand: '', model: '' };
+        onChange({ isNewVehicle: true, vehicleData: { ...current, id: '' } });
         setVehicleChoiceMade(true);
         setShowVehicleChoice(false);
         if (pendingVehicleUpdates) {
@@ -665,20 +664,12 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
     };
 
     const handleCustomerDetailsSave = (data: {
-        customerData: {
-            firstName: string;
-            lastName: string;
-            email: string;
-            phone: string;
-        };
+        customerData: { firstName: string; lastName: string; email: string; phone: string };
         homeAddress: CheckInFormData['homeAddress'];
         company: CheckInFormData['company'];
     }) => {
         onChange({
-            customerData: {
-                ...formData.customerData,
-                ...data.customerData,
-            },
+            customerData: { ...formData.customerData, ...data.customerData },
             homeAddress: data.homeAddress,
             company: data.company,
         });
@@ -687,8 +678,6 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
 
     const handleCustomerSelect = async (customer: SelectedCustomer) => {
         console.log('[DEBUG VerificationStep] handleCustomerSelect called with:', customer);
-
-        // Ustawienie pełnych danych klienta
         const baseCustomerData = {
             customerData: {
                 id: customer.id || '',
@@ -700,16 +689,9 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
             hasFullCustomerData: true,
             isNewCustomer: customer.isNew || false,
         };
-
-        // Jeśli to istniejący klient, pobierz pełne dane z API (homeAddress i company)
         if (!customer.isNew && customer.id) {
             try {
-                console.log('[DEBUG VerificationStep] Fetching customer details for ID:', customer.id);
                 const customerDetail = await customerDetailApi.getCustomerDetail(customer.id);
-                console.log('[DEBUG VerificationStep] Customer detail response:', customerDetail);
-                console.log('[DEBUG VerificationStep] homeAddress from API:', customerDetail.customer.homeAddress);
-                console.log('[DEBUG VerificationStep] company from API:', customerDetail.customer.company);
-
                 const updateData = {
                     ...baseCustomerData,
                     homeAddress: customerDetail.customer.homeAddress || null,
@@ -725,20 +707,14 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                         },
                     } : null,
                 };
-
-                console.log('[DEBUG VerificationStep] Calling onChange with updateData:', updateData);
                 onChange(updateData);
             } catch (error) {
                 console.error('Failed to fetch customer details:', error);
-                // Fallback - ustaw tylko podstawowe dane
                 onChange(baseCustomerData);
             }
         } else {
-            // Nowy klient - ustaw tylko podstawowe dane
-            console.log('[DEBUG VerificationStep] New customer, setting base data only');
             onChange(baseCustomerData);
         }
-
         setCustomerChoiceMade(true);
         setIsCustomerModalOpen(false);
     };
@@ -762,12 +738,8 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
 
     const handleVehicleDetailsSave = (data: {
         vehicleData: {
-            brand: string;
-            model: string;
-            yearOfProduction?: number;
-            licensePlate: string;
-            color?: string;
-            paintType?: string;
+            brand: string; model: string; yearOfProduction?: number;
+            licensePlate: string; color?: string; paintType?: string;
         };
     }) => {
         onChange({
@@ -785,748 +757,521 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
         setIsVehicleDetailsModalOpen(false);
     };
 
+    // ─── Render ───────────────────────────────────────────────────────────────
+
     return (
         <StepContainer>
-            <Card>
-                <CardHeader>
-                    <CardTitle>{t.checkin.verification.title}</CardTitle>
-                </CardHeader>
 
-                {/* Sekcja: Kalendarz (data rozpoczęcia, data zakończenia, kolor) */}
-                <SectionTitle>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    Kalendarz
-                </SectionTitle>
-                <FormGrid $columns={3}>
-                    <FieldGroup>
-                        <Label>Data rozpoczęcia</Label>
-                        <Input
-                            type="datetime-local"
-                            value={formData.visitStartAt ? formData.visitStartAt : ''}
-                            onChange={(e) => {
-                                const start = e.target.value;
-                                let updates: Partial<CheckInFormData> = { visitStartAt: start };
-                                if (!formData.visitEndAt) {
-                                    const d = new Date(start);
-                                    if (!isNaN(d.getTime())) {
-                                        d.setHours(d.getHours() + 1);
-                                        updates.visitEndAt = fromDateToLocalInput(d);
+            {/* ── 1. Termin wizyty ─────────────────────────────────────── */}
+            <SectionCard>
+                <SectionHead>
+                    <SectionTitleRow>
+                        <SectionNum>1</SectionNum>
+                        <SectionLabel>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            Termin wizyty
+                        </SectionLabel>
+                    </SectionTitleRow>
+                </SectionHead>
+                <SectionBody>
+                    <FormGrid $columns={3}>
+                        <FieldGroup>
+                            <Label>Data rozpoczęcia</Label>
+                            <Input
+                                type="datetime-local"
+                                value={formData.visitStartAt ? formData.visitStartAt : ''}
+                                onChange={(e) => {
+                                    const start = e.target.value;
+                                    let updates: Partial<CheckInFormData> = { visitStartAt: start };
+                                    if (!formData.visitEndAt) {
+                                        const d = new Date(start);
+                                        if (!isNaN(d.getTime())) {
+                                            d.setHours(d.getHours() + 1);
+                                            updates.visitEndAt = fromDateToLocalInput(d);
+                                        }
+                                    } else {
+                                        const s = new Date(start);
+                                        const eDate = new Date(formData.visitEndAt);
+                                        if (!isNaN(s.getTime()) && !isNaN(eDate.getTime()) && eDate < s) {
+                                            const d2 = new Date(s.getTime());
+                                            d2.setHours(d2.getHours() + 1);
+                                            updates.visitEndAt = fromDateToLocalInput(d2);
+                                        }
                                     }
-                                } else {
-                                    const s = new Date(start);
-                                    const eDate = new Date(formData.visitEndAt);
-                                    if (!isNaN(s.getTime()) && !isNaN(eDate.getTime()) && eDate < s) {
-                                        const d2 = new Date(s.getTime());
-                                        d2.setHours(d2.getHours() + 1);
-                                        updates.visitEndAt = fromDateToLocalInput(d2);
+                                    onChange(updates);
+                                }}
+                            />
+                        </FieldGroup>
+                        <FieldGroup>
+                            <Label>Data zakończenia</Label>
+                            <Input
+                                type="datetime-local"
+                                value={formData.visitEndAt ? formData.visitEndAt : ''}
+                                onChange={(e) => {
+                                    const newEnd = e.target.value;
+                                    let nextEnd = newEnd;
+                                    if (formData.visitStartAt) {
+                                        const s = new Date(formData.visitStartAt);
+                                        const eDate = new Date(newEnd);
+                                        if (!isNaN(s.getTime()) && !isNaN(eDate.getTime()) && eDate < s) {
+                                            const d = new Date(s.getTime());
+                                            d.setHours(d.getHours() + 1);
+                                            nextEnd = fromDateToLocalInput(d);
+                                        }
                                     }
-                                }
-                                onChange(updates);
-                            }}
-                        />
-                    </FieldGroup>
-                    <FieldGroup>
-                        <Label>Data zakończenia</Label>
-                        <Input
-                            type="datetime-local"
-                            value={formData.visitEndAt ? formData.visitEndAt : ''}
-                            onChange={(e) => {
-                                const newEnd = e.target.value;
-                                let nextEnd = newEnd;
-                                if (formData.visitStartAt) {
-                                    const s = new Date(formData.visitStartAt);
-                                    const eDate = new Date(newEnd);
-                                    if (!isNaN(s.getTime()) && !isNaN(eDate.getTime()) && eDate < s) {
-                                        const d = new Date(s.getTime());
-                                        d.setHours(d.getHours() + 1);
-                                        nextEnd = fromDateToLocalInput(d);
-                                    }
-                                }
-                                onChange({ visitEndAt: nextEnd });
-                            }}
-                        />
-                    </FieldGroup>
-                    <FieldGroup>
-                        <Label>Kolor w kalendarzu</Label>
-                        <ColorDropdown
-                            colors={colors}
-                            value={formData.appointmentColorId}
-                            onChange={(val) => onChange({ appointmentColorId: val })}
-                        />
-                    </FieldGroup>
-                </FormGrid>
+                                    onChange({ visitEndAt: nextEnd });
+                                }}
+                            />
+                        </FieldGroup>
+                        <FieldGroup>
+                            <Label>Kolor w kalendarzu</Label>
+                            <ColorDropdown
+                                colors={colors}
+                                value={formData.appointmentColorId}
+                                onChange={(val) => onChange({ appointmentColorId: val })}
+                            />
+                        </FieldGroup>
+                    </FormGrid>
+                </SectionBody>
+            </SectionCard>
 
-                <Divider />
-
-                <SectionHeader>
-                    <SectionTitleWithActions>
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        {t.checkin.verification.customerSection}
-                        {customerChoiceMade && customerBadge && <Badge>{customerBadge}</Badge>}
-                    </SectionTitleWithActions>
-                    <SubtleButtonGroup>
-                        <SubtleButton onClick={handleResetCustomer} disabled={!hasCustomerChanges}>
+            {/* ── 2. Dane klienta ───────────────────────────────────────── */}
+            <SectionCard>
+                <SectionHead>
+                    <SectionTitleRow>
+                        <SectionNum>2</SectionNum>
+                        <SectionLabel>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            {t.checkin.verification.customerSection}
+                            {customerChoiceMade && customerBadge && (
+                                <StatusPill>{customerBadge}</StatusPill>
+                            )}
+                        </SectionLabel>
+                    </SectionTitleRow>
+                    <SectionActions>
+                        <ActionBtn onClick={handleResetCustomer} disabled={!hasCustomerChanges}>
                             Wycofaj zmiany
-                        </SubtleButton>
-                        <SubtleButton onClick={() => setIsCustomerModalOpen(true)}>
-                            Wyszukaj / zmień klienta
-                        </SubtleButton>
-                    </SubtleButtonGroup>
-                </SectionHeader>
+                        </ActionBtn>
+                        <ActionBtn $primary onClick={() => setIsCustomerModalOpen(true)}>
+                            Wyszukaj klienta
+                        </ActionBtn>
+                    </SectionActions>
+                </SectionHead>
+                <SectionBody>
+                    {errors.customer && <ErrorMessage>{errors.customer}</ErrorMessage>}
 
-                {errors.customer && (
-                    <ErrorMessage>{errors.customer}</ErrorMessage>
-                )}
-
-                <FormGrid>
-                    <FieldGroup>
-                        <Label>{t.checkin.verification.firstName}</Label>
-                        <Input
-                            value={(pendingCustomerUpdates?.firstName ?? formData.customerData.firstName) || ''}
-                            onChange={(e) => handleCustomerFieldChange({ firstName: e.target.value })}
-                            onBlur={handleCustomerFieldBlur}
-                        />
-                        {errors.firstName && (
-                            <ErrorMessage>{errors.firstName}</ErrorMessage>
-                        )}
-                    </FieldGroup>
-
-                    <FieldGroup>
-                        <Label>{t.checkin.verification.lastName}</Label>
-                        <Input
-                            value={(pendingCustomerUpdates?.lastName ?? formData.customerData.lastName) || ''}
-                            onChange={(e) => handleCustomerFieldChange({ lastName: e.target.value })}
-                            onBlur={handleCustomerFieldBlur}
-                        />
-                        {errors.lastName && (
-                            <ErrorMessage>{errors.lastName}</ErrorMessage>
-                        )}
-                    </FieldGroup>
-
-                    <FieldGroup>
-                        <Label>{t.checkin.verification.phone}</Label>
-                        <PhoneInput
-                            value={(pendingCustomerUpdates?.phone ?? formData.customerData.phone) || ''}
-                            onChange={(value) => {
-                                const getCountryCode = (v?: string) => {
-                                    if (!v) return '';
-                                    const m = v.match(/^\+\d+/);
-                                    return m ? m[0] : '';
-                                };
-                                const prevPhone = (pendingCustomerUpdates?.phone ?? formData.customerData.phone) || '';
-                                const prevCode = getCountryCode(prevPhone);
-                                const newCode = getCountryCode(value || '');
-                                // Only show modal if there was a previous phone and the country code changed
-                                if (!customerChoiceMade && formData.customerData.id && prevPhone.trim().length > 0 && newCode && newCode !== prevCode) {
-                                    setPendingCustomerUpdates(prev => ({ ...(prev || {}), phone: value || '' }));
-                                    setShowCustomerChoice(true);
-                                    setCustomerPromptScheduled(false);
-                                    return;
-                                }
-                                handleCustomerFieldChange({ phone: value });
-                            }}
-                            onBlur={handleCustomerFieldBlur}
-                        />
-                        {errors.phone && (
-                            <ErrorMessage>{errors.phone}</ErrorMessage>
-                        )}
-                    </FieldGroup>
-
-                    <FieldGroup>
-                        <Label>{t.checkin.verification.email}</Label>
-                        <Input
-                            type="email"
-                            value={(pendingCustomerUpdates?.email ?? formData.customerData.email) || ''}
-                            onChange={(e) => handleCustomerFieldChange({ email: e.target.value })}
-                            onBlur={handleCustomerFieldBlur}
-                        />
-                        {errors.email && (
-                            <ErrorMessage>{errors.email}</ErrorMessage>
-                        )}
-                    </FieldGroup>
-                </FormGrid>
-
-                {errors.contact && (
-                    <ErrorMessage>{errors.contact}</ErrorMessage>
-                )}
-
-                {/* Collapsible Panel: Adres domowy */}
-                <CollapsiblePanel>
-                    <CollapsibleHeader
-                        type="button"
-                        $isOpen={isHomeAddressOpen}
-                        onClick={() => setIsHomeAddressOpen(!isHomeAddressOpen)}
-                    >
-                        <CollapsibleHeaderContent>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                            </svg>
-                            Adres domowy
-                            {homeAddressHasData && <Badge>Uzupełniony</Badge>}
-                        </CollapsibleHeaderContent>
-                        <ChevronIcon
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            $isOpen={isHomeAddressOpen}
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </ChevronIcon>
-                    </CollapsibleHeader>
-                    <CollapsibleContent $isOpen={isHomeAddressOpen}>
-                        <FormGrid>
-                            <FieldGroup style={{ gridColumn: '1 / -1' }}>
-                                <Label>Ulica</Label>
-                                <Input
-                                    value={formData.homeAddress?.street || ''}
-                                    onChange={(e) => onChange({
-                                        homeAddress: {
-                                            street: e.target.value,
-                                            city: formData.homeAddress?.city || '',
-                                            postalCode: formData.homeAddress?.postalCode || '',
-                                            country: formData.homeAddress?.country || 'Polska',
-                                        },
-                                    })}
-                                    placeholder="np. ul. Główna 123"
-                                />
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <Label>Miasto</Label>
-                                <Input
-                                    value={formData.homeAddress?.city || ''}
-                                    onChange={(e) => onChange({
-                                        homeAddress: {
-                                            street: formData.homeAddress?.street || '',
-                                            city: e.target.value,
-                                            postalCode: formData.homeAddress?.postalCode || '',
-                                            country: formData.homeAddress?.country || 'Polska',
-                                        },
-                                    })}
-                                    placeholder="np. Warszawa"
-                                />
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <Label>Kod pocztowy</Label>
-                                <Input
-                                    value={formData.homeAddress?.postalCode || ''}
-                                    onChange={(e) => onChange({
-                                        homeAddress: {
-                                            street: formData.homeAddress?.street || '',
-                                            city: formData.homeAddress?.city || '',
-                                            postalCode: e.target.value,
-                                            country: formData.homeAddress?.country || 'Polska',
-                                        },
-                                    })}
-                                    placeholder="np. 00-001"
-                                />
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <Label>Kraj</Label>
-                                <Input
-                                    value={formData.homeAddress?.country || 'Polska'}
-                                    onChange={(e) => onChange({
-                                        homeAddress: {
-                                            street: formData.homeAddress?.street || '',
-                                            city: formData.homeAddress?.city || '',
-                                            postalCode: formData.homeAddress?.postalCode || '',
-                                            country: e.target.value,
-                                        },
-                                    })}
-                                    placeholder="np. Polska"
-                                />
-                            </FieldGroup>
-                        </FormGrid>
-                    </CollapsibleContent>
-                </CollapsiblePanel>
-
-                {/* Collapsible Panel: Dane firmowe */}
-                <CollapsiblePanel>
-                    <CollapsibleHeader
-                        type="button"
-                        $isOpen={isCompanyOpen}
-                        onClick={() => setIsCompanyOpen(!isCompanyOpen)}
-                    >
-                        <CollapsibleHeaderContent>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                            Dane firmowe
-                            {companyHasData && <Badge>Uzupełniony</Badge>}
-                        </CollapsibleHeaderContent>
-                        <ChevronIcon
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            $isOpen={isCompanyOpen}
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </ChevronIcon>
-                    </CollapsibleHeader>
-                    <CollapsibleContent $isOpen={isCompanyOpen}>
-                        <FormGrid>
-                            <FieldGroup style={{ gridColumn: '1 / -1' }}>
-                                <Label>Nazwa firmy</Label>
-                                <Input
-                                    value={formData.company?.name || ''}
-                                    onChange={(e) => onChange({
-                                        company: {
-                                            name: e.target.value,
-                                            nip: formData.company?.nip || '',
-                                            regon: formData.company?.regon || '',
-                                            address: {
-                                                street: formData.company?.address.street || '',
-                                                city: formData.company?.address.city || '',
-                                                postalCode: formData.company?.address.postalCode || '',
-                                                country: formData.company?.address.country || 'Polska',
-                                            },
-                                        },
-                                    })}
-                                    placeholder="np. ABC Sp. z o.o."
-                                />
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <Label>NIP</Label>
-                                <Input
-                                    value={formData.company?.nip || ''}
-                                    onChange={(e) => onChange({
-                                        company: {
-                                            name: formData.company?.name || '',
-                                            nip: e.target.value,
-                                            regon: formData.company?.regon || '',
-                                            address: {
-                                                street: formData.company?.address.street || '',
-                                                city: formData.company?.address.city || '',
-                                                postalCode: formData.company?.address.postalCode || '',
-                                                country: formData.company?.address.country || 'Polska',
-                                            },
-                                        },
-                                    })}
-                                    placeholder="np. 1234567890"
-                                />
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <Label>REGON</Label>
-                                <Input
-                                    value={formData.company?.regon || ''}
-                                    onChange={(e) => onChange({
-                                        company: {
-                                            name: formData.company?.name || '',
-                                            nip: formData.company?.nip || '',
-                                            regon: e.target.value,
-                                            address: {
-                                                street: formData.company?.address.street || '',
-                                                city: formData.company?.address.city || '',
-                                                postalCode: formData.company?.address.postalCode || '',
-                                                country: formData.company?.address.country || 'Polska',
-                                            },
-                                        },
-                                    })}
-                                    placeholder="np. 123456789"
-                                />
-                            </FieldGroup>
-
-                            <FieldGroup style={{ gridColumn: '1 / -1' }}>
-                                <Label>Ulica</Label>
-                                <Input
-                                    value={formData.company?.address.street || ''}
-                                    onChange={(e) => onChange({
-                                        company: {
-                                            name: formData.company?.name || '',
-                                            nip: formData.company?.nip || '',
-                                            regon: formData.company?.regon || '',
-                                            address: {
-                                                street: e.target.value,
-                                                city: formData.company?.address.city || '',
-                                                postalCode: formData.company?.address.postalCode || '',
-                                                country: formData.company?.address.country || 'Polska',
-                                            },
-                                        },
-                                    })}
-                                    placeholder="np. ul. Biznesowa 456"
-                                />
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <Label>Miasto</Label>
-                                <Input
-                                    value={formData.company?.address.city || ''}
-                                    onChange={(e) => onChange({
-                                        company: {
-                                            name: formData.company?.name || '',
-                                            nip: formData.company?.nip || '',
-                                            regon: formData.company?.regon || '',
-                                            address: {
-                                                street: formData.company?.address.street || '',
-                                                city: e.target.value,
-                                                postalCode: formData.company?.address.postalCode || '',
-                                                country: formData.company?.address.country || 'Polska',
-                                            },
-                                        },
-                                    })}
-                                    placeholder="np. Warszawa"
-                                />
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <Label>Kod pocztowy</Label>
-                                <Input
-                                    value={formData.company?.address.postalCode || ''}
-                                    onChange={(e) => onChange({
-                                        company: {
-                                            name: formData.company?.name || '',
-                                            nip: formData.company?.nip || '',
-                                            regon: formData.company?.regon || '',
-                                            address: {
-                                                street: formData.company?.address.street || '',
-                                                city: formData.company?.address.city || '',
-                                                postalCode: e.target.value,
-                                                country: formData.company?.address.country || 'Polska',
-                                            },
-                                        },
-                                    })}
-                                    placeholder="np. 00-001"
-                                />
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <Label>Kraj</Label>
-                                <Input
-                                    value={formData.company?.address.country || 'Polska'}
-                                    onChange={(e) => onChange({
-                                        company: {
-                                            name: formData.company?.name || '',
-                                            nip: formData.company?.nip || '',
-                                            regon: formData.company?.regon || '',
-                                            address: {
-                                                street: formData.company?.address.street || '',
-                                                city: formData.company?.address.city || '',
-                                                postalCode: formData.company?.address.postalCode || '',
-                                                country: e.target.value,
-                                            },
-                                        },
-                                    })}
-                                    placeholder="np. Polska"
-                                />
-                            </FieldGroup>
-                        </FormGrid>
-                    </CollapsibleContent>
-                </CollapsiblePanel>
-
-                {!hideVehicleHandoff && formData.vehicleHandoff && (
-                    <>
-                        <CheckboxWrapper>
-                            <input
-                                type="checkbox"
-                                checked={formData.vehicleHandoff.isHandedOffByOtherPerson}
-                                onChange={(e) => onChange({
-                                    vehicleHandoff: {
-                                        ...formData.vehicleHandoff,
-                                        isHandedOffByOtherPerson: e.target.checked,
-                                    },
-                                })}
-                            />
-                            <span>Pojazd oddaje inna osoba</span>
-                        </CheckboxWrapper>
-
-                        {formData.vehicleHandoff.isHandedOffByOtherPerson && (
-                    <FormGrid $columns={2}>
+                    <FormGrid>
                         <FieldGroup>
-                            <Label>Imię osoby przekazującej *</Label>
+                            <Label>{t.checkin.verification.firstName}</Label>
                             <Input
-                                value={formData.vehicleHandoff.contactPerson.firstName}
-                                onChange={(e) => onChange({
-                                    vehicleHandoff: {
-                                        ...formData.vehicleHandoff,
-                                        contactPerson: {
-                                            ...formData.vehicleHandoff.contactPerson,
-                                            firstName: e.target.value,
-                                        },
-                                    },
-                                })}
+                                value={(pendingCustomerUpdates?.firstName ?? formData.customerData.firstName) || ''}
+                                onChange={(e) => handleCustomerFieldChange({ firstName: e.target.value })}
+                                onBlur={handleCustomerFieldBlur}
                             />
-                            {errors.handoffFirstName && (
-                                <ErrorMessage>{errors.handoffFirstName}</ErrorMessage>
-                            )}
+                            {errors.firstName && <ErrorMessage>{errors.firstName}</ErrorMessage>}
                         </FieldGroup>
 
                         <FieldGroup>
-                            <Label>Nazwisko osoby przekazującej *</Label>
+                            <Label>{t.checkin.verification.lastName}</Label>
                             <Input
-                                value={formData.vehicleHandoff.contactPerson.lastName}
-                                onChange={(e) => onChange({
-                                    vehicleHandoff: {
-                                        ...formData.vehicleHandoff,
-                                        contactPerson: {
-                                            ...formData.vehicleHandoff.contactPerson,
-                                            lastName: e.target.value,
-                                        },
-                                    },
-                                })}
+                                value={(pendingCustomerUpdates?.lastName ?? formData.customerData.lastName) || ''}
+                                onChange={(e) => handleCustomerFieldChange({ lastName: e.target.value })}
+                                onBlur={handleCustomerFieldBlur}
                             />
-                            {errors.handoffLastName && (
-                                <ErrorMessage>{errors.handoffLastName}</ErrorMessage>
-                            )}
+                            {errors.lastName && <ErrorMessage>{errors.lastName}</ErrorMessage>}
                         </FieldGroup>
 
                         <FieldGroup>
-                            <Label>Telefon</Label>
+                            <Label>{t.checkin.verification.phone}</Label>
                             <PhoneInput
-                                value={formData.vehicleHandoff.contactPerson.phone}
-                                onChange={(value) => onChange({
-                                    vehicleHandoff: {
-                                        ...formData.vehicleHandoff,
-                                        contactPerson: {
-                                            ...formData.vehicleHandoff.contactPerson,
-                                            phone: value || '',
-                                        },
-                                    },
-                                })}
+                                value={(pendingCustomerUpdates?.phone ?? formData.customerData.phone) || ''}
+                                onChange={(value) => {
+                                    const getCountryCode = (v?: string) => {
+                                        if (!v) return '';
+                                        const m = v.match(/^\+\d+/);
+                                        return m ? m[0] : '';
+                                    };
+                                    const prevPhone = (pendingCustomerUpdates?.phone ?? formData.customerData.phone) || '';
+                                    const prevCode = getCountryCode(prevPhone);
+                                    const newCode = getCountryCode(value || '');
+                                    if (!customerChoiceMade && formData.customerData.id && prevPhone.trim().length > 0 && newCode && newCode !== prevCode) {
+                                        setPendingCustomerUpdates(prev => ({ ...(prev || {}), phone: value || '' }));
+                                        setShowCustomerChoice(true);
+                                        setCustomerPromptScheduled(false);
+                                        return;
+                                    }
+                                    handleCustomerFieldChange({ phone: value });
+                                }}
+                                onBlur={handleCustomerFieldBlur}
                             />
-                            {errors.handoffPhone && (
-                                <ErrorMessage>{errors.handoffPhone}</ErrorMessage>
-                            )}
+                            {errors.phone && <ErrorMessage>{errors.phone}</ErrorMessage>}
                         </FieldGroup>
 
                         <FieldGroup>
-                            <Label>E-mail</Label>
+                            <Label>{t.checkin.verification.email}</Label>
                             <Input
                                 type="email"
-                                value={formData.vehicleHandoff.contactPerson.email}
-                                onChange={(e) => onChange({
-                                    vehicleHandoff: {
-                                        ...formData.vehicleHandoff,
-                                        contactPerson: {
-                                            ...formData.vehicleHandoff.contactPerson,
-                                            email: e.target.value,
-                                        },
-                                    },
-                                })}
+                                value={(pendingCustomerUpdates?.email ?? formData.customerData.email) || ''}
+                                onChange={(e) => handleCustomerFieldChange({ email: e.target.value })}
+                                onBlur={handleCustomerFieldBlur}
                             />
-                            {errors.handoffEmail && (
-                                <ErrorMessage>{errors.handoffEmail}</ErrorMessage>
-                            )}
+                            {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
                         </FieldGroup>
-                        </FormGrid>
-                        )}
+                    </FormGrid>
 
-                        {formData.vehicleHandoff.isHandedOffByOtherPerson && errors.handoffContact && (
-                            <ErrorMessage>{errors.handoffContact}</ErrorMessage>
-                        )}
-                    </>
-                )}
+                    {errors.contact && <ErrorMessage>{errors.contact}</ErrorMessage>}
 
-                <Divider />
+                    {/* Adres domowy */}
+                    <CollapsibleWrap>
+                        <CollapsibleBtn
+                            type="button"
+                            $open={isHomeAddressOpen}
+                            onClick={() => setIsHomeAddressOpen(!isHomeAddressOpen)}
+                        >
+                            <CollapsibleBtnLeft>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                </svg>
+                                Adres domowy
+                                {homeAddressHasData && <FilledBadge>Uzupełniony</FilledBadge>}
+                            </CollapsibleBtnLeft>
+                            <ChevronSvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" $open={isHomeAddressOpen}>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </ChevronSvg>
+                        </CollapsibleBtn>
+                        <CollapsibleContent $open={isHomeAddressOpen}>
+                            <FormGrid>
+                                <FieldGroup style={{ gridColumn: '1 / -1' }}>
+                                    <Label>Ulica</Label>
+                                    <Input
+                                        value={formData.homeAddress?.street || ''}
+                                        onChange={(e) => onChange({ homeAddress: { street: e.target.value, city: formData.homeAddress?.city || '', postalCode: formData.homeAddress?.postalCode || '', country: formData.homeAddress?.country || 'Polska' } })}
+                                        placeholder="np. ul. Główna 123"
+                                    />
+                                </FieldGroup>
+                                <FieldGroup>
+                                    <Label>Miasto</Label>
+                                    <Input
+                                        value={formData.homeAddress?.city || ''}
+                                        onChange={(e) => onChange({ homeAddress: { street: formData.homeAddress?.street || '', city: e.target.value, postalCode: formData.homeAddress?.postalCode || '', country: formData.homeAddress?.country || 'Polska' } })}
+                                        placeholder="np. Warszawa"
+                                    />
+                                </FieldGroup>
+                                <FieldGroup>
+                                    <Label>Kod pocztowy</Label>
+                                    <Input
+                                        value={formData.homeAddress?.postalCode || ''}
+                                        onChange={(e) => onChange({ homeAddress: { street: formData.homeAddress?.street || '', city: formData.homeAddress?.city || '', postalCode: e.target.value, country: formData.homeAddress?.country || 'Polska' } })}
+                                        placeholder="np. 00-001"
+                                    />
+                                </FieldGroup>
+                                <FieldGroup>
+                                    <Label>Kraj</Label>
+                                    <Input
+                                        value={formData.homeAddress?.country || 'Polska'}
+                                        onChange={(e) => onChange({ homeAddress: { street: formData.homeAddress?.street || '', city: formData.homeAddress?.city || '', postalCode: formData.homeAddress?.postalCode || '', country: e.target.value } })}
+                                        placeholder="np. Polska"
+                                    />
+                                </FieldGroup>
+                            </FormGrid>
+                        </CollapsibleContent>
+                    </CollapsibleWrap>
 
-                <SectionHeader>
-                    <SectionTitleWithActions>
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-                        </svg>
-                        {t.checkin.verification.vehicleSection}
-                        {(vehicleChoiceMade || formData.isNewVehicle) && vehicleBadge && <Badge>{vehicleBadge}</Badge>}
-                    </SectionTitleWithActions>
-                    <SubtleButtonGroup>
-                        <SubtleButton onClick={handleResetVehicle} disabled={!hasVehicleChanges}>
+                    {/* Dane firmowe */}
+                    <CollapsibleWrap>
+                        <CollapsibleBtn
+                            type="button"
+                            $open={isCompanyOpen}
+                            onClick={() => setIsCompanyOpen(!isCompanyOpen)}
+                        >
+                            <CollapsibleBtnLeft>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                                Dane firmowe
+                                {companyHasData && <FilledBadge>Uzupełniony</FilledBadge>}
+                            </CollapsibleBtnLeft>
+                            <ChevronSvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" $open={isCompanyOpen}>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </ChevronSvg>
+                        </CollapsibleBtn>
+                        <CollapsibleContent $open={isCompanyOpen}>
+                            <FormGrid>
+                                <FieldGroup style={{ gridColumn: '1 / -1' }}>
+                                    <Label>Nazwa firmy</Label>
+                                    <Input value={formData.company?.name || ''} onChange={(e) => onChange({ company: { name: e.target.value, nip: formData.company?.nip || '', regon: formData.company?.regon || '', address: { street: formData.company?.address.street || '', city: formData.company?.address.city || '', postalCode: formData.company?.address.postalCode || '', country: formData.company?.address.country || 'Polska' } } })} placeholder="np. ABC Sp. z o.o." />
+                                </FieldGroup>
+                                <FieldGroup>
+                                    <Label>NIP</Label>
+                                    <Input value={formData.company?.nip || ''} onChange={(e) => onChange({ company: { name: formData.company?.name || '', nip: e.target.value, regon: formData.company?.regon || '', address: { street: formData.company?.address.street || '', city: formData.company?.address.city || '', postalCode: formData.company?.address.postalCode || '', country: formData.company?.address.country || 'Polska' } } })} placeholder="np. 1234567890" />
+                                </FieldGroup>
+                                <FieldGroup>
+                                    <Label>REGON</Label>
+                                    <Input value={formData.company?.regon || ''} onChange={(e) => onChange({ company: { name: formData.company?.name || '', nip: formData.company?.nip || '', regon: e.target.value, address: { street: formData.company?.address.street || '', city: formData.company?.address.city || '', postalCode: formData.company?.address.postalCode || '', country: formData.company?.address.country || 'Polska' } } })} placeholder="np. 123456789" />
+                                </FieldGroup>
+                                <FieldGroup style={{ gridColumn: '1 / -1' }}>
+                                    <Label>Ulica (firma)</Label>
+                                    <Input value={formData.company?.address.street || ''} onChange={(e) => onChange({ company: { name: formData.company?.name || '', nip: formData.company?.nip || '', regon: formData.company?.regon || '', address: { street: e.target.value, city: formData.company?.address.city || '', postalCode: formData.company?.address.postalCode || '', country: formData.company?.address.country || 'Polska' } } })} placeholder="np. ul. Biznesowa 456" />
+                                </FieldGroup>
+                                <FieldGroup>
+                                    <Label>Miasto</Label>
+                                    <Input value={formData.company?.address.city || ''} onChange={(e) => onChange({ company: { name: formData.company?.name || '', nip: formData.company?.nip || '', regon: formData.company?.regon || '', address: { street: formData.company?.address.street || '', city: e.target.value, postalCode: formData.company?.address.postalCode || '', country: formData.company?.address.country || 'Polska' } } })} placeholder="np. Warszawa" />
+                                </FieldGroup>
+                                <FieldGroup>
+                                    <Label>Kod pocztowy</Label>
+                                    <Input value={formData.company?.address.postalCode || ''} onChange={(e) => onChange({ company: { name: formData.company?.name || '', nip: formData.company?.nip || '', regon: formData.company?.regon || '', address: { street: formData.company?.address.street || '', city: formData.company?.address.city || '', postalCode: e.target.value, country: formData.company?.address.country || 'Polska' } } })} placeholder="np. 00-001" />
+                                </FieldGroup>
+                                <FieldGroup>
+                                    <Label>Kraj</Label>
+                                    <Input value={formData.company?.address.country || 'Polska'} onChange={(e) => onChange({ company: { name: formData.company?.name || '', nip: formData.company?.nip || '', regon: formData.company?.regon || '', address: { street: formData.company?.address.street || '', city: formData.company?.address.city || '', postalCode: formData.company?.address.postalCode || '', country: e.target.value } } })} placeholder="np. Polska" />
+                                </FieldGroup>
+                            </FormGrid>
+                        </CollapsibleContent>
+                    </CollapsibleWrap>
+
+                    {/* Vehicle handoff */}
+                    {!hideVehicleHandoff && formData.vehicleHandoff && (
+                        <>
+                            <CheckRow>
+                                <input
+                                    type="checkbox"
+                                    checked={formData.vehicleHandoff.isHandedOffByOtherPerson}
+                                    onChange={(e) => onChange({ vehicleHandoff: { ...formData.vehicleHandoff, isHandedOffByOtherPerson: e.target.checked } })}
+                                />
+                                <span>Pojazd oddaje inna osoba</span>
+                            </CheckRow>
+
+                            {formData.vehicleHandoff.isHandedOffByOtherPerson && (
+                                <FormGrid $columns={2}>
+                                    <FieldGroup>
+                                        <Label>Imię osoby przekazującej *</Label>
+                                        <Input
+                                            value={formData.vehicleHandoff.contactPerson.firstName}
+                                            onChange={(e) => onChange({ vehicleHandoff: { ...formData.vehicleHandoff, contactPerson: { ...formData.vehicleHandoff.contactPerson, firstName: e.target.value } } })}
+                                        />
+                                        {errors.handoffFirstName && <ErrorMessage>{errors.handoffFirstName}</ErrorMessage>}
+                                    </FieldGroup>
+                                    <FieldGroup>
+                                        <Label>Nazwisko osoby przekazującej *</Label>
+                                        <Input
+                                            value={formData.vehicleHandoff.contactPerson.lastName}
+                                            onChange={(e) => onChange({ vehicleHandoff: { ...formData.vehicleHandoff, contactPerson: { ...formData.vehicleHandoff.contactPerson, lastName: e.target.value } } })}
+                                        />
+                                        {errors.handoffLastName && <ErrorMessage>{errors.handoffLastName}</ErrorMessage>}
+                                    </FieldGroup>
+                                    <FieldGroup>
+                                        <Label>Telefon</Label>
+                                        <PhoneInput
+                                            value={formData.vehicleHandoff.contactPerson.phone}
+                                            onChange={(value) => onChange({ vehicleHandoff: { ...formData.vehicleHandoff, contactPerson: { ...formData.vehicleHandoff.contactPerson, phone: value || '' } } })}
+                                        />
+                                        {errors.handoffPhone && <ErrorMessage>{errors.handoffPhone}</ErrorMessage>}
+                                    </FieldGroup>
+                                    <FieldGroup>
+                                        <Label>E-mail</Label>
+                                        <Input
+                                            type="email"
+                                            value={formData.vehicleHandoff.contactPerson.email}
+                                            onChange={(e) => onChange({ vehicleHandoff: { ...formData.vehicleHandoff, contactPerson: { ...formData.vehicleHandoff.contactPerson, email: e.target.value } } })}
+                                        />
+                                        {errors.handoffEmail && <ErrorMessage>{errors.handoffEmail}</ErrorMessage>}
+                                    </FieldGroup>
+                                </FormGrid>
+                            )}
+                            {formData.vehicleHandoff.isHandedOffByOtherPerson && errors.handoffContact && (
+                                <ErrorMessage>{errors.handoffContact}</ErrorMessage>
+                            )}
+                        </>
+                    )}
+                </SectionBody>
+            </SectionCard>
+
+            {/* ── 3. Pojazd ─────────────────────────────────────────────── */}
+            <SectionCard>
+                <SectionHead>
+                    <SectionTitleRow>
+                        <SectionNum>3</SectionNum>
+                        <SectionLabel>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                            </svg>
+                            {t.checkin.verification.vehicleSection}
+                            {(vehicleChoiceMade || formData.isNewVehicle) && vehicleBadge && (
+                                <StatusPill>{vehicleBadge}</StatusPill>
+                            )}
+                        </SectionLabel>
+                    </SectionTitleRow>
+                    <SectionActions>
+                        <ActionBtn onClick={handleResetVehicle} disabled={!hasVehicleChanges}>
                             Wycofaj zmiany
-                        </SubtleButton>
-                        <SubtleButton onClick={() => setIsVehicleModalOpen(true)}>
-                            Wyszukaj / zmień pojazd
-                        </SubtleButton>
-                    </SubtleButtonGroup>
-                </SectionHeader>
+                        </ActionBtn>
+                        <ActionBtn $primary onClick={() => setIsVehicleModalOpen(true)}>
+                            Wyszukaj pojazd
+                        </ActionBtn>
+                    </SectionActions>
+                </SectionHead>
+                <SectionBody>
+                    {errors.vehicle && <ErrorMessage>{errors.vehicle}</ErrorMessage>}
 
-                {errors.vehicle && (
-                    <ErrorMessage>{errors.vehicle}</ErrorMessage>
-                )}
-
-                <FormGrid $columns={3}>
-                    <FieldGroup>
-                        <Label>{t.checkin.verification.brand}</Label>
-                        <BrandSelect
-                            value={(pendingVehicleUpdates?.brand ?? formData.vehicleData?.brand) || ''}
-                            onChange={(val) => {
-                                // Reset model when brand changes, use the standard field change logic
-                                handleVehicleFieldChange({ brand: val, model: '' });
-                            }}
-                            onBlur={handleVehicleFieldBlur}
-                        />
-                    </FieldGroup>
-
-                    <FieldGroup>
-                        <Label>{t.checkin.verification.model}</Label>
-                        <ModelSelect
-                            brand={(pendingVehicleUpdates?.brand ?? formData.vehicleData?.brand) || ''}
-                            value={(pendingVehicleUpdates?.model ?? formData.vehicleData?.model) || ''}
-                            onChange={(val) => handleVehicleFieldChange({ model: val })}
-                            onBlur={handleVehicleFieldBlur}
-                        />
-                    </FieldGroup>
-
-                    <FieldGroup>
-                        <Label>Rok produkcji</Label>
-                        <Input
-                            type="number"
-                            value={(pendingVehicleUpdates?.yearOfProduction ?? formData.vehicleData?.yearOfProduction) ?? ''}
-                            onChange={(e) => handleVehicleFieldChange({ yearOfProduction: parseInt(e.target.value) || undefined })}
-                            onBlur={handleVehicleFieldBlur}
-                        />
-                    </FieldGroup>
-
-                    {!hideLicensePlate && (
+                    <FormGrid $columns={3}>
                         <FieldGroup>
-                            <Label>{t.checkin.verification.licensePlate}</Label>
-                            <Input
-                                value={(pendingVehicleUpdates?.licensePlate ?? formData.vehicleData?.licensePlate) || ''}
-                                onChange={(e) => handleVehicleFieldChange({ licensePlate: e.target.value })}
+                            <Label>{t.checkin.verification.brand}</Label>
+                            <BrandSelect
+                                value={(pendingVehicleUpdates?.brand ?? formData.vehicleData?.brand) || ''}
+                                onChange={(val) => handleVehicleFieldChange({ brand: val, model: '' })}
                                 onBlur={handleVehicleFieldBlur}
                             />
                         </FieldGroup>
-                    )}
+                        <FieldGroup>
+                            <Label>{t.checkin.verification.model}</Label>
+                            <ModelSelect
+                                brand={(pendingVehicleUpdates?.brand ?? formData.vehicleData?.brand) || ''}
+                                value={(pendingVehicleUpdates?.model ?? formData.vehicleData?.model) || ''}
+                                onChange={(val) => handleVehicleFieldChange({ model: val })}
+                                onBlur={handleVehicleFieldBlur}
+                            />
+                        </FieldGroup>
+                        <FieldGroup>
+                            <Label>Rok produkcji</Label>
+                            <Input
+                                type="number"
+                                value={(pendingVehicleUpdates?.yearOfProduction ?? formData.vehicleData?.yearOfProduction) ?? ''}
+                                onChange={(e) => handleVehicleFieldChange({ yearOfProduction: parseInt(e.target.value) || undefined })}
+                                onBlur={handleVehicleFieldBlur}
+                            />
+                        </FieldGroup>
 
-                    {!hideVehicleColorAndPaint && (
-                        <>
+                        {!hideLicensePlate && (
                             <FieldGroup>
-                                <Label>Kolor</Label>
+                                <Label>{t.checkin.verification.licensePlate}</Label>
                                 <Input
-                                    value={(pendingVehicleUpdates?.color ?? formData.vehicleData?.color) || ''}
-                                    onChange={(e) => handleVehicleFieldChange({ color: e.target.value })}
+                                    value={(pendingVehicleUpdates?.licensePlate ?? formData.vehicleData?.licensePlate) || ''}
+                                    onChange={(e) => handleVehicleFieldChange({ licensePlate: e.target.value })}
                                     onBlur={handleVehicleFieldBlur}
                                 />
                             </FieldGroup>
+                        )}
 
-                            <FieldGroup>
-                                <Label>Typ lakieru</Label>
-                                <Input
-                                    value={formData.vehicleData?.paintType || ''}
-                                    onChange={(e) => handleVehicleFieldChange({ paintType: e.target.value })}
-                                    onBlur={handleVehicleFieldBlur}
-                                />
-                            </FieldGroup>
-                        </>
-                    )}
-                </FormGrid>
+                        {!hideVehicleColorAndPaint && (
+                            <>
+                                <FieldGroup>
+                                    <Label>Kolor</Label>
+                                    <Input
+                                        value={(pendingVehicleUpdates?.color ?? formData.vehicleData?.color) || ''}
+                                        onChange={(e) => handleVehicleFieldChange({ color: e.target.value })}
+                                        onBlur={handleVehicleFieldBlur}
+                                    />
+                                </FieldGroup>
+                                <FieldGroup>
+                                    <Label>Typ lakieru</Label>
+                                    <Input
+                                        value={formData.vehicleData?.paintType || ''}
+                                        onChange={(e) => handleVehicleFieldChange({ paintType: e.target.value })}
+                                        onBlur={handleVehicleFieldBlur}
+                                    />
+                                </FieldGroup>
+                            </>
+                        )}
+                    </FormGrid>
+                </SectionBody>
+            </SectionCard>
 
-                {showTechnicalSection && (
-                    <>
-                        <Divider />
-
-                        {/* Sekcja: Stan techniczny (jeden wiersz: przebieg + depozyty) */}
-                        <SectionTitle>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-3-3v6m8-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            {t.checkin.technical.title}
-                        </SectionTitle>
-
+            {/* ── 4. Stan techniczny (conditional) ─────────────────────── */}
+            {showTechnicalSection && (
+                <SectionCard>
+                    <SectionHead>
+                        <SectionTitleRow>
+                            <SectionNum>4</SectionNum>
+                            <SectionLabel>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-3-3v6m8-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {t.checkin.technical.title}
+                            </SectionLabel>
+                        </SectionTitleRow>
+                    </SectionHead>
+                    <SectionBody>
                         <FormGrid $columns={2}>
                             <FieldGroup>
                                 <Label>{t.checkin.technical.mileage}</Label>
                                 <Input
                                     type="number"
                                     value={formData.technicalState.mileage || ''}
-                                    onChange={(e) => onChange({
-                                        technicalState: {
-                                            ...formData.technicalState,
-                                            mileage: parseInt(e.target.value) || 0,
-                                        },
-                                    })}
+                                    onChange={(e) => onChange({ technicalState: { ...formData.technicalState, mileage: parseInt(e.target.value) || 0 } })}
                                     placeholder={t.checkin.technical.mileagePlaceholder}
                                 />
                             </FieldGroup>
 
                             <FieldGroup>
                                 <Label>{t.checkin.technical.deposit}</Label>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', height: '100%', justifyContent: 'space-between' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <Toggle
-                                            checked={formData.technicalState.deposit.keys}
-                                            onChange={(checked) => onChange({
-                                                technicalState: {
-                                                    ...formData.technicalState,
-                                                    deposit: { ...formData.technicalState.deposit, keys: checked },
-                                                },
-                                            })}
-                                            label={t.checkin.technical.depositItems.keys}
-                                        />
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <Toggle
-                                            checked={formData.technicalState.deposit.registrationDocument}
-                                            onChange={(checked) => onChange({
-                                                technicalState: {
-                                                    ...formData.technicalState,
-                                                    deposit: { ...formData.technicalState.deposit, registrationDocument: checked },
-                                                },
-                                            })}
-                                            label={t.checkin.technical.depositItems.registrationDocument}
-                                        />
-                                    </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingTop: '4px' }}>
+                                    <Toggle
+                                        checked={formData.technicalState.deposit.keys}
+                                        onChange={(checked) => onChange({ technicalState: { ...formData.technicalState, deposit: { ...formData.technicalState.deposit, keys: checked } } })}
+                                        label={t.checkin.technical.depositItems.keys}
+                                    />
+                                    <Toggle
+                                        checked={formData.technicalState.deposit.registrationDocument}
+                                        onChange={(checked) => onChange({ technicalState: { ...formData.technicalState, deposit: { ...formData.technicalState.deposit, registrationDocument: checked } } })}
+                                        label={t.checkin.technical.depositItems.registrationDocument}
+                                    />
                                 </div>
                             </FieldGroup>
                         </FormGrid>
+                        {errors.mileage && <ErrorMessage>{errors.mileage}</ErrorMessage>}
+                    </SectionBody>
+                </SectionCard>
+            )}
 
-                        {errors.mileage && (
-                            <ErrorMessage>{errors.mileage}</ErrorMessage>
-                        )}
-                    </>
-                )}
+            {/* ── 5. Usługi ─────────────────────────────────────────────── */}
+            <SectionCard>
+                <SectionHead>
+                    <SectionTitleRow>
+                        <SectionNum>{showTechnicalSection ? 5 : 4}</SectionNum>
+                        <SectionLabel>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                            </svg>
+                            Usługi
+                        </SectionLabel>
+                    </SectionTitleRow>
+                </SectionHead>
+                <SectionBody>
+                    <EditableServicesTable
+                        services={formData.services}
+                        onChange={onServicesChange}
+                    />
+                    {errors.services && <ErrorMessage>{errors.services}</ErrorMessage>}
+                </SectionBody>
+            </SectionCard>
 
-                <Divider />
+            {/* ── 6. Notatki z oględzin ─────────────────────────────────── */}
+            <SectionCard>
+                <SectionHead>
+                    <SectionTitleRow>
+                        <SectionNum>{showTechnicalSection ? 6 : 5}</SectionNum>
+                        <SectionLabel>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                            </svg>
+                            {t.checkin.technical.inspectionNotes}
+                        </SectionLabel>
+                    </SectionTitleRow>
+                </SectionHead>
+                <SectionBody>
+                    <TextArea
+                        value={formData.technicalState.inspectionNotes}
+                        onChange={(e) => onChange({ technicalState: { ...formData.technicalState, inspectionNotes: e.target.value } })}
+                        placeholder={t.checkin.technical.inspectionNotesPlaceholder}
+                    />
+                </SectionBody>
+            </SectionCard>
 
-                <SectionTitle>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                    </svg>
-                    Usługi
-                </SectionTitle>
-
-                <EditableServicesTable
-                    services={formData.services}
-                    onChange={onServicesChange}
-                />
-
-                {errors.services && (
-                    <ErrorMessage>{errors.services}</ErrorMessage>
-                )}
-
-                <Divider />
-
-                {/* Sekcja: Notatki z oględzin */}
-                <SectionTitle>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-                    </svg>
-                    {t.checkin.technical.inspectionNotes}
-                </SectionTitle>
-                <FormGrid $columns={1}>
-                    <FieldGroup>
-                        <TextArea
-                            value={formData.technicalState.inspectionNotes}
-                            onChange={(e) => onChange({
-                                technicalState: {
-                                    ...formData.technicalState,
-                                    inspectionNotes: e.target.value,
-                                },
-                            })}
-                            placeholder={t.checkin.technical.inspectionNotesPlaceholder}
-                        />
-                    </FieldGroup>
-                </FormGrid>
-
-            </Card>
-
-            {/* Choice modal for customer changes */}
+            {/* ── Modals ────────────────────────────────────────────────── */}
             <Modal
                 isOpen={showCustomerChoice}
                 onClose={() => setShowCustomerChoice(false)}
@@ -1539,7 +1284,6 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                 </div>
             </Modal>
 
-            {/* Choice modal for vehicle changes */}
             <Modal
                 isOpen={showVehicleChoice}
                 onClose={() => setShowVehicleChoice(false)}
@@ -1588,7 +1332,7 @@ export const VerificationStep    = ({ formData, errors, onChange, onServicesChan
                     brand: formData.vehicleData?.brand || '',
                     model: formData.vehicleData?.model || '',
                     yearOfProduction: formData.vehicleData?.yearOfProduction,
-                    licensePlate: formData.vehicleData?.licensePlate,
+                    licensePlate: formData.vehicleData?.licensePlate || '',
                     color: formData.vehicleData?.color,
                     paintType: formData.vehicleData?.paintType,
                 }}

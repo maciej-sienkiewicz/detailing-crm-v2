@@ -1,164 +1,166 @@
 // src/modules/checkin/components/PhotoDocumentationStep.tsx
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import styled from 'styled-components';
-import { Card, CardHeader, CardTitle } from '@/common/components/Card';
-import { Button } from '@/common/components/Button';
-import { Badge } from '@/common/components/Badge';
 import { Toggle } from '@/common/components/Toggle';
-import { t } from '@/common/i18n';
 import { usePhotoUpload } from '../hooks/usePhotoUpload';
-import type { CheckInFormData, PhotoSlot, DamagePoint } from '../types';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
+import type { CheckInFormData, DamagePoint } from '../types';
 import { VehicleDamageMapper } from './VehicleDamageMapper';
+
+// ─── Layout ───────────────────────────────────────────────────────────────────
 
 const StepContainer = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
+    gap: 16px;
 `;
 
-const QRSection = styled.div`
+const SectionCard = styled.div`
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowSm};
+    overflow: hidden;
+`;
+
+const SectionHead = styled.div`
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: ${props => props.theme.spacing.lg};
-    padding: ${props => props.theme.spacing.xl};
-    background: linear-gradient(135deg, rgba(14, 165, 233, 0.05) 0%, rgba(14, 165, 233, 0.02) 100%);
-    border-radius: ${props => props.theme.radii.lg};
-    border: 2px dashed ${props => props.theme.colors.primary};
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid ${st.border};
+    background: ${st.bg};
 `;
 
-const QRTitle = styled.h3`
-    font-size: ${props => props.theme.fontSizes.lg};
-    font-weight: ${props => props.theme.fontWeights.bold};
-    color: ${props => props.theme.colors.text};
-    margin: 0;
-    text-align: center;
+const SectionTitleRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+`;
 
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes.xl};
+const SectionNum = styled.span`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: ${st.accentBlue};
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+`;
+
+const SectionLabel = styled.h3`
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: ${st.text};
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    svg {
+        width: 17px;
+        height: 17px;
+        color: ${st.accentBlue};
+        flex-shrink: 0;
     }
 `;
 
-const QRDescription = styled.p`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
-    margin: 0;
-    text-align: center;
+const CountChip = styled.span`
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 9px;
+    background: ${st.accentBlueDim};
+    color: ${st.accentBlue};
+    border-radius: ${st.radiusFull};
+    font-size: 11px;
+    font-weight: 600;
 `;
 
-const QRPlaceholder = styled.div`
-    width: 200px;
-    height: 200px;
-    padding: ${props => props.theme.spacing.lg};
-    background-color: ${props => props.theme.colors.surfaceAlt};
-    border-radius: ${props => props.theme.radii.md};
-    box-shadow: ${props => props.theme.shadows.lg};
+const SectionBody = styled.div`
+    padding: 20px;
+`;
+
+// ─── Upload zone ──────────────────────────────────────────────────────────────
+
+const UploadZone = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 32px 24px;
+    border: 2px dashed ${st.border};
+    border-radius: ${st.radiusSm};
+    background: ${st.bgCardAlt};
+    text-align: center;
+    transition: border-color ${st.transition}, background ${st.transition};
+
+    &:hover {
+        border-color: ${st.accentBlue};
+        background: ${st.accentBlueDim};
+    }
+`;
+
+const UploadIcon = styled.div`
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: ${st.accentBlueDim};
     display: flex;
     align-items: center;
     justify-content: center;
-    text-align: center;
-    color: ${props => props.theme.colors.textMuted};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-style: italic;
+    color: ${st.accentBlue};
+
+    svg {
+        width: 24px;
+        height: 24px;
+    }
 `;
 
-const ButtonGroup = styled.div`
+const UploadTitle = styled.div`
+    font-size: 15px;
+    font-weight: 600;
+    color: ${st.text};
+`;
+
+const UploadSubtitle = styled.div`
+    font-size: 13px;
+    color: ${st.textMuted};
+    margin-top: -8px;
+`;
+
+const UploadActions = styled.div`
     display: flex;
-    gap: ${props => props.theme.spacing.sm};
+    gap: 8px;
     flex-wrap: wrap;
     justify-content: center;
 `;
 
-const HiddenFileInput = styled.input`
-    display: none;
-`;
-
-const PhotoGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: ${props => props.theme.spacing.md};
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        grid-template-columns: repeat(4, 1fr);
-    }
-`;
-
-const PhotoCard = styled.div`
-    aspect-ratio: 4 / 3;
-    border: 2px solid ${props => props.theme.colors.primary};
-    border-radius: ${props => props.theme.radii.md};
-    display: flex;
-    flex-direction: column;
+const UploadBtn = styled.button`
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: ${props => props.theme.spacing.sm};
-    background: rgba(14, 165, 233, 0.05);
-    transition: all ${props => props.theme.transitions.normal};
-    position: relative;
-    overflow: hidden;
-`;
-
-const PhotoThumbnail = styled.img`
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    position: absolute;
-    top: 0;
-    left: 0;
-`;
-
-const PhotoOverlay = styled.div`
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
-    padding: ${props => props.theme.spacing.sm};
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.xs};
-    z-index: 1;
-`;
-
-const PhotoDescription = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    color: white;
-    text-align: left;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-`;
-
-const PhotoTimestamp = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: rgba(255, 255, 255, 0.7);
-    text-align: left;
-`;
-
-const DeleteButton = styled.button`
-    position: absolute;
-    top: ${props => props.theme.spacing.xs};
-    right: ${props => props.theme.spacing.xs};
-    background: rgba(220, 38, 38, 0.9);
-    color: white;
-    border: none;
-    border-radius: ${props => props.theme.radii.sm};
-    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: ${props => props.theme.fontWeights.semibold};
+    gap: 6px;
+    padding: 8px 16px;
+    border: 1.5px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    background: ${st.bgCard};
+    color: ${st.textSecondary};
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
-    z-index: 2;
-    transition: all ${props => props.theme.transitions.fast};
+    transition: all ${st.transition};
 
-    &:hover {
-        background: rgba(185, 28, 28, 1);
-        transform: scale(1.05);
-    }
-
-    &:active {
-        transform: scale(0.95);
+    &:hover:not(:disabled) {
+        border-color: ${st.accentBlue};
+        color: ${st.accentBlue};
+        background: ${st.accentBlueDim};
     }
 
     &:disabled {
@@ -167,27 +169,176 @@ const DeleteButton = styled.button`
     }
 `;
 
-const StatusSection = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.md};
-    padding: ${props => props.theme.spacing.lg};
-    background-color: ${props => props.theme.colors.surfaceAlt};
-    border-radius: ${props => props.theme.radii.md};
-    align-items: center;
+const PrimaryUploadBtn = styled(UploadBtn)`
+    background: ${st.accentBlue};
+    color: #fff;
+    border-color: ${st.accentBlue};
 
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        flex-direction: row;
-        justify-content: space-between;
+    &:hover:not(:disabled) {
+        background: #1D4ED8;
+        border-color: #1D4ED8;
+        color: #fff;
     }
 `;
 
-const StatusText = styled.p`
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.text};
-    margin: 0;
+const UploadingLabel = styled.div`
+    font-size: 13px;
+    color: ${st.textMuted};
+    display: flex;
+    align-items: center;
+    gap: 6px;
 `;
+
+const HiddenInput = styled.input`
+    display: none;
+`;
+
+// ─── QR placeholder ───────────────────────────────────────────────────────────
+
+const QrWrap = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 20px;
+    background: ${st.bgCardAlt};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+`;
+
+const QrBox = styled.div`
+    width: 140px;
+    height: 140px;
+    background: ${st.bg};
+    border: 1px solid ${st.border};
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${st.textMuted};
+    font-size: 12px;
+    text-align: center;
+    padding: 12px;
+`;
+
+const QrLabel = styled.div`
+    font-size: 13px;
+    font-weight: 500;
+    color: ${st.textSecondary};
+    text-align: center;
+`;
+
+// ─── Photo grid ───────────────────────────────────────────────────────────────
+
+const SectionDivider = styled.div`
+    height: 1px;
+    background: ${st.border};
+    margin: 20px 0 16px;
+`;
+
+const PhotosHeader = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+`;
+
+const PhotosTitle = styled.div`
+    font-size: 14px;
+    font-weight: 600;
+    color: ${st.text};
+`;
+
+const PhotoGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+
+    @media (min-width: 640px) {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    @media (min-width: 900px) {
+        grid-template-columns: repeat(4, 1fr);
+    }
+`;
+
+const PhotoCard = styled.div`
+    aspect-ratio: 4 / 3;
+    border-radius: 10px;
+    border: 1px solid ${st.border};
+    overflow: hidden;
+    position: relative;
+    background: ${st.bgCardAlt};
+
+    &:hover .photo-overlay {
+        opacity: 1;
+    }
+`;
+
+const PhotoImg = styled.img`
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+`;
+
+const PhotoOverlay = styled.div`
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 10px;
+    opacity: 0;
+    transition: opacity 200ms ease;
+`;
+
+const PhotoName = styled.span`
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+`;
+
+const PhotoTime = styled.span`
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.70);
+    margin-top: 2px;
+`;
+
+const DeletePhotoBtn = styled.button`
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(220, 38, 38, 0.85);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: background 150ms;
+    z-index: 2;
+
+    &:hover { background: #DC2626; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+// ─── Helper ───────────────────────────────────────────────────────────────────
+
+const isMobileDevice = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface PhotoDocumentationStepProps {
     formData: CheckInFormData;
@@ -195,222 +346,226 @@ interface PhotoDocumentationStepProps {
     onChange: (updates: Partial<CheckInFormData>) => void;
 }
 
-// Helper function to detect mobile device
-const isMobileDevice = () => {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent
-    );
-};
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: PhotoDocumentationStepProps) => {
     const {
-        uploadSession,
         photos,
         uploadPhoto,
         deletePhoto,
         refreshPhotos,
         isUploading,
         isDeleting,
-        isRefreshing
+        isRefreshing,
     } = usePhotoUpload(reservationId);
 
-    const [showDamageDocumentation, setShowDamageDocumentation] = useState(false);
-    const [showPhotoDocumentation, setShowPhotoDocumentation] = useState(true);
+    const [showDamageSection, setShowDamageSection] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
     const isMobile = isMobileDevice();
 
-    // Sync photos from backend to formData
     useEffect(() => {
-        if (photos && photos.length > 0) {
-            onChange({ photos });
-        }
+        if (photos && photos.length > 0) onChange({ photos });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [photos]); // Only depend on photos, not onChange to avoid infinite loop
+    }, [photos]);
 
     const uploadedPhotos = formData.photos || [];
-    const photosCount = uploadedPhotos.length;
 
-    const mobileUploadUrl = uploadSession
-        ? `${window.location.origin}/checkin/mobile/${uploadSession.sessionId}?token=${uploadSession.token}`
-        : '';
-
-    const formatTimestamp = (timestamp: string) => {
-        const date = new Date(timestamp);
-        return date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
-    };
-
-    const handleDamagePointsChange = (points: DamagePoint[]) => {
-        onChange({ damagePoints: points });
-    };
+    const formatTimestamp = (ts: string) =>
+        new Date(ts).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
 
     const handleFileSelect = async (files: FileList | null) => {
         if (!files || files.length === 0) return;
-
         try {
-            // Upload each file to S3 via presigned URLs
-            const uploadPromises = Array.from(files).map(file => uploadPhoto(file));
-            await Promise.all(uploadPromises);
-
-            // Photos will be automatically refreshed via React Query
-            console.log('✅ All photos uploaded successfully');
-        } catch (error) {
-            console.error('❌ Error uploading photos:', error);
+            await Promise.all(Array.from(files).map(f => uploadPhoto(f)));
+        } catch {
             alert('Błąd podczas przesyłania zdjęć. Spróbuj ponownie.');
         }
     };
 
     const handleDeletePhoto = async (photoId: string) => {
         if (!confirm('Czy na pewno chcesz usunąć to zdjęcie?')) return;
-
         try {
             await deletePhoto(photoId);
-            console.log('✅ Photo deleted successfully');
-        } catch (error) {
-            console.error('❌ Error deleting photo:', error);
+        } catch {
             alert('Błąd podczas usuwania zdjęcia. Spróbuj ponownie.');
         }
     };
 
-    const handleChooseFromDisk = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleTakePhoto = () => {
-        cameraInputRef.current?.click();
+    const handleDamagePointsChange = (points: DamagePoint[]) => {
+        onChange({ damagePoints: points });
     };
 
     return (
         <StepContainer>
-            <Card>
-                <CardHeader style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <CardTitle>Dokumentacja zdjęciowa (opcjonalna)</CardTitle>
-                    <Toggle
-                        checked={showPhotoDocumentation}
-                        onChange={setShowPhotoDocumentation}
-                        label="Rozwiń sekcję"
-                    />
-                </CardHeader>
 
-                {showPhotoDocumentation && (
-                    <>
-                        <QRSection>
-                            <QRTitle>Zeskanuj kod QR aby dodać zdjęcia</QRTitle>
-                            <QRDescription>Użyj telefonu aby wykonać i przesłać zdjęcia pojazdu</QRDescription>
-                            <QRPlaceholder>
-                                Tu pojawi się QR kod jak przygotujemy implementację
-                            </QRPlaceholder>
+            {/* ── 1. Dokumentacja zdjęciowa ──────────────────────────── */}
+            <SectionCard>
+                <SectionHead>
+                    <SectionTitleRow>
+                        <SectionNum>1</SectionNum>
+                        <SectionLabel>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            Dokumentacja zdjęciowa
+                            <span style={{ fontSize: '12px', fontWeight: 400, color: st.textMuted }}>(opcjonalna)</span>
+                            {uploadedPhotos.length > 0 && (
+                                <CountChip>{uploadedPhotos.length}</CountChip>
+                            )}
+                        </SectionLabel>
+                    </SectionTitleRow>
+                </SectionHead>
+                <SectionBody>
+                    <UploadZone>
+                        <UploadIcon>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                        </UploadIcon>
+                        <div>
+                            <UploadTitle>Prześlij zdjęcia pojazdu</UploadTitle>
+                            <UploadSubtitle>lub zeskanuj kod QR, aby użyć telefonu</UploadSubtitle>
+                        </div>
 
-                            <HiddenFileInput
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                onChange={(e) => handleFileSelect(e.target.files)}
-                            />
-                            <HiddenFileInput
-                                ref={cameraInputRef}
-                                type="file"
-                                accept="image/*"
-                                capture="environment"
-                                onChange={(e) => handleFileSelect(e.target.files)}
-                            />
+                        <UploadActions>
+                            <PrimaryUploadBtn
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isUploading}
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="17 8 12 3 7 8" />
+                                    <line x1="12" y1="3" x2="12" y2="15" />
+                                </svg>
+                                Wybierz z dysku
+                            </PrimaryUploadBtn>
 
-                            <ButtonGroup>
-                                <Button $variant="secondary" onClick={refreshPhotos} disabled={isRefreshing}>
-                                    {isRefreshing ? t.common.loading : 'Odśwież zdjęcia'}
-                                </Button>
-                                <Button
-                                    $variant="secondary"
-                                    onClick={handleChooseFromDisk}
+                            {isMobile && (
+                                <UploadBtn
+                                    onClick={() => cameraInputRef.current?.click()}
                                     disabled={isUploading}
                                 >
-                                    📁 Wybierz z dysku
-                                </Button>
-                                {isMobile && (
-                                    <Button
-                                        $variant="secondary"
-                                        onClick={handleTakePhoto}
-                                        disabled={isUploading}
-                                    >
-                                        📷 Zrób zdjęcie
-                                    </Button>
-                                )}
-                            </ButtonGroup>
-
-                            {isUploading && (
-                                <div style={{ fontSize: '14px', color: '#64748b' }}>
-                                    Przesyłanie zdjęć...
-                                </div>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                        <circle cx="12" cy="13" r="4" />
+                                    </svg>
+                                    Zrób zdjęcie
+                                </UploadBtn>
                             )}
-                        </QRSection>
 
-                        {uploadedPhotos.length > 0 && (
-                            <>
-                                <div>
-                                    <h4 style={{ marginBottom: '16px', fontSize: '16px', fontWeight: 600 }}>
-                                        Przesłane zdjęcia ({photosCount})
-                                    </h4>
+                            <UploadBtn onClick={refreshPhotos} disabled={isRefreshing}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="23 4 23 10 17 10" />
+                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                                </svg>
+                                {isRefreshing ? 'Odświeżam…' : 'Odśwież'}
+                            </UploadBtn>
+                        </UploadActions>
 
-                                    <PhotoGrid>
-                                        {uploadedPhotos.map((photo) => (
-                                            <PhotoCard key={photo.id}>
-                                                {(photo.thumbnailUrl || photo.previewUrl) && (
-                                                    <PhotoThumbnail
-                                                        src={photo.thumbnailUrl || photo.previewUrl}
-                                                        alt={photo.fileName || 'Zdjęcie pojazdu'}
-                                                    />
-                                                )}
-                                                <DeleteButton
-                                                    onClick={() => handleDeletePhoto(photo.id)}
-                                                    disabled={isDeleting}
-                                                    title="Usuń zdjęcie"
-                                                >
-                                                    🗑️
-                                                </DeleteButton>
-                                                <PhotoOverlay>
-                                                    {photo.fileName && (
-                                                        <PhotoDescription style={{ color: 'white' }}>
-                                                            {photo.fileName}
-                                                        </PhotoDescription>
-                                                    )}
-                                                    {photo.uploadedAt && (
-                                                        <PhotoTimestamp style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                                                            {formatTimestamp(photo.uploadedAt)}
-                                                        </PhotoTimestamp>
-                                                    )}
-                                                </PhotoOverlay>
-                                            </PhotoCard>
-                                        ))}
-                                    </PhotoGrid>
-                                </div>
-                            </>
+                        {isUploading && (
+                            <UploadingLabel>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="23 4 23 10 17 10" />
+                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                                </svg>
+                                Przesyłanie zdjęć…
+                            </UploadingLabel>
                         )}
-                    </>
-                )}
-            </Card>
+                    </UploadZone>
 
-            <Card>
-                <CardHeader style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <CardTitle>Dokumentacja uszkodzeń (opcjonalna)</CardTitle>
-                    <Toggle
-                        checked={showDamageDocumentation}
-                        onChange={setShowDamageDocumentation}
-                        label="Rozwiń sekcję"
+                    {/* QR code placeholder */}
+                    <QrWrap style={{ marginTop: 16 }}>
+                        <QrBox>QR kod<br />(wkrótce)</QrBox>
+                        <QrLabel>Zeskanuj telefonem, aby przesłać zdjęcia bezprzewodowo</QrLabel>
+                    </QrWrap>
+
+                    {/* Photo grid */}
+                    {uploadedPhotos.length > 0 && (
+                        <>
+                            <SectionDivider />
+                            <PhotosHeader>
+                                <PhotosTitle>Przesłane zdjęcia</PhotosTitle>
+                                <CountChip>{uploadedPhotos.length}</CountChip>
+                            </PhotosHeader>
+                            <PhotoGrid>
+                                {uploadedPhotos.map(photo => (
+                                    <PhotoCard key={photo.id}>
+                                        {(photo.thumbnailUrl || photo.previewUrl) && (
+                                            <PhotoImg
+                                                src={photo.thumbnailUrl || photo.previewUrl}
+                                                alt={photo.fileName || 'Zdjęcie pojazdu'}
+                                            />
+                                        )}
+                                        <DeletePhotoBtn
+                                            onClick={() => handleDeletePhoto(photo.id)}
+                                            disabled={isDeleting}
+                                            title="Usuń zdjęcie"
+                                        >
+                                            ×
+                                        </DeletePhotoBtn>
+                                        <PhotoOverlay className="photo-overlay">
+                                            {photo.fileName && <PhotoName>{photo.fileName}</PhotoName>}
+                                            {photo.uploadedAt && <PhotoTime>{formatTimestamp(photo.uploadedAt)}</PhotoTime>}
+                                        </PhotoOverlay>
+                                    </PhotoCard>
+                                ))}
+                            </PhotoGrid>
+                        </>
+                    )}
+
+                    <HiddenInput
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={(e) => handleFileSelect(e.target.files)}
                     />
-                </CardHeader>
+                    <HiddenInput
+                        ref={cameraInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={(e) => handleFileSelect(e.target.files)}
+                    />
+                </SectionBody>
+            </SectionCard>
 
-                {showDamageDocumentation && (
-                    <>
+            {/* ── 2. Dokumentacja uszkodzeń ──────────────────────────── */}
+            <SectionCard>
+                <SectionHead>
+                    <SectionTitleRow>
+                        <SectionNum>2</SectionNum>
+                        <SectionLabel>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                            </svg>
+                            Dokumentacja uszkodzeń
+                            <span style={{ fontSize: '12px', fontWeight: 400, color: st.textMuted }}>(opcjonalna)</span>
+                            {(formData.damagePoints?.length ?? 0) > 0 && (
+                                <CountChip>{formData.damagePoints!.length}</CountChip>
+                            )}
+                        </SectionLabel>
+                    </SectionTitleRow>
+                    <Toggle
+                        checked={showDamageSection}
+                        onChange={setShowDamageSection}
+                        label="Rozwiń"
+                    />
+                </SectionHead>
+
+                {showDamageSection && (
+                    <SectionBody>
                         <VehicleDamageMapper
                             imageUrl="/assets/image_627063.jpg"
                             points={formData.damagePoints || []}
                             onChange={handleDamagePointsChange}
                         />
-                    </>
+                    </SectionBody>
                 )}
-            </Card>
+            </SectionCard>
         </StepContainer>
     );
 };
