@@ -1,107 +1,227 @@
 // src/modules/operations/components/OperationFilterBar.tsx
 
 import styled from 'styled-components';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { FilterStatus } from '../types';
 
-const FilterBarContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding: 20px 24px;
-    background: white;
-    border-bottom: 1px solid #e2e8f0;
+// ─── Filter chip color map ────────────────────────────────────────────────────
+
+const chipColor: Record<FilterStatus | 'ALL', string> = {
+    ALL:              st.accentBlue,
+    RESERVATIONS:     '#2563EB',
+    IN_PROGRESS:      '#059669',
+    READY_FOR_PICKUP: '#D97706',
+    COMPLETED:        '#64748B',
+    REJECTED:         '#DC2626',
+    ARCHIVED:         '#94A3B8',
+};
+
+// ─── Styled components ────────────────────────────────────────────────────────
+
+const Wrapper = styled.div`
+    border-bottom: 1px solid ${st.border};
 `;
 
-const FilterRow = styled.div`
+const TopRow = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: 12px;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    flex-wrap: wrap;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
+        flex-wrap: nowrap;
     }
 `;
 
-const FilterButtons = styled.div`
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
+const SearchWrapper = styled.div`
+    position: relative;
     flex: 1;
+    min-width: 220px;
 `;
 
-const DateFilterContainer = styled.div`
+const SearchIconEl = styled.svg`
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: ${st.textMuted};
+    pointer-events: none;
+`;
+
+const SearchInput = styled.input`
+    width: 100%;
+    padding: 9px 14px 9px 38px;
+    background: ${st.bgCardAlt};
+    border: 1.5px solid ${st.border};
+    border-radius: 10px;
+    font-size: 13px;
+    color: ${st.text};
+    transition: all ${st.transition};
+
+    &::placeholder {
+        color: ${st.textMuted};
+    }
+
+    &:focus {
+        outline: none;
+        border-color: ${st.accentBlue};
+        background: #fff;
+        box-shadow: ${st.shadowBlue};
+    }
+`;
+
+const DateWrap = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 6px;
+    flex-shrink: 0;
 `;
 
 const DateLabel = styled.label`
     font-size: 13px;
     font-weight: 500;
-    color: #475569;
+    color: ${st.textSecondary};
     white-space: nowrap;
 `;
 
 const DateInput = styled.input`
-    padding: 8px 12px;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
+    padding: 9px 12px;
+    background: ${st.bgCardAlt};
+    border: 1.5px solid ${st.border};
+    border-radius: 10px;
     font-size: 13px;
-    color: #0f172a;
-    background: white;
-    transition: all 0.15s ease;
-    min-width: 150px;
+    color: ${st.text};
+    transition: all ${st.transition};
+    cursor: pointer;
 
     &:focus {
         outline: none;
-        border-color: var(--brand-primary);
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-
-    &:hover {
-        border-color: #cbd5e1;
+        border-color: ${st.accentBlue};
+        background: #fff;
+        box-shadow: ${st.shadowBlue};
     }
 `;
 
-const FilterButton = styled.button<{ $isActive?: boolean }>`
-    padding: 8px 16px;
-    border: 1px solid ${props => props.$isActive ? 'var(--brand-primary)' : '#e2e8f0'};
-    border-radius: 6px;
-    background: ${props => props.$isActive ? 'var(--brand-primary)' : 'white'};
-    color: ${props => props.$isActive ? 'white' : '#64748b'};
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-
-    &:hover {
-        border-color: var(--brand-primary);
-        background: ${props => props.$isActive ? 'var(--brand-primary)' : '#f0f9ff'};
-        color: ${props => props.$isActive ? 'white' : 'var(--brand-primary)'};
-    }
-`;
-
-const ClearButton = styled.button`
-    padding: 8px 16px;
+const ClearDateBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
     border: none;
-    border-radius: 6px;
-    background: transparent;
-    color: #64748b;
-    font-size: 13px;
-    font-weight: 500;
+    border-radius: 50%;
+    background: ${st.bgCardAlt};
+    color: ${st.textMuted};
     cursor: pointer;
-    transition: all 0.15s ease;
-    text-decoration: underline;
+    transition: all ${st.transition};
+    flex-shrink: 0;
 
     &:hover {
-        color: #0f172a;
+        background: rgba(220, 38, 38, 0.1);
+        color: #DC2626;
+    }
+
+    svg {
+        width: 14px;
+        height: 14px;
     }
 `;
+
+const FiltersRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 20px 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+`;
+
+const Chip = styled.button<{ $active: boolean; $color: string }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border: 1.5px solid ${props => props.$active ? props.$color : st.border};
+    border-radius: ${st.radiusFull};
+    background: ${props => props.$active ? `${props.$color}18` : 'transparent'};
+    color: ${props => props.$active ? props.$color : st.textSecondary};
+    font-size: 12px;
+    font-weight: ${props => props.$active ? 600 : 500};
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all ${st.transition};
+    line-height: 1;
+
+    &:hover {
+        border-color: ${props => props.$color};
+        color: ${props => props.$color};
+        background: ${props => `${props.$color}10`};
+    }
+`;
+
+const ChipDot = styled.span<{ $color: string }>`
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: ${props => props.$color};
+    flex-shrink: 0;
+`;
+
+const Separator = styled.div`
+    width: 1px;
+    height: 18px;
+    background: ${st.border};
+    flex-shrink: 0;
+    margin: 0 2px;
+`;
+
+const ClearAllBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    border: none;
+    background: transparent;
+    color: ${st.textMuted};
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    border-radius: ${st.radiusFull};
+    transition: all ${st.transition};
+
+    &:hover {
+        color: #DC2626;
+        background: rgba(220, 38, 38, 0.08);
+    }
+`;
+
+// ─── Filter definitions ───────────────────────────────────────────────────────
+
+const FILTERS: { value: FilterStatus; label: string }[] = [
+    { value: 'RESERVATIONS',     label: 'Rezerwacje'   },
+    { value: 'IN_PROGRESS',      label: 'W realizacji' },
+    { value: 'READY_FOR_PICKUP', label: 'Do odbioru'   },
+    { value: 'COMPLETED',        label: 'Zakończone'   },
+    { value: 'REJECTED',         label: 'Odrzucone'    },
+    { value: 'ARCHIVED',         label: 'Archiwum'     },
+];
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 interface OperationFilterBarProps {
+    search: string;
+    onSearchChange: (val: string) => void;
     selectedFilter?: FilterStatus;
     selectedDate?: string;
     onFilterChange: (filter: FilterStatus | undefined) => void;
@@ -110,68 +230,90 @@ interface OperationFilterBarProps {
 }
 
 export const OperationFilterBar = ({
-                                       selectedFilter,
-                                       selectedDate,
-                                       onFilterChange,
-                                       onDateChange,
-                                       onClearFilters,
-                                   }: OperationFilterBarProps) => {
-    const filters: { value: FilterStatus; label: string }[] = [
-        { value: 'RESERVATIONS', label: 'Rezerwacje' },
-        { value: 'IN_PROGRESS', label: 'W realizacji' },
-        { value: 'READY_FOR_PICKUP', label: 'Do odbioru' },
-        { value: 'COMPLETED', label: 'Zakończone' },
-        { value: 'REJECTED', label: 'Odrzucone' },
-        { value: 'ARCHIVED', label: 'Zarchiwizowane' },
-    ];
-
-    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        onDateChange(value || undefined);
-    };
-
-    const handleClearDate = () => {
-        onDateChange(undefined);
-    };
+    search,
+    onSearchChange,
+    selectedFilter,
+    selectedDate,
+    onFilterChange,
+    onDateChange,
+    onClearFilters,
+}: OperationFilterBarProps) => {
+    const hasActiveFilters = !!selectedFilter || !!selectedDate;
 
     return (
-        <FilterBarContainer>
-            <FilterRow>
-                <FilterButtons>
-                    {filters.map(filter => (
-                        <FilterButton
-                            key={filter.value}
-                            $isActive={selectedFilter === filter.value}
-                            onClick={() =>
-                                onFilterChange(selectedFilter === filter.value ? undefined : filter.value)
-                            }
-                        >
-                            {filter.label}
-                        </FilterButton>
-                    ))}
-                </FilterButtons>
+        <Wrapper>
+            <TopRow>
+                <SearchWrapper>
+                    <SearchIconEl viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                    </SearchIconEl>
+                    <SearchInput
+                        type="text"
+                        placeholder="Szukaj klienta, pojazdu lub rejestracji..."
+                        value={search}
+                        onChange={e => onSearchChange(e.target.value)}
+                    />
+                </SearchWrapper>
 
-                <DateFilterContainer>
-                    <DateLabel htmlFor="date-filter">Data:</DateLabel>
+                <DateWrap>
+                    <DateLabel htmlFor="op-date-filter">Data:</DateLabel>
                     <DateInput
-                        id="date-filter"
+                        id="op-date-filter"
                         type="date"
-                        value={selectedDate || ''}
-                        onChange={handleDateChange}
+                        value={selectedDate ?? ''}
+                        onChange={e => onDateChange(e.target.value || undefined)}
                     />
                     {selectedDate && (
-                        <ClearButton onClick={handleClearDate}>
-                            Wyczyść
-                        </ClearButton>
+                        <ClearDateBtn onClick={() => onDateChange(undefined)} title="Wyczyść datę">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                        </ClearDateBtn>
                     )}
-                </DateFilterContainer>
-            </FilterRow>
+                </DateWrap>
+            </TopRow>
 
-            {(selectedFilter || selectedDate) && (
-                <ClearButton onClick={onClearFilters}>
-                    Wyczyść wszystkie filtry
-                </ClearButton>
-            )}
-        </FilterBarContainer>
+            <FiltersRow>
+                <Chip
+                    $active={!selectedFilter}
+                    $color={chipColor.ALL}
+                    onClick={() => onFilterChange(undefined)}
+                >
+                    <ChipDot $color={chipColor.ALL} />
+                    Wszystkie
+                </Chip>
+
+                <Separator />
+
+                {FILTERS.map(f => (
+                    <Chip
+                        key={f.value}
+                        $active={selectedFilter === f.value}
+                        $color={chipColor[f.value]}
+                        onClick={() =>
+                            onFilterChange(selectedFilter === f.value ? undefined : f.value)
+                        }
+                    >
+                        <ChipDot $color={chipColor[f.value]} />
+                        {f.label}
+                    </Chip>
+                ))}
+
+                {hasActiveFilters && (
+                    <>
+                        <Separator />
+                        <ClearAllBtn onClick={onClearFilters}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                            Wyczyść filtry
+                        </ClearAllBtn>
+                    </>
+                )}
+            </FiltersRow>
+        </Wrapper>
     );
 };
