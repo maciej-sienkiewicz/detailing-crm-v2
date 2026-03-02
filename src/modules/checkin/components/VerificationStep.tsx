@@ -132,7 +132,7 @@ const ActionBtn = styled.button<{ $primary?: boolean }>`
 `;
 
 const SectionBody = styled.div`
-    padding: 20px;
+    padding: 16px 20px 20px;
 `;
 
 // ─── Collapsible panel ────────────────────────────────────────────────────────
@@ -237,26 +237,26 @@ const ColorTrigger = styled.button`
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 16px;
+    padding: 9px 12px;
     border: 1px solid ${st.border};
     border-radius: 8px;
-    background: ${st.bgCardAlt};
+    background: #F8FAFC;
     cursor: pointer;
     transition: all ${st.transition};
-    font-size: 16px;
-    font-weight: 500;
+    font-size: 14px;
+    font-weight: 400;
     color: ${st.text};
 
     &:hover {
         border-color: ${st.borderHover};
-        background: ${st.bgCard};
+        background: #FFFFFF;
     }
 
     &:focus {
         outline: none;
         border-color: ${st.accentBlue};
         box-shadow: ${st.shadowBlue};
-        background: ${st.bgCard};
+        background: #FFFFFF;
     }
 `;
 
