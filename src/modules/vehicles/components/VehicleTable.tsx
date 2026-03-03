@@ -1,8 +1,18 @@
-import { useState } from 'react';
-import styled from 'styled-components';
+import { useState, useEffect } from 'react';
+import styled, { keyframes } from 'styled-components';
 import type { VehicleListItem } from '../types';
 import { formatCurrency, formatDate } from '@/common/utils';
 import { t } from '@/common/i18n';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
+
+// ─── Animations ───────────────────────────────────────────────────────────────
+
+const fadeIn = keyframes`
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+`;
+
+// ─── Styled components ────────────────────────────────────────────────────────
 
 const TableWrapper = styled.div`
     width: 100%;
@@ -10,79 +20,120 @@ const TableWrapper = styled.div`
     -webkit-overflow-scrolling: touch;
 `;
 
-const PlaceholderText = styled.span`
-    color: #94a3b8;
-    font-style: italic;
-    font-size: ${props => props.theme.fontSizes.sm};
-`;
-
 const Table = styled.table`
     width: 100%;
     min-width: 1000px;
     border-collapse: collapse;
-    background: ${props => props.theme.colors.surface};
+    background: ${st.bgCard};
 `;
 
-const TableHead = styled.thead`
-    background: ${props => props.theme.colors.surfaceAlt};
-    border-bottom: 2px solid ${props => props.theme.colors.border};
-`;
+const TableHead = styled.thead``;
 
-const TableHeaderCell = styled.th`
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.sm};
+const Th = styled.th`
+    padding: 10px 20px;
     text-align: left;
-    font-size: ${props => props.theme.fontSizes.xs};
+    font-size: 11px;
     font-weight: 600;
-    color: ${props => props.theme.colors.textMuted};
+    color: ${st.textMuted};
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.07em;
     white-space: nowrap;
+    background: ${st.bg};
+    border-bottom: 1px solid ${st.border};
 `;
 
 const TableBody = styled.tbody``;
 
-const TableRow = styled.tr`
-    border-bottom: 1px solid ${props => props.theme.colors.border};
-    transition: background-color 0.15s ease;
+const Tr = styled.tr`
+    border-bottom: 1px solid ${st.border};
+    transition: background ${st.transition};
     cursor: pointer;
+    animation: ${fadeIn} 200ms ease both;
 
     &:last-child {
         border-bottom: none;
     }
 
     &:hover {
-        background: ${props => props.theme.colors.surfaceHover};
+        background: ${st.bgCardAlt};
     }
 `;
 
-const TableCell = styled.td`
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.sm};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.text};
+const Td = styled.td`
+    padding: 15px 20px;
+    font-size: 13px;
+    color: ${st.text};
     vertical-align: middle;
 `;
 
+// ─── License plate chip ───────────────────────────────────────────────────────
+
 const LicensePlate = styled.span`
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    background: #1E293B;
+    color: #fff;
+    border-radius: 4px;
+    font-size: 11px;
     font-weight: 700;
-    font-size: ${props => props.theme.fontSizes.md};
-    color: ${props => props.theme.colors.text};
+    letter-spacing: 0.6px;
+    font-family: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
+    line-height: 1.4;
 `;
 
-const VehicleInfo = styled.div`
+const PlaceholderText = styled.span`
+    font-size: 13px;
+    color: ${st.textMuted};
+    font-style: italic;
+`;
+
+// ─── Vehicle cell ─────────────────────────────────────────────────────────────
+
+const VehicleMainCell = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    align-items: center;
+    gap: 12px;
 `;
 
-const VehicleName = styled.span`
-    font-weight: 500;
-    color: ${props => props.theme.colors.text};
+const CarBubble = styled.div`
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(5, 150, 105, 0.10);
+    color: #059669;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    svg {
+        width: 18px;
+        height: 18px;
+    }
 `;
 
-const VehicleYear = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
+const VehicleBlock = styled.div`
+    min-width: 0;
 `;
+
+const VehicleNamePrimary = styled.div`
+    font-size: 14px;
+    font-weight: 700;
+    color: ${st.text};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+`;
+
+const VehicleYear = styled.div`
+    font-size: 11px;
+    color: ${st.textMuted};
+    margin-top: 2px;
+`;
+
+// ─── Owners cell ──────────────────────────────────────────────────────────────
 
 const OwnersList = styled.div`
     display: flex;
@@ -90,38 +141,33 @@ const OwnersList = styled.div`
     gap: 2px;
 `;
 
-const OwnerName = styled.span`
-    font-size: ${props => props.theme.fontSizes.sm};
+const OwnerName = styled.div`
+    font-size: 13px;
     font-weight: 500;
-    color: ${props => props.theme.colors.text};
+    color: ${st.text};
 `;
 
-const OwnerSecondary = styled.span`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
+const OwnerSecondary = styled.div`
+    font-size: 11px;
+    color: ${st.textMuted};
 `;
 
-const MoreOwners = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
+const MoreOwners = styled.div`
+    font-size: 11px;
+    color: ${st.textMuted};
     font-style: italic;
 `;
 
-const RevenueInfo = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+// ─── Date cell ────────────────────────────────────────────────────────────────
+
+const DateMain = styled.div`
+    font-size: 13px;
+    font-weight: 600;
+    color: ${st.text};
+    white-space: nowrap;
 `;
 
-const RevenueValue = styled.span`
-    font-weight: 500;
-    color: ${props => props.theme.colors.text};
-`;
-
-const RevenueSubtext = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
-`;
+// ─── Visit badge ──────────────────────────────────────────────────────────────
 
 const VisitBadge = styled.span`
     display: inline-flex;
@@ -129,41 +175,137 @@ const VisitBadge = styled.span`
     justify-content: center;
     min-width: 32px;
     height: 32px;
-    padding: 0 8px;
-    background: ${props => props.theme.colors.surfaceAlt};
-    border: 1px solid ${props => props.theme.colors.border};
-    color: ${props => props.theme.colors.text};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 600;
-    border-radius: ${props => props.theme.radii.md};
+    padding: 0 10px;
+    background: ${st.bgCardAlt};
+    border: 1.5px solid ${st.border};
+    color: ${st.text};
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 8px;
 `;
+
+// ─── Revenue cell ─────────────────────────────────────────────────────────────
+
+const GrossAmt = styled.div`
+    font-size: 15px;
+    font-weight: 700;
+    color: ${st.text};
+    letter-spacing: -0.3px;
+    white-space: nowrap;
+`;
+
+const NetAmt = styled.div`
+    font-size: 11px;
+    color: ${st.textMuted};
+    white-space: nowrap;
+`;
+
+// ─── Actions cell ─────────────────────────────────────────────────────────────
 
 const ActionsCell = styled.td`
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.sm};
+    padding: 15px 20px;
     text-align: right;
+    vertical-align: middle;
 `;
 
-const DeleteButton = styled.button`
-    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
-    background: transparent;
-    color: ${props => props.theme.colors.textMuted};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.xs};
+const ActionsCellWrap = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    position: relative;
+`;
+
+const MenuBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1.5px solid ${st.border};
+    border-radius: 8px;
+    background: ${st.bgCard};
+    color: ${st.textMuted};
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all ${st.transition};
 
     &:hover {
-        background: ${props => props.theme.colors.error};
-        color: white;
-        border-color: ${props => props.theme.colors.error};
+        border-color: ${st.borderHover};
+        color: ${st.text};
+        background: ${st.bgCardAlt};
     }
 
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
+    svg {
+        width: 15px;
+        height: 15px;
     }
 `;
+
+const DropdownMenu = styled.div`
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    min-width: 160px;
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowLg};
+    z-index: 200;
+    overflow: hidden;
+    animation: ${fadeIn} 120ms ease both;
+`;
+
+const DropdownItem = styled.button<{ $danger?: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    border: none;
+    background: none;
+    font-size: 13px;
+    font-weight: 500;
+    color: ${props => props.$danger ? '#DC2626' : st.text};
+    cursor: pointer;
+    text-align: left;
+    transition: background ${st.transition};
+
+    &:hover {
+        background: ${props => props.$danger ? 'rgba(220, 38, 38, 0.07)' : st.bgCardAlt};
+    }
+
+    svg {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+        opacity: 0.75;
+    }
+`;
+
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
+const CarIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+        <path d="M19 17H5a2 2 0 0 1-2-2V9l2-4h10l4 4v4a2 2 0 0 1-2 2Z" />
+        <circle cx="7.5" cy="17" r="1.5" />
+        <circle cx="16.5" cy="17" r="1.5" />
+    </svg>
+);
+
+const DotsIcon = () => (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="5"  r="1.5" />
+        <circle cx="12" cy="12" r="1.5" />
+        <circle cx="12" cy="19" r="1.5" />
+    </svg>
+);
+
+const TrashIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+        <polyline points="3 6 5 6 21 6" />
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+);
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface VehicleTableProps {
     vehicles: VehicleListItem[];
@@ -171,14 +313,28 @@ interface VehicleTableProps {
     onDelete?: (vehicleId: string) => void;
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTableProps) => {
-    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!openMenuId) return;
+        const handler = () => setOpenMenuId(null);
+        document.addEventListener('click', handler);
+        return () => document.removeEventListener('click', handler);
+    }, [openMenuId]);
+
+    const toggleMenu = (id: string, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setOpenMenuId(prev => prev === id ? null : id);
+    };
 
     const handleDelete = (e: React.MouseEvent, vehicleId: string, licensePlate: string) => {
         e.stopPropagation();
-
+        setOpenMenuId(null);
         if (window.confirm(`Czy na pewno chcesz usunąć pojazd ${licensePlate}? Ta operacja jest nieodwracalna.`)) {
-            setDeletingId(vehicleId);
             onDelete?.(vehicleId);
         }
     };
@@ -188,45 +344,44 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
             <Table>
                 <TableHead>
                     <tr>
-                        <TableHeaderCell>{t.vehicles.table.licensePlate}</TableHeaderCell>
-                        <TableHeaderCell>{t.vehicles.table.vehicle}</TableHeaderCell>
-                        <TableHeaderCell>{t.vehicles.table.owners}</TableHeaderCell>
-                        <TableHeaderCell>{t.vehicles.table.lastVisit}</TableHeaderCell>
-                        <TableHeaderCell>{t.vehicles.table.visits}</TableHeaderCell>
-                        <TableHeaderCell>{t.vehicles.table.totalRevenue}</TableHeaderCell>
-                        <TableHeaderCell>{t.vehicles.table.actions}</TableHeaderCell>
+                        <Th>{t.vehicles.table.licensePlate}</Th>
+                        <Th>{t.vehicles.table.vehicle}</Th>
+                        <Th>{t.vehicles.table.owners}</Th>
+                        <Th>{t.vehicles.table.lastVisit}</Th>
+                        <Th>{t.vehicles.table.visits}</Th>
+                        <Th>{t.vehicles.table.totalRevenue}</Th>
+                        <Th>{t.vehicles.table.actions}</Th>
                     </tr>
                 </TableHead>
                 <TableBody>
                     {vehicles.map(vehicle => {
-                        // Sprawdzamy czy rejestracja istnieje i nie jest pustym ciągiem znaków
                         const hasLicensePlate = vehicle.licensePlate?.trim();
 
                         return (
-                            <TableRow
-                                key={vehicle.id}
-                                onClick={() => onRowClick?.(vehicle.id)}
-                            >
-                                <TableCell>
+                            <Tr key={vehicle.id} onClick={() => onRowClick?.(vehicle.id)}>
+                                <Td>
                                     {hasLicensePlate ? (
                                         <LicensePlate>{vehicle.licensePlate}</LicensePlate>
                                     ) : (
-                                        <PlaceholderText>
-                                            Nie wprowadzono danych
-                                        </PlaceholderText>
+                                        <PlaceholderText>Nie wprowadzono danych</PlaceholderText>
                                     )}
-                                </TableCell>
+                                </Td>
 
-                                <TableCell>
-                                    <VehicleInfo>
-                                        <VehicleName>
-                                            {vehicle.brand} {vehicle.model}
-                                        </VehicleName>
-                                        <VehicleYear>{vehicle.yearOfProduction}</VehicleYear>
-                                    </VehicleInfo>
-                                </TableCell>
+                                <Td>
+                                    <VehicleMainCell>
+                                        <CarBubble>
+                                            <CarIcon />
+                                        </CarBubble>
+                                        <VehicleBlock>
+                                            <VehicleNamePrimary>
+                                                {vehicle.brand} {vehicle.model}
+                                            </VehicleNamePrimary>
+                                            <VehicleYear>{vehicle.yearOfProduction}</VehicleYear>
+                                        </VehicleBlock>
+                                    </VehicleMainCell>
+                                </Td>
 
-                                <TableCell>
+                                <Td>
                                     <OwnersList>
                                         {vehicle.owners.length > 0 && vehicle.owners[0].customerName?.trim() ? (
                                             <>
@@ -239,51 +394,59 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
                                                 )}
                                             </>
                                         ) : (
-                                            <PlaceholderText>
-                                                Nie wprowadzono danych
-                                            </PlaceholderText>
+                                            <PlaceholderText>Nie wprowadzono danych</PlaceholderText>
                                         )}
                                     </OwnersList>
-                                </TableCell>
+                                </Td>
 
-                                <TableCell>
-                                    {vehicle.stats.lastVisitDate
-                                        ? formatDate(vehicle.stats.lastVisitDate)
-                                        : '—'
-                                    }
-                                </TableCell>
+                                <Td>
+                                    <DateMain>
+                                        {vehicle.stats.lastVisitDate ? formatDate(vehicle.stats.lastVisitDate) : '—'}
+                                    </DateMain>
+                                </Td>
 
-                                <TableCell>
+                                <Td>
                                     <VisitBadge>{vehicle.stats.totalVisits}</VisitBadge>
-                                </TableCell>
+                                </Td>
 
-                                <TableCell>
-                                    <RevenueInfo>
-                                        <RevenueValue>
-                                            {formatCurrency(
-                                                vehicle.stats.totalSpent.grossAmount,
-                                                vehicle.stats.totalSpent.currency
-                                            )}
-                                        </RevenueValue>
-                                        <RevenueSubtext>
-                                            {formatCurrency(
-                                                vehicle.stats.totalSpent.netAmount,
-                                                vehicle.stats.totalSpent.currency
-                                            )} netto
-                                        </RevenueSubtext>
-                                    </RevenueInfo>
-                                </TableCell>
+                                <Td>
+                                    <GrossAmt>
+                                        {formatCurrency(
+                                            vehicle.stats.totalSpent.grossAmount,
+                                            vehicle.stats.totalSpent.currency
+                                        )}
+                                    </GrossAmt>
+                                    <NetAmt>
+                                        {formatCurrency(
+                                            vehicle.stats.totalSpent.netAmount,
+                                            vehicle.stats.totalSpent.currency
+                                        )} netto
+                                    </NetAmt>
+                                </Td>
 
-                                <ActionsCell>
-                                    <DeleteButton
-                                        onClick={(e) => handleDelete(e, vehicle.id, vehicle.licensePlate || '')}
-                                        disabled={deletingId === vehicle.id}
-                                        title="Usuń pojazd"
-                                    >
-                                        {deletingId === vehicle.id ? '...' : 'Usuń'}
-                                    </DeleteButton>
+                                <ActionsCell onClick={e => e.stopPropagation()}>
+                                    <ActionsCellWrap>
+                                        <MenuBtn
+                                            onClick={e => toggleMenu(vehicle.id, e)}
+                                            title="Akcje"
+                                        >
+                                            <DotsIcon />
+                                        </MenuBtn>
+
+                                        {openMenuId === vehicle.id && (
+                                            <DropdownMenu>
+                                                <DropdownItem
+                                                    $danger
+                                                    onClick={e => handleDelete(e, vehicle.id, vehicle.licensePlate || '')}
+                                                >
+                                                    <TrashIcon />
+                                                    Usuń pojazd
+                                                </DropdownItem>
+                                            </DropdownMenu>
+                                        )}
+                                    </ActionsCellWrap>
                                 </ActionsCell>
-                            </TableRow>
+                            </Tr>
                         );
                     })}
                 </TableBody>

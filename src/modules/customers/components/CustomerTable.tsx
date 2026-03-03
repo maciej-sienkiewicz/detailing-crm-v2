@@ -1,104 +1,191 @@
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import type { Customer } from '../types';
-import { formatDate, formatPhoneNumber, getFullName, formatCurrency } from '../utils/customerMappers';
+import { formatDate, formatPhoneNumber, formatCurrency } from '../utils/customerMappers';
 import { formatNip } from '../utils/polishValidators';
 import { t } from '@/common/i18n';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
+
+// ─── Animations ───────────────────────────────────────────────────────────────
+
+const fadeIn = keyframes`
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+`;
+
+// ─── Styled components ────────────────────────────────────────────────────────
 
 const TableWrapper = styled.div`
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 `;
 
 const Table = styled.table`
-  width: 100%;
-  min-width: 900px;
-  border-collapse: collapse;
-  background: ${props => props.theme.colors.surface};
-  border-radius: ${props => props.theme.radii.lg};
-  overflow: hidden;
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+    background: ${st.bgCard};
 `;
 
-const TableHead = styled.thead`
-  background: ${props => props.theme.colors.surfaceAlt};
-`;
+const TableHead = styled.thead``;
 
-const TableHeaderCell = styled.th`
-  padding: ${props => props.theme.spacing.md};
-  text-align: left;
-  font-size: ${props => props.theme.fontSizes.xs};
-  font-weight: 600;
-  color: ${props => props.theme.colors.textMuted};
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
+const Th = styled.th`
+    padding: 10px 20px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    white-space: nowrap;
+    background: ${st.bg};
+    border-bottom: 1px solid ${st.border};
 `;
 
 const TableBody = styled.tbody``;
 
-const TableRow = styled.tr`
-  border-bottom: 1px solid ${props => props.theme.colors.border};
-  transition: background-color 0.15s ease;
-  cursor: pointer;
+const Tr = styled.tr`
+    border-bottom: 1px solid ${st.border};
+    transition: background ${st.transition};
+    cursor: pointer;
+    animation: ${fadeIn} 200ms ease both;
 
-  &:last-child {
-    border-bottom: none;
-  }
+    &:last-child {
+        border-bottom: none;
+    }
 
-  &:hover {
-    background: ${props => props.theme.colors.surfaceHover};
-  }
+    &:hover {
+        background: ${st.bgCardAlt};
+    }
 `;
 
-const TableCell = styled.td`
-  padding: ${props => props.theme.spacing.md};
-  font-size: ${props => props.theme.fontSizes.sm};
-  color: ${props => props.theme.colors.text};
-  vertical-align: middle;
+const Td = styled.td`
+    padding: 15px 20px;
+    font-size: 13px;
+    color: ${st.text};
+    vertical-align: middle;
 `;
+
+// ─── Customer cell ────────────────────────────────────────────────────────────
+
+const CustomerCell = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+`;
+
+const AvatarBubble = styled.div`
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(59, 130, 246, 0.10);
+    color: #3B82F6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    svg {
+        width: 18px;
+        height: 18px;
+    }
+`;
+
+const NameBlock = styled.div`
+    min-width: 0;
+`;
+
+const NamePrimary = styled.div`
+    font-size: 14px;
+    font-weight: 700;
+    color: ${st.text};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+`;
+
+const NamePlaceholder = styled.div`
+    font-size: 14px;
+    font-weight: 500;
+    color: ${st.textMuted};
+    font-style: italic;
+`;
+
+// ─── Generic cell stack ───────────────────────────────────────────────────────
 
 const CellStack = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 `;
 
-const PrimaryText = styled.span`
-  font-weight: 500;
-  color: ${props => props.theme.colors.text};
+const CellPrimary = styled.div`
+    font-size: 13px;
+    font-weight: 500;
+    color: ${st.text};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 `;
 
-const SecondaryText = styled.span`
-  font-size: ${props => props.theme.fontSizes.xs};
-  color: ${props => props.theme.colors.textMuted};
+const CellSecondary = styled.div`
+    font-size: 11px;
+    color: ${st.textMuted};
 `;
 
-const LabelText = styled.span`
-  font-size: ${props => props.theme.fontSizes.xs};
-  color: ${props => props.theme.colors.textMuted};
-  margin-right: 4px;
+// ─── Date cell ────────────────────────────────────────────────────────────────
+
+const DateMain = styled.div`
+    font-size: 13px;
+    font-weight: 600;
+    color: ${st.text};
+    white-space: nowrap;
 `;
 
-const Badge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 24px;
-  height: 24px;
-  padding: 0 8px;
-  background: var(--brand-primary);
-  color: white;
-  font-size: ${props => props.theme.fontSizes.xs};
-  font-weight: 600;
-  border-radius: ${props => props.theme.radii.full};
+// ─── Count badges ─────────────────────────────────────────────────────────────
+
+const CountBadge = styled.span`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 24px;
+    padding: 0 8px;
+    background: var(--brand-primary);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 9999px;
 `;
 
-const PlaceholderText = styled.span`
-  color: #94a3b8;
-  font-style: italic;
-  font-size: ${props => props.theme.fontSizes.sm};
+// ─── Revenue cell ─────────────────────────────────────────────────────────────
+
+const GrossAmt = styled.div`
+    font-size: 15px;
+    font-weight: 700;
+    color: ${st.text};
+    letter-spacing: -0.3px;
+    white-space: nowrap;
 `;
+
+const NetAmt = styled.div`
+    font-size: 11px;
+    color: ${st.textMuted};
+    white-space: nowrap;
+`;
+
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
+const PersonIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+    </svg>
+);
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const getRawFullName = (customer: Customer): string => {
     const first = customer.firstName?.trim() || '';
@@ -106,29 +193,29 @@ const getRawFullName = (customer: Customer): string => {
     return `${first} ${last}`.trim();
 };
 
+// ─── Props ────────────────────────────────────────────────────────────────────
+
 interface CustomerTableProps {
     customers: Customer[];
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export const CustomerTable = ({ customers }: CustomerTableProps) => {
     const navigate = useNavigate();
-
-    const handleRowClick = (customerId: string) => {
-        navigate(`/customers/${customerId}`);
-    };
 
     return (
         <TableWrapper>
             <Table>
                 <TableHead>
                     <tr>
-                        <TableHeaderCell>{t.customers.table.customer}</TableHeaderCell>
-                        <TableHeaderCell>{t.customers.table.contact}</TableHeaderCell>
-                        <TableHeaderCell>{t.customers.table.company}</TableHeaderCell>
-                        <TableHeaderCell>{t.customers.table.lastVisit}</TableHeaderCell>
-                        <TableHeaderCell>{t.customers.table.visits}</TableHeaderCell>
-                        <TableHeaderCell>{t.customers.table.vehicles}</TableHeaderCell>
-                        <TableHeaderCell>{t.customers.table.revenue}</TableHeaderCell>
+                        <Th>{t.customers.table.customer}</Th>
+                        <Th>{t.customers.table.contact}</Th>
+                        <Th>{t.customers.table.company}</Th>
+                        <Th>{t.customers.table.lastVisit}</Th>
+                        <Th>{t.customers.table.visits}</Th>
+                        <Th>{t.customers.table.vehicles}</Th>
+                        <Th>{t.customers.table.revenue}</Th>
                     </tr>
                 </TableHead>
                 <TableBody>
@@ -136,59 +223,55 @@ export const CustomerTable = ({ customers }: CustomerTableProps) => {
                         const fullName = getRawFullName(customer);
 
                         return (
-                            <TableRow key={customer.id} onClick={() => handleRowClick(customer.id)}>
-                                <TableCell>
+                            <Tr key={customer.id} onClick={() => navigate(`/customers/${customer.id}`)}>
+                                <Td>
+                                    <CustomerCell>
+                                        <AvatarBubble>
+                                            <PersonIcon />
+                                        </AvatarBubble>
+                                        <NameBlock>
+                                            {fullName ? (
+                                                <NamePrimary>{fullName}</NamePrimary>
+                                            ) : (
+                                                <NamePlaceholder>Nie wprowadzono danych</NamePlaceholder>
+                                            )}
+                                        </NameBlock>
+                                    </CustomerCell>
+                                </Td>
+                                <Td>
                                     <CellStack>
-                                        {fullName ? (
-                                            <PrimaryText>{fullName}</PrimaryText>
-                                        ) : (
-                                            <PlaceholderText>
-                                                Nie wprowadzono danych
-                                            </PlaceholderText>
-                                        )}
+                                        <CellPrimary>{customer.contact.email}</CellPrimary>
+                                        <CellSecondary>{formatPhoneNumber(customer.contact.phone)}</CellSecondary>
                                     </CellStack>
-                                </TableCell>
-                                <TableCell>
-                                    <CellStack>
-                                        <PrimaryText>{customer.contact.email}</PrimaryText>
-                                        <SecondaryText>
-                                            {formatPhoneNumber(customer.contact.phone)}
-                                        </SecondaryText>
-                                    </CellStack>
-                                </TableCell>
-                                {/* ... reszta komórek bez zmian ... */}
-                                <TableCell>
+                                </Td>
+                                <Td>
                                     {customer.company ? (
                                         <CellStack>
-                                            <PrimaryText>{customer.company.name}</PrimaryText>
-                                            <SecondaryText>
-                                                NIP: {formatNip(customer.company.nip)}
-                                            </SecondaryText>
+                                            <CellPrimary>{customer.company.name}</CellPrimary>
+                                            <CellSecondary>NIP: {formatNip(customer.company.nip)}</CellSecondary>
                                         </CellStack>
                                     ) : (
-                                        <SecondaryText>—</SecondaryText>
+                                        <CellSecondary>—</CellSecondary>
                                     )}
-                                </TableCell>
-                                <TableCell>{formatDate(customer.lastVisitDate)}</TableCell>
-                                <TableCell>
-                                    <Badge>{customer.totalVisits}</Badge>
-                                </TableCell>
-                                <TableCell>
-                                    <Badge>{customer.vehicleCount}</Badge>
-                                </TableCell>
-                                <TableCell>
-                                    <CellStack>
-                                        <PrimaryText>
-                                            <LabelText>{t.customers.table.revenueNet}:</LabelText>
-                                            {formatCurrency(customer.totalRevenue.netAmount, customer.totalRevenue.currency)}
-                                        </PrimaryText>
-                                        <SecondaryText>
-                                            <LabelText>{t.customers.table.revenueGross}:</LabelText>
-                                            {formatCurrency(customer.totalRevenue.grossAmount, customer.totalRevenue.currency)}
-                                        </SecondaryText>
-                                    </CellStack>
-                                </TableCell>
-                            </TableRow>
+                                </Td>
+                                <Td>
+                                    <DateMain>{formatDate(customer.lastVisitDate)}</DateMain>
+                                </Td>
+                                <Td>
+                                    <CountBadge>{customer.totalVisits}</CountBadge>
+                                </Td>
+                                <Td>
+                                    <CountBadge>{customer.vehicleCount}</CountBadge>
+                                </Td>
+                                <Td>
+                                    <GrossAmt>
+                                        {formatCurrency(customer.totalRevenue.grossAmount, customer.totalRevenue.currency)}
+                                    </GrossAmt>
+                                    <NetAmt>
+                                        netto {formatCurrency(customer.totalRevenue.netAmount, customer.totalRevenue.currency)}
+                                    </NetAmt>
+                                </Td>
+                            </Tr>
                         );
                     })}
                 </TableBody>
