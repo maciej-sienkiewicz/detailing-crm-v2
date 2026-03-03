@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useMutation } from '@tanstack/react-query';
 import { Modal } from '@/common/components/Modal';
-import { Button } from '@/common/components/Button';
 import { visitApi } from '@/modules/visits/api/visitApi';
 import { DocumentPreview } from './DocumentPreview';
 import { SkipSigningConfirmDialog } from './SkipSigningConfirmDialog';
@@ -142,9 +141,80 @@ const SecondaryActionGroup = styled.div`
     justify-content: center;
 `;
 
-const SkipButton = styled(Button)`
-    color: ${props => props.theme.colors.textMuted};
-    font-size: ${props => props.theme.fontSizes.sm};
+const CancelBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    background: ${st.bgCard};
+    color: ${st.textSecondary};
+    border: 1.5px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    cursor: pointer;
+    transition: all ${st.transition};
+    white-space: nowrap;
+
+    &:hover:not(:disabled) {
+        border-color: ${st.borderHover};
+        color: ${st.text};
+        background: ${st.bgCardAlt};
+    }
+
+    &:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+`;
+
+const ConfirmBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 22px;
+    background: ${st.accentBlue};
+    color: #fff;
+    border: none;
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    cursor: pointer;
+    transition: all ${st.transition};
+    white-space: nowrap;
+    box-shadow: 0 1px 4px rgba(37, 99, 235, 0.25);
+
+    &:hover:not(:disabled) {
+        background: #1D4ED8;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    }
+
+    &:disabled {
+        background: ${st.textMuted};
+        box-shadow: none;
+        cursor: not-allowed;
+        transform: none;
+    }
+`;
+
+const SkipLink = styled.button`
+    background: none;
+    border: none;
+    padding: 6px 12px;
+    font-size: ${st.fontSm};
+    font-weight: 500;
+    color: ${st.textMuted};
+    cursor: pointer;
+    transition: color ${st.transition};
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: transparent;
+
+    &:hover {
+        color: ${st.textSecondary};
+        text-decoration-color: ${st.textMuted};
+    }
 `;
 
 const spin = keyframes`
@@ -424,30 +494,25 @@ export const SigningRequirementModal = ({
 
                     <FooterActions>
                         <PrimaryActionGroup>
-                            <Button
-                                $variant="secondary"
+                            <CancelBtn
                                 onClick={handleCancel}
                                 disabled={!canInteract || isProcessing}
                             >
                                 Anuluj wizytę
-                            </Button>
-                            <Button
-                                $variant="primary"
+                            </CancelBtn>
+                            <ConfirmBtn
                                 onClick={handleConfirm}
                                 disabled={!canInteract || !canProceed || isProcessing}
                             >
                                 {isProcessing ? 'Przetwarzanie...' : 'Zatwierdź i rozpocznij wizytę'}
-                            </Button>
+                            </ConfirmBtn>
                         </PrimaryActionGroup>
 
                         {!canProceed && !isProcessing && canInteract && (
                             <SecondaryActionGroup>
-                                <SkipButton
-                                    $variant="secondary"
-                                    onClick={handleSkipSigning}
-                                >
+                                <SkipLink onClick={handleSkipSigning}>
                                     Rozpocznij bez podpisów
-                                </SkipButton>
+                                </SkipLink>
                             </SecondaryActionGroup>
                         )}
                     </FooterActions>
