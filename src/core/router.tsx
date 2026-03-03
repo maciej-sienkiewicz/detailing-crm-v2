@@ -21,6 +21,7 @@ import {DashboardView} from "@/modules/dashboard";
 import {GrowthEngineView} from "@/modules/growth-engine";
 import {FinanceView} from "@/modules/finance";
 import { StatisticsView, CategoryDetailView } from "@/modules/statistics";
+import { CompetitionMonitoringView } from "@/modules/competition-monitoring";
 
 export const router = createBrowserRouter([
     {
@@ -210,6 +211,14 @@ export const router = createBrowserRouter([
         element: (
             <ProtectedRoute>
                 <Layout><CategoryDetailView /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/competition-monitoring',
+        element: (
+            <ProtectedRoute>
+                <Layout><CompetitionMonitoringView /></Layout>
             </ProtectedRoute>
         ),
     },

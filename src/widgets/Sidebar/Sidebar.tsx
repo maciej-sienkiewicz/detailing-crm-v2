@@ -39,6 +39,7 @@ const menuSections: MenuSection[] = [
             { path: '/finance', label: 'Finanse', icon: '◫' },
             { path: '/statistics', label: 'Statystyki', icon: '◧' },
             { path: '/growth-engine', label: 'Growth Engine', icon: '◆' },
+            { path: '/competition-monitoring', label: 'Monitoring', icon: '◈' },
         ],
     },
     {
