@@ -14,21 +14,25 @@ const Trigger = styled.button<{ $disabled?: boolean }>`
   display: flex;
   align-items: center;
   gap: ${props => props.theme.spacing.sm};
-  padding: ${props => props.theme.spacing.md};
-  border: 2px solid ${props => props.theme.colors.border};
+  padding: 9px 12px;
+  border: 1px solid ${props => props.theme.colors.border};
   border-radius: ${props => props.theme.radii.md};
-  background: ${props => props.theme.colors.surface};
+  background: #F8FAFC;
+  color: ${props => props.theme.colors.text};
+  font-size: ${props => props.theme.fontSizes.sm};
   cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
   opacity: ${props => props.$disabled ? 0.6 : 1};
   transition: all ${props => props.theme.transitions.fast};
-  font-weight: ${props => props.theme.fontWeights.medium};
+  font-weight: ${props => props.theme.fontWeights.normal};
 
-  &:hover {
-    background: ${props => props.theme.colors.surfaceHover};
+  &:hover:not(:disabled) {
+    background: #FFFFFF;
+    border-color: ${props => props.theme.colors.border};
   }
 
   &:focus {
     outline: none;
+    background: #FFFFFF;
     border-color: ${props => props.theme.colors.primary};
     box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
   }

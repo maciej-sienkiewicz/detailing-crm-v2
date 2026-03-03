@@ -20,10 +20,24 @@ const DepositSection = styled.div`
 const DepositItem = styled.div`
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: ${props => props.theme.spacing.md};
-    padding: ${props => props.theme.spacing.md};
-    background-color: ${props => props.theme.colors.surfaceAlt};
+    padding: 10px 12px;
+    background: #F8FAFC;
+    border: 1px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.md};
+    transition: all ${props => props.theme.transitions.fast};
+
+    &:hover {
+        background: #FFFFFF;
+        border-color: ${props => props.theme.colors.primary};
+    }
+`;
+
+const DepositLabel = styled.span`
+    font-size: ${props => props.theme.fontSizes.sm};
+    color: ${props => props.theme.colors.text};
+    user-select: none;
 `;
 
 
@@ -74,17 +88,17 @@ export const TechnicalStateStep = ({ formData, errors, onChange }: TechnicalStat
                         <Label>{t.checkin.technical.deposit}</Label>
                         <DepositSection>
                             <DepositItem>
+                                <DepositLabel>{t.checkin.technical.depositItems.keys}</DepositLabel>
                                 <Toggle
                                     checked={formData.technicalState.deposit.keys}
                                     onChange={(checked) => handleDepositChange('keys', checked)}
-                                    label={t.checkin.technical.depositItems.keys}
                                 />
                             </DepositItem>
                             <DepositItem>
+                                <DepositLabel>{t.checkin.technical.depositItems.registrationDocument}</DepositLabel>
                                 <Toggle
                                     checked={formData.technicalState.deposit.registrationDocument}
                                     onChange={(checked) => handleDepositChange('registrationDocument', checked)}
-                                    label={t.checkin.technical.depositItems.registrationDocument}
                                 />
                             </DepositItem>
                         </DepositSection>

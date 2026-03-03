@@ -206,6 +206,37 @@ const FilledBadge = styled.span`
     font-weight: 600;
 `;
 
+// ─── Deposit toggle items ─────────────────────────────────────────────────────
+
+const DepositSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+const DepositItem = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 12px;
+    background: #F8FAFC;
+    border: 1px solid ${st.border};
+    border-radius: 8px;
+    transition: all 150ms ease;
+
+    &:hover {
+        background: #FFFFFF;
+        border-color: ${st.accentBlue};
+    }
+`;
+
+const DepositLabel = styled.span`
+    font-size: 14px;
+    color: ${st.text};
+    user-select: none;
+`;
+
 // ─── Checkbox / handoff ───────────────────────────────────────────────────────
 
 const CheckRow = styled.label`
@@ -1208,18 +1239,22 @@ export const VerificationStep = ({
 
                             <FieldGroup>
                                 <Label>{t.checkin.technical.deposit}</Label>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingTop: '4px' }}>
-                                    <Toggle
-                                        checked={formData.technicalState.deposit.keys}
-                                        onChange={(checked) => onChange({ technicalState: { ...formData.technicalState, deposit: { ...formData.technicalState.deposit, keys: checked } } })}
-                                        label={t.checkin.technical.depositItems.keys}
-                                    />
-                                    <Toggle
-                                        checked={formData.technicalState.deposit.registrationDocument}
-                                        onChange={(checked) => onChange({ technicalState: { ...formData.technicalState, deposit: { ...formData.technicalState.deposit, registrationDocument: checked } } })}
-                                        label={t.checkin.technical.depositItems.registrationDocument}
-                                    />
-                                </div>
+                                <DepositSection>
+                                    <DepositItem>
+                                        <DepositLabel>{t.checkin.technical.depositItems.keys}</DepositLabel>
+                                        <Toggle
+                                            checked={formData.technicalState.deposit.keys}
+                                            onChange={(checked) => onChange({ technicalState: { ...formData.technicalState, deposit: { ...formData.technicalState.deposit, keys: checked } } })}
+                                        />
+                                    </DepositItem>
+                                    <DepositItem>
+                                        <DepositLabel>{t.checkin.technical.depositItems.registrationDocument}</DepositLabel>
+                                        <Toggle
+                                            checked={formData.technicalState.deposit.registrationDocument}
+                                            onChange={(checked) => onChange({ technicalState: { ...formData.technicalState, deposit: { ...formData.technicalState.deposit, registrationDocument: checked } } })}
+                                        />
+                                    </DepositItem>
+                                </DepositSection>
                             </FieldGroup>
                         </FormGrid>
                         {errors.mileage && <ErrorMessage>{errors.mileage}</ErrorMessage>}
