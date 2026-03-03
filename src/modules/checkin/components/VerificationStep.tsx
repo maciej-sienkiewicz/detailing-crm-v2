@@ -461,12 +461,10 @@ export const VerificationStep = ({
     const [vehicleChoiceMade, setVehicleChoiceMade] = useState(false);
     const [pendingVehicleUpdates, setPendingVehicleUpdates] = useState<Partial<NonNullable<CheckInFormData['vehicleData']>> | null>(null);
     const [vehiclePromptScheduled, setVehiclePromptScheduled] = useState(false);
-
-    useEffect(() => {
-        if (formData.vehicleData?.id && !formData.isNewVehicle && !vehicleChoiceMade) {
-            setVehicleChoiceMade(true);
-        }
-    }, [formData.vehicleData?.id, formData.isNewVehicle, vehicleChoiceMade]);
+    // Track whether the vehicle was already pre-selected on mount to skip the
+    // "edit existing vs. add new" prompt — without touching vehicleChoiceMade,
+    // so the badge is not shown until the user explicitly interacts.
+    const vehicleWasPreSelected = useRef(!!formData.vehicleData?.id && !formData.isNewVehicle);
 
     const customerBadge = formData.isNewCustomer
         ? 'Dodasz nowego klienta'
@@ -645,7 +643,7 @@ export const VerificationStep = ({
     };
 
     const handleVehicleFieldChange = (updates: Partial<NonNullable<CheckInFormData['vehicleData']>>) => {
-        if (!vehicleChoiceMade && formData.vehicleData?.id) {
+        if (!vehicleChoiceMade && !vehicleWasPreSelected.current && formData.vehicleData?.id) {
             const hasExistingValue = Object.keys(updates).some(key => {
                 const fieldKey = key as keyof NonNullable<CheckInFormData['vehicleData']>;
                 const currentValue = formData.vehicleData?.[fieldKey];
