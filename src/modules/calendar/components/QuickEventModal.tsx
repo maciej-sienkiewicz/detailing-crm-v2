@@ -280,6 +280,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const vehicleInputRef = useRef<HTMLInputElement>(null);
     const serviceInputRef = useRef<HTMLInputElement>(null);
     const colorSectionRef = useRef<HTMLDivElement>(null);
+    // Flaga synchroniczna – ustawiana gdy użytkownik kliknie element z listy podpowiedzi.
+    // Rozwiązuje problem stale closure w onBlur setTimeout.
+    const customerJustSelectedRef = useRef(false);
 
     // Toast
     const { showError } = useToast();
@@ -800,14 +803,15 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 setTimeout(() => {
                                                     setShowCustomerDropdown(false);
 
-                                                    const trimmed = customerSearch.trim();
-
-                                                    // Jeśli użytkownik wybrał klienta w międzyczasie, nie rób nic
-                                                    if (selectedCustomer) {
-                                                        // Upewnij się że pole pokazuje wybranego klienta
-                                                        setCustomerSearch(`${selectedCustomer.firstName} ${selectedCustomer.lastName}`.trim());
+                                                    // Jeśli użytkownik wybrał klienta z listy podpowiedzi, nie rób nic.
+                                                    // Używamy ref zamiast selectedCustomer ze state, bo closure przechwyciła
+                                                    // starą wartość (null) sprzed kliknięcia na element listy.
+                                                    if (customerJustSelectedRef.current) {
+                                                        customerJustSelectedRef.current = false;
                                                         return;
                                                     }
+
+                                                    const trimmed = customerSearch.trim();
 
                                                     // Jeśli pole jest puste, nie rób nic
                                                     if (!trimmed) return;
@@ -826,6 +830,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         key={c.id}
                                                         type="button"
                                                         onClick={() => {
+                                                            customerJustSelectedRef.current = true;
                                                             handleCustomerSelect({
                                                                 id: c.id,
                                                                 firstName: c.firstName,
