@@ -656,6 +656,7 @@ export const VerificationStep = ({
             }
         }
         applyVehicleUpdates(updates);
+        if (!vehicleChoiceMade) setVehicleChoiceMade(true);
     };
 
     const handleVehicleFieldBlur = () => {
@@ -668,6 +669,7 @@ export const VerificationStep = ({
             applyVehicleUpdates(pendingVehicleUpdates);
             setPendingVehicleUpdates(null);
             setVehiclePromptScheduled(false);
+            if (!vehicleChoiceMade) setVehicleChoiceMade(true);
         }
     };
 
