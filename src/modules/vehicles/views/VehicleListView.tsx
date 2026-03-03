@@ -12,6 +12,7 @@ import { VehicleSearchFilter } from '../components/VehicleSearchFilter';
 import { VehiclePagination } from '../components/VehiclePagination';
 import { CreateVehicleModal } from '../components/CreateVehicleModal';
 import { t, interpolate } from '@/common/i18n';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 
 const ViewContainer = styled.main`
     display: flex;
@@ -172,6 +173,22 @@ const EmptyDescription = styled.p`
     margin: 0;
 `;
 
+const FilterBar = styled.div`
+    border-bottom: 1px solid ${st.border};
+`;
+
+const FilterTopRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    flex-wrap: wrap;
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        flex-wrap: nowrap;
+    }
+`;
+
 const DataContainer = styled.div`
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
         padding: 0;
@@ -279,10 +296,6 @@ export const VehicleListView = () => {
                 </TitleSection>
 
                 <ActionsBar>
-                    <VehicleSearchFilter
-                        value={searchInput}
-                        onChange={handleSearchChange}
-                    />
                     <AddButton onClick={handleAddVehicle}>
                         <span>+</span>
                         {t.vehicles.addVehicle}
@@ -291,6 +304,15 @@ export const VehicleListView = () => {
             </ViewHeader>
 
             <ContentSection>
+                <FilterBar>
+                    <FilterTopRow>
+                        <VehicleSearchFilter
+                            value={searchInput}
+                            onChange={handleSearchChange}
+                        />
+                    </FilterTopRow>
+                </FilterBar>
+
                 {renderContent()}
 
                 {pagination && pagination.totalPages > 1 && (

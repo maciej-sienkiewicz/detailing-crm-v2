@@ -1,32 +1,44 @@
 import { ChangeEvent, useCallback } from 'react';
 import styled from 'styled-components';
 import { t } from '@/common/i18n';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 
-const SearchContainer = styled.div`
-    width: 100%;
+const SearchWrapper = styled.div`
+    position: relative;
+    flex: 1;
+    min-width: 220px;
+`;
 
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        max-width: 320px;
-    }
+const SearchIconEl = styled.svg`
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: ${st.textMuted};
+    pointer-events: none;
 `;
 
 const SearchInput = styled.input`
     width: 100%;
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    background: ${props => props.theme.colors.surface};
-    color: ${props => props.theme.colors.text};
-    transition: border-color 0.2s ease;
+    padding: 9px 14px 9px 38px;
+    background: ${st.bgCardAlt};
+    border: 1.5px solid ${st.border};
+    border-radius: 10px;
+    font-size: 13px;
+    color: ${st.text};
+    transition: all ${st.transition};
+
+    &::placeholder {
+        color: ${st.textMuted};
+    }
 
     &:focus {
         outline: none;
-        border-color: var(--brand-primary);
-    }
-
-    &::placeholder {
-        color: ${props => props.theme.colors.textMuted};
+        border-color: ${st.accentBlue};
+        background: #fff;
+        box-shadow: ${st.shadowBlue};
     }
 `;
 
@@ -35,10 +47,7 @@ interface CustomerSearchFilterProps {
     onChange: (value: string) => void;
 }
 
-export const CustomerSearchFilter = ({
-                                         value,
-                                         onChange,
-                                     }: CustomerSearchFilterProps) => {
+export const CustomerSearchFilter = ({ value, onChange }: CustomerSearchFilterProps) => {
     const handleChange = useCallback(
         (event: ChangeEvent<HTMLInputElement>) => {
             onChange(event.target.value);
@@ -47,7 +56,11 @@ export const CustomerSearchFilter = ({
     );
 
     return (
-        <SearchContainer>
+        <SearchWrapper>
+            <SearchIconEl viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+            </SearchIconEl>
             <SearchInput
                 type="text"
                 value={value}
@@ -55,6 +68,6 @@ export const CustomerSearchFilter = ({
                 placeholder={t.customers.searchPlaceholder}
                 aria-label={t.common.search}
             />
-        </SearchContainer>
+        </SearchWrapper>
     );
 };

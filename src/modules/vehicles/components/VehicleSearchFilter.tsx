@@ -1,46 +1,43 @@
 import styled from 'styled-components';
 import { t } from '@/common/i18n';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 
-const SearchContainer = styled.div`
+const SearchWrapper = styled.div`
     position: relative;
-    width: 100%;
-
-    @media (min-width: ${props => props.theme.breakpoints.sm}) {
-        width: 320px;
-    }
+    flex: 1;
+    min-width: 220px;
 `;
 
-const SearchIcon = styled.span`
+const SearchIconEl = styled.svg`
     position: absolute;
-    left: 14px;
+    left: 12px;
     top: 50%;
     transform: translateY(-50%);
-    color: ${props => props.theme.colors.textMuted};
+    width: 16px;
+    height: 16px;
+    color: ${st.textMuted};
     pointer-events: none;
-
-    svg {
-        width: 18px;
-        height: 18px;
-    }
 `;
 
 const SearchInput = styled.input`
     width: 100%;
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    padding-left: 42px;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    transition: all 0.2s ease;
+    padding: 9px 14px 9px 38px;
+    background: ${st.bgCardAlt};
+    border: 1.5px solid ${st.border};
+    border-radius: 10px;
+    font-size: 13px;
+    color: ${st.text};
+    transition: all ${st.transition};
+
+    &::placeholder {
+        color: ${st.textMuted};
+    }
 
     &:focus {
         outline: none;
-        border-color: var(--brand-primary);
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-    }
-
-    &::placeholder {
-        color: ${props => props.theme.colors.textMuted};
+        border-color: ${st.accentBlue};
+        background: #fff;
+        box-shadow: ${st.shadowBlue};
     }
 `;
 
@@ -50,18 +47,16 @@ interface VehicleSearchFilterProps {
 }
 
 export const VehicleSearchFilter = ({ value, onChange }: VehicleSearchFilterProps) => (
-    <SearchContainer>
-        <SearchIcon>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.35-4.35" />
-            </svg>
-        </SearchIcon>
+    <SearchWrapper>
+        <SearchIconEl viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+        </SearchIconEl>
         <SearchInput
             type="text"
             value={value}
             onChange={e => onChange(e.target.value)}
             placeholder={t.vehicles.searchPlaceholder}
         />
-    </SearchContainer>
+    </SearchWrapper>
 );
