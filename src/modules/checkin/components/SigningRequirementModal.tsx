@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { useMutation } from '@tanstack/react-query';
 import { Modal } from '@/common/components/Modal';
 import { Button } from '@/common/components/Button';
@@ -7,141 +7,48 @@ import { visitApi } from '@/modules/visits/api/visitApi';
 import { DocumentPreview } from './DocumentPreview';
 import { SkipSigningConfirmDialog } from './SkipSigningConfirmDialog';
 import type { ProtocolResponse } from '../types';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 
 const ModalContent = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
-    padding: ${props => props.theme.spacing.md};
-`;
-
-const Header = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.xs};
-    margin-bottom: ${props => props.theme.spacing.md};
-`;
-
-const Title = styled.h2`
-    font-size: ${props => props.theme.fontSizes.xl};
-    font-weight: ${props => props.theme.fontWeights.bold};
-    color: ${props => props.theme.colors.text};
-    margin: 0;
-`;
-
-const Subtitle = styled.p`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
-    margin: 0;
+    gap: ${props => props.theme.spacing.md};
 `;
 
 const DocumentList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.md};
+    gap: ${props => props.theme.spacing.sm};
     max-height: 500px;
     overflow-y: auto;
-    padding: ${props => props.theme.spacing.xs};
 `;
 
 const DocumentRow = styled.div`
     display: flex;
     align-items: center;
     gap: ${props => props.theme.spacing.md};
-    padding: ${props => props.theme.spacing.md};
-    background: ${props => props.theme.colors.surface};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    transition: all 0.2s ease;
+    padding: 12px 14px;
+    background: #F8FAFC;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    transition: all ${st.transition};
 
     &:hover {
-        background: ${props => props.theme.colors.surfaceHover};
-        box-shadow: ${props => props.theme.shadows.sm};
+        background: #FFFFFF;
+        border-color: ${st.accentBlue};
     }
 `;
 
 const DocumentIcon = styled.div`
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: ${props => props.theme.colors.primary}15;
-    border-radius: ${props => props.theme.radii.md};
-    color: ${props => props.theme.colors.primary};
-    flex-shrink: 0;
-
-    svg {
-        width: 24px;
-        height: 24px;
-    }
-`;
-
-const DocumentInfo = styled.div`
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.xs};
-`;
-
-const DocumentName = styled.div`
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.text};
-`;
-
-const DocumentDescription = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
-`;
-
-const StatusBadge = styled.span<{ $mandatory: boolean }>`
-    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
-    border-radius: ${props => props.theme.radii.full};
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    background: ${props => props.$mandatory
-        ? props.theme.colors.error + '15'
-        : props.theme.colors.textMuted + '15'};
-    color: ${props => props.$mandatory
-        ? props.theme.colors.error
-        : props.theme.colors.textMuted};
-`;
-
-const ActionButtons = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.sm};
-    align-items: center;
-`;
-
-const IconButton = styled.button<{ $active?: boolean }>`
     width: 36px;
     height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: none;
-    background: ${props => props.$active
-        ? props.theme.colors.primary + '20'
-        : props.theme.colors.surfaceHover};
-    border-radius: ${props => props.theme.radii.md};
-    color: ${props => props.$active
-        ? props.theme.colors.primary
-        : props.theme.colors.textSecondary};
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover:not(:disabled) {
-        background: ${props => props.theme.colors.primary}15;
-        color: ${props => props.theme.colors.primary};
-    }
-
-    &:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-    }
+    background: ${st.accentBlueDim};
+    border-radius: ${st.radiusSm};
+    color: ${st.accentBlue};
+    flex-shrink: 0;
 
     svg {
         width: 20px;
@@ -149,18 +56,84 @@ const IconButton = styled.button<{ $active?: boolean }>`
     }
 `;
 
+const DocumentInfo = styled.div`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+`;
+
+const DocumentName = styled.div`
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    color: ${st.text};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+`;
+
+const StatusBadge = styled.span<{ $mandatory: boolean }>`
+    padding: 3px 9px;
+    border-radius: ${st.radiusFull};
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.45px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    background: ${props => props.$mandatory ? st.accentRedDim : st.bgCardAlt};
+    color: ${props => props.$mandatory ? st.accentRed : st.textMuted};
+`;
+
+const ActionButtons = styled.div`
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-shrink: 0;
+`;
+
+const IconButton = styled.button<{ $active?: boolean }>`
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid ${st.border};
+    background: ${props => props.$active ? st.accentBlueDim : '#F8FAFC'};
+    border-radius: ${st.radiusSm};
+    color: ${props => props.$active ? st.accentBlue : st.textSecondary};
+    cursor: pointer;
+    transition: all ${st.transition};
+
+    &:hover:not(:disabled) {
+        background: ${st.accentBlueDim};
+        border-color: ${st.accentBlue};
+        color: ${st.accentBlue};
+    }
+
+    &:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+    }
+
+    svg {
+        width: 16px;
+        height: 16px;
+    }
+`;
 
 const FooterActions = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${props => props.theme.spacing.md};
-    padding-top: ${props => props.theme.spacing.lg};
-    border-top: 1px solid ${props => props.theme.colors.border};
+    padding-top: ${props => props.theme.spacing.md};
+    border-top: 1px solid ${st.border};
 `;
 
 const PrimaryActionGroup = styled.div`
     display: flex;
-    gap: ${props => props.theme.spacing.md};
+    gap: ${props => props.theme.spacing.sm};
     justify-content: flex-end;
 `;
 
@@ -174,18 +147,38 @@ const SkipButton = styled(Button)`
     font-size: ${props => props.theme.fontSizes.sm};
 `;
 
+const spin = keyframes`
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+`;
+
+const Spinner = styled.div`
+    width: 36px;
+    height: 36px;
+    border: 3px solid ${st.bgCardAlt};
+    border-top-color: ${st.accentBlue};
+    border-radius: 50%;
+    animation: ${spin} 0.8s linear infinite;
+    flex-shrink: 0;
+`;
+
 const LoadingContainer = styled.div`
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: ${props => props.theme.spacing.xxl};
-    color: ${props => props.theme.colors.textMuted};
+    gap: 14px;
+    padding: ${props => props.theme.spacing.xxl} 0;
+    color: ${st.textSecondary};
+    font-size: ${st.fontSm};
+    font-weight: 500;
 `;
 
 const EmptyState = styled.div`
     text-align: center;
     padding: ${props => props.theme.spacing.xl};
     color: ${props => props.theme.colors.textMuted};
+    font-size: ${st.fontSm};
 `;
 
 interface SigningRequirementModalProps {
@@ -322,25 +315,8 @@ export const SigningRequirementModal = ({
 
                     {isCreating ? (
                         <LoadingContainer>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                                <div className="spinner" style={{
-                                    border: '3px solid #f3f4f6',
-                                    borderTop: '3px solid #3b82f6',
-                                    borderRadius: '50%',
-                                    width: '40px',
-                                    height: '40px',
-                                    animation: 'spin 1s linear infinite'
-                                }} />
-                                <div style={{ fontSize: '16px', fontWeight: 500 }}>
-                                    Uzupełniam dane na protokole...
-                                </div>
-                            </div>
-                            <style>{`
-                                @keyframes spin {
-                                    0% { transform: rotate(0deg); }
-                                    100% { transform: rotate(360deg); }
-                                }
-                            `}</style>
+                            <Spinner />
+                            <span>Uzupełniam dane na protokole...</span>
                         </LoadingContainer>
                     ) : !protocols || protocols.length === 0 ? (
                         <EmptyState>
