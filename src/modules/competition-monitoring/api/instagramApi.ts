@@ -1,5 +1,5 @@
 import { apiClient } from '@/core/apiClient';
-import type { InstagramProfile, InstagramPost } from '../types';
+import type { InstagramProfile, InstagramPost, ProfileSummary, WeeklyStat } from '../types';
 
 const BASE_PATH = '/v1/instagram/profiles';
 const USE_MOCKS = false;
@@ -40,6 +40,14 @@ let mockProfiles: InstagramProfile[] = [
         status: 'ACTIVE',
         apiError: true,
         addedAt: '2024-10-20T14:00:00Z',
+    },
+    {
+        id: 'sp-5',
+        profileId: 'p-105',
+        username: 'detailpro_pl',
+        status: 'ACTIVE',
+        apiError: false,
+        addedAt: '2024-09-15T10:00:00Z',
     },
 ];
 
@@ -105,6 +113,75 @@ const mockPostsMap: Record<string, InstagramPost[]> = {
     ],
 };
 
+// Weekly stat helpers for mock data
+const makeWeeks = (base: number, variance: number, count = 12): WeeklyStat[] => {
+    const weeks: WeeklyStat[] = [];
+    const now = new Date('2025-01-13');
+    for (let i = count - 1; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i * 7);
+        // Monday of that week
+        const day = d.getDay();
+        d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+        const rng = () => base + (Math.random() - 0.5) * variance;
+        weeks.push({
+            weekStart: d.toISOString().slice(0, 10),
+            avgLikes: Math.round(rng()),
+            avgComments: Math.round(rng() * 0.12),
+            postCount: Math.floor(1 + Math.random() * 3),
+        });
+    }
+    return weeks;
+};
+
+const mockSummaries: ProfileSummary[] = [
+    {
+        id: 'sp-1',
+        profileId: 'p-101',
+        username: 'autoperfect_wroclaw',
+        status: 'ACTIVE',
+        apiError: false,
+        addedAt: '2024-11-10T09:00:00Z',
+        postCount: 48,
+        avgLikes: 131,
+        avgComments: 15,
+        avgViews: 3925,
+        postsPerWeek: 2.1,
+        lastPostAt: '2025-01-08T10:00:00Z',
+        weeklyStats: makeWeeks(131, 60),
+    },
+    {
+        id: 'sp-4',
+        profileId: 'p-104',
+        username: 'carcare_studio',
+        status: 'ACTIVE',
+        apiError: true,
+        addedAt: '2024-10-20T14:00:00Z',
+        postCount: 22,
+        avgLikes: 55,
+        avgComments: 3,
+        avgViews: 980,
+        postsPerWeek: 0.9,
+        lastPostAt: '2025-01-10T08:00:00Z',
+        weeklyStats: makeWeeks(55, 30),
+    },
+    {
+        id: 'sp-5',
+        profileId: 'p-105',
+        username: 'detailpro_pl',
+        status: 'ACTIVE',
+        apiError: false,
+        addedAt: '2024-09-15T10:00:00Z',
+        postCount: 67,
+        avgLikes: 198,
+        avgComments: 27,
+        avgViews: 6400,
+        postsPerWeek: 3.4,
+        lastPostAt: '2025-01-11T15:00:00Z',
+        weeklyStats: makeWeeks(198, 80),
+    },
+];
+
 // ─── Mock handlers ────────────────────────────────────────────────────────────
 
 const mockListProfiles = async (): Promise<InstagramProfile[]> => {
@@ -148,6 +225,11 @@ const mockGetPosts = async (id: string): Promise<InstagramPost[]> => {
     return mockPostsMap[id] ?? [];
 };
 
+const mockGetSummary = async (): Promise<ProfileSummary[]> => {
+    await delay(650);
+    return mockSummaries;
+};
+
 // ─── API object ───────────────────────────────────────────────────────────────
 
 export const instagramApi = {
@@ -181,6 +263,21 @@ export const instagramApi = {
     getPosts: async (id: string): Promise<InstagramPost[]> => {
         if (USE_MOCKS) return mockGetPosts(id);
         const response = await apiClient.get<InstagramPost[]>(`${BASE_PATH}/${id}/posts`);
+        return response.data;
+    },
+
+    /**
+     * Fetch aggregated statistics for all active profiles.
+     *
+     * New backend endpoint: GET /api/v1/instagram/profiles/summary
+     *
+     * The backend should compute avgLikes, avgComments, avgViews, postsPerWeek
+     * and weeklyStats (last 12 weeks) from the scraped posts table, grouped
+     * by studioProfileId. Only ACTIVE profiles are included.
+     */
+    getCompetitionSummary: async (): Promise<ProfileSummary[]> => {
+        if (USE_MOCKS) return mockGetSummary();
+        const response = await apiClient.get<ProfileSummary[]>(`${BASE_PATH}/summary`);
         return response.data;
     },
 };
