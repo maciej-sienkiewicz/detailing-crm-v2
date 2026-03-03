@@ -17,85 +17,105 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 const ViewContainer = styled.main`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
-    padding: ${props => props.theme.spacing.lg};
-    max-width: 1600px;
-    margin: 0 auto;
-    width: 100%;
+    gap: 20px;
+    padding: 24px;
+    min-height: 100vh;
+    background: ${st.bg};
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.xl};
+        padding: 32px;
     }
 
     @media (min-width: ${props => props.theme.breakpoints.xl}) {
-        padding: ${props => props.theme.spacing.xxl};
+        padding: 40px 48px;
     }
 `;
 
 const ViewHeader = styled.header`
     display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.md};
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-    }
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
 `;
 
-const TitleSection = styled.div``;
+const TitleSection = styled.div`
+    flex: 1;
+    min-width: 0;
+`;
 
 const PageTitle = styled.h1`
     margin: 0;
-    font-size: ${props => props.theme.fontSizes.xxl};
+    font-size: ${st.fontXl};
     font-weight: 700;
-    color: ${props => props.theme.colors.text};
+    color: ${st.text};
+    letter-spacing: -0.3px;
+    line-height: 1.2;
 `;
 
-const PageSubtitle = styled.p`
-    margin: ${props => props.theme.spacing.xs} 0 0;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
-`;
-
-const ActionsBar = styled.div`
+const PageMeta = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.sm};
-    width: 100%;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+`;
 
-    @media (min-width: ${props => props.theme.breakpoints.sm}) {
-        flex-direction: row;
-        width: auto;
-    }
+const PageSubtitle = styled.span`
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
+`;
+
+const TotalChip = styled.span`
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    background: ${st.accentBlueDim};
+    color: ${st.accentBlue};
+    border-radius: ${st.radiusFull};
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1px;
 `;
 
 const AddButton = styled.button`
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: ${props => props.theme.spacing.xs};
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.lg};
-    background: var(--brand-primary);
-    color: white;
+    gap: 7px;
+    padding: 10px 20px;
+    background: ${st.accentBlue};
+    color: #fff;
     border: none;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    font-weight: 600;
     cursor: pointer;
-    transition: opacity 0.15s ease;
     white-space: nowrap;
+    flex-shrink: 0;
+    transition: all ${st.transition};
+    box-shadow: 0 1px 4px rgba(37, 99, 235, 0.25);
 
     &:hover {
-        opacity: 0.9;
+        background: #1D4ED8;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    }
+
+    &:active {
+        transform: translateY(0);
+        box-shadow: 0 1px 4px rgba(37, 99, 235, 0.25);
+    }
+
+    svg {
+        flex-shrink: 0;
     }
 `;
 
 const ContentSection = styled.section`
-    background: ${props => props.theme.colors.surface};
-    border-radius: ${props => props.theme.radii.lg};
-    border: 1px solid ${props => props.theme.colors.border};
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowSm};
     overflow: hidden;
 `;
 
@@ -292,15 +312,21 @@ export const VehicleListView = () => {
             <ViewHeader>
                 <TitleSection>
                     <PageTitle>{t.vehicles.title}</PageTitle>
-                    <PageSubtitle>{t.vehicles.subtitle}</PageSubtitle>
+                    <PageMeta>
+                        <PageSubtitle>{t.vehicles.subtitle}</PageSubtitle>
+                        {pagination && (
+                            <TotalChip>{pagination.totalItems} rekordów</TotalChip>
+                        )}
+                    </PageMeta>
                 </TitleSection>
 
-                <ActionsBar>
-                    <AddButton onClick={handleAddVehicle}>
-                        <span>+</span>
-                        {t.vehicles.addVehicle}
-                    </AddButton>
-                </ActionsBar>
+                <AddButton onClick={handleAddVehicle}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    {t.vehicles.addVehicle}
+                </AddButton>
             </ViewHeader>
 
             <ContentSection>
