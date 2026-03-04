@@ -8,9 +8,9 @@ import { useProfileActions } from '../hooks/useProfileActions';
 import { ProfileCard } from '../components/ProfileCard';
 import { AddProfileModal } from '../components/AddProfileModal';
 import { PostsModal } from '../components/PostsModal';
-import { CompetitionRanking } from '../components/CompetitionRanking';
-import { EngagementTrendChart } from '../components/EngagementTrendChart';
 import type { InstagramProfile, InstagramProfileStatus } from '../types';
+import {CompetitionTable} from "@/modules/competition-monitoring/components/CompetitionTable.tsx";
+import {PostVolumeChart} from "@/modules/competition-monitoring/components/PostVolumeChart.tsx";
 
 const fadeIn = keyframes`
     from { opacity: 0; transform: translateY(8px); }
@@ -376,8 +376,8 @@ export const CompetitionMonitoringView = () => {
 
         return (
             <AnalyticsSection>
-                <CompetitionRanking summaries={summaries} />
-                <EngagementTrendChart summaries={summaries} />
+                <CompetitionTable summaries={summaries}/>
+                <PostVolumeChart summaries={summaries} />
             </AnalyticsSection>
         );
     };
