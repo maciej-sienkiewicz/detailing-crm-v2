@@ -26,22 +26,6 @@ let mockProfiles: InstagramProfile[] = [
         addedAt: '2025-01-14T11:30:00Z',
     },
     {
-        id: 'sp-3',
-        profileId: 'p-103',
-        username: 'premium_detailing_pl',
-        status: 'REJECTED',
-        apiError: false,
-        addedAt: '2024-12-05T08:15:00Z',
-    },
-    {
-        id: 'sp-4',
-        profileId: 'p-104',
-        username: 'carcare_studio',
-        status: 'ACTIVE',
-        apiError: true,
-        addedAt: '2024-10-20T14:00:00Z',
-    },
-    {
         id: 'sp-5',
         profileId: 'p-105',
         username: 'detailpro_pl',
