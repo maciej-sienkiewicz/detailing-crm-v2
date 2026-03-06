@@ -1,4 +1,3 @@
-import apiClient from '@/core/apiClient';
 import type {
   SmsCampaign,
   CreateCampaignRequest,
@@ -7,6 +6,7 @@ import type {
   CampaignFilters,
   VehicleBrandOption,
 } from '../types';
+import {apiClient} from "@/core";
 
 // ─── Mock flag ────────────────────────────────────────────────────────────────
 
