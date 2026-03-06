@@ -367,6 +367,98 @@ const CalendarContainer = styled.div`
         color: #4f46e5;
     }
 
+    /* ===================== MORE POPOVER ===================== */
+    .fc-more-popover {
+        background: rgba(255, 255, 255, 0.97) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border: 1px solid rgba(15, 23, 42, 0.08) !important;
+        border-radius: 20px !important;
+        box-shadow:
+            0 4px 6px rgba(0, 0, 0, 0.02),
+            0 12px 24px rgba(0, 0, 0, 0.07),
+            0 24px 48px rgba(0, 0, 0, 0.1) !important;
+        overflow: hidden !important;
+        min-width: 220px !important;
+    }
+
+    .fc-more-popover .fc-popover-header {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+        padding: 14px 18px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        position: relative !important;
+        overflow: hidden !important;
+
+        &::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+            pointer-events: none;
+        }
+    }
+
+    .fc-more-popover .fc-popover-title {
+        color: #fff !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.2px !important;
+        position: relative !important;
+        z-index: 1 !important;
+    }
+
+    .fc-more-popover .fc-popover-close {
+        color: rgba(255, 255, 255, 0.8) !important;
+        font-size: 18px !important;
+        line-height: 1 !important;
+        cursor: pointer !important;
+        position: relative !important;
+        z-index: 1 !important;
+        width: 24px !important;
+        height: 24px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 50% !important;
+        transition: background 0.15s ease, color 0.15s ease !important;
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.2) !important;
+            color: #fff !important;
+        }
+    }
+
+    .fc-more-popover .fc-popover-body {
+        padding: 10px 10px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 3px !important;
+        max-height: 320px !important;
+        overflow-y: auto !important;
+
+        /* Scrollbar */
+        scrollbar-width: thin !important;
+        scrollbar-color: rgba(99, 102, 241, 0.2) transparent !important;
+
+        &::-webkit-scrollbar {
+            width: 4px;
+        }
+        &::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        &::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.2);
+            border-radius: 4px;
+        }
+    }
+
+    .fc-more-popover .fc-event {
+        margin: 0 !important;
+        border-radius: 8px !important;
+    }
+
     /* Selection highlighting */
     .fc-highlight {
         background: rgba(99, 102, 241, 0.07);
