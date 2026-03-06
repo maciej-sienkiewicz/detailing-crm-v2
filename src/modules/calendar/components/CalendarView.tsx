@@ -160,7 +160,7 @@ const CalendarContainer = styled.div`
         text-transform: uppercase;
         font-size: 11px;
         letter-spacing: 0.8px;
-        border-color: #dadce0 !important;
+        border: none !important;
     }
 
     .fc-daygrid-day {
@@ -209,8 +209,8 @@ const CalendarContainer = styled.div`
     }
 
     .fc-daygrid-day-top {
-        justify-content: flex-end;
-        padding: 2px 4px 0;
+        justify-content: center;
+        padding: 4px 0 0;
     }
 
     /* Other month days */
