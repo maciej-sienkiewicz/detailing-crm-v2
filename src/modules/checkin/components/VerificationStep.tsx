@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { FormGrid, FieldGroup, Label, Input, TextArea, ErrorMessage } from '@/common/components/Form';
 import { Button } from '@/common/components/Button';
@@ -309,17 +310,17 @@ const ColorCaret = styled.span`
     transform: rotate(45deg);
 `;
 
-const ColorMenu = styled.div`
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
+const ColorMenu = styled.div<{ $top: number; $left: number; $width: number }>`
+    position: fixed;
+    top: ${p => p.$top}px;
+    left: ${p => p.$left}px;
+    width: ${p => p.$width}px;
     background: ${st.bgCard};
     border: 1px solid ${st.border};
     border-radius: ${st.radiusSm};
     box-shadow: ${st.shadowLg};
     padding: 4px 0;
-    z-index: 2001;
+    z-index: 9999;
     max-height: 300px;
     overflow: auto;
 `;
@@ -352,34 +353,49 @@ interface ColorDropdownProps {
 
 const ColorDropdown = ({ colors, value, onChange }: ColorDropdownProps) => {
     const [open, setOpen] = useState(false);
-    const ref = useRef<HTMLDivElement | null>(null);
+    const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const triggerRef = useRef<HTMLButtonElement | null>(null);
+
+    const calcPos = useCallback(() => {
+        if (!triggerRef.current) return;
+        const r = triggerRef.current.getBoundingClientRect();
+        setMenuPos({ top: r.bottom + 4, left: r.left, width: r.width });
+    }, []);
+
+    const handleOpen = () => {
+        calcPos();
+        setOpen(o => !o);
+    };
 
     useEffect(() => {
+        if (!open) return;
         const onDocClick = (e: MouseEvent) => {
-            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+            if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
         };
-        const onEsc = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') setOpen(false);
-        };
+        const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+        const onScroll = () => { calcPos(); };
         document.addEventListener('mousedown', onDocClick);
         document.addEventListener('keydown', onEsc);
+        window.addEventListener('scroll', onScroll, true);
         return () => {
             document.removeEventListener('mousedown', onDocClick);
             document.removeEventListener('keydown', onEsc);
+            window.removeEventListener('scroll', onScroll, true);
         };
-    }, []);
+    }, [open, calcPos]);
 
     const selected = colors.find(c => c.id === value);
 
     return (
-        <ColorDropdownContainer ref={ref}>
-            <ColorTrigger type="button" onClick={() => setOpen(o => !o)} aria-haspopup="listbox" aria-expanded={open}>
+        <ColorDropdownContainer ref={containerRef}>
+            <ColorTrigger ref={triggerRef} type="button" onClick={handleOpen} aria-haspopup="listbox" aria-expanded={open}>
                 <ColorSwatch $color={selected?.hexColor || '#cccccc'} />
                 <span>{selected?.name || 'Wybierz kolor'}</span>
                 <ColorCaret />
             </ColorTrigger>
-            {open && (
-                <ColorMenu role="listbox">
+            {open && createPortal(
+                <ColorMenu role="listbox" $top={menuPos.top} $left={menuPos.left} $width={menuPos.width}>
                     {colors.map(c => (
                         <ColorMenuItem
                             key={c.id}
@@ -392,7 +408,8 @@ const ColorDropdown = ({ colors, value, onChange }: ColorDropdownProps) => {
                             <span>{c.name}</span>
                         </ColorMenuItem>
                     ))}
-                </ColorMenu>
+                </ColorMenu>,
+                document.body
             )}
         </ColorDropdownContainer>
     );
