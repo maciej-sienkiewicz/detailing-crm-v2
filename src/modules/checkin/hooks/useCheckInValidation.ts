@@ -36,6 +36,14 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
                 // Jeśli nie ma pełnych danych, musi być wybór klienta
                 if (!formData.customerData.id) {
                     validationErrors.customer = 'Musisz wybrać klienta';
+                } else {
+                    // Klient istnieje, ale może mieć niekompletne dane — waliduj imię i nazwisko
+                    if (!formData.customerData.firstName || formData.customerData.firstName.length < 2) {
+                        validationErrors.firstName = t.customers.validation.firstNameMin;
+                    }
+                    if (!formData.customerData.lastName || formData.customerData.lastName.length < 2) {
+                        validationErrors.lastName = t.customers.validation.lastNameMin;
+                    }
                 }
             }
 
