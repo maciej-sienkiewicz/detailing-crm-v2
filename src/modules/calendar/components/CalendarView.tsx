@@ -743,13 +743,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         (3 - selectedAppointmentStatuses.length) +
         (5 - selectedVisitStatuses.length);
 
-    // Gdy sidebar się zwija/rozwija, CSS transition trwa 200ms — po jej zakończeniu
-    // FullCalendar musi przeliczyć swój layout (nie dostaje zdarzenia resize z przeglądarki)
+    // Gdy sidebar się zwija/rozwija, CSS transition trwa 200ms — wywołujemy updateSize()
+    // na każdej klatce przez czas trwania animacji, żeby kalendarz rozciągał się płynnie
     useEffect(() => {
-        const timer = setTimeout(() => {
+        const start = performance.now();
+        const duration = 220;
+        let rafId: number;
+        const tick = () => {
             calendarRef.current?.getApi().updateSize();
-        }, 210);
-        return () => clearTimeout(timer);
+            if (performance.now() - start < duration) {
+                rafId = requestAnimationFrame(tick);
+            }
+        };
+        rafId = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(rafId);
     }, [isCollapsed]);
 
     // Badge on the FullCalendar "Filtruj" button (desktop) – updated whenever filters change
