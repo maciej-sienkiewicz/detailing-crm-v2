@@ -276,6 +276,7 @@ export interface CheckinPhotoUploadedEvent {
     photoId: string;
     fileName: string;
     timestamp: string;
+    thumbnailUrl?: string;
 }
 
 // ─── Offline pending photo (IndexedDB) ────────────────────────────────────────
