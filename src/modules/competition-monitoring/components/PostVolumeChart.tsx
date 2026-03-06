@@ -437,9 +437,15 @@ export const PostVolumeChart: React.FC<{ summaries: ProfileSummary[] }> = ({ sum
                 weeksMap[stat.weekStart][profile.username] = stat.postCount;
             });
         });
+        // Fill missing weeks with 0 so Recharts doesn't render gaps in the line
+        const usernames = selectedProfiles.map(p => p.username);
         return Object.entries(weeksMap)
             .sort(([a], [b]) => a.localeCompare(b))
-            .map(([weekStart, counts]) => ({ name: formatWeekLabel(weekStart), ...counts }));
+            .map(([weekStart, counts]) => {
+                const filled: Record<string, number | string> = { name: formatWeekLabel(weekStart) };
+                usernames.forEach(u => { filled[u] = counts[u] ?? 0; });
+                return filled;
+            });
     }, [selectedProfiles, rangeWeeks]);
 
     const toggleProfile = (id: string) => {
