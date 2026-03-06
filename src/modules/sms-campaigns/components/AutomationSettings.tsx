@@ -491,31 +491,6 @@ export const AutomationSettings: React.FC = () => {
         )}
       </Card>
 
-      {/* ── Info card ── */}
-      <Card>
-        <CardHeader $enabled={false}>
-          <CardIcon $enabled={false}>ℹ️</CardIcon>
-          <CardTitleGroup>
-            <CardTitle>Informacje o automatyzacji</CardTitle>
-            <CardSubtitle>Jak działa automatyczna wysyłka SMS</CardSubtitle>
-          </CardTitleGroup>
-        </CardHeader>
-        <CardBody>
-          <FormGrid>
-            <HintBox>
-              <strong>Przypomnienie przed wizytą</strong> jest wysyłane automatycznie
-              na numer telefonu klienta przypisany w systemie. Klient musi mieć
-              aktywną zgodę marketingową.
-            </HintBox>
-            <HintBox>
-              <strong>Wiadomość po wizycie</strong> wysyłana jest po zmianie statusu
-              wizyty na „Zakończona". Możesz zawrzeć prośbę o opinię lub link
-              do rezerwacji.
-            </HintBox>
-          </FormGrid>
-        </CardBody>
-      </Card>
-
       {/* ── Save bar ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <SaveButton onClick={handleSave} disabled={updateMutation.isPending}>

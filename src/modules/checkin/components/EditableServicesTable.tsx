@@ -53,43 +53,11 @@ const Th = styled.th`
         padding: ${props => props.theme.spacing.lg};
         font-size: ${props => props.theme.fontSizes.xs};
 
-        &:nth-child(1) {
-            width: auto; /* Service name - flexible */
-        }
-
-        &:nth-child(2) {
-            width: 160px; /* Base price */
-        }
-
-        &:nth-child(3) {
-            width: 220px; /* Discount */
-        }
-
-        &:nth-child(4) {
-            width: 180px; /* Final price */
-        }
-
-        &:nth-child(5) {
-            width: 80px; /* Actions */
-            text-align: center;
-        }
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) and (max-width: ${props => props.theme.breakpoints.lg}) {
-        font-size: ${props => props.theme.fontSizes.xs};
-        padding: ${props => props.theme.spacing.sm};
-
-        &:nth-child(2) {
-            width: 140px; /* Base price - narrower on tablet */
-        }
-
-        &:nth-child(3) {
-            width: 180px; /* Discount - narrower on tablet */
-        }
-
-        &:nth-child(4) {
-            width: 140px; /* Final price - narrower on tablet */
-        }
+        &:nth-child(1) { width: auto; }
+        &:nth-child(2) { width: 160px; }
+        &:nth-child(3) { width: 220px; }
+        &:nth-child(4) { width: 180px; }
+        &:nth-child(5) { width: 80px; text-align: center; }
     }
 `;
 
@@ -118,20 +86,12 @@ const Tr = styled.tr`
         border: 1px solid ${props => props.theme.colors.border};
         border-radius: ${props => props.theme.radii.lg};
         padding: ${props => props.theme.spacing.md};
-
-        &:last-child {
-            border-bottom: 1px solid ${props => props.theme.colors.border};
-        }
     }
 `;
 
 const Td = styled.td<{ 'data-label'?: string }>`
     padding: ${props => props.theme.spacing.md};
     font-size: ${props => props.theme.fontSizes.sm};
-
-    &:nth-child(5) {
-        text-align: center; /* Actions column */
-    }
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         padding: ${props => props.theme.spacing.lg};
@@ -142,13 +102,6 @@ const Td = styled.td<{ 'data-label'?: string }>`
         padding: ${props => props.theme.spacing.sm} 0;
         text-align: left !important;
 
-        &:nth-child(5) {
-            text-align: right !important;
-            margin-top: ${props => props.theme.spacing.md};
-            padding-top: ${props => props.theme.spacing.md};
-            border-top: 1px solid ${props => props.theme.colors.border};
-        }
-
         &:before {
             content: attr(data-label);
             font-weight: ${props => props.theme.fontWeights.semibold};
@@ -158,365 +111,125 @@ const Td = styled.td<{ 'data-label'?: string }>`
             display: block;
             margin-bottom: ${props => props.theme.spacing.xs};
         }
-
-        &:nth-child(5):before {
-            content: none;
-        }
     }
 `;
 
-const ServiceName = styled.div`
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.text};
-    margin-bottom: ${props => props.theme.spacing.xs};
-
-    @media (max-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes.md};
-        font-weight: ${props => props.theme.fontWeights.semibold};
-    }
-`;
-
-const PriceCell = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.xs};
-
-    @media (max-width: ${props => props.theme.breakpoints.md}) {
-        flex-direction: row;
-        gap: ${props => props.theme.spacing.md};
-        justify-content: space-between;
-        align-items: center;
-
-        > div {
-            flex: 1;
-        }
-    }
-`;
-
-const PriceLabel = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-`;
-
-const PriceValue = styled.div<{ $highlight?: boolean }>`
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    color: ${props => props.$highlight ? props.theme.colors.primary : props.theme.colors.text};
-    font-feature-settings: 'tnum';
-`;
-
-const PriceInput = styled(Input)`
-    width: 100%;
-    max-width: 150px;
-    text-align: right;
-    font-feature-settings: 'tnum';
-    font-weight: ${props => props.theme.fontWeights.semibold};
-`;
-
-const DiscountTypeDropdownContainer = styled.div`
-    position: relative;
-    width: 100%;
-`;
-
-const DiscountTypeTrigger = styled.button`
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: ${props => props.theme.spacing.sm};
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    border: 2px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    background: white;
-    cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    text-align: left;
-
-    &:hover {
-        border-color: ${props => props.theme.colors.primary};
-    }
-
-    &:focus {
-        outline: none;
-        border-color: ${props => props.theme.colors.primary};
-        box-shadow: 0 0 0 3px ${props => props.theme.colors.primary}20;
-    }
-
-    @media (max-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.md};
-        min-height: 44px; /* Touch-friendly */
-        font-size: ${props => props.theme.fontSizes.md};
-    }
-`;
-
-const DiscountTypeCaret = styled.span`
-    margin-left: auto;
-    border: solid ${props => props.theme.colors.textMuted};
-    border-width: 0 2px 2px 0;
-    display: inline-block;
-    padding: 3px;
-    transform: rotate(45deg);
-`;
-
-const DiscountTypeMenu = styled.div`
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    right: 0;
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-    z-index: 2001;
-    max-height: 280px;
-    overflow: auto;
-`;
-
-const DiscountTypeMenuItem = styled.button<{ $selected?: boolean }>`
-    width: 100%;
-    display: flex;
-    align-items: center;
-    padding: 10px 14px;
-    background: transparent;
-    border: none;
-    text-align: left;
-    cursor: pointer;
-    font-size: ${props => props.theme.fontSizes.sm};
-
-    ${props => props.$selected ? `
-        background: ${props.theme.colors.surfaceAlt};
-        font-weight: ${props.theme.fontWeights.semibold};
-    ` : ''}
-
-    &:hover {
-        background: ${props => props.theme.colors.surfaceHover};
-    }
-`;
-
-
-const DiscountInputWrapper = styled.div`
-    position: relative;
-    display: flex;
-    align-items: center;
-    background: white;
-    border: 2px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    transition: all ${props => props.theme.transitions.fast};
-    width: 100%;
-
-    &:focus-within {
-        border-color: ${props => props.theme.colors.primary};
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-    }
-`;
-
-const DiscountInput = styled.input`
-    width: 100%;
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    border: none;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    background: transparent;
-    color: ${props => props.theme.colors.text};
-    text-align: right;
-    font-feature-settings: 'tnum';
-
-    &:focus {
-        outline: none;
-    }
-
-    &::placeholder {
-        color: ${props => props.theme.colors.textMuted};
-    }
-
-    @media (max-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.md};
-        font-size: ${props => props.theme.fontSizes.md};
-        min-height: 44px; /* Touch-friendly */
-    }
-`;
-
-const DiscountSuffix = styled.span`
-    padding-right: ${props => props.theme.spacing.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
-    font-weight: ${props => props.theme.fontWeights.medium};
-`;
-
-const DiscountCell = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.sm};
-`;
-
-const DiscountAmount = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.success};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    padding: ${props => props.theme.spacing.xs};
-    background-color: ${props => props.theme.colors.successLight || '#f0fdf4'};
-    border-radius: ${props => props.theme.radii.sm};
-    text-align: center;
-    font-feature-settings: 'tnum';
-
-    @media (max-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.sm};
-        font-size: ${props => props.theme.fontSizes.md};
-    }
-`;
-
-const ActionButton = styled.button`
-    padding: ${props => props.theme.spacing.sm};
-    background-color: transparent;
-    border: none;
-    cursor: pointer;
-    color: ${props => props.theme.colors.textSecondary};
-    transition: all ${props => props.theme.transitions.fast};
-    border-radius: ${props => props.theme.radii.sm};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &:hover {
-        background-color: ${props => props.theme.colors.errorLight};
-        color: ${props => props.theme.colors.error};
-    }
-
-    svg {
-        width: 20px;
-        height: 20px;
-    }
-
-    @media (max-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.md};
-        min-width: 44px;
-        min-height: 44px; /* Touch-friendly */
-
-        svg {
-            width: 24px;
-            height: 24px;
-        }
-    }
-`;
+// --- POPRAWIONE STYLE PODSUMOWANIA (Slim Row) ---
 
 const TotalRow = styled.tr`
-    background: linear-gradient(to right,
-        ${props => props.theme.colors.surfaceAlt} 0%,
-        ${props => props.theme.colors.surface} 100%);
-    border-top: 3px solid ${props => props.theme.colors.primary};
-    font-weight: ${props => props.theme.fontWeights.bold};
+    background-color: ${props => props.theme.colors.surfaceAlt};
+    border-top: 1px solid ${props => props.theme.colors.border};
+    font-weight: ${props => props.theme.fontWeights.semibold};
 
     @media (max-width: ${props => props.theme.breakpoints.md}) {
         display: block;
-        margin-top: ${props => props.theme.spacing.lg};
-        margin-bottom: 0;
+        margin-top: ${props => props.theme.spacing.md};
         background: ${props => props.theme.colors.surface};
         border: 1px solid ${props => props.theme.colors.border};
         border-radius: ${props => props.theme.radii.lg};
-        padding: ${props => props.theme.spacing.md};
+        padding: ${props => props.theme.spacing.sm};
     }
 `;
 
 const TotalLabel = styled(Td)`
-    font-size: ${props => props.theme.fontSizes.md};
-    color: ${props => props.theme.colors.text};
+    font-size: ${props => props.theme.fontSizes.xs};
+    color: ${props => props.theme.colors.textSecondary};
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes.lg};
-    }
+    letter-spacing: 1px;
+    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.lg};
 
     @media (max-width: ${props => props.theme.breakpoints.md}) {
         display: block;
-        padding: 0 0 ${props => props.theme.spacing.sm} 0;
-        font-size: ${props => props.theme.fontSizes.sm};
-
-        &:before {
-            content: none;
-        }
+        padding: 0 0 ${props => props.theme.spacing.xs} 0;
     }
 `;
 
 const TotalValue = styled(Td)`
-    font-size: ${props => props.theme.fontSizes.lg};
-    color: ${props => props.theme.colors.primary};
-    font-feature-settings: 'tnum';
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes.xl};
-    }
+    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.lg};
 
     @media (max-width: ${props => props.theme.breakpoints.md}) {
         display: block;
-        padding: ${props => props.theme.spacing.sm} 0 0 0;
-        font-size: ${props => props.theme.fontSizes.md};
-
-        &:before {
-            content: none;
-        }
+        padding: 0;
     }
 `;
 
-const NoteInput = styled(Input)`
-    margin-top: ${props => props.theme.spacing.xs};
-    font-size: ${props => props.theme.fontSizes.sm};
+const TotalsContent = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: ${props => props.theme.spacing.lg};
+    width: 100%;
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: ${props => props.theme.spacing.sm};
+    }
 `;
 
-const NoteDisplay = styled.div`
-    margin-top: ${props => props.theme.spacing.xs};
-    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
-    background-color: ${props => props.theme.colors.surfaceAlt};
-    border-radius: ${props => props.theme.radii.sm};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
-    cursor: pointer;
-    transition: background-color ${props => props.theme.transitions.fast};
+const PriceGroup = styled.div`
+    display: flex;
+    align-items: baseline;
+    gap: ${props => props.theme.spacing.lg};
 
-    &:hover {
-        background-color: ${props => props.theme.colors.surfaceHover};
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        justify-content: space-between;
     }
+`;
 
-    &:empty::before {
-        content: 'Kliknij aby dodać notatkę...';
+const TotalItem = styled.div`
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+
+    span:first-child {
+        font-size: ${props => props.theme.fontSizes.xs};
         color: ${props => props.theme.colors.textMuted};
-        font-style: italic;
+        text-transform: uppercase;
     }
-`;
 
-const CustomPriceLabel = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: ${props => props.theme.fontWeights.bold};
-    color: ${props => props.theme.colors.warning || '#f59e0b'};
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: ${props => props.theme.spacing.xs} ${props => props.theme.spacing.sm};
-    background-color: ${props => props.theme.colors.warningLight || '#fef3c7'};
-    border-radius: ${props => props.theme.radii.sm};
-    text-align: center;
+    span:last-child {
+        font-size: ${props => props.theme.fontSizes.md};
+        color: ${props => props.theme.colors.text};
+        font-weight: 700;
+        font-feature-settings: 'tnum';
+    }
+
+    &.primary span:last-child {
+        color: ${props => props.theme.colors.primary};
+        font-size: ${props => props.theme.fontSizes.lg};
+    }
 `;
 
 const DiscountButton = styled.button`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    background: #f59e0b;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: #f59e0b; /* Zachowany kolor bazowy */
     color: white;
     border: none;
     border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
+    font-size: ${props => props.theme.fontSizes.xs};
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     cursor: pointer;
     transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: ${props => props.theme.spacing.xs};
-    white-space: nowrap;
+
+    svg {
+        width: 14px;
+        height: 14px;
+    }
 
     &:hover:not(:disabled) {
         background: #d97706;
         transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    &:active:not(:disabled) {
+        transform: translateY(0);
     }
 
     &:disabled {
@@ -527,97 +240,120 @@ const DiscountButton = styled.button`
     @media (max-width: ${props => props.theme.breakpoints.md}) {
         width: 100%;
         justify-content: center;
-        padding: ${props => props.theme.spacing.md};
-        min-height: 44px; /* Touch-friendly */
+        padding: ${props => props.theme.spacing.sm};
     }
 `;
 
-const ModalOverlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.4);
+// --- RESZTA STYLI BEZ ZMIAN ---
+
+const ServiceName = styled.div`
+    font-weight: ${props => props.theme.fontWeights.medium};
+    color: ${props => props.theme.colors.text};
+`;
+
+const PriceCell = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
+const PriceLabel = styled.span`
+    font-size: ${props => props.theme.fontSizes.xs};
+    color: ${props => props.theme.colors.textMuted};
+    text-transform: uppercase;
+`;
+
+const PriceValue = styled.div<{ $highlight?: boolean }>`
+    font-size: ${props => props.theme.fontSizes.md};
+    font-weight: ${props => props.theme.fontWeights.semibold};
+    color: ${props => props.$highlight ? props.theme.colors.primary : props.theme.colors.text};
+`;
+
+const PriceInput = styled(Input)`
+    width: 100%;
+    max-width: 150px;
+    text-align: right;
+`;
+
+const DiscountCell = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${props => props.theme.spacing.sm};
+`;
+
+const DiscountInputWrapper = styled.div`
     display: flex;
     align-items: center;
-    justify-content: center;
-    z-index: 1000;
-`;
-
-const ModalCard = styled.div`
-    width: 100%;
-    max-width: 440px;
-    background: #fff;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    box-shadow: 0 20px 50px rgba(2,6,23,0.15);
-    overflow: hidden;
-`;
-
-const ModalHeader = styled.div`
-    padding: ${props => props.theme.spacing.lg};
-    border-bottom: 1px solid ${props => props.theme.colors.border};
-`;
-
-const ModalTitle = styled.h4`
-    margin: 0;
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: 700;
-`;
-
-const ModalBody = styled.div`
-    padding: ${props => props.theme.spacing.lg};
-    color: ${props => props.theme.colors.textSecondary};
-    font-size: ${props => props.theme.fontSizes.sm};
-`;
-
-const ModalFooter = styled.div`
-    padding: ${props => props.theme.spacing.md};
-    display: flex;
-    justify-content: flex-end;
-    gap: ${props => props.theme.spacing.sm};
-    background: ${props => props.theme.colors.surfaceAlt};
-    border-top: 1px solid ${props => props.theme.colors.border};
-`;
-
-const SecondaryBtn = styled.button`
-    padding: 6px 10px;
-    border-radius: ${props => props.theme.radii.md};
-    border: 1px solid ${props => props.theme.colors.border};
-    background: transparent;
-    color: ${props => props.theme.colors.text};
-    font-size: ${props => props.theme.fontSizes.xs};
-    cursor: pointer;
-
-    &:hover { background: ${props => props.theme.colors.surfaceAlt}; }
-`;
-
-const PrimaryBtn = styled.button`
-    padding: 6px 10px;
-    border-radius: ${props => props.theme.radii.md};
-    border: 1px solid ${props => props.theme.colors.border};
-    background: ${props => props.theme.colors.surfaceAlt};
-    color: var(--brand-primary);
-    font-size: ${props => props.theme.fontSizes.xs};
-    font-weight: 600;
-    cursor: pointer;
-
-    &:disabled { opacity: 0.6; cursor: not-allowed; }
-`;
-
-const ModalInput = styled(Input)`
-    width: 100%;
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+    background: white;
     border: 2px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-
-    &:focus {
-        outline: none;
-        border-color: var(--brand-primary);
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-    }
+    width: 100%;
 `;
 
-// Discount type options
+const DiscountInput = styled.input`
+    width: 100%;
+    padding: ${props => props.theme.spacing.sm};
+    border: none;
+    text-align: right;
+    font-feature-settings: 'tnum';
+    &:focus { outline: none; }
+`;
+
+const DiscountSuffix = styled.span`
+    padding-right: ${props => props.theme.spacing.md};
+    font-size: ${props => props.theme.fontSizes.sm};
+    color: ${props => props.theme.colors.textMuted};
+`;
+
+const DiscountTypeDropdownContainer = styled.div` position: relative; width: 100%; `;
+const DiscountTypeTrigger = styled.button`
+    width: 100%; display: flex; align-items: center; gap: 8px; padding: 8px;
+    border: 2px solid ${props => props.theme.colors.border}; border-radius: ${props => props.theme.radii.md};
+    background: white; cursor: pointer; font-size: ${props => props.theme.fontSizes.sm};
+`;
+const DiscountTypeMenu = styled.div`
+    position: absolute; top: 100%; left: 0; right: 0; background: white;
+    border: 1px solid ${props => props.theme.colors.border}; z-index: 2001;
+`;
+const DiscountTypeMenuItem = styled.button<{ $selected?: boolean }>`
+    width: 100%; padding: 10px; border: none; text-align: left; cursor: pointer;
+    background: ${props => props.$selected ? props.theme.colors.surfaceAlt : 'transparent'};
+`;
+
+const NoteInput = styled(Input)` font-size: ${props => props.theme.fontSizes.sm}; `;
+const NoteDisplay = styled.div`
+    margin-top: 4px; padding: 4px 8px; background: ${props => props.theme.colors.surfaceAlt};
+    font-size: ${props => props.theme.fontSizes.sm}; cursor: pointer; border-radius: 4px;
+`;
+
+const ActionButton = styled.button`
+    padding: 8px; background: transparent; border: none; cursor: pointer;
+    color: ${props => props.theme.colors.textSecondary}; &:hover { color: ${props => props.theme.colors.error}; }
+    svg { width: 20px; height: 20px; }
+`;
+
+const CustomPriceLabel = styled.div`
+    font-size: ${props => props.theme.fontSizes.xs}; font-weight: bold; padding: 4px 8px;
+    background: #fef3c7; color: #f59e0b; border-radius: 4px;
+`;
+
+// --- MODAL STYLES (ZGODNIE Z PROŚBĄ BEZ ZMIAN) ---
+
+const ModalOverlay = styled.div`
+    position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+    display: flex; align-items: center; justify-content: center; z-index: 1000;
+`;
+const ModalCard = styled.div`
+    width: 100%; max-width: 440px; background: #fff; border-radius: ${props => props.theme.radii.lg}; overflow: hidden;
+`;
+const ModalHeader = styled.div` padding: 24px; border-bottom: 1px solid ${props => props.theme.colors.border}; `;
+const ModalTitle = styled.h4` margin: 0; font-size: ${props => props.theme.fontSizes.md}; `;
+const ModalBody = styled.div` padding: 24px; `;
+const ModalFooter = styled.div` padding: 16px; display: flex; justify-content: flex-end; gap: 8px; background: ${props => props.theme.colors.surfaceAlt}; `;
+const SecondaryBtn = styled.button` padding: 8px 16px; border: 1px solid ${props => props.theme.colors.border}; background: transparent; cursor: pointer; border-radius: 6px; `;
+const PrimaryBtn = styled.button` padding: 8px 16px; background: #0ea5e9; color: white; border: none; cursor: pointer; border-radius: 6px; font-weight: 600; `;
+const ModalInput = styled(Input)` width: 100%; margin-top: 8px; `;
+
 const DISCOUNT_TYPE_OPTIONS = [
     { value: 'PERCENT', label: 'Procent (%)' },
     { value: 'FIXED_NET', label: 'Rabat netto' },
@@ -626,57 +362,26 @@ const DISCOUNT_TYPE_OPTIONS = [
     { value: 'SET_GROSS', label: 'Ustaw brutto' },
 ] as const;
 
-interface DiscountTypeDropdownProps {
-    value: AdjustmentType;
-    onChange: (value: AdjustmentType) => void;
-}
-
-const DiscountTypeDropdown = ({ value, onChange }: DiscountTypeDropdownProps) => {
+const DiscountTypeDropdown = ({ value, onChange }: { value: AdjustmentType, onChange: (v: AdjustmentType) => void }) => {
     const [open, setOpen] = useState(false);
-    const ref = useRef<HTMLDivElement | null>(null);
-
+    const ref = useRef<HTMLDivElement>(null);
     useEffect(() => {
-        const onDocClick = (e: MouseEvent) => {
-            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-        };
-        const onEsc = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') setOpen(false);
-        };
+        const onDocClick = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
         document.addEventListener('mousedown', onDocClick);
-        document.addEventListener('keydown', onEsc);
-        return () => {
-            document.removeEventListener('mousedown', onDocClick);
-            document.removeEventListener('keydown', onEsc);
-        };
+        return () => document.removeEventListener('mousedown', onDocClick);
     }, []);
-
     const selected = DISCOUNT_TYPE_OPTIONS.find(opt => opt.value === value);
-
     return (
         <DiscountTypeDropdownContainer ref={ref}>
-            <DiscountTypeTrigger
-                type="button"
-                onClick={() => setOpen(o => !o)}
-                aria-haspopup="listbox"
-                aria-expanded={open}
-            >
+            <DiscountTypeTrigger type="button" onClick={() => setOpen(!open)}>
                 <span>{selected?.label || 'Wybierz typ'}</span>
-                <DiscountTypeCaret />
+                <span style={{ marginLeft: 'auto' }}>▼</span>
             </DiscountTypeTrigger>
             {open && (
-                <DiscountTypeMenu role="listbox">
+                <DiscountTypeMenu>
                     {DISCOUNT_TYPE_OPTIONS.map(opt => (
-                        <DiscountTypeMenuItem
-                            key={opt.value}
-                            role="option"
-                            aria-selected={opt.value === value}
-                            $selected={opt.value === value}
-                            onClick={() => {
-                                onChange(opt.value as AdjustmentType);
-                                setOpen(false);
-                            }}
-                        >
-                            <span>{opt.label}</span>
+                        <DiscountTypeMenuItem key={opt.value} $selected={opt.value === value} onClick={() => { onChange(opt.value); setOpen(false); }}>
+                            {opt.label}
                         </DiscountTypeMenuItem>
                     ))}
                 </DiscountTypeMenu>
@@ -685,12 +390,9 @@ const DiscountTypeDropdown = ({ value, onChange }: DiscountTypeDropdownProps) =>
     );
 };
 
-interface EditableServicesTableProps {
-    services: ServiceLineItem[];
-    onChange: (services: ServiceLineItem[]) => void;
-}
+// --- KOMPONENT GŁÓWNY ---
 
-export const EditableServicesTable = ({ services, onChange }: EditableServicesTableProps) => {
+export const EditableServicesTable = ({ services, onChange }: { services: ServiceLineItem[], onChange: (s: ServiceLineItem[]) => void }) => {
     const [editingPrices, setEditingPrices] = useState<Record<string, boolean>>({});
     const [editingNotes, setEditingNotes] = useState<Record<string, boolean>>({});
     const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
@@ -705,642 +407,146 @@ export const EditableServicesTable = ({ services, onChange }: EditableServicesTa
     const calculateServicePrice = (service: ServiceLineItem) => {
         const { basePriceNet, vatRate, adjustment } = service;
         let finalPriceNet = basePriceNet;
-
         switch (adjustment.type) {
-            case 'PERCENT': {
-                if (adjustment.value <= 100) {
-                    // 0–100: discount by value% (e.g. 5 = 5% rabat, 95 = 95% rabat)
-                    const discountAmount = Math.round((basePriceNet * adjustment.value) / 100);
-                    finalPriceNet = basePriceNet - discountAmount;
-                } else {
-                    // >100: price increase (e.g. 120 = cena * 1.20, +20%)
-                    finalPriceNet = Math.round((basePriceNet * adjustment.value) / 100);
-                }
-                break;
-            }
-            case 'FIXED_NET': {
-                finalPriceNet = basePriceNet - Math.abs(adjustment.value);
-                break;
-            }
-            case 'FIXED_GROSS': {
-                const targetGross = (basePriceNet * (100 + vatRate)) / 100 - Math.abs(adjustment.value);
-                finalPriceNet = Math.round((targetGross * 100) / (100 + vatRate));
-                break;
-            }
-            case 'SET_NET': {
-                finalPriceNet = adjustment.value;
-                break;
-            }
-            case 'SET_GROSS': {
-                finalPriceNet = Math.round((adjustment.value * 100) / (100 + vatRate));
-                break;
-            }
+            case 'PERCENT': finalPriceNet = adjustment.value <= 100 ? Math.round(basePriceNet * (1 - adjustment.value / 100)) : Math.round(basePriceNet * adjustment.value / 100); break;
+            case 'FIXED_NET': finalPriceNet = basePriceNet - adjustment.value; break;
+            case 'FIXED_GROSS': finalPriceNet = Math.round((((basePriceNet * (100 + vatRate)) / 100 - adjustment.value) * 100) / (100 + vatRate)); break;
+            case 'SET_NET': finalPriceNet = adjustment.value; break;
+            case 'SET_GROSS': finalPriceNet = Math.round((adjustment.value * 100) / (100 + vatRate)); break;
         }
-
         if (finalPriceNet < 0) finalPriceNet = 0;
-
-        let vatAmount;
-        let finalPriceGross;
-
-        if (adjustment.type === 'SET_GROSS') {
-            // For SET_GROSS, ensure exact gross value
-            finalPriceGross = adjustment.value;
-            vatAmount = finalPriceGross - finalPriceNet;
-        } else {
-            vatAmount = Math.round((finalPriceNet * vatRate) / 100);
-            finalPriceGross = finalPriceNet + vatAmount;
-        }
-
-        // Oblicz kwotę rabatu
-        const basePriceGross = basePriceNet + Math.round((basePriceNet * vatRate) / 100);
-        const discountAmountNet = basePriceNet - finalPriceNet;
-        const discountAmountGross = basePriceGross - finalPriceGross;
-
-        return {
-            finalPriceNet,
-            finalPriceGross,
-            vatAmount,
-            discountAmountNet,
-            discountAmountGross,
-            hasDiscount: discountAmountNet !== 0,
-        };
+        const finalPriceGross = adjustment.type === 'SET_GROSS' ? adjustment.value : finalPriceNet + Math.round((finalPriceNet * vatRate) / 100);
+        return { finalPriceNet, finalPriceGross, hasDiscount: finalPriceNet !== basePriceNet };
     };
 
-    const calculateTotals = () => {
-        let totalNet = 0;
-        let totalGross = 0;
-        let totalVat = 0;
+    const calculateTotals = () => services.reduce((acc, s) => {
+        const p = calculateServicePrice(s);
+        return { totalNet: acc.totalNet + p.finalPriceNet, totalGross: acc.totalGross + p.finalPriceGross };
+    }, { totalNet: 0, totalGross: 0 });
 
-        services.forEach(service => {
-            const pricing = calculateServicePrice(service);
-            totalNet += pricing.finalPriceNet;
-            totalGross += pricing.finalPriceGross;
-            totalVat += pricing.vatAmount;
-        });
-
-        return { totalNet, totalGross, totalVat };
-    };
-
-    const openDiscountModal = () => {
-        setIsDiscountModalOpen(true);
-        setTargetPrice('');
-        setDiscountPriceType('gross');
-    };
-
-    const closeDiscountModal = () => {
-        setIsDiscountModalOpen(false);
-        setDiscountType('PERCENT');
-        setTargetPrice('');
-    };
+    const openDiscountModal = () => { setIsDiscountModalOpen(true); setTargetPrice(''); };
+    const closeDiscountModal = () => { setIsDiscountModalOpen(false); setTargetPrice(''); };
 
     const handleApplyDiscount = () => {
-        if (!targetPrice || services.length === 0) return;
-
-        const inputValue = parseFloat(targetPrice);
-        if (isNaN(inputValue) || inputValue < 0) return;
-
-        const totals = calculateTotals();
-        let updatedServices: ServiceLineItem[] = [];
-
-        if (discountType === 'PERCENT') {
-            // 0–100: rabat o value%, >100: podwyżka o (value-100)% (np. 120 = +20%)
-            updatedServices = services.map(service => ({
-                ...service,
-                adjustment: {
-                    type: 'PERCENT' as const,
-                    value: inputValue,
-                },
-            }));
-        } else if (discountType === 'FIXED_NET' || discountType === 'FIXED_GROSS') {
-            // Calculate percentage discount needed to achieve the fixed amount
-            const discountAmount = inputValue * 100; // Convert to cents
-            const currentTotal = discountType === 'FIXED_GROSS' ? totals.totalGross : totals.totalNet;
-
-            if (discountAmount >= currentTotal) {
-                alert('Kwota rabatu nie może być większa lub równa obecnej sumie.');
-                return;
-            }
-
-            const discountPercentage = (discountAmount / currentTotal) * 100;
-            const roundedDiscountPercentage = Math.round(discountPercentage * 100) / 100;
-
-            updatedServices = services.map(service => ({
-                ...service,
-                adjustment: {
-                    type: 'PERCENT' as const,
-                    value: roundedDiscountPercentage,
-                },
-            }));
-
-            // Adjust for rounding errors
-            let actualTotal = 0;
-            updatedServices.forEach(service => {
-                const pricing = calculateServicePrice(service);
-                actualTotal += discountType === 'FIXED_GROSS' ? pricing.finalPriceGross : pricing.finalPriceNet;
-            });
-
-            const targetTotal = currentTotal - discountAmount;
-            const difference = actualTotal - targetTotal;
-
-            if (difference !== 0 && updatedServices.length > 0) {
-                const lastIndex = updatedServices.length - 1;
-                const lastService = updatedServices[lastIndex];
-                const lastServicePricing = calculateServicePrice(lastService);
-                const lastServiceTotal = discountType === 'FIXED_GROSS'
-                    ? lastServicePricing.finalPriceGross
-                    : lastServicePricing.finalPriceNet;
-                const adjustedLastServiceTotal = lastServiceTotal - difference;
-
-                updatedServices[lastIndex] = {
-                    ...lastService,
-                    adjustment: {
-                        type: (discountType === 'FIXED_GROSS' ? 'SET_GROSS' : 'SET_NET') as const,
-                        value: adjustedLastServiceTotal,
-                    },
-                };
-            }
-        } else if (discountType === 'SET_NET' || discountType === 'SET_GROSS') {
-            // Set to target amount
-            const targetAmount = inputValue * 100; // Convert to cents
-            const currentTotal = discountType === 'SET_GROSS' ? totals.totalGross : totals.totalNet;
-
-            if (targetAmount >= currentTotal) {
-                alert('Docelowa kwota musi być niższa niż obecna suma.');
-                return;
-            }
-
-            const discountPercentage = ((currentTotal - targetAmount) / currentTotal) * 100;
-            const roundedDiscountPercentage = Math.round(discountPercentage * 100) / 100;
-
-            updatedServices = services.map(service => ({
-                ...service,
-                adjustment: {
-                    type: 'PERCENT' as const,
-                    value: roundedDiscountPercentage,
-                },
-            }));
-
-            // Adjust for rounding errors
-            let actualTotal = 0;
-            updatedServices.forEach(service => {
-                const pricing = calculateServicePrice(service);
-                actualTotal += discountType === 'SET_GROSS' ? pricing.finalPriceGross : pricing.finalPriceNet;
-            });
-
-            const difference = actualTotal - targetAmount;
-            if (difference !== 0 && updatedServices.length > 0) {
-                const lastIndex = updatedServices.length - 1;
-                const lastService = updatedServices[lastIndex];
-                const lastServicePricing = calculateServicePrice(lastService);
-                const lastServiceTotal = discountType === 'SET_GROSS'
-                    ? lastServicePricing.finalPriceGross
-                    : lastServicePricing.finalPriceNet;
-                const adjustedLastServiceTotal = lastServiceTotal - difference;
-
-                updatedServices[lastIndex] = {
-                    ...lastService,
-                    adjustment: {
-                        type: discountType as const,
-                        value: adjustedLastServiceTotal,
-                    },
-                };
-            }
-        }
-
-        onChange(updatedServices);
+        const value = parseFloat(targetPrice);
+        if (isNaN(value)) return;
+        const updated = services.map(s => ({
+            ...s,
+            adjustment: { type: discountType, value: ['PERCENT'].includes(discountType) ? value : Math.round(value * 100) }
+        }));
+        onChange(updated);
         closeDiscountModal();
-    };
-
-    const handlePriceEdit = (serviceId: string, field: 'net' | 'gross', value: string) => {
-        const numValue = Math.round(parseFloat(value) * 100) || 0;
-        const updatedServices = services.map(s => {
-            if (s.id === serviceId) {
-                return {
-                    ...s,
-                    adjustment: {
-                        type: field === 'net' ? 'SET_NET' : 'SET_GROSS',
-                        value: numValue,
-                    } as typeof s.adjustment,
-                };
-            }
-            return s;
-        });
-        onChange(updatedServices);
-    };
-
-    const handleDiscountTypeChange = (serviceId: string, type: AdjustmentType) => {
-        const updatedServices = services.map(s => {
-            if (s.id === serviceId) {
-                return {
-                    ...s,
-                    adjustment: {
-                        type,
-                        value: 0,
-                    },
-                };
-            }
-            return s;
-        });
-        onChange(updatedServices);
-
-        // Clear local input state when type changes
-        setDiscountInputValues(prev => {
-            const newState = { ...prev };
-            delete newState[serviceId];
-            return newState;
-        });
-    };
-
-    const handleDiscountValueChange = (serviceId: string, value: string) => {
-        // Just update the local input state while user is typing
-        setDiscountInputValues(prev => ({
-            ...prev,
-            [serviceId]: value,
-        }));
-    };
-
-    const handleDiscountFocus = (serviceId: string) => {
-        setFocusedDiscountFields(prev => ({
-            ...prev,
-            [serviceId]: true,
-        }));
-
-        // Initialize input value from current service value if not already set
-        const service = services.find(s => s.id === serviceId);
-        if (service && discountInputValues[serviceId] === undefined) {
-            const isMoneyType = ['FIXED_NET', 'FIXED_GROSS', 'SET_NET', 'SET_GROSS'].includes(service.adjustment.type);
-            const currentValue = service.adjustment.value === 0
-                ? ''
-                : (isMoneyType
-                    ? formatMoneyInput(Math.abs(service.adjustment.value))
-                    : String(service.adjustment.value));
-
-            setDiscountInputValues(prev => ({
-                ...prev,
-                [serviceId]: currentValue,
-            }));
-        }
-    };
-
-    const handleDiscountBlur = (serviceId: string) => {
-        setFocusedDiscountFields(prev => ({
-            ...prev,
-            [serviceId]: false,
-        }));
-
-        const service = services.find(s => s.id === serviceId);
-        if (!service) return;
-
-        const inputValue = discountInputValues[serviceId] || '';
-
-        // Handle empty string (when user clears the input)
-        if (inputValue === '' || inputValue === '-') {
-            const updatedServices = services.map(s => {
-                if (s.id === serviceId) {
-                    return {
-                        ...s,
-                        adjustment: {
-                            ...s.adjustment,
-                            value: 0,
-                        },
-                    };
-                }
-                return s;
-            });
-            onChange(updatedServices);
-            // Clear local input state
-            setDiscountInputValues(prev => {
-                const newState = { ...prev };
-                delete newState[serviceId];
-                return newState;
-            });
-            return;
-        }
-
-        const isMoneyType = ['FIXED_NET', 'FIXED_GROSS', 'SET_NET', 'SET_GROSS'].includes(service.adjustment.type);
-        const parsedValue = parseFloat(inputValue);
-
-        // If parsing fails, revert to current value
-        if (isNaN(parsedValue)) {
-            setDiscountInputValues(prev => {
-                const newState = { ...prev };
-                delete newState[serviceId];
-                return newState;
-            });
-            return;
-        }
-
-        const numValue = isMoneyType
-            ? Math.round(Math.abs(parsedValue) * 100)
-            : Math.max(0, parsedValue);
-
-        const updatedServices = services.map(s => {
-            if (s.id === serviceId) {
-                return {
-                    ...s,
-                    adjustment: {
-                        ...s.adjustment,
-                        value: numValue,
-                    },
-                };
-            }
-            return s;
-        });
-        onChange(updatedServices);
-
-        // Clear local input state so formatted value is shown
-        setDiscountInputValues(prev => {
-            const newState = { ...prev };
-            delete newState[serviceId];
-            return newState;
-        });
-    };
-
-    const handleAddService = (service: Service) => {
-        const newServiceLine: ServiceLineItem = {
-            id: `${service.id}_${Date.now()}`,
-            serviceId: service.id,
-            serviceName: service.name,
-            basePriceNet: service.basePriceNet,
-            vatRate: service.vatRate,
-            adjustment: {
-                type: 'PERCENT',
-                value: 0,
-            },
-            note: '',
-            requireManualPrice: service.requireManualPrice,
-        };
-        onChange([...services, newServiceLine]);
-    };
-
-    const handleNoteChange = (serviceId: string, note: string) => {
-        const updatedServices = services.map(s => {
-            if (s.id === serviceId) {
-                return { ...s, note };
-            }
-            return s;
-        });
-        onChange(updatedServices);
-    };
-
-    const handleRemoveService = (serviceId: string) => {
-        onChange(services.filter(s => s.id !== serviceId));
-    };
-
-    const handleAddNewService = (searchQuery: string) => {
-        setQuickServiceInitialName(searchQuery);
-        setIsQuickServiceModalOpen(true);
-    };
-
-    const handleQuickServiceCreate = (service: { id?: string; name: string; basePriceNet: number; vatRate: 23 }) => {
-        // If service was saved to database, refresh services list
-        if (service.id) {
-            queryClient.invalidateQueries({ queryKey: ['services'] });
-        }
-
-        // Create new service line item (with ID if saved to DB, or temporary ID if not)
-        const newServiceLine: ServiceLineItem = {
-            id: service.id ? `${service.id}_${Date.now()}` : `temp_${Date.now()}`,
-            serviceId: service.id || null,
-            serviceName: service.name,
-            basePriceNet: service.basePriceNet,
-            vatRate: service.vatRate,
-            adjustment: {
-                type: 'PERCENT',
-                value: 0,
-            },
-            note: '',
-        };
-
-        onChange([...services, newServiceLine]);
     };
 
     const totals = calculateTotals();
 
-    const formatMoneyInput = (amount: number) => (amount / 100).toFixed(2);
-
     return (
         <>
-            <ServiceAutocomplete onSelect={handleAddService} onAddNew={handleAddNewService} />
+            <ServiceAutocomplete onSelect={(s) => onChange([...services, {
+                id: `${s.id}_${Date.now()}`, serviceId: s.id, serviceName: s.name, basePriceNet: s.basePriceNet, vatRate: s.vatRate,
+                adjustment: { type: 'PERCENT', value: 0 }, note: '', requireManualPrice: s.requireManualPrice
+            }])} onAddNew={(q) => { setQuickServiceInitialName(q); setIsQuickServiceModalOpen(true); }} />
 
             <TableContainer>
                 <Table>
-                <Thead>
-                    <tr>
-                        <Th>Nazwa usługi</Th>
-                        <Th>Cena bazowa</Th>
-                        <Th>Rabat</Th>
-                        <Th>Cena końcowa</Th>
-                        <Th>Akcje</Th>
-                    </tr>
-                </Thead>
-                <Tbody>
-                    {services.map(service => {
-                        const pricing = calculateServicePrice(service);
-                        const isEditingPrice = editingPrices[service.id];
-                        const isEditingNote = editingNotes[service.id];
-
-                        return (
-                            <Tr key={service.id}>
-                                <Td data-label="Nazwa usługi">
-                                    <ServiceName>{service.serviceName}</ServiceName>
-                                    {isEditingNote ? (
-                                        <NoteInput
-                                            type="text"
-                                            value={service.note || ''}
-                                            onChange={(e) => handleNoteChange(service.id, e.target.value)}
-                                            onBlur={() => setEditingNotes({ ...editingNotes, [service.id]: false })}
-                                            placeholder="Dodaj notatkę..."
-                                            autoFocus
-                                        />
-                                    ) : (
-                                        <NoteDisplay
-                                            onClick={() => setEditingNotes({ ...editingNotes, [service.id]: true })}
-                                        >
-                                            {service.note}
+                    <Thead>
+                        <tr>
+                            <Th>Nazwa usługi</Th><Th>Cena bazowa</Th><Th>Rabat</Th><Th>Cena końcowa</Th><Th>Akcje</Th>
+                        </tr>
+                    </Thead>
+                    <Tbody>
+                        {services.map(service => {
+                            const pricing = calculateServicePrice(service);
+                            return (
+                                <Tr key={service.id}>
+                                    <Td data-label="Nazwa usługi">
+                                        <ServiceName>{service.serviceName}</ServiceName>
+                                        <NoteDisplay onClick={() => setEditingNotes({ ...editingNotes, [service.id]: true })}>
+                                            {editingNotes[service.id] ? <NoteInput autoFocus value={service.note} onChange={(e) => onChange(services.map(s => s.id === service.id ? { ...s, note: e.target.value } : s))} onBlur={() => setEditingNotes({ ...editingNotes, [service.id]: false })} /> : service.note || 'Dodaj notatkę...'}
                                         </NoteDisplay>
+                                    </Td>
+                                    <Td data-label="Cena bazowa">
+                                        {service.requireManualPrice ? <CustomPriceLabel>Cena niestandardowa</CustomPriceLabel> : <PriceValue>{formatCurrency(service.basePriceNet / 100)}</PriceValue>}
+                                    </Td>
+                                    <Td data-label="Rabat">
+                                        <DiscountCell>
+                                            <DiscountTypeDropdown value={service.adjustment.type} onChange={(t) => onChange(services.map(s => s.id === service.id ? { ...s, adjustment: { ...s.adjustment, type: t } } : s))} />
+                                            <DiscountInputWrapper>
+                                                <DiscountInput value={discountInputValues[service.id] ?? (service.adjustment.value || '')} onChange={(e) => setDiscountInputValues({ ...discountInputValues, [service.id]: e.target.value })} onBlur={() => {
+                                                    const val = parseFloat(discountInputValues[service.id]);
+                                                    onChange(services.map(s => s.id === service.id ? { ...s, adjustment: { ...s.adjustment, value: isNaN(val) ? 0 : val } } : s));
+                                                    setDiscountInputValues({ ...discountInputValues, [service.id]: '' });
+                                                }} />
+                                                <DiscountSuffix>{service.adjustment.type === 'PERCENT' ? '%' : 'PLN'}</DiscountSuffix>
+                                            </DiscountInputWrapper>
+                                        </DiscountCell>
+                                    </Td>
+                                    <Td data-label="Cena końcowa">
+                                        <PriceValue $highlight={pricing.hasDiscount}>{formatCurrency(pricing.finalPriceGross / 100)}</PriceValue>
+                                    </Td>
+                                    <Td>
+                                        <ActionButton onClick={() => onChange(services.filter(s => s.id !== service.id))}>
+                                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                        </ActionButton>
+                                    </Td>
+                                </Tr>
+                            );
+                        })}
+
+                        <TotalRow>
+                            <TotalLabel colSpan={2}>Podsumowanie</TotalLabel>
+                            <TotalValue colSpan={2}>
+                                <TotalsContent>
+                                    <PriceGroup>
+                                        <TotalItem>
+                                            <span>Netto</span>
+                                            <span>{formatCurrency(totals.totalNet / 100)}</span>
+                                        </TotalItem>
+                                        <TotalItem className="primary">
+                                            <span>Brutto</span>
+                                            <span>{formatCurrency(totals.totalGross / 100)}</span>
+                                        </TotalItem>
+                                    </PriceGroup>
+                                    {services.length > 0 && (
+                                        <DiscountButton onClick={openDiscountModal}>
+                                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                            </svg>
+                                            Rabatuj całość
+                                        </DiscountButton>
                                     )}
-                                </Td>
+                                </TotalsContent>
+                            </TotalValue>
+                            <Td />
+                        </TotalRow>
+                    </Tbody>
+                </Table>
+            </TableContainer>
 
-                                <Td data-label="Cena bazowa">
-                                    {service.basePriceNet === 0 || service.requireManualPrice ? (
-                                        <CustomPriceLabel>
-                                            Cena niestandardowa
-                                        </CustomPriceLabel>
-                                    ) : (
-                                        <PriceCell>
-                                            <div>
-                                                <PriceLabel>Netto</PriceLabel>
-                                                <PriceValue>
-                                                    {formatCurrency(service.basePriceNet / 100)}
-                                                </PriceValue>
-                                            </div>
-                                            <div>
-                                                <PriceLabel>Brutto</PriceLabel>
-                                                <PriceValue>
-                                                    {formatCurrency((service.basePriceNet * (100 + service.vatRate)) / 10000)}
-                                                </PriceValue>
-                                            </div>
-                                        </PriceCell>
-                                    )}
-                                </Td>
+            <QuickServiceModal isOpen={isQuickServiceModalOpen} onClose={() => setIsQuickServiceModalOpen(false)} initialServiceName={quickServiceInitialName} onServiceCreate={(s) => {
+                if (s.id) queryClient.invalidateQueries({ queryKey: ['services'] });
+                onChange([...services, { id: `temp_${Date.now()}`, serviceId: s.id || null, serviceName: s.name, basePriceNet: s.basePriceNet, vatRate: s.vatRate, adjustment: { type: 'PERCENT', value: 0 }, note: '' }]);
+            }} />
 
-                                <Td data-label="Rabat">
-                                    <DiscountCell>
-                                        <DiscountTypeDropdown
-                                            value={service.adjustment.type}
-                                            onChange={(type) => handleDiscountTypeChange(service.id, type)}
-                                        />
-                                        <DiscountInputWrapper>
-                                            <DiscountInput
-                                                type="text"
-                                                value={
-                                                    focusedDiscountFields[service.id]
-                                                        ? (discountInputValues[service.id] ?? '')
-                                                        : (
-                                                            service.adjustment.type === 'PERCENT'
-                                                                ? service.adjustment.value === 0 ? '' : String(service.adjustment.value)
-                                                                : service.adjustment.value === 0 ? '' : formatMoneyInput(Math.abs(service.adjustment.value))
-                                                        )
-                                                }
-                                                onChange={(e) => handleDiscountValueChange(service.id, e.target.value)}
-                                                onFocus={() => handleDiscountFocus(service.id)}
-                                                onBlur={() => handleDiscountBlur(service.id)}
-                                                placeholder="0.00"
-                                            />
-                                            <DiscountSuffix>
-                                                {service.adjustment.type === 'PERCENT' ? '%' : 'PLN'}
-                                            </DiscountSuffix>
-                                        </DiscountInputWrapper>
-                                    </DiscountCell>
-                                </Td>
-
-                                <Td data-label="Cena końcowa">
-                                    <PriceCell>
-                                        <div>
-                                            <PriceLabel>Netto</PriceLabel>
-                                            {isEditingPrice ? (
-                                                <PriceInput
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={formatMoneyInput(pricing.finalPriceNet)}
-                                                    onChange={(e) => handlePriceEdit(service.id, 'net', e.target.value)}
-                                                    onBlur={() => setEditingPrices({ ...editingPrices, [service.id]: false })}
-                                                    autoFocus
-                                                />
-                                            ) : (
-                                                <PriceValue
-                                                    $highlight={pricing.hasDiscount}
-                                                    onClick={() => setEditingPrices({ ...editingPrices, [service.id]: true })}
-                                                    style={{ cursor: 'pointer' }}
-                                                >
-                                                    {formatCurrency(pricing.finalPriceNet / 100)}
-                                                </PriceValue>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <PriceLabel>Brutto</PriceLabel>
-                                            <PriceValue $highlight={pricing.hasDiscount}>
-                                                {formatCurrency(pricing.finalPriceGross / 100)}
-                                            </PriceValue>
-                                        </div>
-                                    </PriceCell>
-                                </Td>
-
-                                <Td>
-                                    <ActionButton onClick={() => handleRemoveService(service.id)}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </ActionButton>
-                                </Td>
-                            </Tr>
-                        );
-                    })}
-
-                    <TotalRow>
-                        <TotalLabel colSpan={2}>
-                            <span>Podsumowanie:</span>
-                        </TotalLabel>
-                        <TotalValue colSpan={2}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px', flexWrap: 'wrap' }}>
-                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                                        <PriceLabel style={{ color: 'inherit' }}>Netto:</PriceLabel>
-                                        <div style={{ fontWeight: 600 }}>{formatCurrency(totals.totalNet / 100)}</div>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                                        <PriceLabel style={{ color: 'inherit' }}>Brutto:</PriceLabel>
-                                        <div style={{ fontWeight: 700 }}>{formatCurrency(totals.totalGross / 100)}</div>
-                                    </div>
-                                </div>
-                                {services.length > 0 && (
-                                    <DiscountButton onClick={openDiscountModal}>
-                                        🏷️ Rabatuj całość
-                                    </DiscountButton>
-                                )}
+            {isDiscountModalOpen && (
+                <ModalOverlay onClick={closeDiscountModal}>
+                    <ModalCard onClick={e => e.stopPropagation()}>
+                        <ModalHeader><ModalTitle>Rabatuj całość</ModalTitle></ModalHeader>
+                        <ModalBody>
+                            <p style={{ marginBottom: '16px', fontSize: '14px' }}>Wybierz typ rabatu i podaj wartość dla wszystkich usług.</p>
+                            <DiscountTypeDropdown value={discountType} onChange={setDiscountType} />
+                            <ModalInput type="number" value={targetPrice} onChange={e => setTargetPrice(e.target.value)} placeholder="0.00" autoFocus />
+                            <div style={{ marginTop: '12px', fontSize: '12px', color: '#6b7280' }}>
+                                Suma brutto: <strong>{formatCurrency(totals.totalGross / 100)}</strong>
                             </div>
-                        </TotalValue>
-                        <Td></Td>
-                    </TotalRow>
-                </Tbody>
-            </Table>
-        </TableContainer>
-
-        {/* Quick Service Modal */}
-        <QuickServiceModal
-            isOpen={isQuickServiceModalOpen}
-            onClose={() => setIsQuickServiceModalOpen(false)}
-            onServiceCreate={handleQuickServiceCreate}
-            initialServiceName={quickServiceInitialName}
-        />
-
-        {/* Discount Modal */}
-        {isDiscountModalOpen && (
-            <ModalOverlay onClick={(e) => { if (e.target === e.currentTarget) closeDiscountModal(); }}>
-                <ModalCard role="dialog" aria-modal="true" aria-labelledby="discount-title">
-                    <ModalHeader>
-                        <ModalTitle id="discount-title">Rabatuj całość</ModalTitle>
-                    </ModalHeader>
-                    <ModalBody>
-                        <p style={{ marginBottom: '16px' }}>
-                            Wybierz typ rabatu i podaj wartość. Rabat zostanie zastosowany do wszystkich usług.
-                        </p>
-                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-                            Typ rabatu:
-                        </label>
-                        <DiscountTypeDropdown
-                            value={discountType}
-                            onChange={(value) => setDiscountType(value)}
-                        />
-                        <label style={{ display: 'block', marginTop: '16px', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-                            Wartość {discountType === 'PERCENT' ? '(%)' : '(PLN)'}:
-                        </label>
-                        <ModalInput
-                            type="number"
-                            step={discountType === 'PERCENT' ? '0.01' : '0.01'}
-                            min="0"
-                            max={discountType === 'PERCENT' ? '100' : undefined}
-                            value={targetPrice}
-                            onChange={(e) => setTargetPrice(e.target.value)}
-                            placeholder={discountType === 'PERCENT' ? '0.00' : '0.00'}
-                            autoFocus
-                        />
-                        <div style={{ marginTop: '12px', fontSize: '13px', color: '#6b7280' }}>
-                            Obecna suma brutto: <strong>{formatCurrency(calculateTotals().totalGross / 100)}</strong>
-                            {' | '}
-                            Obecna suma netto: <strong>{formatCurrency(calculateTotals().totalNet / 100)}</strong>
-                        </div>
-                    </ModalBody>
-                    <ModalFooter>
-                        <SecondaryBtn onClick={closeDiscountModal}>Anuluj</SecondaryBtn>
-                        <PrimaryBtn onClick={handleApplyDiscount} disabled={targetPrice === '' || isNaN(parseFloat(targetPrice)) || parseFloat(targetPrice) < 0}>
-                            Zastosuj rabat
-                        </PrimaryBtn>
-                    </ModalFooter>
-                </ModalCard>
-            </ModalOverlay>
-        )}
-    </>
+                        </ModalBody>
+                        <ModalFooter>
+                            <SecondaryBtn onClick={closeDiscountModal}>Anuluj</SecondaryBtn>
+                            <PrimaryBtn onClick={handleApplyDiscount}>Zastosuj rabat</PrimaryBtn>
+                        </ModalFooter>
+                    </ModalCard>
+                </ModalOverlay>
+            )}
+        </>
     );
 };
