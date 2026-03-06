@@ -604,7 +604,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const { showSuccess } = useToast();
     const calendarRef = useRef<FullCalendar>(null);
     const quickEventModalRef = useRef<QuickEventModalRef>(null);
+    const calendarWrapperRef = useRef<HTMLDivElement>(null);
     const [dateRange, setDateRange] = useState<DateRange | null>(null);
+    const [dayMaxEvents, setDayMaxEvents] = useState(3);
     const [quickModalOpen, setQuickModalOpen] = useState(false);
     const [selectedEventData, setSelectedEventData] = useState<EventCreationData | null>(null);
 
@@ -622,6 +624,30 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const deselectedCount =
         (3 - selectedAppointmentStatuses.length) +
         (5 - selectedVisitStatuses.length);
+
+    // Dynamic dayMaxEvents – recalculate whenever the calendar container resizes or navigates
+    const recalcDayMaxEvents = useCallback(() => {
+        const wrapper = calendarWrapperRef.current;
+        if (!wrapper) return;
+        const viewHarness = wrapper.querySelector('.fc-view-harness') as HTMLElement | null;
+        const colHeader = wrapper.querySelector('.fc-col-header') as HTMLElement | null;
+        const rows = wrapper.querySelectorAll('.fc-daygrid-body tr');
+        if (!viewHarness || !colHeader || rows.length === 0) return;
+        const gridHeight = viewHarness.clientHeight;
+        const headerHeight = colHeader.clientHeight;
+        const rowHeight = (gridHeight - headerHeight) / rows.length;
+        // 34px for day-number area, 22px per event pill (height + margin)
+        const next = Math.max(1, Math.floor((rowHeight - 34) / 22));
+        setDayMaxEvents(prev => (prev !== next ? next : prev));
+    }, []);
+
+    useEffect(() => {
+        const wrapper = calendarWrapperRef.current;
+        if (!wrapper) return;
+        const observer = new ResizeObserver(() => recalcDayMaxEvents());
+        observer.observe(wrapper);
+        return () => observer.disconnect();
+    }, [recalcDayMaxEvents]);
 
     // Badge on the FullCalendar "Filtruj" button (desktop) – updated whenever filters change
     useEffect(() => {
@@ -675,11 +701,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         setCalendarTitle(arg.view.title);
         setCurrentView(arg.view.type as CalendarViewType);
 
+        // Recalc after DOM settles (different months have 5 or 6 rows)
+        setTimeout(recalcDayMaxEvents, 0);
+
         // Notify parent of view change
         if (onViewChange) {
             onViewChange(arg.view.type as CalendarViewType);
         }
-    }, [onViewChange]);
+    }, [onViewChange, recalcDayMaxEvents]);
 
     /**
      * Handle date selection (click or drag) - Open quick modal
@@ -907,7 +936,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 </MobileActions>
             </MobileHeader>
 
-            <CalendarWrapper>
+            <CalendarWrapper ref={calendarWrapperRef}>
                 <CalendarFilterDropdown
                     selectedAppointmentStatuses={selectedAppointmentStatuses}
                     selectedVisitStatuses={selectedVisitStatuses}
@@ -943,8 +972,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 views={{
                     dayGridMonth: {
                         titleFormat: { year: 'numeric', month: 'long' },
-                        // Force block display for all events (not dot style)
-                        dayMaxEventRows: false,
                     },
                     timeGridWeek: {
                         titleFormat: { year: 'numeric', month: 'long', day: 'numeric' },
@@ -967,7 +994,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 editable={false}
                 selectable={true}
                 selectMirror={true}
-                dayMaxEvents={3}
+                dayMaxEvents={dayMaxEvents}
                 moreLinkText={(n) => `jeszcze ${n}`}
                 weekends={true}
                 nowIndicator={true}
