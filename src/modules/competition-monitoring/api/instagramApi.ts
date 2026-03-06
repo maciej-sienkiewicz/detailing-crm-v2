@@ -98,21 +98,27 @@ const mockPostsMap: Record<string, InstagramPost[]> = {
 };
 
 // Weekly stat helpers for mock data
-const makeWeeks = (base: number, variance: number, count = 12): WeeklyStat[] => {
+// Generates up to 52 weeks (≈ 1 year) so the date-range picker has data to work with.
+const makeWeeks = (base: number, variance: number, count = 52): WeeklyStat[] => {
     const weeks: WeeklyStat[] = [];
     const now = new Date('2025-01-13');
+    // Seed-like deterministic-ish values so rerenders don't reshuffle the chart
+    let seed = base;
+    const rng = () => {
+        seed = (seed * 1664525 + 1013904223) & 0x7fffffff;
+        return base + ((seed / 0x7fffffff) - 0.5) * variance;
+    };
     for (let i = count - 1; i >= 0; i--) {
         const d = new Date(now);
         d.setDate(d.getDate() - i * 7);
-        // Monday of that week
+        // Normalise to Monday of that week
         const day = d.getDay();
         d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
-        const rng = () => base + (Math.random() - 0.5) * variance;
         weeks.push({
             weekStart: d.toISOString().slice(0, 10),
-            avgLikes: Math.round(rng()),
-            avgComments: Math.round(rng() * 0.12),
-            postCount: Math.floor(1 + Math.random() * 3),
+            avgLikes: Math.max(0, Math.round(rng())),
+            avgComments: Math.max(0, Math.round(Math.abs(rng()) * 0.12)),
+            postCount: Math.max(0, Math.floor(1 + Math.abs(rng()) / base * 1.5)),
         });
     }
     return weeks;
@@ -253,15 +259,22 @@ export const instagramApi = {
     /**
      * Fetch aggregated statistics for all active profiles.
      *
-     * New backend endpoint: GET /api/v1/instagram/profiles/summary
+     * Backend endpoint: GET /api/v1/instagram/profiles/summary
+     *   Optional query param: ?weeks=N  (default: 52)
+     *   Returns up to N weeks of weeklyStats per profile, sorted ascending by weekStart.
      *
-     * The backend should compute avgLikes, avgComments, avgViews, postsPerWeek
-     * and weeklyStats (last 12 weeks) from the scraped posts table, grouped
-     * by studioProfileId. Only ACTIVE profiles are included.
+     * The backend computes avgLikes, avgComments, avgViews, postsPerWeek and
+     * weeklyStats from scraped posts, grouped by studioProfileId.
+     * Only ACTIVE profiles are included.
+     *
+     * Date-range filtering is done client-side from the full dataset so that
+     * switching ranges requires no additional network requests.
      */
     getCompetitionSummary: async (): Promise<ProfileSummary[]> => {
         if (USE_MOCKS) return mockGetSummary();
-        const response = await apiClient.get<ProfileSummary[]>(`${BASE_PATH}/summary`);
+        const response = await apiClient.get<ProfileSummary[]>(`${BASE_PATH}/summary`, {
+            params: { weeks: 52 },
+        });
         return response.data;
     },
 };
