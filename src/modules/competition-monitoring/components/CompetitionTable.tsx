@@ -89,10 +89,26 @@ const TrAnimated = styled.tr`
     }
 `;
 
+const ProfileNameRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+`;
+
 const ProfileName = styled.div`
     font-weight: 700;
     color: ${st.text};
     font-size: ${st.fontSm};
+`;
+
+const InstagramLink = styled.a`
+    display: flex;
+    align-items: center;
+    color: ${st.textMuted};
+    transition: color ${st.transition};
+    flex-shrink: 0;
+
+    &:hover { color: #E1306C; }
 `;
 
 const ProfileHandle = styled.div`
@@ -333,7 +349,22 @@ export const CompetitionTable: React.FC<Props> = ({ summaries }) => {
                                     {rank}
                                 </Td>
                                 <Td>
-                                    <ProfileName>@{profile.username}</ProfileName>
+                                    <ProfileNameRow>
+                                        <ProfileName>@{profile.username}</ProfileName>
+                                        <InstagramLink
+                                            href={`https://instagram.com/${profile.username}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            title="Otwórz profil na Instagramie"
+                                            onClick={e => e.stopPropagation()}
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                                                <circle cx="12" cy="12" r="4"/>
+                                                <circle cx="17.5" cy="6.5" r="0.1" fill="currentColor" strokeWidth="2.5"/>
+                                            </svg>
+                                        </InstagramLink>
+                                    </ProfileNameRow>
                                     {currentWeek && (
                                         <ProfileHandle>tydzień {formatDate(currentWeek)}</ProfileHandle>
                                     )}
