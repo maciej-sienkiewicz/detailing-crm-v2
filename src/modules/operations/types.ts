@@ -2,6 +2,7 @@
 
 // Statusy wizyt
 export type VisitStatus =
+    | 'DRAFT'
     | 'IN_PROGRESS'
     | 'READY_FOR_PICKUP'
     | 'COMPLETED'

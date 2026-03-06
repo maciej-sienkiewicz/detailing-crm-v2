@@ -9,6 +9,7 @@ import type { FilterStatus } from '../types';
 const chipColor: Record<FilterStatus | 'ALL', string> = {
     ALL:              st.accentBlue,
     RESERVATIONS:     '#2563EB',
+    DRAFT:            '#64748B',
     IN_PROGRESS:      '#059669',
     READY_FOR_PICKUP: '#D97706',
     COMPLETED:        '#64748B',
@@ -210,6 +211,7 @@ const ClearAllBtn = styled.button`
 
 const FILTERS: { value: FilterStatus; label: string }[] = [
     { value: 'RESERVATIONS',     label: 'Rezerwacje'   },
+    { value: 'DRAFT',            label: 'Szkice'       },
     { value: 'IN_PROGRESS',      label: 'W realizacji' },
     { value: 'READY_FOR_PICKUP', label: 'Do odbioru'   },
     { value: 'COMPLETED',        label: 'Zakończone'   },

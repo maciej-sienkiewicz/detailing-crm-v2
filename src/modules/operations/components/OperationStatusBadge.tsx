@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import type { OperationStatus } from '../types';
 
 const statusConfig: Record<OperationStatus, { label: string; color: string; bg: string }> = {
+    DRAFT:            { label: 'Szkic',             color: '#64748B', bg: '#F1F5F9'                   },
     IN_PROGRESS:      { label: 'W realizacji',     color: '#059669', bg: 'rgba(5, 150, 105, 0.10)'   },
     READY_FOR_PICKUP: { label: 'Do odbioru',        color: '#D97706', bg: 'rgba(217, 119, 6, 0.10)'   },
     COMPLETED:        { label: 'Zakończona',         color: '#64748B', bg: '#F1F5F9'                   },
