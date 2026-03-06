@@ -107,6 +107,14 @@ const StatValue = styled.span`
     font-variant-numeric: tabular-nums;
 `;
 
+const StatPrev = styled.span`
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+    font-weight: 400;
+    margin-left: 4px;
+    font-variant-numeric: tabular-nums;
+`;
+
 // ─── Trend Cell ───────────────────────────────────────────────────────────────
 
 const TrendCell = styled.div`
@@ -205,13 +213,26 @@ const PaginationEllipsis = styled.span`
 
 const PAGE_SIZE = 5;
 
-function calcTrend(profile: ProfileSummary) {
-    const stats = profile.weeklyStats;
-    const last  = stats[stats.length - 1]?.postCount ?? 0;
-    const prev  = stats[stats.length - 2]?.postCount ?? 0;
-    const pct   = prev === 0 ? null : Math.round(((last - prev) / prev) * 100);
-    const up    = pct !== null && pct >= 0;
-    const data  = stats.slice(-6).map(s => ({ v: s.postCount }));
+/** Find the two most recent week-start dates across all profiles. */
+function globalWeeks(summaries: ProfileSummary[]): { current: string | null; prev: string | null } {
+    const all = new Set<string>();
+    summaries.forEach(s => s.weeklyStats.forEach(w => all.add(w.weekStart)));
+    const sorted = [...all].sort();
+    return {
+        current: sorted[sorted.length - 1] ?? null,
+        prev:    sorted[sorted.length - 2] ?? null,
+    };
+}
+
+function statForWeek(profile: ProfileSummary, week: string | null) {
+    if (!week) return null;
+    return profile.weeklyStats.find(w => w.weekStart === week) ?? null;
+}
+
+function calcTrend(profile: ProfileSummary, currPosts: number, prevPosts: number) {
+    const pct  = prevPosts === 0 ? null : Math.round(((currPosts - prevPosts) / prevPosts) * 100);
+    const up   = pct !== null && pct >= 0;
+    const data = profile.weeklyStats.slice(-6).map(s => ({ v: s.postCount }));
     return { pct, up, data };
 }
 
@@ -253,13 +274,18 @@ interface Props {
 export const CompetitionTable: React.FC<Props> = ({ summaries }) => {
     const [page, setPage] = useState(0);
 
+    const { current: currentWeek, prev: prevWeek } = useMemo(
+        () => globalWeeks(summaries),
+        [summaries],
+    );
+
     const sortedData = useMemo(() => {
         return [...summaries].sort((a, b) => {
-            const lastA = a.weeklyStats[a.weeklyStats.length - 1]?.postCount ?? 0;
-            const lastB = b.weeklyStats[b.weeklyStats.length - 1]?.postCount ?? 0;
-            return lastB - lastA;
+            const postA = statForWeek(a, currentWeek)?.postCount ?? 0;
+            const postB = statForWeek(b, currentWeek)?.postCount ?? 0;
+            return postB - postA;
         });
-    }, [summaries]);
+    }, [summaries, currentWeek]);
 
     const totalPages     = Math.max(1, Math.ceil(sortedData.length / PAGE_SIZE));
     const safePage       = Math.min(page, totalPages - 1);
@@ -289,8 +315,15 @@ export const CompetitionTable: React.FC<Props> = ({ summaries }) => {
                 </thead>
                 <tbody>
                     {paginatedData.map((profile, idx) => {
-                        const lastStats = profile.weeklyStats[profile.weeklyStats.length - 1];
-                        const { pct, up, data } = calcTrend(profile);
+                        const currStat = statForWeek(profile, currentWeek);
+                        const prevStat = statForWeek(profile, prevWeek);
+
+                        const currPosts = currStat?.postCount ?? 0;
+                        const prevPosts = prevStat?.postCount ?? 0;
+                        const currLikes = Math.round(currStat?.avgLikes ?? 0);
+                        const prevLikes = Math.round(prevStat?.avgLikes ?? 0);
+
+                        const { pct, up, data } = calcTrend(profile, currPosts, prevPosts);
                         const rank = safePage * PAGE_SIZE + idx + 1;
                         const trendColor = pct === null ? st.textMuted : up ? st.accentGreen : st.accentRed;
 
@@ -301,15 +334,17 @@ export const CompetitionTable: React.FC<Props> = ({ summaries }) => {
                                 </Td>
                                 <Td>
                                     <ProfileName>@{profile.username}</ProfileName>
-                                    {lastStats?.weekStart && (
-                                        <ProfileHandle>tydzień {formatDate(lastStats.weekStart)}</ProfileHandle>
+                                    {currentWeek && (
+                                        <ProfileHandle>tydzień {formatDate(currentWeek)}</ProfileHandle>
                                     )}
                                 </Td>
                                 <TdRight>
-                                    <StatValue>{lastStats?.postCount ?? 0}</StatValue>
+                                    <StatValue>{currPosts}</StatValue>
+                                    {prevWeek && <StatPrev>({prevPosts})</StatPrev>}
                                 </TdRight>
                                 <TdRight>
-                                    <StatValue>{Math.round(lastStats?.avgLikes ?? 0)}</StatValue>
+                                    <StatValue>{currLikes}</StatValue>
+                                    {prevWeek && <StatPrev>({prevLikes})</StatPrev>}
                                 </TdRight>
                                 <TdRight>
                                     <StatValue>{Math.round(profile.avgEngagement)}</StatValue>
