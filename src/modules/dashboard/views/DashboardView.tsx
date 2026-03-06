@@ -16,7 +16,7 @@ import { useDashboard, useDashboardSocket } from '../hooks';
 const getGreeting = (): string => {
   const hour = new Date().getHours();
   if (hour >= 5 && hour < 12) return 'Dzień dobry';
-  if (hour >= 12 && hour < 17) return 'Dobry dzień';
+  if (hour >= 12 && hour < 17) return 'Dzień dobry';
   return 'Dobry wieczór';
 };
 
