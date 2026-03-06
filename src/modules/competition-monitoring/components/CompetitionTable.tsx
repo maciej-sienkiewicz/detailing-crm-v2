@@ -89,12 +89,6 @@ const TrAnimated = styled.tr`
     }
 `;
 
-const ProfileNameRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-`;
-
 const ProfileName = styled.div`
     font-weight: 700;
     color: ${st.text};
@@ -322,6 +316,7 @@ export const CompetitionTable: React.FC<Props> = ({ summaries }) => {
                 <thead>
                     <tr>
                         <Th style={{ width: 32, textAlign: 'center' }}>#</Th>
+                        <Th style={{ width: 28, padding: '10px 0 10px 20px' }} />
                         <Th>Nazwa firmy</Th>
                         <ThRight>Posty (ost. tydzień)</ThRight>
                         <ThRight>Lajki / post</ThRight>
@@ -348,23 +343,23 @@ export const CompetitionTable: React.FC<Props> = ({ summaries }) => {
                                 <Td style={{ textAlign: 'center', color: st.textMuted, fontWeight: 600, fontSize: st.fontXs, width: 32 }}>
                                     {rank}
                                 </Td>
+                                <Td style={{ padding: '14px 0 14px 20px', width: 28 }}>
+                                    <InstagramLink
+                                        href={`https://instagram.com/${profile.username}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        title="Otwórz profil na Instagramie"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                                            <circle cx="12" cy="12" r="4"/>
+                                            <circle cx="17.5" cy="6.5" r="0.1" fill="currentColor" strokeWidth="2.5"/>
+                                        </svg>
+                                    </InstagramLink>
+                                </Td>
                                 <Td>
-                                    <ProfileNameRow>
-                                        <ProfileName>@{profile.username}</ProfileName>
-                                        <InstagramLink
-                                            href={`https://instagram.com/${profile.username}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            title="Otwórz profil na Instagramie"
-                                            onClick={e => e.stopPropagation()}
-                                        >
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-                                                <circle cx="12" cy="12" r="4"/>
-                                                <circle cx="17.5" cy="6.5" r="0.1" fill="currentColor" strokeWidth="2.5"/>
-                                            </svg>
-                                        </InstagramLink>
-                                    </ProfileNameRow>
+                                    <ProfileName>@{profile.username}</ProfileName>
                                     {currentWeek && (
                                         <ProfileHandle>tydzień {formatDate(currentWeek)}</ProfileHandle>
                                     )}
