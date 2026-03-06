@@ -7,6 +7,7 @@ import { usePhotoUpload } from '../hooks/usePhotoUpload';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CheckInFormData, DamagePoint } from '../types';
 import { VehicleDamageMapper } from './VehicleDamageMapper';
+import { CheckinQRGenerator } from './CheckinQRGenerator';
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -193,40 +194,6 @@ const HiddenInput = styled.input`
     display: none;
 `;
 
-// ─── QR placeholder ───────────────────────────────────────────────────────────
-
-const QrWrap = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    padding: 20px;
-    background: ${st.bgCardAlt};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-`;
-
-const QrBox = styled.div`
-    width: 140px;
-    height: 140px;
-    background: ${st.bg};
-    border: 1px solid ${st.border};
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${st.textMuted};
-    font-size: 12px;
-    text-align: center;
-    padding: 12px;
-`;
-
-const QrLabel = styled.div`
-    font-size: 13px;
-    font-weight: 500;
-    color: ${st.textSecondary};
-    text-align: center;
-`;
 
 // ─── Photo grid ───────────────────────────────────────────────────────────────
 
@@ -476,11 +443,10 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
                         )}
                     </UploadZone>
 
-                    {/* QR code placeholder */}
-                    <QrWrap style={{ marginTop: 16 }}>
-                        <QrBox>QR kod<br />(wkrótce)</QrBox>
-                        <QrLabel>Zeskanuj telefonem, aby przesłać zdjęcia bezprzewodowo</QrLabel>
-                    </QrWrap>
+                    {/* QR code generator */}
+                    <div style={{ marginTop: 16 }}>
+                        <CheckinQRGenerator appointmentId={reservationId} />
+                    </div>
 
                     {/* Photo grid */}
                     {uploadedPhotos.length > 0 && (

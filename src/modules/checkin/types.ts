@@ -243,6 +243,55 @@ export interface SessionPhotosResponse {
     photos: PhotoSlot[];
 }
 
+// ─── QR Upload Token ──────────────────────────────────────────────────────────
+
+export interface QRTokenResponse {
+    token: string;
+    checkinId: string;
+    expiresAt: string;
+    uploadEndpoint: string;
+}
+
+// ─── Mobile Checkin Context ───────────────────────────────────────────────────
+
+export interface MobileCheckinContext {
+    checkinId: string;
+    tenantId: string;
+}
+
+// ─── Mobile Photo Upload Response ─────────────────────────────────────────────
+
+export interface MobilePhotoUploadResponse {
+    photoId: string;
+    fileName: string;
+    checkinId: string;
+    uploadedAt: string;
+}
+
+// ─── WebSocket checkin photo event ────────────────────────────────────────────
+
+export interface CheckinPhotoUploadedEvent {
+    type: 'CHECKIN_PHOTO_UPLOADED';
+    checkinId: string;
+    photoId: string;
+    fileName: string;
+    timestamp: string;
+}
+
+// ─── Offline pending photo (IndexedDB) ────────────────────────────────────────
+
+export interface PendingPhoto {
+    id: string;
+    token: string;
+    fileName: string;
+    mimeType: string;
+    fileData: ArrayBuffer;
+    queuedAt: number;
+    status: 'pending' | 'uploading' | 'failed';
+    error?: string;
+    uploadedPhotoId?: string;
+}
+
 export interface ProtocolResponse {
     id: string;
     templateId: string;

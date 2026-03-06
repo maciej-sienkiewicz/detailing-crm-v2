@@ -9,11 +9,15 @@ import type {
     UploadUrlResponse,
     SessionPhotosResponse,
     PhotoSlot,
+    QRTokenResponse,
+    MobileCheckinContext,
+    MobilePhotoUploadResponse,
 } from '../types';
 
 const USE_MOCKS = false;
 const BASE_PATH = '/checkin';
 const PHOTO_SESSIONS_PATH = '/photo-sessions';
+const MOBILE_BASE_PATH = '/mobile/checkin';
 
 const mockUploadSession: MobileUploadSession = {
     sessionId: 'session_123',
@@ -186,6 +190,65 @@ export const checkinApi = {
         }
         await apiClient.delete(
             `${PHOTO_SESSIONS_PATH}/${sessionId}/photos/${photoId}`
+        );
+    },
+
+    // ─── QR Upload Token ─────────────────────────────────────────────────────
+
+    /**
+     * Generate a QR upload token for an appointment.
+     * Calling this twice replaces the previous token.
+     */
+    generateQRToken: async (appointmentId: string): Promise<QRTokenResponse> => {
+        const response = await apiClient.post(
+            `${BASE_PATH}/${appointmentId}/upload-token`
+        );
+        return response.data;
+    },
+
+    // ─── Mobile (public, no session) ─────────────────────────────────────────
+
+    /**
+     * Fetch context info for the mobile uploader.
+     * Uses X-Upload-Token header — no session cookie needed.
+     */
+    getMobileCheckinContext: async (token: string): Promise<MobileCheckinContext> => {
+        const response = await apiClient.get(`${MOBILE_BASE_PATH}/context`, {
+            headers: { 'X-Upload-Token': token },
+        });
+        return response.data;
+    },
+
+    /**
+     * Upload a single photo from the mobile device.
+     * Uses X-Upload-Token header — no session cookie needed.
+     */
+    uploadMobilePhoto: async (
+        file: File | Blob,
+        fileName: string,
+        token: string
+    ): Promise<MobilePhotoUploadResponse> => {
+        const formData = new FormData();
+        formData.append('photo', file, fileName);
+        const response = await apiClient.post(
+            `${MOBILE_BASE_PATH}/photos`,
+            formData,
+            {
+                headers: {
+                    'X-Upload-Token': token,
+                    // Content-Type is set automatically by axios for FormData
+                },
+            }
+        );
+        return response.data;
+    },
+
+    /**
+     * Delete a QR-uploaded photo by photoId (desktop side).
+     */
+    deleteCheckinPhoto: async (checkinId: string, photoId: string): Promise<void> => {
+        await apiClient.delete(
+            `${BASE_PATH}/${checkinId}/photos/${photoId}`
         );
     },
 };

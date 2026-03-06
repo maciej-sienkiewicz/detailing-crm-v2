@@ -128,12 +128,9 @@ export const router = createBrowserRouter([
         ),
     },
     {
-        path: '/checkin/mobile/:sessionId',
-        element: (
-            <ProtectedRoute>
-                <MobilePhotoUploadWrapper />
-            </ProtectedRoute>
-        ),
+        // Public mobile upload route — no auth required, token via ?t=
+        path: '/m/upload',
+        element: <MobilePhotoUploadWrapper />,
     },
     {
         path: '/services',
