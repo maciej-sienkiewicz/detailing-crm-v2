@@ -117,15 +117,16 @@ const CalendarContainer = styled.div`
     /* Navigation buttons */
     .fc-prev-button,
     .fc-next-button {
-        border: 1px solid #dadce0 !important;
+        border: none !important;
         border-radius: 50% !important;
         margin: 0 2px !important;
-        padding: 6px 8px !important;
-        width: 32px !important;
-        height: 32px !important;
+        padding: 0 !important;
+        width: 36px !important;
+        height: 36px !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
+        background: transparent !important;
     }
 
     .fc-prev-button:hover,
