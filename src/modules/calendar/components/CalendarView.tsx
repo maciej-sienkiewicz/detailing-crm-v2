@@ -154,7 +154,7 @@ const CalendarContainer = styled.div`
     }
 
     .fc-col-header-cell {
-        padding: 8px 4px;
+        padding: 8px 4px 2px;
         font-weight: 500;
         color: #70757a;
         text-transform: uppercase;
