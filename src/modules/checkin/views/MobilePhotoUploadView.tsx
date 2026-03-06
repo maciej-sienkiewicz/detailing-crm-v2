@@ -574,7 +574,6 @@ export const MobilePhotoUploadView = ({ token }: MobilePhotoUploadViewProps) => 
 
             <InfoCard>
                 Naciśnij przycisk poniżej, aby otworzyć aparat. Możesz dodać dowolną liczbę zdjęć.
-                Zdjęcia zapisują się lokalnie i zostaną wysłane automatycznie gdy sieć będzie dostępna.
             </InfoCard>
 
             <CameraBtn htmlFor="camera-input-mobile">
