@@ -10,6 +10,9 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
     config => {
+        if (config.data instanceof FormData) {
+            delete config.headers['Content-Type'];
+        }
         return config;
     },
     error => {
@@ -35,7 +38,7 @@ apiClient.interceptors.response.use(
             // Unikaj przekierowania na /login jeśli już jesteśmy na publicznej stronie
             // aby zapobiec nieskończonej pętli wywołań /me endpoint
             const currentPath = window.location.pathname;
-            const publicPaths = ['/login', '/signup', '/forgot-password'];
+            const publicPaths = ['/login', '/signup', '/forgot-password', '/m/upload'];
 
             if (!publicPaths.includes(currentPath)) {
                 console.warn('[apiClient] Przekierowanie na /login');
