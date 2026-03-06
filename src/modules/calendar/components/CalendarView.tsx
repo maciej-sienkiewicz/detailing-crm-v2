@@ -12,6 +12,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { operationApi } from '@/modules/operations';
 import { useToast } from '@/common/components/Toast';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
+import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { useCalendarFilters } from '../hooks/useCalendarFilters';
 import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
 import { QuickEventModal, type QuickEventFormData, type QuickEventModalRef } from './QuickEventModal';
@@ -718,6 +719,7 @@ interface CalendarViewProps {
 
 export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const navigate = useNavigate();
+    const { isCollapsed } = useSidebar();
     const queryClient = useQueryClient();
     const { showSuccess } = useToast();
     const calendarRef = useRef<FullCalendar>(null);
@@ -740,6 +742,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const deselectedCount =
         (3 - selectedAppointmentStatuses.length) +
         (5 - selectedVisitStatuses.length);
+
+    // Gdy sidebar się zwija/rozwija, CSS transition trwa 200ms — po jej zakończeniu
+    // FullCalendar musi przeliczyć swój layout (nie dostaje zdarzenia resize z przeglądarki)
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            calendarRef.current?.getApi().updateSize();
+        }, 210);
+        return () => clearTimeout(timer);
+    }, [isCollapsed]);
 
     // Badge on the FullCalendar "Filtruj" button (desktop) – updated whenever filters change
     useEffect(() => {
