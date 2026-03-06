@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CampaignFilters, VehicleFilter, ServiceFilter, VehicleBrandOption } from '../types';
+import { SmsSelect } from './SmsSelect';
 
 // ─── Styled components ─────────────────────────────────────────────────────────
 
@@ -94,22 +95,10 @@ const TagRemove = styled.button`
   }
 `;
 
-const Select = styled.select`
-  padding: 7px 10px;
-  font-size: ${st.fontSm};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radiusSm};
-  background: ${st.bgCard};
-  color: ${st.text};
-  outline: none;
-  transition: border-color ${st.transition}, box-shadow ${st.transition};
-  min-width: 140px;
-  cursor: pointer;
-
-  &:focus {
-    border-color: ${st.accentBlue};
-    box-shadow: ${st.shadowBlue};
-  }
+// Wrapper gives SmsSelect a fixed width so it doesn't stretch to full row width
+const SelectWrap = styled.div`
+  width: 200px;
+  flex-shrink: 0;
 `;
 
 const AddBtn = styled.button`
@@ -125,10 +114,16 @@ const AddBtn = styled.button`
   border-radius: ${st.radiusFull};
   cursor: pointer;
   transition: all ${st.transition};
+  height: 38px; /* align with SmsSelect trigger height */
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: ${st.accentBlueDim};
     border-color: ${st.accentBlue};
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 `;
 
@@ -153,7 +148,7 @@ const NumberInput = styled.input`
 const InlineLabel = styled.span`
   font-size: ${st.fontSm};
   color: ${st.textSecondary};
-  line-height: 32px;
+  line-height: 38px;
 `;
 
 const EmptyHint = styled.p`
@@ -204,7 +199,6 @@ export const CampaignFiltersPanel: React.FC<Props> = ({
   brands,
   availableServices,
 }) => {
-  // Local state for the pending brand/model selectors
   const [pendingBrand, setPendingBrand] = useState('');
   const [pendingModel, setPendingModel] = useState('');
   const [pendingService, setPendingService] = useState('');
@@ -216,8 +210,27 @@ export const CampaignFiltersPanel: React.FC<Props> = ({
       : 'none'
   );
 
-  const selectedBrandModels =
-    brands.find((b) => b.brand === pendingBrand)?.models ?? [];
+  // ── Brand / model options ──
+
+  const brandOptions = useMemo(
+    () => brands.map((b) => ({ value: b.brand, label: b.brand })),
+    [brands]
+  );
+
+  const modelOptions = useMemo(() => {
+    const models = brands.find((b) => b.brand === pendingBrand)?.models ?? [];
+    return models.map((m) => ({ value: m, label: m }));
+  }, [brands, pendingBrand]);
+
+  // ── Service options (exclude already-added) ──
+
+  const serviceOptions = useMemo(
+    () =>
+      availableServices
+        .filter((s) => !filters.services.some((f) => f.serviceId === s.serviceId))
+        .map((s) => ({ value: s.serviceId, label: s.serviceName })),
+    [availableServices, filters.services]
+  );
 
   // ── Vehicles ──
 
@@ -237,8 +250,7 @@ export const CampaignFiltersPanel: React.FC<Props> = ({
   };
 
   const removeVehicle = (idx: number) => {
-    const next = filters.vehicles.filter((_, i) => i !== idx);
-    onChange({ ...filters, vehicles: next });
+    onChange({ ...filters, vehicles: filters.vehicles.filter((_, i) => i !== idx) });
   };
 
   // ── Services ──
@@ -247,8 +259,6 @@ export const CampaignFiltersPanel: React.FC<Props> = ({
     if (!pendingService) return;
     const svc = availableServices.find((s) => s.serviceId === pendingService);
     if (!svc) return;
-    const already = filters.services.some((s) => s.serviceId === pendingService);
-    if (already) return;
     onChange({ ...filters, services: [...filters.services, svc] });
     setPendingService('');
   };
@@ -259,21 +269,16 @@ export const CampaignFiltersPanel: React.FC<Props> = ({
 
   // ── Last visit ──
 
-  const setOlderThan = (days: number) => {
+  const setOlderThan = (days: number) =>
     onChange({ ...filters, lastVisit: { olderThanDays: days } });
-  };
-  const setNewerThan = (days: number) => {
+  const setNewerThan = (days: number) =>
     onChange({ ...filters, lastVisit: { newerThanDays: days } });
-  };
-  const clearLastVisit = () => {
-    onChange({ ...filters, lastVisit: null });
-  };
 
   const handleLastVisitMode = (mode: 'none' | 'older' | 'newer') => {
     setLastVisitMode(mode);
-    if (mode === 'none') clearLastVisit();
+    if (mode === 'none') onChange({ ...filters, lastVisit: null });
     else if (mode === 'older') setOlderThan(365);
-    else if (mode === 'newer') setNewerThan(30);
+    else setNewerThan(30);
   };
 
   const olderDays = filters.lastVisit?.olderThanDays ?? 365;
@@ -300,26 +305,26 @@ export const CampaignFiltersPanel: React.FC<Props> = ({
             </Row>
           )}
           <Row>
-            <Select
-              value={pendingBrand}
-              onChange={(e) => { setPendingBrand(e.target.value); setPendingModel(''); }}
-            >
-              <option value="">Wybierz markę…</option>
-              {brands.map((b) => (
-                <option key={b.brand} value={b.brand}>{b.brand}</option>
-              ))}
-            </Select>
+            <SelectWrap>
+              <SmsSelect
+                value={pendingBrand}
+                onChange={(val) => { setPendingBrand(val); setPendingModel(''); }}
+                options={brandOptions}
+                placeholder="Wybierz markę…"
+                nullable
+              />
+            </SelectWrap>
 
             {pendingBrand && (
-              <Select
-                value={pendingModel}
-                onChange={(e) => setPendingModel(e.target.value)}
-              >
-                <option value="">Wszystkie modele</option>
-                {selectedBrandModels.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </Select>
+              <SelectWrap>
+                <SmsSelect
+                  value={pendingModel}
+                  onChange={setPendingModel}
+                  options={modelOptions}
+                  placeholder="Wszystkie modele"
+                  nullable
+                />
+              </SelectWrap>
             )}
 
             <AddBtn onClick={addVehicle} disabled={!pendingBrand}>
@@ -351,19 +356,15 @@ export const CampaignFiltersPanel: React.FC<Props> = ({
             </Row>
           )}
           <Row>
-            <Select
-              value={pendingService}
-              onChange={(e) => setPendingService(e.target.value)}
-            >
-              <option value="">Wybierz usługę…</option>
-              {availableServices
-                .filter((s) => !filters.services.some((f) => f.serviceId === s.serviceId))
-                .map((s) => (
-                  <option key={s.serviceId} value={s.serviceId}>
-                    {s.serviceName}
-                  </option>
-                ))}
-            </Select>
+            <SelectWrap style={{ width: 240 }}>
+              <SmsSelect
+                value={pendingService}
+                onChange={setPendingService}
+                options={serviceOptions}
+                placeholder="Wybierz usługę…"
+                nullable
+              />
+            </SelectWrap>
             <AddBtn onClick={addService} disabled={!pendingService}>
               + Dodaj
             </AddBtn>

@@ -3,6 +3,7 @@ import styled, { keyframes } from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { SmsAutomationConfig, SmsAutomationRule } from '../types';
 import { useAutomationConfig, useUpdateAutomationConfig } from '../hooks';
+import { SmsSelect } from './SmsSelect';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -175,21 +176,10 @@ const NumberInput = styled.input`
   }
 `;
 
-const UnitSelect = styled.select`
-  padding: 9px 10px;
-  font-size: ${st.fontSm};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radiusSm};
-  background: ${st.bgCard};
-  color: ${st.text};
-  outline: none;
-  cursor: pointer;
-  transition: border-color ${st.transition}, box-shadow ${st.transition};
-
-  &:focus {
-    border-color: ${st.accentBlue};
-    box-shadow: ${st.shadowBlue};
-  }
+// SmsSelect used for unit — give it a fixed width in the row
+const UnitSelectWrap = styled.div`
+  width: 130px;
+  flex-shrink: 0;
 `;
 
 const InlineHint = styled.span`
@@ -346,14 +336,17 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, onChange }) => {
             value={value}
             onChange={(e) => setOffset(Math.max(1, Number(e.target.value)), unit)}
           />
-          <UnitSelect
-            value={unit}
-            onChange={(e) => setOffset(value, e.target.value as Unit)}
-          >
-            <option value="minutes">minut</option>
-            <option value="hours">godzin</option>
-            <option value="days">dni</option>
-          </UnitSelect>
+          <UnitSelectWrap>
+            <SmsSelect
+              value={unit}
+              onChange={(val) => setOffset(value, val as Unit)}
+              options={[
+                { value: 'minutes', label: 'minut' },
+                { value: 'hours', label: 'godzin' },
+                { value: 'days', label: 'dni' },
+              ]}
+            />
+          </UnitSelectWrap>
           <InlineHint>przed / po wizycie</InlineHint>
         </OffsetRow>
       </FormGroup>
