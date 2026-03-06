@@ -22,6 +22,7 @@ import {GrowthEngineView} from "@/modules/growth-engine";
 import {FinanceView} from "@/modules/finance";
 import { StatisticsView, CategoryDetailView } from "@/modules/statistics";
 import { CompetitionMonitoringView } from "@/modules/competition-monitoring";
+import { SmsCampaignsView } from "@/modules/sms-campaigns";
 
 export const router = createBrowserRouter([
     {
@@ -219,6 +220,14 @@ export const router = createBrowserRouter([
         element: (
             <ProtectedRoute>
                 <Layout><CompetitionMonitoringView /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/sms-campaigns',
+        element: (
+            <ProtectedRoute>
+                <Layout><SmsCampaignsView /></Layout>
             </ProtectedRoute>
         ),
     },

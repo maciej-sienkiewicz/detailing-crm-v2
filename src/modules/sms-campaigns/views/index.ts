@@ -1,0 +1,1 @@
+export { SmsCampaignsView } from './SmsCampaignsView';

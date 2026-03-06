@@ -43,6 +43,12 @@ const menuSections: MenuSection[] = [
         ],
     },
     {
+        title: 'Marketing',
+        items: [
+            { path: '/sms-campaigns', label: 'Kampanie SMS', icon: '◉' },
+        ],
+    },
+    {
         title: 'Konfiguracja',
         items: [
             { path: '/services', label: 'Usługi', icon: '◐' },
