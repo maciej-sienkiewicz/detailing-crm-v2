@@ -51,6 +51,7 @@ export interface WeeklyStat {
  *   val avgLikes: Double,
  *   val avgComments: Double,
  *   val avgViews: Double?,
+ *   val avgEngagement: Double,           // avgLikes + avgComments per post (historical avg)
  *   val postsPerWeek: Double,
  *   val lastPostAt: Instant?,
  *   val weeklyStats: List<WeeklyStatDto>
@@ -74,6 +75,7 @@ export interface ProfileSummary {
     avgLikes: number;
     avgComments: number;
     avgViews: number | null;
+    avgEngagement: number;
     postsPerWeek: number;
     lastPostAt: string | null;
     weeklyStats: WeeklyStat[];

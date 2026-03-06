@@ -283,6 +283,7 @@ export const CompetitionTable: React.FC<Props> = ({ summaries }) => {
                         <Th>Nazwa firmy</Th>
                         <ThRight>Posty (ost. tydzień)</ThRight>
                         <ThRight>Lajki / post</ThRight>
+                        <ThRight>Hist. zaangażowanie</ThRight>
                         <ThRight>Trend (4 tyg.)</ThRight>
                     </tr>
                 </thead>
@@ -309,6 +310,9 @@ export const CompetitionTable: React.FC<Props> = ({ summaries }) => {
                                 </TdRight>
                                 <TdRight>
                                     <StatValue>{Math.round(lastStats?.avgLikes ?? 0)}</StatValue>
+                                </TdRight>
+                                <TdRight>
+                                    <StatValue>{Math.round(profile.avgEngagement)}</StatValue>
                                 </TdRight>
                                 <Td style={{ paddingRight: 20 }}>
                                     <TrendCell>
