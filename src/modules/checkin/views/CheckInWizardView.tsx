@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { useToast } from '@/common/components/Toast';
 import { useCheckInWizard } from '../hooks/useCheckInWizard';
 import { useCheckInValidation } from '../hooks/useCheckInValidation';
@@ -144,15 +145,20 @@ const ContentWrap = styled.div`
 
 // ─── Sticky footer ────────────────────────────────────────────────────────────
 
-const StickyFooter = styled.footer`
+const StickyFooter = styled.footer<{ $sidebarWidth: number }>`
     position: fixed;
     bottom: 0;
-    left: 0;
+    left: ${p => p.$sidebarWidth}px;
     right: 0;
     background: ${st.bgCard};
     border-top: 1px solid ${st.border};
     box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08);
     z-index: 50;
+    transition: left 0.2s ease;
+
+    @media (max-width: 768px) {
+        left: 0;
+    }
 `;
 
 const FooterInner = styled.div`
@@ -317,6 +323,9 @@ interface CheckInWizardViewProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const CheckInWizardView = ({ reservationId, initialData, colors, onComplete }: CheckInWizardViewProps) => {
+    const { isCollapsed } = useSidebar();
+    const sidebarWidth = isCollapsed ? 64 : 240;
+
     const {
         currentStep,
         completedSteps,
@@ -462,7 +471,7 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
                 </ScrollArea>
 
                 {/* ── Sticky footer ──────────────────────────────────────── */}
-                <StickyFooter>
+                <StickyFooter $sidebarWidth={sidebarWidth}>
                     <FooterInner>
                         {/* Left side: validation errors / step hint */}
                         {hasErrors ? (
