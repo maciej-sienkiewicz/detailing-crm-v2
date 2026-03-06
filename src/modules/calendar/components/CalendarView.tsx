@@ -968,6 +968,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 selectable={true}
                 selectMirror={true}
                 dayMaxEvents={3}
+                moreLinkText={(n) => `jeszcze ${n}`}
                 weekends={true}
                 nowIndicator={true}
 
