@@ -1,13 +1,9 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
 import type { FinanceTab } from '../types';
 import { DocumentDirection, DocumentStatus } from '../types';
-import { useFinanceDocuments, useFinanceInvoices } from '../hooks/useFinance';
-import {
-  useInvoicingCredentials,
-  useSyncAllInvoices,
-} from '../hooks/useInvoicing';
+import { useFinanceDocuments } from '../hooks/useFinance';
 import {
   FinanceSummaryCards,
   DocumentsTable,
@@ -15,7 +11,6 @@ import {
   CashRegisterPanel,
   FinanceSummaryReport,
   InvoicingCredentialsPanel,
-  ExternalInvoicesTable,
 } from '../components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
@@ -404,44 +399,6 @@ const ErrorBox = styled.div`
   font-weight: 500;
 `;
 
-// ─── Invoicing tab extras ──────────────────────────────────────────────────────
-
-const spinKf = keyframes`
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-`;
-
-const SpinnerInline = styled.span`
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255,255,255,0.4);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: ${spinKf} 0.7s linear infinite;
-`;
-
-const InvoicingBanner = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 18px 24px;
-  background: ${st.accentBlueDim};
-  border: 1px solid ${st.accentBlue}33;
-  border-radius: ${st.radius};
-  font-size: ${st.fontSm};
-  color: ${st.accentBlue};
-  font-weight: 500;
-`;
-
-const SyncAllBtn = styled(AddButton)``;
-
-const InvoicingTabLayout = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-`;
-
 // ─── Filters state ────────────────────────────────────────────────────────────
 
 interface Filters {
@@ -574,99 +531,6 @@ const DocumentsTabContent: React.FC<{
   );
 };
 
-// ─── Invoicing Tab Content ────────────────────────────────────────────────────
-
-const INVOICING_PAGE_SIZE = 20;
-
-const InvoicingTabContent: React.FC = () => {
-  const { credentials, isLoading: credLoading } = useInvoicingCredentials();
-  const [page, setPage] = useState(1);
-  const { invoices, total, isLoading, isError, refetch } = useFinanceInvoices(
-    page,
-    INVOICING_PAGE_SIZE
-  );
-  const syncAll = useSyncAllInvoices();
-
-  const totalPages = Math.ceil(total / INVOICING_PAGE_SIZE);
-  const providerLabel = credentials?.providerLabel ?? 'dostawcy';
-
-  const handleSyncAll = async () => {
-    try {
-      const result = await syncAll.mutateAsync();
-      if (result.errors.length > 0) {
-        alert(`Synchronizacja zakończona z błędami:\n${result.errors.join('\n')}`);
-      }
-    } catch (err: any) {
-      const msg = err?.response?.data?.message ?? 'Błąd synchronizacji';
-      alert(`${providerLabel}: ${msg}`);
-    }
-  };
-
-  if (!credLoading && !credentials) {
-    return (
-      <InvoicingBanner>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="8" x2="12" y2="12" />
-          <line x1="12" y1="16" x2="12.01" y2="16" />
-        </svg>
-        Zintegruj system księgowy, aby automatycznie wystawiać faktury. Skonfiguruj połączenie w panelu ustawień powyżej.
-      </InvoicingBanner>
-    );
-  }
-
-  return (
-    <InvoicingTabLayout>
-      <HeaderActions>
-        <SyncAllBtn
-          onClick={handleSyncAll}
-          disabled={syncAll.isPending}
-          style={{ opacity: syncAll.isPending ? 0.7 : 1 }}
-        >
-          {syncAll.isPending ? <SpinnerInline /> : <RefreshIcon />}
-          Synchronizuj statusy
-        </SyncAllBtn>
-        <RefreshButton onClick={() => refetch()} title="Odśwież listę">
-          <RefreshIcon />
-        </RefreshButton>
-      </HeaderActions>
-
-      {isError ? (
-        <ErrorBox>
-          Nie udało się załadować faktur zewnętrznych.{' '}
-          <button
-            onClick={() => refetch()}
-            style={{ cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', color: 'inherit', font: 'inherit' }}
-          >
-            Spróbuj ponownie
-          </button>
-        </ErrorBox>
-      ) : (
-        <ExternalInvoicesTable
-          invoices={invoices}
-          isLoading={isLoading || credLoading}
-          providerLabel={providerLabel}
-        />
-      )}
-
-      {totalPages > 1 && (
-        <PaginationBar>
-          <PaginationInfo>
-            {(page - 1) * INVOICING_PAGE_SIZE + 1}–{Math.min(page * INVOICING_PAGE_SIZE, total)} z {total}
-          </PaginationInfo>
-          <PaginationBtns>
-            <PageBtn $disabled={page === 1} disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-              Poprzednia
-            </PageBtn>
-            <PageBtn $disabled={page >= totalPages} disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
-              Następna
-            </PageBtn>
-          </PaginationBtns>
-        </PaginationBar>
-      )}
-    </InvoicingTabLayout>
-  );
-};
 
 // ─── Main View ────────────────────────────────────────────────────────────────
 
@@ -729,12 +593,7 @@ export const FinanceView: React.FC = () => {
 
       {activeTab === 'summary' && <FinanceSummaryReport />}
 
-      {activeTab === 'invoicing' && (
-        <>
-          <InvoicingCredentialsPanel />
-          <InvoicingTabContent />
-        </>
-      )}
+      {activeTab === 'invoicing' && <InvoicingCredentialsPanel />}
 
       <CreateDocumentModal
         isOpen={isModalOpen}

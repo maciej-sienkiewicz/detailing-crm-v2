@@ -231,6 +231,38 @@ const ActionsCell = styled(Td)`
   &.row-actions { opacity: 0; }
 `;
 
+// ─── KSeF / Integrator badges ──────────────────────────────────────────────────
+
+const KsefBadge = styled.span<{ $sent?: boolean }>`
+  display: inline-block;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid ${(p) => (p.$sent ? '#86efac' : '#e2e8f0')};
+  background: ${(p) => (p.$sent ? '#dcfce7' : '#f8fafc')};
+  color: ${(p) => (p.$sent ? '#166534' : '#94a3b8')};
+  white-space: nowrap;
+`;
+
+const syncStatusColors: Record<string, { bg: string; color: string; border: string }> = {
+  SYNCED:      { bg: '#dcfce7', color: '#166534', border: '#86efac' },
+  SYNC_FAILED: { bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' },
+  PENDING:     { bg: '#fef9c3', color: '#854d0e', border: '#fde047' },
+};
+
+const IntegratorBadge = styled.span<{ $status: string }>`
+  display: inline-block;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid ${(p) => syncStatusColors[p.$status]?.border ?? '#e2e8f0'};
+  background: ${(p) => syncStatusColors[p.$status]?.bg ?? '#f8fafc'};
+  color: ${(p) => syncStatusColors[p.$status]?.color ?? '#94a3b8'};
+  white-space: nowrap;
+`;
+
 const ActionBtn = styled.button`
   padding: 4px 8px;
   background: transparent;
@@ -332,13 +364,13 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
             <tr>
               <Th>Data</Th><Th>Numer</Th><Th>Klient</Th>
               <Th $align="right">Kwota</Th><Th>Status</Th>
-              <Th>Metoda</Th><Th>Źródło</Th><Th>Termin</Th><Th $width="48px"></Th>
+              <Th>Metoda</Th><Th>Źródło</Th><Th>KSeF</Th><Th>Integrator</Th><Th>Termin</Th><Th $width="48px"></Th>
             </tr>
           </Thead>
           <tbody>
             {[1,2,3,4,5].map((i) => (
               <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                {Array.from({ length: 8 }).map((_, j) => (
+                {Array.from({ length: 10 }).map((_, j) => (
                   <td key={j} style={{ padding: '12px 16px' }}>
                     <Skeleton $w={j === 0 ? '70px' : j === 1 ? '100px' : j === 3 ? '80px' : '90px'} />
                   </td>
@@ -369,6 +401,8 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
               <Th>Status</Th>
               <Th>Metoda</Th>
               <Th>Źródło</Th>
+              <Th>KSeF</Th>
+              <Th>Integrator</Th>
               <Th>Termin płatności</Th>
               <Th $width="48px"></Th>
             </tr>
@@ -425,6 +459,30 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                     </SourceLink>
                   ) : (
                     <SourceText>{doc.sourceLabel}</SourceText>
+                  )}
+                </Td>
+                <Td>
+                  {doc.documentType === 'INVOICE' ? (
+                    doc.ksefInvoiceId ? (
+                      <KsefBadge $sent title={doc.ksefNumber ?? undefined}>
+                        Wysłana
+                      </KsefBadge>
+                    ) : (
+                      <KsefBadge>Brak</KsefBadge>
+                    )
+                  ) : (
+                    <span style={{ color: '#9ca3af' }}>—</span>
+                  )}
+                </Td>
+                <Td>
+                  {doc.documentType === 'INVOICE' && doc.providerSyncStatus ? (
+                    <IntegratorBadge $status={doc.providerSyncStatus}>
+                      {doc.providerSyncStatusLabel ?? doc.providerSyncStatus}
+                    </IntegratorBadge>
+                  ) : doc.documentType === 'INVOICE' ? (
+                    <span style={{ color: '#9ca3af' }}>Brak</span>
+                  ) : (
+                    <span style={{ color: '#9ca3af' }}>—</span>
                   )}
                 </Td>
                 <Td>

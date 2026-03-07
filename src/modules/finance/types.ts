@@ -53,6 +53,8 @@ export interface FinancialDocument {
   customerLastName: string | null;
   ksefInvoiceId: string | null;
   ksefNumber: string | null;
+  providerSyncStatus: string | null;
+  providerSyncStatusLabel: string | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
