@@ -60,7 +60,7 @@ const PanelBody = styled.div`
   gap: 20px;
 `;
 
-// ─── Connected badge ──────────────────────────────────────────────────────────
+// ─── Connected / Warning badges ───────────────────────────────────────────────
 
 const ConnectedBadge = styled.div`
   display: inline-flex;
@@ -75,11 +75,31 @@ const ConnectedBadge = styled.div`
   color: #059669;
 `;
 
+const WarningBadge = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.4);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b45309;
+`;
+
 const GreenDot = styled.span`
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: #10b981;
+`;
+
+const YellowDot = styled.span`
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #eab308;
 `;
 
 // ─── Form elements ────────────────────────────────────────────────────────────
@@ -113,20 +133,20 @@ const Select = styled.select`
   }
 `;
 
-const Input = styled.input`
+const Input = styled.input<{ $invalid?: boolean }>`
   padding: 9px 12px;
   font-size: 14px;
-  border: 1px solid ${st.border};
+  border: 1px solid ${(p) => (p.$invalid ? st.accentRed : st.border)};
   border-radius: 8px;
-  background: ${st.bgCard};
+  background: ${(p) => (p.$invalid ? st.accentRedDim : st.bgCard)};
   color: ${st.text};
   outline: none;
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:focus {
-    border-color: ${st.accentBlue};
-    box-shadow: 0 0 0 3px ${st.accentBlueDim};
+    border-color: ${(p) => (p.$invalid ? st.accentRed : st.accentBlue)};
+    box-shadow: 0 0 0 3px ${(p) => (p.$invalid ? `${st.accentRed}22` : st.accentBlueDim)};
   }
 
   &::placeholder { color: ${st.textMuted}; }
@@ -229,7 +249,7 @@ const Spinner = styled.span`
   display: inline-block;
 `;
 
-// ─── Error / Success ──────────────────────────────────────────────────────────
+// ─── Error / Warning messages ─────────────────────────────────────────────────
 
 const ErrorMsg = styled.div`
   padding: 10px 14px;
@@ -239,6 +259,29 @@ const ErrorMsg = styled.div`
   font-size: 13px;
   color: ${st.accentRed};
   font-weight: 500;
+`;
+
+const ErrorDetail = styled.ul`
+  margin: 6px 0 0;
+  padding: 0 0 0 18px;
+  font-size: 12px;
+  font-weight: 400;
+  color: ${st.accentRed};
+  opacity: 0.85;
+`;
+
+const UnverifiedWarning = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(234, 179, 8, 0.08);
+  border: 1px solid rgba(234, 179, 8, 0.35);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #92400e;
+  font-weight: 500;
+  line-height: 1.4;
 `;
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -253,21 +296,36 @@ export const InvoicingCredentialsPanel: React.FC = () => {
   const [apiKey, setApiKey] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [providerErrors, setProviderErrors] = useState<string[]>([]);
+  const [keyInvalid, setKeyInvalid] = useState(false);
 
   const isConfigured = !!credentials && !editMode;
   const isLoading = credLoading || provsLoading;
 
+  const clearErrors = () => {
+    setErrorMsg(null);
+    setProviderErrors([]);
+    setKeyInvalid(false);
+  };
+
   const handleSave = async () => {
     if (!provider || !apiKey.trim()) return;
-    setErrorMsg(null);
+    clearErrors();
     try {
       await saveCredentials.mutateAsync({ provider, apiKey: apiKey.trim() });
       setApiKey('');
       setProvider('');
       setEditMode(false);
     } catch (err: any) {
-      const msg = err?.response?.data?.message ?? err?.message ?? 'Błąd zapisu konfiguracji';
-      setErrorMsg(msg);
+      const data = err?.response?.data;
+      const status = err?.response?.status;
+      if (status === 422) {
+        setErrorMsg(data?.message ?? 'Nieprawidłowy klucz API. Sprawdź klucz w ustawieniach dostawcy.');
+        setProviderErrors(Array.isArray(data?.providerErrors) ? data.providerErrors : []);
+        setKeyInvalid(true);
+      } else {
+        setErrorMsg(data?.message ?? err?.message ?? 'Błąd zapisu konfiguracji');
+      }
     }
   };
 
@@ -308,19 +366,47 @@ export const InvoicingCredentialsPanel: React.FC = () => {
             Połącz z inFakt, wFirma, iFirma lub Fakturownia, aby automatycznie wystawiać faktury
           </PanelSubtitle>
         </div>
-        {isConfigured && (
+        {isConfigured && credentials.verified && (
           <ConnectedBadge>
             <GreenDot />
             Połączono: {credentials.providerLabel}
           </ConnectedBadge>
         )}
+        {isConfigured && !credentials.verified && (
+          <WarningBadge>
+            <YellowDot />
+            Klucz niezweryfikowany
+          </WarningBadge>
+        )}
       </PanelHeader>
 
       <PanelBody>
-        {errorMsg && <ErrorMsg>{errorMsg}</ErrorMsg>}
+        {errorMsg && (
+          <ErrorMsg>
+            {errorMsg}
+            {providerErrors.length > 0 && (
+              <ErrorDetail>
+                {providerErrors.map((e, i) => <li key={i}>{e}</li>)}
+              </ErrorDetail>
+            )}
+          </ErrorMsg>
+        )}
 
         {isConfigured ? (
           <>
+            {!credentials.verified && (
+              <UnverifiedWarning>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, marginTop: 1 }}>
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <span>
+                  Klucz API nie został potwierdzony przez dostawcę.
+                  Sprawdź poprawność klucza lub wygeneruj nowy w panelu {credentials.providerLabel}.
+                </span>
+              </UnverifiedWarning>
+            )}
             <FormGroup>
               <Label>Dostawca</Label>
               <MaskedKeyBox style={{ fontFamily: 'inherit', letterSpacing: 0 }}>
@@ -351,7 +437,7 @@ export const InvoicingCredentialsPanel: React.FC = () => {
               <Label>Dostawca faktur</Label>
               <Select
                 value={provider}
-                onChange={(e) => setProvider(e.target.value)}
+                onChange={(e) => { setProvider(e.target.value); clearErrors(); }}
               >
                 <option value="">— Wybierz dostawcę —</option>
                 {providers
@@ -366,10 +452,11 @@ export const InvoicingCredentialsPanel: React.FC = () => {
             <FormGroup>
               <Label>Klucz API / Token</Label>
               <Input
+                $invalid={keyInvalid}
                 type="password"
                 placeholder="Wklej klucz API…"
                 value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
+                onChange={(e) => { setApiKey(e.target.value); if (keyInvalid) clearErrors(); }}
                 autoComplete="off"
               />
               <HelpText>
@@ -383,10 +470,10 @@ export const InvoicingCredentialsPanel: React.FC = () => {
                 $loading={saveCredentials.isPending}
               >
                 {saveCredentials.isPending && <Spinner />}
-                Zapisz konfigurację
+                {saveCredentials.isPending ? 'Weryfikacja klucza…' : 'Zapisz konfigurację'}
               </PrimaryBtn>
               {editMode && (
-                <SecondaryBtn onClick={() => setEditMode(false)}>Anuluj</SecondaryBtn>
+                <SecondaryBtn onClick={() => { setEditMode(false); clearErrors(); }}>Anuluj</SecondaryBtn>
               )}
             </BtnRow>
           </>

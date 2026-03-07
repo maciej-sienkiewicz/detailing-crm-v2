@@ -154,8 +154,16 @@ export interface InvoicingCredentials {
   provider: string;
   providerLabel: string;
   apiKeyMasked: string;
+  verified: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface InvoicingValidationError {
+  error: string;
+  message: string;
+  providerErrors: string[];
+  timestamp: string;
 }
 
 export interface SaveCredentialsRequest {
