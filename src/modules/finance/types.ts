@@ -140,4 +140,68 @@ export interface FinanceSummary {
   overduePayables: number;
 }
 
-export type FinanceTab = 'income' | 'expense' | 'cash' | 'summary';
+export type FinanceTab = 'income' | 'expense' | 'cash' | 'summary' | 'invoicing';
+
+// ─── External Invoicing Integration ───────────────────────────────────────────
+
+export interface InvoiceProviderInfo {
+  type: string;
+  displayName: string;
+  supported: boolean;
+}
+
+export interface InvoicingCredentials {
+  provider: string;
+  providerLabel: string;
+  apiKeyMasked: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SaveCredentialsRequest {
+  provider: string;
+  apiKey: string;
+}
+
+export interface ExternalInvoice {
+  id: string;
+  provider: string;
+  providerLabel: string;
+  externalId: string;
+  externalNumber: string | null;
+  status: string;
+  statusLabel: string;
+  isCorrection: boolean;
+  hasCorrection: boolean;
+  correctionExternalId: string | null;
+  grossAmount: number;
+  netAmount: number;
+  vatAmount: number;
+  currency: string;
+  issueDate: string;
+  dueDate: string | null;
+  buyerName: string | null;
+  buyerNip: string | null;
+  description: string | null;
+  externalUrl: string;
+  syncedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExternalInvoiceListResponse {
+  invoices: ExternalInvoice[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface SyncResult {
+  synced: number;
+  failed: number;
+  errors: string[];
+}
+
+export interface InvoicePortalUrl {
+  url: string;
+}
