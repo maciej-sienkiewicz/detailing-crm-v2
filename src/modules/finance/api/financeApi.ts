@@ -254,7 +254,7 @@ const mockGetDocuments = async (filters: DocumentListFilters): Promise<Financial
       const start = (filters.page - 1) * filters.pageSize;
       const paginated = filtered.slice(start, start + filters.pageSize);
 
-      resolve({ documents: paginated, total, page: filters.page, pageSize: filters.pageSize });
+      resolve({ documents: paginated, invoices: [], total, invoiceTotal: 0, page: filters.page, pageSize: filters.pageSize });
     }, 250);
   });
 };

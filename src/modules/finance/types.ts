@@ -58,9 +58,37 @@ export interface FinancialDocument {
   updatedAt: string;
 }
 
+export interface InvoiceResponse {
+  id: string;
+  provider: string | null;
+  providerLabel: string | null;
+  externalId: string | null;
+  externalNumber: string | null;
+  status: string;
+  statusLabel: string;
+  providerSyncStatus: string;
+  providerSyncStatusLabel: string;
+  providerSyncError: string | null;
+  grossAmount: number;
+  netAmount: number;
+  vatAmount: number;
+  currency: string;
+  issueDate: string;
+  dueDate: string | null;
+  buyerName: string | null;
+  buyerNip: string | null;
+  description: string | null;
+  visitId: string | null;
+  externalUrl: string | null;
+  syncedAt: string | null;
+  createdAt: string;
+}
+
 export interface FinancialDocumentListResponse {
   documents: FinancialDocument[];
+  invoices: InvoiceResponse[];
   total: number;
+  invoiceTotal: number;
   page: number;
   pageSize: number;
 }
@@ -171,45 +199,8 @@ export interface SaveCredentialsRequest {
   apiKey: string;
 }
 
-export interface ExternalInvoice {
-  id: string;
-  provider: string;
-  providerLabel: string;
-  externalId: string;
-  externalNumber: string | null;
-  status: string;
-  statusLabel: string;
-  isCorrection: boolean;
-  hasCorrection: boolean;
-  correctionExternalId: string | null;
-  grossAmount: number;
-  netAmount: number;
-  vatAmount: number;
-  currency: string;
-  issueDate: string;
-  dueDate: string | null;
-  buyerName: string | null;
-  buyerNip: string | null;
-  description: string | null;
-  externalUrl: string;
-  syncedAt: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ExternalInvoiceListResponse {
-  invoices: ExternalInvoice[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
-
 export interface SyncResult {
   synced: number;
   failed: number;
   errors: string[];
-}
-
-export interface InvoicePortalUrl {
-  url: string;
 }

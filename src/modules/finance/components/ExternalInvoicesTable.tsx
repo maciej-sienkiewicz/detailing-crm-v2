@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { keyframes, css } from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { ExternalInvoice } from '../types';
+import type { InvoiceResponse } from '../types';
 import { useSyncSingleInvoice } from '../hooks/useInvoicing';
-import { invoicingApi } from '../api/invoicingApi';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -33,7 +32,7 @@ const Wrapper = styled.div`
 
 const Table = styled.table`
   width: 100%;
-  min-width: 860px;
+  min-width: 760px;
   border-collapse: collapse;
   background: ${(p) => p.theme.colors.surface};
   border-radius: ${(p) => p.theme.radii.lg};
@@ -105,6 +104,12 @@ const paymentStatusColors: Record<string, { bg: string; color: string; border: s
   CANCELLED: { bg: '#f1f5f9', color: '#64748b', border: '#e2e8f0' },
 };
 
+const syncStatusColors: Record<string, { bg: string; color: string; border: string }> = {
+  SYNCED:      { bg: '#dcfce7', color: '#166534', border: '#86efac' },
+  SYNC_FAILED: { bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' },
+  PENDING:     { bg: '#fef9c3', color: '#854d0e', border: '#fde047' },
+};
+
 const StatusBadge = styled.span<{ $status: string }>`
   display: inline-block;
   padding: 3px 9px;
@@ -117,28 +122,15 @@ const StatusBadge = styled.span<{ $status: string }>`
   white-space: nowrap;
 `;
 
-const KsefBadge = styled.span<{ $active: boolean }>`
+const SyncBadge = styled.span<{ $status: string }>`
   display: inline-block;
   padding: 3px 9px;
   font-size: 11px;
   font-weight: 600;
   border-radius: 999px;
-  border: 1px solid ${(p) => (p.$active ? '#86efac' : '#e2e8f0')};
-  background: ${(p) => (p.$active ? '#dcfce7' : '#f8fafc')};
-  color: ${(p) => (p.$active ? '#166534' : '#94a3b8')};
-  white-space: nowrap;
-`;
-
-const CorrectionTag = styled.span`
-  display: inline-block;
-  padding: 2px 8px;
-  font-size: 10px;
-  font-weight: 700;
-  border-radius: 999px;
-  background: #fef3c7;
-  border: 1px solid #fcd34d;
-  color: #92400e;
-  letter-spacing: 0.03em;
+  border: 1px solid ${(p) => syncStatusColors[p.$status]?.border ?? '#e2e8f0'};
+  background: ${(p) => syncStatusColors[p.$status]?.bg ?? '#f8fafc'};
+  color: ${(p) => syncStatusColors[p.$status]?.color ?? '#475569'};
   white-space: nowrap;
 `;
 
@@ -167,7 +159,7 @@ const ActionGroup = styled.div`
   gap: 6px;
 `;
 
-const IconBtn = styled.button<{ $spin?: boolean }>`
+const IconBtn = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -195,7 +187,7 @@ const IconBtn = styled.button<{ $spin?: boolean }>`
   }
 `;
 
-// ─── Money formatting ─────────────────────────────────────────────────────────
+// ─── Money / date formatting ───────────────────────────────────────────────────
 
 const formatMoney = (cents: number, currency = 'PLN') =>
   new Intl.NumberFormat('pl-PL', { style: 'currency', currency }).format(cents / 100);
@@ -209,7 +201,7 @@ const SubText = styled.span`
   color: ${st.textMuted};
 `;
 
-// ─── RefreshIcon ──────────────────────────────────────────────────────────────
+// ─── Icons ────────────────────────────────────────────────────────────────────
 
 const RefreshSvg = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -248,7 +240,7 @@ const ToastWrap = styled.div<{ $visible: boolean }>`
 
 // ─── Single-row sync button ───────────────────────────────────────────────────
 
-const SyncingRow: React.FC<{ invoice: ExternalInvoice; providerLabel: string }> = ({
+const SyncingRow: React.FC<{ invoice: InvoiceResponse; providerLabel: string }> = ({
   invoice,
   providerLabel,
 }) => {
@@ -272,12 +264,9 @@ const SyncingRow: React.FC<{ invoice: ExternalInvoice; providerLabel: string }> 
     }
   };
 
-  const handlePortal = async () => {
-    try {
-      const { url } = await invoicingApi.getPortalUrl(invoice.id);
-      window.open(url, '_blank', 'noopener,noreferrer');
-    } catch {
-      showToast('Nie udało się pobrać linku do dostawcy');
+  const handlePortal = () => {
+    if (invoice.externalUrl) {
+      window.open(invoice.externalUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -288,7 +277,11 @@ const SyncingRow: React.FC<{ invoice: ExternalInvoice; providerLabel: string }> 
           {syncSingle.isPending ? <SpinnerIcon /> : <RefreshSvg />}
           Odśwież
         </IconBtn>
-        <IconBtn onClick={handlePortal} title={`Zarządzaj w ${providerLabel}`}>
+        <IconBtn
+          onClick={handlePortal}
+          disabled={!invoice.externalUrl}
+          title={invoice.externalUrl ? `Zarządzaj w ${providerLabel}` : 'Brak linku do dostawcy'}
+        >
           <ExternalLinkSvg />
           {providerLabel}
         </IconBtn>
@@ -304,7 +297,7 @@ const SyncingRow: React.FC<{ invoice: ExternalInvoice; providerLabel: string }> 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 interface Props {
-  invoices: ExternalInvoice[];
+  invoices: InvoiceResponse[];
   isLoading?: boolean;
   providerLabel: string;
 }
@@ -320,15 +313,14 @@ export const ExternalInvoicesTable: React.FC<Props> = ({ invoices, isLoading, pr
               <Th>Klient</Th>
               <Th $align="right">Kwota</Th>
               <Th>Status płatności</Th>
-              <Th>KSeF</Th>
-              <Th>Korekta?</Th>
+              <Th>Synchronizacja</Th>
               <Th $width="1px"></Th>
             </tr>
           </Thead>
           <tbody>
             {[1, 2, 3, 4].map((i) => (
               <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                {[80, 120, 70, 90, 60, 50].map((w, j) => (
+                {[80, 120, 70, 90, 80].map((w, j) => (
                   <td key={j} style={{ padding: '12px 16px' }}>
                     <Skeleton $w={`${w}px`} />
                   </td>
@@ -359,8 +351,7 @@ export const ExternalInvoicesTable: React.FC<Props> = ({ invoices, isLoading, pr
             <Th>Klient</Th>
             <Th $align="right">Kwota</Th>
             <Th>Status płatności</Th>
-            <Th>KSeF</Th>
-            <Th>Korekta?</Th>
+            <Th>Synchronizacja</Th>
             <Th $width="1px"></Th>
           </tr>
         </Thead>
@@ -369,7 +360,7 @@ export const ExternalInvoicesTable: React.FC<Props> = ({ invoices, isLoading, pr
             <Tr key={inv.id}>
               <Td>
                 <span style={{ fontWeight: 600, color: 'var(--brand-primary)' }}>
-                  {inv.externalNumber ?? inv.externalId}
+                  {inv.externalNumber ?? inv.externalId ?? inv.id}
                 </span>
                 <SubText>{formatDate(inv.issueDate)}</SubText>
               </Td>
@@ -385,17 +376,11 @@ export const ExternalInvoicesTable: React.FC<Props> = ({ invoices, isLoading, pr
                 <StatusBadge $status={inv.status}>{inv.statusLabel}</StatusBadge>
               </Td>
               <Td>
-                <KsefBadge $active={!!inv.externalNumber}>
-                  {inv.externalNumber ? 'Wysłana' : 'Brak'}
-                </KsefBadge>
-              </Td>
-              <Td>
-                {inv.isCorrection ? (
-                  <CorrectionTag>Korekta</CorrectionTag>
-                ) : inv.hasCorrection ? (
-                  <CorrectionTag>Ma korektę</CorrectionTag>
-                ) : (
-                  <span style={{ color: st.textMuted, fontSize: 12 }}>—</span>
+                <SyncBadge $status={inv.providerSyncStatus}>
+                  {inv.providerSyncStatusLabel}
+                </SyncBadge>
+                {inv.providerSyncError && (
+                  <SubText title={inv.providerSyncError}>Błąd</SubText>
                 )}
               </Td>
               <ActionsCell>

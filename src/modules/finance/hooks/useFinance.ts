@@ -9,6 +9,7 @@ import type {
 export const FINANCE_DOCS_KEY = ['finance', 'documents'];
 export const FINANCE_CASH_KEY = ['finance', 'cash'];
 export const FINANCE_SUMMARY_KEY = ['finance', 'summary'];
+export const FINANCE_INVOICES_KEY = ['finance', 'invoices'];
 
 export const useFinanceDocuments = (filters: DocumentListFilters) => {
   const queryKey = [...FINANCE_DOCS_KEY, filters];
@@ -113,6 +114,22 @@ export const useAdjustCash = () => {
       queryClient.invalidateQueries({ queryKey: FINANCE_CASH_KEY });
     },
   });
+};
+
+export const useFinanceInvoices = (page: number, pageSize: number) => {
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: [...FINANCE_INVOICES_KEY, page, pageSize],
+    queryFn: () => financeApi.getDocuments({ page, pageSize }),
+    staleTime: 30_000,
+  });
+
+  return {
+    invoices: data?.invoices ?? [],
+    total: data?.invoiceTotal ?? 0,
+    isLoading,
+    isError,
+    refetch,
+  };
 };
 
 export const useFinanceSummary = (dateFrom?: string, dateTo?: string) => {

@@ -3,10 +3,9 @@ import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import type { FinanceTab } from '../types';
 import { DocumentDirection, DocumentStatus } from '../types';
-import { useFinanceDocuments } from '../hooks/useFinance';
+import { useFinanceDocuments, useFinanceInvoices } from '../hooks/useFinance';
 import {
   useInvoicingCredentials,
-  useExternalInvoices,
   useSyncAllInvoices,
 } from '../hooks/useInvoicing';
 import {
@@ -582,7 +581,7 @@ const INVOICING_PAGE_SIZE = 20;
 const InvoicingTabContent: React.FC = () => {
   const { credentials, isLoading: credLoading } = useInvoicingCredentials();
   const [page, setPage] = useState(1);
-  const { invoices, total, isLoading, isError, refetch } = useExternalInvoices(
+  const { invoices, total, isLoading, isError, refetch } = useFinanceInvoices(
     page,
     INVOICING_PAGE_SIZE
   );

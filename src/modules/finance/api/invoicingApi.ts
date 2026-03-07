@@ -3,10 +3,7 @@ import type {
   InvoiceProviderInfo,
   InvoicingCredentials,
   SaveCredentialsRequest,
-  ExternalInvoice,
-  ExternalInvoiceListResponse,
   SyncResult,
-  InvoicePortalUrl,
 } from '../types';
 
 const BASE = '/v1/invoicing';
@@ -40,26 +37,14 @@ export const invoicingApi = {
     await apiClient.delete(`${BASE}/credentials`);
   },
 
-  // ── Invoices ───────────────────────────────────────────────────────────────
-
-  listInvoices: async (page: number, pageSize: number): Promise<ExternalInvoiceListResponse> => {
-    const params = new URLSearchParams({ page: String(page), size: String(pageSize) });
-    const response = await apiClient.get(`${BASE}/invoices?${params}`);
-    return response.data;
-  },
+  // ── Invoice sync ───────────────────────────────────────────────────────────
 
   syncAll: async (): Promise<SyncResult> => {
     const response = await apiClient.post(`${BASE}/invoices/sync`);
     return response.data;
   },
 
-  syncSingle: async (id: string): Promise<ExternalInvoice> => {
-    const response = await apiClient.post(`${BASE}/invoices/${id}/sync`);
-    return response.data;
-  },
-
-  getPortalUrl: async (id: string): Promise<InvoicePortalUrl> => {
-    const response = await apiClient.get(`${BASE}/invoices/${id}/portal-url`);
-    return response.data;
+  syncSingle: async (id: string): Promise<void> => {
+    await apiClient.post(`${BASE}/invoices/${id}/sync`);
   },
 };

@@ -1,10 +1,10 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invoicingApi } from '../api/invoicingApi';
 import type { SaveCredentialsRequest } from '../types';
+import { FINANCE_INVOICES_KEY } from './useFinance';
 
 export const INVOICING_CREDENTIALS_KEY = ['invoicing', 'credentials'];
 export const INVOICING_PROVIDERS_KEY = ['invoicing', 'providers'];
-export const INVOICING_INVOICES_KEY = ['invoicing', 'invoices'];
 
 export const useInvoicingProviders = () => {
   const { data, isLoading, isError } = useQuery({
@@ -40,24 +40,9 @@ export const useDeleteCredentials = () => {
     mutationFn: () => invoicingApi.deleteCredentials(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: INVOICING_CREDENTIALS_KEY });
-      queryClient.invalidateQueries({ queryKey: INVOICING_INVOICES_KEY });
+      queryClient.invalidateQueries({ queryKey: FINANCE_INVOICES_KEY });
     },
   });
-};
-
-export const useExternalInvoices = (page: number, pageSize: number) => {
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: [...INVOICING_INVOICES_KEY, page, pageSize],
-    queryFn: () => invoicingApi.listInvoices(page, pageSize),
-    staleTime: 30_000,
-  });
-  return {
-    invoices: data?.invoices ?? [],
-    total: data?.total ?? 0,
-    isLoading,
-    isError,
-    refetch,
-  };
 };
 
 export const useSyncAllInvoices = () => {
@@ -65,7 +50,7 @@ export const useSyncAllInvoices = () => {
   return useMutation({
     mutationFn: () => invoicingApi.syncAll(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: INVOICING_INVOICES_KEY });
+      queryClient.invalidateQueries({ queryKey: FINANCE_INVOICES_KEY });
     },
   });
 };
@@ -75,7 +60,7 @@ export const useSyncSingleInvoice = () => {
   return useMutation({
     mutationFn: (id: string) => invoicingApi.syncSingle(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: INVOICING_INVOICES_KEY });
+      queryClient.invalidateQueries({ queryKey: FINANCE_INVOICES_KEY });
     },
   });
 };
