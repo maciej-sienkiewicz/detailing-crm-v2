@@ -27,7 +27,7 @@ const Wrapper = styled.div`
 
 const Table = styled.table`
   width: 100%;
-  min-width: 640px;
+  min-width: 700px;
   border-collapse: collapse;
   background: ${(p) => p.theme.colors.surface};
   border-radius: ${(p) => p.theme.radii.lg};
@@ -39,7 +39,7 @@ const Thead = styled.thead`
 `;
 
 const Th = styled.th<{ $align?: 'left' | 'right' | 'center'; $width?: string }>`
-  padding: ${(p) => p.theme.spacing.sm} ${(p) => p.theme.spacing.md};
+  padding: ${(p) => p.theme.spacing.md};
   text-align: ${(p) => p.$align || 'left'};
   font-size: ${(p) => p.theme.fontSizes.xs};
   font-weight: 600;
@@ -65,7 +65,7 @@ const Tr = styled.tr`
 `;
 
 const Td = styled.td<{ $align?: 'left' | 'right' | 'center'; $mono?: boolean }>`
-  padding: ${(p) => p.theme.spacing.sm} ${(p) => p.theme.spacing.md};
+  padding: ${(p) => p.theme.spacing.md};
   font-size: ${(p) => p.theme.fontSizes.sm};
   color: ${(p) => p.theme.colors.text};
   vertical-align: middle;
@@ -90,7 +90,7 @@ const StatusBadge = styled.button<{ $status: string }>`
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 9px;
+  padding: 4px 10px;
   font-size: 11px;
   font-weight: 600;
   border-radius: ${(p) => p.theme.radii.full};
@@ -119,6 +119,15 @@ const Dropdown = styled.div`
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   overflow: hidden;
+`;
+
+const DropdownHead = styled.div`
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(99, 102, 241, 0.02) 100%);
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
 `;
 
 const DropdownBody = styled.div`
@@ -157,13 +166,6 @@ const DropdownItem = styled.button<{ $active?: boolean; $danger?: boolean }>`
 const DocNumber = styled.span`
   font-weight: ${(p) => p.theme.fontWeights.medium};
   color: var(--brand-primary);
-  display: block;
-`;
-
-const DocSource = styled.span`
-  display: block;
-  font-size: ${(p) => p.theme.fontSizes.xs};
-  color: ${(p) => p.theme.colors.textMuted};
 `;
 
 const ClientText = styled.span`
@@ -186,6 +188,34 @@ const VehicleInfo = styled.span`
   color: ${(p) => p.theme.colors.textMuted};
 `;
 
+const SourceLink = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: ${(p) => p.theme.radii.full};
+  border: 1px solid ${(p) => p.theme.colors.border};
+  background: transparent;
+  color: var(--brand-primary);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+  text-decoration: none;
+
+  &:hover {
+    background: var(--brand-primary);
+    color: white;
+    border-color: var(--brand-primary);
+  }
+`;
+
+const SourceText = styled.span`
+  font-size: ${(p) => p.theme.fontSizes.sm};
+  color: ${(p) => p.theme.colors.textMuted};
+`;
+
 const PriceNet = styled.span`
   display: block;
   font-size: ${(p) => p.theme.fontSizes.xs};
@@ -201,37 +231,32 @@ const ActionsCell = styled(Td)`
   &.row-actions { opacity: 0; }
 `;
 
-// ─── Integrator / external link badge ─────────────────────────────────────────
+// ─── KSeF / Fakturomat icons ───────────────────────────────────────────────────
 
-const syncStatusColors: Record<string, { bg: string; color: string; border: string }> = {
-  SYNCED:      { bg: '#dcfce7', color: '#166534', border: '#86efac' },
-  SYNC_FAILED: { bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' },
-  PENDING:     { bg: '#fef9c3', color: '#854d0e', border: '#fde047' },
-};
-
-const IntegratorBadge = styled.span<{ $status: string }>`
-  display: inline-block;
-  padding: 3px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: 999px;
-  border: 1px solid ${(p) => syncStatusColors[p.$status]?.border ?? '#e2e8f0'};
-  background: ${(p) => syncStatusColors[p.$status]?.bg ?? '#f8fafc'};
-  color: ${(p) => syncStatusColors[p.$status]?.color ?? '#94a3b8'};
-  white-space: nowrap;
-`;
-
-const ExternalLink = styled.a`
+const CheckIcon = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--brand-primary);
-  text-decoration: none;
-  margin-top: 3px;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 12px;
+  font-weight: 700;
+`;
 
-  &:hover { text-decoration: underline; }
+const CrossIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 12px;
+  font-weight: 700;
 `;
 
 const ActionBtn = styled.button`
@@ -273,23 +298,12 @@ const ChevronSvg = () => (
   </svg>
 );
 
-const ExternalLinkSvg = () => (
-  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-    <polyline points="15 3 21 3 21 9" />
-    <line x1="10" y1="14" x2="21" y2="3" />
-  </svg>
-);
-
 const allStatuses: DocumentStatus[] = [DocumentStatus.PAID, DocumentStatus.PENDING, DocumentStatus.OVERDUE];
 const statusLabels: Record<DocumentStatus, string> = {
   [DocumentStatus.PAID]: 'Opłacona',
   [DocumentStatus.PENDING]: 'Oczekująca',
   [DocumentStatus.OVERDUE]: 'Przeterminowana',
 };
-
-// Columns: Data | Numer | Klient | Kwota | Status | Metoda | Termin | Integrator | Akcje
-const SKELETON_COLS = 8;
 
 interface Props {
   documents: FinancialDocument[];
@@ -346,18 +360,18 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
             <tr>
               <Th>Data</Th><Th>Numer</Th><Th>Klient</Th>
               <Th $align="right">Kwota</Th><Th>Status</Th>
-              <Th>Metoda</Th><Th>Termin</Th><Th>Integrator</Th><Th $width="48px"></Th>
+              <Th>Metoda</Th><Th>Źródło</Th><Th>Fakturomat</Th><Th>KSEF</Th><Th>Termin</Th><Th $width="48px"></Th>
             </tr>
           </Thead>
           <tbody>
             {[1,2,3,4,5].map((i) => (
               <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                {Array.from({ length: SKELETON_COLS }).map((_, j) => (
-                  <td key={j} style={{ padding: '10px 16px' }}>
+                {Array.from({ length: 10 }).map((_, j) => (
+                  <td key={j} style={{ padding: '12px 16px' }}>
                     <Skeleton $w={j === 0 ? '70px' : j === 1 ? '100px' : j === 3 ? '80px' : '90px'} />
                   </td>
                 ))}
-                <td style={{ padding: '10px 16px' }} />
+                <td style={{ padding: '12px 16px' }} />
               </tr>
             ))}
           </tbody>
@@ -376,33 +390,25 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
         <Table>
           <Thead>
             <tr>
-              <Th>Data</Th>
+              <Th>Data sprzedaży</Th>
               <Th>Numer</Th>
-              <Th>Klient / Kontrahent</Th>
-              <Th $align="right">Kwota brutto</Th>
+              <Th>Klient</Th>
+              <Th $align="right">Kwota</Th>
               <Th>Status</Th>
               <Th>Metoda</Th>
-              <Th>Termin</Th>
-              <Th>Integrator</Th>
+              <Th>Źródło</Th>
+              <Th>Fakturomat</Th>
+              <Th>KSEF</Th>
+              <Th>Termin płatności</Th>
               <Th $width="48px"></Th>
             </tr>
           </Thead>
           <tbody>
             {documents.map((doc) => (
               <Tr key={doc.id} onClick={() => onDocumentClick?.(doc)}>
-                <Td style={{ whiteSpace: 'nowrap' }}>{formatDate(doc.issueDate)}</Td>
+                <Td>{formatDate(doc.issueDate)}</Td>
                 <Td>
                   <DocNumber>{doc.documentNumber}</DocNumber>
-                  {doc.source === 'VISIT' && doc.visitId ? (
-                    <DocSource
-                      style={{ cursor: 'pointer', color: 'var(--brand-primary)' }}
-                      onClick={(e) => { e.stopPropagation(); navigate(`/visits/${doc.visitId}`); }}
-                    >
-                      {doc.sourceLabel}
-                    </DocSource>
-                  ) : (
-                    <DocSource>{doc.sourceLabel}</DocSource>
-                  )}
                 </Td>
                 <Td>
                   {(() => {
@@ -438,12 +444,45 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                     <ChevronSvg />
                   </StatusBadge>
                 </Td>
-                <Td style={{ whiteSpace: 'nowrap' }}>{doc.paymentMethodLabel}</Td>
+                <Td>{doc.paymentMethodLabel}</Td>
+                <Td onClick={(e) => e.stopPropagation()}>
+                  {doc.source === 'VISIT' && doc.visitId ? (
+                    <SourceLink
+                      onClick={() => navigate(`/visits/${doc.visitId}`)}
+                      title="Przejdź do wizyty"
+                    >
+                      {doc.sourceLabel}
+                    </SourceLink>
+                  ) : (
+                    <SourceText>{doc.sourceLabel}</SourceText>
+                  )}
+                </Td>
+                <Td>
+                  {doc.documentType === 'INVOICE' ? (
+                    doc.providerSyncStatus === 'SYNCED' ? (
+                      <CheckIcon title={doc.providerSyncStatusLabel ?? undefined}>✓</CheckIcon>
+                    ) : (
+                      <CrossIcon title={doc.providerSyncStatusLabel ?? undefined}>✕</CrossIcon>
+                    )
+                  ) : (
+                    <span style={{ color: '#9ca3af' }}>—</span>
+                  )}
+                </Td>
+                <Td>
+                  {doc.documentType === 'INVOICE' ? (
+                    doc.ksefInvoiceId ? (
+                      <CheckIcon title={doc.ksefNumber ?? undefined}>✓</CheckIcon>
+                    ) : (
+                      <CrossIcon>✕</CrossIcon>
+                    )
+                  ) : (
+                    <span style={{ color: '#9ca3af' }}>—</span>
+                  )}
+                </Td>
                 <Td>
                   {doc.dueDate ? (
                     <span
                       style={{
-                        whiteSpace: 'nowrap',
                         color:
                           doc.status === 'OVERDUE'
                             ? '#ef4444'
@@ -454,28 +493,6 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                     >
                       {formatDate(doc.dueDate)}
                     </span>
-                  ) : (
-                    <span style={{ color: '#9ca3af' }}>—</span>
-                  )}
-                </Td>
-                <Td>
-                  {doc.documentType === 'INVOICE' && doc.providerSyncStatus ? (
-                    <>
-                      <IntegratorBadge $status={doc.providerSyncStatus}>
-                        {doc.providerSyncStatusLabel ?? doc.providerSyncStatus}
-                      </IntegratorBadge>
-                      {doc.externalUrl && (
-                        <ExternalLink
-                          href={doc.externalUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <ExternalLinkSvg />
-                          {doc.providerLabel ?? 'Portal'}
-                        </ExternalLink>
-                      )}
-                    </>
                   ) : (
                     <span style={{ color: '#9ca3af' }}>—</span>
                   )}
