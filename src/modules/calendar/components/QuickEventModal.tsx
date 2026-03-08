@@ -688,15 +688,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 <S.ModalContainer $isOpen={isOpen}>
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                         <S.Header>
-                            <S.DragHandle>
-                                <div />
-                            </S.DragHandle>
-
-                            <S.CloseButton type="button" onClick={onClose}>
-                                <IconX />
-                            </S.CloseButton>
-
-                            <div style={{ marginTop: '8px' }}>
+                            <S.HeaderContent>
                                 <S.TitleInput
                                     ref={titleInputRef}
                                     type="text"
@@ -707,7 +699,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     onFocus={() => setFocusedField('title')}
                                     onBlur={() => setFocusedField(null)}
                                 />
-                            </div>
+                            </S.HeaderContent>
+
+                            <S.CloseButton type="button" onClick={onClose}>
+                                <IconX />
+                            </S.CloseButton>
                         </S.Header>
 
                         <S.ScrollableContent>
@@ -884,89 +880,36 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     </S.DropdownContainer>
                                     {errors.customer && <S.ErrorMessage>{errors.customer}</S.ErrorMessage>}
                                     {selectedCustomer && (
-                                        <>
-                                            {/* Nagłówek */}
-                                            <div style={{
-                                                marginTop: '10px',
-                                                marginBottom: '4px',
-                                                fontSize: '11px',
-                                                fontWeight: 700,
-                                                color: '#94a3b8',
-                                                textTransform: 'uppercase',
-                                                letterSpacing: '0.8px'
-                                            }}>
-                                                ✓ Obecnie wybrany klient
-                                            </div>
-
-                                            {/* Panel z danymi */}
-                                            <div style={{
-                                                padding: '10px 14px',
-                                                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.03))',
-                                                borderRadius: '10px',
-                                                fontSize: '13px',
-                                                border: '1px solid rgba(99, 102, 241, 0.15)',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                gap: '6px'
-                                            }}>
-                                                {/* Nazwa klienta */}
-                                                <div style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '8px',
-                                                    paddingBottom: '6px',
-                                                    borderBottom: (selectedCustomer.phone || selectedCustomer.email) ? '1px solid rgba(99, 102, 241, 0.1)' : 'none',
-                                                    fontWeight: 600,
-                                                    color: '#4f46e5'
-                                                }}>
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '16px', height: '16px', flexShrink: 0 }}>
-                                                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-                                                    <circle cx="12" cy="7" r="4" />
-                                                </svg>
-                                                <span>
+                                        <S.SelectedCustomerChip>
+                                            <S.ChipCheck>✓</S.ChipCheck>
+                                            <S.ChipInfo>
+                                                <S.ChipName>
                                                     {(selectedCustomer.firstName || selectedCustomer.lastName)
-                                                        ? <>{selectedCustomer.firstName} {selectedCustomer.lastName}</>
-                                                        : <span style={{ color: '#94a3b8', fontStyle: 'italic', fontWeight: 400 }}>(Nie uzupełniono imienia i nazwiska)</span>
+                                                        ? `${selectedCustomer.firstName ?? ''} ${selectedCustomer.lastName ?? ''}`.trim()
+                                                        : '(Brak danych)'
                                                     }
-                                                    {selectedCustomer.isNew && (
-                                                        <span style={{
-                                                            marginLeft: '6px',
-                                                            fontSize: '10px',
-                                                            padding: '2px 6px',
-                                                            background: '#10b981',
-                                                            color: 'white',
-                                                            borderRadius: '4px',
-                                                            fontWeight: 700,
-                                                            textTransform: 'uppercase'
-                                                        }}>Nowy</span>
-                                                    )}
-                                                </span>
-                                            </div>
-
-                                            {/* Kontakt */}
-                                            {(selectedCustomer.phone || selectedCustomer.email) && (
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', color: '#64748b' }}>
-                                                    {selectedCustomer.phone && (
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '14px', height: '14px', flexShrink: 0 }}>
-                                                                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
-                                                            </svg>
-                                                            <span>{selectedCustomer.phone}</span>
-                                                        </div>
-                                                    )}
-                                                    {selectedCustomer.email && (
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '14px', height: '14px', flexShrink: 0 }}>
-                                                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                                                                <polyline points="22,6 12,13 2,6" />
-                                                            </svg>
-                                                            <span>{selectedCustomer.email}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                            </div>
-                                        </>
+                                                    {selectedCustomer.isNew && <S.NewBadge>Nowy</S.NewBadge>}
+                                                </S.ChipName>
+                                                {(selectedCustomer.phone || selectedCustomer.email) && (
+                                                    <>
+                                                        <S.ChipDot>·</S.ChipDot>
+                                                        <S.ChipMeta>{selectedCustomer.phone || selectedCustomer.email}</S.ChipMeta>
+                                                    </>
+                                                )}
+                                            </S.ChipInfo>
+                                            <S.ChipClear
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedCustomer(null);
+                                                    setSelectedCustomerId(undefined);
+                                                    setCustomerSearch('');
+                                                    setSelectedVehicle(null);
+                                                    setVehicleSearch('');
+                                                }}
+                                            >
+                                                <IconX />
+                                            </S.ChipClear>
+                                        </S.SelectedCustomerChip>
                                     )}
                                 </S.RowContent>
                             </S.Row>
@@ -1170,66 +1113,70 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
                                                     return (
                                                         <S.ServiceItem key={id}>
-                                                            <S.ServiceItemHeader>
-                                                                <S.ServiceName>{service.name}</S.ServiceName>
-                                                                <S.IconButton
-                                                                    type="button"
-                                                                    onClick={() => setExpandedServiceNote(isNoteExpanded ? null : id)}
-                                                                    $active={hasNote}
-                                                                    title="Dodaj notatkę do usługi"
-                                                                >
-                                                                    <IconMessageSquare />
-                                                                </S.IconButton>
-                                                                <S.DeleteButton
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        setSelectedServiceIds(prev => prev.filter(i => i !== id));
-                                                                        const newPrices = {...servicePrices};
-                                                                        delete newPrices[id];
-                                                                        setServicePrices(newPrices);
-                                                                        const newInputs = {...servicePriceInputs};
-                                                                        delete newInputs[id];
-                                                                        setServicePriceInputs(newInputs);
-                                                                        const newNotes = {...serviceNotes};
-                                                                        delete newNotes[id];
-                                                                        setServiceNotes(newNotes);
-                                                                        if (expandedServiceNote === id) {
-                                                                            setExpandedServiceNote(null);
-                                                                        }
-                                                                    }}
-                                                                >
-                                                                    <IconTrash />
-                                                                </S.DeleteButton>
-                                                            </S.ServiceItemHeader>
-                                                            <S.ServicePricesRow>
-                                                                <S.ServicePriceWrapper>
-                                                                    <S.ServicePriceBadge>netto</S.ServicePriceBadge>
-                                                                    <S.ServicePriceInput
-                                                                        type="text"
-                                                                        inputMode="decimal"
-                                                                        value={inputs.net}
-                                                                        onChange={(e) => syncFromNet(e.target.value)}
-                                                                        onBlur={normalizeInputs}
-                                                                    />
-                                                                    <S.ServicePriceLabel>zł</S.ServicePriceLabel>
-                                                                </S.ServicePriceWrapper>
-                                                                <S.ServicePriceSeparator />
-                                                                <S.ServicePriceWrapper>
-                                                                    <S.ServicePriceBadge>brutto</S.ServicePriceBadge>
-                                                                    <S.ServicePriceInput
-                                                                        type="text"
-                                                                        inputMode="decimal"
-                                                                        value={inputs.gross}
-                                                                        onChange={(e) => syncFromGross(e.target.value)}
-                                                                        onBlur={normalizeInputs}
-                                                                    />
-                                                                    <S.ServicePriceLabel>zł</S.ServicePriceLabel>
-                                                                </S.ServicePriceWrapper>
-                                                            </S.ServicePricesRow>
+                                                            <S.ServiceItemRow>
+                                                                <S.ServiceName title={service.name}>{service.name}</S.ServiceName>
+
+                                                                <S.ServicePricesGroup>
+                                                                    <S.PriceCell>
+                                                                        <S.PriceCellLabel>Netto</S.PriceCellLabel>
+                                                                        <S.PriceCellInput
+                                                                            type="text"
+                                                                            inputMode="decimal"
+                                                                            value={inputs.net}
+                                                                            onChange={(e) => syncFromNet(e.target.value)}
+                                                                            onBlur={normalizeInputs}
+                                                                        />
+                                                                    </S.PriceCell>
+                                                                    <S.PriceSep>→</S.PriceSep>
+                                                                    <S.PriceCell>
+                                                                        <S.PriceCellLabel>Brutto</S.PriceCellLabel>
+                                                                        <S.PriceCellInput
+                                                                            type="text"
+                                                                            inputMode="decimal"
+                                                                            value={inputs.gross}
+                                                                            onChange={(e) => syncFromGross(e.target.value)}
+                                                                            onBlur={normalizeInputs}
+                                                                        />
+                                                                    </S.PriceCell>
+                                                                    <S.PriceCurrency>zł</S.PriceCurrency>
+                                                                </S.ServicePricesGroup>
+
+                                                                <S.ServiceActions>
+                                                                    <S.IconButton
+                                                                        type="button"
+                                                                        onClick={() => setExpandedServiceNote(isNoteExpanded ? null : id)}
+                                                                        $active={hasNote}
+                                                                        title="Notatka do usługi"
+                                                                    >
+                                                                        <IconMessageSquare />
+                                                                    </S.IconButton>
+                                                                    <S.DeleteButton
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setSelectedServiceIds(prev => prev.filter(i => i !== id));
+                                                                            const newPrices = {...servicePrices};
+                                                                            delete newPrices[id];
+                                                                            setServicePrices(newPrices);
+                                                                            const newInputs = {...servicePriceInputs};
+                                                                            delete newInputs[id];
+                                                                            setServicePriceInputs(newInputs);
+                                                                            const newNotes = {...serviceNotes};
+                                                                            delete newNotes[id];
+                                                                            setServiceNotes(newNotes);
+                                                                            if (expandedServiceNote === id) {
+                                                                                setExpandedServiceNote(null);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <IconTrash />
+                                                                    </S.DeleteButton>
+                                                                </S.ServiceActions>
+                                                            </S.ServiceItemRow>
+
                                                             {isNoteExpanded && (
                                                                 <S.ServiceNoteContainer>
                                                                     <S.ServiceNoteTextarea
-                                                                        placeholder="Dodaj notatkę do tej usługi..."
+                                                                        placeholder="Notatka do usługi..."
                                                                         value={serviceNotes[id] || ''}
                                                                         onChange={(e) => setServiceNotes(prev => ({ ...prev, [id]: e.target.value }))}
                                                                         rows={2}
@@ -1242,45 +1189,42 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             </S.ServicesList>
 
                                             {/* Summary Section */}
-                                            <S.SummarySection>
-                                                {(() => {
-                                                    let totalNet = 0;
-                                                    let totalGross = 0;
+                                            {(() => {
+                                                let totalNet = 0;
+                                                let totalGross = 0;
 
-                                                    selectedServiceIds.forEach(id => {
-                                                        const service = services.find((s: Service) => s.id === id) || tempServices[id];
-                                                        if (!service) return;
+                                                selectedServiceIds.forEach(id => {
+                                                    const service = services.find((s: Service) => s.id === id) || tempServices[id];
+                                                    if (!service) return;
+                                                    const grossPrice = servicePrices[id] ?? 0;
+                                                    const vatRate = service.vatRate || 23;
+                                                    totalNet += roundTo2(grossPrice / (1 + vatRate / 100));
+                                                    totalGross += grossPrice;
+                                                });
 
-                                                        const grossPrice = servicePrices[id] ?? 0;
-                                                        const vatRate = service.vatRate || 23;
-                                                        const netPrice = roundTo2(grossPrice / (1 + vatRate / 100));
+                                                totalNet = roundTo2(totalNet);
+                                                totalGross = roundTo2(totalGross);
+                                                const totalVat = roundTo2(totalGross - totalNet);
 
-                                                        totalNet += netPrice;
-                                                        totalGross += grossPrice;
-                                                    });
-
-                                                    totalNet = roundTo2(totalNet);
-                                                    totalGross = roundTo2(totalGross);
-                                                    const totalVat = roundTo2(totalGross - totalNet);
-
-                                                    return (
-                                                        <>
-                                                            <S.SummaryRow>
-                                                                <S.SummaryLabel>Wartość netto:</S.SummaryLabel>
-                                                                <S.SummaryValue>{totalNet.toFixed(2)} zł</S.SummaryValue>
-                                                            </S.SummaryRow>
-                                                            <S.SummaryRow>
-                                                                <S.SummaryLabel>VAT:</S.SummaryLabel>
-                                                                <S.SummaryValue>{totalVat.toFixed(2)} zł</S.SummaryValue>
-                                                            </S.SummaryRow>
-                                                            <S.SummaryRow $isTotal>
-                                                                <S.SummaryLabel $isTotal>Wartość brutto:</S.SummaryLabel>
-                                                                <S.SummaryValue $isTotal>{totalGross.toFixed(2)} zł</S.SummaryValue>
-                                                            </S.SummaryRow>
-                                                        </>
-                                                    );
-                                                })()}
-                                            </S.SummarySection>
+                                                return (
+                                                    <S.SummarySection>
+                                                        <S.SummaryItem>
+                                                            <S.SummaryLabel>Netto</S.SummaryLabel>
+                                                            <S.SummaryValue>{totalNet.toFixed(2)} zł</S.SummaryValue>
+                                                        </S.SummaryItem>
+                                                        <S.SummaryDivider />
+                                                        <S.SummaryItem>
+                                                            <S.SummaryLabel>VAT</S.SummaryLabel>
+                                                            <S.SummaryValue>{totalVat.toFixed(2)} zł</S.SummaryValue>
+                                                        </S.SummaryItem>
+                                                        <S.SummaryDivider />
+                                                        <S.SummaryItem>
+                                                            <S.SummaryLabel>Brutto</S.SummaryLabel>
+                                                            <S.SummaryValue $isTotal>{totalGross.toFixed(2)} zł</S.SummaryValue>
+                                                        </S.SummaryItem>
+                                                    </S.SummarySection>
+                                                );
+                                            })()}
                                         </>
                                     )}
                                 </S.RowContent>
