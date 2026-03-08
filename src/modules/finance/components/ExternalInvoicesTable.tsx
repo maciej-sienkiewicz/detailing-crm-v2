@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { keyframes, css } from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { InvoiceResponse } from '../types';
+import type { FinancialDocument } from '../types';
 import { useSyncSingleInvoice } from '../hooks/useInvoicing';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
@@ -32,7 +32,7 @@ const Wrapper = styled.div`
 
 const Table = styled.table`
   width: 100%;
-  min-width: 760px;
+  min-width: 640px;
   border-collapse: collapse;
   background: ${(p) => p.theme.colors.surface};
   border-radius: ${(p) => p.theme.radii.lg};
@@ -44,7 +44,7 @@ const Thead = styled.thead`
 `;
 
 const Th = styled.th<{ $align?: 'left' | 'right' | 'center'; $width?: string }>`
-  padding: ${(p) => p.theme.spacing.md};
+  padding: ${(p) => p.theme.spacing.sm} ${(p) => p.theme.spacing.md};
   text-align: ${(p) => p.$align || 'left'};
   font-size: ${(p) => p.theme.fontSizes.xs};
   font-weight: 600;
@@ -65,7 +65,7 @@ const Tr = styled.tr`
 `;
 
 const Td = styled.td<{ $align?: 'left' | 'right' | 'center'; $mono?: boolean }>`
-  padding: ${(p) => p.theme.spacing.md};
+  padding: ${(p) => p.theme.spacing.sm} ${(p) => p.theme.spacing.md};
   font-size: ${(p) => p.theme.fontSizes.sm};
   color: ${(p) => p.theme.colors.text};
   vertical-align: middle;
@@ -240,8 +240,8 @@ const ToastWrap = styled.div<{ $visible: boolean }>`
 
 // ─── Single-row sync button ───────────────────────────────────────────────────
 
-const SyncingRow: React.FC<{ invoice: InvoiceResponse; providerLabel: string }> = ({
-  invoice,
+const SyncingRow: React.FC<{ doc: FinancialDocument; providerLabel: string }> = ({
+  doc,
   providerLabel,
 }) => {
   const syncSingle = useSyncSingleInvoice();
@@ -256,7 +256,7 @@ const SyncingRow: React.FC<{ invoice: InvoiceResponse; providerLabel: string }> 
 
   const handleSync = async () => {
     try {
-      await syncSingle.mutateAsync(invoice.id);
+      await syncSingle.mutateAsync(doc.id);
       showToast('Status faktury zaktualizowany');
     } catch (err: any) {
       const msg = err?.response?.data?.message ?? 'Błąd synchronizacji';
@@ -265,8 +265,8 @@ const SyncingRow: React.FC<{ invoice: InvoiceResponse; providerLabel: string }> 
   };
 
   const handlePortal = () => {
-    if (invoice.externalUrl) {
-      window.open(invoice.externalUrl, '_blank', 'noopener,noreferrer');
+    if (doc.externalUrl) {
+      window.open(doc.externalUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -279,8 +279,8 @@ const SyncingRow: React.FC<{ invoice: InvoiceResponse; providerLabel: string }> 
         </IconBtn>
         <IconBtn
           onClick={handlePortal}
-          disabled={!invoice.externalUrl}
-          title={invoice.externalUrl ? `Zarządzaj w ${providerLabel}` : 'Brak linku do dostawcy'}
+          disabled={!doc.externalUrl}
+          title={doc.externalUrl ? `Zarządzaj w ${providerLabel}` : 'Brak linku do dostawcy'}
         >
           <ExternalLinkSvg />
           {providerLabel}
@@ -297,7 +297,7 @@ const SyncingRow: React.FC<{ invoice: InvoiceResponse; providerLabel: string }> 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 interface Props {
-  invoices: InvoiceResponse[];
+  invoices: FinancialDocument[];
   isLoading?: boolean;
   providerLabel: string;
 }
@@ -321,11 +321,11 @@ export const ExternalInvoicesTable: React.FC<Props> = ({ invoices, isLoading, pr
             {[1, 2, 3, 4].map((i) => (
               <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
                 {[80, 120, 70, 90, 80].map((w, j) => (
-                  <td key={j} style={{ padding: '12px 16px' }}>
+                  <td key={j} style={{ padding: '10px 16px' }}>
                     <Skeleton $w={`${w}px`} />
                   </td>
                 ))}
-                <td style={{ padding: '12px 16px' }} />
+                <td style={{ padding: '10px 16px' }} />
               </tr>
             ))}
           </tbody>
@@ -356,35 +356,43 @@ export const ExternalInvoicesTable: React.FC<Props> = ({ invoices, isLoading, pr
           </tr>
         </Thead>
         <tbody>
-          {invoices.map((inv) => (
-            <Tr key={inv.id}>
+          {invoices.map((doc) => (
+            <Tr key={doc.id}>
               <Td>
                 <span style={{ fontWeight: 600, color: 'var(--brand-primary)' }}>
-                  {inv.externalNumber ?? inv.externalId ?? inv.id}
+                  {doc.externalNumber ?? doc.documentNumber}
                 </span>
-                <SubText>{formatDate(inv.issueDate)}</SubText>
+                <SubText>{formatDate(doc.issueDate)}</SubText>
               </Td>
               <Td>
-                {inv.buyerName ?? <span style={{ color: st.textMuted }}>—</span>}
-                {inv.buyerNip && <SubText>NIP: {inv.buyerNip}</SubText>}
+                {doc.counterpartyName ?? <span style={{ color: st.textMuted }}>—</span>}
+                {doc.counterpartyNip && <SubText>NIP: {doc.counterpartyNip}</SubText>}
               </Td>
               <Td $align="right" $mono>
-                {formatMoney(inv.grossAmount, inv.currency)}
-                <SubText>{formatMoney(inv.netAmount, inv.currency)} netto</SubText>
+                {formatMoney(doc.totalGross, doc.currency)}
+                <SubText>{formatMoney(doc.totalNet, doc.currency)} netto</SubText>
               </Td>
               <Td>
-                <StatusBadge $status={inv.status}>{inv.statusLabel}</StatusBadge>
+                <StatusBadge $status={doc.externalStatus ?? doc.status}>
+                  {doc.externalStatusLabel ?? doc.statusLabel}
+                </StatusBadge>
               </Td>
               <Td>
-                <SyncBadge $status={inv.providerSyncStatus}>
-                  {inv.providerSyncStatusLabel}
-                </SyncBadge>
-                {inv.providerSyncError && (
-                  <SubText title={inv.providerSyncError}>Błąd</SubText>
+                {doc.providerSyncStatus ? (
+                  <>
+                    <SyncBadge $status={doc.providerSyncStatus}>
+                      {doc.providerSyncStatusLabel}
+                    </SyncBadge>
+                    {doc.providerSyncError && (
+                      <SubText title={doc.providerSyncError}>Błąd</SubText>
+                    )}
+                  </>
+                ) : (
+                  <span style={{ color: st.textMuted }}>—</span>
                 )}
               </Td>
               <ActionsCell>
-                <SyncingRow invoice={inv} providerLabel={providerLabel} />
+                <SyncingRow doc={doc} providerLabel={providerLabel} />
               </ActionsCell>
             </Tr>
           ))}

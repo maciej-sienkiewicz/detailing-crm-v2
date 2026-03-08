@@ -119,13 +119,13 @@ export const useAdjustCash = () => {
 export const useFinanceInvoices = (page: number, pageSize: number) => {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: [...FINANCE_INVOICES_KEY, page, pageSize],
-    queryFn: () => financeApi.getDocuments({ page, pageSize }),
+    queryFn: () => financeApi.getDocuments({ page, pageSize, documentType: 'INVOICE' }),
     staleTime: 30_000,
   });
 
   return {
-    invoices: data?.invoices ?? [],
-    total: data?.invoiceTotal ?? 0,
+    invoices: data?.documents ?? [],
+    total: data?.total ?? 0,
     isLoading,
     isError,
     refetch,

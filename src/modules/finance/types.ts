@@ -51,46 +51,35 @@ export interface FinancialDocument {
   vehicleModel: string | null;
   customerFirstName: string | null;
   customerLastName: string | null;
-  ksefInvoiceId: string | null;
-  ksefNumber: string | null;
+
+  // External provider fields
+  provider: string | null;
+  providerLabel: string | null;
+  externalId: string | null;
+  externalNumber: string | null;
+  externalStatus: string | null;
+  externalStatusLabel: string | null;
+  isCorrection: boolean;
+  hasCorrection: boolean;
+  correctionExternalId: string | null;
   providerSyncStatus: string | null;
   providerSyncStatusLabel: string | null;
+  providerSyncError: string | null;
+  syncedAt: string | null;
+  externalUrl: string | null;
+
+  // KSeF
+  ksefInvoiceId: string | null;
+  ksefNumber: string | null;
+
   createdBy: string;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface InvoiceResponse {
-  id: string;
-  provider: string | null;
-  providerLabel: string | null;
-  externalId: string | null;
-  externalNumber: string | null;
-  status: string;
-  statusLabel: string;
-  providerSyncStatus: string;
-  providerSyncStatusLabel: string;
-  providerSyncError: string | null;
-  grossAmount: number;
-  netAmount: number;
-  vatAmount: number;
-  currency: string;
-  issueDate: string;
-  dueDate: string | null;
-  buyerName: string | null;
-  buyerNip: string | null;
-  description: string | null;
-  visitId: string | null;
-  externalUrl: string | null;
-  syncedAt: string | null;
-  createdAt: string;
-}
-
 export interface FinancialDocumentListResponse {
   documents: FinancialDocument[];
-  invoices: InvoiceResponse[];
   total: number;
-  invoiceTotal: number;
   page: number;
   pageSize: number;
 }
@@ -171,6 +160,20 @@ export interface FinanceSummary {
 }
 
 export type FinanceTab = 'income' | 'expense' | 'cash' | 'summary' | 'invoicing';
+
+export interface SyncInvoicesResult {
+  synced: number;
+  failed: number;
+  errors: string[];
+}
+
+export interface ImportInvoicesResult {
+  imported: number;
+  updated: number;
+  merged: number;
+  failed: number;
+  errors: string[];
+}
 
 // ─── External Invoicing Integration ───────────────────────────────────────────
 

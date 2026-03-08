@@ -3,7 +3,6 @@ import type {
   InvoiceProviderInfo,
   InvoicingCredentials,
   SaveCredentialsRequest,
-  SyncResult,
 } from '../types';
 
 const BASE = '/v1/invoicing';
@@ -35,16 +34,5 @@ export const invoicingApi = {
 
   deleteCredentials: async (): Promise<void> => {
     await apiClient.delete(`${BASE}/credentials`);
-  },
-
-  // ── Invoice sync ───────────────────────────────────────────────────────────
-
-  syncAll: async (): Promise<SyncResult> => {
-    const response = await apiClient.post(`${BASE}/invoices/sync`);
-    return response.data;
-  },
-
-  syncSingle: async (id: string): Promise<void> => {
-    await apiClient.post(`${BASE}/invoices/${id}/sync`);
   },
 };

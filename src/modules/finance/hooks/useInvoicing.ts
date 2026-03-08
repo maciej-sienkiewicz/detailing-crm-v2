@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invoicingApi } from '../api/invoicingApi';
+import { financeApi } from '../api/financeApi';
 import type { SaveCredentialsRequest } from '../types';
-import { FINANCE_INVOICES_KEY } from './useFinance';
+import { FINANCE_DOCS_KEY, FINANCE_INVOICES_KEY } from './useFinance';
 
 export const INVOICING_CREDENTIALS_KEY = ['invoicing', 'credentials'];
 export const INVOICING_PROVIDERS_KEY = ['invoicing', 'providers'];
@@ -48,9 +49,10 @@ export const useDeleteCredentials = () => {
 export const useSyncAllInvoices = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => invoicingApi.syncAll(),
+    mutationFn: () => financeApi.syncAllInvoices(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FINANCE_INVOICES_KEY });
+      queryClient.invalidateQueries({ queryKey: FINANCE_DOCS_KEY });
     },
   });
 };
@@ -58,9 +60,10 @@ export const useSyncAllInvoices = () => {
 export const useSyncSingleInvoice = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => invoicingApi.syncSingle(id),
+    mutationFn: (id: string) => financeApi.syncSingleInvoice(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FINANCE_INVOICES_KEY });
+      queryClient.invalidateQueries({ queryKey: FINANCE_DOCS_KEY });
     },
   });
 };
