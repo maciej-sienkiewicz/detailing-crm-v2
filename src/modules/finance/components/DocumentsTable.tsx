@@ -27,7 +27,7 @@ const Wrapper = styled.div`
 
 const Table = styled.table`
   width: 100%;
-  min-width: 700px;
+  min-width: 600px;
   border-collapse: collapse;
   background: ${(p) => p.theme.colors.surface};
   border-radius: ${(p) => p.theme.radii.lg};
@@ -188,11 +188,12 @@ const VehicleInfo = styled.span`
   color: ${(p) => p.theme.colors.textMuted};
 `;
 
-const SourceLink = styled.button`
+const VisitLink = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
+  margin-top: 4px;
   font-size: 11px;
   font-weight: 500;
   border-radius: ${(p) => p.theme.radii.full};
@@ -202,7 +203,6 @@ const SourceLink = styled.button`
   cursor: pointer;
   transition: all 0.12s ease;
   white-space: nowrap;
-  text-decoration: none;
 
   &:hover {
     background: var(--brand-primary);
@@ -211,9 +211,18 @@ const SourceLink = styled.button`
   }
 `;
 
-const SourceText = styled.span`
+const DueDateText = styled.span<{ $overdue?: boolean }>`
+  display: block;
+  margin-top: 3px;
+  font-size: ${(p) => p.theme.fontSizes.xs};
+  color: ${(p) => (p.$overdue ? '#ef4444' : p.theme.colors.textMuted)};
+`;
+
+const PaymentMethodText = styled.span`
+  display: block;
   font-size: ${(p) => p.theme.fontSizes.sm};
-  color: ${(p) => p.theme.colors.textMuted};
+  color: ${(p) => p.theme.colors.text};
+  margin-bottom: 4px;
 `;
 
 const PriceNet = styled.span`
@@ -359,14 +368,14 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
           <Thead>
             <tr>
               <Th>Data</Th><Th>Numer</Th><Th>Klient</Th>
-              <Th $align="right">Kwota</Th><Th>Status</Th>
-              <Th>Metoda</Th><Th>Źródło</Th><Th>Fakturomat</Th><Th>KSEF</Th><Th>Termin</Th><Th $width="48px"></Th>
+              <Th $align="right">Kwota</Th><Th>Płatność</Th>
+              <Th $align="center">Fakturomat</Th><Th $align="center">KSEF</Th><Th $width="48px"></Th>
             </tr>
           </Thead>
           <tbody>
             {[1,2,3,4,5].map((i) => (
               <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                {Array.from({ length: 10 }).map((_, j) => (
+                {Array.from({ length: 7 }).map((_, j) => (
                   <td key={j} style={{ padding: '12px 16px' }}>
                     <Skeleton $w={j === 0 ? '70px' : j === 1 ? '100px' : j === 3 ? '80px' : '90px'} />
                   </td>
@@ -394,21 +403,38 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
               <Th>Numer</Th>
               <Th>Klient</Th>
               <Th $align="right">Kwota</Th>
-              <Th>Status</Th>
-              <Th>Metoda</Th>
-              <Th>Źródło</Th>
-              <Th>Fakturomat</Th>
-              <Th>KSEF</Th>
-              <Th>Termin płatności</Th>
+              <Th>Płatność</Th>
+              <Th $align="center">Fakturomat</Th>
+              <Th $align="center">KSEF</Th>
               <Th $width="48px"></Th>
             </tr>
           </Thead>
           <tbody>
             {documents.map((doc) => (
               <Tr key={doc.id} onClick={() => onDocumentClick?.(doc)}>
-                <Td>{formatDate(doc.issueDate)}</Td>
                 <Td>
+                  {formatDate(doc.issueDate)}
+                  {doc.dueDate && (
+                    <DueDateText
+                      $overdue={
+                        doc.status === 'OVERDUE' ||
+                        (doc.status === 'PENDING' && doc.dueDate <= new Date().toISOString().split('T')[0])
+                      }
+                    >
+                      Termin: {formatDate(doc.dueDate)}
+                    </DueDateText>
+                  )}
+                </Td>
+                <Td onClick={(e) => e.stopPropagation()}>
                   <DocNumber>{doc.documentNumber}</DocNumber>
+                  {doc.visitId && (
+                    <VisitLink
+                      onClick={() => navigate(`/visits/${doc.visitId}`)}
+                      title="Przejdź do wizyty"
+                    >
+                      Przejdź do wizyty
+                    </VisitLink>
+                  )}
                 </Td>
                 <Td>
                   {(() => {
@@ -436,6 +462,7 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                   <PriceNet>{formatMoney(doc.totalNet)} netto</PriceNet>
                 </Td>
                 <Td onClick={(e) => e.stopPropagation()}>
+                  <PaymentMethodText>{doc.paymentMethodLabel}</PaymentMethodText>
                   <StatusBadge
                     $status={doc.status}
                     onClick={(e) => handleStatusClick(doc.id, e)}
@@ -444,20 +471,7 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                     <ChevronSvg />
                   </StatusBadge>
                 </Td>
-                <Td>{doc.paymentMethodLabel}</Td>
-                <Td onClick={(e) => e.stopPropagation()}>
-                  {doc.source === 'VISIT' && doc.visitId ? (
-                    <SourceLink
-                      onClick={() => navigate(`/visits/${doc.visitId}`)}
-                      title="Przejdź do wizyty"
-                    >
-                      {doc.sourceLabel}
-                    </SourceLink>
-                  ) : (
-                    <SourceText>{doc.sourceLabel}</SourceText>
-                  )}
-                </Td>
-                <Td>
+                <Td $align="center">
                   {doc.documentType === 'INVOICE' ? (
                     doc.providerSyncStatus === 'SYNCED' ? (
                       <CheckIcon title={doc.providerSyncStatusLabel ?? undefined}>✓</CheckIcon>
@@ -468,31 +482,13 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                     <span style={{ color: '#9ca3af' }}>—</span>
                   )}
                 </Td>
-                <Td>
+                <Td $align="center">
                   {doc.documentType === 'INVOICE' ? (
                     doc.ksefInvoiceId ? (
                       <CheckIcon title={doc.ksefNumber ?? undefined}>✓</CheckIcon>
                     ) : (
                       <CrossIcon>✕</CrossIcon>
                     )
-                  ) : (
-                    <span style={{ color: '#9ca3af' }}>—</span>
-                  )}
-                </Td>
-                <Td>
-                  {doc.dueDate ? (
-                    <span
-                      style={{
-                        color:
-                          doc.status === 'OVERDUE'
-                            ? '#ef4444'
-                            : doc.status === 'PENDING' && doc.dueDate <= new Date().toISOString().split('T')[0]
-                            ? '#f59e0b'
-                            : undefined,
-                      }}
-                    >
-                      {formatDate(doc.dueDate)}
-                    </span>
                   ) : (
                     <span style={{ color: '#9ca3af' }}>—</span>
                   )}
