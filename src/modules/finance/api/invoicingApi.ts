@@ -11,6 +11,7 @@ export const invoicingApi = {
   // ── Providers ──────────────────────────────────────────────────────────────
 
   listProviders: async (): Promise<InvoiceProviderInfo[]> => {
+      await apiClient.post(`/v1/finance/invoices/import`)
     const response = await apiClient.get(`${BASE}/providers`);
     return response.data;
   },
