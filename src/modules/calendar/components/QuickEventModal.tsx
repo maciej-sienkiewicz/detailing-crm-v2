@@ -227,6 +227,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [isAllDay, setIsAllDay] = useState(false);
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
     const [servicePrices, setServicePrices] = useState<{ [key: string]: number }>({});
+    const [servicePriceInputs, setServicePriceInputs] = useState<{ [id: string]: { net: string; gross: string } }>({});
     const [serviceNotes, setServiceNotes] = useState<{ [key: string]: string }>({});
     const [expandedServiceNote, setExpandedServiceNote] = useState<string | null>(null);
     const [serviceSearch, setServiceSearch] = useState('');
@@ -584,6 +585,14 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
     const roundTo2 = (v: number) => Math.round((v + Number.EPSILON) * 100) / 100;
 
+    const initPriceInputs = (id: string, grossPrice: number, vatRate: number) => {
+        const net = roundTo2(grossPrice / (1 + vatRate / 100));
+        setServicePriceInputs(prev => ({
+            ...prev,
+            [id]: { gross: grossPrice.toFixed(2), net: net.toFixed(2) },
+        }));
+    };
+
     const addService = (service: Service) => {
         if (selectedServiceIds.includes(service.id)) {
             return; // Usługa już dodana
@@ -602,6 +611,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         setSelectedServiceIds(prev => [...prev, service.id]);
         const grossPrice = roundTo2((service.basePriceNet / 100) * (100 + service.vatRate) / 100);
         setServicePrices(prev => ({ ...prev, [service.id]: grossPrice }));
+        initPriceInputs(service.id, grossPrice, service.vatRate);
         setServiceSearch('');
         setShowServiceDropdown(false);
     };
@@ -610,8 +620,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         if (!pendingService) return;
 
         // Dodaj usługę z wprowadzoną ceną
+        const gross = roundTo2(price);
         setSelectedServiceIds(prev => [...prev, pendingService.id]);
-        setServicePrices(prev => ({ ...prev, [pendingService.id]: roundTo2(price) }));
+        setServicePrices(prev => ({ ...prev, [pendingService.id]: gross }));
+        initPriceInputs(pendingService.id, gross, pendingService.vatRate || 23);
 
         // Wyczyść pending service
         setPendingService(null);
@@ -632,6 +644,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
         const grossPrice = roundTo2((service.basePriceNet / 100) * (100 + service.vatRate) / 100);
         setServicePrices(prev => ({ ...prev, [serviceId]: grossPrice }));
+        initPriceInputs(serviceId, grossPrice, service.vatRate);
 
         if (!service.id) {
             setTempServices(prev => ({
@@ -1123,29 +1136,42 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     const isNoteExpanded = expandedServiceNote === id;
                                                     const hasNote = !!(serviceNotes[id] && serviceNotes[id].length > 0);
 
-                                                    // Calculate net price from gross
-                                                    const grossPrice = servicePrices[id] ?? 0;
                                                     const vatRate = service.vatRate || 23;
-                                                    const netPrice = roundTo2(grossPrice / (1 + vatRate / 100));
+                                                    const inputs = servicePriceInputs[id] ?? {
+                                                        gross: (servicePrices[id] ?? 0).toFixed(2),
+                                                        net: roundTo2((servicePrices[id] ?? 0) / (1 + vatRate / 100)).toFixed(2),
+                                                    };
+
+                                                    const syncFromGross = (rawGross: string) => {
+                                                        const num = parseFloat(rawGross.replace(',', '.'));
+                                                        if (!isNaN(num)) {
+                                                            setServicePrices(prev => ({ ...prev, [id]: num }));
+                                                        }
+                                                        setServicePriceInputs(prev => ({ ...prev, [id]: { ...prev[id], gross: rawGross } }));
+                                                    };
+
+                                                    const syncFromNet = (rawNet: string) => {
+                                                        const num = parseFloat(rawNet.replace(',', '.'));
+                                                        if (!isNaN(num)) {
+                                                            const gross = roundTo2(num * (1 + vatRate / 100));
+                                                            setServicePrices(prev => ({ ...prev, [id]: gross }));
+                                                        }
+                                                        setServicePriceInputs(prev => ({ ...prev, [id]: { ...prev[id], net: rawNet } }));
+                                                    };
+
+                                                    const normalizeInputs = () => {
+                                                        const gross = servicePrices[id] ?? 0;
+                                                        const net = roundTo2(gross / (1 + vatRate / 100));
+                                                        setServicePriceInputs(prev => ({
+                                                            ...prev,
+                                                            [id]: { gross: gross.toFixed(2), net: net.toFixed(2) },
+                                                        }));
+                                                    };
 
                                                     return (
                                                         <S.ServiceItem key={id}>
                                                             <S.ServiceItemHeader>
                                                                 <S.ServiceName>{service.name}</S.ServiceName>
-                                                                <S.ServicePriceWrapper>
-                                                                    <S.ServicePriceInput
-                                                                        type="number"
-                                                                        step="0.01"
-                                                                        value={(servicePrices[id] ?? 0).toFixed(2)}
-                                                                        onChange={(e) => {
-                                                                            const val = e.target.value;
-                                                                            const num = parseFloat(val.replace(',', '.'));
-                                                                            setServicePrices(prev => ({ ...prev, [id]: isNaN(num) ? 0 : roundTo2(num) }));
-                                                                        }}
-                                                                    />
-                                                                    <S.ServicePriceLabel>zł</S.ServicePriceLabel>
-                                                                    <S.ServicePriceBadge>brutto</S.ServicePriceBadge>
-                                                                </S.ServicePriceWrapper>
                                                                 <S.IconButton
                                                                     type="button"
                                                                     onClick={() => setExpandedServiceNote(isNoteExpanded ? null : id)}
@@ -1161,6 +1187,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                         const newPrices = {...servicePrices};
                                                                         delete newPrices[id];
                                                                         setServicePrices(newPrices);
+                                                                        const newInputs = {...servicePriceInputs};
+                                                                        delete newInputs[id];
+                                                                        setServicePriceInputs(newInputs);
                                                                         const newNotes = {...serviceNotes};
                                                                         delete newNotes[id];
                                                                         setServiceNotes(newNotes);
@@ -1172,6 +1201,31 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                     <IconTrash />
                                                                 </S.DeleteButton>
                                                             </S.ServiceItemHeader>
+                                                            <S.ServicePricesRow>
+                                                                <S.ServicePriceWrapper>
+                                                                    <S.ServicePriceBadge>netto</S.ServicePriceBadge>
+                                                                    <S.ServicePriceInput
+                                                                        type="text"
+                                                                        inputMode="decimal"
+                                                                        value={inputs.net}
+                                                                        onChange={(e) => syncFromNet(e.target.value)}
+                                                                        onBlur={normalizeInputs}
+                                                                    />
+                                                                    <S.ServicePriceLabel>zł</S.ServicePriceLabel>
+                                                                </S.ServicePriceWrapper>
+                                                                <S.ServicePriceSeparator />
+                                                                <S.ServicePriceWrapper>
+                                                                    <S.ServicePriceBadge>brutto</S.ServicePriceBadge>
+                                                                    <S.ServicePriceInput
+                                                                        type="text"
+                                                                        inputMode="decimal"
+                                                                        value={inputs.gross}
+                                                                        onChange={(e) => syncFromGross(e.target.value)}
+                                                                        onBlur={normalizeInputs}
+                                                                    />
+                                                                    <S.ServicePriceLabel>zł</S.ServicePriceLabel>
+                                                                </S.ServicePriceWrapper>
+                                                            </S.ServicePricesRow>
                                                             {isNoteExpanded && (
                                                                 <S.ServiceNoteContainer>
                                                                     <S.ServiceNoteTextarea

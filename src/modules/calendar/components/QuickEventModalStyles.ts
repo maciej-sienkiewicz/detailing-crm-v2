@@ -439,6 +439,22 @@ export const ServiceName = styled.span`
     color: ${props => props.theme.colors.text};
 `;
 
+export const ServicePricesRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px 10px;
+    border-top: 1px solid ${props => props.theme.colors.border};
+    background: ${props => props.theme.colors.surfaceAlt};
+`;
+
+export const ServicePriceSeparator = styled.div`
+    width: 1px;
+    height: 20px;
+    background: ${props => props.theme.colors.border};
+    flex-shrink: 0;
+`;
+
 export const ServicePriceWrapper = styled.div`
     display: flex;
     align-items: center;
