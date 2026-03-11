@@ -30,6 +30,11 @@ export const useOperationFilters = () => {
             return { type: 'RESERVATION' as OperationType, status: undefined };
         }
 
+        // REJECTED pokazuje zarówno odrzucone wizyty jak i porzucone rezerwacje (ABANDONED)
+        if (selectedFilter === 'REJECTED') {
+            return { type: undefined, status: 'REJECTED' as VisitStatus };
+        }
+
         return { type: 'VISIT' as OperationType, status: selectedFilter as VisitStatus };
     }, [selectedFilter]);
 
