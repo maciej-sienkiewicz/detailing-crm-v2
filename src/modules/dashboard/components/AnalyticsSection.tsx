@@ -4,7 +4,7 @@
  */
 
 import styled, { keyframes } from 'styled-components';
-import { TrendingUp, TrendingDown, DollarSign, Phone, Instagram } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 import { t } from '@/common/i18n';
 import { formatCurrency, formatNumber } from '@/common/utils/formatters';
 import type { BusinessMetric } from '../types';
@@ -96,42 +96,16 @@ const TrendChip = styled.div<{ $positive: boolean }>`
   svg { width: 12px; height: 12px; stroke-width: 2.5; }
 `;
 
-// ─── Value row ────────────────────────────────────────────────────────────────
-
-const MetricValueRow = styled.div`
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
-`;
+// ─── Value ────────────────────────────────────────────────────────────────────
 
 const MetricValue = styled.div`
-  font-size: 38px;
+  font-size: 42px;
   font-weight: 800;
   color: ${p => p.theme.colors.text};
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -1.5px;
-`;
-
-const MetricIconWrap = styled.div<{ $color: string }>`
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: ${p => p.$color}12;
-  border: 1px solid ${p => p.$color}22;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-
-  svg {
-    width: 24px;
-    height: 24px;
-    color: ${p => p.$color};
-    stroke-width: 1.5;
-  }
+  letter-spacing: -2px;
+  margin-bottom: 16px;
 `;
 
 // ─── Progress ─────────────────────────────────────────────────────────────────
@@ -220,14 +194,12 @@ const MetricItem = ({
   metric,
   title,
   period,
-  icon: Icon,
-  iconColor,
+  accentColor,
 }: {
   metric: BusinessMetric;
   title: string;
   period: string;
-  icon: typeof DollarSign;
-  iconColor: string;
+  accentColor: string;
 }) => {
   const isPositive = metric.deltaPercentage >= 0;
   const formattedDelta = Math.abs(metric.deltaPercentage).toFixed(1);
@@ -246,15 +218,10 @@ const MetricItem = ({
         </TrendChip>
       </MetricHeader>
 
-      <MetricValueRow>
-        <MetricValue>{formatValue(metric.currentValue, metric.unit)}</MetricValue>
-        <MetricIconWrap $color={iconColor}>
-          <Icon />
-        </MetricIconWrap>
-      </MetricValueRow>
+      <MetricValue>{formatValue(metric.currentValue, metric.unit)}</MetricValue>
 
       <ProgressTrack>
-        <ProgressFill $percent={progressPercent} $color={iconColor} />
+        <ProgressFill $percent={progressPercent} $color={accentColor} />
       </ProgressTrack>
 
       <MetricFooter>
@@ -290,8 +257,7 @@ export const AnalyticsSection = ({
           metric={revenue}
           title={t.dashboard.metrics.revenueTitle}
           period={t.dashboard.metrics.plannedThisWeek}
-          icon={DollarSign}
-          iconColor="#0ea5e9"
+          accentColor="#0ea5e9"
         />
       ) : <MetricSkeleton />}
 
@@ -300,8 +266,7 @@ export const AnalyticsSection = ({
           metric={callActivity}
           title={t.dashboard.metrics.callsTitle}
           period={t.dashboard.metrics.plannedThisWeek}
-          icon={Phone}
-          iconColor="#7c3aed"
+          accentColor="#7c3aed"
         />
       ) : <MetricSkeleton />}
 
@@ -310,8 +275,7 @@ export const AnalyticsSection = ({
           metric={instagramPhotos}
           title={t.dashboard.metrics.instagramTitle}
           period={t.dashboard.metrics.instagramSubLabel}
-          icon={Instagram}
-          iconColor="#e1306c"
+          accentColor="#e1306c"
         />
       ) : <MetricSkeleton />}
     </AnalyticsGrid>
