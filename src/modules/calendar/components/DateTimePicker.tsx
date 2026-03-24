@@ -67,37 +67,43 @@ function parseValue(value: string): Parsed {
 // ---- STYLED COMPONENTS ----
 const Trigger = styled.button<{ $accentColor?: string; $hasError?: boolean; $hasValue?: boolean }>`
     width: 100%;
-    padding: 10px ${props => props.theme.spacing.md};
-    background: ${props => props.theme.colors.surfaceAlt};
-    border: 1px solid ${props => props.$hasError ? props.theme.colors.error : 'transparent'};
-    border-radius: ${props => props.theme.radii.lg};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.$hasValue ? props.theme.colors.text : props.theme.colors.textMuted};
+    padding: 11px 16px;
+    background: #ffffff;
+    border: 1.5px solid ${props => props.$hasError ? '#ef4444' : '#e2e8f0'};
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 400;
+    color: ${props => props.$hasValue ? '#0f172a' : '#94a3b8'};
     text-align: left;
     cursor: pointer;
     outline: none;
-    transition: all ${props => props.theme.transitions.fast};
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+    font-family: inherit;
+
+    &:hover:not(:focus) { border-color: #cbd5e1; }
 
     &:focus {
-        background: ${props => props.theme.colors.surface};
         border-color: ${props =>
-            props.$hasError
-                ? props.theme.colors.error
-                : props.$accentColor || props.theme.colors.primary};
+            props.$hasError ? '#ef4444' : (props.$accentColor ?? '#0ea5e9')};
+        box-shadow: 0 0 0 3px ${props =>
+            props.$hasError ? 'rgba(239,68,68,0.12)' : 'rgba(14,165,233,0.14)'};
     }
 `;
 
-const DropdownFixed = styled.div<{ $top: number; $left: number }>`
+const DropdownFixed = styled.div<{ $top: number; $left: number; $ready: boolean }>`
     position: fixed;
     top: ${props => props.$top}px;
     left: ${props => props.$left}px;
     z-index: 9999;
     background: ${props => props.theme.colors.surface};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.xl};
-    box-shadow: ${props => props.theme.shadows.xl};
+    border: 1.5px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow:
+        0 0 0 1px rgba(0,0,0,0.03),
+        0 8px 24px -4px rgba(0,0,0,0.12);
     display: flex;
     overflow: hidden;
+    visibility: ${props => props.$ready ? 'visible' : 'hidden'};
 `;
 
 const CalendarSection = styled.div`
@@ -283,6 +289,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+    const [posReady, setPosReady] = useState(false);
 
     const triggerRef = useRef<HTMLButtonElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -325,8 +332,9 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
     }, []);
 
     useEffect(() => {
-        if (!isOpen) return;
+        if (!isOpen) { setPosReady(false); return; }
         updatePosition();
+        setPosReady(true);
         window.addEventListener('scroll', updatePosition, true);
         window.addEventListener('resize', updatePosition);
         return () => {
@@ -432,7 +440,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
             </Trigger>
 
             {isOpen && createPortal(
-                <DropdownFixed ref={dropdownRef} $top={dropdownPos.top} $left={dropdownPos.left}>
+                <DropdownFixed ref={dropdownRef} $top={dropdownPos.top} $left={dropdownPos.left} $ready={posReady}>
                     <CalendarSection>
                         <NavRow>
                             <NavBtn type="button" onClick={handlePrevMonth}>‹</NavBtn>

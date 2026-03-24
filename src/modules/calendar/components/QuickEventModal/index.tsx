@@ -151,6 +151,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             aria-invalid={!!form.errors.customer}
                                             $accentColor={form.focusedField === 'customer' ? form.accentColor : undefined}
                                             $hasError={!!form.errors.customer}
+                                            $dropdownOpen={form.showCustomerDropdown}
                                             onFocus={() => {
                                                 form.setFocusedField('customer');
                                                 form.setShowCustomerDropdown(true);
@@ -274,6 +275,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             }}
                                             disabled={!form.selectedCustomer}
                                             $accentColor={form.focusedField === 'vehicle' ? form.accentColor : undefined}
+                                            $dropdownOpen={form.showVehicleDropdown && !!form.selectedCustomer}
                                             onFocus={() => {
                                                 if (!form.selectedCustomer) return;
                                                 form.setFocusedField('vehicle');
@@ -352,6 +354,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             }}
                                             aria-invalid={!!form.errors.services || !!form.errors.servicePrices}
                                             $accentColor={form.focusedField === 'services' ? form.accentColor : undefined}
+                                            $dropdownOpen={form.showServiceDropdown}
                                             onFocus={() => {
                                                 form.setFocusedField('services');
                                                 if (form.services.length === 0) {

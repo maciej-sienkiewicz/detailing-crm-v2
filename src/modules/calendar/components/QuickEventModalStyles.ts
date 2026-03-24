@@ -146,7 +146,16 @@ export const Label = styled.label`
 
 export const ErrorMessage = styled(FormErrorMessage)``;
 
-export const Input = styled(FormInput)``;
+export const Input = styled(FormInput)<{ $dropdownOpen?: boolean }>`
+    ${p => p.$dropdownOpen && `
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+        border-color: #0ea5e9;
+        border-bottom-color: transparent;
+        box-shadow: 0 0 0 3px rgba(14,165,233,0.14);
+        clip-path: inset(-4px -4px 0 -4px);
+    `}
+`;
 
 export const Checkbox = styled.input.attrs({ type: 'checkbox' })<{ $accentColor?: string }>`
     width: 15px;
@@ -205,13 +214,14 @@ export const Dropdown = styled.div`
     position: absolute;
     z-index: 2001;
     width: 100%;
-    margin-top: 6px;
+    margin-top: -1px;
     background: #ffffff;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 16px;
+    border: 1.5px solid #0ea5e9;
+    border-top: none;
+    border-radius: 0 0 12px 12px;
     box-shadow:
-        0 0 0 1px rgba(0,0,0,0.03),
-        0 8px 24px -4px rgba(0,0,0,0.12);
+        0 8px 20px -4px rgba(0,0,0,0.10),
+        0 0 0 3px rgba(14,165,233,0.10);
     max-height: 220px;
     overflow-y: auto;
     overflow-x: hidden;
@@ -280,24 +290,25 @@ export const SelectedCustomerChip = styled.div`
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 14px;
-    background: #f0f9ff;
+    padding: 9px 12px;
+    background: #ffffff;
     border-radius: 12px;
-    border: 1.5px solid #bae6fd;
+    border: 1.5px solid #e2e8f0;
 `;
 
 export const ChipCheck = styled.div`
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    background: #dcfce7;
-    color: #16a34a;
+    background: #16a34a;
+    color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
+    line-height: 1;
 `;
 
 export const ChipInfo = styled.div`
@@ -305,13 +316,13 @@ export const ChipInfo = styled.div`
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
 `;
 
 export const ChipName = styled.span`
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     color: #0f172a;
     white-space: nowrap;
     display: flex;
@@ -332,18 +343,19 @@ export const NewBadge = styled.span`
 
 export const ChipMeta = styled.span`
     font-size: 12px;
-    color: #64748b;
+    color: #94a3b8;
     white-space: nowrap;
 `;
 
 export const ChipDot = styled.span`
     font-size: 12px;
-    color: #cbd5e1;
+    color: #d1d5db;
 `;
 
 export const ChipClear = styled.button`
     flex-shrink: 0;
-    padding: 3px;
+    margin-left: auto;
+    padding: 4px;
     color: #94a3b8;
     background: none;
     border: none;
