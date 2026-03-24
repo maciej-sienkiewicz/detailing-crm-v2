@@ -1,14 +1,12 @@
 /**
  * Operational Scorecard Component
- * Premium 4-KPI command strip — instant at-a-glance operational status.
- * Cards: In Progress · Ready for Pickup · Incoming Today · Abandoned (30 days)
+ * Premium 4-KPI command strip + right-side visit drawer.
  */
 
 import { useState } from 'react';
 import styled, { css, keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import {
-  ChevronDown,
   ExternalLink,
   Clock,
   AlertTriangle,
@@ -17,13 +15,14 @@ import {
   CheckCircle2,
   CalendarDays,
   XCircle,
+  X,
   type LucideIcon,
 } from 'lucide-react';
 import { t } from '@/common/i18n';
 import { formatCurrency, formatPhoneNumber, formatDate } from '@/common/utils/formatters';
 import type { OperationalStats, VisitDetail } from '../types';
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Config ──────────────────────────────────────────────────────────────────
 
 type CardVariant = 'inProgress' | 'readyForPickup' | 'incomingToday' | 'abandoned';
 
@@ -37,25 +36,25 @@ interface CardConfig {
 const CARD_CONFIG: Record<CardVariant, CardConfig> = {
   inProgress: {
     accentColor: '#0ea5e9',
-    bgGradient: 'linear-gradient(135deg, #f0f9ff 0%, #ffffff 60%)',
+    bgGradient: 'linear-gradient(140deg, #f0f9ff 0%, #ffffff 55%)',
     iconBg: 'rgba(14, 165, 233, 0.1)',
     icon: Wrench,
   },
   readyForPickup: {
     accentColor: '#16a34a',
-    bgGradient: 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 60%)',
+    bgGradient: 'linear-gradient(140deg, #f0fdf4 0%, #ffffff 55%)',
     iconBg: 'rgba(22, 163, 74, 0.1)',
     icon: CheckCircle2,
   },
   incomingToday: {
     accentColor: '#d97706',
-    bgGradient: 'linear-gradient(135deg, #fffbeb 0%, #ffffff 60%)',
+    bgGradient: 'linear-gradient(140deg, #fffbeb 0%, #ffffff 55%)',
     iconBg: 'rgba(217, 119, 6, 0.1)',
     icon: CalendarDays,
   },
   abandoned: {
     accentColor: '#dc2626',
-    bgGradient: 'linear-gradient(135deg, #fef2f2 0%, #ffffff 60%)',
+    bgGradient: 'linear-gradient(140deg, #fef2f2 0%, #ffffff 55%)',
     iconBg: 'rgba(220, 38, 38, 0.1)',
     icon: XCircle,
   },
@@ -67,9 +66,14 @@ interface OperationalScorecardProps {
 
 // ─── Animations ──────────────────────────────────────────────────────────────
 
-const panelFadeIn = keyframes`
-  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+const slideInRight = keyframes`
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+`;
+
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to   { opacity: 1; }
 `;
 
 // ─── Scorecard Grid ───────────────────────────────────────────────────────────
@@ -77,54 +81,45 @@ const panelFadeIn = keyframes`
 const ScorecardContainer = styled.div`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${(p) => p.theme.spacing.md};
-  margin-top: ${(p) => p.theme.spacing.md};
+  gap: ${p => p.theme.spacing.md};
+  margin-top: ${p => p.theme.spacing.md};
 
-  @media (min-width: ${(p) => p.theme.breakpoints.sm}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  @media (min-width: ${(p) => p.theme.breakpoints.lg}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: repeat(4, 1fr);
   }
 `;
 
 // ─── KPI Card ────────────────────────────────────────────────────────────────
 
-const CardWrapper = styled.div`
+const Card = styled.div<{ $variant: CardVariant; $isActive: boolean; $clickable: boolean }>`
   position: relative;
-`;
-
-const Card = styled.div<{ $variant: CardVariant; $isExpanded: boolean; $clickable: boolean }>`
-  position: relative;
-  background: ${(p) => CARD_CONFIG[p.$variant].bgGradient};
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-top: 3px solid ${(p) => CARD_CONFIG[p.$variant].accentColor};
-  border-radius: ${(p) => p.theme.radii.xl};
+  background: ${p => CARD_CONFIG[p.$variant].bgGradient};
+  border: 1px solid ${p => p.theme.colors.border};
+  border-top: 3px solid ${p => CARD_CONFIG[p.$variant].accentColor};
+  border-radius: ${p => p.theme.radii.xl};
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
-  box-sizing: border-box;
-  width: 100%;
-  transition: transform 180ms ease, box-shadow 180ms ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.04);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 150ms ease;
 
-  ${(p) =>
-    p.$clickable &&
-    css`
-      cursor: pointer;
-      user-select: none;
+  ${p => p.$clickable && css`
+    cursor: pointer;
+    user-select: none;
 
-      &:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1), 0 16px 40px rgba(0,0,0,0.07);
-      }
-    `}
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.09), 0 16px 40px rgba(0,0,0,0.06);
+    }
+  `}
 
-  ${(p) =>
-    p.$isExpanded &&
-    css`
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1), 0 16px 40px rgba(0,0,0,0.07);
-      border-color: ${CARD_CONFIG[p.$variant].accentColor}60;
-    `}
+  ${p => p.$isActive && css`
+    border-color: ${CARD_CONFIG[p.$variant].accentColor}50;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.09), 0 16px 40px rgba(0,0,0,0.06),
+      0 0 0 3px ${CARD_CONFIG[p.$variant].accentColor}18;
+  `}
 `;
 
 const CardTop = styled.div`
@@ -137,76 +132,53 @@ const CardTop = styled.div`
 const CardIconWrap = styled.div<{ $variant: CardVariant }>`
   width: 40px;
   height: 40px;
-  border-radius: 10px;
-  background: ${(p) => CARD_CONFIG[p.$variant].iconBg};
+  border-radius: 11px;
+  background: ${p => CARD_CONFIG[p.$variant].iconBg};
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 
   svg {
     width: 20px;
     height: 20px;
-    color: ${(p) => CARD_CONFIG[p.$variant].accentColor};
-    stroke-width: 1.8;
+    color: ${p => CARD_CONFIG[p.$variant].accentColor};
+    stroke-width: 1.75;
   }
 `;
 
-const CardChevronWrap = styled.div`
+const CardArrow = styled.div<{ $active: boolean }>`
   display: flex;
   align-items: center;
-  gap: 6px;
+  color: ${p => p.theme.colors.textMuted};
+  transition: transform 200ms ease, color 150ms ease;
+  transform: ${p => p.$active ? 'rotate(90deg)' : 'rotate(0deg)'};
+
+  svg { width: 15px; height: 15px; }
 `;
 
-const CardLabel = styled.span`
-  font-size: 11px;
-  font-weight: 700;
-  color: ${(p) => p.theme.colors.textMuted};
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-`;
-
-const ExpandChevron = styled(ChevronDown)<{ $isExpanded: boolean }>`
-  width: 16px;
-  height: 16px;
-  color: ${(p) => p.theme.colors.textMuted};
-  transition: transform 200ms ease;
-  transform: ${(p) => (p.$isExpanded ? 'rotate(180deg)' : 'rotate(0deg)')};
-`;
-
-const CardValue = styled.div<{ $variant: CardVariant }>`
+const CardValue = styled.div`
   font-size: 48px;
   font-weight: 800;
-  color: ${(p) => p.theme.colors.text};
+  color: ${p => p.theme.colors.text};
   line-height: 1;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   font-variant-numeric: tabular-nums;
   letter-spacing: -2px;
 `;
 
-const CardSkeleton = styled.div`
-  height: 48px;
-  background: linear-gradient(
-    90deg,
-    ${(p) => p.theme.colors.surfaceAlt} 0%,
-    ${(p) => p.theme.colors.surfaceHover} 50%,
-    ${(p) => p.theme.colors.surfaceAlt} 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: ${(p) => p.theme.radii.md};
+const CardLabel = styled.div`
+  font-size: 11px;
+  font-weight: 700;
+  color: ${p => p.theme.colors.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   margin-bottom: 10px;
-
-  @keyframes shimmer {
-    0%   { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
 `;
 
 const BadgeRow = styled.div`
   display: flex;
   align-items: center;
-  gap: ${(p) => p.theme.spacing.xs};
+  gap: 6px;
   min-height: 22px;
 `;
 
@@ -215,129 +187,204 @@ const OverdueBadge = styled.span`
   align-items: center;
   gap: 4px;
   padding: 3px 8px;
-  background-color: ${(p) => p.theme.colors.errorLight};
-  color: ${(p) => p.theme.colors.error};
-  border: 1px solid rgba(220, 38, 38, 0.2);
-  border-radius: ${(p) => p.theme.radii.full};
+  background: rgba(220, 38, 38, 0.07);
+  color: ${p => p.theme.colors.error};
+  border: 1px solid rgba(220, 38, 38, 0.15);
+  border-radius: 20px;
   font-size: 11px;
   font-weight: 600;
 
-  svg { width: 11px; height: 11px; }
+  svg { width: 10px; height: 10px; }
 `;
 
 const SubLabel = styled.span<{ $variant: CardVariant }>`
   font-size: 11px;
-  color: ${(p) => CARD_CONFIG[p.$variant].accentColor};
+  color: ${p => CARD_CONFIG[p.$variant].accentColor};
   font-weight: 500;
 `;
 
-// ─── Expanded Panel (Popover) ─────────────────────────────────────────────────
+// ─── Skeleton ────────────────────────────────────────────────────────────────
 
-const ExpandedPanel = styled.div<{ $isVisible: boolean; $variant: CardVariant }>`
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 0;
+const shimmer = keyframes`
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+`;
+
+const SkeletonPulse = styled.div<{ $w?: string; $h?: string }>`
+  height: ${p => p.$h ?? '14px'};
+  width: ${p => p.$w ?? '100%'};
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    ${p => p.theme.colors.surfaceAlt} 0%,
+    ${p => p.theme.colors.surfaceHover} 50%,
+    ${p => p.theme.colors.surfaceAlt} 100%
+  );
+  background-size: 200% 100%;
+  animation: ${shimmer} 1.5s infinite;
+`;
+
+// ─── Drawer Overlay ───────────────────────────────────────────────────────────
+
+const DrawerOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(3px);
+  z-index: 1050;
+  animation: ${fadeIn} 200ms ease;
+`;
+
+// ─── Drawer ───────────────────────────────────────────────────────────────────
+
+const Drawer = styled.aside`
+  position: fixed;
+  top: 0;
   right: 0;
-  min-width: 340px;
+  width: 420px;
+  height: 100vh;
   background: #ffffff;
-  border-radius: 16px;
-  box-shadow:
-    0 0 0 1px rgba(0,0,0,0.06),
-    0 8px 24px rgba(0,0,0,0.1),
-    0 32px 64px rgba(0,0,0,0.08);
-  z-index: 20;
-  max-height: 500px;
-  overflow: hidden;
+  z-index: 1051;
   display: flex;
   flex-direction: column;
-  opacity: ${(p) => (p.$isVisible ? 1 : 0)};
-  pointer-events: ${(p) => (p.$isVisible ? 'auto' : 'none')};
-  animation: ${(p) => (p.$isVisible ? panelFadeIn : 'none')} 180ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  box-shadow: -1px 0 0 ${p => p.theme.colors.border},
+    -4px 0 40px rgba(0,0,0,0.12);
+  animation: ${slideInRight} 280ms cubic-bezier(0.4, 0, 0.2, 1);
 
-  @media (max-width: ${(p) => p.theme.breakpoints.sm}) {
-    position: fixed;
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    width: 100%;
+    height: 80vh;
     top: auto;
     bottom: 0;
-    left: 0;
-    right: 0;
-    min-width: unset;
-    max-height: 72vh;
     border-radius: 20px 20px 0 0;
+    box-shadow: 0 -4px 40px rgba(0,0,0,0.14);
   }
 `;
 
-const PanelHeader = styled.div<{ $variant: CardVariant }>`
+const DrawerHeader = styled.div<{ $variant: CardVariant }>`
+  padding: 20px 22px;
+  background: ${p => CARD_CONFIG[p.$variant].bgGradient};
+  border-bottom: 1px solid ${p => p.theme.colors.border};
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px 18px;
-  background: ${(p) => CARD_CONFIG[p.$variant].bgGradient};
-  border-bottom: 1px solid ${(p) => p.theme.colors.border};
+  gap: 14px;
   flex-shrink: 0;
 `;
 
-const PanelTitleGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-`;
-
-const PanelIconWrap = styled.div<{ $variant: CardVariant }>`
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  background: ${(p) => CARD_CONFIG[p.$variant].iconBg};
+const DrawerIconWrap = styled.div<{ $variant: CardVariant }>`
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: ${p => CARD_CONFIG[p.$variant].iconBg};
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 
   svg {
-    width: 15px;
-    height: 15px;
-    color: ${(p) => CARD_CONFIG[p.$variant].accentColor};
-    stroke-width: 2;
+    width: 18px;
+    height: 18px;
+    color: ${p => CARD_CONFIG[p.$variant].accentColor};
+    stroke-width: 1.9;
   }
 `;
 
-const PanelTitle = styled.span`
-  font-size: 13px;
-  font-weight: 700;
-  color: ${(p) => p.theme.colors.text};
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+const DrawerTitleGroup = styled.div`
+  flex: 1;
+  min-width: 0;
 `;
 
-const PanelCount = styled.span<{ $variant: CardVariant }>`
+const DrawerTitle = styled.div`
+  font-size: 14px;
+  font-weight: 700;
+  color: ${p => p.theme.colors.text};
+  letter-spacing: -0.1px;
+`;
+
+const DrawerSubtitle = styled.div`
+  font-size: 12px;
+  color: ${p => p.theme.colors.textMuted};
+  margin-top: 1px;
+`;
+
+const DrawerCountBadge = styled.div<{ $variant: CardVariant }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 24px;
-  height: 24px;
+  min-width: 26px;
+  height: 26px;
   padding: 0 8px;
-  background: ${(p) => CARD_CONFIG[p.$variant].accentColor}18;
-  color: ${(p) => CARD_CONFIG[p.$variant].accentColor};
-  border-radius: ${(p) => p.theme.radii.full};
+  background: ${p => CARD_CONFIG[p.$variant].accentColor}15;
+  color: ${p => CARD_CONFIG[p.$variant].accentColor};
+  border-radius: 20px;
   font-size: 12px;
   font-weight: 700;
+  flex-shrink: 0;
 `;
 
-const VisitScrollArea = styled.div`
-  overflow-y: auto;
+const DrawerCloseBtn = styled.button`
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid ${p => p.theme.colors.border};
+  background: rgba(255,255,255,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: ${p => p.theme.colors.textMuted};
+  flex-shrink: 0;
+  transition: background 140ms ease, color 140ms ease;
+
+  svg { width: 15px; height: 15px; }
+
+  &:hover {
+    background: #ffffff;
+    color: ${p => p.theme.colors.text};
+  }
+`;
+
+const DrawerBody = styled.div`
   flex: 1;
+  overflow-y: auto;
 
   &::-webkit-scrollbar { width: 4px; }
   &::-webkit-scrollbar-track { background: transparent; }
   &::-webkit-scrollbar-thumb {
-    background: ${(p) => p.theme.colors.border};
+    background: ${p => p.theme.colors.border};
     border-radius: 2px;
   }
 `;
 
-const EmptyPanel = styled.div`
-  padding: ${(p) => p.theme.spacing.xl};
+const EmptyDrawer = styled.div`
+  padding: 48px 24px;
   text-align: center;
-  color: ${(p) => p.theme.colors.textMuted};
-  font-size: ${(p) => p.theme.fontSizes.sm};
+  color: ${p => p.theme.colors.textMuted};
+  font-size: 14px;
+`;
+
+const DrawerFooter = styled.div`
+  padding: 12px 22px;
+  border-top: 1px solid ${p => p.theme.colors.border};
+  background: ${p => p.theme.colors.surfaceAlt};
+  flex-shrink: 0;
+`;
+
+const ViewAllBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 120ms ease;
+
+  svg { width: 14px; height: 14px; }
+  &:hover { opacity: 0.72; }
 `;
 
 // ─── Visit Item ───────────────────────────────────────────────────────────────
@@ -346,31 +393,29 @@ const VisitItem = styled.div<{ $overdue: boolean }>`
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 12px 18px;
-  border-bottom: 1px solid ${(p) => p.theme.colors.border};
-  border-left: 3px solid ${(p) => (p.$overdue ? p.theme.colors.error : 'transparent')};
-  transition: background-color 120ms ease;
+  padding: 14px 22px;
+  border-bottom: 1px solid ${p => p.theme.colors.border};
+  border-left: 3px solid ${p => p.$overdue ? p.theme.colors.error : 'transparent'};
+  transition: background 120ms ease;
 
   &:last-child { border-bottom: none; }
-
-  &:hover { background-color: ${(p) => p.theme.colors.surfaceAlt}; }
+  &:hover { background: ${p => p.theme.colors.surfaceAlt}; }
 `;
 
 const BrandAvatar = styled.div<{ $variant: CardVariant }>`
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  border-radius: 9px;
-  background: ${(p) => CARD_CONFIG[p.$variant].iconBg};
-  border: 1.5px solid ${(p) => CARD_CONFIG[p.$variant].accentColor}30;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 10px;
+  background: ${p => CARD_CONFIG[p.$variant].iconBg};
+  border: 1.5px solid ${p => CARD_CONFIG[p.$variant].accentColor}28;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
-  color: ${(p) => CARD_CONFIG[p.$variant].accentColor};
+  color: ${p => CARD_CONFIG[p.$variant].accentColor};
   flex-shrink: 0;
-  margin-top: 1px;
 `;
 
 const VisitBody = styled.div`
@@ -388,10 +433,10 @@ const VisitMainRow = styled.div`
 const VehicleName = styled.span`
   font-size: 14px;
   font-weight: 600;
-  color: ${(p) => p.theme.colors.text};
-  white-space: nowrap;
+  color: ${p => p.theme.colors.text};
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
   flex: 1;
   min-width: 0;
 `;
@@ -414,20 +459,19 @@ const VisitSecondRow = styled.div`
 
 const CustomerName = styled.span`
   font-size: 12.5px;
-  color: ${(p) => p.theme.colors.textSecondary};
+  color: ${p => p.theme.colors.textSecondary};
 `;
 
 const Dot = styled.span`
   width: 3px;
   height: 3px;
   border-radius: 50%;
-  background: ${(p) => p.theme.colors.textMuted};
-  flex-shrink: 0;
+  background: ${p => p.theme.colors.textMuted};
 `;
 
 const PhoneChip = styled.span`
   font-size: 11px;
-  color: ${(p) => p.theme.colors.textMuted};
+  color: ${p => p.theme.colors.textMuted};
   font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   letter-spacing: -0.3px;
 `;
@@ -436,10 +480,10 @@ const DateLine = styled.div<{ $overdue: boolean }>`
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-top: 5px;
+  margin-top: 4px;
   font-size: 11px;
-  font-weight: ${(p) => (p.$overdue ? 600 : 400)};
-  color: ${(p) => (p.$overdue ? p.theme.colors.error : p.theme.colors.textMuted)};
+  font-weight: ${p => p.$overdue ? 600 : 400};
+  color: ${p => p.$overdue ? p.theme.colors.error : p.theme.colors.textMuted};
 
   svg { width: 11px; height: 11px; flex-shrink: 0; }
 `;
@@ -451,10 +495,10 @@ const OpenButton = styled.button`
   width: 30px;
   height: 30px;
   min-width: 30px;
-  border: 1px solid ${(p) => p.theme.colors.border};
+  border: 1px solid ${p => p.theme.colors.border};
   border-radius: 8px;
   background: transparent;
-  color: ${(p) => p.theme.colors.textMuted};
+  color: ${p => p.theme.colors.textMuted};
   cursor: pointer;
   flex-shrink: 0;
   align-self: center;
@@ -464,49 +508,23 @@ const OpenButton = styled.button`
 
   &:hover {
     background: var(--brand-primary);
-    color: white;
+    color: #fff;
     border-color: var(--brand-primary);
   }
 `;
 
-const PanelFooter = styled.div`
-  padding: 10px 18px;
-  border-top: 1px solid ${(p) => p.theme.colors.border};
-  background: ${(p) => p.theme.colors.surfaceAlt};
-  flex-shrink: 0;
-`;
-
-const ViewAllBtn = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--brand-primary);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  transition: opacity 120ms ease;
-
-  svg { width: 13px; height: 13px; }
-
-  &:hover { opacity: 0.72; }
-`;
-
-// ─── Visit Row Component ──────────────────────────────────────────────────────
+// ─── Visit Row ────────────────────────────────────────────────────────────────
 
 const VisitRow = ({
   visit,
   variant,
   showActions,
-  onOpen,
 }: {
   visit: VisitDetail;
   variant: CardVariant;
   showActions: boolean;
-  onOpen: () => void;
 }) => {
+  const navigate = useNavigate();
   const isOverdue = Boolean(
     visit.estimatedCompletionDate && new Date(visit.estimatedCompletionDate) < new Date()
   );
@@ -541,7 +559,10 @@ const VisitRow = ({
       </VisitBody>
 
       {showActions && (
-        <OpenButton onClick={onOpen} title="Otwórz wizytę">
+        <OpenButton
+          onClick={() => navigate(`/visits/${visit.id}`)}
+          title="Otwórz wizytę"
+        >
           <ExternalLink />
         </OpenButton>
       )}
@@ -549,175 +570,166 @@ const VisitRow = ({
   );
 };
 
-// ─── Visits Panel ─────────────────────────────────────────────────────────────
-
-const VisitsPanel = ({
-  visits,
-  label,
-  variant,
-  showActions = false,
-}: {
-  visits: VisitDetail[];
-  label: string;
-  variant: CardVariant;
-  showActions?: boolean;
-}) => {
-  const navigate = useNavigate();
-  const Icon = CARD_CONFIG[variant].icon;
-
-  return (
-    <>
-      <PanelHeader $variant={variant}>
-        <PanelTitleGroup>
-          <PanelIconWrap $variant={variant}>
-            <Icon />
-          </PanelIconWrap>
-          <PanelTitle>{label}</PanelTitle>
-        </PanelTitleGroup>
-        <PanelCount $variant={variant}>{visits.length}</PanelCount>
-      </PanelHeader>
-
-      <VisitScrollArea>
-        {visits.length === 0 ? (
-          <EmptyPanel>Brak wizyt w tej kategorii</EmptyPanel>
-        ) : (
-          visits.map((visit) => (
-            <VisitRow
-              key={visit.id}
-              visit={visit}
-              variant={variant}
-              showActions={showActions}
-              onOpen={() => navigate(`/visits/${visit.id}`)}
-            />
-          ))
-        )}
-      </VisitScrollArea>
-
-      {visits.length > 0 && (
-        <PanelFooter>
-          <ViewAllBtn onClick={() => navigate('/calendar')}>
-            Pokaż w kalendarzu
-            <ChevronRight />
-          </ViewAllBtn>
-        </PanelFooter>
-      )}
-    </>
-  );
-};
-
-// ─── Single KPI Card ──────────────────────────────────────────────────────────
+// ─── KPI Card ────────────────────────────────────────────────────────────────
 
 interface KpiCardProps {
   variant: CardVariant;
   label: string;
   value: number;
-  details?: VisitDetail[];
-  expandKey: string;
-  expandedCard: string | null;
-  onToggle: (key: string) => void;
+  hasDetails: boolean;
+  isActive: boolean;
+  onToggle: () => void;
   overdueBadge?: number;
   subLabel?: string;
-  showActions?: boolean;
 }
 
 const KpiCard = ({
   variant,
   label,
   value,
-  details,
-  expandKey,
-  expandedCard,
+  hasDetails,
+  isActive,
   onToggle,
   overdueBadge,
   subLabel,
-  showActions,
 }: KpiCardProps) => {
-  const isExpanded = expandedCard === expandKey;
-  const isExpandable = !!details;
   const Icon = CARD_CONFIG[variant].icon;
 
   return (
-    <CardWrapper>
-      <Card
-        $variant={variant}
-        $isExpanded={isExpanded}
-        $clickable={isExpandable}
-        onClick={() => isExpandable && onToggle(expandKey)}
-      >
-        <CardTop>
-          <CardIconWrap $variant={variant}>
-            <Icon />
-          </CardIconWrap>
-          {isExpandable && (
-            <CardChevronWrap>
-              <ExpandChevron $isExpanded={isExpanded} />
-            </CardChevronWrap>
-          )}
-        </CardTop>
+    <Card
+      $variant={variant}
+      $isActive={isActive}
+      $clickable={hasDetails}
+      onClick={() => hasDetails && onToggle()}
+    >
+      <CardTop>
+        <CardIconWrap $variant={variant}>
+          <Icon />
+        </CardIconWrap>
+        {hasDetails && (
+          <CardArrow $active={isActive}>
+            <ChevronRight />
+          </CardArrow>
+        )}
+      </CardTop>
 
-        <CardValue $variant={variant}>{value}</CardValue>
-        <CardLabel>{label}</CardLabel>
+      <CardValue>{value}</CardValue>
+      <CardLabel>{label}</CardLabel>
 
-        <BadgeRow style={{ marginTop: '10px' }}>
-          {typeof overdueBadge === 'number' && overdueBadge > 0 && (
-            <OverdueBadge>
-              <AlertTriangle />
-              {t.dashboard.stats.overdue}: {overdueBadge}
-            </OverdueBadge>
-          )}
-          {subLabel && <SubLabel $variant={variant}>{subLabel}</SubLabel>}
-        </BadgeRow>
-      </Card>
-
-      {isExpandable && details && (
-        <ExpandedPanel
-          $isVisible={isExpanded}
-          $variant={variant}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <VisitsPanel
-            visits={details}
-            label={label}
-            variant={variant}
-            showActions={showActions}
-          />
-        </ExpandedPanel>
-      )}
-    </CardWrapper>
+      <BadgeRow>
+        {typeof overdueBadge === 'number' && overdueBadge > 0 && (
+          <OverdueBadge>
+            <AlertTriangle />
+            {t.dashboard.stats.overdue}: {overdueBadge}
+          </OverdueBadge>
+        )}
+        {subLabel && <SubLabel $variant={variant}>{subLabel}</SubLabel>}
+      </BadgeRow>
+    </Card>
   );
 };
 
 // ─── Skeleton Card ────────────────────────────────────────────────────────────
 
 const SkeletonCard = ({ variant }: { variant: CardVariant }) => (
-  <Card $variant={variant} $isExpanded={false} $clickable={false}>
+  <Card $variant={variant} $isActive={false} $clickable={false}>
     <CardTop>
-      <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f1f5f9' }} />
+      <div style={{ width: 40, height: 40, borderRadius: 11, background: '#f1f5f9' }} />
     </CardTop>
-    <CardSkeleton />
-    <CardSkeleton style={{ height: '14px', width: '60%' }} />
+    <SkeletonPulse $h="48px" $w="60px" style={{ marginBottom: 8 }} />
+    <SkeletonPulse $h="11px" $w="55%" style={{ marginBottom: 10 }} />
     <BadgeRow />
   </Card>
 );
 
-// ─── Overlay ─────────────────────────────────────────────────────────────────
+// ─── Visit Drawer ─────────────────────────────────────────────────────────────
 
-const Overlay = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 15;
-  backdrop-filter: blur(2px);
-`;
+interface DrawerData {
+  variant: CardVariant;
+  label: string;
+  visits: VisitDetail[];
+  showActions: boolean;
+}
+
+const VisitDrawer = ({
+  data,
+  onClose,
+}: {
+  data: DrawerData;
+  onClose: () => void;
+}) => {
+  const navigate = useNavigate();
+  const Icon = CARD_CONFIG[data.variant].icon;
+
+  return (
+    <>
+      <DrawerOverlay onClick={onClose} />
+      <Drawer>
+        <DrawerHeader $variant={data.variant}>
+          <DrawerIconWrap $variant={data.variant}>
+            <Icon />
+          </DrawerIconWrap>
+          <DrawerTitleGroup>
+            <DrawerTitle>{data.label}</DrawerTitle>
+            <DrawerSubtitle>Lista wizyt</DrawerSubtitle>
+          </DrawerTitleGroup>
+          <DrawerCountBadge $variant={data.variant}>{data.visits.length}</DrawerCountBadge>
+          <DrawerCloseBtn onClick={onClose} aria-label="Zamknij">
+            <X />
+          </DrawerCloseBtn>
+        </DrawerHeader>
+
+        <DrawerBody>
+          {data.visits.length === 0 ? (
+            <EmptyDrawer>Brak wizyt w tej kategorii</EmptyDrawer>
+          ) : (
+            data.visits.map(visit => (
+              <VisitRow
+                key={visit.id}
+                visit={visit}
+                variant={data.variant}
+                showActions={data.showActions}
+              />
+            ))
+          )}
+        </DrawerBody>
+
+        {data.visits.length > 0 && (
+          <DrawerFooter>
+            <ViewAllBtn onClick={() => { navigate('/calendar'); onClose(); }}>
+              Pokaż w kalendarzu
+              <ChevronRight />
+            </ViewAllBtn>
+          </DrawerFooter>
+        )}
+      </Drawer>
+    </>
+  );
+};
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
-  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [activeKey, setActiveKey] = useState<string | null>(null);
 
-  const handleToggle = (key: string) => {
-    setExpandedCard((prev) => (prev === key ? null : key));
+  const toggle = (key: string) =>
+    setActiveKey(prev => (prev === key ? null : key));
+
+  const getDrawerData = (): DrawerData | null => {
+    if (!activeKey || !stats) return null;
+    switch (activeKey) {
+      case 'inProgress':
+        return { variant: 'inProgress', label: t.dashboard.stats.inProgress, visits: stats.inProgressDetails ?? [], showActions: true };
+      case 'readyForPickup':
+        return { variant: 'readyForPickup', label: t.dashboard.stats.readyForPickup, visits: stats.readyForPickupDetails ?? [], showActions: true };
+      case 'incomingToday':
+        return { variant: 'incomingToday', label: t.dashboard.stats.arrivals, visits: stats.incomingTodayDetails ?? [], showActions: false };
+      default:
+        return null;
+    }
   };
+
+  const drawerData = getDrawerData();
 
   return (
     <>
@@ -727,62 +739,51 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
             variant="inProgress"
             label={t.dashboard.stats.inProgress}
             value={stats.inProgress}
-            details={stats.inProgressDetails}
-            expandKey="inProgress"
-            expandedCard={expandedCard}
-            onToggle={handleToggle}
+            hasDetails={!!stats.inProgressDetails}
+            isActive={activeKey === 'inProgress'}
+            onToggle={() => toggle('inProgress')}
             overdueBadge={stats.overdue}
-            showActions={true}
           />
-        ) : (
-          <SkeletonCard variant="inProgress" />
-        )}
+        ) : <SkeletonCard variant="inProgress" />}
 
         {stats ? (
           <KpiCard
             variant="readyForPickup"
             label={t.dashboard.stats.readyForPickup}
             value={stats.readyForPickup}
-            details={stats.readyForPickupDetails}
-            expandKey="readyForPickup"
-            expandedCard={expandedCard}
-            onToggle={handleToggle}
-            showActions={true}
+            hasDetails={!!stats.readyForPickupDetails}
+            isActive={activeKey === 'readyForPickup'}
+            onToggle={() => toggle('readyForPickup')}
           />
-        ) : (
-          <SkeletonCard variant="readyForPickup" />
-        )}
+        ) : <SkeletonCard variant="readyForPickup" />}
 
         {stats ? (
           <KpiCard
             variant="incomingToday"
             label={t.dashboard.stats.arrivals}
             value={stats.incomingToday}
-            details={stats.incomingTodayDetails}
-            expandKey="incomingToday"
-            expandedCard={expandedCard}
-            onToggle={handleToggle}
+            hasDetails={!!stats.incomingTodayDetails}
+            isActive={activeKey === 'incomingToday'}
+            onToggle={() => toggle('incomingToday')}
           />
-        ) : (
-          <SkeletonCard variant="incomingToday" />
-        )}
+        ) : <SkeletonCard variant="incomingToday" />}
 
         {stats ? (
           <KpiCard
             variant="abandoned"
             label={t.dashboard.stats.abandoned}
             value={stats.abandonedLast30Days}
-            expandKey="abandoned"
-            expandedCard={expandedCard}
-            onToggle={handleToggle}
+            hasDetails={false}
+            isActive={false}
+            onToggle={() => {}}
             subLabel={t.dashboard.stats.abandonedSubLabel}
           />
-        ) : (
-          <SkeletonCard variant="abandoned" />
-        )}
+        ) : <SkeletonCard variant="abandoned" />}
       </ScorecardContainer>
 
-      {expandedCard && <Overlay onClick={() => setExpandedCard(null)} />}
+      {drawerData && (
+        <VisitDrawer data={drawerData} onClose={() => setActiveKey(null)} />
+      )}
     </>
   );
 };
