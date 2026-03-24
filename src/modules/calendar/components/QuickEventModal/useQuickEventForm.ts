@@ -1,0 +1,479 @@
+import { useState, useEffect, useRef, useImperativeHandle } from 'react';
+import type React from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '@/core';
+import { useToast } from '@/common/components/Toast';
+import { useCustomerVehicles, useCustomerSearch as useAppointmentCustomerSearch } from '@/modules/appointments/hooks/useAppointmentForm';
+import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/types';
+import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
+import { useDebounce } from '@/common/hooks';
+import { formatDateTimeLocal, formatDate, roundTo2, parseCustomerInput } from './helpers';
+import type {
+    Service,
+    AppointmentColor,
+    QuickEventFormData,
+    QuickEventModalRef,
+    EventCreationData,
+} from './types';
+
+interface UseQuickEventFormOptions {
+    isOpen: boolean;
+    eventData: EventCreationData | null;
+    onClose: () => void;
+    onSave: (data: QuickEventFormData) => Promise<void> | void;
+    ref: React.ForwardedRef<QuickEventModalRef>;
+}
+
+export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEventFormOptions) {
+    // ─── Form state ────────────────────────────────────────────────────────────
+    const [title, setTitle] = useState('');
+    const [startDateTime, setStartDateTime] = useState('');
+    const [endDateTime, setEndDateTime] = useState('');
+    const [isAllDay, setIsAllDay] = useState(false);
+    const [notes, setNotes] = useState('');
+    const [selectedColorId, setSelectedColorId] = useState('');
+
+    // ─── Customer state ────────────────────────────────────────────────────────
+    const [selectedCustomerId, setSelectedCustomerId] = useState<string>();
+    const [selectedCustomer, setSelectedCustomer] = useState<SelectedCustomer | null>(null);
+    const [customerSearch, setCustomerSearch] = useState('');
+    const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+    const [parsedCustomerData, setParsedCustomerData] = useState({
+        firstName: '', lastName: '', email: '', phone: '',
+    });
+    const customerJustSelectedRef = useRef(false);
+    const debouncedCustomerSearch = useDebounce(customerSearch, 300);
+    const { data: foundCustomers = [] } = useAppointmentCustomerSearch(debouncedCustomerSearch);
+    const hasCustomerSearchQuery = customerSearch.trim().length > 0;
+
+    // ─── Vehicle state ─────────────────────────────────────────────────────────
+    const [selectedVehicle, setSelectedVehicle] = useState<SelectedVehicle | null>(null);
+    const [vehicleSearch, setVehicleSearch] = useState('');
+    const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
+
+    // ─── Service state ─────────────────────────────────────────────────────────
+    const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+    const [servicePrices, setServicePrices] = useState<{ [key: string]: number }>({});
+    const [servicePriceInputs, setServicePriceInputs] = useState<{ [id: string]: { net: string; gross: string } }>({});
+    const [serviceNotes, setServiceNotes] = useState<{ [key: string]: string }>({});
+    const [expandedServiceNote, setExpandedServiceNote] = useState<string | null>(null);
+    const [serviceSearch, setServiceSearch] = useState('');
+    const [showServiceDropdown, setShowServiceDropdown] = useState(false);
+    const [tempServices, setTempServices] = useState<{ [key: string]: { name: string; basePriceNet: number; vatRate: number } }>({});
+
+    // ─── Sub-modal state ───────────────────────────────────────────────────────
+    const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
+    const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
+    const [vehicleModalInitialMode, setVehicleModalInitialMode] = useState<'select' | 'new'>('select');
+    const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
+    const [isPriceInputModalOpen, setIsPriceInputModalOpen] = useState(false);
+    const [isQuickColorModalOpen, setIsQuickColorModalOpen] = useState(false);
+    const [pendingService, setPendingService] = useState<Service | null>(null);
+
+    // ─── UI state ──────────────────────────────────────────────────────────────
+    const [errors, setErrors] = useState<{ [key: string]: string }>({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [focusedField, setFocusedField] = useState<string | null>(null);
+
+    // ─── Refs ──────────────────────────────────────────────────────────────────
+    const titleInputRef = useRef<HTMLInputElement>(null);
+    const startInputRef = useRef<HTMLDivElement>(null);
+    const endInputRef = useRef<HTMLDivElement>(null);
+    const customerInputRef = useRef<HTMLInputElement>(null);
+    const vehicleInputRef = useRef<HTMLInputElement>(null);
+    const serviceInputRef = useRef<HTMLInputElement>(null);
+    const colorSectionRef = useRef<HTMLDivElement>(null);
+
+    // ─── External services ─────────────────────────────────────────────────────
+    const { showError } = useToast();
+    const queryClient = useQueryClient();
+
+    // ─── Queries ───────────────────────────────────────────────────────────────
+    const { data: customerVehicles } = useCustomerVehicles(
+        selectedCustomerId && !selectedCustomer?.isNew ? selectedCustomerId : undefined
+    );
+    const vehicles = customerVehicles || [];
+
+    const { data: services = [] } = useQuery({
+        queryKey: ['services'],
+        queryFn: async () => {
+            const response = await apiClient.get('/v1/services');
+            return response.data.services || [];
+        },
+    });
+
+    const { data: appointmentColors = [] } = useQuery({
+        queryKey: ['appointment-colors'],
+        queryFn: async () => {
+            const response = await apiClient.get('/v1/appointment-colors');
+            return response.data.colors || [];
+        },
+    });
+
+    // ─── Computed values ───────────────────────────────────────────────────────
+    const selectedColor = appointmentColors.find((c: AppointmentColor) => c.id === selectedColorId);
+    const accentColor = selectedColor?.hexColor || '#3b82f6';
+
+    const filteredServices = services.filter((s: Service) =>
+        serviceSearch.length === 0 ||
+        s.name.toLowerCase().includes(serviceSearch.toLowerCase())
+    );
+    const hasSearchQuery = serviceSearch.trim().length > 0;
+
+    // ─── Effects ───────────────────────────────────────────────────────────────
+    useEffect(() => {
+        if (eventData) {
+            const timeDiff = eventData.end.getTime() - eventData.start.getTime();
+            const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+            const shouldBeAllDay = daysDiff === 1 && eventData.allDay;
+
+            if (shouldBeAllDay) {
+                setIsAllDay(true);
+                setStartDateTime(formatDate(eventData.start));
+                setEndDateTime(`${formatDate(eventData.start)}T23:59:59`);
+            } else if (daysDiff > 1) {
+                setIsAllDay(false);
+                const startDate = new Date(eventData.start);
+                startDate.setHours(9, 0, 0, 0);
+                const endDate = new Date(eventData.end);
+                endDate.setDate(endDate.getDate() - 1);
+                endDate.setHours(20, 0, 0, 0);
+                setStartDateTime(formatDateTimeLocal(startDate));
+                setEndDateTime(formatDateTimeLocal(endDate));
+            } else {
+                setIsAllDay(false);
+                setStartDateTime(formatDateTimeLocal(eventData.start));
+                setEndDateTime(formatDateTimeLocal(eventData.end));
+            }
+        }
+    }, [eventData]);
+
+    useEffect(() => {
+        if (appointmentColors.length > 0) {
+            setSelectedColorId(prev => prev || appointmentColors[0].id);
+        }
+    }, [appointmentColors]);
+
+    useEffect(() => {
+        if (isOpen && titleInputRef.current) {
+            setTimeout(() => titleInputRef.current?.focus(), 100);
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (selectedServiceIds.length > 0 && errors.services) {
+            setErrors(prev => {
+                const { services: _, ...rest } = prev;
+                return rest;
+            });
+        }
+    }, [selectedServiceIds.length, errors.services]);
+
+    // ─── Clear form ────────────────────────────────────────────────────────────
+    const clearForm = () => {
+        setTitle('');
+        setSelectedCustomerId(undefined);
+        setSelectedCustomer(null);
+        setSelectedVehicle(null);
+        setSelectedServiceIds([]);
+        setServicePrices({});
+        setServiceNotes({});
+        setExpandedServiceNote(null);
+        setServiceSearch('');
+        setCustomerSearch('');
+        setShowCustomerDropdown(false);
+        setVehicleSearch('');
+        setShowVehicleDropdown(false);
+        setNotes('');
+        setTempServices({});
+        setParsedCustomerData({ firstName: '', lastName: '', email: '', phone: '' });
+    };
+
+    useImperativeHandle(ref, () => ({ clearForm }));
+
+    // ─── Handlers ──────────────────────────────────────────────────────────────
+    const handleAllDayToggle = (checked: boolean) => {
+        setIsAllDay(checked);
+        const nowIso = new Date().toISOString();
+        if (checked) {
+            const date = (startDateTime || nowIso).split('T')[0];
+            setStartDateTime(date);
+            setEndDateTime(`${date}T23:59:59`);
+        } else {
+            const base = startDateTime || nowIso;
+            const date = base.split('T')[0];
+            setStartDateTime(startDateTime.includes('T') ? startDateTime : `${date}T09:00`);
+            setEndDateTime(endDateTime ? (endDateTime.includes('T') ? endDateTime : `${date}T10:00`) : `${date}T10:00`);
+        }
+    };
+
+    const validateForm = (): { [key: string]: string } => {
+        const newErrors: { [key: string]: string } = {};
+
+        if (!selectedCustomer) {
+            newErrors.customer = 'Wybór klienta jest wymagany';
+        } else if (selectedCustomer.isNew) {
+            if (!selectedCustomer.firstName || selectedCustomer.firstName.trim().length < 2) {
+                newErrors.customer = 'Imię klienta jest wymagane (minimum 2 znaki)';
+            } else if (!selectedCustomer.lastName || selectedCustomer.lastName.trim().length < 2) {
+                newErrors.customer = 'Nazwisko klienta jest wymagane (minimum 2 znaki)';
+            } else {
+                const hasPhone = selectedCustomer.phone && selectedCustomer.phone.trim().length > 0;
+                const hasEmail = selectedCustomer.email && selectedCustomer.email.trim().length > 0;
+                if (!hasPhone && !hasEmail) {
+                    newErrors.customer = 'Podaj co najmniej numer telefonu lub adres email klienta';
+                }
+            }
+        }
+
+        if (!startDateTime) newErrors.startDateTime = 'Data rozpoczęcia jest wymagana';
+        if (!endDateTime) newErrors.endDateTime = 'Data zakończenia jest wymagana';
+
+        if (startDateTime && endDateTime && new Date(endDateTime) < new Date(startDateTime)) {
+            newErrors.endDateTime = 'Data zakończenia musi być późniejsza niż data rozpoczęcia';
+        }
+
+        if (!selectedColorId) newErrors.color = 'Wybierz kolor wizyty lub dodaj nowy';
+
+        if (selectedServiceIds.length === 0) {
+            newErrors.services = 'Dodaj przynajmniej jedną usługę';
+        } else {
+            const servicePriceErrors: string[] = [];
+            selectedServiceIds.forEach((serviceId) => {
+                const price = servicePrices[serviceId];
+                if (price == null || price < 0) {
+                    const service = services.find((s: Service) => s.id === serviceId) || tempServices[serviceId];
+                    servicePriceErrors.push(service?.name || 'Nieznana usługa');
+                }
+            });
+            if (servicePriceErrors.length > 0) {
+                newErrors.servicePrices = `Wprowadź cenę dla usług: ${servicePriceErrors.join(', ')}`;
+            }
+        }
+
+        setErrors(newErrors);
+        return newErrors;
+    };
+
+    const focusFirstError = (errs: { [key: string]: string }) => {
+        const order = ['startDateTime', 'endDateTime', 'customer', 'services', 'servicePrices', 'color'];
+        const firstKey = order.find(k => errs[k]);
+        if (!firstKey) return;
+        const map: Record<string, React.RefObject<HTMLElement>> = {
+            startDateTime: startInputRef as React.RefObject<HTMLElement>,
+            endDateTime: endInputRef as React.RefObject<HTMLElement>,
+            customer: customerInputRef as React.RefObject<HTMLElement>,
+            services: serviceInputRef as React.RefObject<HTMLElement>,
+            servicePrices: serviceInputRef as React.RefObject<HTMLElement>,
+            color: colorSectionRef as React.RefObject<HTMLElement>,
+        };
+        const fieldRef = map[firstKey];
+        if (fieldRef?.current) {
+            fieldRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // @ts-ignore
+            fieldRef.current.focus?.();
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (isSubmitting) return;
+        setErrors({});
+        const errs = validateForm();
+        if (Object.keys(errs).length > 0) {
+            showError('Nie można zapisać wizyty', 'Sprawdź zaznaczone pola formularza.');
+            focusFirstError(errs);
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            await Promise.resolve(onSave({
+                title,
+                customer: selectedCustomer,
+                vehicle: selectedVehicle,
+                startDateTime,
+                endDateTime,
+                isAllDay,
+                serviceIds: selectedServiceIds,
+                servicePrices,
+                serviceNotes,
+                tempServices,
+                colorId: selectedColorId,
+                notes,
+            }));
+        } catch (err: any) {
+            let message = 'Wystąpił nieoczekiwany błąd podczas zapisu.';
+            if (err?.response?.data) {
+                const data = err.response.data;
+                message = data.message || data.error || JSON.stringify(data);
+            } else if (err?.message) {
+                message = err.message;
+            }
+            showError('Błąd zapisu wizyty', message);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleCustomerSelect = (customer: SelectedCustomer) => {
+        setSelectedCustomer(customer);
+        setSelectedCustomerId(customer.id);
+        setSelectedVehicle(null);
+        setVehicleSearch('');
+    };
+
+    const handleVehicleSelect = (vehicle: SelectedVehicle) => {
+        setSelectedVehicle(vehicle);
+        setVehicleSearch(`${vehicle.brand ?? ''} ${vehicle.model ?? ''}`.trim());
+        setShowVehicleDropdown(false);
+    };
+
+    const initPriceInputs = (id: string, grossPrice: number, vatRate: number) => {
+        const net = roundTo2(grossPrice / (1 + vatRate / 100));
+        setServicePriceInputs(prev => ({
+            ...prev,
+            [id]: { gross: grossPrice.toFixed(2), net: net.toFixed(2) },
+        }));
+    };
+
+    const addService = (service: Service) => {
+        if (selectedServiceIds.includes(service.id)) return;
+        if (service.requireManualPrice) {
+            setPendingService(service);
+            setIsPriceInputModalOpen(true);
+            setServiceSearch('');
+            setShowServiceDropdown(false);
+            return;
+        }
+        setSelectedServiceIds(prev => [...prev, service.id]);
+        const grossPrice = roundTo2((service.basePriceNet / 100) * (100 + service.vatRate) / 100);
+        setServicePrices(prev => ({ ...prev, [service.id]: grossPrice }));
+        initPriceInputs(service.id, grossPrice, service.vatRate);
+        setServiceSearch('');
+        setShowServiceDropdown(false);
+    };
+
+    const handlePriceConfirm = (price: number) => {
+        if (!pendingService) return;
+        const gross = roundTo2(price);
+        setSelectedServiceIds(prev => [...prev, pendingService.id]);
+        setServicePrices(prev => ({ ...prev, [pendingService.id]: gross }));
+        initPriceInputs(pendingService.id, gross, pendingService.vatRate || 23);
+        setPendingService(null);
+    };
+
+    const handlePriceInputModalClose = () => {
+        setIsPriceInputModalOpen(false);
+        setPendingService(null);
+    };
+
+    const handleQuickServiceCreate = (service: { id?: string; name: string; basePriceNet: number; vatRate: 23 }) => {
+        if (service.id) {
+            queryClient.invalidateQueries({ queryKey: ['services'] });
+        }
+        const serviceId = service.id || `temp-${Date.now()}`;
+        setSelectedServiceIds(prev => [...prev, serviceId]);
+        const grossPrice = roundTo2((service.basePriceNet / 100) * (100 + service.vatRate) / 100);
+        setServicePrices(prev => ({ ...prev, [serviceId]: grossPrice }));
+        initPriceInputs(serviceId, grossPrice, service.vatRate);
+        if (!service.id) {
+            setTempServices(prev => ({
+                ...prev,
+                [serviceId]: { name: service.name, basePriceNet: service.basePriceNet, vatRate: 23 },
+            }));
+        }
+        setServiceSearch('');
+        setShowServiceDropdown(false);
+    };
+
+    const handleQuickColorCreate = async (color: { name: string; hexColor: string }) => {
+        try {
+            const newColor = await appointmentColorApi.createColor(color);
+            queryClient.invalidateQueries({ queryKey: ['appointment-colors'] });
+            setSelectedColorId(newColor.id);
+        } catch (error: any) {
+            console.error('Failed to create color:', error);
+            showError('Błąd tworzenia koloru', error?.message || 'Nie udało się utworzyć koloru. Spróbuj ponownie.');
+        }
+    };
+
+    // ─── Return ────────────────────────────────────────────────────────────────
+    return {
+        // Form state
+        title, setTitle,
+        startDateTime, setStartDateTime,
+        endDateTime, setEndDateTime,
+        isAllDay,
+        notes, setNotes,
+        selectedColorId, setSelectedColorId,
+
+        // Customer
+        selectedCustomer, setSelectedCustomer,
+        selectedCustomerId, setSelectedCustomerId,
+        customerSearch, setCustomerSearch,
+        showCustomerDropdown, setShowCustomerDropdown,
+        customerResults: foundCustomers,
+        hasCustomerSearchQuery,
+        parsedCustomerData, setParsedCustomerData,
+        customerJustSelectedRef,
+
+        // Vehicle
+        selectedVehicle,
+        vehicleSearch, setVehicleSearch,
+        showVehicleDropdown, setShowVehicleDropdown,
+        vehicles,
+
+        // Services
+        selectedServiceIds, setSelectedServiceIds,
+        servicePrices, setServicePrices,
+        servicePriceInputs, setServicePriceInputs,
+        serviceNotes, setServiceNotes,
+        expandedServiceNote, setExpandedServiceNote,
+        serviceSearch, setServiceSearch,
+        showServiceDropdown, setShowServiceDropdown,
+        services,
+        filteredServices,
+        hasSearchQuery,
+        tempServices,
+
+        // Colors
+        appointmentColors,
+        selectedColor,
+        accentColor,
+
+        // Sub-modal state
+        isAddCustomerModalOpen, setIsAddCustomerModalOpen,
+        isVehicleModalOpen, setIsVehicleModalOpen,
+        vehicleModalInitialMode, setVehicleModalInitialMode,
+        isQuickServiceModalOpen, setIsQuickServiceModalOpen,
+        isPriceInputModalOpen,
+        isQuickColorModalOpen, setIsQuickColorModalOpen,
+        pendingService,
+
+        // UI state
+        errors,
+        isSubmitting,
+        focusedField, setFocusedField,
+
+        // Refs
+        titleInputRef,
+        startInputRef,
+        endInputRef,
+        customerInputRef,
+        vehicleInputRef,
+        serviceInputRef,
+        colorSectionRef,
+
+        // Handlers
+        handleAllDayToggle,
+        handleSubmit,
+        handleCustomerSelect,
+        handleVehicleSelect,
+        addService,
+        handlePriceConfirm,
+        handlePriceInputModalClose,
+        handleQuickServiceCreate,
+        handleQuickColorCreate,
+        clearForm,
+    };
+}
