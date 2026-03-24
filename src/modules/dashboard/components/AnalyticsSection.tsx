@@ -37,12 +37,18 @@ const AnalyticsGrid = styled.div<{ $count: number }>`
 const MetricCard = styled.div`
   background-color: ${(p) => p.theme.colors.surface};
   border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: ${(p) => p.theme.radii.lg};
-  padding: ${(p) => p.theme.spacing.lg};
-  box-shadow: ${(p) => p.theme.shadows.sm};
+  border-radius: ${(p) => p.theme.radii.xl};
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
   display: flex;
   flex-direction: column;
   gap: ${(p) => p.theme.spacing.md};
+  transition: transform 180ms ease, box-shadow 180ms ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 16px 32px rgba(0,0,0,0.06);
+  }
 `;
 
 const MetricTop = styled.div`
@@ -53,9 +59,9 @@ const MetricTop = styled.div`
 `;
 
 const MetricIconWrap = styled.div<{ $color: string; $bg: string }>`
-  width: 40px;
-  height: 40px;
-  border-radius: ${(p) => p.theme.radii.md};
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   background-color: ${(p) => p.$bg};
   display: flex;
   align-items: center;
@@ -63,9 +69,10 @@ const MetricIconWrap = styled.div<{ $color: string; $bg: string }>`
   flex-shrink: 0;
 
   svg {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     color: ${(p) => p.$color};
+    stroke-width: 1.75;
   }
 `;
 
@@ -74,11 +81,11 @@ const MetricTitleGroup = styled.div`
 `;
 
 const MetricTitle = styled.h3`
-  font-size: ${(p) => p.theme.fontSizes.xs};
-  font-weight: ${(p) => p.theme.fontWeights.semibold};
-  color: ${(p) => p.theme.colors.textSecondary};
+  font-size: 11px;
+  font-weight: 700;
+  color: ${(p) => p.theme.colors.textMuted};
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.08em;
   margin: 0 0 2px 0;
 `;
 
@@ -107,12 +114,12 @@ const TrendBadge = styled.div<{ $positive: boolean }>`
 `;
 
 const CurrentValue = styled.div`
-  font-size: 34px;
-  font-weight: ${(p) => p.theme.fontWeights.bold};
+  font-size: 36px;
+  font-weight: 800;
   color: ${(p) => p.theme.colors.text};
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.5px;
+  letter-spacing: -1px;
 `;
 
 const Divider = styled.div`
@@ -161,9 +168,9 @@ const CompareValue = styled.span`
 const SkeletonCard = styled.div`
   background-color: ${(p) => p.theme.colors.surface};
   border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: ${(p) => p.theme.radii.lg};
-  padding: ${(p) => p.theme.spacing.lg};
-  box-shadow: ${(p) => p.theme.shadows.sm};
+  border-radius: ${(p) => p.theme.radii.xl};
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 `;
 
 const SkeletonLine = styled.div<{ $w?: string; $h?: string }>`

@@ -13,7 +13,7 @@ const ContentWrapper = styled.div<{ $isCollapsed: boolean }>`
     min-height: 100vh;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        margin-left: ${props => props.$isCollapsed ? '64px' : '240px'};
+        margin-left: ${props => props.$isCollapsed ? '64px' : '248px'};
         transition: margin-left 200ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 

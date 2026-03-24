@@ -4,7 +4,7 @@ export const theme = {
     breakpoints,
 
     colors: {
-        background: '#f8fafc',
+        background: '#eef2f7',
         surface: '#ffffff',
         surfaceAlt: '#f1f5f9',
         surfaceHover: '#f8fafc',

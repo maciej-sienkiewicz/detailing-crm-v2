@@ -14,9 +14,9 @@ interface GoogleReviewsSectionProps {
 
 const SectionContainer = styled.div`
   background-color: ${(props) => props.theme.colors.surface};
-  border-radius: ${(props) => props.theme.radii.lg};
-  padding: ${(props) => props.theme.spacing.lg};
-  box-shadow: ${(props) => props.theme.shadows.md};
+  border-radius: ${(props) => props.theme.radii.xl};
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
   border: 1px solid ${(props) => props.theme.colors.border};
 `;
 
@@ -26,13 +26,14 @@ const SectionHeader = styled.div`
   gap: ${(props) => props.theme.spacing.sm};
   margin-bottom: ${(props) => props.theme.spacing.lg};
   padding-bottom: ${(props) => props.theme.spacing.md};
-  border-bottom: 2px solid ${(props) => props.theme.colors.border};
+  border-bottom: 1px solid ${(props) => props.theme.colors.border};
 `;
 
 const SectionTitle = styled.h3`
-  font-size: ${(props) => props.theme.fontSizes.lg};
-  font-weight: ${(props) => props.theme.fontWeights.semibold};
+  font-size: 16px;
+  font-weight: 700;
   color: ${(props) => props.theme.colors.text};
+  letter-spacing: -0.2px;
   margin: 0;
   flex: 1;
 `;
@@ -53,8 +54,8 @@ const StatCard = styled.div`
   flex-direction: column;
   gap: ${(props) => props.theme.spacing.xs};
   padding: ${(props) => props.theme.spacing.md};
-  background-color: ${(props) => props.theme.colors.surfaceAlt};
-  border-radius: ${(props) => props.theme.radii.md};
+  background-color: ${(props) => props.theme.colors.background};
+  border-radius: ${(props) => props.theme.radii.lg};
   border: 1px solid ${(props) => props.theme.colors.border};
 `;
 
@@ -124,13 +125,13 @@ const SubSectionTitle = styled.h4`
 
 const ReviewCard = styled.div`
   padding: ${(props) => props.theme.spacing.md};
-  background-color: ${(props) => props.theme.colors.surface};
+  background-color: ${(props) => props.theme.colors.background};
   border: 1px solid ${(props) => props.theme.colors.border};
-  border-radius: ${(props) => props.theme.radii.md};
+  border-radius: ${(props) => props.theme.radii.lg};
   transition: background-color ${(props) => props.theme.transitions.fast};
 
   &:hover {
-    background-color: ${(props) => props.theme.colors.surfaceHover};
+    background-color: ${(props) => props.theme.colors.surfaceAlt};
   }
 `;
 
