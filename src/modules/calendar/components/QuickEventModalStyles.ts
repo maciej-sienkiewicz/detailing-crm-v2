@@ -370,36 +370,67 @@ export const ChipClear = styled.button`
     svg { width: 14px; height: 14px; }
 `;
 
+// ─── Services unified block ───────────────────────────────────────────────────
+// ServicesList + SummarySection live inside ServicesBlock so they share
+// a single outer border and form one cohesive component.
+
+/** Outer container — single border wraps header + rows + summary */
+export const ServicesBlock = styled.div`
+    border: 1.5px solid #e2e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+    transition: border-color 180ms ease;
+
+    &:focus-within { border-color: #bae6fd; }
+`;
+
+/** Sticky column-header row */
+export const ServicesTableHeader = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 74px 74px 60px;
+    align-items: center;
+    gap: 4px;
+    padding: 7px 8px 7px 14px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+`;
+
+export const ServicesHeaderCell = styled.span`
+    font-size: 10px;
+    font-weight: 700;
+    color: #b0bec5;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-align: right;
+
+    &:first-child { text-align: left; }
+    &:last-child  { /* actions col — empty */ }
+`;
+
 // ─── Services list ────────────────────────────────────────────────────────────
 
 export const ServicesList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 8px;
 `;
 
 export const ServiceItem = styled.div`
-    background: #ffffff;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 16px;
-    overflow: hidden;
-    transition: border-color 180ms ease, box-shadow 180ms ease;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 120ms ease;
 
-    &:hover {
-        border-color: #bae6fd;
-        box-shadow: 0 2px 8px rgba(14,165,233,0.08);
-    }
+    &:last-child { border-bottom: none; }
+    &:hover { background: #fafbfd; }
 `;
 
 export const ServiceItemRow = styled.div`
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 74px 74px 60px;
     align-items: center;
-    gap: 10px;
-    padding: 10px 10px 10px 16px;
+    gap: 4px;
+    padding: 8px 8px 8px 14px;
 `;
 
 export const ServiceName = styled.span`
-    flex: 1;
     font-size: 14px;
     font-weight: 500;
     color: #0f172a;
@@ -407,50 +438,38 @@ export const ServiceName = styled.span`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    padding-right: 4px;
 `;
 
 // ─── Inline price editing ─────────────────────────────────────────────────────
 
-export const ServicePricesGroup = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-shrink: 0;
-`;
+/** Kept as display:contents so the two inputs land in their grid cells */
+export const ServicePricesGroup = styled.div`display: contents;`;
+export const PriceCell            = styled.div`display: contents;`;
+export const PriceCellLabel       = styled.span`display: none;`;
+export const PriceSep             = styled.span`display: none;`;
+export const PriceCurrency        = styled.span`display: none;`;
 
-export const PriceCell = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
-`;
-
-export const PriceCellLabel = styled.span`
-    font-size: 10px;
-    font-weight: 600;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    line-height: 1;
-`;
-
-export const PriceCellInput = styled.input`
-    width: 78px;
+export const PriceCellInput = styled.input<{ $isBrutto?: boolean }>`
+    width: 100%;
     padding: 5px 8px;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: ${p => p.$isBrutto ? 600 : 400};
     text-align: right;
-    background: #f8fafc;
+    background: transparent;
     border: 1.5px solid transparent;
     border-radius: 8px;
-    color: #0f172a;
+    color: ${p => p.$isBrutto ? '#0f172a' : '#64748b'};
     outline: none;
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum';
     transition: all 150ms ease;
     font-family: inherit;
 
-    &:hover { border-color: #e2e8f0; }
+    &:hover {
+        border-color: #e2e8f0;
+        background: #f8fafc;
+    }
 
     &:focus {
         background: #ffffff;
@@ -459,138 +478,119 @@ export const PriceCellInput = styled.input`
     }
 `;
 
-export const PriceSep = styled.span`
-    font-size: 12px;
-    color: #cbd5e1;
-    padding: 0 2px;
-    flex-shrink: 0;
-    margin-top: 14px;
-`;
-
-export const PriceCurrency = styled.span`
-    font-size: 12px;
-    color: #94a3b8;
-    flex-shrink: 0;
-    margin-top: 14px;
-    padding-left: 2px;
-`;
-
 export const ServiceActions = styled.div`
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 2px;
     flex-shrink: 0;
 `;
 
 export const IconButton = styled.button<{ $active?: boolean }>`
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    border-radius: 7px;
     border: none;
-    background: ${p => p.$active ? '#f0f9ff' : 'transparent'};
-    color: ${p => p.$active ? '#0ea5e9' : '#94a3b8'};
+    background: ${p => p.$active ? '#e0f2fe' : 'transparent'};
+    color: ${p => p.$active ? '#0284c7' : '#b0bec5'};
     cursor: pointer;
     transition: all 150ms ease;
 
-    &:hover {
-        background: #f0f9ff;
-        color: #0ea5e9;
-    }
-
-    svg { width: 14px; height: 14px; }
+    &:hover { background: #e0f2fe; color: #0284c7; }
+    svg { width: 13px; height: 13px; }
 `;
 
 export const DeleteButton = styled.button`
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    border-radius: 7px;
     border: none;
     background: transparent;
-    color: #94a3b8;
+    color: #b0bec5;
     cursor: pointer;
     transition: all 150ms ease;
 
     &:hover { background: #fef2f2; color: #ef4444; }
-    svg { width: 14px; height: 14px; }
+    svg { width: 13px; height: 13px; }
 `;
 
 export const ServiceNoteContainer = styled.div`
-    padding: 0 12px 12px;
+    padding: 0 10px 10px 14px;
 `;
 
 export const ServiceNoteTextarea = styled.textarea`
     width: 100%;
-    padding: 8px 12px;
+    padding: 7px 10px;
     background: #f8fafc;
-    border: 1.5px solid transparent;
-    border-radius: 10px;
-    font-size: 13px;
-    color: #0f172a;
+    border: 1.5px solid #f1f5f9;
+    border-radius: 8px;
+    font-size: 12.5px;
+    color: #475569;
     outline: none;
     resize: none;
     transition: all 150ms ease;
     font-family: inherit;
+    line-height: 1.45;
 
-    &::placeholder { color: #94a3b8; }
+    &::placeholder { color: #b0bec5; }
 
     &:hover { border-color: #e2e8f0; }
 
     &:focus {
         background: #ffffff;
         border-color: #0ea5e9;
-        box-shadow: 0 0 0 2px rgba(14,165,233,0.1);
+        box-shadow: 0 0 0 2px rgba(14,165,233,0.10);
     }
 `;
 
-// ─── Summary ──────────────────────────────────────────────────────────────────
+// ─── Summary (inside ServicesBlock) ──────────────────────────────────────────
 
 export const SummarySection = styled.div`
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 20px;
-    padding: 12px 16px;
+    padding: 10px 14px;
     background: #f8fafc;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 14px;
-    flex-wrap: wrap;
+    border-top: 1px solid #e2e8f0;
 `;
 
 export const SummaryItem = styled.div`
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
+    align-items: baseline;
+    gap: 5px;
+    padding: 0 14px;
+    border-right: 1px solid #e2e8f0;
+
+    &:last-child { border-right: none; padding-right: 0; }
+    &:first-child { padding-left: 0; }
 `;
 
 export const SummaryLabel = styled.span<{ $isTotal?: boolean }>`
-    font-size: 10px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 500;
     color: #94a3b8;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
 `;
 
 export const SummaryValue = styled.span<{ $isTotal?: boolean }>`
-    font-size: ${p => p.$isTotal ? '16px' : '13px'};
+    font-size: ${p => p.$isTotal ? '15px' : '13px'};
     color: ${p => p.$isTotal ? '#0f172a' : '#475569'};
     font-weight: ${p => p.$isTotal ? 700 : 500};
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum';
+    white-space: nowrap;
 `;
 
-export const SummaryDivider = styled.div`
-    width: 1px;
-    height: 30px;
-    background: #e2e8f0;
-    flex-shrink: 0;
-`;
+/** No longer used (vertical dividers are now CSS border-right on SummaryItem) */
+export const SummaryDivider = styled.div`display: none;`;
 
 // ─── Footer ───────────────────────────────────────────────────────────────────
 

@@ -407,7 +407,15 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     {form.errors.servicePrices && <S.ErrorMessage>{form.errors.servicePrices}</S.ErrorMessage>}
 
                                     {form.selectedServiceIds.length > 0 && (
-                                        <>
+                                        <S.ServicesBlock>
+                                            {/* Column headers */}
+                                            <S.ServicesTableHeader>
+                                                <S.ServicesHeaderCell>Usługa</S.ServicesHeaderCell>
+                                                <S.ServicesHeaderCell>Netto</S.ServicesHeaderCell>
+                                                <S.ServicesHeaderCell>Brutto</S.ServicesHeaderCell>
+                                                <S.ServicesHeaderCell />
+                                            </S.ServicesTableHeader>
+
                                             <S.ServicesList>
                                                 {form.selectedServiceIds.map(id => {
                                                     let service = form.services.find((s: Service) => s.id === id);
@@ -451,30 +459,21 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             <S.ServiceItemRow>
                                                                 <S.ServiceName title={service.name}>{service.name}</S.ServiceName>
 
-                                                                <S.ServicePricesGroup>
-                                                                    <S.PriceCell>
-                                                                        <S.PriceCellLabel>Netto</S.PriceCellLabel>
-                                                                        <S.PriceCellInput
-                                                                            type="text"
-                                                                            inputMode="decimal"
-                                                                            value={inputs.net}
-                                                                            onChange={(e) => syncFromNet(e.target.value)}
-                                                                            onBlur={normalizeInputs}
-                                                                        />
-                                                                    </S.PriceCell>
-                                                                    <S.PriceSep>→</S.PriceSep>
-                                                                    <S.PriceCell>
-                                                                        <S.PriceCellLabel>Brutto</S.PriceCellLabel>
-                                                                        <S.PriceCellInput
-                                                                            type="text"
-                                                                            inputMode="decimal"
-                                                                            value={inputs.gross}
-                                                                            onChange={(e) => syncFromGross(e.target.value)}
-                                                                            onBlur={normalizeInputs}
-                                                                        />
-                                                                    </S.PriceCell>
-                                                                    <S.PriceCurrency>zł</S.PriceCurrency>
-                                                                </S.ServicePricesGroup>
+                                                                <S.PriceCellInput
+                                                                    type="text"
+                                                                    inputMode="decimal"
+                                                                    value={inputs.net}
+                                                                    onChange={(e) => syncFromNet(e.target.value)}
+                                                                    onBlur={normalizeInputs}
+                                                                />
+                                                                <S.PriceCellInput
+                                                                    type="text"
+                                                                    inputMode="decimal"
+                                                                    value={inputs.gross}
+                                                                    onChange={(e) => syncFromGross(e.target.value)}
+                                                                    onBlur={normalizeInputs}
+                                                                    $isBrutto
+                                                                />
 
                                                                 <S.ServiceActions>
                                                                     <S.IconButton
@@ -515,7 +514,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 })}
                                             </S.ServicesList>
 
-                                            {/* Summary */}
+                                            {/* Summary — integrated into the same block */}
                                             {(() => {
                                                 let totalNet = 0;
                                                 let totalGross = 0;
@@ -536,20 +535,18 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             <S.SummaryLabel>Netto</S.SummaryLabel>
                                                             <S.SummaryValue>{totalNet.toFixed(2)} zł</S.SummaryValue>
                                                         </S.SummaryItem>
-                                                        <S.SummaryDivider />
                                                         <S.SummaryItem>
                                                             <S.SummaryLabel>VAT</S.SummaryLabel>
                                                             <S.SummaryValue>{totalVat.toFixed(2)} zł</S.SummaryValue>
                                                         </S.SummaryItem>
-                                                        <S.SummaryDivider />
                                                         <S.SummaryItem>
-                                                            <S.SummaryLabel>Brutto</S.SummaryLabel>
+                                                            <S.SummaryLabel>Łącznie</S.SummaryLabel>
                                                             <S.SummaryValue $isTotal>{totalGross.toFixed(2)} zł</S.SummaryValue>
                                                         </S.SummaryItem>
                                                     </S.SummarySection>
                                                 );
                                             })()}
-                                        </>
+                                        </S.ServicesBlock>
                                     )}
                                 </S.RowContent>
                             </S.Row>
