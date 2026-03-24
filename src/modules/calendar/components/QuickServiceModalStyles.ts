@@ -69,18 +69,9 @@ export const Header = styled.div`
     padding: ${props => props.theme.spacing.lg} ${props => props.theme.spacing.xl} ${props => props.theme.spacing.md};
 `;
 
-export const DragHandle = styled.div`
-    display: flex;
-    justify-content: center;
-    margin-bottom: ${props => props.theme.spacing.md};
-`;
+export const DragHandle = styled.div`display: none;`;
 
-export const DragHandleBar = styled.div`
-    width: 48px;
-    height: 6px;
-    background: ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.full};
-`;
+export const DragHandleBar = styled.div`display: none;`;
 
 export const CloseButton = styled.button`
     position: absolute;
@@ -179,8 +170,8 @@ export const ErrorMessage = styled.p`
 `;
 
 export const CheckboxContainer = styled.div`
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
+    background: ${props => props.theme.colors.surfaceAlt};
+    border: 1px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.lg};
     padding: ${props => props.theme.spacing.md};
 `;
@@ -225,7 +216,7 @@ export const CheckboxDescription = styled.p`
 
 export const SubmitError = styled.div`
     background: ${props => props.theme.colors.errorLight};
-    border: 1px solid #fecaca;
+    border: 1px solid rgba(220, 38, 38, 0.2);
     border-radius: ${props => props.theme.radii.lg};
     padding: ${props => props.theme.spacing.md};
     font-size: ${props => props.theme.fontSizes.sm};
@@ -253,14 +244,16 @@ export const Button = styled.button<{ $variant?: 'primary' | 'secondary' }>`
 
     ${props => props.$variant === 'primary' ? `
         color: white;
-        background-color: #2563eb;
-        box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+        background-color: var(--button-bg, ${props.theme.colors.primary});
+        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.28);
 
         &:hover:not(:disabled) {
-            background-color: #1d4ed8;
-            box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.4);
+            background-color: #0284c7;
+            box-shadow: 0 6px 16px rgba(14, 165, 233, 0.36);
             transform: translateY(-1px);
         }
+
+        &:active { transform: translateY(0); }
 
         &:disabled {
             opacity: 0.5;
@@ -271,7 +264,8 @@ export const Button = styled.button<{ $variant?: 'primary' | 'secondary' }>`
         background: transparent;
 
         &:hover:not(:disabled) {
-            background: ${props.theme.colors.surfaceHover};
+            color: ${props.theme.colors.text};
+            background: ${props.theme.colors.surfaceAlt};
         }
 
         &:disabled {

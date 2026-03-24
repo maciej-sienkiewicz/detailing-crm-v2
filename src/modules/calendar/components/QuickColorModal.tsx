@@ -5,51 +5,54 @@ import styled from 'styled-components';
 
 const Overlay = styled.div<{ $isOpen: boolean }>`
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10000;
+    background-color: ${props => props.$isOpen ? 'rgba(15, 23, 42, 0.45)' : 'rgba(15, 23, 42, 0)'};
+    backdrop-filter: ${props => props.$isOpen ? 'blur(4px)' : 'none'};
     opacity: ${props => props.$isOpen ? 1 : 0};
     pointer-events: ${props => props.$isOpen ? 'auto' : 'none'};
-    transition: opacity 0.2s ease;
+    transition: all 0.25s ease;
 `;
 
 const ModalContainer = styled.div<{ $isOpen: boolean }>`
     background: ${props => props.theme.colors.surface};
-    border-radius: ${props => props.theme.radii.lg};
-    box-shadow: ${props => props.theme.shadows.xl};
+    border-radius: ${props => props.theme.radii.xl};
+    box-shadow:
+        0 0 0 1px rgba(0,0,0,0.06),
+        0 8px 16px -4px rgba(0,0,0,0.08),
+        0 24px 48px -12px rgba(0,0,0,0.14);
     width: 90%;
-    max-width: 500px;
+    max-width: 480px;
     max-height: 90vh;
     overflow: hidden;
-    transform: ${props => props.$isOpen ? 'scale(1)' : 'scale(0.95)'};
-    transition: transform 0.2s ease;
+    transform: ${props => props.$isOpen ? 'scale(1) translateY(0)' : 'scale(0.97) translateY(4px)'};
+    opacity: ${props => props.$isOpen ? 1 : 0};
+    transition: all 0.25s cubic-bezier(0.32, 0.72, 0, 1);
     display: flex;
     flex-direction: column;
 `;
 
 const Header = styled.div`
-    padding: ${props => props.theme.spacing.lg} ${props => props.theme.spacing.xl};
+    padding: 20px 24px 16px;
     border-bottom: 1px solid ${props => props.theme.colors.border};
 `;
 
 const Title = styled.h2`
-    font-size: ${props => props.theme.fontSizes.xl};
-    font-weight: ${props => props.theme.fontWeights.semibold};
+    font-size: 18px;
+    font-weight: 700;
     color: ${props => props.theme.colors.text};
+    letter-spacing: -0.3px;
     margin: 0;
 `;
 
 const Content = styled.div`
-    padding: ${props => props.theme.spacing.xl};
+    padding: 16px 24px 20px;
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
+    gap: 16px;
 `;
 
 const FieldGroup = styled.div`
@@ -59,21 +62,28 @@ const FieldGroup = styled.div`
 `;
 
 const Label = styled.label`
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.text};
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: ${props => props.theme.colors.textMuted};
 `;
 
 const Input = styled.input`
-    padding: ${props => props.theme.spacing.md};
-    border: 2px solid ${props => props.theme.colors.border};
+    width: 100%;
+    padding: 9px 12px;
+    background: ${props => props.theme.colors.surfaceAlt};
+    border: 1px solid transparent;
     border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.md};
-    background-color: ${props => props.theme.colors.surface};
+    font-size: ${props => props.theme.fontSizes.sm};
+    color: ${props => props.theme.colors.text};
+    outline: none;
     transition: all ${props => props.theme.transitions.fast};
 
+    &::placeholder { color: ${props => props.theme.colors.textMuted}; }
+
     &:focus {
-        outline: none;
+        background: ${props => props.theme.colors.surface};
         border-color: ${props => props.theme.colors.primary};
         box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
     }
@@ -86,9 +96,9 @@ const ColorPickerWrapper = styled.div`
 `;
 
 const ColorInput = styled.input`
-    width: 80px;
-    height: 48px;
-    border: 2px solid ${props => props.theme.colors.border};
+    width: 72px;
+    height: 40px;
+    border: 1px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.md};
     cursor: pointer;
     transition: all ${props => props.theme.transitions.fast};
@@ -118,41 +128,48 @@ const ErrorMessage = styled.div`
 `;
 
 const Footer = styled.div`
-    padding: ${props => props.theme.spacing.lg} ${props => props.theme.spacing.xl};
+    padding: 14px 24px;
     border-top: 1px solid ${props => props.theme.colors.border};
+    background: ${props => props.theme.colors.surface};
     display: flex;
     justify-content: flex-end;
-    gap: ${props => props.theme.spacing.md};
+    gap: 8px;
 `;
 
 const Button = styled.button<{ $variant?: 'primary' | 'secondary' }>`
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.md};
+    padding: 8px 20px;
+    border-radius: ${props => props.theme.radii.full};
+    font-size: ${props => props.theme.fontSizes.sm};
     font-weight: ${props => props.theme.fontWeights.medium};
     cursor: pointer;
     transition: all ${props => props.theme.transitions.fast};
     border: none;
+    white-space: nowrap;
 
     ${props => props.$variant === 'primary' ? `
-        background-color: ${props.theme.colors.primary};
         color: white;
+        background-color: var(--button-bg, ${props.theme.colors.primary});
+        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.28);
 
-        &:hover {
-            background-color: ${props.theme.colors.primaryHover};
+        &:hover:not(:disabled) {
+            background-color: #0284c7;
+            box-shadow: 0 6px 16px rgba(14, 165, 233, 0.36);
+            transform: translateY(-1px);
         }
 
+        &:active { transform: translateY(0); }
+
         &:disabled {
-            background-color: ${props.theme.colors.border};
+            opacity: 0.5;
             cursor: not-allowed;
         }
     ` : `
-        background-color: transparent;
-        color: ${props.theme.colors.text};
-        border: 1px solid ${props.theme.colors.border};
+        color: ${props.theme.colors.textSecondary};
+        background: transparent;
 
-        &:hover {
-            background-color: ${props.theme.colors.surfaceHover};
+        &:hover:not(:disabled) {
+            color: ${props.theme.colors.text};
+            background-color: ${props.theme.colors.surfaceAlt};
         }
     `}
 `;

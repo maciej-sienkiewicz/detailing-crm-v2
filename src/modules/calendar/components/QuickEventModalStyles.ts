@@ -400,8 +400,8 @@ export const ChipCheck = styled.div`
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: #dcfce7;
-    color: #16a34a;
+    background: ${props => props.theme.colors.successLight};
+    color: ${props => props.theme.colors.success};
     display: flex;
     align-items: center;
     justify-content: center;
@@ -432,8 +432,8 @@ export const ChipName = styled.span`
 export const NewBadge = styled.span`
     font-size: 10px;
     padding: 1px 5px;
-    background: #dcfce7;
-    color: #15803d;
+    background: ${props => props.theme.colors.successLight};
+    color: ${props => props.theme.colors.success};
     border-radius: ${props => props.theme.radii.sm};
     font-weight: 700;
     text-transform: uppercase;
@@ -591,13 +591,13 @@ export const IconButton = styled.button<{ $active?: boolean }>`
     justify-content: center;
     border-radius: ${props => props.theme.radii.md};
     border: none;
-    background: ${props => props.$active ? '#eff6ff' : 'transparent'};
+    background: ${props => props.$active ? props.theme.colors.surfaceAlt : 'transparent'};
     color: ${props => props.$active ? props.theme.colors.primary : props.theme.colors.textMuted};
     cursor: pointer;
     transition: all ${props => props.theme.transitions.fast};
 
     &:hover {
-        background: ${props => props.$active ? '#dbeafe' : props.theme.colors.surfaceAlt};
+        background: ${props => props.theme.colors.surfaceHover};
         color: ${props => props.theme.colors.primary};
     }
 
@@ -847,7 +847,7 @@ export const AddColorButton = styled.button`
     &:hover {
         transform: scale(1.15);
         border-color: ${props => props.theme.colors.primary};
-        background-color: #eff6ff;
+        background-color: ${props => props.theme.colors.surfaceAlt};
         color: ${props => props.theme.colors.primary};
     }
 
