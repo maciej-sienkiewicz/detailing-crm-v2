@@ -1,60 +1,47 @@
+/**
+ * QuickEventModal styles — Stitch-inspired design
+ *
+ * Shared primitives (overlay, inputs, buttons) are imported from
+ * @/common/styles so the same tokens can be reused elsewhere.
+ */
 import styled, { keyframes } from 'styled-components';
+import {
+    overlayFadeIn,
+    modalScaleIn,
+    ModalOverlay,
+    ModalBox,
+    ModalCloseButton,
+    FormInput,
+    FormTextarea,
+    FormSelectButton,
+    FormErrorMessage,
+    SharedButton,
+} from '@/common/styles';
 
-const fadeIn = keyframes`
-    from { opacity: 0; }
-    to   { opacity: 1; }
-`;
+// ─── Re-exports used by QuickEventModal/index.tsx ─────────────────────────────
 
-const scaleIn = keyframes`
-    from { opacity: 0; transform: scale(0.97) translateY(4px); }
-    to   { opacity: 1; transform: scale(1)    translateY(0);   }
-`;
+export { overlayFadeIn, modalScaleIn };
 
-/* ─── Overlay & container ─────────────────────────────────────── */
+// ─── Overlay & container ──────────────────────────────────────────────────────
 
-export const Overlay = styled.div<{ $isOpen: boolean }>`
-    position: fixed;
-    inset: 0;
+export const Overlay = styled(ModalOverlay)`
     z-index: 50;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: ${props => props.theme.spacing.md};
-    background-color: ${props => props.$isOpen ? 'rgba(15, 23, 42, 0.35)' : 'rgba(15, 23, 42, 0)'};
-    backdrop-filter: ${props => props.$isOpen ? 'blur(4px)' : 'none'};
-    opacity: ${props => props.$isOpen ? 1 : 0};
-    pointer-events: ${props => props.$isOpen ? 'auto' : 'none'};
-    transition: all ${props => props.theme.transitions.slow};
-    animation: ${props => props.$isOpen ? fadeIn : 'none'} 0.25s ease-out;
 `;
 
-export const ModalContainer = styled.div<{ $isOpen: boolean }>`
-    background: ${props => props.theme.colors.surface};
-    border-radius: 20px;
-    box-shadow:
-        0 0 0 1px rgba(0,0,0,0.06),
-        0 8px 16px -4px rgba(0,0,0,0.08),
-        0 24px 48px -12px rgba(0,0,0,0.14);
-    width: 100%;
-    max-width: 680px;
+export const ModalContainer = styled(ModalBox).attrs<{ $isOpen: boolean }>({})`
+    max-width: 700px;
     max-height: 88vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    transform: ${props => props.$isOpen ? 'scale(1) translateY(0)' : 'scale(0.97) translateY(4px)'};
-    opacity: ${props => props.$isOpen ? 1 : 0};
-    transition: all ${props => props.theme.transitions.slow};
-    animation: ${props => props.$isOpen ? scaleIn : 'none'} 0.25s cubic-bezier(0.32, 0.72, 0, 1);
 `;
 
-/* ─── Header ──────────────────────────────────────────────────── */
+// ─── Header ───────────────────────────────────────────────────────────────────
 
 export const Header = styled.div`
     position: relative;
-    padding: 20px 20px 16px 24px;
+    padding: 24px 24px 16px 28px;
     display: flex;
     align-items: flex-start;
     gap: 12px;
+    flex-shrink: 0;
 `;
 
 export const HeaderContent = styled.div`
@@ -62,59 +49,37 @@ export const HeaderContent = styled.div`
     min-width: 0;
 `;
 
-export const CloseButton = styled.button`
-    flex-shrink: 0;
-    margin-top: 2px;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${props => props.theme.colors.textMuted};
-    background: transparent;
-    border: none;
-    border-radius: ${props => props.theme.radii.md};
-    cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
-
-    &:hover {
-        color: ${props => props.theme.colors.textSecondary};
-        background: ${props => props.theme.colors.surfaceAlt};
-    }
-
-    svg { width: 18px; height: 18px; }
-`;
+export const CloseButton = styled(ModalCloseButton)``;
 
 export const TitleInput = styled.input<{ $accentColor?: string; $hasError?: boolean }>`
     width: 100%;
     font-size: 22px;
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    color: ${props => props.theme.colors.text};
+    font-weight: 700;
+    color: #0f172a;
     background: transparent;
     border: none;
-    border-bottom: 2px solid ${props =>
-        props.$hasError ? props.theme.colors.error : 'transparent'};
-    padding-bottom: 4px;
+    border-bottom: 2px solid ${p =>
+        p.$hasError ? '#ef4444' : 'transparent'};
+    padding: 0 0 6px;
     outline: none;
-    transition: border-color ${props => props.theme.transitions.fast};
-    letter-spacing: -0.01em;
+    transition: border-color 180ms ease;
+    letter-spacing: -0.4px;
+    font-family: inherit;
 
-    &::placeholder { color: ${props => props.theme.colors.border}; }
+    &::placeholder { color: #cbd5e1; }
 
     &:focus {
-        border-bottom-color: ${props =>
-            props.$hasError
-                ? props.theme.colors.error
-                : (props.$accentColor || props.theme.colors.border)};
+        border-bottom-color: ${p =>
+            p.$hasError ? '#ef4444' : (p.$accentColor ?? '#0ea5e9')};
     }
 `;
 
-/* ─── Scrollable body ─────────────────────────────────────────── */
+// ─── Scrollable body ──────────────────────────────────────────────────────────
 
 export const ScrollableContent = styled.div`
     flex: 1;
     overflow-y: auto;
-    padding: 4px 24px 20px;
+    padding: 4px 28px 20px;
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -123,15 +88,13 @@ export const ScrollableContent = styled.div`
     &::-webkit-scrollbar { width: 4px; }
     &::-webkit-scrollbar-track { background: transparent; }
     &::-webkit-scrollbar-thumb {
-        background: ${props => props.theme.colors.border};
+        background: #e2e8f0;
         border-radius: 2px;
     }
-    &::-webkit-scrollbar-thumb:hover {
-        background: ${props => props.theme.colors.textMuted};
-    }
+    &::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
 `;
 
-/* ─── Row layout ──────────────────────────────────────────────── */
+// ─── Row layout ───────────────────────────────────────────────────────────────
 
 export const Row = styled.div`
     display: flex;
@@ -142,9 +105,9 @@ export const Row = styled.div`
 
 export const IconWrapper = styled.div<{ $color?: string }>`
     flex-shrink: 0;
-    margin-top: 10px;
-    color: ${props => props.$color || props.theme.colors.textMuted};
-    transition: color ${props => props.theme.transitions.fast};
+    margin-top: 12px;
+    color: ${p => p.$color ?? '#94a3b8'};
+    transition: color 150ms ease;
     svg { width: 16px; height: 16px; }
 `;
 
@@ -159,9 +122,9 @@ export const RowContent = styled.div`
 export const InputGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr;
-    gap: ${props => props.theme.spacing.sm};
+    gap: 10px;
 
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
         grid-template-columns: 1fr 1fr;
     }
 `;
@@ -169,150 +132,70 @@ export const InputGrid = styled.div`
 export const InputGroup = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 5px;
 `;
 
 export const Label = styled.label`
     display: block;
-    font-size: 11px;
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.textMuted};
+    font-size: 12px;
+    font-weight: 600;
+    color: #94a3b8;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
 `;
 
-export const ErrorMessage = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.error};
-    font-weight: ${props => props.theme.fontWeights.medium};
-`;
+export const ErrorMessage = styled(FormErrorMessage)``;
 
-export const Input = styled.input<{ $accentColor?: string; $hasError?: boolean }>`
-    width: 100%;
-    padding: 9px 12px;
-    background: ${props => props.theme.colors.surfaceAlt};
-    border: 1px solid ${props => props.$hasError ? props.theme.colors.error : 'transparent'};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.text};
-    outline: none;
-    transition: all ${props => props.theme.transitions.fast};
-
-    &::placeholder { color: ${props => props.theme.colors.textMuted}; }
-
-    &:focus {
-        background: ${props => props.theme.colors.surface};
-        border-color: ${props =>
-            props.$hasError ? props.theme.colors.error
-                : (props.$accentColor || props.theme.colors.primary)};
-        box-shadow: 0 0 0 3px ${props =>
-            props.$hasError ? 'rgba(220,38,38,0.08)' : 'rgba(59,130,246,0.08)'};
-    }
-
-    &:disabled { opacity: 0.4; cursor: not-allowed; }
-`;
+export const Input = styled(FormInput)``;
 
 export const Checkbox = styled.input.attrs({ type: 'checkbox' })<{ $accentColor?: string }>`
     width: 15px;
     height: 15px;
-    border-radius: ${props => props.theme.radii.sm};
-    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: 4px;
     cursor: pointer;
-    accent-color: ${props => props.$accentColor || props.theme.colors.primary};
-
-    &:focus {
-        outline: 2px solid ${props => props.$accentColor || props.theme.colors.primary};
-        outline-offset: 0;
-    }
+    accent-color: ${p => p.$accentColor ?? '#0ea5e9'};
 `;
 
 export const CheckboxLabel = styled.label`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
+    gap: 8px;
     cursor: pointer;
     width: fit-content;
 
     span {
-        font-size: ${props => props.theme.fontSizes.sm};
-        color: ${props => props.theme.colors.text};
+        font-size: 14px;
+        color: #0f172a;
     }
 `;
 
 export const Divider = styled.div`
     height: 1px;
     margin: 4px 0;
-    background: ${props => props.theme.colors.border};
-    opacity: 0.6;
+    background: #f1f5f9;
 `;
 
-/* ─── Select / dropdown buttons ───────────────────────────────── */
+// ─── Select / trigger button ──────────────────────────────────────────────────
 
-export const SelectButton = styled.button<{ $accentColor?: string; $hasValue?: boolean; $hasError?: boolean }>`
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 9px 12px;
-    background: ${props => props.theme.colors.surfaceAlt};
-    border: 1px solid ${props => props.$hasError ? props.theme.colors.error : 'transparent'};
-    border-radius: ${props => props.theme.radii.md};
-    text-align: left;
-    cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
-
-    &:hover:not(:disabled) { background: ${props => props.theme.colors.surfaceHover}; }
-
-    &:focus {
-        border-color: ${props =>
-            props.$hasError ? props.theme.colors.error
-                : (props.$accentColor || props.theme.colors.primary)};
-    }
-
-    &:disabled { opacity: 0.4; cursor: not-allowed; &:hover { background: ${props => props.theme.colors.surfaceAlt}; } }
-
-    span {
-        flex: 1;
-        font-size: ${props => props.theme.fontSizes.sm};
-        color: ${props => props.$hasValue ? props.theme.colors.text : props.theme.colors.textMuted};
-        font-weight: ${props => props.$hasValue ? props.theme.fontWeights.medium : props.theme.fontWeights.normal};
-    }
-`;
+export const SelectButton = styled(FormSelectButton)``;
 
 export const RemoveButton = styled.div`
-    padding: ${props => props.theme.spacing.xs};
-    color: ${props => props.theme.colors.textMuted};
-    border-radius: ${props => props.theme.radii.full};
-    transition: all ${props => props.theme.transitions.fast};
+    padding: 4px;
+    color: #94a3b8;
+    border-radius: 999px;
+    transition: all 150ms ease;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-    &:hover { color: ${props => props.theme.colors.error}; background: ${props => props.theme.colors.errorLight}; }
-
+    &:hover { color: #ef4444; background: #fef2f2; }
     svg { width: 14px; height: 14px; }
 `;
 
-export const Textarea = styled.textarea<{ $accentColor?: string }>`
-    width: 100%;
-    padding: 9px 12px;
-    background: ${props => props.theme.colors.surfaceAlt};
-    border: 1px solid transparent;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.text};
-    outline: none;
-    resize: none;
-    transition: all ${props => props.theme.transitions.fast};
+export const Textarea = styled(FormTextarea)``;
 
-    &::placeholder { color: ${props => props.theme.colors.textMuted}; }
-
-    &:focus {
-        background: ${props => props.theme.colors.surface};
-        border-color: ${props => props.$accentColor || props.theme.colors.primary};
-        box-shadow: 0 0 0 3px rgba(59,130,246,0.08);
-    }
-`;
-
-/* ─── Dropdowns ───────────────────────────────────────────────── */
+// ─── Dropdowns ────────────────────────────────────────────────────────────────
 
 export const DropdownContainer = styled.div`
     position: relative;
@@ -322,86 +205,93 @@ export const Dropdown = styled.div`
     position: absolute;
     z-index: 2001;
     width: 100%;
-    margin-top: 4px;
-    background: ${props => props.theme.colors.surface};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    box-shadow: 0 8px 24px -4px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04);
+    margin-top: 6px;
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow:
+        0 0 0 1px rgba(0,0,0,0.03),
+        0 8px 24px -4px rgba(0,0,0,0.12);
     max-height: 220px;
     overflow-y: auto;
+    overflow-x: hidden;
 `;
 
 export const DropdownItem = styled.button<{ $accentColor?: string }>`
     width: 100%;
-    padding: 9px 14px;
+    padding: 10px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     background: transparent;
     border: none;
-    border-bottom: 1px solid ${props => props.theme.colors.surfaceAlt};
+    border-bottom: 1px solid #f8fafc;
     text-align: left;
     cursor: pointer;
-    transition: background ${props => props.theme.transitions.fast};
+    transition: background 150ms ease;
 
     &:last-child { border-bottom: none; }
-    &:hover { background: ${props => props.theme.colors.surfaceAlt}; }
+    &:hover { background: #f8fafc; }
+    &:first-child { border-radius: 16px 16px 0 0; }
+    &:last-child  { border-radius: 0 0 16px 16px; }
 
     span:first-child {
-        font-size: ${props => props.theme.fontSizes.sm};
-        color: ${props => props.theme.colors.text};
+        font-size: 14px;
+        color: #0f172a;
+        font-weight: 400;
     }
 
     span:last-child {
-        font-size: ${props => props.theme.fontSizes.xs};
-        font-weight: ${props => props.theme.fontWeights.semibold};
-        color: ${props => props.$accentColor || props.theme.colors.primary};
+        font-size: 12px;
+        font-weight: 600;
+        color: ${p => p.$accentColor ?? '#0ea5e9'};
         font-variant-numeric: tabular-nums;
     }
 `;
 
 export const DropdownAddButton = styled.button`
     width: 100%;
-    padding: 9px 14px;
+    padding: 10px 16px;
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
+    gap: 8px;
     background: transparent;
     border: none;
-    border-top: 1px solid ${props => props.theme.colors.border};
+    border-top: 1px solid #f1f5f9;
     text-align: left;
     cursor: pointer;
-    transition: background ${props => props.theme.transitions.fast};
+    transition: background 150ms ease;
+    border-radius: 0 0 16px 16px;
 
-    &:hover { background: ${props => props.theme.colors.surfaceAlt}; }
+    &:hover { background: #f0f9ff; }
 
-    svg { width: 16px; height: 16px; color: ${props => props.theme.colors.primary}; }
+    svg { width: 15px; height: 15px; color: #0ea5e9; }
 
     span {
-        font-size: ${props => props.theme.fontSizes.sm};
-        font-weight: ${props => props.theme.fontWeights.medium};
-        color: ${props => props.theme.colors.primary};
+        font-size: 14px;
+        font-weight: 600;
+        color: #0ea5e9;
     }
 `;
 
-/* ─── Selected customer chip ──────────────────────────────────── */
+// ─── Selected customer chip ───────────────────────────────────────────────────
 
 export const SelectedCustomerChip = styled.div`
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px 12px;
-    background: ${props => props.theme.colors.surfaceAlt};
-    border-radius: ${props => props.theme.radii.md};
-    border: 1px solid ${props => props.theme.colors.border};
+    gap: 10px;
+    padding: 8px 14px;
+    background: #f0f9ff;
+    border-radius: 12px;
+    border: 1.5px solid #bae6fd;
 `;
 
 export const ChipCheck = styled.div`
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
-    background: ${props => props.theme.colors.successLight};
-    color: ${props => props.theme.colors.success};
+    background: #dcfce7;
+    color: #16a34a;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -420,9 +310,9 @@ export const ChipInfo = styled.div`
 `;
 
 export const ChipName = styled.span`
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.text};
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
     white-space: nowrap;
     display: flex;
     align-items: center;
@@ -431,63 +321,61 @@ export const ChipName = styled.span`
 
 export const NewBadge = styled.span`
     font-size: 10px;
-    padding: 1px 5px;
-    background: ${props => props.theme.colors.successLight};
-    color: ${props => props.theme.colors.success};
-    border-radius: ${props => props.theme.radii.sm};
+    padding: 2px 6px;
+    background: #dcfce7;
+    color: #16a34a;
+    border-radius: 999px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
 `;
 
 export const ChipMeta = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
+    font-size: 12px;
+    color: #64748b;
     white-space: nowrap;
 `;
 
 export const ChipDot = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.border};
+    font-size: 12px;
+    color: #cbd5e1;
 `;
 
 export const ChipClear = styled.button`
     flex-shrink: 0;
-    padding: 2px;
-    color: ${props => props.theme.colors.textMuted};
+    padding: 3px;
+    color: #94a3b8;
     background: none;
     border: none;
-    border-radius: ${props => props.theme.radii.sm};
+    border-radius: 999px;
     cursor: pointer;
-    line-height: 1;
-    font-size: 16px;
-    transition: all ${props => props.theme.transitions.fast};
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 150ms ease;
 
-    &:hover { color: ${props => props.theme.colors.error}; background: ${props => props.theme.colors.errorLight}; }
+    &:hover { color: #ef4444; background: #fef2f2; }
     svg { width: 14px; height: 14px; }
 `;
 
-/* ─── Services list ───────────────────────────────────────────── */
+// ─── Services list ────────────────────────────────────────────────────────────
 
 export const ServicesList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
 `;
 
 export const ServiceItem = styled.div`
-    background: ${props => props.theme.colors.surface};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 16px;
     overflow: hidden;
-    transition: border-color ${props => props.theme.transitions.fast}, box-shadow ${props => props.theme.transitions.fast};
+    transition: border-color 180ms ease, box-shadow 180ms ease;
 
     &:hover {
-        border-color: #cbd5e1;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        border-color: #bae6fd;
+        box-shadow: 0 2px 8px rgba(14,165,233,0.08);
     }
 `;
 
@@ -495,21 +383,21 @@ export const ServiceItemRow = styled.div`
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 10px 10px 14px;
+    padding: 10px 10px 10px 16px;
 `;
 
 export const ServiceName = styled.span`
     flex: 1;
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.text};
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f172a;
     min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 `;
 
-/* ─── Inline price editing ────────────────────────────────────── */
+// ─── Inline price editing ─────────────────────────────────────────────────────
 
 export const ServicePricesGroup = styled.div`
     display: flex;
@@ -522,47 +410,46 @@ export const PriceCell = styled.div`
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 1px;
+    gap: 2px;
 `;
 
 export const PriceCellLabel = styled.span`
     font-size: 10px;
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.textMuted};
+    font-weight: 600;
+    color: #94a3b8;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     line-height: 1;
 `;
 
 export const PriceCellInput = styled.input`
-    width: 76px;
-    padding: 4px 6px;
+    width: 78px;
+    padding: 5px 8px;
     font-size: 13px;
-    font-weight: ${props => props.theme.fontWeights.medium};
+    font-weight: 500;
     text-align: right;
-    background: ${props => props.theme.colors.surfaceAlt};
-    border: 1px solid transparent;
-    border-radius: 6px;
-    color: ${props => props.theme.colors.text};
+    background: #f8fafc;
+    border: 1.5px solid transparent;
+    border-radius: 8px;
+    color: #0f172a;
     outline: none;
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum';
-    transition: all ${props => props.theme.transitions.fast};
+    transition: all 150ms ease;
+    font-family: inherit;
 
-    &:hover {
-        border-color: ${props => props.theme.colors.border};
-    }
+    &:hover { border-color: #e2e8f0; }
 
     &:focus {
-        background: ${props => props.theme.colors.surface};
-        border-color: ${props => props.theme.colors.primary};
-        box-shadow: 0 0 0 2px rgba(59,130,246,0.12);
+        background: #ffffff;
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 2px rgba(14,165,233,0.14);
     }
 `;
 
 export const PriceSep = styled.span`
     font-size: 12px;
-    color: ${props => props.theme.colors.border};
+    color: #cbd5e1;
     padding: 0 2px;
     flex-shrink: 0;
     margin-top: 14px;
@@ -570,7 +457,7 @@ export const PriceSep = styled.span`
 
 export const PriceCurrency = styled.span`
     font-size: 12px;
-    color: ${props => props.theme.colors.textMuted};
+    color: #94a3b8;
     flex-shrink: 0;
     margin-top: 14px;
     padding-left: 2px;
@@ -579,83 +466,87 @@ export const PriceCurrency = styled.span`
 export const ServiceActions = styled.div`
     display: flex;
     align-items: center;
-    gap: 1px;
+    gap: 2px;
     flex-shrink: 0;
 `;
 
 export const IconButton = styled.button<{ $active?: boolean }>`
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: ${props => props.theme.radii.md};
+    border-radius: 8px;
     border: none;
-    background: ${props => props.$active ? props.theme.colors.surfaceAlt : 'transparent'};
-    color: ${props => props.$active ? props.theme.colors.primary : props.theme.colors.textMuted};
+    background: ${p => p.$active ? '#f0f9ff' : 'transparent'};
+    color: ${p => p.$active ? '#0ea5e9' : '#94a3b8'};
     cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
+    transition: all 150ms ease;
 
     &:hover {
-        background: ${props => props.theme.colors.surfaceHover};
-        color: ${props => props.theme.colors.primary};
+        background: #f0f9ff;
+        color: #0ea5e9;
     }
 
     svg { width: 14px; height: 14px; }
 `;
 
 export const DeleteButton = styled.button`
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: ${props => props.theme.radii.md};
+    border-radius: 8px;
     border: none;
     background: transparent;
-    color: ${props => props.theme.colors.textMuted};
+    color: #94a3b8;
     cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
+    transition: all 150ms ease;
 
-    &:hover { background: ${props => props.theme.colors.errorLight}; color: ${props => props.theme.colors.error}; }
-
+    &:hover { background: #fef2f2; color: #ef4444; }
     svg { width: 14px; height: 14px; }
 `;
 
 export const ServiceNoteContainer = styled.div`
-    padding: 0 12px 10px;
+    padding: 0 12px 12px;
 `;
 
 export const ServiceNoteTextarea = styled.textarea`
     width: 100%;
-    padding: 7px 10px;
-    background: ${props => props.theme.colors.surfaceAlt};
-    border: 1px solid transparent;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.text};
+    padding: 8px 12px;
+    background: #f8fafc;
+    border: 1.5px solid transparent;
+    border-radius: 10px;
+    font-size: 13px;
+    color: #0f172a;
     outline: none;
     resize: none;
-    transition: all ${props => props.theme.transitions.fast};
+    transition: all 150ms ease;
+    font-family: inherit;
 
-    &::placeholder { color: ${props => props.theme.colors.textMuted}; }
+    &::placeholder { color: #94a3b8; }
+
+    &:hover { border-color: #e2e8f0; }
 
     &:focus {
-        background: ${props => props.theme.colors.surface};
-        border-color: ${props => props.theme.colors.primary};
+        background: #ffffff;
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 2px rgba(14,165,233,0.1);
     }
 `;
 
-/* ─── Summary ─────────────────────────────────────────────────── */
+// ─── Summary ──────────────────────────────────────────────────────────────────
 
 export const SummarySection = styled.div`
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 20px;
-    padding: 10px 14px;
-    background: ${props => props.theme.colors.surfaceAlt};
-    border-radius: ${props => props.theme.radii.md};
+    padding: 12px 16px;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 14px;
     flex-wrap: wrap;
 `;
 
@@ -663,116 +554,42 @@ export const SummaryItem = styled.div`
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 1px;
+    gap: 2px;
 `;
 
 export const SummaryLabel = styled.span<{ $isTotal?: boolean }>`
     font-size: 10px;
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.textMuted};
+    font-weight: 600;
+    color: #94a3b8;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
 `;
 
 export const SummaryValue = styled.span<{ $isTotal?: boolean }>`
-    font-size: ${props => props.$isTotal ? '15px' : '13px'};
-    color: ${props => props.$isTotal ? props.theme.colors.text : props.theme.colors.textSecondary};
-    font-weight: ${props => props.$isTotal ? props.theme.fontWeights.semibold : props.theme.fontWeights.medium};
+    font-size: ${p => p.$isTotal ? '16px' : '13px'};
+    color: ${p => p.$isTotal ? '#0f172a' : '#475569'};
+    font-weight: ${p => p.$isTotal ? 700 : 500};
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum';
 `;
 
 export const SummaryDivider = styled.div`
     width: 1px;
-    height: 28px;
-    background: ${props => props.theme.colors.border};
+    height: 30px;
+    background: #e2e8f0;
     flex-shrink: 0;
 `;
 
-/* ─── Deprecated / kept for backwards compat ──────────────────── */
-/* These are still referenced from JSX we haven't updated yet */
-
-export const DragHandle = styled.div`display: none;`;
-
-export const ServiceItemHeader = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 10px 10px 14px;
-`;
-
-export const ServicePriceWrapper = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-`;
-
-export const ServicePricesRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 6px 14px 10px;
-`;
-
-export const ServicePriceSeparator = styled.div`
-    width: 1px;
-    height: 18px;
-    background: ${props => props.theme.colors.border};
-    flex-shrink: 0;
-`;
-
-export const ServicePriceInput = styled.input`
-    width: 80px;
-    padding: 4px 6px;
-    font-size: 13px;
-    font-weight: ${props => props.theme.fontWeights.medium};
-    text-align: right;
-    background: ${props => props.theme.colors.surfaceAlt};
-    border: 1px solid transparent;
-    border-radius: 6px;
-    color: ${props => props.theme.colors.text};
-    outline: none;
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: 'tnum';
-    transition: all ${props => props.theme.transitions.fast};
-    &:hover { border-color: ${props => props.theme.colors.border}; }
-    &:focus { background: ${props => props.theme.colors.surface}; border-color: ${props => props.theme.colors.primary}; box-shadow: 0 0 0 2px rgba(59,130,246,0.12); }
-`;
-
-export const ServicePriceLabel = styled.span`
-    font-size: 12px;
-    color: ${props => props.theme.colors.textMuted};
-`;
-
-export const ServicePriceBadge = styled.span`
-    font-size: 10px;
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-`;
-
-/* ─── Summary row (kept for JSX compat) ───────────────────────── */
-
-export const SummaryRow = styled.div<{ $isTotal?: boolean }>`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: ${props => props.$isTotal ? '8px 0 0' : '4px 0'};
-    border-top: ${props => props.$isTotal ? `1px solid ${props.theme.colors.border}` : 'none'};
-    margin-top: ${props => props.$isTotal ? '8px' : '0'};
-`;
-
-/* ─── Footer ──────────────────────────────────────────────────── */
+// ─── Footer ───────────────────────────────────────────────────────────────────
 
 export const Footer = styled.div`
-    padding: 14px 24px;
-    border-top: 1px solid ${props => props.theme.colors.border};
-    background: ${props => props.theme.colors.surface};
+    padding: 16px 28px;
+    border-top: 1px solid #f1f5f9;
+    background: #fafbfd;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: ${props => props.theme.spacing.md};
+    gap: 16px;
     flex-shrink: 0;
 `;
 
@@ -787,29 +604,29 @@ export const ColorPickerSection = styled.div<{ $hasError?: boolean }>`
     align-items: center;
     gap: 10px;
     padding: 4px 8px;
-    border-radius: ${props => props.theme.radii.md};
-    border: 2px solid ${props => props.$hasError ? props.theme.colors.error : 'transparent'};
-    background: ${props => props.$hasError ? props.theme.colors.errorLight : 'transparent'};
-    transition: all ${props => props.theme.transitions.fast};
+    border-radius: 10px;
+    border: 2px solid ${p => p.$hasError ? '#ef4444' : 'transparent'};
+    background: ${p => p.$hasError ? '#fef2f2' : 'transparent'};
+    transition: all 150ms ease;
 
     svg {
-        color: ${props => props.$hasError ? props.theme.colors.error : props.theme.colors.textMuted};
+        color: ${p => p.$hasError ? '#ef4444' : '#94a3b8'};
         width: 16px;
         height: 16px;
     }
 `;
 
 export const ColorErrorMessage = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.error};
-    font-weight: ${props => props.theme.fontWeights.medium};
+    font-size: 12px;
+    color: #ef4444;
+    font-weight: 500;
     padding-left: 8px;
 `;
 
 export const ColorPickerList = styled.div`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
+    gap: 8px;
 `;
 
 export const SelectedColorName = styled.div`
@@ -817,38 +634,38 @@ export const SelectedColorName = styled.div`
 `;
 
 export const ColorButton = styled.button<{ $color: string; $isSelected: boolean }>`
-    width: 24px;
-    height: 24px;
-    border-radius: ${props => props.theme.radii.full};
-    border: 2px solid ${props => props.$isSelected ? props.$color : 'transparent'};
-    background-color: ${props => props.$color};
-    box-shadow: ${props => props.$isSelected
-        ? `0 0 0 2px white, 0 0 0 4px ${props.$color}60`
-        : props.theme.shadows.sm};
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid ${p => p.$isSelected ? p.$color : 'transparent'};
+    background-color: ${p => p.$color};
+    box-shadow: ${p => p.$isSelected
+        ? `0 0 0 2px white, 0 0 0 4px ${p.$color}70`
+        : '0 1px 2px rgba(0,0,0,0.08)'};
     cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
+    transition: all 150ms ease;
 
-    &:hover { transform: scale(1.15); }
+    &:hover { transform: scale(1.18); }
 `;
 
 export const AddColorButton = styled.button`
-    width: 24px;
-    height: 24px;
-    border-radius: ${props => props.theme.radii.full};
-    border: 2px dashed ${props => props.theme.colors.border};
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px dashed #cbd5e1;
     background-color: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
-    color: ${props => props.theme.colors.textMuted};
+    transition: all 150ms ease;
+    color: #94a3b8;
 
     &:hover {
-        transform: scale(1.15);
-        border-color: ${props => props.theme.colors.primary};
-        background-color: ${props => props.theme.colors.surfaceAlt};
-        color: ${props => props.theme.colors.primary};
+        transform: scale(1.18);
+        border-color: #0ea5e9;
+        background-color: #f0f9ff;
+        color: #0ea5e9;
     }
 
     svg { width: 12px; height: 12px; }
@@ -860,44 +677,79 @@ export const FooterActions = styled.div`
     gap: 8px;
 `;
 
-export const Button = styled.button<{ $variant?: 'primary' | 'secondary' | 'ghost' }>`
-    padding: ${props => props.$variant === 'ghost' ? '8px 16px' : '8px 20px'};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    border-radius: ${props => props.theme.radii.full};
-    border: none;
-    cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
-    white-space: nowrap;
+export const Button = styled(SharedButton)<{ $variant?: 'primary' | 'secondary' | 'ghost' }>``;
 
-    ${props => {
-        if (props.$variant === 'ghost') {
-            return `
-                color: ${props.theme.colors.textSecondary};
-                background: transparent;
-                &:hover:not(:disabled) { color: ${props.theme.colors.text}; background: ${props.theme.colors.surfaceAlt}; }
-                &:disabled { opacity: 0.5; cursor: not-allowed; }
-            `;
-        } else if (props.$variant === 'secondary') {
-            return `
-                color: ${props.theme.colors.textSecondary};
-                background: ${props.theme.colors.surfaceAlt};
-                &:hover:not(:disabled) { background: ${props.theme.colors.surfaceHover}; }
-                &:disabled { opacity: 0.5; cursor: not-allowed; }
-            `;
-        } else {
-            return `
-                color: white;
-                background-color: var(--button-bg, #2563eb);
-                box-shadow: 0 4px 12px rgba(37, 99, 235, 0.28);
-                &:hover:not(:disabled) {
-                    background-color: #1d4ed8;
-                    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.36);
-                    transform: translateY(-1px);
-                }
-                &:active { transform: translateY(0); }
-                &:disabled { opacity: 0.5; cursor: not-allowed; }
-            `;
-        }
-    }}
+// ─── Backwards-compat stubs (still referenced by some JSX) ───────────────────
+
+export const DragHandle = styled.div`display: none;`;
+
+export const ServiceItemHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 10px 10px 16px;
+`;
+
+export const ServicePriceWrapper = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+`;
+
+export const ServicePricesRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 16px 10px;
+`;
+
+export const ServicePriceSeparator = styled.div`
+    width: 1px;
+    height: 18px;
+    background: #e2e8f0;
+    flex-shrink: 0;
+`;
+
+export const ServicePriceInput = styled.input`
+    width: 80px;
+    padding: 5px 8px;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: right;
+    background: #f8fafc;
+    border: 1.5px solid transparent;
+    border-radius: 8px;
+    color: #0f172a;
+    outline: none;
+    font-variant-numeric: tabular-nums;
+    font-family: inherit;
+    transition: all 150ms ease;
+    &:hover { border-color: #e2e8f0; }
+    &:focus {
+        background: #ffffff;
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 2px rgba(14,165,233,0.14);
+    }
+`;
+
+export const ServicePriceLabel = styled.span`
+    font-size: 12px;
+    color: #94a3b8;
+`;
+
+export const ServicePriceBadge = styled.span`
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+`;
+
+export const SummaryRow = styled.div<{ $isTotal?: boolean }>`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${p => p.$isTotal ? '8px 0 0' : '4px 0'};
+    border-top: ${p => p.$isTotal ? '1px solid #e2e8f0' : 'none'};
+    margin-top: ${p => p.$isTotal ? '8px' : '0'};
 `;

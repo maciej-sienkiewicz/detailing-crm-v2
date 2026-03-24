@@ -1,61 +1,44 @@
-import styled, { keyframes } from 'styled-components';
+/**
+ * QuickServiceModal / QuickCustomerModal styles — Stitch-inspired design
+ *
+ * Shared by:
+ *   - QuickServiceModal  ("Wprowadź nową usługę")
+ *   - QuickCustomerModal ("Nowy klient")
+ *
+ * Modal/form primitives imported from @/common/styles.
+ */
+import styled from 'styled-components';
+import {
+    overlayFadeIn,
+    modalScaleIn,
+    ModalOverlay,
+    ModalBox,
+    ModalCloseButton,
+    FormFieldGroup,
+    FormLabel,
+    FormInput,
+    FormErrorMessage,
+    FormSubmitError,
+    FormCheckboxCard,
+    FormCheckboxLabel,
+    FormCheckbox,
+    FormCheckboxBody,
+    FormCheckboxTitle,
+    FormCheckboxDescription,
+    SharedButton,
+} from '@/common/styles';
 
-const fadeIn = keyframes`
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-`;
+// ─── Overlay & container ──────────────────────────────────────────────────────
 
-const scaleIn = keyframes`
-    from {
-        opacity: 0;
-        transform: scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-`;
-
-export const Overlay = styled.div<{ $isOpen: boolean; $contentLeft?: number }>`
-    position: fixed;
-    inset: 0;
+export const Overlay = styled(ModalOverlay)`
     z-index: 50;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: ${props => props.theme.spacing.md};
-    background-color: ${props => props.$isOpen ? 'rgba(15, 23, 42, 0.4)' : 'rgba(15, 23, 42, 0)'};
-    backdrop-filter: ${props => props.$isOpen ? 'blur(4px)' : 'none'};
-    opacity: ${props => props.$isOpen ? 1 : 0};
-    pointer-events: ${props => props.$isOpen ? 'auto' : 'none'};
-    transition: all ${props => props.theme.transitions.slow};
-    animation: ${props => props.$isOpen ? fadeIn : 'none'} 0.3s ease-out;
-
-    /* Center within content area on desktop (exclude sidebar width) */
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        left: ${props => (props.$contentLeft ?? 0)}px;
-    }
 `;
 
-export const ModalContainer = styled.div<{ $isOpen: boolean }>`
-    background: ${props => props.theme.colors.surface};
-    border-radius: ${props => props.theme.radii.xl};
-    box-shadow: ${props => props.theme.shadows.xl};
-    width: 100%;
-    max-width: 28rem;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    transform: ${props => props.$isOpen ? 'scale(1)' : 'scale(0.95)'};
-    opacity: ${props => props.$isOpen ? 1 : 0};
-    transition: all ${props => props.theme.transitions.slow};
-    animation: ${props => props.$isOpen ? scaleIn : 'none'} 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+export const ModalContainer = styled(ModalBox).attrs<{ $isOpen: boolean }>({})`
+    max-width: 440px;
 `;
+
+// ─── Form shell ───────────────────────────────────────────────────────────────
 
 export const Form = styled.form`
     display: flex;
@@ -64,213 +47,94 @@ export const Form = styled.form`
     min-height: 0;
 `;
 
+// ─── Header ───────────────────────────────────────────────────────────────────
+
 export const Header = styled.div`
-    position: relative;
-    padding: ${props => props.theme.spacing.lg} ${props => props.theme.spacing.xl} ${props => props.theme.spacing.md};
+    padding: 28px 28px 20px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-shrink: 0;
 `;
 
+/** Invisible placeholder — kept so existing imports don't break */
 export const DragHandle = styled.div`display: none;`;
-
 export const DragHandleBar = styled.div`display: none;`;
 
-export const CloseButton = styled.button`
-    position: absolute;
-    top: ${props => props.theme.spacing.lg};
-    right: ${props => props.theme.spacing.lg};
-    padding: ${props => props.theme.spacing.sm};
-    color: ${props => props.theme.colors.textMuted};
-    background: transparent;
-    border: none;
-    border-radius: ${props => props.theme.radii.full};
-    cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
-
-    &:hover {
-        color: ${props => props.theme.colors.textSecondary};
-        background: ${props => props.theme.colors.surfaceHover};
-    }
-
-    svg {
-        width: 24px;
-        height: 24px;
-    }
-`;
+export const CloseButton = styled(ModalCloseButton)``;
 
 export const Title = styled.h2`
-    font-size: ${props => props.theme.fontSizes.xxl};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    color: ${props => props.theme.colors.text};
     margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.4px;
+    line-height: 1.2;
+    flex: 1;
 `;
+
+// ─── Scrollable content ───────────────────────────────────────────────────────
 
 export const Content = styled.div`
     flex: 1;
     overflow-y: auto;
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.xl} ${props => props.theme.spacing.lg};
+    padding: 0 28px 24px;
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
+    gap: 20px;
+    min-height: 0;
 
-    &::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    &::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
+    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar-track { background: transparent; }
     &::-webkit-scrollbar-thumb {
-        background: ${props => props.theme.colors.border};
-        border-radius: 3px;
+        background: #e2e8f0;
+        border-radius: 2px;
     }
-
-    &::-webkit-scrollbar-thumb:hover {
-        background: ${props => props.theme.colors.textMuted};
-    }
+    &::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
 `;
 
-export const FieldGroup = styled.div`
-    display: flex;
-    flex-direction: column;
-`;
+// ─── Form field group ─────────────────────────────────────────────────────────
 
-export const Label = styled.label`
-    display: block;
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.textSecondary};
-    margin-bottom: ${props => props.theme.spacing.sm};
-`;
+export const FieldGroup = styled(FormFieldGroup)``;
 
-export const Input = styled.input<{ $hasError?: boolean }>`
-    width: 100%;
-    padding: 10px ${props => props.theme.spacing.md};
-    background: ${props => props.theme.colors.surfaceAlt};
-    border: 1px solid ${props => props.$hasError ? props.theme.colors.error : 'transparent'};
-    border-radius: ${props => props.theme.radii.lg};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.text};
-    outline: none;
-    transition: all ${props => props.theme.transitions.fast};
+export const Label = styled(FormLabel)``;
 
-    &::placeholder {
-        color: ${props => props.theme.colors.textMuted};
-    }
+export const Input = styled(FormInput)``;
 
-    &:focus {
-        background: ${props => props.theme.colors.surface};
-        border-color: ${props => props.$hasError ? props.theme.colors.error : props.theme.colors.primary};
-    }
-`;
+export const ErrorMessage = styled(FormErrorMessage)``;
 
-export const ErrorMessage = styled.p`
-    margin-top: ${props => props.theme.spacing.xs};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.error};
-`;
+// ─── Checkbox card ────────────────────────────────────────────────────────────
 
-export const CheckboxContainer = styled.div`
-    background: ${props => props.theme.colors.surfaceAlt};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    padding: ${props => props.theme.spacing.md};
-`;
+export const CheckboxContainer = styled(FormCheckboxCard)``;
 
-export const CheckboxLabel = styled.label`
-    display: flex;
-    align-items: flex-start;
-    gap: ${props => props.theme.spacing.md};
-    cursor: pointer;
-`;
+export const CheckboxLabel = styled(FormCheckboxLabel)``;
 
-export const Checkbox = styled.input.attrs({ type: 'checkbox' })`
-    margin-top: 2px;
-    width: 16px;
-    height: 16px;
-    border-radius: ${props => props.theme.radii.sm};
-    border: 1px solid ${props => props.theme.colors.border};
-    cursor: pointer;
-    accent-color: ${props => props.theme.colors.primary};
+export const Checkbox = styled(FormCheckbox)``;
 
-    &:focus {
-        outline: 2px solid ${props => props.theme.colors.primary};
-        outline-offset: 0;
-    }
-`;
+export const CheckboxContent = styled(FormCheckboxBody)``;
 
-export const CheckboxContent = styled.div`
-    flex: 1;
-`;
+export const CheckboxTitle = styled(FormCheckboxTitle)``;
 
-export const CheckboxTitle = styled.span`
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.text};
-`;
+export const CheckboxDescription = styled(FormCheckboxDescription)``;
 
-export const CheckboxDescription = styled.p`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textSecondary};
-    margin-top: ${props => props.theme.spacing.xs};
-`;
+// ─── Submit error ─────────────────────────────────────────────────────────────
 
-export const SubmitError = styled.div`
-    background: ${props => props.theme.colors.errorLight};
-    border: 1px solid rgba(220, 38, 38, 0.2);
-    border-radius: ${props => props.theme.radii.lg};
-    padding: ${props => props.theme.spacing.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.error};
-`;
+export const SubmitError = styled(FormSubmitError)``;
+
+// ─── Footer ───────────────────────────────────────────────────────────────────
 
 export const Footer = styled.div`
-    padding: ${props => props.theme.spacing.lg} ${props => props.theme.spacing.xl};
-    border-top: 1px solid ${props => props.theme.colors.border};
-    background: ${props => props.theme.colors.surface};
+    padding: 16px 28px;
+    border-top: 1px solid #f1f5f9;
+    background: #fafbfd;
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: ${props => props.theme.spacing.md};
+    gap: 10px;
+    flex-shrink: 0;
 `;
 
-export const Button = styled.button<{ $variant?: 'primary' | 'secondary' }>`
-    padding: 10px ${props => props.theme.spacing.lg};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    border-radius: ${props => props.theme.radii.full};
-    border: none;
-    cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
+// ─── Button ───────────────────────────────────────────────────────────────────
 
-    ${props => props.$variant === 'primary' ? `
-        color: white;
-        background-color: var(--button-bg, ${props.theme.colors.primary});
-        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.28);
-
-        &:hover:not(:disabled) {
-            background-color: #0284c7;
-            box-shadow: 0 6px 16px rgba(14, 165, 233, 0.36);
-            transform: translateY(-1px);
-        }
-
-        &:active { transform: translateY(0); }
-
-        &:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-    ` : `
-        color: ${props.theme.colors.textSecondary};
-        background: transparent;
-
-        &:hover:not(:disabled) {
-            color: ${props.theme.colors.text};
-            background: ${props.theme.colors.surfaceAlt};
-        }
-
-        &:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-    `}
-`;
+export const Button = styled(SharedButton)<{ $variant?: 'primary' | 'secondary' }>``;

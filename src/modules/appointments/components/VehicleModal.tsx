@@ -1,80 +1,108 @@
 // src/modules/appointments/components/VehicleModal.tsx
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Modal } from '@/common/components/Modal';
-import { FormGrid, FieldGroup, Label, ErrorMessage } from '@/common/components/Form';
-import { Button, ButtonGroup } from '@/common/components/Button';
-import { Divider } from '@/common/components/Divider';
 import { t } from '@/common/i18n';
 import type { Vehicle, SelectedVehicle } from '../types';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
+import {
+    ModalOverlay,
+    ModalBox,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalCloseButton,
+    ModalContent,
+    ModalFooter,
+    ModalSectionDivider,
+    FormFieldGroup,
+    FormLabel,
+    FormErrorMessage,
+    SharedButton,
+    SharedButtonGroup,
+} from '@/common/styles';
+
+// ─── Vehicle selection cards ──────────────────────────────────────────────────
 
 const VehicleGrid = styled.div`
     display: grid;
-    gap: ${props => props.theme.spacing.md};
-    margin-bottom: ${props => props.theme.spacing.lg};
-    max-height: 400px;
+    gap: 10px;
+    max-height: 340px;
     overflow-y: auto;
-    padding: ${props => props.theme.spacing.xs};
+    padding: 2px;
 
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: ${props => props.theme.spacing.lg};
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px;
     }
+
+    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
 `;
 
-const VehicleCard = styled.div`
-    padding: ${props => props.theme.spacing.lg} ${props => props.theme.spacing.xl};
-    border: 2px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
+const VehicleCard = styled.button`
+    padding: 16px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 16px;
     cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
-    background: linear-gradient(to bottom right, ${props => props.theme.colors.surface} 0%, ${props => props.theme.colors.surfaceAlt} 100%);
+    transition: all 180ms ease;
+    background: #ffffff;
+    text-align: left;
+    width: 100%;
 
     &:hover {
-        border-color: ${props => props.theme.colors.primary};
-        background: linear-gradient(135deg, ${props => props.theme.colors.primary}10 0%, ${props => props.theme.colors.primary}05 100%);
-        transform: translateY(-4px) scale(1.02);
-        box-shadow: ${props => props.theme.shadows.lg};
+        border-color: #0ea5e9;
+        background: #f0f9ff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(14,165,233,0.12);
     }
 
-    &:active {
-        transform: translateY(-2px) scale(1.01);
-    }
+    &:active { transform: translateY(0); }
 `;
 
 const VehicleName = styled.div`
-    font-size: ${props => props.theme.fontSizes.lg};
-    font-weight: ${props => props.theme.fontWeights.bold};
-    color: ${props => props.theme.colors.text};
-    margin-bottom: ${props => props.theme.spacing.md};
-    letter-spacing: -0.02em;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes.xl};
-    }
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 8px;
+    letter-spacing: -0.3px;
 `;
 
 const VehicleDetails = styled.div`
     display: flex;
-    gap: ${props => props.theme.spacing.sm};
+    gap: 8px;
     flex-wrap: wrap;
     align-items: center;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        gap: ${props => props.theme.spacing.md};
-    }
 `;
 
 const VehicleDetail = styled.span`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
-    font-weight: ${props => props.theme.fontWeights.medium};
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 500;
+`;
 
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${props => props.theme.fontSizes.md};
+// ─── New vehicle form ─────────────────────────────────────────────────────────
+
+const FormGrid = styled.div`
+    display: grid;
+    gap: 16px;
+
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
+        grid-template-columns: 1fr 1fr;
     }
 `;
+
+// ─── Close icon ───────────────────────────────────────────────────────────────
+
+const IconX = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+        strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+);
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 interface VehicleModalProps {
     isOpen: boolean;
@@ -85,145 +113,145 @@ interface VehicleModalProps {
     initialMode?: 'select' | 'new';
 }
 
-export const VehicleModal = ({ isOpen, vehicles, onClose, onSelect, allowSkip = false, initialMode = 'select' }: VehicleModalProps) => {
+export const VehicleModal = ({
+    isOpen,
+    vehicles,
+    onClose,
+    onSelect,
+    allowSkip = false,
+    initialMode = 'select',
+}: VehicleModalProps) => {
     const [showNewForm, setShowNewForm] = useState(initialMode === 'new');
 
-    // When modal opens or initialMode changes, sync the internal mode
     useEffect(() => {
-        if (isOpen) {
-            setShowNewForm(initialMode === 'new');
-        }
+        if (isOpen) setShowNewForm(initialMode === 'new');
     }, [isOpen, initialMode]);
-    const [formData, setFormData] = useState({
-        brand: '',
-        model: '',
-    });
-    const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const [formData, setFormData] = useState({ brand: '', model: '' });
+    const [errors, setErrors]     = useState<Record<string, string>>({});
 
     const handleVehicleClick = (vehicle: Vehicle) => {
-        onSelect({
-            id: vehicle.id,
-            brand: vehicle.brand,
-            model: vehicle.model,
-            isNew: false,
-        });
+        onSelect({ id: vehicle.id, brand: vehicle.brand, model: vehicle.model, isNew: false });
         onClose();
     };
 
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};
-
-        if (!formData.brand || formData.brand.length < 2) {
+        if (!formData.brand || formData.brand.length < 2)
             newErrors.brand = t.appointments.validation.brandMinLength;
-        }
-        if (!formData.model || formData.model.length < 1) {
+        if (!formData.model || formData.model.length < 1)
             newErrors.model = t.appointments.validation.modelRequired;
-        }
-
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmitNew = () => {
         if (!validateForm()) return;
-
-        onSelect({
-            ...formData,
-            isNew: true,
-        });
+        onSelect({ ...formData, isNew: true });
         onClose();
     };
 
     const handleSkip = () => {
-        onSelect({
-            brand: '',
-            model: '',
-            isNew: false,
-        });
+        onSelect({ brand: '', model: '', isNew: false });
         onClose();
     };
 
-    const modalTitle = showNewForm
+    if (!isOpen) return null;
+
+    const title = showNewForm
         ? t.appointments.vehicleModal.titleNew
         : t.appointments.vehicleModal.titleSelect;
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} maxWidth="700px">
-            {!showNewForm ? (
-                <>
-                    {vehicles.length > 0 && (
+        <ModalOverlay $isOpen={isOpen} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+            <ModalBox $isOpen={isOpen} $maxWidth="640px">
+
+                <ModalHeader>
+                    <ModalTitleGroup>
+                        <ModalTitle>{title}</ModalTitle>
+                    </ModalTitleGroup>
+                    <ModalCloseButton type="button" onClick={onClose}>
+                        <IconX />
+                    </ModalCloseButton>
+                </ModalHeader>
+
+                <ModalContent>
+                    {!showNewForm ? (
                         <>
-                            <VehicleGrid>
-                                {vehicles.map((vehicle) => (
-                                    <VehicleCard
-                                        key={vehicle.id}
-                                        onClick={() => handleVehicleClick(vehicle)}
-                                    >
-                                        <VehicleName>
-                                            {vehicle.brand} {vehicle.model}
-                                        </VehicleName>
-                                        <VehicleDetails>
-                                            <VehicleDetail>{t.appointments.vehicleModal.year}: {vehicle.year}</VehicleDetail>
-                                            <VehicleDetail>•</VehicleDetail>
-                                            <VehicleDetail>{vehicle.licensePlate}</VehicleDetail>
-                                        </VehicleDetails>
-                                    </VehicleCard>
-                                ))}
-                            </VehicleGrid>
-                            <Divider />
+                            {vehicles.length > 0 && (
+                                <>
+                                    <VehicleGrid>
+                                        {vehicles.map((vehicle) => (
+                                            <VehicleCard
+                                                key={vehicle.id}
+                                                type="button"
+                                                onClick={() => handleVehicleClick(vehicle)}
+                                            >
+                                                <VehicleName>
+                                                    {vehicle.brand} {vehicle.model}
+                                                </VehicleName>
+                                                <VehicleDetails>
+                                                    <VehicleDetail>
+                                                        {t.appointments.vehicleModal.year}: {vehicle.year}
+                                                    </VehicleDetail>
+                                                    <VehicleDetail>·</VehicleDetail>
+                                                    <VehicleDetail>{vehicle.licensePlate}</VehicleDetail>
+                                                </VehicleDetails>
+                                            </VehicleCard>
+                                        ))}
+                                    </VehicleGrid>
+                                    <ModalSectionDivider />
+                                </>
+                            )}
+
+                            <SharedButtonGroup $align="between">
+                                <SharedButton $variant="primary" type="button" onClick={() => setShowNewForm(true)}>
+                                    {t.appointments.vehicleModal.addNewButton}
+                                </SharedButton>
+                                {allowSkip && (
+                                    <SharedButton $variant="ghost" type="button" onClick={handleSkip}>
+                                        {t.appointments.vehicleModal.skip}
+                                    </SharedButton>
+                                )}
+                            </SharedButtonGroup>
                         </>
+                    ) : (
+                        <FormGrid>
+                            <FormFieldGroup>
+                                <FormLabel>{t.appointments.vehicleModal.brand}</FormLabel>
+                                <BrandSelect
+                                    value={formData.brand}
+                                    onChange={(val) => setFormData({ ...formData, brand: val, model: '' })}
+                                    autoOpen={true}
+                                />
+                                {errors.brand && <FormErrorMessage>{errors.brand}</FormErrorMessage>}
+                            </FormFieldGroup>
+
+                            <FormFieldGroup>
+                                <FormLabel>{t.appointments.vehicleModal.model}</FormLabel>
+                                <ModelSelect
+                                    brand={formData.brand}
+                                    value={formData.model}
+                                    onChange={(val) => setFormData({ ...formData, model: val })}
+                                    autoOpen={true}
+                                />
+                                {errors.model && <FormErrorMessage>{errors.model}</FormErrorMessage>}
+                            </FormFieldGroup>
+                        </FormGrid>
                     )}
+                </ModalContent>
 
-                    <ButtonGroup>
-                        <Button $variant="primary" onClick={() => setShowNewForm(true)}>
-                            {t.appointments.vehicleModal.addNewButton}
-                        </Button>
-                        {allowSkip && (
-                            <Button $variant="secondary" onClick={handleSkip}>
-                                {t.appointments.vehicleModal.skip}
-                            </Button>
-                        )}
-                    </ButtonGroup>
-                </>
-            ) : (
-                <>
-                    <FormGrid>
-                        <FieldGroup>
-                            <Label>{t.appointments.vehicleModal.brand}</Label>
-                            <BrandSelect
-                                value={formData.brand}
-                                onChange={(val) =>
-                                    setFormData({ ...formData, brand: val, model: '' })
-                                }
-                                autoOpen={true}
-                            />
-                            {errors.brand && <ErrorMessage>{errors.brand}</ErrorMessage>}
-                        </FieldGroup>
-
-                        <FieldGroup>
-                            <Label>{t.appointments.vehicleModal.model}</Label>
-                            <ModelSelect
-                                brand={formData.brand}
-                                value={formData.model}
-                                onChange={(val) =>
-                                    setFormData({ ...formData, model: val })
-                                }
-                                autoOpen={true}
-                            />
-                            {errors.model && <ErrorMessage>{errors.model}</ErrorMessage>}
-                        </FieldGroup>
-                    </FormGrid>
-
-                    <ButtonGroup>
-                        <Button $variant="secondary" onClick={() => setShowNewForm(false)}>
+                {showNewForm && (
+                    <ModalFooter>
+                        <SharedButton $variant="secondary" type="button" onClick={() => setShowNewForm(false)}>
                             {t.appointments.vehicleModal.cancelButton}
-                        </Button>
-                        <Button $variant="primary" onClick={handleSubmitNew}>
+                        </SharedButton>
+                        <SharedButton $variant="primary" type="button" onClick={handleSubmitNew}>
                             {t.appointments.vehicleModal.confirmButton}
-                        </Button>
-                    </ButtonGroup>
-                </>
-            )}
-        </Modal>
+                        </SharedButton>
+                    </ModalFooter>
+                )}
+            </ModalBox>
+        </ModalOverlay>
     );
 };
