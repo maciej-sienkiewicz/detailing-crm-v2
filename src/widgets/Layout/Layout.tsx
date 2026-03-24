@@ -5,7 +5,7 @@ import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 const LayoutContainer = styled.div`
     display: flex;
     min-height: 100vh;
-    background-color: #fafafa;
+    background-color: ${props => props.theme.colors.background};
 `;
 
 const ContentWrapper = styled.div<{ $isCollapsed: boolean }>`

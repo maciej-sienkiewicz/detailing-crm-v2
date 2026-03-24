@@ -1,10 +1,11 @@
+import { type LucideIcon } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { MenuItemLink, MenuItemIcon, MenuItemText, MenuItemBadge } from './SidebarStyles';
 
 export interface MenuItem {
     path: string;
     label: string;
-    icon: string;
+    icon: LucideIcon;
     badge?: string | number;
 }
 
@@ -17,20 +18,17 @@ interface SidebarMenuItemProps {
 export const SidebarMenuItem = ({ item, isCollapsed, onNavigate }: SidebarMenuItemProps) => {
     const location = useLocation();
     const isActive = location.pathname.startsWith(item.path);
-
-    const handleClick = () => {
-        onNavigate?.();
-    };
+    const Icon = item.icon;
 
     return (
         <MenuItemLink
             to={item.path}
             $isActive={isActive}
             $isCollapsed={isCollapsed}
-            onClick={handleClick}
+            onClick={onNavigate}
         >
             <MenuItemIcon $isActive={isActive}>
-                {item.icon}
+                <Icon />
             </MenuItemIcon>
             <MenuItemText $isCollapsed={isCollapsed}>
                 {item.label}

@@ -24,24 +24,24 @@ interface CardConfig {
 
 const CARD_CONFIG: Record<CardVariant, CardConfig> = {
   inProgress: {
-    accentColor: 'var(--brand-primary)',
-    valueColor: 'var(--brand-primary)',
-    bgTint: 'rgba(14, 165, 233, 0.03)',
+    accentColor: '#0ea5e9',
+    valueColor: '#0ea5e9',
+    bgTint: 'rgba(14, 165, 233, 0.04)',
   },
   readyForPickup: {
     accentColor: '#16a34a',
     valueColor: '#16a34a',
-    bgTint: 'rgba(22, 163, 74, 0.03)',
+    bgTint: 'rgba(22, 163, 74, 0.04)',
   },
   incomingToday: {
     accentColor: '#d97706',
     valueColor: '#d97706',
-    bgTint: 'rgba(217, 119, 6, 0.03)',
+    bgTint: 'rgba(217, 119, 6, 0.04)',
   },
   abandoned: {
     accentColor: '#dc2626',
     valueColor: '#dc2626',
-    bgTint: 'rgba(220, 38, 38, 0.03)',
+    bgTint: 'rgba(220, 38, 38, 0.04)',
   },
 };
 
@@ -80,16 +80,28 @@ const CardWrapper = styled.div`
 
 const Card = styled.div<{ $variant: CardVariant; $isExpanded: boolean; $clickable: boolean }>`
   position: relative;
-  background-color: ${(p) => CARD_CONFIG[p.$variant].bgTint};
+  background-color: ${(p) => p.theme.colors.surface};
   border: 1px solid ${(p) => p.theme.colors.border};
-  border-left: 4px solid ${(p) => CARD_CONFIG[p.$variant].accentColor};
-  border-radius: ${(p) => p.theme.radii.lg};
+  border-radius: ${(p) => p.theme.radii.xl};
   padding: ${(p) => p.theme.spacing.lg};
   box-shadow: ${(p) => p.theme.shadows.sm};
   box-sizing: border-box;
   width: 100%;
-  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease,
-    background-color 180ms ease;
+  overflow: hidden;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+
+  /* Top accent line */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: ${(p) => CARD_CONFIG[p.$variant].accentColor};
+    border-radius: ${(p) => p.theme.radii.xl} ${(p) => p.theme.radii.xl} 0 0;
+    opacity: 0.7;
+  }
 
   ${(p) =>
     p.$clickable &&
@@ -100,7 +112,9 @@ const Card = styled.div<{ $variant: CardVariant; $isExpanded: boolean; $clickabl
       &:hover {
         transform: translateY(-2px);
         box-shadow: ${p.theme.shadows.md};
-        background-color: ${CARD_CONFIG[p.$variant].bgTint.replace('0.03', '0.06')};
+        border-color: ${CARD_CONFIG[p.$variant].accentColor}40;
+
+        &::before { opacity: 1; }
       }
     `}
 
@@ -108,7 +122,9 @@ const Card = styled.div<{ $variant: CardVariant; $isExpanded: boolean; $clickabl
     p.$isExpanded &&
     css`
       box-shadow: ${p.theme.shadows.md};
-      border-color: ${CARD_CONFIG[p.$variant].accentColor};
+      border-color: ${CARD_CONFIG[p.$variant].accentColor}40;
+
+      &::before { opacity: 1; }
     `}
 `;
 
@@ -120,11 +136,11 @@ const CardHeader = styled.div`
 `;
 
 const CardLabel = styled.span`
-  font-size: ${(p) => p.theme.fontSizes.xs};
-  font-weight: ${(p) => p.theme.fontWeights.semibold};
-  color: ${(p) => p.theme.colors.textSecondary};
+  font-size: 11px;
+  font-weight: 600;
+  color: ${(p) => p.theme.colors.textMuted};
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.07em;
   line-height: 1.4;
 `;
 
@@ -139,12 +155,13 @@ const ExpandChevron = styled(ChevronDown)<{ $isExpanded: boolean }>`
 `;
 
 const CardValue = styled.div<{ $variant: CardVariant }>`
-  font-size: 42px;
-  font-weight: ${(p) => p.theme.fontWeights.bold};
-  color: ${(p) => CARD_CONFIG[p.$variant].valueColor};
+  font-size: 44px;
+  font-weight: 800;
+  color: ${(p) => p.theme.colors.text};
   line-height: 1;
   margin-bottom: ${(p) => p.theme.spacing.sm};
   font-variant-numeric: tabular-nums;
+  letter-spacing: -1.5px;
 `;
 
 const CardSkeleton = styled.div`
