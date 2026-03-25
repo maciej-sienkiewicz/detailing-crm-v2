@@ -7,7 +7,6 @@ import { useState } from 'react';
 import styled, { css, keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import {
-  ExternalLink,
   Clock,
   AlertTriangle,
   ChevronRight,
@@ -389,7 +388,7 @@ const ViewAllBtn = styled.button`
 
 // ─── Visit Item ───────────────────────────────────────────────────────────────
 
-const VisitItem = styled.div<{ $overdue: boolean }>`
+const VisitItem = styled.div<{ $overdue: boolean; $clickable: boolean }>`
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -397,9 +396,10 @@ const VisitItem = styled.div<{ $overdue: boolean }>`
   border-bottom: 1px solid ${p => p.theme.colors.border};
   border-left: 3px solid ${p => p.$overdue ? p.theme.colors.error : 'transparent'};
   transition: background 120ms ease;
+  cursor: ${p => p.$clickable ? 'pointer' : 'default'};
 
   &:last-child { border-bottom: none; }
-  &:hover { background: ${p => p.theme.colors.surfaceAlt}; }
+  &:hover { background: ${p => p.$clickable ? p.theme.colors.surfaceAlt : 'transparent'}; }
 `;
 
 const BrandAvatar = styled.div<{ $variant: CardVariant }>`
@@ -488,49 +488,27 @@ const DateLine = styled.div<{ $overdue: boolean }>`
   svg { width: 11px; height: 11px; flex-shrink: 0; }
 `;
 
-const OpenButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  min-width: 30px;
-  border: 1px solid ${p => p.theme.colors.border};
-  border-radius: 8px;
-  background: transparent;
-  color: ${p => p.theme.colors.textMuted};
-  cursor: pointer;
-  flex-shrink: 0;
-  align-self: center;
-  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
-
-  svg { width: 13px; height: 13px; }
-
-  &:hover {
-    background: var(--brand-primary);
-    color: #fff;
-    border-color: var(--brand-primary);
-  }
-`;
-
 // ─── Visit Row ────────────────────────────────────────────────────────────────
 
 const VisitRow = ({
   visit,
   variant,
-  showActions,
+  onRowClick,
 }: {
   visit: VisitDetail;
   variant: CardVariant;
-  showActions: boolean;
+  onRowClick?: (id: string) => void;
 }) => {
-  const navigate = useNavigate();
   const isOverdue = Boolean(
     visit.estimatedCompletionDate && new Date(visit.estimatedCompletionDate) < new Date()
   );
 
   return (
-    <VisitItem $overdue={isOverdue}>
+    <VisitItem
+      $overdue={isOverdue}
+      $clickable={!!onRowClick}
+      onClick={() => onRowClick?.(visit.id)}
+    >
       <BrandAvatar $variant={variant}>{visit.brand.charAt(0).toUpperCase()}</BrandAvatar>
 
       <VisitBody>
@@ -557,15 +535,6 @@ const VisitRow = ({
           </DateLine>
         )}
       </VisitBody>
-
-      {showActions && (
-        <OpenButton
-          onClick={() => navigate(`/visits/${visit.id}`)}
-          title="Otwórz wizytę"
-        >
-          <ExternalLink />
-        </OpenButton>
-      )}
     </VisitItem>
   );
 };
@@ -648,7 +617,7 @@ interface DrawerData {
   variant: CardVariant;
   label: string;
   visits: VisitDetail[];
-  showActions: boolean;
+  onRowClick?: (id: string) => void;
 }
 
 const VisitDrawer = ({
@@ -688,7 +657,7 @@ const VisitDrawer = ({
                 key={visit.id}
                 visit={visit}
                 variant={data.variant}
-                showActions={data.showActions}
+                onRowClick={data.onRowClick}
               />
             ))
           )}
@@ -711,6 +680,7 @@ const VisitDrawer = ({
 
 export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
   const [activeKey, setActiveKey] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const toggle = (key: string) =>
     setActiveKey(prev => (prev === key ? null : key));
@@ -719,11 +689,11 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
     if (!activeKey || !stats) return null;
     switch (activeKey) {
       case 'inProgress':
-        return { variant: 'inProgress', label: t.dashboard.stats.inProgress, visits: stats.inProgressDetails ?? [], showActions: true };
+        return { variant: 'inProgress', label: t.dashboard.stats.inProgress, visits: stats.inProgressDetails ?? [], onRowClick: (id) => navigate(`/visits/${id}`) };
       case 'readyForPickup':
-        return { variant: 'readyForPickup', label: t.dashboard.stats.readyForPickup, visits: stats.readyForPickupDetails ?? [], showActions: true };
+        return { variant: 'readyForPickup', label: t.dashboard.stats.readyForPickup, visits: stats.readyForPickupDetails ?? [], onRowClick: (id) => navigate(`/visits/${id}`) };
       case 'incomingToday':
-        return { variant: 'incomingToday', label: t.dashboard.stats.arrivals, visits: stats.incomingTodayDetails ?? [], showActions: false };
+        return { variant: 'incomingToday', label: t.dashboard.stats.arrivals, visits: stats.incomingTodayDetails ?? [], onRowClick: (id) => navigate(`/reservations/${id}/checkin`) };
       default:
         return null;
     }
