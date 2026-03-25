@@ -177,6 +177,18 @@ const CustomerInfo = styled.div`
     text-overflow: ellipsis;
 `;
 
+const VehicleSubInfo = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 3px;
+    font-size: 12px;
+    color: ${st.textSecondary};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+`;
+
 // Date cell
 const DateCellWrap = styled.div`
     display: flex;
@@ -539,7 +551,7 @@ export const OperationalDataTable = ({
             <Outer>
                 <ListWrap>
                     <HeaderRow>
-                        <HeaderCell>Pojazd / Klient</HeaderCell>
+                        <HeaderCell>Tytuł / Pojazd / Klient</HeaderCell>
                         <HeaderCell>Data przyjazdu</HeaderCell>
                         <HeaderCell>Wartość</HeaderCell>
                         <HeaderCell>Status</HeaderCell>
@@ -580,36 +592,32 @@ export const OperationalDataTable = ({
                                     $clickable={clickable}
                                     onClick={() => clickable && handleRowClick(op)}
                                 >
-                                    {/* Vehicle + customer */}
+                                    {/* Title + vehicle + customer */}
                                     <MainCell>
                                         <TypeBubble $isVisit={isVisit}>
                                             {isVisit ? <CarIcon /> : <CalendarIcon />}
                                         </TypeBubble>
 
                                         <VehicleBlock>
-                                            {op.vehicle ? (
-                                                <>
-                                                    <VehicleName>
-                                                        {op.vehicle.brand} {op.vehicle.model}
-                                                    </VehicleName>
-                                                    <RowMeta>
-                                                        {op.vehicle.licensePlate && (
-                                                            <LicensePlate>{op.vehicle.licensePlate}</LicensePlate>
-                                                        )}
-                                                        <TypeTag $isVisit={isVisit}>
-                                                            {isVisit ? 'Wizyta' : 'Rezerwacja'}
-                                                        </TypeTag>
-                                                    </RowMeta>
-                                                </>
+                                            {op.title ? (
+                                                <VehicleName>{op.title}</VehicleName>
                                             ) : (
-                                                <>
-                                                    <PlaceholderText>Brak pojazdu</PlaceholderText>
-                                                    <RowMeta>
-                                                        <TypeTag $isVisit={isVisit}>
-                                                            {isVisit ? 'Wizyta' : 'Rezerwacja'}
-                                                        </TypeTag>
-                                                    </RowMeta>
-                                                </>
+                                                <PlaceholderText>Brak tytułu</PlaceholderText>
+                                            )}
+                                            <RowMeta>
+                                                <TypeTag $isVisit={isVisit}>
+                                                    {isVisit ? 'Wizyta' : 'Rezerwacja'}
+                                                </TypeTag>
+                                            </RowMeta>
+                                            {op.vehicle ? (
+                                                <VehicleSubInfo>
+                                                    {op.vehicle.licensePlate && (
+                                                        <LicensePlate>{op.vehicle.licensePlate}</LicensePlate>
+                                                    )}
+                                                    {op.vehicle.brand} {op.vehicle.model}
+                                                </VehicleSubInfo>
+                                            ) : (
+                                                <VehicleSubInfo>Brak pojazdu</VehicleSubInfo>
                                             )}
                                             <CustomerInfo>
                                                 {customerLabel}{phoneLabel}

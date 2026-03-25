@@ -44,6 +44,7 @@ export interface LastModification {
 export interface Operation {
     id: string;
     type: OperationType;
+    title?: string;
     customerFirstName: string;
     customerLastName: string;
     customerPhone: string;
