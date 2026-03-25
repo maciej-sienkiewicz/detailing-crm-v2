@@ -616,8 +616,11 @@ const SkeletonCard = ({ variant }: { variant: CardVariant }) => (
 interface DrawerData {
   variant: CardVariant;
   label: string;
+  subtitle: string;
   visits: VisitDetail[];
   onRowClick?: (id: string) => void;
+  footerLabel?: string;
+  footerPath?: string;
 }
 
 const VisitDrawer = ({
@@ -640,7 +643,7 @@ const VisitDrawer = ({
           </DrawerIconWrap>
           <DrawerTitleGroup>
             <DrawerTitle>{data.label}</DrawerTitle>
-            <DrawerSubtitle>Lista wizyt</DrawerSubtitle>
+            <DrawerSubtitle>{data.subtitle}</DrawerSubtitle>
           </DrawerTitleGroup>
           <DrawerCountBadge $variant={data.variant}>{data.visits.length}</DrawerCountBadge>
           <DrawerCloseBtn onClick={onClose} aria-label="Zamknij">
@@ -665,8 +668,8 @@ const VisitDrawer = ({
 
         {data.visits.length > 0 && (
           <DrawerFooter>
-            <ViewAllBtn onClick={() => { navigate('/calendar'); onClose(); }}>
-              Pokaż w kalendarzu
+            <ViewAllBtn onClick={() => { navigate(data.footerPath ?? '/calendar'); onClose(); }}>
+              {data.footerLabel ?? 'Pokaż w kalendarzu'}
               <ChevronRight />
             </ViewAllBtn>
           </DrawerFooter>
@@ -689,11 +692,13 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
     if (!activeKey || !stats) return null;
     switch (activeKey) {
       case 'inProgress':
-        return { variant: 'inProgress', label: t.dashboard.stats.inProgress, visits: stats.inProgressDetails ?? [], onRowClick: (id) => navigate(`/visits/${id}`) };
+        return { variant: 'inProgress', label: t.dashboard.stats.inProgress, subtitle: 'Lista wizyt', visits: stats.inProgressDetails ?? [], onRowClick: (id) => navigate(`/visits/${id}`) };
       case 'readyForPickup':
-        return { variant: 'readyForPickup', label: t.dashboard.stats.readyForPickup, visits: stats.readyForPickupDetails ?? [], onRowClick: (id) => navigate(`/visits/${id}`) };
+        return { variant: 'readyForPickup', label: t.dashboard.stats.readyForPickup, subtitle: 'Lista wizyt', visits: stats.readyForPickupDetails ?? [], onRowClick: (id) => navigate(`/visits/${id}`) };
       case 'incomingToday':
-        return { variant: 'incomingToday', label: t.dashboard.stats.arrivals, visits: stats.incomingTodayDetails ?? [], onRowClick: (id) => navigate(`/reservations/${id}/checkin`) };
+        return { variant: 'incomingToday', label: t.dashboard.stats.arrivals, subtitle: 'Lista wizyt', visits: stats.incomingTodayDetails ?? [], onRowClick: (id) => navigate(`/reservations/${id}/checkin`) };
+      case 'abandoned':
+        return { variant: 'abandoned', label: t.dashboard.stats.abandoned, subtitle: 'Ostatnie 30 dni', visits: stats.abandonedDetails ?? [], onRowClick: (id) => navigate(`/appointments/${id}`), footerLabel: 'Pokaż rezerwacje', footerPath: '/appointments' };
       default:
         return null;
     }
@@ -743,9 +748,9 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
             variant="abandoned"
             label={t.dashboard.stats.abandoned}
             value={stats.abandonedLast30Days}
-            hasDetails={false}
-            isActive={false}
-            onToggle={() => {}}
+            hasDetails={!!stats.abandonedDetails}
+            isActive={activeKey === 'abandoned'}
+            onToggle={() => toggle('abandoned')}
             subLabel={t.dashboard.stats.abandonedSubLabel}
           />
         ) : <SkeletonCard variant="abandoned" />}
