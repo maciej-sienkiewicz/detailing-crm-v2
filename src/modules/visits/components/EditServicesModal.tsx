@@ -250,6 +250,27 @@ const PriceInput = styled.input`
   }
 `;
 
+const PriceInputsRow = styled.div`
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  margin-top: 2px;
+`;
+
+const PriceInputGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+
+const PriceInputLabel = styled.span`
+  font-size: 10px;
+  font-weight: 600;
+  color: ${st.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
 /* ─── Action buttons ──────────────────────────────────────────────────────── */
 
 const ActionGroup = styled.div`
@@ -399,7 +420,7 @@ export const EditServicesModal = ({
   const contentLeft = typeof window !== 'undefined' ? (isCollapsed ? 64 : 240) : 0;
 
   const [notifyCustomer, setNotifyCustomer] = useState(true);
-  const [editingPrices, setEditingPrices] = useState<Record<string, string>>({});
+  const [editingPrices, setEditingPrices] = useState<Record<string, { net: string; gross: string }>>({});
   const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
   const [newServiceNamePrefill, setNewServiceNamePrefill] = useState<string>('');
 
@@ -422,20 +443,53 @@ export const EditServicesModal = ({
 
   if (!isOpen) return null;
 
-  const handlePriceChange = (serviceId: string, value: string) => {
-    if (value !== '' && !/^\d*(\.\d{0,2})?$/.test(value)) return;
-    setEditingPrices(prev => ({ ...prev, [serviceId]: value }));
+  const limitDecimals = (raw: string): string => {
+    const sepIdx = Math.max(raw.indexOf('.'), raw.indexOf(','));
+    if (sepIdx === -1) return raw;
+    return raw.slice(0, sepIdx + 3);
+  };
+
+  const handleNetChange = (serviceId: string, raw: string) => {
+    const limited = limitDecimals(raw);
+    const num = parseFloat(limited.replace(',', '.'));
+    const vatRate = allItems.find(s => s.id === serviceId)?.vatRate ?? 23;
+    if (!isNaN(num)) {
+      const gross = (num * (1 + vatRate / 100)).toFixed(2);
+      setEditingPrices(prev => ({ ...prev, [serviceId]: { net: limited, gross } }));
+    } else {
+      setEditingPrices(prev => ({ ...prev, [serviceId]: { ...prev[serviceId], net: limited } }));
+    }
+  };
+
+  const handleGrossChange = (serviceId: string, raw: string) => {
+    const limited = limitDecimals(raw);
+    const num = parseFloat(limited.replace(',', '.'));
+    const vatRate = allItems.find(s => s.id === serviceId)?.vatRate ?? 23;
+    if (!isNaN(num)) {
+      const net = (num / (1 + vatRate / 100)).toFixed(2);
+      setEditingPrices(prev => ({ ...prev, [serviceId]: { net, gross: limited } }));
+    } else {
+      setEditingPrices(prev => ({ ...prev, [serviceId]: { ...prev[serviceId], gross: limited } }));
+    }
   };
 
   const handleSavePrice = (serviceId: string) => {
-    const rawValue = editingPrices[serviceId];
-    if (rawValue === undefined) return;
-    const numValue = Math.round(parseFloat(rawValue) * 100);
+    const editing = editingPrices[serviceId];
+    if (!editing) return;
+    const numValue = Math.round(parseFloat(editing.net.replace(',', '.')) * 100);
     if (!isNaN(numValue) && numValue >= 0) {
       setChangedPriceIds(prev => new Set(prev).add(serviceId));
       setLocalPriceOverrides(prev => ({ ...prev, [serviceId]: numValue }));
     }
     setEditingPrices(prev => { const { [serviceId]: _, ...rest } = prev; return rest; });
+  };
+
+  const handlePriceBlur = (serviceId: string) => {
+    requestAnimationFrame(() => {
+      const container = document.querySelector(`[data-price-editing="${serviceId}"]`);
+      if (container?.contains(document.activeElement)) return;
+      handleSavePrice(serviceId);
+    });
   };
 
   const handleDelete = (serviceId: string) => {
@@ -549,10 +603,11 @@ export const EditServicesModal = ({
                 const isDeleted     = !!deletedSnapshots[service.id];
                 const isAdded       = tempAdded.some(t => t.id === service.id);
                 const isPriceChanged = changedPriceIds.has(service.id);
-                const isEditing     = !isDeleted && editingPrices[service.id] !== undefined;
+                const editData      = editingPrices[service.id];
+                const isEditing     = !isDeleted && editData !== undefined;
 
                 const effectiveNet   = isEditing
-                  ? Number(editingPrices[service.id]) * 100
+                  ? Math.round(parseFloat(editData.net.replace(',', '.') || '0') * 100)
                   : (localPriceOverrides[service.id] ?? service.finalPriceNet);
                 const effectiveGross = Math.round(effectiveNet * (1 + (service.vatRate || 0) / 100));
 
@@ -582,17 +637,35 @@ export const EditServicesModal = ({
                       </ServiceNameRow>
 
                       {isEditing ? (
-                        <PriceInput
-                          type="text"
-                          inputMode="decimal"
-                          value={editingPrices[service.id] ?? ''}
-                          onChange={e => handlePriceChange(service.id, e.target.value)}
-                          onBlur={() => handleSavePrice(service.id)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') { e.preventDefault(); handleSavePrice(service.id); }
-                          }}
-                          autoFocus
-                        />
+                        <PriceInputsRow data-price-editing={service.id}>
+                          <PriceInputGroup>
+                            <PriceInputLabel>Netto</PriceInputLabel>
+                            <PriceInput
+                              type="text"
+                              inputMode="decimal"
+                              value={editData.net}
+                              onChange={e => handleNetChange(service.id, e.target.value)}
+                              onBlur={() => handlePriceBlur(service.id)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') { e.preventDefault(); handleSavePrice(service.id); }
+                              }}
+                              autoFocus
+                            />
+                          </PriceInputGroup>
+                          <PriceInputGroup>
+                            <PriceInputLabel>Brutto</PriceInputLabel>
+                            <PriceInput
+                              type="text"
+                              inputMode="decimal"
+                              value={editData.gross}
+                              onChange={e => handleGrossChange(service.id, e.target.value)}
+                              onBlur={() => handlePriceBlur(service.id)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') { e.preventDefault(); handleSavePrice(service.id); }
+                              }}
+                            />
+                          </PriceInputGroup>
+                        </PriceInputsRow>
                       ) : (
                         <PriceInfo>
                           Netto <PriceStrong>{formatCurrency(effectiveNet / 100)}</PriceStrong>
@@ -619,12 +692,14 @@ export const EditServicesModal = ({
                       {!isDeleted && (
                         <ActionBtn
                           $variant="edit"
-                          onClick={() =>
+                          onClick={() => {
+                            const netPln = (effectiveNet / 100).toFixed(2);
+                            const grossPln = (effectiveGross / 100).toFixed(2);
                             setEditingPrices(prev => ({
                               ...prev,
-                              [service.id]: String(effectiveNet / 100),
-                            }))
-                          }
+                              [service.id]: { net: netPln, gross: grossPln },
+                            }));
+                          }}
                           title="Edytuj cenę"
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
