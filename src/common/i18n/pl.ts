@@ -867,7 +867,7 @@ export const pl: TranslationKeys = {
         metrics: {
             revenueTitle: 'Wartość zleceń',
             callsTitle: 'Aktywność telefoniczna',
-            plannedThisWeek: 'Zaplanowane (ten tydzień)',
+            plannedThisWeek: 'Wartość z rozpoczętych wizyt (ten tydzień)',
             realizedLastWeek: 'Zrealizowane (poprzedni tydzień)',
             wowTrend: 'vs poprzedni tydzień',
             instagramTitle: 'Posty na Instagramie',
