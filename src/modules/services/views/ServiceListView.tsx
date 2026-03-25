@@ -1,7 +1,7 @@
 // src/modules/services/views/ServiceListView.tsx
 import { useState, useMemo } from 'react';
 import styled from 'styled-components';
-import { useServices } from '../hooks/useServices';
+import { useServices, useArchiveService } from '../hooks/useServices';
 import { ServiceTable } from '../components/ServiceTable';
 import { ServiceFormModal } from '../components/ServiceFormModal';
 import { EmptyState } from '@/common/components/EmptyState';
@@ -197,6 +197,7 @@ export const ServiceListView = () => {
     );
 
     const { services, isLoading, isError, refetch } = useServices(filters);
+    const { mutate: archiveService, isPending: isArchiving } = useArchiveService();
 
     const handleAddService = () => {
         setEditingService(undefined);
@@ -211,6 +212,12 @@ export const ServiceListView = () => {
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setEditingService(undefined);
+    };
+
+    const handleArchiveService = (service: Service) => {
+        if (window.confirm(`Czy na pewno chcesz zarchiwizować usługę "${service.name}"?`)) {
+            archiveService(service.id);
+        }
     };
 
     const renderContent = () => {
@@ -245,7 +252,7 @@ export const ServiceListView = () => {
             );
         }
 
-        return <ServiceTable services={services} onEdit={handleEditService} />;
+        return <ServiceTable services={services} onEdit={handleEditService} onArchive={handleArchiveService} isArchiving={isArchiving} />;
     };
 
     return (

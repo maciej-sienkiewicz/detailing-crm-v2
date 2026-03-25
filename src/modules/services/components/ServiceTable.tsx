@@ -95,6 +95,12 @@ const GrossPrice = styled.div`
 `;
 
 
+const ActionButtons = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: ${props => props.theme.spacing.sm};
+`;
+
 const EditButton = styled.button`
     padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
     background: transparent;
@@ -113,12 +119,37 @@ const EditButton = styled.button`
     }
 `;
 
+const ArchiveButton = styled.button`
+    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+    background: transparent;
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.md};
+    color: ${props => props.theme.colors.textMuted};
+    font-size: ${props => props.theme.fontSizes.sm};
+    font-weight: ${props => props.theme.fontWeights.medium};
+    cursor: pointer;
+    transition: all ${props => props.theme.transitions.fast};
+
+    &:hover:not(:disabled) {
+        background: ${props => props.theme.colors.error};
+        color: white;
+        border-color: ${props => props.theme.colors.error};
+    }
+
+    &:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+`;
+
 interface ServiceTableProps {
     services: Service[];
     onEdit: (service: Service) => void;
+    onArchive: (service: Service) => void;
+    isArchiving?: boolean;
 }
 
-export const ServiceTable = ({ services, onEdit }: ServiceTableProps) => {
+export const ServiceTable = ({ services, onEdit, onArchive, isArchiving }: ServiceTableProps) => {
     return (
         <TableWrapper>
             <Table>
@@ -161,9 +192,17 @@ export const ServiceTable = ({ services, onEdit }: ServiceTableProps) => {
                                 </TableCell>
                                 <TableCell $align="right">
                                     {service.isActive && (
-                                        <EditButton onClick={() => onEdit(service)}>
-                                            {t.common.edit}
-                                        </EditButton>
+                                        <ActionButtons>
+                                            <EditButton onClick={() => onEdit(service)}>
+                                                {t.common.edit}
+                                            </EditButton>
+                                            <ArchiveButton
+                                                onClick={() => onArchive(service)}
+                                                disabled={isArchiving}
+                                            >
+                                                Archiwizuj
+                                            </ArchiveButton>
+                                        </ActionButtons>
                                     )}
                                 </TableCell>
                             </TableRow>

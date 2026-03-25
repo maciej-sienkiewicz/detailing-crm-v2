@@ -39,3 +39,14 @@ export const useUpdateService = () => {
         },
     });
 };
+
+export const useArchiveService = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (serviceId: string) => servicesApi.archiveService(serviceId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['services'] });
+        },
+    });
+};

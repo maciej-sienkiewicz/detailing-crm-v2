@@ -215,4 +215,8 @@ export const servicesApi = {
         const response = await apiClient.post(`${BASE_PATH}/update`, data);
         return response.data;
     },
+
+    archiveService: async (serviceId: string): Promise<void> => {
+        await apiClient.patch(`${BASE_PATH}/${serviceId}/archive`);
+    },
 };
