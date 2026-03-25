@@ -1,6 +1,7 @@
 // src/modules/checkin/components/EditableServicesTable.tsx
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatCurrency } from '@/common/utils';
@@ -311,9 +312,11 @@ const DiscountTypeTrigger = styled.button`
     border: 2px solid ${props => props.theme.colors.border}; border-radius: ${props => props.theme.radii.md};
     background: white; cursor: pointer; font-size: ${props => props.theme.fontSizes.sm};
 `;
-const DiscountTypeMenu = styled.div`
-    position: absolute; top: 100%; left: 0; right: 0; background: white;
-    border: 1px solid ${props => props.theme.colors.border}; z-index: 2001;
+const DiscountTypeMenu = styled.div<{ $top: number; $left: number; $width: number }>`
+    position: fixed; top: ${p => p.$top}px; left: ${p => p.$left}px; width: ${p => p.$width}px;
+    background: white; border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.md}; z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
 `;
 const DiscountTypeMenuItem = styled.button<{ $selected?: boolean }>`
     width: 100%; padding: 10px; border: none; text-align: left; cursor: pointer;
@@ -364,27 +367,51 @@ const DISCOUNT_TYPE_OPTIONS = [
 
 const DiscountTypeDropdown = ({ value, onChange }: { value: AdjustmentType, onChange: (v: AdjustmentType) => void }) => {
     const [open, setOpen] = useState(false);
-    const ref = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-        const onDocClick = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-        document.addEventListener('mousedown', onDocClick);
-        return () => document.removeEventListener('mousedown', onDocClick);
+    const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
+    const containerRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    const calcPos = useCallback(() => {
+        if (!triggerRef.current) return;
+        const r = triggerRef.current.getBoundingClientRect();
+        setMenuPos({ top: r.bottom + 4, left: r.left, width: r.width });
     }, []);
+
+    const handleOpen = () => { calcPos(); setOpen(o => !o); };
+
+    useEffect(() => {
+        if (!open) return;
+        const onDocClick = (e: MouseEvent) => {
+            const inContainer = containerRef.current?.contains(e.target as Node);
+            const inMenu = menuRef.current?.contains(e.target as Node);
+            if (!inContainer && !inMenu) setOpen(false);
+        };
+        const onScroll = () => calcPos();
+        document.addEventListener('mousedown', onDocClick);
+        window.addEventListener('scroll', onScroll, true);
+        return () => {
+            document.removeEventListener('mousedown', onDocClick);
+            window.removeEventListener('scroll', onScroll, true);
+        };
+    }, [open, calcPos]);
+
     const selected = DISCOUNT_TYPE_OPTIONS.find(opt => opt.value === value);
     return (
-        <DiscountTypeDropdownContainer ref={ref}>
-            <DiscountTypeTrigger type="button" onClick={() => setOpen(!open)}>
+        <DiscountTypeDropdownContainer ref={containerRef}>
+            <DiscountTypeTrigger ref={triggerRef} type="button" onClick={handleOpen}>
                 <span>{selected?.label || 'Wybierz typ'}</span>
                 <span style={{ marginLeft: 'auto' }}>▼</span>
             </DiscountTypeTrigger>
-            {open && (
-                <DiscountTypeMenu>
+            {open && createPortal(
+                <DiscountTypeMenu ref={menuRef} $top={menuPos.top} $left={menuPos.left} $width={menuPos.width}>
                     {DISCOUNT_TYPE_OPTIONS.map(opt => (
                         <DiscountTypeMenuItem key={opt.value} $selected={opt.value === value} onClick={() => { onChange(opt.value); setOpen(false); }}>
                             {opt.label}
                         </DiscountTypeMenuItem>
                     ))}
-                </DiscountTypeMenu>
+                </DiscountTypeMenu>,
+                document.body
             )}
         </DiscountTypeDropdownContainer>
     );
