@@ -12,6 +12,7 @@ import { VehicleDetailsModal } from './VehicleDetailsModal';
 import type { SelectedCustomer, AppointmentColor } from '@/modules/appointments/types';
 import { t } from '@/common/i18n';
 import { fromDateToLocalInput } from '@/common/dateTime';
+import { DateTimePicker } from '@/modules/calendar/components/DateTimePicker';
 import type { CheckInFormData, ServiceLineItem } from '../types';
 import { Modal } from '@/common/components/Modal';
 import { PhoneInput } from '@/common/components/PhoneInput';
@@ -464,6 +465,9 @@ export const VerificationStep = ({
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
     const [isVehicleDetailsModalOpen, setIsVehicleDetailsModalOpen] = useState(false);
 
+    const startInputRef = useRef<HTMLDivElement | null>(null);
+    const endInputRef = useRef<HTMLDivElement | null>(null);
+
     const [isHomeAddressOpen, setIsHomeAddressOpen] = useState(false);
     const [isCompanyOpen, setIsCompanyOpen] = useState(false);
 
@@ -830,11 +834,9 @@ export const VerificationStep = ({
                     <FormGrid $columns={3}>
                         <FieldGroup>
                             <Label>Data rozpoczęcia</Label>
-                            <Input
-                                type="datetime-local"
-                                value={formData.visitStartAt ? formData.visitStartAt : ''}
-                                onChange={(e) => {
-                                    const start = e.target.value;
+                            <DateTimePicker
+                                value={formData.visitStartAt ?? ''}
+                                onChange={(start) => {
                                     let updates: Partial<CheckInFormData> = { visitStartAt: start };
                                     if (!formData.visitEndAt) {
                                         const d = new Date(start);
@@ -853,15 +855,16 @@ export const VerificationStep = ({
                                     }
                                     onChange(updates);
                                 }}
+                                showTime
+                                placeholder="Wybierz datę i godzinę"
+                                containerRef={startInputRef}
                             />
                         </FieldGroup>
                         <FieldGroup>
                             <Label>Data zakończenia</Label>
-                            <Input
-                                type="datetime-local"
-                                value={formData.visitEndAt ? formData.visitEndAt : ''}
-                                onChange={(e) => {
-                                    const newEnd = e.target.value;
+                            <DateTimePicker
+                                value={formData.visitEndAt ?? ''}
+                                onChange={(newEnd) => {
                                     let nextEnd = newEnd;
                                     if (formData.visitStartAt) {
                                         const s = new Date(formData.visitStartAt);
@@ -874,6 +877,9 @@ export const VerificationStep = ({
                                     }
                                     onChange({ visitEndAt: nextEnd });
                                 }}
+                                showTime
+                                placeholder="Wybierz datę i godzinę"
+                                containerRef={endInputRef}
                             />
                         </FieldGroup>
                         <FieldGroup>
