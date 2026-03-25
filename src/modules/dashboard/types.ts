@@ -45,6 +45,8 @@ export interface OperationalStats {
   readyForPickupDetails: VisitDetail[];
   /** Details of visits arriving today */
   incomingTodayDetails: VisitDetail[];
+  /** Details of abandoned reservations in the last 30 days */
+  abandonedDetails?: VisitDetail[];
 }
 
 /**
