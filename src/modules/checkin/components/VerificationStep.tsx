@@ -356,6 +356,7 @@ const ColorDropdown = ({ colors, value, onChange }: ColorDropdownProps) => {
     const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
     const containerRef = useRef<HTMLDivElement | null>(null);
     const triggerRef = useRef<HTMLButtonElement | null>(null);
+    const menuRef = useRef<HTMLDivElement | null>(null);
 
     const calcPos = useCallback(() => {
         if (!triggerRef.current) return;
@@ -371,7 +372,9 @@ const ColorDropdown = ({ colors, value, onChange }: ColorDropdownProps) => {
     useEffect(() => {
         if (!open) return;
         const onDocClick = (e: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+            const inContainer = containerRef.current?.contains(e.target as Node);
+            const inMenu = menuRef.current?.contains(e.target as Node);
+            if (!inContainer && !inMenu) setOpen(false);
         };
         const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
         const onScroll = () => { calcPos(); };
@@ -395,7 +398,7 @@ const ColorDropdown = ({ colors, value, onChange }: ColorDropdownProps) => {
                 <ColorCaret />
             </ColorTrigger>
             {open && createPortal(
-                <ColorMenu role="listbox" $top={menuPos.top} $left={menuPos.left} $width={menuPos.width}>
+                <ColorMenu ref={menuRef} role="listbox" $top={menuPos.top} $left={menuPos.left} $width={menuPos.width}>
                     {colors.map(c => (
                         <ColorMenuItem
                             key={c.id}
