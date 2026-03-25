@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { WizardLayout } from './WizardLayout';
 import { QualityCheckStep } from './QualityCheckStep';
 import { NotificationStep } from './NotificationStep';
@@ -138,6 +138,19 @@ export const ReadyToCompletedWizard = ({
     } = useStateTransitionWizard(visit.id, 'ready_to_completed', onClose);
 
     const { comments } = useVisitComments(visit.id);
+    const customerComments = comments.filter(c => c.type === 'FOR_CUSTOMER' && !c.isDeleted);
+    const skipBriefing = customerComments.length === 0;
+
+    // Skip step 1 (ClientBriefingStep) when there are no FOR_CUSTOMER comments
+    useEffect(() => {
+        if (isOpen && currentStep === 1 && skipBriefing) {
+            handleNext();
+        }
+    }, [isOpen, skipBriefing, currentStep]);
+
+    // Adjust progress display: when step 1 is skipped, show 2 steps instead of 3
+    const displayStep = skipBriefing ? currentStep - 1 : currentStep;
+    const displayTotalSteps = skipBriefing ? totalSteps - 1 : totalSteps;
 
     const handlePaymentComplete = (payment: any) => {
         // Only update wizard data with payment details
@@ -233,9 +246,9 @@ export const ReadyToCompletedWizard = ({
             title={getStepTitle()}
             subtitle={getStepSubtitle()}
             icon={getStepIcon()}
-            currentStep={currentStep}
-            totalSteps={totalSteps}
-            onBack={currentStep > 1 ? handleBack : undefined}
+            currentStep={displayStep}
+            totalSteps={displayTotalSteps}
+            onBack={currentStep > (skipBriefing ? 2 : 1) ? handleBack : undefined}
             onNext={currentStep < totalSteps ? handleNext : undefined}
             onFinish={currentStep === totalSteps ? handleFinish : undefined}
             nextLabel={currentStep === 2 ? 'Podpisano' : 'Kontynuuj'}
