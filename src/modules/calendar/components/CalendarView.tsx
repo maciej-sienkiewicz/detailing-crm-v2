@@ -1,6 +1,7 @@
 // src/modules/calendar/components/CalendarView.tsx
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -713,6 +714,78 @@ const MobileAddBtn = styled.button`
     &:active { background: #e8f0fe; }
 `;
 
+// ─── More-link portal popover ────────────────────────────────────────────────
+
+const MoreLinkOverlay = styled.div`
+    position: fixed; inset: 0; z-index: 1100;
+`;
+
+const MoreLinkPopoverWrap = styled.div<{ $x: number; $y: number }>`
+    position: fixed;
+    left: ${p => p.$x}px;
+    top: ${p => p.$y}px;
+    width: 240px;
+    background: rgba(255, 255, 255, 0.97);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02), 0 12px 24px rgba(0,0,0,0.07), 0 24px 48px rgba(0,0,0,0.1);
+    overflow: hidden;
+    z-index: 1101;
+`;
+
+const MoreLinkHead = styled.div`
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    &::after {
+        content: '';
+        position: absolute; inset: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+        pointer-events: none;
+    }
+`;
+
+const MoreLinkTitle = styled.span`
+    color: #fff; font-size: 13px; font-weight: 700; letter-spacing: 0.2px;
+    position: relative; z-index: 1;
+`;
+
+const MoreLinkClose = styled.button`
+    color: rgba(255,255,255,0.8); font-size: 18px; line-height: 1; cursor: pointer;
+    position: relative; z-index: 1; width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; border: none; background: transparent;
+    transition: background 0.15s ease, color 0.15s ease;
+    &:hover { background: rgba(255,255,255,0.2); color: #fff; }
+`;
+
+const MoreLinkBody = styled.div`
+    padding: 10px; display: flex; flex-direction: column; gap: 3px;
+    max-height: 320px; overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: rgba(99,102,241,0.2) transparent;
+    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.2); border-radius: 4px; }
+`;
+
+const MoreLinkEventBtn = styled.button<{ $color: string }>`
+    width: 100%; display: flex; align-items: center; gap: 6px; padding: 6px 8px;
+    border: none; border-radius: 8px; background: ${p => p.$color};
+    color: #fff; font-size: 12px; font-weight: 600;
+    text-align: left; cursor: pointer; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+    transition: opacity 0.1s ease;
+    &:hover { opacity: 0.85; }
+`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 interface CalendarViewProps {
     onViewChange?: (view: CalendarViewType) => void;
 }
@@ -793,6 +866,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const [popoverOpen, setPopoverOpen] = useState(false);
     const [popoverEvent, setPopoverEvent] = useState<AppointmentEventData | VisitEventData | null>(null);
     const [popoverPosition, setPopoverPosition] = useState({ x: 0, y: 0 });
+
+    // More-link popover state (portal, viewport-aware)
+    const [moreLinkOpen, setMoreLinkOpen] = useState(false);
+    const [moreLinkDate, setMoreLinkDate] = useState<Date | null>(null);
+    const [moreLinkEvents, setMoreLinkEvents] = useState<Array<{ title: string; color: string; extendedProps: AppointmentEventData | VisitEventData }>>([]);
+    const [moreLinkPosition, setMoreLinkPosition] = useState({ x: 0, y: 0 });
 
     // Reservation options modal state
 
@@ -903,6 +982,40 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const handlePopoverClose = useCallback(() => {
         setPopoverOpen(false);
         setPopoverEvent(null);
+    }, []);
+
+    /**
+     * Handle "jeszcze N" more-link click – suppress FullCalendar's default
+     * absolute-positioned popover and show a fixed-position portal instead.
+     */
+    const handleMoreLinkClick = useCallback((arg: { date: Date; allSegs: Array<{ event: { title: string; backgroundColor: string; extendedProps: Record<string, unknown> } }>; el: HTMLElement }) => {
+        const rect = arg.el.getBoundingClientRect();
+        const popW = 240;
+        const popH = 380;
+        const margin = 12;
+
+        let x = rect.left;
+        let y = rect.bottom + 4;
+
+        if (x + popW + margin > window.innerWidth) {
+            x = Math.max(margin, window.innerWidth - popW - margin);
+        }
+        // If it would overflow the bottom, flip above the link
+        if (y + popH + margin > window.innerHeight) {
+            y = rect.top - popH - 4;
+            if (y < margin) y = Math.max(margin, window.innerHeight - popH - margin);
+        }
+
+        setMoreLinkDate(arg.date);
+        setMoreLinkEvents(arg.allSegs.map(seg => ({
+            title: seg.event.title,
+            color: seg.event.backgroundColor || '#6366f1',
+            extendedProps: seg.event.extendedProps as AppointmentEventData | VisitEventData,
+        })));
+        setMoreLinkPosition({ x, y });
+        setMoreLinkOpen(true);
+
+        return false; // prevent FullCalendar's default popover
     }, []);
 
     /**
@@ -1114,6 +1227,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 select={handleDateSelect}
                 eventClick={handleEventClick}
                 datesSet={handleDatesSet}
+                moreLinkClick={handleMoreLinkClick}
 
                 // Events data
                 events={events}
@@ -1173,6 +1287,50 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 onClose={handleModalClose}
                 onSave={handleQuickSave}
             />
+
+            {moreLinkOpen && moreLinkDate && createPortal(
+                <>
+                    <MoreLinkOverlay onClick={() => setMoreLinkOpen(false)} />
+                    <MoreLinkPopoverWrap $x={moreLinkPosition.x} $y={moreLinkPosition.y}>
+                        <MoreLinkHead>
+                            <MoreLinkTitle>
+                                {moreLinkDate.toLocaleDateString('pl', { day: 'numeric', month: 'long' })}
+                            </MoreLinkTitle>
+                            <MoreLinkClose onClick={() => setMoreLinkOpen(false)}>×</MoreLinkClose>
+                        </MoreLinkHead>
+                        <MoreLinkBody>
+                            {moreLinkEvents.map((ev, i) => (
+                                <MoreLinkEventBtn
+                                    key={i}
+                                    $color={ev.color}
+                                    onClick={() => {
+                                        setMoreLinkOpen(false);
+                                        const margin = 16;
+                                        const popoverWidth = 380;
+                                        const popoverMaxHeight = 600;
+                                        let x = moreLinkPosition.x + 260;
+                                        let y = moreLinkPosition.y;
+                                        if (x + popoverWidth + margin > window.innerWidth) {
+                                            x = Math.max(margin, moreLinkPosition.x - popoverWidth - 10);
+                                            if (x < margin) x = Math.max(margin, (window.innerWidth - popoverWidth) / 2);
+                                        }
+                                        if (y + popoverMaxHeight + margin > window.innerHeight) {
+                                            y = Math.max(margin, window.innerHeight - popoverMaxHeight - margin);
+                                        }
+                                        if (y < margin) y = margin;
+                                        setPopoverEvent(ev.extendedProps);
+                                        setPopoverPosition({ x, y });
+                                        setPopoverOpen(true);
+                                    }}
+                                >
+                                    {ev.title}
+                                </MoreLinkEventBtn>
+                            ))}
+                        </MoreLinkBody>
+                    </MoreLinkPopoverWrap>
+                </>,
+                document.body
+            )}
 
             {popoverOpen && popoverEvent && (
                 <EventSummaryPopover
