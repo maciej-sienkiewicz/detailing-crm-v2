@@ -187,6 +187,7 @@ export const VisitDetailView = () => {
     const [isTransitionWizardOpen, setIsTransitionWizardOpen] = useState(false);
     const [transitionType, setTransitionType] = useState<'in_progress_to_ready' | 'ready_to_completed' | null>(null);
     const [isEditServicesModalOpen, setIsEditServicesModalOpen] = useState(false);
+    const [highlightPendingServices, setHighlightPendingServices] = useState(false);
 
     const { visitDetail, isLoading, isError, refetch } = useVisitDetail(visitId!);
     const { documents } = useVisitDocuments(visitId!);
@@ -199,7 +200,7 @@ export const VisitDetailView = () => {
     const { comments, isLoading: isLoadingComments } = useVisitComments(visitId!);
     const { updateServiceStatus } = useUpdateServiceStatus(visitId!);
     const { saveServicesChanges, isSaving } = useSaveServicesChanges(visitId!);
-    const { showSuccess } = useToast();
+    const { showSuccess, showWarning } = useToast();
 
     if (isLoading) {
         return (
@@ -236,6 +237,17 @@ export const VisitDetailView = () => {
 
     const handleCompleteVisit = () => {
         if (visit.status === 'IN_PROGRESS') {
+            const pendingCount = visit.services.filter(s => s.status === 'PENDING').length;
+            if (pendingCount > 0) {
+                showWarning(
+                    'Nie można oznaczyć wizyty jako gotowej',
+                    `${pendingCount === 1 ? 'Jedna usługa wymaga' : `${pendingCount} usługi wymagają`} potwierdzenia przed zakończeniem.`
+                );
+                setActiveTab('overview');
+                setHighlightPendingServices(true);
+                setTimeout(() => setHighlightPendingServices(false), 4000);
+                return;
+            }
             setTransitionType('in_progress_to_ready');
             setIsTransitionWizardOpen(true);
         } else if (visit.status === 'READY_FOR_PICKUP') {
@@ -380,6 +392,7 @@ export const VisitDetailView = () => {
                                 visitStatus={visit.status}
                                 visitId={visitId!}
                                 onEditClick={handleEditServicesClick}
+                                highlightPending={highlightPendingServices}
                             />
                             <VisitComments
                                 visitId={visitId!}

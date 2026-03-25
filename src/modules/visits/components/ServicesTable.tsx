@@ -1,10 +1,16 @@
-import styled from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { useState } from 'react';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
 import { formatCurrency } from '@/common/utils';
 import type { ServiceLineItem, VisitStatus } from '../types';
 import { useApproveServiceChange, useRejectServiceChange } from '../hooks';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+
+const pendingPulse = keyframes`
+    0%   { background-color: rgba(245,158,11,0.04); }
+    50%  { background-color: rgba(245,158,11,0.18); }
+    100% { background-color: rgba(245,158,11,0.04); }
+`;
 
 const TableContainer = styled.div`
     background: ${st.bgCard};
@@ -245,12 +251,14 @@ const PrimaryBtn = styled.button<{ $danger?: boolean }>`
 
 const Tbody = styled.tbody``;
 
-const Tr = styled.tr<{ $pendingOp?: 'ADD' | 'EDIT' | 'DELETE' | null }>`
+const Tr = styled.tr<{ $pendingOp?: 'ADD' | 'EDIT' | 'DELETE' | null; $highlight?: boolean }>`
     transition: background-color ${st.transition};
     background: ${props => props.$pendingOp === 'DELETE' ? 'rgba(239,68,68,0.04)'
         : props.$pendingOp === 'EDIT' ? 'rgba(245,158,11,0.04)'
         : props.$pendingOp === 'ADD' ? 'rgba(16,185,129,0.04)'
         : 'transparent'};
+
+    ${props => props.$highlight && css`animation: ${pendingPulse} 0.9s ease-in-out 4;`}
 
     &:hover {
         background: ${props => props.$pendingOp ? 'inherit' : st.bg};
@@ -385,9 +393,10 @@ interface ServicesTableProps {
     visitStatus?: VisitStatus;
     visitId?: string;
     onEditClick?: () => void;
+    highlightPending?: boolean;
 }
 
-export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: ServicesTableProps) => {
+export const ServicesTable = ({ services, visitStatus, visitId, onEditClick, highlightPending }: ServicesTableProps) => {
     const { calculateServicePrice } = useServicePricing();
 
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -487,7 +496,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, onEditClick }: S
                         const showDiscount = pricing.hasDiscount && service.basePriceNet !== 0;
 
                         return (
-                            <Tr key={service.id} $pendingOp={(service.hasPendingChange ?? (service.status === 'PENDING')) ? (service.pendingOperation || 'EDIT') : null}>
+                            <Tr key={service.id} $pendingOp={(service.hasPendingChange ?? (service.status === 'PENDING')) ? (service.pendingOperation || 'EDIT') : null} $highlight={highlightPending && service.status === 'PENDING'}>
                                 <Td>
                                     <div style={{ display: 'flex', alignItems: 'center' }}>
                                         <div style={{ flex: 1 }}>
