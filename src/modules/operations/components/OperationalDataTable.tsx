@@ -38,7 +38,7 @@ const fadeIn = keyframes`
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
-const COLS = '1fr 148px 138px 162px 44px';
+const COLS = '1fr 160px 148px 138px 162px 44px';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -168,13 +168,20 @@ const TypeTag = styled.span<{ $isVisit: boolean }>`
     letter-spacing: 0.2px;
 `;
 
-const CustomerInfo = styled.div`
-    font-size: 12px;
-    color: ${st.textSecondary};
-    margin-top: 3px;
+const CustomerName = styled.div`
+    font-size: 13px;
+    font-weight: 600;
+    color: ${st.text};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+`;
+
+const CustomerPhone = styled.div`
+    font-size: 12px;
+    color: ${st.textMuted};
+    margin-top: 2px;
+    white-space: nowrap;
 `;
 
 const VehicleSubInfo = styled.div`
@@ -551,7 +558,8 @@ export const OperationalDataTable = ({
             <Outer>
                 <ListWrap>
                     <HeaderRow>
-                        <HeaderCell>Tytuł / Pojazd / Klient</HeaderCell>
+                        <HeaderCell>Tytuł / Pojazd</HeaderCell>
+                        <HeaderCell>Klient</HeaderCell>
                         <HeaderCell>Data przyjazdu</HeaderCell>
                         <HeaderCell>Wartość</HeaderCell>
                         <HeaderCell>Status</HeaderCell>
@@ -619,11 +627,16 @@ export const OperationalDataTable = ({
                                             ) : (
                                                 <VehicleSubInfo>Brak pojazdu</VehicleSubInfo>
                                             )}
-                                            <CustomerInfo>
-                                                {customerLabel}{phoneLabel}
-                                            </CustomerInfo>
                                         </VehicleBlock>
                                     </MainCell>
+
+                                    {/* Customer */}
+                                    <div>
+                                        <CustomerName>{customerLabel}</CustomerName>
+                                        {op.customerPhone && (
+                                            <CustomerPhone>{op.customerPhone}</CustomerPhone>
+                                        )}
+                                    </div>
 
                                     {/* Date */}
                                     <DateCellWrap>
