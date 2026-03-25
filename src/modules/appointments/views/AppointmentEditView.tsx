@@ -181,6 +181,7 @@ export const AppointmentEditView = () => {
     const updateMutation = useMutation({
         mutationFn: (payload: AppointmentCreateRequest) => appointmentApi.updateAppointment(appointmentId!, payload),
         onSuccess: () => {
+            navigate('/calendar');
             showSuccess('Pomyślnie zapisano wprowadzone zmiany', 'Teraz możesz przejść do widoku kalendarza lub wprowadzić kolejne zmiany.');
             // Unieważnij cache rezerwacji – następne wejście w edycję załaduje świeże dane z serwera
             queryClient.invalidateQueries({ queryKey: ['appointments'] });

@@ -1,4 +1,3 @@
-// src/modules/services/components/PriceInput.tsx
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { calculateGrossFromNet, calculateNetFromGross, formatMoneyAmount, parseMoneyInput } from '../utils/priceCalculator';
@@ -127,28 +126,38 @@ export const PriceInput = ({
     }, [netAmount, vatRate, isNetFocused, isGrossFocused]);
 
     const handleNetChange = (value: string) => {
-        setNetValue(value);
-    };
+        const sanitized = value.replace(',', '.');
+        setNetValue(sanitized);
 
-    const handleNetBlur = () => {
-        setIsNetFocused(false);
-        const parsed = parseMoneyInput(netValue);
-        if (parsed >= 0) {
+        const parsed = parseMoneyInput(sanitized);
+        if (!isNaN(parsed)) {
+            const calc = calculateGrossFromNet(parsed, vatRate);
+            // Dzielimy przez 100, aby wyświetlić 12.30 zamiast 1230
+            setGrossValue((calc.priceGross / 100).toFixed(2));
             onChange(parsed);
         }
     };
 
     const handleGrossChange = (value: string) => {
-        setGrossValue(value);
-    };
+        const sanitized = value.replace(',', '.');
+        setGrossValue(sanitized);
 
-    const handleGrossBlur = () => {
-        setIsGrossFocused(false);
-        const parsed = parseMoneyInput(grossValue);
-        if (parsed >= 0) {
-            const calc = calculateNetFromGross(parsed, vatRate);
+        const parsedGross = parseMoneyInput(sanitized);
+        if (!isNaN(parsedGross)) {
+            const calc = calculateNetFromGross(parsedGross, vatRate);
+            // Dzielimy przez 100, aby wyświetlić 8.13 zamiast 813
+            setNetValue((calc.priceNet / 100).toFixed(2));
             onChange(calc.priceNet);
         }
+    };
+
+    const handleBlur = () => {
+        setIsNetFocused(false);
+        setIsGrossFocused(false);
+        const currentNet = parseMoneyInput(netValue);
+        const calc = calculateGrossFromNet(isNaN(currentNet) ? 0 : currentNet, vatRate);
+        setNetValue(formatMoneyAmount(calc.priceNet));
+        setGrossValue(formatMoneyAmount(calc.priceGross));
     };
 
     const calc = calculateGrossFromNet(netAmount, vatRate);
@@ -162,10 +171,11 @@ export const PriceInput = ({
                     <InputWrapper $hasError={hasError}>
                         <Input
                             type="text"
+                            inputMode="decimal"
                             value={netValue}
                             onChange={(e) => handleNetChange(e.target.value)}
                             onFocus={() => setIsNetFocused(true)}
-                            onBlur={handleNetBlur}
+                            onBlur={handleBlur}
                             placeholder="0.00"
                         />
                         <Currency>PLN</Currency>
@@ -177,10 +187,11 @@ export const PriceInput = ({
                     <InputWrapper>
                         <Input
                             type="text"
+                            inputMode="decimal"
                             value={grossValue}
                             onChange={(e) => handleGrossChange(e.target.value)}
                             onFocus={() => setIsGrossFocused(true)}
-                            onBlur={handleGrossBlur}
+                            onBlur={handleBlur}
                             placeholder="0.00"
                         />
                         <Currency>PLN</Currency>

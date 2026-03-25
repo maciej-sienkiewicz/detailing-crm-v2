@@ -199,7 +199,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         <span>{c.phone || c.email}</span>
                                                     </S.DropdownItem>
                                                 ))}
-                                                {form.hasCustomerSearchQuery && (
                                                     <S.DropdownAddButton
                                                         type="button"
                                                         onClick={() => {
@@ -212,7 +211,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         <IconPlus />
                                                         <span>Dodaj nowego klienta</span>
                                                     </S.DropdownAddButton>
-                                                )}
                                             </S.Dropdown>
                                         )}
                                     </S.DropdownContainer>
@@ -386,7 +384,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         </span>
                                                     </S.DropdownItem>
                                                 ))}
-                                                {form.hasSearchQuery && (
                                                     <S.DropdownAddButton
                                                         type="button"
                                                         onClick={() => {
@@ -398,7 +395,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         <IconPlus />
                                                         <span>Wprowadź nową usługę</span>
                                                     </S.DropdownAddButton>
-                                                )}
                                             </S.Dropdown>
                                         )}
                                     </S.DropdownContainer>

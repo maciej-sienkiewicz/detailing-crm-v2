@@ -857,7 +857,7 @@ export const pl: TranslationKeys = {
     dashboard: {
         stats: {
             inProgress: 'W trakcie realizacji',
-            readyForPickup: 'Gotowe do oddania',
+            readyForPickup: 'Gotowe do wydania',
             arrivals: 'Do przyjęcia dzisiaj',
             overdue: 'Po terminie',
             estimatedCompletion: 'Szacowana data zakończenia',

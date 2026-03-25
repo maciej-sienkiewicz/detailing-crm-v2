@@ -46,7 +46,7 @@ const menuSections: MenuSection[] = [
         items: [
             { path: '/dashboard',  label: 'Dashboard',  icon: LayoutDashboard },
             { path: '/calendar',   label: 'Kalendarz',  icon: Calendar },
-            { path: '/operations', label: 'Wizyty',     icon: CalendarCheck, badge: '3' },
+            { path: '/operations', label: 'Wizyty',     icon: CalendarCheck},
             { path: '/leads',      label: 'Leady',      icon: Target },
         ],
     },

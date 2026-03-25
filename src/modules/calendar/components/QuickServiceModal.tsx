@@ -1,4 +1,3 @@
-// src/modules/calendar/components/QuickServiceModal.tsx
 import React, { useState, useEffect } from 'react';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { PriceInput } from '@/modules/services/components/PriceInput';
@@ -28,7 +27,6 @@ import {
     Button,
 } from './QuickServiceModalStyles';
 
-// --- ICONS (Inline SVG) ---
 const IconX = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="18" y1="6" x2="6" y2="18"/>
@@ -36,7 +34,6 @@ const IconX = () => (
     </svg>
 );
 
-// --- TYPES ---
 interface QuickServiceModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -44,13 +41,12 @@ interface QuickServiceModalProps {
     initialServiceName?: string;
 }
 
-// --- COMPONENT ---
 export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
-    isOpen,
-    onClose,
-    onServiceCreate,
-    initialServiceName = '',
-}) => {
+                                                                        isOpen,
+                                                                        onClose,
+                                                                        onServiceCreate,
+                                                                        initialServiceName = '',
+                                                                    }) => {
     const { isCollapsed } = useSidebar();
     const contentLeft = typeof window !== 'undefined' ? (isCollapsed ? 64 : 240) : 0;
     const [serviceName, setServiceName] = useState(initialServiceName);
@@ -60,7 +56,6 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
 
     const createMutation = useCreateService();
 
-    // Reset form when modal opens/closes
     useEffect(() => {
         if (isOpen) {
             setServiceName(initialServiceName);
@@ -74,7 +69,6 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
         e.preventDefault();
         setErrors({});
 
-        // Validation
         const newErrors: Record<string, string> = {};
         if (!serviceName || serviceName.trim().length < 3) {
             newErrors.name = 'Nazwa usługi musi mieć co najmniej 3 znaki';
@@ -88,7 +82,6 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
         try {
             let createdServiceId: string | undefined;
 
-            // If save to database is checked, create the service
             if (saveToDatabase) {
                 const result = await createMutation.mutateAsync({
                     name: serviceName,
@@ -96,11 +89,9 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                     vatRate: 23,
                     requireManualPrice: false,
                 });
-                // API returns the service object directly, not wrapped
                 createdServiceId = result.id;
             }
 
-            // Return the service (with ID if saved to DB, without if not)
             onServiceCreate({
                 id: createdServiceId,
                 name: serviceName,
@@ -110,7 +101,6 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
 
             onClose();
         } catch (error) {
-            console.error('Failed to create service:', error);
             setErrors({ submit: 'Nie udało się zapisać usługi' });
         }
     };
@@ -165,9 +155,6 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                                 vatLabel="VAT"
                                 hasError={!!errors.price}
                             />
-                            {errors.price && (
-                                <ErrorMessage>{errors.price}</ErrorMessage>
-                            )}
                         </FieldGroup>
 
                         <CheckboxContainer>
