@@ -428,18 +428,32 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     const isNoteExpanded = form.expandedServiceNote === id;
                                                     const hasNote = !!(form.serviceNotes[id]?.length > 0);
 
+                                                    const limitDecimals = (raw: string): string => {
+                                                        const sepIdx = Math.max(raw.indexOf('.'), raw.indexOf(','));
+                                                        if (sepIdx === -1) return raw;
+                                                        return raw.slice(0, sepIdx + 3);
+                                                    };
                                                     const syncFromGross = (raw: string) => {
-                                                        const num = parseFloat(raw.replace(',', '.'));
-                                                        if (!isNaN(num)) form.setServicePrices(prev => ({ ...prev, [id]: num }));
-                                                        form.setServicePriceInputs(prev => ({ ...prev, [id]: { ...prev[id], gross: raw } }));
+                                                        const limited = limitDecimals(raw);
+                                                        const num = parseFloat(limited.replace(',', '.'));
+                                                        if (!isNaN(num)) {
+                                                            const net = roundTo2(num / (1 + vatRate / 100));
+                                                            form.setServicePrices(prev => ({ ...prev, [id]: num }));
+                                                            form.setServicePriceInputs(prev => ({ ...prev, [id]: { gross: limited, net: net.toFixed(2) } }));
+                                                        } else {
+                                                            form.setServicePriceInputs(prev => ({ ...prev, [id]: { ...prev[id], gross: limited } }));
+                                                        }
                                                     };
                                                     const syncFromNet = (raw: string) => {
-                                                        const num = parseFloat(raw.replace(',', '.'));
+                                                        const limited = limitDecimals(raw);
+                                                        const num = parseFloat(limited.replace(',', '.'));
                                                         if (!isNaN(num)) {
                                                             const gross = roundTo2(num * (1 + vatRate / 100));
                                                             form.setServicePrices(prev => ({ ...prev, [id]: gross }));
+                                                            form.setServicePriceInputs(prev => ({ ...prev, [id]: { net: limited, gross: gross.toFixed(2) } }));
+                                                        } else {
+                                                            form.setServicePriceInputs(prev => ({ ...prev, [id]: { ...prev[id], net: limited } }));
                                                         }
-                                                        form.setServicePriceInputs(prev => ({ ...prev, [id]: { ...prev[id], net: raw } }));
                                                     };
                                                     const normalizeInputs = () => {
                                                         const gross = form.servicePrices[id] ?? 0;
