@@ -24,7 +24,7 @@ export const useDashboard = () => {
     queryKey: DASHBOARD_STATS_KEY,
     queryFn: () => dashboardApi.getStats(),
     refetchInterval: 30_000, // 30 seconds - temporary fallback for WebSockets
-    staleTime: 25_000, // Consider data stale after 25 seconds
+    staleTime: 0, // Always refetch on mount/focus
   });
 
   // Mutation for accepting a call

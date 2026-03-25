@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { checkinApi } from '../api/checkinApi';
+import { DASHBOARD_STATS_KEY } from '@/modules/dashboard/hooks/useDashboard';
 import type { CheckInFormData, CheckInStep, ReservationToVisitPayload } from '../types';
 
 const DRAFT_STORAGE_KEY = 'checkin_draft';
 
 export const useCheckInWizard = (reservationId: string, initialData: Partial<CheckInFormData>) => {
+    const queryClient = useQueryClient();
     const [currentStep, setCurrentStep] = useState<CheckInStep>('verification');
     const [completedSteps, setCompletedSteps] = useState<CheckInStep[]>([]);
     const [formData, setFormData] = useState<CheckInFormData>({
@@ -88,6 +90,7 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
             checkinApi.createVisitFromReservation(payload),
         onSuccess: () => {
             clearDraft();
+            queryClient.invalidateQueries({ queryKey: DASHBOARD_STATS_KEY });
         },
     });
 
