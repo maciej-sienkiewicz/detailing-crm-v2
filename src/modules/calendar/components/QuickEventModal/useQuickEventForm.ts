@@ -353,12 +353,13 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         setShowServiceDropdown(false);
     };
 
-    const handlePriceConfirm = (price: number) => {
+    const handlePriceConfirm = (priceNet: number) => {
         if (!pendingService) return;
-        const gross = roundTo2(price);
+        const vatRate = pendingService.vatRate || 23;
+        const gross = roundTo2((priceNet / 100) * (100 + vatRate) / 100);
         setSelectedServiceIds(prev => [...prev, pendingService.id]);
         setServicePrices(prev => ({ ...prev, [pendingService.id]: gross }));
-        initPriceInputs(pendingService.id, gross, pendingService.vatRate || 23);
+        initPriceInputs(pendingService.id, gross, vatRate);
         setPendingService(null);
     };
 

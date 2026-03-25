@@ -1,9 +1,29 @@
 // src/modules/calendar/components/PriceInputModal.tsx
 
 import React, { useState, useEffect } from 'react';
-import * as S from './PriceInputModalStyles';
+import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
+import { PriceInput } from '@/modules/services/components/PriceInput';
+import { FormInfoBox, FormInfoLabel, FormInfoValue } from '@/common/styles';
+import styled from 'styled-components';
+import {
+    Overlay,
+    ModalContainer,
+    Form,
+    Header,
+    DragHandle,
+    DragHandleBar,
+    CloseButton,
+    Title,
+    Content,
+    FieldGroup,
+    Footer,
+    Button,
+} from './QuickServiceModalStyles';
 
-// --- ICONS (Inline SVG) ---
+const ServiceInfoBox = styled(FormInfoBox)`
+    margin-bottom: 0;
+`;
+
 const IconX = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="18" y1="6" x2="6" y2="18"/>
@@ -11,104 +31,85 @@ const IconX = () => (
     </svg>
 );
 
-// --- TYPES ---
 interface PriceInputModalProps {
     isOpen: boolean;
     serviceName: string;
+    vatRate?: number;
     onClose: () => void;
-    onConfirm: (price: number) => void;
+    onConfirm: (priceNet: number) => void;
 }
 
-// --- COMPONENT ---
 export const PriceInputModal: React.FC<PriceInputModalProps> = ({
     isOpen,
     serviceName,
+    vatRate = 23,
     onClose,
     onConfirm,
 }) => {
-    const [price, setPrice] = useState('');
-    const [error, setError] = useState('');
+    const { isCollapsed } = useSidebar();
+    const contentLeft = typeof window !== 'undefined' ? (isCollapsed ? 64 : 240) : 0;
+    const [priceNet, setPriceNet] = useState(0);
 
-    // Reset form when modal opens/closes
     useEffect(() => {
-        if (isOpen) {
-            setPrice("0.00");
-            setError('');
-        }
+        if (isOpen) setPriceNet(0);
     }, [isOpen]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        setError('');
-
-        const numPrice = parseFloat(price);
-
-        if (price === '' || isNaN(numPrice) || numPrice < 0) {
-            setError('Podaj prawidłową cenę (wartość nie może być ujemna)');
-            return;
-        }
-
-        onConfirm(numPrice);
-        onClose();
-    };
-
-    const handleCancel = () => {
+        onConfirm(priceNet);
         onClose();
     };
 
     if (!isOpen) return null;
 
     return (
-        <S.Overlay $isOpen={isOpen} onMouseDown={(e) => e.target === e.currentTarget && handleCancel()}>
-            <S.ModalContainer $isOpen={isOpen}>
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
-                    <S.Header>
-                        <S.DragHandle>
-                            <div />
-                        </S.DragHandle>
+        <Overlay
+            $isOpen={isOpen}
+            $contentLeft={contentLeft}
+            onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+        >
+            <ModalContainer $isOpen={isOpen}>
+                <Form onSubmit={handleSubmit}>
+                    <Header>
+                        <DragHandle>
+                            <DragHandleBar />
+                        </DragHandle>
 
-                        <S.CloseButton type="button" onClick={handleCancel}>
+                        <CloseButton type="button" onClick={onClose}>
                             <IconX />
-                        </S.CloseButton>
+                        </CloseButton>
 
-                        <S.Title>Wprowadź cenę</S.Title>
-                        <S.Subtitle>Ta usługa wymaga ręcznego wprowadzenia ceny</S.Subtitle>
-                    </S.Header>
+                        <Title>Wprowadź cenę</Title>
+                    </Header>
 
-                    <S.Content>
-                        <S.ServiceInfoBox>
-                            <S.ServiceInfoLabel>Usługa:</S.ServiceInfoLabel>
-                            <S.ServiceInfoName>{serviceName}</S.ServiceInfoName>
-                        </S.ServiceInfoBox>
+                    <Content>
+                        <ServiceInfoBox>
+                            <FormInfoLabel>Usługa</FormInfoLabel>
+                            <FormInfoValue>{serviceName}</FormInfoValue>
+                        </ServiceInfoBox>
 
-                        <S.InputGroup>
-                            <S.Label>Cena brutto (w zł)</S.Label>
-                            <S.PriceInputWrapper>
-                                <S.PriceInput
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={price}
-                                    onChange={(e) => setPrice(e.target.value)}
-                                    placeholder="0.00"
-                                    autoFocus
-                                />
-                                <S.PriceCurrency>zł</S.PriceCurrency>
-                            </S.PriceInputWrapper>
-                            {error && <S.ErrorMessage>{error}</S.ErrorMessage>}
-                        </S.InputGroup>
-                    </S.Content>
+                        <FieldGroup>
+                            <PriceInput
+                                netAmount={priceNet}
+                                vatRate={vatRate as 0 | 5 | 8 | 23 | -1}
+                                onChange={setPriceNet}
+                                netLabel="Cena netto"
+                                grossLabel="Cena brutto"
+                                vatLabel="VAT"
+                            />
+                        </FieldGroup>
+                    </Content>
 
-                    <S.Footer>
-                        <S.Button type="button" onClick={handleCancel} $variant="secondary">
+                    <Footer>
+                        <Button type="button" $variant="secondary" onClick={onClose}>
                             Anuluj
-                        </S.Button>
-                        <S.Button type="submit" $variant="primary">
+                        </Button>
+                        <Button type="submit" $variant="primary">
                             Potwierdź cenę
-                        </S.Button>
-                    </S.Footer>
-                </form>
-            </S.ModalContainer>
-        </S.Overlay>
+                        </Button>
+                    </Footer>
+                </Form>
+            </ModalContainer>
+        </Overlay>
     );
 };
