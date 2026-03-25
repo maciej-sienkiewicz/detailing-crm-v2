@@ -355,6 +355,7 @@ export const CheckInWizardWrapper = () => {
     }
 
     const initialData = {
+        title: (reservationData as any)?.appointmentTitle || '',
         customerData: {
             id: reservation.customer?.id || '',
             firstName: reservation.customer?.firstName || '',

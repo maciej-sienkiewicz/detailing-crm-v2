@@ -41,6 +41,7 @@ export interface ServiceLineItem {
 }
 
 export interface CheckInFormData {
+    title?: string;
     customerData: {
         id: string;
         firstName: string;
@@ -214,6 +215,7 @@ export interface ReservationToVisitPayload {
         deposit: DepositItem;
         inspectionNotes: string;
     };
+    title?: string;
     photoIds: string[];
     damagePoints: DamagePoint[];
     services: ServiceLineItem[];

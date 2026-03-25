@@ -133,8 +133,6 @@ export const AppointmentEditView = () => {
     const [formData, setFormData] = useState<CheckInFormData | null>(null);
     const initialFormDataRef = useRef<CheckInFormData | null>(null);
 
-    // preserve appointment title from appointment (not editable in this view)
-    const appointmentTitleRef = useMemo(() => appointment?.appointmentTitle ?? '', [appointment]);
 
     useEffect(() => {
         if (initialData && !formData) {
@@ -142,6 +140,7 @@ export const AppointmentEditView = () => {
             const startRaw = appointment?.schedule?.startDateTime ?? appointment?.startDateTime ?? '';
             const endRaw = appointment?.schedule?.endDateTime ?? appointment?.endDateTime ?? '';
             const snapshot: CheckInFormData = {
+                title: appointment?.appointmentTitle || '',
                 customerData: {
                     id: '', firstName: '', lastName: '', phone: '', email: '',
                     ...(initialData.customerData || {}),
@@ -292,7 +291,7 @@ export const AppointmentEditView = () => {
                 startDateTime: startInstant,
                 endDateTime: endInstant,
             },
-            appointmentTitle: appointmentTitleRef || undefined,
+            appointmentTitle: formData.title || undefined,
             appointmentColorId: formData.appointmentColorId,
         };
 

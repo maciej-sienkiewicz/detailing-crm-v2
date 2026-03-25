@@ -11,6 +11,7 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
     const [currentStep, setCurrentStep] = useState<CheckInStep>('verification');
     const [completedSteps, setCompletedSteps] = useState<CheckInStep[]>([]);
     const [formData, setFormData] = useState<CheckInFormData>({
+        title: initialData.title || '',
         customerData: {
             id: '',
             firstName: '',
@@ -223,6 +224,7 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
 
         const payload: ReservationToVisitPayload = {
             reservationId,
+            title: formData.title || undefined,
             startDateTime: startInstant,
             endDateTime: endInstant,
             customer: customerIdentity,
