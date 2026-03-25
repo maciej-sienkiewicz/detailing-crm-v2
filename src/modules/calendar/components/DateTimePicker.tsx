@@ -170,12 +170,12 @@ const DayCell = styled.button<{
     border: none;
     border-radius: 50%;
     font-size: ${props => props.theme.fontSizes.sm};
-    cursor: ${props => (props.$isCurrent ? 'pointer' : 'default')};
+    cursor: pointer;
     background: ${props =>
         props.$isSelected ? props.$accentColor || props.theme.colors.primary : 'transparent'};
     color: ${props => {
         if (props.$isSelected) return 'white';
-        if (!props.$isCurrent) return props.theme.colors.border;
+        if (!props.$isCurrent) return props.theme.colors.textMuted;
         if (props.$isToday) return props.$accentColor || props.theme.colors.primary;
         return props.theme.colors.text;
     }};
@@ -185,15 +185,11 @@ const DayCell = styled.button<{
             : props.theme.fontWeights.normal};
     transition: background ${props => props.theme.transitions.fast};
 
-    &:hover:not(:disabled) {
+    &:hover {
         background: ${props =>
             props.$isSelected
                 ? props.$accentColor || props.theme.colors.primary
                 : props.theme.colors.surfaceAlt};
-    }
-
-    &:disabled {
-        cursor: default;
     }
 `;
 
@@ -363,26 +359,35 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
     const daysInMonth = getDaysInMonth(viewYear, viewMonth);
     const prevMonthDays = getDaysInMonth(viewYear, viewMonth - 1);
 
-    type Cell = { day: number; isCurrent: boolean };
+    type Cell = { day: number; isCurrent: boolean; monthOffset: -1 | 0 | 1 };
     const cells: Cell[] = [];
     for (let i = firstWeekDay - 1; i >= 0; i--) {
-        cells.push({ day: prevMonthDays - i, isCurrent: false });
+        cells.push({ day: prevMonthDays - i, isCurrent: false, monthOffset: -1 });
     }
     for (let d = 1; d <= daysInMonth; d++) {
-        cells.push({ day: d, isCurrent: true });
+        cells.push({ day: d, isCurrent: true, monthOffset: 0 });
     }
     while (cells.length % 7 !== 0 || cells.length < 35) {
-        cells.push({ day: cells.length - daysInMonth - firstWeekDay + 1, isCurrent: false });
+        cells.push({ day: cells.length - daysInMonth - firstWeekDay + 1, isCurrent: false, monthOffset: 1 });
     }
 
     const handleDayClick = (cell: Cell) => {
-        if (!cell.isCurrent) return;
-        const m = padTwo(viewMonth + 1);
+        let year = viewYear;
+        let month = viewMonth;
+        if (cell.monthOffset === -1) {
+            if (month === 0) { month = 11; year -= 1; } else { month -= 1; }
+            setViewYear(year);
+            setViewMonth(month);
+        } else if (cell.monthOffset === 1) {
+            if (month === 11) { month = 0; year += 1; } else { month += 1; }
+            setViewYear(year);
+            setViewMonth(month);
+        }
+        const m = padTwo(month + 1);
         const d = padTwo(cell.day);
-        const datePart = `${viewYear}-${m}-${d}`;
+        const datePart = `${year}-${m}-${d}`;
         if (showTime) {
             onChange(`${datePart}T${hourLocal || '09'}:${minuteLocal || '00'}`);
-            // Keep dropdown open so user can also adjust time
         } else {
             onChange(datePart);
             setIsOpen(false);
@@ -457,7 +462,6 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                     $isSelected={cell.isCurrent && isSelected(cell.day)}
                                     $isToday={cell.isCurrent && isTodayCell(cell.day)}
                                     $accentColor={accentColor}
-                                    disabled={!cell.isCurrent}
                                     onClick={() => handleDayClick(cell)}
                                 >
                                     {cell.day}
