@@ -11,7 +11,7 @@ const BASE_PATH = '/operations';
 // Typ dla odpowiedzi z backendu - Rezerwacje
 interface AppointmentResponse {
     id: string;
-    title?: string;
+    appointmentTitle?: string;
     customerId: string;
     vehicleId: string | null;
     customer: {
@@ -91,7 +91,7 @@ const mapAppointmentToOperation = (appointment: AppointmentResponse): Operation 
     return {
         id: appointment.id,
         type: 'RESERVATION',
-        title: appointment.title,
+        title: appointment.appointmentTitle,
         customerFirstName: appointment.customer.firstName,
         customerLastName: appointment.customer.lastName,
         customerPhone: appointment.customer.phone,
