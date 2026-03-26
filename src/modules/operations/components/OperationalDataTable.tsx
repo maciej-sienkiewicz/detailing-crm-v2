@@ -38,7 +38,7 @@ const fadeIn = keyframes`
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
-const COLS = '1fr 160px 148px 138px 162px 44px';
+const COLS = '1fr 160px 160px 148px 138px 162px 44px';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -558,7 +558,8 @@ export const OperationalDataTable = ({
             <Outer>
                 <ListWrap>
                     <HeaderRow>
-                        <HeaderCell>Tytuł / Pojazd</HeaderCell>
+                        <HeaderCell>Tytuł</HeaderCell>
+                        <HeaderCell>Pojazd</HeaderCell>
                         <HeaderCell>Klient</HeaderCell>
                         <HeaderCell>Data przyjazdu</HeaderCell>
                         <HeaderCell>Wartość</HeaderCell>
@@ -600,7 +601,7 @@ export const OperationalDataTable = ({
                                     $clickable={clickable}
                                     onClick={() => clickable && handleRowClick(op)}
                                 >
-                                    {/* Title + vehicle + customer */}
+                                    {/* Title */}
                                     <MainCell>
                                         <TypeBubble $isVisit={isVisit}>
                                             {isVisit ? <CarIcon /> : <CalendarIcon />}
@@ -617,18 +618,24 @@ export const OperationalDataTable = ({
                                                     {isVisit ? 'Wizyta' : 'Rezerwacja'}
                                                 </TypeTag>
                                             </RowMeta>
-                                            {op.vehicle ? (
-                                                <VehicleSubInfo>
-                                                    {op.vehicle.licensePlate && (
-                                                        <LicensePlate>{op.vehicle.licensePlate}</LicensePlate>
-                                                    )}
-                                                    {op.vehicle.brand} {op.vehicle.model}
-                                                </VehicleSubInfo>
-                                            ) : (
-                                                <VehicleSubInfo>Brak pojazdu</VehicleSubInfo>
-                                            )}
                                         </VehicleBlock>
                                     </MainCell>
+
+                                    {/* Vehicle */}
+                                    <div>
+                                        {op.vehicle ? (
+                                            <>
+                                                {op.vehicle.licensePlate && (
+                                                    <LicensePlate>{op.vehicle.licensePlate}</LicensePlate>
+                                                )}
+                                                <VehicleSubInfo>
+                                                    {op.vehicle.brand} {op.vehicle.model}
+                                                </VehicleSubInfo>
+                                            </>
+                                        ) : (
+                                            <PlaceholderText>Brak pojazdu</PlaceholderText>
+                                        )}
+                                    </div>
 
                                     {/* Customer */}
                                     <div>
