@@ -390,8 +390,8 @@ export const operationApi = {
                 return { data: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 20 } };
             }
 
-            // Fetch both CREATED and ABANDONED appointments in parallel
-            const [createdResponse, abandonedResponse] = await Promise.all([
+            // Fetch CREATED, ABANDONED and CANCELLED appointments in parallel
+            const [createdResponse, abandonedResponse, cancelledResponse] = await Promise.all([
                 apiClient.get<AppointmentsListResponse>(`/v1/appointments`, {
                     params: {
                         ...(filters.search && { search: filters.search }),
@@ -414,11 +414,23 @@ export const operationApi = {
                         ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
                     }
                 }),
+                apiClient.get<AppointmentsListResponse>(`/v1/appointments`, {
+                    params: {
+                        ...(filters.search && { search: filters.search }),
+                        page: filters.page.toString(),
+                        limit: filters.limit.toString(),
+                        status: 'CANCELLED',
+                        ...(filters.scheduledDate && { scheduledDate: filters.scheduledDate }),
+                        ...(filters.sortBy && { sortBy: filters.sortBy }),
+                        ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
+                    }
+                }),
             ]);
 
             const createdAppointments = createdResponse.data.appointments || [];
             const abandonedAppointments = abandonedResponse.data.appointments || [];
-            const allAppointments = [...createdAppointments, ...abandonedAppointments];
+            const cancelledAppointments = cancelledResponse.data.appointments || [];
+            const allAppointments = [...createdAppointments, ...abandonedAppointments, ...cancelledAppointments];
 
             const mappedData = allAppointments.map(mapAppointmentToOperation);
 
@@ -453,11 +465,11 @@ export const operationApi = {
         }
 
         // Filtruj po statusie
-        // Porzucone rezerwacje (ABANDONED) są wyświetlane razem z odrzuconymi wizytami (REJECTED)
+        // Porzucone (ABANDONED) i anulowane (CANCELLED) rezerwacje są wyświetlane razem z odrzuconymi wizytami (REJECTED)
         if (filters.status) {
             combinedData = combinedData.filter(op =>
                 op.status === filters.status ||
-                (filters.status === 'REJECTED' && op.status === 'ABANDONED')
+                (filters.status === 'REJECTED' && (op.status === 'ABANDONED' || op.status === 'CANCELLED'))
             );
         }
 
