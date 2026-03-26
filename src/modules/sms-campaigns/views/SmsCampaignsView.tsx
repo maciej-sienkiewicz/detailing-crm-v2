@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import styled from 'styled-components';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
+import styled, { keyframes } from 'styled-components';
+import { Plus, X } from 'lucide-react';
 import { CampaignList } from '../components/CampaignList';
 import { CreateCampaignModal } from '../components/CreateCampaignModal';
 import { AutomationSettings } from '../components/AutomationSettings';
@@ -8,212 +8,161 @@ import { AiCampaignCreator } from '../components/AiCampaignCreator';
 import { useCampaigns, useDeleteCampaign, useSendCampaign } from '../hooks';
 import type { SmsCampaign } from '../types';
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
+// ─── Animations ───────────────────────────────────────────────────────────────
 
-const PlusIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <line x1="12" y1="5" x2="12" y2="19" />
-    <line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-);
+const fadeUp = keyframes`
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
 
-// ─── Layout ───────────────────────────────────────────────────────────────────
+const slideDown = keyframes`
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
 
-const PageContainer = styled.div`
+// ─── Page layout ──────────────────────────────────────────────────────────────
+
+const Page = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: ${(p) => p.theme.spacing.lg};
-  max-width: 1400px;
+  gap: 0;
+  padding: 32px 32px 48px;
+  max-width: 1280px;
   margin: 0 auto;
   width: 100%;
+  animation: ${fadeUp} 250ms ease both;
 
-  @media (min-width: ${(p) => p.theme.breakpoints.md}) {
-    padding: ${(p) => p.theme.spacing.xl};
-  }
-
-  @media (min-width: ${(p) => p.theme.breakpoints.xl}) {
-    padding: ${(p) => p.theme.spacing.xxl};
+  @media (max-width: 768px) {
+    padding: 20px 16px 40px;
   }
 `;
 
-const PageHeader = styled.div`
+// ─── Header ───────────────────────────────────────────────────────────────────
+
+const Header = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: ${(p) => p.theme.spacing.md};
-
-  @media (min-width: ${(p) => p.theme.breakpoints.md}) {
-    flex-direction: row;
-    align-items: flex-end;
-    justify-content: space-between;
-  }
-`;
-
-const TitleSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const PageTitle = styled.h1`
-  font-size: 28px;
-  font-weight: 800;
-  color: ${st.text};
-  margin: 0;
-  letter-spacing: -0.5px;
-`;
-
-const PageSubtitle = styled.p`
-  font-size: ${st.fontSm};
-  color: ${st.textMuted};
-  margin: 0;
-`;
-
-const HeaderActions = styled.div`
-  display: flex;
-  gap: 8px;
-  align-items: center;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-bottom: 24px;
+  gap: 16px;
   flex-wrap: wrap;
 `;
 
-const AddButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 18px;
-  font-size: ${st.fontSm};
-  font-weight: 600;
-  background: ${st.accentBlue};
-  color: white;
-  border: none;
-  border-radius: ${st.radiusFull};
-  cursor: pointer;
-  box-shadow: ${st.shadowXs};
-  transition: all ${st.transition};
-
-  &:hover {
-    background: #2563EB;
-    box-shadow: ${st.shadowSm};
-    transform: translateY(-1px);
-  }
-
-  &:active { transform: translateY(0); }
-`;
-
-// ─── Stat cards ───────────────────────────────────────────────────────────────
-
-const StatsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
-
-  @media (min-width: ${(p) => p.theme.breakpoints.lg}) {
-    grid-template-columns: repeat(4, 1fr);
-  }
-`;
-
-const StatCard = styled.div<{ $accent: string; $bg: string }>`
-  background: ${(p) => p.$bg};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radius};
-  padding: 20px 24px;
+const TitleBlock = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: ${st.shadowXs};
-  transition: box-shadow ${st.transition}, transform ${st.transition};
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 4px;
-    height: 100%;
-    background: ${(p) => p.$accent};
-    border-radius: 0 2px 2px 0;
-  }
-
-  &:hover {
-    box-shadow: ${st.shadowMd};
-    transform: translateY(-1px);
-  }
+  gap: 3px;
 `;
 
-const StatLabel = styled.span`
-  font-size: ${st.fontXs};
-  font-weight: 700;
-  color: ${st.textMuted};
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-`;
-
-const StatValue = styled.span<{ $color: string }>`
-  font-size: 28px;
+const PageTitle = styled.h1`
+  margin: 0;
+  font-size: 22px;
   font-weight: 800;
-  color: ${(p) => p.$color};
-  font-feature-settings: 'tnum';
-  line-height: 1;
-  letter-spacing: -0.5px;
+  color: #0F172A;
+  letter-spacing: -0.3px;
 `;
 
-const StatSub = styled.span`
-  font-size: ${st.fontXs};
-  color: ${st.textMuted};
-  margin-top: 2px;
+const PageSubtitle = styled.p`
+  margin: 0;
+  font-size: 13px;
+  color: #94A3B8;
+`;
+
+const NewCampaignBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #0F172A;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 150ms, transform 150ms;
+  white-space: nowrap;
+
+  &:hover { background: #1E293B; transform: translateY(-1px); }
+  &:active { transform: translateY(0); }
 `;
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
-const TabsRow = styled.div`
+const TabBar = styled.div`
   display: flex;
+  border-bottom: 1px solid #E2E8F0;
+  margin-bottom: 24px;
   gap: 0;
-  background: ${st.bgCard};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radius};
-  padding: 4px;
-  overflow-x: auto;
-  box-shadow: ${st.shadowXs};
 `;
 
-const Tab = styled.button<{ $active: boolean }>`
-  padding: 8px 20px;
-  font-size: ${st.fontSm};
-  font-weight: ${(p) => (p.$active ? 600 : 400)};
-  color: ${(p) => (p.$active ? st.accentBlue : st.textSecondary)};
-  background: ${(p) => (p.$active ? st.accentBlueDim : 'transparent')};
-  border: 1px solid ${(p) => (p.$active ? `${st.accentBlue}33` : 'transparent')};
-  border-radius: ${st.radiusSm};
+const TabBtn = styled.button<{ $active: boolean }>`
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: ${p => p.$active ? 600 : 400};
+  color: ${p => p.$active ? '#0F172A' : '#94A3B8'};
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid ${p => p.$active ? '#0F172A' : 'transparent'};
+  margin-bottom: -1px;
   cursor: pointer;
+  transition: color 150ms, border-color 150ms;
   white-space: nowrap;
-  transition: all ${st.transition};
+
+  &:hover { color: ${p => p.$active ? '#0F172A' : '#475569'}; }
+`;
+
+// ─── Creator panel (inline, above the list) ───────────────────────────────────
+
+const CreatorPanel = styled.div`
+  background: #fff;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(15,23,42,0.06);
+  animation: ${slideDown} 220ms ease both;
+`;
+
+const CreatorHeader = styled.div`
   display: flex;
   align-items: center;
-  gap: 7px;
-
-  &:hover {
-    color: ${(p) => (p.$active ? st.accentBlue : st.text)};
-    background: ${(p) => (p.$active ? st.accentBlueDim : st.bg)};
-  }
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #F1F5F9;
 `;
 
-const TabBadge = styled.span<{ $active: boolean }>`
-  padding: 1px 7px;
-  background: ${(p) => (p.$active ? `${st.accentBlue}22` : st.bgCardAlt)};
-  color: ${(p) => (p.$active ? st.accentBlue : st.textMuted)};
-  border-radius: ${st.radiusFull};
-  font-size: 11px;
+const CreatorTitle = styled.span`
+  font-size: 13px;
   font-weight: 700;
+  color: #0F172A;
 `;
 
-// ─── Confirm dialog (simple) ──────────────────────────────────────────────────
+const CloseBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #94A3B8;
+  transition: all 150ms;
+  &:hover { background: #F8FAFC; color: #475569; }
+`;
 
-const ConfirmOverlay = styled.div`
+const CreatorBody = styled.div`
+  padding: 20px;
+`;
+
+// ─── Confirm dialog ───────────────────────────────────────────────────────────
+
+const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  background: ${st.bgOverlay};
+  background: rgba(15,23,42,0.35);
   z-index: 2000;
   display: flex;
   align-items: center;
@@ -221,82 +170,107 @@ const ConfirmOverlay = styled.div`
   padding: 20px;
 `;
 
-const ConfirmBox = styled.div`
-  background: ${st.bgCard};
-  border-radius: ${st.radius};
-  padding: 28px 32px;
-  max-width: 400px;
+const Dialog = styled.div`
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px;
+  max-width: 380px;
   width: 100%;
-  box-shadow: ${st.shadowLg};
+  box-shadow: 0 16px 48px rgba(15,23,42,0.14);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 `;
 
-const ConfirmTitle = styled.h3`
+const DialogTitle = styled.h3`
   margin: 0;
-  font-size: ${st.fontMd};
+  font-size: 15px;
   font-weight: 700;
-  color: ${st.text};
+  color: #0F172A;
 `;
 
-const ConfirmText = styled.p`
+const DialogText = styled.p`
   margin: 0;
-  font-size: ${st.fontSm};
-  color: ${st.textSecondary};
+  font-size: 13px;
+  color: #475569;
   line-height: 1.6;
 `;
 
-const ConfirmActions = styled.div`
+const DialogActions = styled.div`
   display: flex;
-  gap: 10px;
+  gap: 8px;
   justify-content: flex-end;
+  margin-top: 4px;
 `;
 
 const CancelBtn = styled.button`
-  padding: 8px 20px;
-  font-size: ${st.fontSm};
+  padding: 7px 16px;
+  font-size: 13px;
   font-weight: 500;
   background: transparent;
-  color: ${st.textSecondary};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radiusFull};
+  color: #64748B;
+  border: 1px solid #E2E8F0;
+  border-radius: 7px;
   cursor: pointer;
-  transition: all ${st.transition};
-  &:hover { background: ${st.bg}; color: ${st.text}; }
+  transition: all 150ms;
+  &:hover { background: #F8FAFC; }
 `;
 
-const DangerBtn = styled.button`
-  padding: 8px 20px;
-  font-size: ${st.fontSm};
+const ConfirmBtn = styled.button<{ $danger?: boolean }>`
+  padding: 7px 16px;
+  font-size: 13px;
   font-weight: 700;
-  background: ${st.accentRed};
+  background: ${p => p.$danger ? '#EF4444' : '#3B82F6'};
   color: #fff;
   border: none;
-  border-radius: ${st.radiusFull};
+  border-radius: 7px;
   cursor: pointer;
-  transition: all ${st.transition};
-  &:hover { background: #dc2626; }
+  transition: all 150ms;
+  &:hover { background: ${p => p.$danger ? '#DC2626' : '#2563EB'}; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
-const SendConfirmBtn = styled(DangerBtn)`
-  background: ${st.accentBlue};
-  &:hover { background: #2563EB; }
+// ─── Error bar ────────────────────────────────────────────────────────────────
+
+const ErrorBar = styled.div`
+  padding: 14px 18px;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #DC2626;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 `;
 
-// ─── Component ────────────────────────────────────────────────────────────────
+const RetryBtn = styled.button`
+  font-size: 13px;
+  font-weight: 600;
+  background: none;
+  border: none;
+  color: #DC2626;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+`;
 
-type Tab = 'campaigns' | 'ai-creator' | 'automation';
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type Tab = 'campaigns' | 'automation';
 
 interface ConfirmState {
   type: 'send' | 'delete';
   campaign: SmsCampaign;
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export const SmsCampaignsView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('campaigns');
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreatorOpen, setIsCreatorOpen] = useState(false);
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [sendingId, setSendingId] = useState<string | undefined>();
 
@@ -304,116 +278,79 @@ export const SmsCampaignsView: React.FC = () => {
   const deleteMutation = useDeleteCampaign();
   const sendMutation = useSendCampaign();
 
-  const handleSend = useCallback((c: SmsCampaign) => {
-    setConfirm({ type: 'send', campaign: c });
-  }, []);
-
-  const handleDelete = useCallback((c: SmsCampaign) => {
-    setConfirm({ type: 'delete', campaign: c });
-  }, []);
+  const handleSend = useCallback((c: SmsCampaign) => setConfirm({ type: 'send', campaign: c }), []);
+  const handleDelete = useCallback((c: SmsCampaign) => setConfirm({ type: 'delete', campaign: c }), []);
 
   const handleConfirm = async () => {
     if (!confirm) return;
     if (confirm.type === 'send') {
       setSendingId(confirm.campaign.id);
-      try {
-        await sendMutation.mutateAsync(confirm.campaign.id);
-      } finally {
-        setSendingId(undefined);
-      }
+      try { await sendMutation.mutateAsync(confirm.campaign.id); }
+      finally { setSendingId(undefined); }
     } else {
       await deleteMutation.mutateAsync(confirm.campaign.id);
     }
     setConfirm(null);
   };
 
-  // ── Stats ──
-  const sentCount = campaigns.filter((c) => c.status === 'SENT').length;
-  const scheduledCount = campaigns.filter((c) => c.status === 'SCHEDULED').length;
-  const draftCount = campaigns.filter((c) => c.status === 'DRAFT').length;
-  const totalSent = campaigns.reduce((s, c) => s + (c.sentCount ?? 0), 0);
+  const handleCreatorSuccess = useCallback(() => {
+    refetch();
+    // Keep creator open to show success state; user can close manually
+  }, [refetch]);
 
   return (
-    <PageContainer>
+    <Page>
       {/* ── Header ── */}
-      <PageHeader>
-        <TitleSection>
+      <Header>
+        <TitleBlock>
           <PageTitle>Kampanie SMS</PageTitle>
-          <PageSubtitle>Zarządzaj kampaniami i automatyzacją powiadomień</PageSubtitle>
-        </TitleSection>
-        <HeaderActions>
-          {activeTab === 'campaigns' && (
-            <AddButton onClick={() => setIsCreateOpen(true)}>
-              <PlusIcon />
-              Nowa kampania
-            </AddButton>
-          )}
-        </HeaderActions>
-      </PageHeader>
-
-      {/* ── Stats cards ── */}
-      <StatsGrid>
-        <StatCard $accent={st.accentBlue} $bg={st.gradientCardBlue}>
-          <StatLabel>Wszystkich kampanii</StatLabel>
-          <StatValue $color={st.accentBlue}>{campaigns.length}</StatValue>
-          <StatSub>łącznie w systemie</StatSub>
-        </StatCard>
-
-        <StatCard $accent={st.accentGreen} $bg="linear-gradient(160deg, #FFFFFF 0%, rgba(16,185,129,0.04) 100%)">
-          <StatLabel>Wysłanych</StatLabel>
-          <StatValue $color={st.accentGreen}>{sentCount}</StatValue>
-          <StatSub>{totalSent > 0 ? `${totalSent} SMS wysłanych` : 'brak wysłanych'}</StatSub>
-        </StatCard>
-
-        <StatCard $accent={st.accentAmber} $bg={st.accentAmberDim}>
-          <StatLabel>Zaplanowanych</StatLabel>
-          <StatValue $color={st.accentAmber}>{scheduledCount}</StatValue>
-          <StatSub>oczekuje na wysyłkę</StatSub>
-        </StatCard>
-
-        <StatCard $accent={st.textMuted} $bg={st.bgCardAlt}>
-          <StatLabel>Szkiców</StatLabel>
-          <StatValue $color={st.textSecondary}>{draftCount}</StatValue>
-          <StatSub>do wysyłki lub usunięcia</StatSub>
-        </StatCard>
-      </StatsGrid>
+          <PageSubtitle>Zarządzaj wiadomościami do klientów</PageSubtitle>
+        </TitleBlock>
+        {activeTab === 'campaigns' && (
+          <NewCampaignBtn onClick={() => { setIsCreatorOpen(true); }}>
+            <Plus size={14} strokeWidth={2.5} />
+            Nowa kampania
+          </NewCampaignBtn>
+        )}
+      </Header>
 
       {/* ── Tabs ── */}
-      <TabsRow>
-        <Tab $active={activeTab === 'campaigns'} onClick={() => setActiveTab('campaigns')}>
+      <TabBar>
+        <TabBtn $active={activeTab === 'campaigns'} onClick={() => setActiveTab('campaigns')}>
           Kampanie
-          <TabBadge $active={activeTab === 'campaigns'}>{campaigns.length}</TabBadge>
-        </Tab>
-        <Tab $active={activeTab === 'ai-creator'} onClick={() => setActiveTab('ai-creator')}>
-          ✨ Kreator AI
-        </Tab>
-        <Tab $active={activeTab === 'automation'} onClick={() => setActiveTab('automation')}>
+        </TabBtn>
+        <TabBtn $active={activeTab === 'automation'} onClick={() => setActiveTab('automation')}>
           Automatyzacja
-        </Tab>
-      </TabsRow>
+        </TabBtn>
+      </TabBar>
 
-      {/* ── Tab content ── */}
+      {/* ── Campaigns tab ── */}
       {activeTab === 'campaigns' && (
         <>
+          {/* Inline creator panel */}
+          {isCreatorOpen && (
+            <CreatorPanel>
+              <CreatorHeader>
+                <CreatorTitle>Nowa kampania</CreatorTitle>
+                <CloseBtn onClick={() => setIsCreatorOpen(false)} aria-label="Zamknij">
+                  <X size={14} strokeWidth={2} />
+                </CloseBtn>
+              </CreatorHeader>
+              <CreatorBody>
+                <AiCampaignCreator
+                  onClose={() => setIsCreatorOpen(false)}
+                  onSuccess={handleCreatorSuccess}
+                />
+              </CreatorBody>
+            </CreatorPanel>
+          )}
+
+          {/* Campaign list */}
           {isError ? (
-            <div style={{
-              padding: 32,
-              textAlign: 'center',
-              background: st.accentRedDim,
-              border: `1px solid ${st.accentRed}33`,
-              borderRadius: st.radius,
-              color: st.accentRed,
-              fontSize: st.fontSm,
-              fontWeight: 500,
-            }}>
-              Nie udało się załadować kampanii.{' '}
-              <button
-                onClick={() => refetch()}
-                style={{ cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', color: 'inherit', font: 'inherit' }}
-              >
-                Spróbuj ponownie
-              </button>
-            </div>
+            <ErrorBar>
+              Nie udało się załadować kampanii.
+              <RetryBtn onClick={() => refetch()}>Spróbuj ponownie</RetryBtn>
+            </ErrorBar>
           ) : (
             <CampaignList
               campaigns={campaigns}
@@ -426,55 +363,52 @@ export const SmsCampaignsView: React.FC = () => {
         </>
       )}
 
-      {activeTab === 'ai-creator' && <AiCampaignCreator />}
-
+      {/* ── Automation tab ── */}
       {activeTab === 'automation' && <AutomationSettings />}
 
-      {/* ── Create campaign drawer ── */}
+      {/* ── Manual create modal (kept for compatibility) ── */}
       <CreateCampaignModal
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
+        isOpen={isManualModalOpen}
+        onClose={() => setIsManualModalOpen(false)}
       />
 
-      {/* ── Confirmation dialog ── */}
+      {/* ── Confirm dialog ── */}
       {confirm && (
-        <ConfirmOverlay onClick={(e) => e.target === e.currentTarget && setConfirm(null)}>
-          <ConfirmBox>
+        <Overlay onClick={e => e.target === e.currentTarget && setConfirm(null)}>
+          <Dialog>
             {confirm.type === 'send' ? (
               <>
-                <ConfirmTitle>Wyślij kampanię</ConfirmTitle>
-                <ConfirmText>
-                  Czy na pewno chcesz teraz wysłać kampanię{' '}
-                  <strong>„{confirm.campaign.name}"</strong>?{' '}
+                <DialogTitle>Wyślij kampanię</DialogTitle>
+                <DialogText>
+                  Czy na pewno chcesz wysłać kampanię <strong>„{confirm.campaign.name}"</strong>?{' '}
                   SMS zostanie wysłany do <strong>{confirm.campaign.audienceCount}</strong> odbiorców.
                   Tej akcji nie można cofnąć.
-                </ConfirmText>
-                <ConfirmActions>
+                </DialogText>
+                <DialogActions>
                   <CancelBtn onClick={() => setConfirm(null)}>Anuluj</CancelBtn>
-                  <SendConfirmBtn onClick={handleConfirm} disabled={sendMutation.isPending}>
-                    {sendMutation.isPending ? 'Wysyłanie…' : '▶ Wyślij'}
-                  </SendConfirmBtn>
-                </ConfirmActions>
+                  <ConfirmBtn onClick={handleConfirm} disabled={sendMutation.isPending}>
+                    {sendMutation.isPending ? 'Wysyłanie…' : 'Wyślij'}
+                  </ConfirmBtn>
+                </DialogActions>
               </>
             ) : (
               <>
-                <ConfirmTitle>Usuń kampanię</ConfirmTitle>
-                <ConfirmText>
-                  Czy na pewno chcesz usunąć kampanię{' '}
-                  <strong>„{confirm.campaign.name}"</strong>?{' '}
+                <DialogTitle>Usuń kampanię</DialogTitle>
+                <DialogText>
+                  Czy na pewno chcesz usunąć kampanię <strong>„{confirm.campaign.name}"</strong>?
                   Tej akcji nie można cofnąć.
-                </ConfirmText>
-                <ConfirmActions>
+                </DialogText>
+                <DialogActions>
                   <CancelBtn onClick={() => setConfirm(null)}>Anuluj</CancelBtn>
-                  <DangerBtn onClick={handleConfirm} disabled={deleteMutation.isPending}>
+                  <ConfirmBtn $danger onClick={handleConfirm} disabled={deleteMutation.isPending}>
                     {deleteMutation.isPending ? 'Usuwanie…' : 'Usuń'}
-                  </DangerBtn>
-                </ConfirmActions>
+                  </ConfirmBtn>
+                </DialogActions>
               </>
             )}
-          </ConfirmBox>
-        </ConfirmOverlay>
+          </Dialog>
+        </Overlay>
       )}
-    </PageContainer>
+    </Page>
   );
 };
