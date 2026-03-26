@@ -190,7 +190,8 @@ const VehicleSubInfo = styled.div`
     gap: 6px;
     margin-top: 3px;
     font-size: 12px;
-    color: ${st.textSecondary};
+    font-weight: 600;
+    color: ${st.text};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
