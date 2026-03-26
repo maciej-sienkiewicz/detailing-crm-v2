@@ -5,6 +5,8 @@ import type {
   SmsAutomationConfig,
   CampaignFilters,
   VehicleBrandOption,
+  AgentAudienceRequest,
+  AgentAudienceResult,
 } from '../types';
 import {apiClient} from "@/core";
 
@@ -248,6 +250,66 @@ export async function fetchVehicleBrands(): Promise<VehicleBrandOption[]> {
     return mockBrands;
   }
   const { data } = await apiClient.get<VehicleBrandOption[]>('/v1/vehicles/brands');
+  return data;
+}
+
+export async function generateAudienceFromPrompt(
+  req: AgentAudienceRequest
+): Promise<AgentAudienceResult> {
+  if (USE_MOCKS) {
+    await delay(2800);
+    const prompt = req.prompt.toLowerCase();
+
+    // Simulate agents finding customers based on prompt keywords
+    let customers = [...mockAudienceCustomers];
+
+    if (prompt.includes('bmw')) {
+      customers = customers.filter((c) => c.vehicleBrand?.toLowerCase() === 'bmw');
+    }
+
+    // Add a few extra mock entries for richer demo
+    const extra = [
+      {
+        id: 'cust-06',
+        firstName: 'Michał',
+        lastName: 'Zając',
+        phone: '+48 605 600 700',
+        vehicleBrand: 'BMW',
+        vehicleModel: 'M5',
+        lastVisitDate: '2025-04-12',
+      },
+      {
+        id: 'cust-07',
+        firstName: 'Agnieszka',
+        lastName: 'Kamińska',
+        phone: '+48 606 700 800',
+        vehicleBrand: 'BMW',
+        vehicleModel: 'X7',
+        lastVisitDate: '2025-07-30',
+      },
+    ];
+    if (prompt.includes('bmw') || customers.length > 0) {
+      customers = [...customers, ...extra.filter((e) => !customers.find((c) => c.id === e.id))];
+    }
+
+    const filtersDescription =
+      prompt.includes('bmw') && prompt.includes('ppf')
+        ? 'Klienci posiadający BMW, którzy w ostatnim roku korzystali z usługi oklejania PPF'
+        : prompt.includes('bmw')
+        ? 'Klienci posiadający samochody marki BMW'
+        : 'Klienci spełniający podane kryteria';
+
+    return {
+      customers,
+      total: customers.length,
+      generatedFiltersDescription: filtersDescription,
+    };
+  }
+
+  const { data } = await apiClient.post<AgentAudienceResult>(
+    '/v1/sms-campaigns/ai-audience',
+    req
+  );
   return data;
 }
 
