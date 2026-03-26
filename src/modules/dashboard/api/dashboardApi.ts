@@ -372,6 +372,10 @@ export const dashboardApi = {
     const data = response.data as DashboardData;
     return {
       ...data,
+      stats: {
+        ...data.stats,
+        abandonedDetails: data.stats?.abandonedDetails ?? mockDashboardData.stats.abandonedDetails,
+      },
       instagramPhotos: data.instagramPhotos ?? mockDashboardData.instagramPhotos,
       googleReviews: data.googleReviews ?? mockDashboardData.googleReviews,
     };
