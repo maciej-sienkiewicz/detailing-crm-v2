@@ -345,26 +345,66 @@ const NotesText = styled.div`
     word-break: break-word;
 `;
 
-const AppointmentStatusBadge = styled.div<{ $status: 'ABANDONED' | 'CANCELLED' }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
+const StatusBlock = styled.div<{ $status: 'ABANDONED' | 'CANCELLED' }>`
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    margin-bottom: 20px;
 
     ${props => props.$status === 'ABANDONED' ? `
-        background: linear-gradient(135deg, #fef3c7, #fde68a);
-        color: #92400e;
-        border: 1px solid #f59e0b;
+        background: linear-gradient(135deg, #fffbeb, #fef3c7);
+        border-left: 4px solid #f59e0b;
     ` : `
-        background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
-        color: #475569;
-        border: 1px solid #cbd5e1;
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        border-left: 4px solid #94a3b8;
     `}
+`;
+
+const StatusBlockIcon = styled.div<{ $status: 'ABANDONED' | 'CANCELLED' }>`
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    ${props => props.$status === 'ABANDONED' ? `
+        background: #f59e0b;
+        color: white;
+    ` : `
+        background: #94a3b8;
+        color: white;
+    `}
+
+    svg { width: 16px; height: 16px; }
+`;
+
+const StatusBlockContent = styled.div`
+    flex: 1;
+    min-width: 0;
+`;
+
+const StatusBlockTitle = styled.div<{ $status: 'ABANDONED' | 'CANCELLED' }>`
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 4px;
+
+    ${props => props.$status === 'ABANDONED' ? `
+        color: #92400e;
+    ` : `
+        color: #475569;
+    `}
+`;
+
+const StatusBlockDesc = styled.div`
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.5;
 `;
 
 interface EventSummaryPopoverProps {
@@ -441,6 +481,32 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                 </PopoverHeader>
 
                 <PopoverBody>
+                    {/* Status blok - dla porzuconych/anulowanych rezerwacji */}
+                    {isAppointment && isCancelled && appointmentStatus && (appointmentStatus === 'ABANDONED' || appointmentStatus === 'CANCELLED') && (
+                        <StatusBlock $status={appointmentStatus as 'ABANDONED' | 'CANCELLED'}>
+                            <StatusBlockIcon $status={appointmentStatus as 'ABANDONED' | 'CANCELLED'}>
+                                {appointmentStatus === 'ABANDONED' ? (
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                                    </svg>
+                                ) : (
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <path d="M15 9l-6 6M9 9l6 6" />
+                                    </svg>
+                                )}
+                            </StatusBlockIcon>
+                            <StatusBlockContent>
+                                <StatusBlockTitle $status={appointmentStatus as 'ABANDONED' | 'CANCELLED'}>
+                                    {formatAppointmentStatus(appointmentStatus as 'ABANDONED' | 'CANCELLED')}
+                                </StatusBlockTitle>
+                                <StatusBlockDesc>
+                                    {formatAppointmentStatusDescription(appointmentStatus as 'ABANDONED' | 'CANCELLED')}
+                                </StatusBlockDesc>
+                            </StatusBlockContent>
+                        </StatusBlock>
+                    )}
+
                     <InfoColumns>
                         {/* Klient */}
                         <Section>
@@ -525,29 +591,6 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                 </InfoIcon>
                                 <InfoValue>{formatStatus(event.status) || '—'}</InfoValue>
                             </InfoRow>
-                        </Section>
-                    )}
-
-                    {/* Status - dla porzuconych/anulowanych rezerwacji */}
-                    {isAppointment && isCancelled && appointmentStatus && (appointmentStatus === 'ABANDONED' || appointmentStatus === 'CANCELLED') && (
-                        <Section>
-                            <SectionTitle>Status rezerwacji</SectionTitle>
-                            <AppointmentStatusBadge $status={appointmentStatus as 'ABANDONED' | 'CANCELLED'}>
-                                {appointmentStatus === 'ABANDONED' ? (
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '13px', height: '13px', flexShrink: 0 }}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                                    </svg>
-                                ) : (
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '13px', height: '13px', flexShrink: 0 }}>
-                                        <circle cx="12" cy="12" r="10" />
-                                        <path d="M15 9l-6 6M9 9l6 6" />
-                                    </svg>
-                                )}
-                                {formatAppointmentStatus(appointmentStatus as 'ABANDONED' | 'CANCELLED')}
-                            </AppointmentStatusBadge>
-                            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '8px', lineHeight: '1.5' }}>
-                                {formatAppointmentStatusDescription(appointmentStatus as 'ABANDONED' | 'CANCELLED')}
-                            </div>
                         </Section>
                     )}
 
