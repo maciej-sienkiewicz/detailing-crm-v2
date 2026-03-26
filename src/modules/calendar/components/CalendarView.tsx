@@ -288,7 +288,6 @@ const CalendarContainer = styled.div`
     .fc-event-abandoned,
     .fc-event-cancelled {
         opacity: 0.35;
-        background-color: #d93025 !important;
     }
 
     .fc-event-abandoned .fc-event-title,
