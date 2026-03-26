@@ -143,9 +143,9 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
     // Check if appointment is abandoned or cancelled
     const isCancelled = appointment.status === 'ABANDONED' || appointment.status === 'CANCELLED';
 
-    // For ABANDONED/CANCELLED appointments, always use red color with transparency
+    // For ABANDONED/CANCELLED appointments, always use black color
     // Otherwise use appointmentColor or fallback
-    const colorHex = isCancelled ? '#ef4444' : (appointment.appointmentColor?.hexColor || '#94a3b8');
+    const colorHex = isCancelled ? '#111827' : (appointment.appointmentColor?.hexColor || '#94a3b8');
     const textColor = getContrastingTextColor(colorHex);
 
     const eventData: AppointmentEventData = {
@@ -176,8 +176,12 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         borderColor: 'transparent',
         textColor,
         extendedProps: eventData,
-        // Add custom class name for ABANDONED/CANCELLED appointments
-        classNames: isCancelled ? ['fc-event-abandoned'] : [],
+        // Add custom class name per status
+        classNames: appointment.status === 'ABANDONED'
+            ? ['fc-event-abandoned']
+            : appointment.status === 'CANCELLED'
+                ? ['fc-event-cancelled']
+                : [],
         order: 2,
     };
 };

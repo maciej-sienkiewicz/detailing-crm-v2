@@ -345,6 +345,28 @@ const NotesText = styled.div`
     word-break: break-word;
 `;
 
+const AppointmentStatusBadge = styled.div<{ $status: 'ABANDONED' | 'CANCELLED' }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+
+    ${props => props.$status === 'ABANDONED' ? `
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        color: #92400e;
+        border: 1px solid #f59e0b;
+    ` : `
+        background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+        color: #475569;
+        border: 1px solid #cbd5e1;
+    `}
+`;
+
 interface EventSummaryPopoverProps {
     event: AppointmentEventData | VisitEventData;
     position: { x: number; y: number };
@@ -396,6 +418,18 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
             'ARCHIVED': 'Zarchiwizowane',
         };
         return statusMap[status] || status;
+    };
+
+    const formatAppointmentStatus = (status: 'ABANDONED' | 'CANCELLED') => {
+        if (status === 'ABANDONED') return 'Porzucona';
+        return 'Anulowana';
+    };
+
+    const formatAppointmentStatusDescription = (status: 'ABANDONED' | 'CANCELLED') => {
+        if (status === 'ABANDONED') {
+            return 'Rezerwacja była zapisana, ale klient nie przyjechał lub kontakt się urwał.';
+        }
+        return 'Administrator zgodził się na anulowanie rezerwacji.';
     };
 
     return (
@@ -491,6 +525,29 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                 </InfoIcon>
                                 <InfoValue>{formatStatus(event.status) || '—'}</InfoValue>
                             </InfoRow>
+                        </Section>
+                    )}
+
+                    {/* Status - dla porzuconych/anulowanych rezerwacji */}
+                    {isAppointment && isCancelled && appointmentStatus && (appointmentStatus === 'ABANDONED' || appointmentStatus === 'CANCELLED') && (
+                        <Section>
+                            <SectionTitle>Status rezerwacji</SectionTitle>
+                            <AppointmentStatusBadge $status={appointmentStatus as 'ABANDONED' | 'CANCELLED'}>
+                                {appointmentStatus === 'ABANDONED' ? (
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '13px', height: '13px', flexShrink: 0 }}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                                    </svg>
+                                ) : (
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '13px', height: '13px', flexShrink: 0 }}>
+                                        <circle cx="12" cy="12" r="10" />
+                                        <path d="M15 9l-6 6M9 9l6 6" />
+                                    </svg>
+                                )}
+                                {formatAppointmentStatus(appointmentStatus as 'ABANDONED' | 'CANCELLED')}
+                            </AppointmentStatusBadge>
+                            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '8px', lineHeight: '1.5' }}>
+                                {formatAppointmentStatusDescription(appointmentStatus as 'ABANDONED' | 'CANCELLED')}
+                            </div>
                         </Section>
                     )}
 
