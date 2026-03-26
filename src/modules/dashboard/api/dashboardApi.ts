@@ -7,7 +7,7 @@
 import type { DashboardData, IncomingCall } from '../types';
 import {apiClient} from "@/core";
 
-const USE_MOCKS = true;
+const USE_MOCKS = false;
 
 /**
  * Mock dashboard data with realistic business metrics
