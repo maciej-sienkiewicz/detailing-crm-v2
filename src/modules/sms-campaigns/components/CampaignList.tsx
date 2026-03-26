@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import styled, { keyframes, css } from 'styled-components';
 import { Send, Trash2, Users, CheckCircle, FileText, MessageSquare, X, Phone, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 
@@ -721,8 +722,8 @@ export const CampaignList: React.FC<Props> = ({
         </Table>
       </TableWrap>
 
-      {smsModal   && <SmsModal        campaign={smsModal}   onClose={() => setSmsModal(null)} />}
-      {recipModal && <RecipientsModal campaign={recipModal} onClose={() => setRecipModal(null)} />}
+      {smsModal   && createPortal(<SmsModal        campaign={smsModal}   onClose={() => setSmsModal(null)} />, document.body)}
+      {recipModal && createPortal(<RecipientsModal campaign={recipModal} onClose={() => setRecipModal(null)} />, document.body)}
     </>
   );
 };
