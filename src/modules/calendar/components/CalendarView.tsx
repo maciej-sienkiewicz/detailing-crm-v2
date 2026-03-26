@@ -1189,6 +1189,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 // Custom event content – adds calendar icon to reservation tiles
                 eventContent={(arg) => {
                     const isAppointment = arg.event.extendedProps.type === 'APPOINTMENT';
+                    const status = arg.event.extendedProps.status;
+                    const isCancelled = status === 'ABANDONED' || status === 'CANCELLED';
                     return (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden', width: '100%' }}>
                             {isAppointment && (
@@ -1210,7 +1212,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                                     <line x1="3" y1="10" x2="21" y2="10" />
                                 </svg>
                             )}
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600, fontSize: '13px', lineHeight: '1.4' }}>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600, fontSize: '13px', lineHeight: '1.4', textDecoration: isCancelled ? 'line-through' : 'none' }}>
                                 {arg.event.title}
                             </span>
                         </div>
