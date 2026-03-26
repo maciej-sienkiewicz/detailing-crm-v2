@@ -285,13 +285,16 @@ const CalendarContainer = styled.div`
     }
 
     /* Abandoned/Cancelled appointments */
-    .fc-event-abandoned {
+    .fc-event-abandoned,
+    .fc-event-cancelled {
         opacity: 0.35;
         background-color: #d93025 !important;
     }
 
     .fc-event-abandoned .fc-event-title,
-    .fc-event-abandoned .fc-event-time {
+    .fc-event-abandoned .fc-event-time,
+    .fc-event-cancelled .fc-event-title,
+    .fc-event-cancelled .fc-event-time {
         text-decoration: line-through;
     }
 
