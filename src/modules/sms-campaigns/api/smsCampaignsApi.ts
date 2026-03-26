@@ -7,6 +7,7 @@ import type {
   VehicleBrandOption,
   AgentAudienceRequest,
   AgentAudienceResult,
+  CampaignRecipient,
 } from '../types';
 import {apiClient} from "@/core";
 
@@ -250,6 +251,40 @@ export async function fetchVehicleBrands(): Promise<VehicleBrandOption[]> {
     return mockBrands;
   }
   const { data } = await apiClient.get<VehicleBrandOption[]>('/v1/vehicles/brands');
+  return data;
+}
+
+const mockRecipients: Record<string, CampaignRecipient[]> = {
+  'camp-001': [
+    { id: 'r-01', firstName: 'Marek',     lastName: 'Kowalski',   phone: '+48 600 100 200', status: 'sent' },
+    { id: 'r-02', firstName: 'Anna',      lastName: 'Nowak',      phone: '+48 601 200 300', status: 'sent' },
+    { id: 'r-03', firstName: 'Piotr',     lastName: 'Wiśniewski', phone: '+48 602 300 400', status: 'sent' },
+    { id: 'r-04', firstName: 'Katarzyna', lastName: 'Wójcik',     phone: '+48 603 400 500', status: 'sent' },
+    { id: 'r-05', firstName: 'Tomasz',    lastName: 'Lewandowski', phone: '+48 604 500 600', status: 'sent' },
+    { id: 'r-06', firstName: 'Michał',    lastName: 'Zając',      phone: '+48 605 600 700', status: 'sent' },
+    { id: 'r-07', firstName: 'Agnieszka', lastName: 'Kamińska',   phone: '+48 606 700 800', status: 'sent' },
+  ],
+  'camp-002': [
+    { id: 'r-11', firstName: 'Rafał',     lastName: 'Maj',        phone: '+48 700 111 222', status: 'pending' },
+    { id: 'r-12', firstName: 'Beata',     lastName: 'Kruk',       phone: '+48 701 222 333', status: 'pending' },
+    { id: 'r-13', firstName: 'Grzegorz',  lastName: 'Sikora',     phone: '+48 702 333 444', status: 'pending' },
+    { id: 'r-14', firstName: 'Monika',    lastName: 'Baran',      phone: '+48 703 444 555', status: 'pending' },
+  ],
+  'camp-003': [
+    { id: 'r-21', firstName: 'Łukasz',    lastName: 'Pawlak',     phone: '+48 800 123 456', status: 'pending' },
+    { id: 'r-22', firstName: 'Joanna',    lastName: 'Krawczyk',   phone: '+48 801 234 567', status: 'pending' },
+    { id: 'r-23', firstName: 'Dariusz',   lastName: 'Kubiak',     phone: '+48 802 345 678', status: 'pending' },
+    { id: 'r-24', firstName: 'Sylwia',    lastName: 'Wojciechowska', phone: '+48 803 456 789', status: 'pending' },
+    { id: 'r-25', firstName: 'Bartosz',   lastName: 'Kowalczyk',  phone: '+48 804 567 890', status: 'pending' },
+  ],
+};
+
+export async function fetchCampaignRecipients(id: string): Promise<CampaignRecipient[]> {
+  if (USE_MOCKS) {
+    await delay(400);
+    return mockRecipients[id] ?? [];
+  }
+  const { data } = await apiClient.get<CampaignRecipient[]>(`/v1/sms-campaigns/${id}/recipients`);
   return data;
 }
 

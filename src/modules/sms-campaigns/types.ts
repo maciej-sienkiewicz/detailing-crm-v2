@@ -95,3 +95,11 @@ export interface AgentAudienceResult {
   total: number;
   generatedFiltersDescription?: string; // Human-readable summary of what agents found
 }
+
+export interface CampaignRecipient {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  status: 'sent' | 'pending' | 'failed';
+}
