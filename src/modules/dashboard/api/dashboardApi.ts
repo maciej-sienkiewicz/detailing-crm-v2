@@ -368,10 +368,19 @@ export const dashboardApi = {
    * @returns Promise resolving to dashboard data
    */
   getStats: async (): Promise<DashboardData> => {
+    if (USE_MOCKS) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      return mockDashboardData;
+    }
+
     const response = await apiClient.get('/v1/dashboard/stats');
     const data = response.data as DashboardData;
     return {
       ...data,
+      stats: {
+        ...data.stats,
+        abandonedDetails: data.stats?.abandonedDetails ?? [],
+      },
       instagramPhotos: data.instagramPhotos ?? mockDashboardData.instagramPhotos,
       googleReviews: data.googleReviews ?? mockDashboardData.googleReviews,
     };

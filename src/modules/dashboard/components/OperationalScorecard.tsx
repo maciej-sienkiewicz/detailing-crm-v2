@@ -653,7 +653,11 @@ const VisitDrawer = ({
 
         <DrawerBody>
           {data.visits.length === 0 ? (
-            <EmptyDrawer>Brak wizyt w tej kategorii</EmptyDrawer>
+            <EmptyDrawer>
+              {data.variant === 'abandoned'
+                ? 'Brak porzuconych ani anulowanych rezerwacji'
+                : 'Brak wizyt w tej kategorii'}
+            </EmptyDrawer>
           ) : (
             data.visits.map(visit => (
               <VisitRow
@@ -698,7 +702,7 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
       case 'incomingToday':
         return { variant: 'incomingToday', label: t.dashboard.stats.arrivals, subtitle: 'Lista wizyt', visits: stats.incomingTodayDetails ?? [], onRowClick: (id) => navigate(`/reservations/${id}/checkin`) };
       case 'abandoned':
-        return { variant: 'abandoned', label: t.dashboard.stats.abandoned, subtitle: 'Ostatnie 30 dni', visits: stats.abandonedDetails ?? [], onRowClick: (id) => navigate(`/appointments/${id}`), footerLabel: 'Pokaż rezerwacje', footerPath: '/appointments' };
+        return { variant: 'abandoned', label: t.dashboard.stats.abandoned, subtitle: 'Ostatnie 30 dni · Porzucone i Anulowane', visits: stats.abandonedDetails ?? [], onRowClick: (id) => navigate(`/appointments/${id}`), footerLabel: 'Pokaż rezerwacje', footerPath: '/appointments' };
       default:
         return null;
     }
@@ -748,7 +752,7 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
             variant="abandoned"
             label={t.dashboard.stats.abandoned}
             value={stats.abandonedLast30Days}
-            hasDetails={!!stats.abandonedDetails}
+            hasDetails={stats.abandonedLast30Days > 0}
             isActive={activeKey === 'abandoned'}
             onToggle={() => toggle('abandoned')}
             subLabel={t.dashboard.stats.abandonedSubLabel}
