@@ -26,15 +26,47 @@ const shimmerAnim = keyframes`
 const PromptWrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  align-items: center;
+  gap: 24px;
+  padding: 16px 0 8px;
   animation: ${fadeIn} 250ms ease both;
 `;
 
-const PromptLabel = styled.p`
+const PromptHero = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+`;
+
+const SparkIcon = styled.div`
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+  margin-bottom: 2px;
+`;
+
+const HeroTitle = styled.h2`
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0F172A;
+  letter-spacing: -0.4px;
+`;
+
+const HeroSubtitle = styled.p`
   margin: 0;
   font-size: 13px;
-  color: #475569;
-  line-height: 1.6;
+  color: #64748B;
+  max-width: 440px;
+  line-height: 1.65;
 `;
 
 const PromptBox = styled.div`
@@ -106,25 +138,17 @@ const SearchBtn = styled.button<{ $active: boolean }>`
 const ExampleChips = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
-`;
-
-const ChipsLabel = styled.span`
-  font-size: 11px;
-  color: #94A3B8;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  align-self: center;
-  flex-shrink: 0;
+  gap: 8px;
+  justify-content: center;
+  max-width: 620px;
 `;
 
 const Chip = styled.button`
-  padding: 5px 12px;
+  padding: 6px 14px;
   font-size: 12px;
   font-weight: 500;
   color: #475569;
-  background: #F8FAFC;
+  background: #fff;
   border: 1px solid #E2E8F0;
   border-radius: 999px;
   cursor: pointer;
@@ -570,12 +594,16 @@ export const AiCampaignCreator: React.FC<Props> = ({ onClose, onSuccess }) => {
   if (phase === 'prompt') {
     return (
       <PromptWrap>
-        <PromptLabel>
-          Opisz w kilku słowach, do jakich klientów chcesz wysłać kampanię.
-          Przeszukamy bazę i zaproponujemy listę odbiorców.
-        </PromptLabel>
+        <PromptHero>
+          <SparkIcon>✦</SparkIcon>
+          <HeroTitle>Utwórz kampanię SMS</HeroTitle>
+          <HeroSubtitle>
+            Opisz w języku naturalnym, do jakich klientów chcesz dotrzeć.
+            Przeszukamy bazę i zaproponujemy dopasowaną listę odbiorców.
+          </HeroSubtitle>
+        </PromptHero>
 
-        <PromptBox>
+        <PromptBox style={{ width: '100%', maxWidth: 640 }}>
           <PromptTextarea
             ref={textareaRef}
             autoFocus
@@ -599,7 +627,6 @@ export const AiCampaignCreator: React.FC<Props> = ({ onClose, onSuccess }) => {
         </PromptBox>
 
         <ExampleChips>
-          <ChipsLabel>Przykłady:</ChipsLabel>
           {EXAMPLES.map(ex => (
             <Chip key={ex} onClick={() => setPromptText(ex)}>{ex}</Chip>
           ))}
