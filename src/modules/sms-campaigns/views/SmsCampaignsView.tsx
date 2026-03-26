@@ -4,6 +4,7 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { CampaignList } from '../components/CampaignList';
 import { CreateCampaignModal } from '../components/CreateCampaignModal';
 import { AutomationSettings } from '../components/AutomationSettings';
+import { AiCampaignCreator } from '../components/AiCampaignCreator';
 import { useCampaigns, useDeleteCampaign, useSendCampaign } from '../hooks';
 import type { SmsCampaign } from '../types';
 
@@ -286,7 +287,7 @@ const SendConfirmBtn = styled(DangerBtn)`
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-type Tab = 'campaigns' | 'automation';
+type Tab = 'campaigns' | 'ai-creator' | 'automation';
 
 interface ConfirmState {
   type: 'send' | 'delete';
@@ -383,6 +384,9 @@ export const SmsCampaignsView: React.FC = () => {
           Kampanie
           <TabBadge $active={activeTab === 'campaigns'}>{campaigns.length}</TabBadge>
         </Tab>
+        <Tab $active={activeTab === 'ai-creator'} onClick={() => setActiveTab('ai-creator')}>
+          ✨ Kreator AI
+        </Tab>
         <Tab $active={activeTab === 'automation'} onClick={() => setActiveTab('automation')}>
           Automatyzacja
         </Tab>
@@ -421,6 +425,8 @@ export const SmsCampaignsView: React.FC = () => {
           )}
         </>
       )}
+
+      {activeTab === 'ai-creator' && <AiCampaignCreator />}
 
       {activeTab === 'automation' && <AutomationSettings />}
 

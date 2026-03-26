@@ -4,3 +4,4 @@ export { AudiencePreview } from './AudiencePreview';
 export { CampaignList } from './CampaignList';
 export { CreateCampaignModal } from './CreateCampaignModal';
 export { AutomationSettings } from './AutomationSettings';
+export { AiCampaignCreator } from './AiCampaignCreator';

@@ -83,3 +83,15 @@ export interface VehicleBrandOption {
   brand: string;
   models: string[];
 }
+
+// ─── AI Campaign Creator ───────────────────────────────────────────────────────
+
+export interface AgentAudienceRequest {
+  prompt: string;
+}
+
+export interface AgentAudienceResult {
+  customers: AudienceCustomer[];
+  total: number;
+  generatedFiltersDescription?: string; // Human-readable summary of what agents found
+}
