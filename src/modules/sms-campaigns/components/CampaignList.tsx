@@ -1,253 +1,253 @@
 import React from 'react';
-import styled, { keyframes } from 'styled-components';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
+import styled, { keyframes, css } from 'styled-components';
+import { Send, Trash2, Clock, Users, CheckCircle, FileText } from 'lucide-react';
 import type { SmsCampaign, CampaignStatus } from '../types';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
 const shimmer = keyframes`
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
 `;
 
 const fadeIn = keyframes`
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 `;
 
-// ─── Status badge ─────────────────────────────────────────────────────────────
+// ─── Status config ─────────────────────────────────────────────────────────────
 
-const statusConfig: Record<CampaignStatus, { label: string; color: string; bg: string }> = {
-  DRAFT: { label: 'Szkic', color: st.textSecondary, bg: st.bgCardAlt },
-  SCHEDULED: { label: 'Zaplanowana', color: st.accentAmber, bg: st.accentAmberDim },
-  SENT: { label: 'Wysłana', color: st.accentGreen, bg: st.accentGreenDim },
+const STATUS: Record<CampaignStatus, { label: string; dot: string; text: string }> = {
+  DRAFT:     { label: 'Szkic',       dot: '#94A3B8', text: '#64748B' },
+  SCHEDULED: { label: 'Zaplanowana', dot: '#D97706', text: '#B45309' },
+  SENT:      { label: 'Wysłana',     dot: '#16A34A', text: '#15803D' },
 };
 
-const StatusBadge = styled.span<{ $status: CampaignStatus }>`
-  padding: 3px 10px;
-  background: ${(p) => statusConfig[p.$status].bg};
-  color: ${(p) => statusConfig[p.$status].color};
-  border-radius: ${st.radiusFull};
-  font-size: ${st.fontXs};
+// ─── Table wrapper ─────────────────────────────────────────────────────────────
+
+const TableWrap = styled.div`
+  background: #fff;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.05);
+  animation: ${fadeIn} 200ms ease both;
+`;
+
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const Thead = styled.thead`
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+`;
+
+const Th = styled.th`
+  padding: 11px 16px;
+  text-align: left;
+  font-size: 11px;
   font-weight: 700;
+  color: #94A3B8;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
   white-space: nowrap;
 `;
 
-// ─── Cards ────────────────────────────────────────────────────────────────────
-
-const List = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+const ThRight = styled(Th)`
+  text-align: right;
 `;
 
-const Card = styled.div`
-  background: ${st.bgCard};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radius};
-  padding: 20px 24px;
-  display: flex;
-  align-items: flex-start;
-  gap: 20px;
-  box-shadow: ${st.shadowXs};
-  transition: box-shadow ${st.transition}, transform ${st.transition};
-  animation: ${fadeIn} 0.2s ease;
+const Tr = styled.tr`
+  border-bottom: 1px solid #F1F5F9;
+  transition: background 150ms ease;
 
-  &:hover {
-    box-shadow: ${st.shadowMd};
-    transform: translateY(-1px);
-  }
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    gap: 14px;
-  }
+  &:last-child { border-bottom: none; }
+  &:hover { background: #F8FAFC; }
 `;
 
-const CardIconWrap = styled.div`
-  width: 44px;
-  height: 44px;
-  background: ${st.accentBlueDim};
-  border-radius: ${st.radiusSm};
-  display: flex;
+const Td = styled.td`
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #0F172A;
+  vertical-align: middle;
+`;
+
+const TdRight = styled(Td)`
+  text-align: right;
+`;
+
+// ─── Status badge ──────────────────────────────────────────────────────────────
+
+const StatusBadge = styled.span<{ $status: CampaignStatus }>`
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
-`;
-
-const CardContent = styled.div`
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-`;
-
-const CardTitle = styled.h3`
-  margin: 0;
-  font-size: ${st.fontMd};
-  font-weight: 700;
-  color: ${st.text};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const CardMessage = styled.p`
-  margin: 0;
-  font-size: ${st.fontXs};
-  color: ${st.textMuted};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-style: italic;
-`;
-
-const CardMeta = styled.div`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-`;
-
-const MetaItem = styled.span`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: ${st.fontXs};
-  color: ${st.textSecondary};
-`;
-
-const MetaValue = styled.strong`
-  color: ${st.text};
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
   font-weight: 600;
+  color: ${p => STATUS[p.$status].text};
+  background: ${p => STATUS[p.$status].dot}18;
+  white-space: nowrap;
 `;
 
-const CardActions = styled.div`
+const Dot = styled.span<{ $color: string }>`
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: ${p => p.$color};
+  flex-shrink: 0;
+`;
+
+// ─── Campaign name cell ────────────────────────────────────────────────────────
+
+const NameCell = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-  flex-shrink: 0;
-
-  @media (max-width: 768px) {
-    flex-direction: row;
-    align-items: center;
-    width: 100%;
-    justify-content: space-between;
-  }
+  gap: 3px;
 `;
 
-const SendButton = styled.button`
-  padding: 7px 16px;
-  font-size: ${st.fontXs};
-  font-weight: 700;
-  background: ${st.accentBlue};
-  color: #fff;
-  border: none;
-  border-radius: ${st.radiusFull};
-  cursor: pointer;
-  transition: all ${st.transition};
-  box-shadow: ${st.shadowXs};
+const CampaignName = styled.span`
+  font-weight: 600;
+  color: #0F172A;
+  font-size: 13px;
+`;
+
+const MessagePreview = styled.span`
+  font-size: 11px;
+  color: #94A3B8;
   white-space: nowrap;
-
-  &:hover {
-    background: #2563EB;
-    box-shadow: ${st.shadowSm};
-    transform: translateY(-1px);
-  }
-
-  &:active { transform: translateY(0); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 380px;
+  display: block;
 `;
 
-const DeleteButton = styled.button`
-  padding: 6px 12px;
-  font-size: ${st.fontXs};
+// ─── Meta ──────────────────────────────────────────────────────────────────────
+
+const MetaChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #475569;
   font-weight: 500;
-  background: transparent;
-  color: ${st.textMuted};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radiusFull};
-  cursor: pointer;
-  transition: all ${st.transition};
   white-space: nowrap;
-
-  &:hover {
-    background: ${st.accentRedDim};
-    color: ${st.accentRed};
-    border-color: ${st.accentRed}44;
-  }
 `;
 
-const FiltersChips = styled.div`
+const DateText = styled.span`
+  font-size: 12px;
+  color: #94A3B8;
+`;
+
+// ─── Action buttons ────────────────────────────────────────────────────────────
+
+const Actions = styled.div`
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
   gap: 6px;
-  margin-top: 4px;
 `;
 
-const FilterChip = styled.span`
-  padding: 2px 8px;
-  background: ${st.bgCardAlt};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radiusFull};
-  font-size: 10px;
-  color: ${st.textSecondary};
-  font-weight: 500;
+const btnBase = css`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 150ms ease;
+  white-space: nowrap;
+  border: 1px solid transparent;
 `;
 
-// ─── Empty state ──────────────────────────────────────────────────────────────
+const SendBtn = styled.button`
+  ${btnBase}
+  background: #EFF6FF;
+  color: #2563EB;
+  border-color: #BFDBFE;
 
-const EmptyCard = styled.div`
-  background: ${st.bgCard};
-  border: 2px dashed ${st.border};
-  border-radius: ${st.radius};
-  padding: 48px 24px;
+  &:hover:not(:disabled) {
+    background: #DBEAFE;
+    border-color: #93C5FD;
+  }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+const DeleteBtn = styled.button`
+  ${btnBase}
+  background: transparent;
+  color: #94A3B8;
+  border-color: #E2E8F0;
+
+  &:hover {
+    background: #FEF2F2;
+    color: #DC2626;
+    border-color: #FECACA;
+  }
+`;
+
+// ─── Empty state ───────────────────────────────────────────────────────────────
+
+const EmptyWrap = styled.div`
+  padding: 56px 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   text-align: center;
 `;
 
 const EmptyIcon = styled.div`
-  font-size: 40px;
-  opacity: 0.4;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #F1F5F9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94A3B8;
+  margin-bottom: 4px;
 `;
 
-const EmptyTitle = styled.h3`
+const EmptyTitle = styled.p`
   margin: 0;
-  font-size: ${st.fontMd};
-  font-weight: 700;
-  color: ${st.textSecondary};
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
 `;
 
 const EmptySubtitle = styled.p`
   margin: 0;
-  font-size: ${st.fontSm};
-  color: ${st.textMuted};
+  font-size: 12px;
+  color: #94A3B8;
 `;
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
+// ─── Skeleton ──────────────────────────────────────────────────────────────────
 
-const SkeletonCard = styled(Card)`
-  animation: none;
-`;
-
-const SkeletonBox = styled.div<{ $w?: string; $h?: string }>`
-  width: ${(p) => p.$w ?? '100%'};
-  height: ${(p) => p.$h ?? '14px'};
-  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: ${shimmer} 1.5s infinite;
+const SkeletonCell = styled.div<{ $w?: string }>`
+  height: 13px;
+  width: ${p => p.$w ?? '100%'};
   border-radius: 4px;
+  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+  background-size: 600px 100%;
+  animation: ${shimmer} 1.4s infinite linear;
 `;
 
-// ─── Props ────────────────────────────────────────────────────────────────────
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+
+function fmtDate(iso?: string) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleDateString('pl-PL', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+  });
+}
+
+// ─── Props ─────────────────────────────────────────────────────────────────────
 
 interface Props {
   campaigns: SmsCampaign[];
@@ -257,27 +257,7 @@ interface Props {
   sendingId?: string;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDate(iso?: string) {
-  if (!iso) return null;
-  return new Date(iso).toLocaleDateString('pl-PL', {
-    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  });
-}
-
-function buildFilterChips(c: SmsCampaign): string[] {
-  const chips: string[] = [];
-  c.filters.vehicles.forEach((v) =>
-    chips.push(v.model ? `${v.brand} ${v.model}` : `${v.brand} (wszystkie)`)
-  );
-  c.filters.services.forEach((s) => chips.push(s.serviceName));
-  if (c.filters.lastVisit?.olderThanDays) chips.push(`Nieaktywni >${c.filters.lastVisit.olderThanDays}d`);
-  if (c.filters.lastVisit?.newerThanDays) chips.push(`Aktywni <${c.filters.lastVisit.newerThanDays}d`);
-  return chips;
-}
-
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Component ─────────────────────────────────────────────────────────────────
 
 export const CampaignList: React.FC<Props> = ({
   campaigns,
@@ -288,92 +268,126 @@ export const CampaignList: React.FC<Props> = ({
 }) => {
   if (isLoading) {
     return (
-      <List>
-        {Array.from({ length: 3 }).map((_, i) => (
-          <SkeletonCard key={i}>
-            <CardIconWrap>
-              <SkeletonBox $w="24px" $h="24px" style={{ borderRadius: '4px' }} />
-            </CardIconWrap>
-            <CardContent>
-              <SkeletonBox $w="40%" $h="16px" />
-              <SkeletonBox $w="75%" $h="12px" />
-              <SkeletonBox $w="55%" $h="11px" />
-            </CardContent>
-          </SkeletonCard>
-        ))}
-      </List>
+      <TableWrap>
+        <Table>
+          <Thead>
+            <tr>
+              <Th>Kampania</Th>
+              <Th>Status</Th>
+              <Th>Odbiorcy</Th>
+              <Th>Data</Th>
+              <ThRight>Akcje</ThRight>
+            </tr>
+          </Thead>
+          <tbody>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Tr key={i}>
+                <Td><SkeletonCell $w="55%" /></Td>
+                <Td><SkeletonCell $w="80px" /></Td>
+                <Td><SkeletonCell $w="60px" /></Td>
+                <Td><SkeletonCell $w="70px" /></Td>
+                <TdRight><SkeletonCell $w="80px" /></TdRight>
+              </Tr>
+            ))}
+          </tbody>
+        </Table>
+      </TableWrap>
     );
   }
 
   if (campaigns.length === 0) {
     return (
-      <EmptyCard>
-        <EmptyIcon>📨</EmptyIcon>
-        <EmptyTitle>Brak kampanii SMS</EmptyTitle>
-        <EmptySubtitle>Utwórz pierwszą kampanię, klikając „Nowa kampania"</EmptySubtitle>
-      </EmptyCard>
+      <TableWrap>
+        <EmptyWrap>
+          <EmptyIcon><FileText size={22} /></EmptyIcon>
+          <EmptyTitle>Brak kampanii</EmptyTitle>
+          <EmptySubtitle>Utwórz pierwszą kampanię klikając „Nowa kampania"</EmptySubtitle>
+        </EmptyWrap>
+      </TableWrap>
     );
   }
 
   return (
-    <List>
-      {campaigns.map((c) => {
-        const chips = buildFilterChips(c);
-        const isSending = sendingId === c.id;
+    <TableWrap>
+      <Table>
+        <Thead>
+          <tr>
+            <Th style={{ paddingLeft: 20 }}>Kampania</Th>
+            <Th>Status</Th>
+            <Th>Odbiorcy</Th>
+            <Th>Data</Th>
+            <ThRight style={{ paddingRight: 20 }}>Akcje</ThRight>
+          </tr>
+        </Thead>
+        <tbody>
+          {campaigns.map((c) => {
+            const cfg = STATUS[c.status];
+            const isSending = sendingId === c.id;
 
-        return (
-          <Card key={c.id}>
-            <CardIconWrap>📨</CardIconWrap>
+            const dateLabel =
+              c.status === 'SENT' && c.sentAt
+                ? `Wysłano ${fmtDate(c.sentAt)}`
+                : c.status === 'SCHEDULED' && c.scheduledAt
+                ? `Zaplanowano ${fmtDate(c.scheduledAt)}`
+                : fmtDate(c.createdAt);
 
-            <CardContent>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <CardTitle>{c.name}</CardTitle>
-                <StatusBadge $status={c.status}>{statusConfig[c.status].label}</StatusBadge>
-              </div>
+            return (
+              <Tr key={c.id}>
+                <Td style={{ paddingLeft: 20, maxWidth: 340 }}>
+                  <NameCell>
+                    <CampaignName>{c.name}</CampaignName>
+                    {c.message && (
+                      <MessagePreview>{c.message}</MessagePreview>
+                    )}
+                  </NameCell>
+                </Td>
 
-              <CardMessage>"{c.message.slice(0, 100)}{c.message.length > 100 ? '…' : ''}"</CardMessage>
+                <Td>
+                  <StatusBadge $status={c.status}>
+                    <Dot $color={cfg.dot} />
+                    {cfg.label}
+                  </StatusBadge>
+                </Td>
 
-              {chips.length > 0 && (
-                <FiltersChips>
-                  {chips.map((chip, i) => <FilterChip key={i}>{chip}</FilterChip>)}
-                </FiltersChips>
-              )}
+                <Td>
+                  <MetaChip>
+                    <Users size={13} strokeWidth={2} />
+                    {c.audienceCount}
+                  </MetaChip>
+                </Td>
 
-              <CardMeta>
-                <MetaItem>
-                  👥 <MetaValue>{c.audienceCount}</MetaValue> odbiorców
-                </MetaItem>
-                {c.sentCount != null && (
-                  <MetaItem>
-                    ✉ wysłano do <MetaValue>{c.sentCount}</MetaValue> osób
-                  </MetaItem>
-                )}
-                {c.sentAt && (
-                  <MetaItem>Wysłano: <MetaValue>{formatDate(c.sentAt)}</MetaValue></MetaItem>
-                )}
-                {c.scheduledAt && c.status === 'SCHEDULED' && (
-                  <MetaItem>Zaplanowano: <MetaValue>{formatDate(c.scheduledAt)}</MetaValue></MetaItem>
-                )}
-                <MetaItem>Utworzono: {formatDate(c.createdAt)}</MetaItem>
-              </CardMeta>
-            </CardContent>
+                <Td>
+                  <DateText>{dateLabel ?? '—'}</DateText>
+                </Td>
 
-            <CardActions>
-              {c.status !== 'SENT' && (
-                <SendButton
-                  onClick={() => onSend(c)}
-                  disabled={isSending}
-                >
-                  {isSending ? 'Wysyłanie…' : '▶ Wyślij teraz'}
-                </SendButton>
-              )}
-              <DeleteButton onClick={() => onDelete(c)}>
-                Usuń
-              </DeleteButton>
-            </CardActions>
-          </Card>
-        );
-      })}
-    </List>
+                <TdRight style={{ paddingRight: 20 }}>
+                  <Actions>
+                    {c.status !== 'SENT' && (
+                      <SendBtn
+                        onClick={() => onSend(c)}
+                        disabled={isSending}
+                      >
+                        <Send size={12} strokeWidth={2.5} />
+                        {isSending ? 'Wysyłanie…' : 'Wyślij'}
+                      </SendBtn>
+                    )}
+                    {c.status === 'SENT' && (
+                      <MetaChip style={{ marginRight: 6 }}>
+                        <CheckCircle size={13} strokeWidth={2} color="#16A34A" />
+                        {c.sentCount ?? c.audienceCount} wysłanych
+                      </MetaChip>
+                    )}
+                    <DeleteBtn onClick={() => onDelete(c)}>
+                      <Trash2 size={12} strokeWidth={2} />
+                      Usuń
+                    </DeleteBtn>
+                  </Actions>
+                </TdRight>
+              </Tr>
+            );
+          })}
+        </tbody>
+      </Table>
+    </TableWrap>
   );
 };
