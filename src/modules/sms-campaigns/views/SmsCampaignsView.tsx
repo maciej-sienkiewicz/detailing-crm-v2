@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Plus, X } from 'lucide-react';
 import { CampaignList } from '../components/CampaignList';
-import { CreateCampaignModal } from '../components/CreateCampaignModal';
 import { AutomationSettings } from '../components/AutomationSettings';
 import { AiCampaignCreator } from '../components/AiCampaignCreator';
 import { useCampaigns, useDeleteCampaign, useSendCampaign } from '../hooks';
@@ -270,7 +269,6 @@ interface ConfirmState {
 export const SmsCampaignsView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('campaigns');
   const [isCreatorOpen, setIsCreatorOpen] = useState(false);
-  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [sendingId, setSendingId] = useState<string | undefined>();
 
@@ -365,12 +363,6 @@ export const SmsCampaignsView: React.FC = () => {
 
       {/* ── Automation tab ── */}
       {activeTab === 'automation' && <AutomationSettings />}
-
-      {/* ── Manual create modal (kept for compatibility) ── */}
-      <CreateCampaignModal
-        isOpen={isManualModalOpen}
-        onClose={() => setIsManualModalOpen(false)}
-      />
 
       {/* ── Confirm dialog ── */}
       {confirm && (

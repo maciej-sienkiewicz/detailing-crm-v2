@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { Send, Trash2, Users, CheckCircle, FileText, MessageSquare, X, Phone, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+
 import type { SmsCampaign, CampaignStatus, CampaignRecipient } from '../types';
 import { fetchCampaignRecipients } from '../api/smsCampaignsApi';
 
@@ -128,11 +129,14 @@ const MessagePreview = styled.span`
   text-overflow: ellipsis;
   max-width: 380px;
   display: block;
+  cursor: pointer;
+  transition: color 120ms;
+  &:hover { color: #3B82F6; text-decoration: underline; }
 `;
 
 // ─── Meta ──────────────────────────────────────────────────────────────────────
 
-const MetaChip = styled.span`
+const MetaChip = styled.span<{ $clickable?: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -140,6 +144,12 @@ const MetaChip = styled.span`
   color: #475569;
   font-weight: 500;
   white-space: nowrap;
+  cursor: ${p => p.$clickable ? 'pointer' : 'default'};
+  border-radius: 6px;
+  padding: ${p => p.$clickable ? '2px 6px' : '0'};
+  margin: ${p => p.$clickable ? '-2px -6px' : '0'};
+  transition: ${p => p.$clickable ? 'background 120ms, color 120ms' : 'none'};
+  &:hover { background: ${p => p.$clickable ? '#EFF6FF' : 'transparent'}; color: ${p => p.$clickable ? '#2563EB' : '#475569'}; }
 `;
 
 const DateText = styled.span`
@@ -188,21 +198,6 @@ const DeleteBtn = styled.button`
   &:hover { background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
 `;
 
-const IconBtn = styled.button`
-  ${btnBase}
-  padding: 6px 8px;
-  background: transparent;
-  color: #94A3B8;
-  border-color: #E2E8F0;
-  &:hover { background: #F8FAFC; color: #475569; border-color: #CBD5E1; }
-`;
-
-const Divider = styled.div`
-  width: 1px;
-  height: 18px;
-  background: #E2E8F0;
-  margin: 0 2px;
-`;
 
 // ─── Empty ─────────────────────────────────────────────────────────────────────
 
@@ -668,7 +663,14 @@ export const CampaignList: React.FC<Props> = ({
                   <Td style={{ paddingLeft: 20, maxWidth: 340 }}>
                     <NameCell>
                       <CampaignName>{c.name}</CampaignName>
-                      {c.message && <MessagePreview>{c.message}</MessagePreview>}
+                      {c.message && (
+                        <MessagePreview
+                          onClick={() => openSms(c)}
+                          title="Kliknij, aby zobaczyć pełną treść"
+                        >
+                          {c.message}
+                        </MessagePreview>
+                      )}
                     </NameCell>
                   </Td>
 
@@ -679,7 +681,7 @@ export const CampaignList: React.FC<Props> = ({
                   </Td>
 
                   <Td>
-                    <MetaChip>
+                    <MetaChip $clickable onClick={() => openRecip(c)} title="Kliknij, aby zobaczyć listę odbiorców">
                       <Users size={13} strokeWidth={2} />
                       {c.audienceCount}
                     </MetaChip>
@@ -689,17 +691,6 @@ export const CampaignList: React.FC<Props> = ({
 
                   <TdRight style={{ paddingRight: 20 }}>
                     <Actions>
-                      {/* Preview icons */}
-                      <IconBtn onClick={() => openSms(c)} title="Podgląd SMS">
-                        <MessageSquare size={13} strokeWidth={2} />
-                      </IconBtn>
-                      <IconBtn onClick={() => openRecip(c)} title="Lista odbiorców">
-                        <Users size={13} strokeWidth={2} />
-                      </IconBtn>
-
-                      <Divider />
-
-                      {/* Primary actions */}
                       {c.status !== 'SENT' && (
                         <SendBtn onClick={() => onSend(c)} disabled={isSending}>
                           <Send size={12} strokeWidth={2.5} />
@@ -707,7 +698,12 @@ export const CampaignList: React.FC<Props> = ({
                         </SendBtn>
                       )}
                       {c.status === 'SENT' && (
-                        <MetaChip style={{ marginRight: 4 }}>
+                        <MetaChip
+                          $clickable
+                          style={{ marginRight: 4 }}
+                          onClick={() => openRecip(c)}
+                          title="Kliknij, aby zobaczyć listę odbiorców"
+                        >
                           <CheckCircle size={13} strokeWidth={2} color="#16A34A" />
                           {c.sentCount ?? c.audienceCount} wysłanych
                         </MetaChip>
