@@ -287,7 +287,7 @@ const CalendarContainer = styled.div`
     /* Abandoned/Cancelled appointments */
     .fc-event-abandoned,
     .fc-event-cancelled {
-        opacity: 0.35;
+        opacity: 0.45;
     }
 
     .fc-event-abandoned .fc-event-title,
