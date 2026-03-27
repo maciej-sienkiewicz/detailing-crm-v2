@@ -215,15 +215,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     </>
                                                 )}
                                             </S.ChipInfo>
-                                            {form.selectedCustomer.isNew && (
-                                                <S.ChipEdit
-                                                    type="button"
-                                                    onClick={form.handleEnterEditMode}
-                                                    title="Popraw dane klienta"
-                                                >
-                                                    <IconPencil />
-                                                </S.ChipEdit>
-                                            )}
+                                            <S.ChipEdit
+                                                type="button"
+                                                onClick={form.handleEnterEditMode}
+                                                title="Popraw dane klienta"
+                                            >
+                                                <IconPencil />
+                                            </S.ChipEdit>
                                             <S.ChipClear
                                                 type="button"
                                                 onClick={() => {
