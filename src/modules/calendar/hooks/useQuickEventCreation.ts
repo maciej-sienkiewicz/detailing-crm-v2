@@ -33,7 +33,6 @@ export const useQuickEventCreation = () => {
 
             let customerPayload;
             if (data.customer.isNew) {
-                // New customer
                 customerPayload = {
                     mode: 'NEW' as const,
                     newData: {
@@ -43,8 +42,21 @@ export const useQuickEventCreation = () => {
                         email: data.customer.email || '',
                     },
                 };
+            } else if (data.customer.hasUpdates) {
+                if (!data.customer.id) {
+                    throw new Error('ID klienta jest wymagane do aktualizacji danych');
+                }
+                customerPayload = {
+                    mode: 'UPDATE' as const,
+                    id: data.customer.id,
+                    patch: {
+                        firstName: data.customer.firstName || '',
+                        lastName: data.customer.lastName || '',
+                        phone: data.customer.phone || '',
+                        email: data.customer.email || '',
+                    },
+                };
             } else {
-                // Existing customer
                 if (!data.customer.id) {
                     throw new Error('ID klienta jest wymagane dla istniejącego klienta');
                 }

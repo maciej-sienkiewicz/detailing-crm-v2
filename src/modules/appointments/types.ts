@@ -142,6 +142,7 @@ export interface SelectedCustomer {
     phone?: string;
     email?: string;
     isNew: boolean;
+    hasUpdates?: boolean;
 }
 
 export interface SelectedVehicle {

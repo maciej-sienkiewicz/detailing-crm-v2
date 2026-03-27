@@ -379,12 +379,21 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
 
     const handleConfirmEdit = () => {
         if (!selectedCustomer) return;
+        const fn = customerFirstName.trim();
+        const ln = customerLastName.trim();
+        const ph = customerPhone.trim();
+        const em = customerEmail.trim();
+        const changed = fn !== (selectedCustomer.firstName ?? '')
+            || ln !== (selectedCustomer.lastName ?? '')
+            || ph !== (selectedCustomer.phone ?? '')
+            || em !== (selectedCustomer.email ?? '');
         setSelectedCustomer({
             ...selectedCustomer,
-            firstName: customerFirstName.trim(),
-            lastName: customerLastName.trim(),
-            phone: customerPhone.trim(),
-            email: customerEmail.trim(),
+            firstName: fn,
+            lastName: ln,
+            phone: ph,
+            email: em,
+            hasUpdates: !selectedCustomer.isNew && changed,
         });
         setCustomerEditMode(false);
     };
