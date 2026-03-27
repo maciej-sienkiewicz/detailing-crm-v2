@@ -239,32 +239,46 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
                                                 {form.showCustomerDropdown && (
                                                     <S.Dropdown>
-                                                        {form.customerResults.map((c) => (
-                                                            <S.DropdownItem
-                                                                key={c.id}
-                                                                type="button"
-                                                                onMouseDown={(e) => e.preventDefault()}
-                                                                onClick={() => {
-                                                                    form.customerJustSelectedRef.current = true;
-                                                                    form.handleCustomerSelect({
-                                                                        id: c.id,
-                                                                        firstName: c.firstName,
-                                                                        lastName: c.lastName,
-                                                                        phone: c.phone,
-                                                                        email: c.email,
-                                                                        isNew: false,
-                                                                    });
-                                                                    form.setShowCustomerDropdown(false);
-                                                                }}
-                                                                $accentColor={form.accentColor}
-                                                            >
-                                                                {(c.firstName || c.lastName)
-                                                                    ? <span>{c.firstName} {c.lastName}</span>
-                                                                    : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>(Nie uzupełniono imienia i nazwiska)</span>
-                                                                }
-                                                                <span>{c.phone || c.email}</span>
-                                                            </S.DropdownItem>
-                                                        ))}
+                                                        {form.customerResults.length > 0 && (
+                                                            <S.DropdownSeparator>Istniejący klienci</S.DropdownSeparator>
+                                                        )}
+                                                        {form.customerResults.map((c) => {
+                                                            const hasContact = !!(c.phone || c.email);
+                                                            return (
+                                                                <S.DropdownItem
+                                                                    key={c.id}
+                                                                    type="button"
+                                                                    onMouseDown={(e) => e.preventDefault()}
+                                                                    onClick={() => {
+                                                                        form.customerJustSelectedRef.current = true;
+                                                                        form.handleCustomerSelect({
+                                                                            id: c.id,
+                                                                            firstName: c.firstName,
+                                                                            lastName: c.lastName,
+                                                                            phone: c.phone,
+                                                                            email: c.email,
+                                                                            isNew: false,
+                                                                        });
+                                                                        form.setShowCustomerDropdown(false);
+                                                                    }}
+                                                                    $accentColor={form.accentColor}
+                                                                >
+                                                                    {(c.firstName || c.lastName)
+                                                                        ? <span>{c.firstName} {c.lastName}</span>
+                                                                        : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>(Nie uzupełniono imienia i nazwiska)</span>
+                                                                    }
+                                                                    <S.DropdownItemMeta $warning={!hasContact}>
+                                                                        {hasContact
+                                                                            ? [c.phone, c.email].filter(Boolean).join('  ·  ')
+                                                                            : '⚠ Brak danych kontaktowych — może to inna osoba?'
+                                                                        }
+                                                                    </S.DropdownItemMeta>
+                                                                </S.DropdownItem>
+                                                            );
+                                                        })}
+                                                        {form.customerResults.length > 0 && (
+                                                            <S.DropdownSeparator>Nie ten klient?</S.DropdownSeparator>
+                                                        )}
                                                         <S.DropdownAddButton
                                                             type="button"
                                                             onMouseDown={(e) => e.preventDefault()}
@@ -275,7 +289,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             }}
                                                         >
                                                             <IconPlus />
-                                                            <span>Dodaj nowego klienta</span>
+                                                            <span>
+                                                                {form.customerResults.length > 0
+                                                                    ? 'To inna osoba — dodaj jako nowego klienta'
+                                                                    : 'Dodaj nowego klienta'
+                                                                }
+                                                            </span>
                                                         </S.DropdownAddButton>
                                                     </S.Dropdown>
                                                 )}

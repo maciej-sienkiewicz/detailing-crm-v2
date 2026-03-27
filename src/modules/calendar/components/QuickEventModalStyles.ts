@@ -231,8 +231,9 @@ export const DropdownItem = styled.button<{ $accentColor?: string }>`
     width: 100%;
     padding: 10px 16px;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
     background: transparent;
     border: none;
     border-bottom: 1px solid #f8fafc;
@@ -248,15 +249,28 @@ export const DropdownItem = styled.button<{ $accentColor?: string }>`
     span:first-child {
         font-size: 14px;
         color: #0f172a;
-        font-weight: 400;
+        font-weight: 500;
     }
+`;
 
-    span:last-child {
-        font-size: 12px;
-        font-weight: 600;
-        color: ${p => p.$accentColor ?? '#0ea5e9'};
-        font-variant-numeric: tabular-nums;
-    }
+export const DropdownItemMeta = styled.span<{ $warning?: boolean }>`
+    font-size: 12px;
+    font-weight: ${p => p.$warning ? 600 : 400};
+    color: ${p => p.$warning ? '#f59e0b' : '#94a3b8'};
+    display: flex;
+    align-items: center;
+    gap: 4px;
+`;
+
+export const DropdownSeparator = styled.div`
+    padding: 6px 16px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #b0bec5;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
 `;
 
 export const DropdownAddButton = styled.button`
