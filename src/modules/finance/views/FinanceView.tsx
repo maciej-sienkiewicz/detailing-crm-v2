@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import type { FinanceTab } from '../types';
 import { DocumentDirection, DocumentStatus } from '../types';
 import { useFinanceDocuments } from '../hooks/useFinance';
@@ -31,64 +31,123 @@ const RefreshIcon = () => (
   </svg>
 );
 
+// ─── Animations ───────────────────────────────────────────────────────────────
+
+const fadeUp = keyframes`
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
-const PageContainer = styled.div`
+const ViewContainer = styled.main`
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: ${(p) => p.theme.spacing.xl};
   padding: ${(p) => p.theme.spacing.lg};
-  max-width: 1800px;
+  max-width: 1920px;
   margin: 0 auto;
   width: 100%;
+  animation: ${fadeUp} 300ms ease both;
 
   @media (min-width: ${(p) => p.theme.breakpoints.md}) {
     padding: ${(p) => p.theme.spacing.xl};
   }
-
-  @media (min-width: ${(p) => p.theme.breakpoints.xl}) {
-    padding: ${(p) => p.theme.spacing.xxl};
-  }
 `;
 
-const PageHeader = styled.div`
+// ─── Hero ─────────────────────────────────────────────────────────────────────
+
+const HeroCard = styled.div`
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 65%, #0c1f35 100%);
+  border-radius: ${(p) => p.theme.radii.xl};
+  padding: 28px 32px;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 8px 32px rgba(0,0,0,0.16);
   display: flex;
-  flex-direction: column;
-  gap: ${(p) => p.theme.spacing.md};
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 
-  @media (min-width: ${(p) => p.theme.breakpoints.md}) {
-    flex-direction: row;
-    align-items: flex-end;
-    justify-content: space-between;
+  &::before {
+    content: '';
+    position: absolute;
+    top: -80px;
+    right: -60px;
+    width: 320px;
+    height: 320px;
+    background: radial-gradient(circle, rgba(14, 165, 233, 0.14) 0%, transparent 65%);
+    pointer-events: none;
+  }
+
+  @media (max-width: ${(p) => p.theme.breakpoints.sm}) {
+    padding: 22px 20px;
   }
 `;
 
-const TitleSection = styled.div`
+const HeroText = styled.div`
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 4px;
 `;
 
-const PageTitle = styled.h1`
-  font-size: 28px;
-  font-weight: 800;
-  color: ${st.text};
+const HeroHeading = styled.h1`
   margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  color: #f1f5f9;
   letter-spacing: -0.5px;
+  line-height: 1.1;
+
+  @media (min-width: ${(p) => p.theme.breakpoints.md}) {
+    font-size: 34px;
+  }
 `;
 
-const PageSubtitle = styled.p`
-  font-size: ${st.fontSm};
-  color: ${st.textMuted};
+const HeroSubtitle = styled.p`
   margin: 0;
+  font-size: 14px;
+  color: #475569;
+  font-weight: 500;
 `;
 
-const HeaderActions = styled.div`
+const HeroActions = styled.div`
+  position: relative;
+  z-index: 1;
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
   align-items: center;
 `;
+
+// ─── Section Divider ──────────────────────────────────────────────────────────
+
+const SectionLabel = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: -${(p) => p.theme.spacing.md};
+`;
+
+const SectionLabelText = styled.span`
+  font-size: 11px;
+  font-weight: 700;
+  color: ${(p) => p.theme.colors.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+`;
+
+const SectionLabelLine = styled.div`
+  flex: 1;
+  height: 1px;
+  background: ${(p) => p.theme.colors.border};
+`;
+
+// HeaderActions is now HeroActions (defined in Hero section)
 
 const AddButton = styled.button`
   display: flex;
@@ -544,42 +603,53 @@ export const FinanceView: React.FC = () => {
   const showAddButton = activeTab === 'income' || activeTab === 'expense';
 
   return (
-    <PageContainer>
-      <PageHeader>
-        <TitleSection>
-          <PageTitle>Finanse</PageTitle>
-          <PageSubtitle>Dokumenty finansowe, kasa i raporty</PageSubtitle>
-        </TitleSection>
-
-        <HeaderActions>
+    <ViewContainer>
+      <HeroCard>
+        <HeroText>
+          <HeroHeading>Finanse</HeroHeading>
+          <HeroSubtitle>Dokumenty finansowe, kasa i raporty</HeroSubtitle>
+        </HeroText>
+        <HeroActions>
           {showAddButton && (
             <AddButton onClick={handleAddDoc}>
               <PlusIcon />
               Dodaj dokument
             </AddButton>
           )}
-        </HeaderActions>
-      </PageHeader>
+        </HeroActions>
+      </HeroCard>
 
-      <FinanceSummaryCards />
+      <div>
+        <SectionLabel>
+          <SectionLabelText>Podsumowanie finansowe</SectionLabelText>
+          <SectionLabelLine />
+        </SectionLabel>
+        <FinanceSummaryCards />
+      </div>
 
-      <TabsRow>
-        <Tab $active={activeTab === 'income'} onClick={() => setActiveTab('income')}>
-          Dokumenty przychodowe
-        </Tab>
-        <Tab $active={activeTab === 'expense'} onClick={() => setActiveTab('expense')}>
-          Dokumenty kosztowe
-        </Tab>
-        <Tab $active={activeTab === 'cash'} onClick={() => setActiveTab('cash')}>
-          Kasa
-        </Tab>
-        <Tab $active={activeTab === 'summary'} onClick={() => setActiveTab('summary')}>
-          Podsumowanie
-        </Tab>
-        <Tab $active={activeTab === 'invoicing'} onClick={() => setActiveTab('invoicing')}>
-          Faktury zewnętrzne
-        </Tab>
-      </TabsRow>
+      <div>
+        <SectionLabel>
+          <SectionLabelText>Dokumenty i raporty</SectionLabelText>
+          <SectionLabelLine />
+        </SectionLabel>
+        <TabsRow>
+          <Tab $active={activeTab === 'income'} onClick={() => setActiveTab('income')}>
+            Dokumenty przychodowe
+          </Tab>
+          <Tab $active={activeTab === 'expense'} onClick={() => setActiveTab('expense')}>
+            Dokumenty kosztowe
+          </Tab>
+          <Tab $active={activeTab === 'cash'} onClick={() => setActiveTab('cash')}>
+            Kasa
+          </Tab>
+          <Tab $active={activeTab === 'summary'} onClick={() => setActiveTab('summary')}>
+            Podsumowanie
+          </Tab>
+          <Tab $active={activeTab === 'invoicing'} onClick={() => setActiveTab('invoicing')}>
+            Faktury zewnętrzne
+          </Tab>
+        </TabsRow>
+      </div>
 
       {activeTab === 'income' && (
         <DocumentsTabContent direction={DocumentDirection.INCOME} onAdd={handleAddDoc} />
@@ -602,6 +672,6 @@ export const FinanceView: React.FC = () => {
           activeTab === 'expense' ? DocumentDirection.EXPENSE : DocumentDirection.INCOME
         }
       />
-    </PageContainer>
+    </ViewContainer>
   );
 };
