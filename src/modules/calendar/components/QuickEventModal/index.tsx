@@ -2,7 +2,6 @@
 
 import React, { forwardRef } from 'react';
 import { DateTimePicker } from '../DateTimePicker';
-import { VehicleModal } from '@/modules/appointments/components/VehicleModal';
 import { QuickServiceModal } from '../QuickServiceModal';
 import { PriceInputModal } from '../PriceInputModal';
 import { QuickColorModal } from '../QuickColorModal';
@@ -231,7 +230,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     form.setCustomerLastName('');
                                                     form.setCustomerPhone('');
                                                     form.setCustomerEmail('');
-                                                    form.setVehicleSearch('');
+                                                    form.setVehicleBrand('');
+                                                    form.setVehicleModel('');
+                                                    form.setVehicleYear('');
                                                 }}
                                                 title="Usuń klienta"
                                             >
@@ -394,78 +395,137 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <IconCar />
                                 </S.IconWrapper>
                                 <S.RowContent>
-                                    <S.DropdownContainer>
-                                        <S.Input
-                                            ref={form.vehicleInputRef}
-                                            type="text"
-                                            placeholder={
-                                                form.selectedCustomer
-                                                    ? (form.selectedVehicle ? `${form.selectedVehicle.brand} ${form.selectedVehicle.model}` : 'Wybierz pojazd...')
-                                                    : 'Najpierw wybierz klienta'
-                                            }
-                                            value={form.selectedCustomer ? form.vehicleSearch : ''}
-                                            onChange={(e) => {
-                                                form.setVehicleSearch(e.target.value);
-                                                form.setShowVehicleDropdown(true);
-                                            }}
-                                            disabled={!form.selectedCustomer}
-                                            $accentColor={form.focusedField === 'vehicle' ? form.accentColor : undefined}
-                                            $dropdownOpen={form.showVehicleDropdown && !!form.selectedCustomer}
-                                            onFocus={() => {
-                                                if (!form.selectedCustomer) return;
-                                                form.setFocusedField('vehicle');
-                                                if (form.vehicles.length === 0) {
-                                                    form.setVehicleModalInitialMode('new');
-                                                    form.setIsVehicleModalOpen(true);
-                                                } else {
-                                                    form.setShowVehicleDropdown(true);
-                                                }
-                                            }}
-                                            onBlur={() => {
-                                                form.setFocusedField(null);
-                                                setTimeout(() => form.setShowVehicleDropdown(false), 200);
-                                            }}
-                                        />
-                                        {form.showVehicleDropdown && form.selectedCustomer && (
-                                            <S.Dropdown>
-                                                {form.vehicles
-                                                    .filter(v => {
-                                                        if (!form.vehicleSearch.trim()) return true;
-                                                        const q = form.vehicleSearch.toLowerCase();
-                                                        return (v.brand || '').toLowerCase().includes(q)
-                                                            || (v.model || '').toLowerCase().includes(q)
-                                                            || (v.licensePlate || '').toLowerCase().includes(q);
-                                                    })
-                                                    .map(v => (
-                                                        <S.DropdownItem
-                                                            key={v.id}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                form.handleVehicleSelect({ id: v.id, brand: v.brand, model: v.model, isNew: false });
-                                                                form.setVehicleSearch(`${v.brand} ${v.model}`.trim());
-                                                                form.setShowVehicleDropdown(false);
-                                                            }}
-                                                            $accentColor={form.accentColor}
-                                                        >
-                                                            <span>{v.brand} {v.model}</span>
-                                                            <span>{v.licensePlate}</span>
-                                                        </S.DropdownItem>
-                                                    ))}
-                                                <S.DropdownAddButton
-                                                    type="button"
-                                                    onClick={() => {
-                                                        form.setVehicleModalInitialMode('new');
-                                                        form.setIsVehicleModalOpen(true);
-                                                        form.setShowVehicleDropdown(false);
-                                                        form.setFocusedField(null);
-                                                    }}
-                                                >
-                                                    <IconPlus />
-                                                    <span>Dodaj nowy pojazd</span>
-                                                </S.DropdownAddButton>
-                                            </S.Dropdown>
-                                        )}
-                                    </S.DropdownContainer>
+                                    {form.selectedVehicle ? (
+                                        <S.SelectedCustomerChip>
+                                            <S.ChipCheck>✓</S.ChipCheck>
+                                            <S.ChipInfo>
+                                                <S.ChipName>
+                                                    {`${form.selectedVehicle.brand} ${form.selectedVehicle.model}`.trim() || '(Brak danych)'}
+                                                    {form.selectedVehicle.isNew && <S.NewBadge>Nowy</S.NewBadge>}
+                                                </S.ChipName>
+                                                {form.selectedVehicle.year && (
+                                                    <>
+                                                        <S.ChipDot>·</S.ChipDot>
+                                                        <S.ChipMeta>{form.selectedVehicle.year}</S.ChipMeta>
+                                                    </>
+                                                )}
+                                            </S.ChipInfo>
+                                            <S.ChipClear
+                                                type="button"
+                                                onClick={() => {
+                                                    form.setSelectedVehicle(null);
+                                                    form.setVehicleBrand('');
+                                                    form.setVehicleModel('');
+                                                    form.setVehicleYear('');
+                                                }}
+                                                title="Usuń pojazd"
+                                            >
+                                                <IconX />
+                                            </S.ChipClear>
+                                        </S.SelectedCustomerChip>
+                                    ) : (
+                                        <S.DropdownContainer>
+                                            <S.CustomerInputBlock
+                                                $focused={form.focusedField === 'vehicle' && !!form.selectedCustomer}
+                                                $dropdownOpen={form.showVehicleDropdown && !!form.selectedCustomer}
+                                                style={!form.selectedCustomer ? { opacity: 0.5, pointerEvents: 'none' } : undefined}
+                                            >
+                                                <S.VehicleInputRow>
+                                                    <S.CustomerFieldGroup $borderRight>
+                                                        <S.CustomerFieldLabel>Marka</S.CustomerFieldLabel>
+                                                        <S.CustomerFieldInput
+                                                            ref={form.vehicleBrandInputRef}
+                                                            type="text"
+                                                            placeholder={form.selectedCustomer ? 'BMW' : 'Najpierw wybierz klienta'}
+                                                            value={form.vehicleBrand}
+                                                            onChange={(e) => { form.setVehicleBrand(e.target.value); form.setShowVehicleDropdown(true); }}
+                                                            onFocus={form.handleVehicleFieldFocus}
+                                                            onBlur={form.handleVehicleFieldBlur}
+                                                            autoComplete="off"
+                                                        />
+                                                    </S.CustomerFieldGroup>
+                                                    <S.CustomerFieldGroup $borderRight>
+                                                        <S.CustomerFieldLabel>Model</S.CustomerFieldLabel>
+                                                        <S.CustomerFieldInput
+                                                            ref={form.vehicleModelInputRef}
+                                                            type="text"
+                                                            placeholder="320d"
+                                                            value={form.vehicleModel}
+                                                            onChange={(e) => { form.setVehicleModel(e.target.value); form.setShowVehicleDropdown(true); }}
+                                                            onFocus={form.handleVehicleFieldFocus}
+                                                            onBlur={form.handleVehicleFieldBlur}
+                                                            autoComplete="off"
+                                                        />
+                                                    </S.CustomerFieldGroup>
+                                                    <S.CustomerFieldGroup>
+                                                        <S.CustomerFieldLabel>Rok</S.CustomerFieldLabel>
+                                                        <S.CustomerFieldInput
+                                                            ref={form.vehicleYearInputRef}
+                                                            type="text"
+                                                            inputMode="numeric"
+                                                            placeholder="2021"
+                                                            maxLength={4}
+                                                            value={form.vehicleYear}
+                                                            onChange={(e) => { form.setVehicleYear(e.target.value.replace(/\D/g, '')); form.setShowVehicleDropdown(true); }}
+                                                            onFocus={form.handleVehicleFieldFocus}
+                                                            onBlur={form.handleVehicleFieldBlur}
+                                                            autoComplete="off"
+                                                        />
+                                                    </S.CustomerFieldGroup>
+                                                </S.VehicleInputRow>
+                                            </S.CustomerInputBlock>
+
+                                            {form.showVehicleDropdown && form.selectedCustomer && (
+                                                <S.Dropdown>
+                                                    {form.vehicles.length > 0 && (
+                                                        <S.DropdownSeparator>Pojazdy klienta</S.DropdownSeparator>
+                                                    )}
+                                                    {form.vehicles
+                                                        .filter(v => {
+                                                            const brandOk = !form.vehicleBrand.trim() || (v.brand || '').toLowerCase().includes(form.vehicleBrand.toLowerCase());
+                                                            const modelOk = !form.vehicleModel.trim() || (v.model || '').toLowerCase().includes(form.vehicleModel.toLowerCase());
+                                                            const yearOk  = !form.vehicleYear.trim()  || String(v.year ?? '').startsWith(form.vehicleYear.trim());
+                                                            return brandOk && modelOk && yearOk;
+                                                        })
+                                                        .map(v => (
+                                                            <S.DropdownItem
+                                                                key={v.id}
+                                                                type="button"
+                                                                onMouseDown={(e) => e.preventDefault()}
+                                                                onClick={() => {
+                                                                    form.handleVehicleSelect({ id: v.id, brand: v.brand, model: v.model, year: v.year, isNew: false });
+                                                                }}
+                                                                $accentColor={form.accentColor}
+                                                            >
+                                                                <span>{v.brand} {v.model}</span>
+                                                                <S.DropdownItemMeta>
+                                                                    {[v.year, v.licensePlate].filter(Boolean).join('  ·  ')}
+                                                                </S.DropdownItemMeta>
+                                                            </S.DropdownItem>
+                                                        ))}
+                                                    {form.vehicles.length > 0 && (
+                                                        <S.DropdownSeparator>Nie ten pojazd?</S.DropdownSeparator>
+                                                    )}
+                                                    <S.DropdownAddButton
+                                                        type="button"
+                                                        onMouseDown={(e) => e.preventDefault()}
+                                                        onClick={() => {
+                                                            form.handleAddNewVehicleDirectly();
+                                                            form.setFocusedField(null);
+                                                        }}
+                                                    >
+                                                        <IconPlus />
+                                                        <span>
+                                                            {form.vehicles.length > 0
+                                                                ? 'To inny pojazd — dodaj jako nowy'
+                                                                : 'Dodaj nowy pojazd'
+                                                            }
+                                                        </span>
+                                                    </S.DropdownAddButton>
+                                                </S.Dropdown>
+                                            )}
+                                        </S.DropdownContainer>
+                                    )}
                                 </S.RowContent>
                             </S.Row>
 
@@ -773,15 +833,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             </S.Overlay>
 
             {/* ── Sub-modals ────────────────────────────────────────────────────── */}
-            <VehicleModal
-                isOpen={form.isVehicleModalOpen}
-                vehicles={form.vehicles}
-                onClose={() => { form.setIsVehicleModalOpen(false); form.setVehicleModalInitialMode('select'); }}
-                onSelect={form.handleVehicleSelect}
-                allowSkip
-                initialMode={form.vehicleModalInitialMode}
-            />
-
             <QuickServiceModal
                 isOpen={form.isQuickServiceModalOpen}
                 onClose={() => form.setIsQuickServiceModalOpen(false)}

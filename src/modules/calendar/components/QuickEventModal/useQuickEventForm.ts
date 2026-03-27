@@ -51,8 +51,11 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
 
     // ─── Vehicle state ─────────────────────────────────────────────────────────
     const [selectedVehicle, setSelectedVehicle] = useState<SelectedVehicle | null>(null);
-    const [vehicleSearch, setVehicleSearch] = useState('');
+    const [vehicleBrand, setVehicleBrand] = useState('');
+    const [vehicleModel, setVehicleModel] = useState('');
+    const [vehicleYear, setVehicleYear] = useState('');
     const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
+    const vehicleBlurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // ─── Service state ─────────────────────────────────────────────────────────
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
@@ -68,8 +71,6 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
     const [customerEditMode, setCustomerEditMode] = useState(false);
 
     // ─── Sub-modal state ───────────────────────────────────────────────────────
-    const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
-    const [vehicleModalInitialMode, setVehicleModalInitialMode] = useState<'select' | 'new'>('select');
     const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
     const [isPriceInputModalOpen, setIsPriceInputModalOpen] = useState(false);
     const [isQuickColorModalOpen, setIsQuickColorModalOpen] = useState(false);
@@ -88,7 +89,9 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
     const customerLastNameInputRef = useRef<HTMLInputElement>(null);
     const customerPhoneInputRef = useRef<HTMLInputElement>(null);
     const customerEmailInputRef = useRef<HTMLInputElement>(null);
-    const vehicleInputRef = useRef<HTMLInputElement>(null);
+    const vehicleBrandInputRef = useRef<HTMLInputElement>(null);
+    const vehicleModelInputRef = useRef<HTMLInputElement>(null);
+    const vehicleYearInputRef = useRef<HTMLInputElement>(null);
     const serviceInputRef = useRef<HTMLInputElement>(null);
     const colorSectionRef = useRef<HTMLDivElement>(null);
 
@@ -194,7 +197,9 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         setCustomerEmail('');
         setCustomerEditMode(false);
         setShowCustomerDropdown(false);
-        setVehicleSearch('');
+        setVehicleBrand('');
+        setVehicleModel('');
+        setVehicleYear('');
         setShowVehicleDropdown(false);
         setNotes('');
         setTempServices({});
@@ -356,7 +361,9 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         setSelectedCustomer({ id: '', firstName: fn, lastName: ln, phone: ph, email: em, isNew: true });
         setSelectedCustomerId(undefined);
         setSelectedVehicle(null);
-        setVehicleSearch('');
+        setVehicleBrand('');
+        setVehicleModel('');
+        setVehicleYear('');
         setShowCustomerDropdown(false);
         setCustomerEditMode(false);
     };
@@ -388,11 +395,40 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         setCustomerEditMode(false);
     };
 
+    const handleVehicleFieldFocus = () => {
+        if (!selectedCustomer) return;
+        if (vehicleBlurTimerRef.current) {
+            clearTimeout(vehicleBlurTimerRef.current);
+            vehicleBlurTimerRef.current = null;
+        }
+        setFocusedField('vehicle');
+        setShowVehicleDropdown(true);
+    };
+
+    const handleVehicleFieldBlur = () => {
+        vehicleBlurTimerRef.current = setTimeout(() => {
+            vehicleBlurTimerRef.current = null;
+            setFocusedField(null);
+            setShowVehicleDropdown(false);
+        }, 300);
+    };
+
+    const handleAddNewVehicleDirectly = () => {
+        const br = vehicleBrand.trim();
+        const mo = vehicleModel.trim();
+        const yr = vehicleYear.trim();
+        if (!br && !mo) return;
+        setSelectedVehicle({ id: '', brand: br, model: mo, year: yr ? parseInt(yr) : undefined, isNew: true });
+        setShowVehicleDropdown(false);
+    };
+
     const handleCustomerSelect = (customer: SelectedCustomer) => {
         setSelectedCustomer(customer);
         setSelectedCustomerId(customer.id);
         setSelectedVehicle(null);
-        setVehicleSearch('');
+        setVehicleBrand('');
+        setVehicleModel('');
+        setVehicleYear('');
         setCustomerFirstName(customer.firstName ?? '');
         setCustomerLastName(customer.lastName ?? '');
         setCustomerPhone(customer.phone ?? '');
@@ -401,7 +437,9 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
 
     const handleVehicleSelect = (vehicle: SelectedVehicle) => {
         setSelectedVehicle(vehicle);
-        setVehicleSearch(`${vehicle.brand ?? ''} ${vehicle.model ?? ''}`.trim());
+        setVehicleBrand(vehicle.brand ?? '');
+        setVehicleModel(vehicle.model ?? '');
+        setVehicleYear(vehicle.year ? String(vehicle.year) : '');
         setShowVehicleDropdown(false);
     };
 
@@ -505,10 +543,15 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         handleCancelEdit,
 
         // Vehicle
-        selectedVehicle,
-        vehicleSearch, setVehicleSearch,
+        selectedVehicle, setSelectedVehicle,
+        vehicleBrand, setVehicleBrand,
+        vehicleModel, setVehicleModel,
+        vehicleYear, setVehicleYear,
         showVehicleDropdown, setShowVehicleDropdown,
         vehicles,
+        handleVehicleFieldFocus,
+        handleVehicleFieldBlur,
+        handleAddNewVehicleDirectly,
 
         // Services
         selectedServiceIds, setSelectedServiceIds,
@@ -529,8 +572,6 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         accentColor,
 
         // Sub-modal state
-        isVehicleModalOpen, setIsVehicleModalOpen,
-        vehicleModalInitialMode, setVehicleModalInitialMode,
         isQuickServiceModalOpen, setIsQuickServiceModalOpen,
         isPriceInputModalOpen,
         isQuickColorModalOpen, setIsQuickColorModalOpen,
@@ -549,7 +590,9 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         customerLastNameInputRef,
         customerPhoneInputRef,
         customerEmailInputRef,
-        vehicleInputRef,
+        vehicleBrandInputRef,
+        vehicleModelInputRef,
+        vehicleYearInputRef,
         serviceInputRef,
         colorSectionRef,
 

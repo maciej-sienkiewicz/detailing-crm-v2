@@ -745,6 +745,11 @@ export const CustomerInputRow = styled.div`
     &:last-child { border-bottom: none; }
 `;
 
+export const VehicleInputRow = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr 88px;
+`;
+
 export const CustomerFieldGroup = styled.div<{ $borderRight?: boolean }>`
     padding: 8px 14px;
     border-right: ${p => p.$borderRight ? '1px solid #f1f5f9' : 'none'};

@@ -63,6 +63,7 @@ export const useQuickEventCreation = () => {
                         newData: {
                             brand: data.vehicle.brand,
                             model: data.vehicle.model,
+                            year: data.vehicle.year,
                         },
                     };
                 } else if (data.vehicle.id) {

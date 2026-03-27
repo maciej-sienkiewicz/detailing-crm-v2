@@ -148,5 +148,6 @@ export interface SelectedVehicle {
     id?: string;
     brand: string;
     model: string;
+    year?: number;
     isNew: boolean;
 }
