@@ -691,6 +691,66 @@ export const FooterActions = styled.div`
 
 export const Button = styled(SharedButton)<{ $variant?: 'primary' | 'secondary' | 'ghost' }>``;
 
+// ─── Customer multi-field input block ────────────────────────────────────────
+
+export const CustomerInputBlock = styled.div<{ $focused?: boolean; $hasError?: boolean; $dropdownOpen?: boolean }>`
+    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : p.$focused ? '#0ea5e9' : '#e2e8f0'};
+    border-radius: ${p => p.$dropdownOpen ? '12px 12px 0 0' : '12px'};
+    background: #ffffff;
+    overflow: hidden;
+    box-shadow: ${p => p.$focused ? '0 0 0 3px rgba(14,165,233,0.14)' : 'none'};
+    ${p => p.$dropdownOpen && `
+        border-bottom-color: transparent;
+        clip-path: inset(-4px -4px 0 -4px);
+    `}
+    transition: border-color 150ms ease, box-shadow 150ms ease, border-radius 100ms ease;
+`;
+
+export const CustomerInputRow = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid #f1f5f9;
+
+    &:last-child { border-bottom: none; }
+`;
+
+export const CustomerFieldGroup = styled.div<{ $borderRight?: boolean }>`
+    padding: 8px 14px;
+    border-right: ${p => p.$borderRight ? '1px solid #f1f5f9' : 'none'};
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+`;
+
+export const CustomerFieldLabel = styled.label`
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    pointer-events: none;
+`;
+
+export const CustomerFieldInput = styled.input`
+    width: 100%;
+    font-size: 14px;
+    color: #0f172a;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    padding: 0;
+    line-height: 1.4;
+
+    &::placeholder { color: #c8d4e0; }
+`;
+
+export const CustomerHint = styled.div`
+    font-size: 12px;
+    color: #94a3b8;
+    padding-bottom: 6px;
+`;
+
 // ─── Backwards-compat stubs (still referenced by some JSX) ───────────────────
 
 export const DragHandle = styled.div`display: none;`;

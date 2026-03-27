@@ -7,7 +7,7 @@ import { useCustomerVehicles, useCustomerSearch as useAppointmentCustomerSearch 
 import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/types';
 import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
 import { useDebounce } from '@/common/hooks';
-import { formatDateTimeLocal, formatDate, roundTo2, parseCustomerInput } from './helpers';
+import { formatDateTimeLocal, formatDate, roundTo2 } from './helpers';
 import type {
     Service,
     AppointmentColor,
@@ -36,15 +36,18 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
     // ─── Customer state ────────────────────────────────────────────────────────
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>();
     const [selectedCustomer, setSelectedCustomer] = useState<SelectedCustomer | null>(null);
-    const [customerSearch, setCustomerSearch] = useState('');
+    const [customerFirstName, setCustomerFirstName] = useState('');
+    const [customerLastName, setCustomerLastName] = useState('');
+    const [customerPhone, setCustomerPhone] = useState('');
+    const [customerEmail, setCustomerEmail] = useState('');
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
-    const [parsedCustomerData, setParsedCustomerData] = useState({
-        firstName: '', lastName: '', email: '', phone: '',
-    });
     const customerJustSelectedRef = useRef(false);
-    const debouncedCustomerSearch = useDebounce(customerSearch, 300);
+    const customerBlurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const customerSearchQuery = [customerFirstName, customerLastName, customerPhone, customerEmail]
+        .filter(s => s.trim().length > 0).join(' ').trim();
+    const debouncedCustomerSearch = useDebounce(customerSearchQuery, 300);
     const { data: foundCustomers = [] } = useAppointmentCustomerSearch(debouncedCustomerSearch);
-    const hasCustomerSearchQuery = customerSearch.trim().length > 0;
+    const hasCustomerSearchQuery = customerSearchQuery.length > 0;
 
     // ─── Vehicle state ─────────────────────────────────────────────────────────
     const [selectedVehicle, setSelectedVehicle] = useState<SelectedVehicle | null>(null);
@@ -80,6 +83,9 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
     const startInputRef = useRef<HTMLDivElement>(null);
     const endInputRef = useRef<HTMLDivElement>(null);
     const customerInputRef = useRef<HTMLInputElement>(null);
+    const customerLastNameInputRef = useRef<HTMLInputElement>(null);
+    const customerPhoneInputRef = useRef<HTMLInputElement>(null);
+    const customerEmailInputRef = useRef<HTMLInputElement>(null);
     const vehicleInputRef = useRef<HTMLInputElement>(null);
     const serviceInputRef = useRef<HTMLInputElement>(null);
     const colorSectionRef = useRef<HTMLDivElement>(null);
@@ -180,13 +186,15 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         setServiceNotes({});
         setExpandedServiceNote(null);
         setServiceSearch('');
-        setCustomerSearch('');
+        setCustomerFirstName('');
+        setCustomerLastName('');
+        setCustomerPhone('');
+        setCustomerEmail('');
         setShowCustomerDropdown(false);
         setVehicleSearch('');
         setShowVehicleDropdown(false);
         setNotes('');
         setTempServices({});
-        setParsedCustomerData({ firstName: '', lastName: '', email: '', phone: '' });
     };
 
     useImperativeHandle(ref, () => ({ clearForm }));
@@ -315,11 +323,36 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         }
     };
 
+    const handleCustomerFieldFocus = () => {
+        if (customerBlurTimerRef.current) {
+            clearTimeout(customerBlurTimerRef.current);
+            customerBlurTimerRef.current = null;
+        }
+        setFocusedField('customer');
+        setShowCustomerDropdown(true);
+    };
+
+    const handleCustomerFieldBlur = () => {
+        customerBlurTimerRef.current = setTimeout(() => {
+            customerBlurTimerRef.current = null;
+            if (customerJustSelectedRef.current) {
+                customerJustSelectedRef.current = false;
+                return;
+            }
+            setFocusedField(null);
+            setShowCustomerDropdown(false);
+        }, 300);
+    };
+
     const handleCustomerSelect = (customer: SelectedCustomer) => {
         setSelectedCustomer(customer);
         setSelectedCustomerId(customer.id);
         setSelectedVehicle(null);
         setVehicleSearch('');
+        setCustomerFirstName(customer.firstName ?? '');
+        setCustomerLastName(customer.lastName ?? '');
+        setCustomerPhone(customer.phone ?? '');
+        setCustomerEmail(customer.email ?? '');
     };
 
     const handleVehicleSelect = (vehicle: SelectedVehicle) => {
@@ -411,12 +444,16 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         // Customer
         selectedCustomer, setSelectedCustomer,
         selectedCustomerId, setSelectedCustomerId,
-        customerSearch, setCustomerSearch,
+        customerFirstName, setCustomerFirstName,
+        customerLastName, setCustomerLastName,
+        customerPhone, setCustomerPhone,
+        customerEmail, setCustomerEmail,
         showCustomerDropdown, setShowCustomerDropdown,
         customerResults: foundCustomers,
         hasCustomerSearchQuery,
-        parsedCustomerData, setParsedCustomerData,
         customerJustSelectedRef,
+        handleCustomerFieldFocus,
+        handleCustomerFieldBlur,
 
         // Vehicle
         selectedVehicle,
@@ -461,6 +498,9 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         startInputRef,
         endInputRef,
         customerInputRef,
+        customerLastNameInputRef,
+        customerPhoneInputRef,
+        customerEmailInputRef,
         vehicleInputRef,
         serviceInputRef,
         colorSectionRef,

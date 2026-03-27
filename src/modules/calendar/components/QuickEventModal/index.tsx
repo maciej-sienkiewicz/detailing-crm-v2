@@ -11,7 +11,7 @@ import { Toggle } from '@/common/components/Toggle';
 import { useQueryClient } from '@tanstack/react-query';
 import * as S from '../QuickEventModalStyles';
 import { useQuickEventForm } from './useQuickEventForm';
-import { parseCustomerInput, roundTo2 } from './helpers';
+import { roundTo2 } from './helpers';
 import {
     IconClock, IconUser, IconCar, IconSettings, IconNote,
     IconTrash, IconX, IconPalette, IconMessageSquare, IconPlus,
@@ -123,101 +123,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <IconUser />
                                 </S.IconWrapper>
                                 <S.RowContent>
-                                    <S.DropdownContainer>
-                                        <S.Input
-                                            ref={form.customerInputRef}
-                                            type="text"
-                                            placeholder={
-                                                form.selectedCustomer
-                                                    ? (`${form.selectedCustomer.firstName ?? ''} ${form.selectedCustomer.lastName ?? ''}`.trim() || '(Nie uzupełniono imienia i nazwiska)')
-                                                    : 'Dodaj klienta...'
-                                            }
-                                            value={form.customerSearch}
-                                            onChange={(e) => {
-                                                form.setCustomerSearch(e.target.value);
-                                                form.setShowCustomerDropdown(true);
-                                            }}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    if (form.selectedCustomer) return;
-                                                    const trimmed = form.customerSearch.trim();
-                                                    if (!trimmed) return;
-                                                    form.setParsedCustomerData(parseCustomerInput(trimmed));
-                                                    form.setIsAddCustomerModalOpen(true);
-                                                    form.setShowCustomerDropdown(false);
-                                                }
-                                            }}
-                                            aria-invalid={!!form.errors.customer}
-                                            $accentColor={form.focusedField === 'customer' ? form.accentColor : undefined}
-                                            $hasError={!!form.errors.customer}
-                                            $dropdownOpen={form.showCustomerDropdown}
-                                            onFocus={() => {
-                                                form.setFocusedField('customer');
-                                                form.setShowCustomerDropdown(true);
-                                            }}
-                                            onBlur={() => {
-                                                form.setFocusedField(null);
-                                                setTimeout(() => {
-                                                    form.setShowCustomerDropdown(false);
-                                                    if (form.customerJustSelectedRef.current) {
-                                                        form.customerJustSelectedRef.current = false;
-                                                        return;
-                                                    }
-                                                    const trimmed = form.customerSearch.trim();
-                                                    if (!trimmed) return;
-                                                    form.setParsedCustomerData(parseCustomerInput(trimmed));
-                                                    form.setIsAddCustomerModalOpen(true);
-                                                }, 300);
-                                            }}
-                                        />
-                                        {form.showCustomerDropdown && (
-                                            <S.Dropdown>
-                                                {form.customerResults.map((c) => (
-                                                    <S.DropdownItem
-                                                        key={c.id}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            form.customerJustSelectedRef.current = true;
-                                                            form.handleCustomerSelect({
-                                                                id: c.id,
-                                                                firstName: c.firstName,
-                                                                lastName: c.lastName,
-                                                                phone: c.phone,
-                                                                email: c.email,
-                                                                isNew: false,
-                                                            });
-                                                            form.setCustomerSearch(`${c.firstName ?? ''} ${c.lastName ?? ''}`.trim());
-                                                            form.setShowCustomerDropdown(false);
-                                                        }}
-                                                        $accentColor={form.accentColor}
-                                                    >
-                                                        {(c.firstName || c.lastName)
-                                                            ? <span>{c.firstName} {c.lastName}</span>
-                                                            : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>(Nie uzupełniono imienia i nazwiska)</span>
-                                                        }
-                                                        <span>{c.phone || c.email}</span>
-                                                    </S.DropdownItem>
-                                                ))}
-                                                    <S.DropdownAddButton
-                                                        type="button"
-                                                        onClick={() => {
-                                                            form.setParsedCustomerData(parseCustomerInput(form.customerSearch));
-                                                            form.setIsAddCustomerModalOpen(true);
-                                                            form.setShowCustomerDropdown(false);
-                                                            form.setFocusedField(null);
-                                                        }}
-                                                    >
-                                                        <IconPlus />
-                                                        <span>Dodaj nowego klienta</span>
-                                                    </S.DropdownAddButton>
-                                            </S.Dropdown>
-                                        )}
-                                    </S.DropdownContainer>
-
-                                    {form.errors.customer && <S.ErrorMessage>{form.errors.customer}</S.ErrorMessage>}
-
-                                    {form.selectedCustomer && (
+                                    {form.selectedCustomer ? (
                                         <S.SelectedCustomerChip>
                                             <S.ChipCheck>✓</S.ChipCheck>
                                             <S.ChipInfo>
@@ -240,14 +146,144 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 onClick={() => {
                                                     form.setSelectedCustomer(null);
                                                     form.setSelectedCustomerId(undefined);
-                                                    form.setCustomerSearch('');
+                                                    form.setCustomerFirstName('');
+                                                    form.setCustomerLastName('');
+                                                    form.setCustomerPhone('');
+                                                    form.setCustomerEmail('');
                                                     form.setVehicleSearch('');
                                                 }}
                                             >
                                                 <IconX />
                                             </S.ChipClear>
                                         </S.SelectedCustomerChip>
+                                    ) : (
+                                        <>
+                                            <S.CustomerHint>
+                                                Wyszukaj istniejącego klienta lub wypełnij pola, aby dodać nowego
+                                            </S.CustomerHint>
+                                            <S.DropdownContainer>
+                                                <S.CustomerInputBlock
+                                                    $focused={form.focusedField === 'customer'}
+                                                    $hasError={!!form.errors.customer}
+                                                    $dropdownOpen={form.showCustomerDropdown}
+                                                >
+                                                    <S.CustomerInputRow>
+                                                        <S.CustomerFieldGroup $borderRight>
+                                                            <S.CustomerFieldLabel>Imię</S.CustomerFieldLabel>
+                                                            <S.CustomerFieldInput
+                                                                ref={form.customerInputRef}
+                                                                type="text"
+                                                                placeholder="Jan"
+                                                                value={form.customerFirstName}
+                                                                onChange={(e) => {
+                                                                    form.setCustomerFirstName(e.target.value);
+                                                                    form.setShowCustomerDropdown(true);
+                                                                }}
+                                                                onFocus={form.handleCustomerFieldFocus}
+                                                                onBlur={form.handleCustomerFieldBlur}
+                                                                autoComplete="off"
+                                                            />
+                                                        </S.CustomerFieldGroup>
+                                                        <S.CustomerFieldGroup>
+                                                            <S.CustomerFieldLabel>Nazwisko</S.CustomerFieldLabel>
+                                                            <S.CustomerFieldInput
+                                                                ref={form.customerLastNameInputRef}
+                                                                type="text"
+                                                                placeholder="Kowalski"
+                                                                value={form.customerLastName}
+                                                                onChange={(e) => {
+                                                                    form.setCustomerLastName(e.target.value);
+                                                                    form.setShowCustomerDropdown(true);
+                                                                }}
+                                                                onFocus={form.handleCustomerFieldFocus}
+                                                                onBlur={form.handleCustomerFieldBlur}
+                                                                autoComplete="off"
+                                                            />
+                                                        </S.CustomerFieldGroup>
+                                                    </S.CustomerInputRow>
+                                                    <S.CustomerInputRow>
+                                                        <S.CustomerFieldGroup $borderRight>
+                                                            <S.CustomerFieldLabel>Telefon</S.CustomerFieldLabel>
+                                                            <S.CustomerFieldInput
+                                                                ref={form.customerPhoneInputRef}
+                                                                type="tel"
+                                                                placeholder="+48 123 456 789"
+                                                                value={form.customerPhone}
+                                                                onChange={(e) => {
+                                                                    form.setCustomerPhone(e.target.value);
+                                                                    form.setShowCustomerDropdown(true);
+                                                                }}
+                                                                onFocus={form.handleCustomerFieldFocus}
+                                                                onBlur={form.handleCustomerFieldBlur}
+                                                                autoComplete="off"
+                                                            />
+                                                        </S.CustomerFieldGroup>
+                                                        <S.CustomerFieldGroup>
+                                                            <S.CustomerFieldLabel>E-mail</S.CustomerFieldLabel>
+                                                            <S.CustomerFieldInput
+                                                                ref={form.customerEmailInputRef}
+                                                                type="email"
+                                                                placeholder="jan@example.com"
+                                                                value={form.customerEmail}
+                                                                onChange={(e) => {
+                                                                    form.setCustomerEmail(e.target.value);
+                                                                    form.setShowCustomerDropdown(true);
+                                                                }}
+                                                                onFocus={form.handleCustomerFieldFocus}
+                                                                onBlur={form.handleCustomerFieldBlur}
+                                                                autoComplete="off"
+                                                            />
+                                                        </S.CustomerFieldGroup>
+                                                    </S.CustomerInputRow>
+                                                </S.CustomerInputBlock>
+
+                                                {form.showCustomerDropdown && (
+                                                    <S.Dropdown>
+                                                        {form.customerResults.map((c) => (
+                                                            <S.DropdownItem
+                                                                key={c.id}
+                                                                type="button"
+                                                                onMouseDown={(e) => e.preventDefault()}
+                                                                onClick={() => {
+                                                                    form.customerJustSelectedRef.current = true;
+                                                                    form.handleCustomerSelect({
+                                                                        id: c.id,
+                                                                        firstName: c.firstName,
+                                                                        lastName: c.lastName,
+                                                                        phone: c.phone,
+                                                                        email: c.email,
+                                                                        isNew: false,
+                                                                    });
+                                                                    form.setShowCustomerDropdown(false);
+                                                                }}
+                                                                $accentColor={form.accentColor}
+                                                            >
+                                                                {(c.firstName || c.lastName)
+                                                                    ? <span>{c.firstName} {c.lastName}</span>
+                                                                    : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>(Nie uzupełniono imienia i nazwiska)</span>
+                                                                }
+                                                                <span>{c.phone || c.email}</span>
+                                                            </S.DropdownItem>
+                                                        ))}
+                                                        <S.DropdownAddButton
+                                                            type="button"
+                                                            onMouseDown={(e) => e.preventDefault()}
+                                                            onClick={() => {
+                                                                form.setIsAddCustomerModalOpen(true);
+                                                                form.setShowCustomerDropdown(false);
+                                                                form.setFocusedField(null);
+                                                            }}
+                                                        >
+                                                            <IconPlus />
+                                                            <span>Dodaj nowego klienta</span>
+                                                        </S.DropdownAddButton>
+                                                    </S.Dropdown>
+                                                )}
+                                            </S.DropdownContainer>
+                                        </>
                                     )}
+
+                                    {form.errors.customer && <S.ErrorMessage>{form.errors.customer}</S.ErrorMessage>}
                                 </S.RowContent>
                             </S.Row>
 
@@ -638,7 +674,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             {/* ── Sub-modals ────────────────────────────────────────────────────── */}
             <QuickCustomerModal
                 isOpen={form.isAddCustomerModalOpen}
-                onClose={() => { form.setIsAddCustomerModalOpen(false); form.setCustomerSearch(''); }}
+                onClose={() => { form.setIsAddCustomerModalOpen(false); }}
                 onSuccess={(customer) => {
                     const phone = (customer as any).phone || customer.contact?.phone || undefined;
                     const email = (customer as any).email || customer.contact?.email || undefined;
@@ -647,10 +683,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                     form.setShowCustomerDropdown(false);
                     queryClient.invalidateQueries({ queryKey: ['appointments', 'customers', 'search'] });
                 }}
-                initialFirstName={form.parsedCustomerData.firstName}
-                initialLastName={form.parsedCustomerData.lastName}
-                initialPhone={form.parsedCustomerData.phone}
-                initialEmail={form.parsedCustomerData.email}
+                initialFirstName={form.customerFirstName}
+                initialLastName={form.customerLastName}
+                initialPhone={form.customerPhone}
+                initialEmail={form.customerEmail}
             />
 
             <VehicleModal
