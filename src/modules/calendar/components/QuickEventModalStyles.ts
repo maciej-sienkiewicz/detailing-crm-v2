@@ -366,6 +366,23 @@ export const ChipDot = styled.span`
     color: #d1d5db;
 `;
 
+export const ChipEdit = styled.button`
+    flex-shrink: 0;
+    padding: 4px;
+    color: #94a3b8;
+    background: none;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 150ms ease;
+
+    &:hover { color: #0ea5e9; background: #e0f2fe; }
+    svg { width: 14px; height: 14px; }
+`;
+
 export const ChipClear = styled.button`
     flex-shrink: 0;
     margin-left: auto;
@@ -763,6 +780,48 @@ export const CustomerHint = styled.div`
     font-size: 12px;
     color: #94a3b8;
     padding-bottom: 6px;
+`;
+
+export const CustomerEditActions = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
+export const CustomerEditConfirmBtn = styled.button`
+    flex: 1;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+    background: #16a34a;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background 150ms ease;
+
+    &:hover { background: #15803d; }
+    svg { width: 14px; height: 14px; }
+`;
+
+export const CustomerEditCancelBtn = styled.button`
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #64748b;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 150ms ease;
+
+    &:hover { background: #f1f5f9; border-color: #cbd5e1; }
 `;
 
 // ─── Backwards-compat stubs (still referenced by some JSX) ───────────────────

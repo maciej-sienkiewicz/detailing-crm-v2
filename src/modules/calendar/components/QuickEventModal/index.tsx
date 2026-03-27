@@ -6,15 +6,13 @@ import { VehicleModal } from '@/modules/appointments/components/VehicleModal';
 import { QuickServiceModal } from '../QuickServiceModal';
 import { PriceInputModal } from '../PriceInputModal';
 import { QuickColorModal } from '../QuickColorModal';
-import { QuickCustomerModal } from '../QuickCustomerModal';
 import { Toggle } from '@/common/components/Toggle';
-import { useQueryClient } from '@tanstack/react-query';
 import * as S from '../QuickEventModalStyles';
 import { useQuickEventForm } from './useQuickEventForm';
 import { roundTo2 } from './helpers';
 import {
     IconClock, IconUser, IconCar, IconSettings, IconNote,
-    IconTrash, IconX, IconPalette, IconMessageSquare, IconPlus,
+    IconTrash, IconX, IconPalette, IconMessageSquare, IconPlus, IconPencil, IconCheck,
 } from './icons';
 import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Service } from './types';
 
@@ -27,8 +25,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     onClose,
     onSave,
 }, ref) => {
-    const queryClient = useQueryClient();
-
     const form = useQuickEventForm({ isOpen, eventData, onClose, onSave, ref });
 
     if (!eventData) return null;
@@ -123,7 +119,83 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <IconUser />
                                 </S.IconWrapper>
                                 <S.RowContent>
-                                    {form.selectedCustomer ? (
+                                    {/* ── stan: klient wybrany, tryb edycji ── */}
+                                    {form.selectedCustomer && form.customerEditMode ? (
+                                        <>
+                                            <S.CustomerHint style={{ color: '#0ea5e9' }}>
+                                                Edytuj dane klienta
+                                            </S.CustomerHint>
+                                            <S.CustomerInputBlock $focused={form.focusedField === 'customer'}>
+                                                <S.CustomerInputRow>
+                                                    <S.CustomerFieldGroup $borderRight>
+                                                        <S.CustomerFieldLabel>Imię</S.CustomerFieldLabel>
+                                                        <S.CustomerFieldInput
+                                                            ref={form.customerInputRef}
+                                                            type="text"
+                                                            placeholder="Jan"
+                                                            value={form.customerFirstName}
+                                                            onChange={(e) => form.setCustomerFirstName(e.target.value)}
+                                                            onFocus={() => form.setFocusedField('customer')}
+                                                            onBlur={() => form.setFocusedField(null)}
+                                                            autoComplete="off"
+                                                            autoFocus
+                                                        />
+                                                    </S.CustomerFieldGroup>
+                                                    <S.CustomerFieldGroup>
+                                                        <S.CustomerFieldLabel>Nazwisko</S.CustomerFieldLabel>
+                                                        <S.CustomerFieldInput
+                                                            ref={form.customerLastNameInputRef}
+                                                            type="text"
+                                                            placeholder="Kowalski"
+                                                            value={form.customerLastName}
+                                                            onChange={(e) => form.setCustomerLastName(e.target.value)}
+                                                            onFocus={() => form.setFocusedField('customer')}
+                                                            onBlur={() => form.setFocusedField(null)}
+                                                            autoComplete="off"
+                                                        />
+                                                    </S.CustomerFieldGroup>
+                                                </S.CustomerInputRow>
+                                                <S.CustomerInputRow>
+                                                    <S.CustomerFieldGroup $borderRight>
+                                                        <S.CustomerFieldLabel>Telefon</S.CustomerFieldLabel>
+                                                        <S.CustomerFieldInput
+                                                            ref={form.customerPhoneInputRef}
+                                                            type="tel"
+                                                            placeholder="+48 123 456 789"
+                                                            value={form.customerPhone}
+                                                            onChange={(e) => form.setCustomerPhone(e.target.value)}
+                                                            onFocus={() => form.setFocusedField('customer')}
+                                                            onBlur={() => form.setFocusedField(null)}
+                                                            autoComplete="off"
+                                                        />
+                                                    </S.CustomerFieldGroup>
+                                                    <S.CustomerFieldGroup>
+                                                        <S.CustomerFieldLabel>E-mail</S.CustomerFieldLabel>
+                                                        <S.CustomerFieldInput
+                                                            ref={form.customerEmailInputRef}
+                                                            type="email"
+                                                            placeholder="jan@example.com"
+                                                            value={form.customerEmail}
+                                                            onChange={(e) => form.setCustomerEmail(e.target.value)}
+                                                            onFocus={() => form.setFocusedField('customer')}
+                                                            onBlur={() => form.setFocusedField(null)}
+                                                            autoComplete="off"
+                                                        />
+                                                    </S.CustomerFieldGroup>
+                                                </S.CustomerInputRow>
+                                            </S.CustomerInputBlock>
+                                            <S.CustomerEditActions>
+                                                <S.CustomerEditConfirmBtn type="button" onClick={form.handleConfirmEdit}>
+                                                    <IconCheck />
+                                                    Zatwierdź zmiany
+                                                </S.CustomerEditConfirmBtn>
+                                                <S.CustomerEditCancelBtn type="button" onClick={form.handleCancelEdit}>
+                                                    Anuluj
+                                                </S.CustomerEditCancelBtn>
+                                            </S.CustomerEditActions>
+                                        </>
+                                    ) : form.selectedCustomer ? (
+                                        /* ── stan: klient wybrany, chip ── */
                                         <S.SelectedCustomerChip>
                                             <S.ChipCheck>✓</S.ChipCheck>
                                             <S.ChipInfo>
@@ -137,10 +209,21 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 {(form.selectedCustomer.phone || form.selectedCustomer.email) && (
                                                     <>
                                                         <S.ChipDot>·</S.ChipDot>
-                                                        <S.ChipMeta>{form.selectedCustomer.phone || form.selectedCustomer.email}</S.ChipMeta>
+                                                        <S.ChipMeta>
+                                                            {[form.selectedCustomer.phone, form.selectedCustomer.email].filter(Boolean).join('  ·  ')}
+                                                        </S.ChipMeta>
                                                     </>
                                                 )}
                                             </S.ChipInfo>
+                                            {form.selectedCustomer.isNew && (
+                                                <S.ChipEdit
+                                                    type="button"
+                                                    onClick={form.handleEnterEditMode}
+                                                    title="Popraw dane klienta"
+                                                >
+                                                    <IconPencil />
+                                                </S.ChipEdit>
+                                            )}
                                             <S.ChipClear
                                                 type="button"
                                                 onClick={() => {
@@ -152,11 +235,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     form.setCustomerEmail('');
                                                     form.setVehicleSearch('');
                                                 }}
+                                                title="Usuń klienta"
                                             >
                                                 <IconX />
                                             </S.ChipClear>
                                         </S.SelectedCustomerChip>
                                     ) : (
+                                        /* ── stan: brak klienta, formularz wyszukiwania ── */
                                         <>
                                             <S.CustomerHint>
                                                 Wyszukaj istniejącego klienta lub wypełnij pola, aby dodać nowego
@@ -283,8 +368,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             type="button"
                                                             onMouseDown={(e) => e.preventDefault()}
                                                             onClick={() => {
-                                                                form.setIsAddCustomerModalOpen(true);
-                                                                form.setShowCustomerDropdown(false);
+                                                                form.handleAddNewCustomerDirectly();
                                                                 form.setFocusedField(null);
                                                             }}
                                                         >
@@ -691,23 +775,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             </S.Overlay>
 
             {/* ── Sub-modals ────────────────────────────────────────────────────── */}
-            <QuickCustomerModal
-                isOpen={form.isAddCustomerModalOpen}
-                onClose={() => { form.setIsAddCustomerModalOpen(false); }}
-                onSuccess={(customer) => {
-                    const phone = (customer as any).phone || customer.contact?.phone || undefined;
-                    const email = (customer as any).email || customer.contact?.email || undefined;
-                    form.handleCustomerSelect({ id: customer.id, firstName: customer.firstName, lastName: customer.lastName, phone, email, isNew: false });
-                    form.setCustomerSearch(`${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim());
-                    form.setShowCustomerDropdown(false);
-                    queryClient.invalidateQueries({ queryKey: ['appointments', 'customers', 'search'] });
-                }}
-                initialFirstName={form.customerFirstName}
-                initialLastName={form.customerLastName}
-                initialPhone={form.customerPhone}
-                initialEmail={form.customerEmail}
-            />
-
             <VehicleModal
                 isOpen={form.isVehicleModalOpen}
                 vehicles={form.vehicles}

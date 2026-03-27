@@ -64,8 +64,10 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
     const [showServiceDropdown, setShowServiceDropdown] = useState(false);
     const [tempServices, setTempServices] = useState<{ [key: string]: { name: string; basePriceNet: number; vatRate: number } }>({});
 
+    // ─── Customer edit mode ────────────────────────────────────────────────────
+    const [customerEditMode, setCustomerEditMode] = useState(false);
+
     // ─── Sub-modal state ───────────────────────────────────────────────────────
-    const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
     const [vehicleModalInitialMode, setVehicleModalInitialMode] = useState<'select' | 'new'>('select');
     const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
@@ -190,6 +192,7 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         setCustomerLastName('');
         setCustomerPhone('');
         setCustomerEmail('');
+        setCustomerEditMode(false);
         setShowCustomerDropdown(false);
         setVehicleSearch('');
         setShowVehicleDropdown(false);
@@ -344,6 +347,47 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         }, 300);
     };
 
+    const handleAddNewCustomerDirectly = () => {
+        const fn = customerFirstName.trim();
+        const ln = customerLastName.trim();
+        const ph = customerPhone.trim();
+        const em = customerEmail.trim();
+        if (!fn && !ln && !ph && !em) return;
+        setSelectedCustomer({ id: '', firstName: fn, lastName: ln, phone: ph, email: em, isNew: true });
+        setSelectedCustomerId(undefined);
+        setSelectedVehicle(null);
+        setVehicleSearch('');
+        setShowCustomerDropdown(false);
+        setCustomerEditMode(false);
+    };
+
+    const handleEnterEditMode = () => {
+        setCustomerEditMode(true);
+        setShowCustomerDropdown(false);
+    };
+
+    const handleConfirmEdit = () => {
+        if (!selectedCustomer) return;
+        setSelectedCustomer({
+            ...selectedCustomer,
+            firstName: customerFirstName.trim(),
+            lastName: customerLastName.trim(),
+            phone: customerPhone.trim(),
+            email: customerEmail.trim(),
+        });
+        setCustomerEditMode(false);
+    };
+
+    const handleCancelEdit = () => {
+        if (selectedCustomer) {
+            setCustomerFirstName(selectedCustomer.firstName ?? '');
+            setCustomerLastName(selectedCustomer.lastName ?? '');
+            setCustomerPhone(selectedCustomer.phone ?? '');
+            setCustomerEmail(selectedCustomer.email ?? '');
+        }
+        setCustomerEditMode(false);
+    };
+
     const handleCustomerSelect = (customer: SelectedCustomer) => {
         setSelectedCustomer(customer);
         setSelectedCustomerId(customer.id);
@@ -452,8 +496,13 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         customerResults: foundCustomers,
         hasCustomerSearchQuery,
         customerJustSelectedRef,
+        customerEditMode,
         handleCustomerFieldFocus,
         handleCustomerFieldBlur,
+        handleAddNewCustomerDirectly,
+        handleEnterEditMode,
+        handleConfirmEdit,
+        handleCancelEdit,
 
         // Vehicle
         selectedVehicle,
@@ -480,7 +529,6 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         accentColor,
 
         // Sub-modal state
-        isAddCustomerModalOpen, setIsAddCustomerModalOpen,
         isVehicleModalOpen, setIsVehicleModalOpen,
         vehicleModalInitialMode, setVehicleModalInitialMode,
         isQuickServiceModalOpen, setIsQuickServiceModalOpen,
