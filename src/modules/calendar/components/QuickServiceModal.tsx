@@ -52,6 +52,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
     const [serviceName, setServiceName] = useState(initialServiceName);
     const [basePriceNet, setBasePriceNet] = useState(0);
     const [saveToDatabase, setSaveToDatabase] = useState(false);
+    const [requireManualPrice, setRequireManualPrice] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const createMutation = useCreateService();
@@ -61,6 +62,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
             setServiceName(initialServiceName);
             setBasePriceNet(0);
             setSaveToDatabase(false);
+            setRequireManualPrice(false);
             setErrors({});
         }
     }, [isOpen, initialServiceName]);
@@ -87,7 +89,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                     name: serviceName,
                     basePriceNet,
                     vatRate: 23,
-                    requireManualPrice: false,
+                    requireManualPrice,
                 });
                 createdServiceId = result.id;
             }
@@ -173,6 +175,25 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                                 </CheckboxContent>
                             </CheckboxLabel>
                         </CheckboxContainer>
+
+                        {saveToDatabase && (
+                            <CheckboxContainer>
+                                <CheckboxLabel>
+                                    <Checkbox
+                                        checked={requireManualPrice}
+                                        onChange={(e) => setRequireManualPrice(e.target.checked)}
+                                    />
+                                    <CheckboxContent>
+                                        <CheckboxTitle>
+                                            Cena ustalana ręcznie przy każdej wizycie
+                                        </CheckboxTitle>
+                                        <CheckboxDescription>
+                                            Przy dodawaniu tej usługi do wizyty zawsze będzie wymagane ręczne podanie ceny
+                                        </CheckboxDescription>
+                                    </CheckboxContent>
+                                </CheckboxLabel>
+                            </CheckboxContainer>
+                        )}
 
                         {errors.submit && (
                             <SubmitError>{errors.submit}</SubmitError>
