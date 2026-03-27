@@ -70,6 +70,9 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
     // ─── Customer edit mode ────────────────────────────────────────────────────
     const [customerEditMode, setCustomerEditMode] = useState(false);
 
+    // ─── Vehicle edit mode ─────────────────────────────────────────────────────
+    const [vehicleEditMode, setVehicleEditMode] = useState(false);
+
     // ─── Sub-modal state ───────────────────────────────────────────────────────
     const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
     const [isPriceInputModalOpen, setIsPriceInputModalOpen] = useState(false);
@@ -200,6 +203,7 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         setVehicleBrand('');
         setVehicleModel('');
         setVehicleYear('');
+        setVehicleEditMode(false);
         setShowVehicleDropdown(false);
         setNotes('');
         setTempServices({});
@@ -422,6 +426,31 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         setShowVehicleDropdown(false);
     };
 
+    const handleEnterVehicleEditMode = () => {
+        setVehicleEditMode(true);
+        setShowVehicleDropdown(false);
+    };
+
+    const handleConfirmVehicleEdit = () => {
+        if (!selectedVehicle) return;
+        setSelectedVehicle({
+            ...selectedVehicle,
+            brand: vehicleBrand.trim(),
+            model: vehicleModel.trim(),
+            year: vehicleYear.trim() ? parseInt(vehicleYear.trim()) : undefined,
+        });
+        setVehicleEditMode(false);
+    };
+
+    const handleCancelVehicleEdit = () => {
+        if (selectedVehicle) {
+            setVehicleBrand(selectedVehicle.brand ?? '');
+            setVehicleModel(selectedVehicle.model ?? '');
+            setVehicleYear(selectedVehicle.year ? String(selectedVehicle.year) : '');
+        }
+        setVehicleEditMode(false);
+    };
+
     const handleCustomerSelect = (customer: SelectedCustomer) => {
         setSelectedCustomer(customer);
         setSelectedCustomerId(customer.id);
@@ -549,9 +578,13 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         vehicleYear, setVehicleYear,
         showVehicleDropdown, setShowVehicleDropdown,
         vehicles,
+        vehicleEditMode,
         handleVehicleFieldFocus,
         handleVehicleFieldBlur,
         handleAddNewVehicleDirectly,
+        handleEnterVehicleEditMode,
+        handleConfirmVehicleEdit,
+        handleCancelVehicleEdit,
 
         // Services
         selectedServiceIds, setSelectedServiceIds,

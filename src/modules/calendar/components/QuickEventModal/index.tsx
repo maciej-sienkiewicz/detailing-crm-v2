@@ -230,6 +230,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     form.setCustomerLastName('');
                                                     form.setCustomerPhone('');
                                                     form.setCustomerEmail('');
+                                                    form.setSelectedVehicle(null);
                                                     form.setVehicleBrand('');
                                                     form.setVehicleModel('');
                                                     form.setVehicleYear('');
@@ -395,7 +396,59 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <IconCar />
                                 </S.IconWrapper>
                                 <S.RowContent>
-                                    {form.selectedVehicle ? (
+                                    {form.selectedVehicle && form.vehicleEditMode ? (
+                                        <>
+                                            <S.CustomerHint style={{ color: '#0ea5e9' }}>
+                                                Edytuj dane pojazdu
+                                            </S.CustomerHint>
+                                            <S.CustomerInputBlock $focused={form.focusedField === 'vehicle'}>
+                                                <S.VehicleInputRow>
+                                                    <S.CustomerFieldGroup $borderRight>
+                                                        <S.CustomerFieldLabel>Marka</S.CustomerFieldLabel>
+                                                        <S.CustomerFieldInput
+                                                            type="text" placeholder="BMW"
+                                                            value={form.vehicleBrand}
+                                                            onChange={(e) => form.setVehicleBrand(e.target.value)}
+                                                            onFocus={() => form.setFocusedField('vehicle')}
+                                                            onBlur={() => form.setFocusedField(null)}
+                                                            autoComplete="off" autoFocus
+                                                        />
+                                                    </S.CustomerFieldGroup>
+                                                    <S.CustomerFieldGroup $borderRight>
+                                                        <S.CustomerFieldLabel>Model</S.CustomerFieldLabel>
+                                                        <S.CustomerFieldInput
+                                                            type="text" placeholder="320d"
+                                                            value={form.vehicleModel}
+                                                            onChange={(e) => form.setVehicleModel(e.target.value)}
+                                                            onFocus={() => form.setFocusedField('vehicle')}
+                                                            onBlur={() => form.setFocusedField(null)}
+                                                            autoComplete="off"
+                                                        />
+                                                    </S.CustomerFieldGroup>
+                                                    <S.CustomerFieldGroup>
+                                                        <S.CustomerFieldLabel>Rok</S.CustomerFieldLabel>
+                                                        <S.CustomerFieldInput
+                                                            type="text" inputMode="numeric" placeholder="2021" maxLength={4}
+                                                            value={form.vehicleYear}
+                                                            onChange={(e) => form.setVehicleYear(e.target.value.replace(/\D/g, ''))}
+                                                            onFocus={() => form.setFocusedField('vehicle')}
+                                                            onBlur={() => form.setFocusedField(null)}
+                                                            autoComplete="off"
+                                                        />
+                                                    </S.CustomerFieldGroup>
+                                                </S.VehicleInputRow>
+                                            </S.CustomerInputBlock>
+                                            <S.CustomerEditActions>
+                                                <S.CustomerEditConfirmBtn type="button" onClick={form.handleConfirmVehicleEdit}>
+                                                    <IconCheck />
+                                                    Zatwierdź zmiany
+                                                </S.CustomerEditConfirmBtn>
+                                                <S.CustomerEditCancelBtn type="button" onClick={form.handleCancelVehicleEdit}>
+                                                    Anuluj
+                                                </S.CustomerEditCancelBtn>
+                                            </S.CustomerEditActions>
+                                        </>
+                                    ) : form.selectedVehicle ? (
                                         <S.SelectedCustomerChip>
                                             <S.ChipCheck>✓</S.ChipCheck>
                                             <S.ChipInfo>
@@ -410,6 +463,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     </>
                                                 )}
                                             </S.ChipInfo>
+                                            <S.ChipEdit type="button" onClick={form.handleEnterVehicleEditMode} title="Popraw dane pojazdu">
+                                                <IconPencil />
+                                            </S.ChipEdit>
                                             <S.ChipClear
                                                 type="button"
                                                 onClick={() => {
