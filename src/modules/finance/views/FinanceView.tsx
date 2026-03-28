@@ -24,10 +24,22 @@ const PlusIcon = () => (
 );
 
 const RefreshIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <polyline points="23 4 23 10 17 10" />
     <polyline points="1 20 1 14 7 14" />
     <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+  </svg>
+);
+
+const ChevronLeftIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <polyline points="15 18 9 12 15 6" />
+  </svg>
+);
+
+const ChevronRightIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <polyline points="9 18 15 12 9 6" />
   </svg>
 );
 
@@ -147,7 +159,7 @@ const SectionLabelLine = styled.div`
   background: ${(p) => p.theme.colors.border};
 `;
 
-// HeaderActions is now HeroActions (defined in Hero section)
+// ─── Hero buttons ─────────────────────────────────────────────────────────────
 
 const AddButton = styled.button`
   display: flex;
@@ -173,70 +185,60 @@ const AddButton = styled.button`
   &:active { transform: translateY(0); }
 `;
 
-const RefreshButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 12px;
-  background: ${st.bgCard};
-  color: ${st.textSecondary};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radiusSm};
-  cursor: pointer;
-  box-shadow: ${st.shadowXs};
-  transition: all ${st.transition};
+// ─── Panel Card (unified tabs + filters + table) ──────────────────────────────
 
-  &:hover {
-    background: ${st.bg};
-    color: ${st.text};
-    border-color: ${st.borderHover};
-  }
+const PanelCard = styled.div`
+  background: ${(p) => p.theme.colors.surface};
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: ${(p) => p.theme.radii.xl};
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.04);
+  overflow: hidden;
+  margin-top: ${(p) => p.theme.spacing.md};
 `;
 
-// ─── Tabs ─────────────────────────────────────────────────────────────────────
+// ─── Tab Bar ──────────────────────────────────────────────────────────────────
 
-const TabsRow = styled.div`
+const TabBar = styled.div`
   display: flex;
-  gap: 0;
-  background: ${st.bgCard};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radius};
-  padding: 4px;
+  align-items: stretch;
+  border-bottom: 1px solid ${(p) => p.theme.colors.border};
+  background: ${(p) => p.theme.colors.surface};
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  box-shadow: ${st.shadowXs};
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
 `;
 
-const Tab = styled.button<{ $active: boolean }>`
-  padding: 8px 20px;
+const TabItem = styled.button<{ $active: boolean }>`
+  flex-shrink: 0;
+  padding: 14px 20px;
   font-size: ${st.fontSm};
   font-weight: ${(p) => (p.$active ? 600 : 400)};
   color: ${(p) => (p.$active ? st.accentBlue : st.textSecondary)};
-  background: ${(p) => (p.$active ? st.accentBlueDim : 'transparent')};
-  border: 1px solid ${(p) => (p.$active ? `${st.accentBlue}33` : 'transparent')};
-  border-radius: ${st.radiusSm};
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid ${(p) => (p.$active ? st.accentBlue : 'transparent')};
+  margin-bottom: -1px;
   cursor: pointer;
   white-space: nowrap;
-  transition: all ${st.transition};
+  transition: color ${st.transition}, border-color ${st.transition}, background ${st.transition};
 
   &:hover {
     color: ${(p) => (p.$active ? st.accentBlue : st.text)};
-    background: ${(p) => (p.$active ? st.accentBlueDim : st.bg)};
+    background: ${(p) => (p.$active ? 'transparent' : st.bg)};
   }
 `;
 
-// ─── Filters ──────────────────────────────────────────────────────────────────
+// ─── Filters Strip ────────────────────────────────────────────────────────────
 
-const FiltersPanel = styled.div`
+const FiltersStrip = styled.div`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 12px 16px;
-  background: ${st.bgCard};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radius};
-  box-shadow: ${st.shadowXs};
+  padding: 10px 16px;
+  background: ${(p) => p.theme.colors.surfaceAlt};
+  border-bottom: 1px solid ${(p) => p.theme.colors.border};
 `;
 
 // ─── Custom Select Dropdown ───────────────────────────────────────────────────
@@ -244,11 +246,11 @@ const FiltersPanel = styled.div`
 const SelectTrigger = styled.button<{ $active: boolean }>`
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
-  background: ${(p) => (p.$active ? st.accentBlueDim : st.bgCard)};
+  gap: 5px;
+  padding: 5px 10px;
+  background: ${(p) => (p.$active ? st.accentBlueDim : p.theme.colors.surface)};
   color: ${(p) => (p.$active ? st.accentBlue : st.textSecondary)};
-  border: 1px solid ${(p) => (p.$active ? `${st.accentBlue}44` : st.border)};
+  border: 1px solid ${(p) => (p.$active ? `${st.accentBlue}44` : p.theme.colors.border)};
   border-radius: ${st.radiusSm};
   font-size: ${st.fontSm};
   font-weight: ${(p) => (p.$active ? 600 : 400)};
@@ -257,7 +259,7 @@ const SelectTrigger = styled.button<{ $active: boolean }>`
   white-space: nowrap;
 
   &:hover {
-    background: ${(p) => (p.$active ? st.accentBlueDim : st.bg)};
+    background: ${(p) => (p.$active ? st.accentBlueDim : p.theme.colors.surfaceHover)};
     border-color: ${(p) => (p.$active ? `${st.accentBlue}55` : st.borderHover)};
     color: ${(p) => (p.$active ? st.accentBlue : st.text)};
   }
@@ -271,13 +273,13 @@ const SelectBackdrop = styled.div`
 
 const SelectPanel = styled.div`
   position: fixed;
-  min-width: 220px;
-  background: ${st.bgCard};
+  min-width: 200px;
+  background: ${(p) => p.theme.colors.surface};
   border-radius: ${st.radius};
   box-shadow: ${st.shadowLg};
   z-index: 1000;
   overflow: hidden;
-  border: 1px solid ${st.border};
+  border: 1px solid ${(p) => p.theme.colors.border};
 `;
 
 const SelectPanelBody = styled.div`
@@ -288,7 +290,7 @@ const SelectPanelOption = styled.button<{ $active: boolean }>`
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 9px 12px;
+  padding: 8px 12px;
   text-align: left;
   font-size: ${st.fontSm};
   font-weight: ${(p) => (p.$active ? 600 : 400)};
@@ -300,13 +302,13 @@ const SelectPanelOption = styled.button<{ $active: boolean }>`
   transition: all ${st.transition};
 
   &:hover {
-    background: ${(p) => (p.$active ? st.accentBlueDim : st.bg)};
+    background: ${(p) => (p.$active ? st.accentBlueDim : p.theme.colors.surfaceAlt)};
     color: ${st.text};
   }
 `;
 
 const ChevronDownIcon = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
     <polyline points="6 9 12 15 18 9" />
   </svg>
 );
@@ -331,7 +333,7 @@ const FinanceFilterSelect: React.FC<FinanceSelectProps> = ({ value, onChange, op
       const rect = triggerRef.current.getBoundingClientRect();
       const vw = window.innerWidth;
       let left = rect.left;
-      if (left + 220 > vw - 8) left = vw - 228;
+      if (left + 200 > vw - 8) left = vw - 208;
       setPanelPos({ top: rect.bottom + 4, left });
     }
     setIsOpen((prev) => !prev);
@@ -366,11 +368,11 @@ const FinanceFilterSelect: React.FC<FinanceSelectProps> = ({ value, onChange, op
 };
 
 const DateInput = styled.input`
-  padding: 7px 10px;
+  padding: 5px 10px;
   font-size: ${st.fontSm};
-  border: 1px solid ${st.border};
+  border: 1px solid ${(p) => p.theme.colors.border};
   border-radius: ${st.radiusSm};
-  background: ${st.bgCard};
+  background: ${(p) => p.theme.colors.surface};
   color: ${st.text};
   outline: none;
   transition: border-color ${st.transition}, box-shadow ${st.transition};
@@ -386,10 +388,10 @@ const FilterSeparator = styled.div`
 `;
 
 const ClearFiltersBtn = styled.button`
-  padding: 6px 12px;
+  padding: 5px 11px;
   font-size: ${st.fontSm};
   font-weight: 500;
-  border: 1px solid ${st.border};
+  border: 1px solid ${(p) => p.theme.colors.border};
   background: transparent;
   color: ${st.textSecondary};
   border-radius: ${st.radiusFull};
@@ -397,25 +399,66 @@ const ClearFiltersBtn = styled.button`
   transition: all ${st.transition};
 
   &:hover {
-    background: ${st.bg};
+    background: ${(p) => p.theme.colors.surfaceHover};
     color: ${st.text};
     border-color: ${st.borderHover};
   }
 `;
 
-// ─── Pagination ───────────────────────────────────────────────────────────────
+const RefreshBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  color: ${st.textSecondary};
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: ${st.radiusSm};
+  cursor: pointer;
+  transition: all ${st.transition};
+  flex-shrink: 0;
 
-const PaginationBar = styled.div`
+  &:hover {
+    background: ${(p) => p.theme.colors.surfaceHover};
+    color: ${st.text};
+    border-color: ${st.borderHover};
+  }
+`;
+
+// ─── Error State ──────────────────────────────────────────────────────────────
+
+const InlineError = styled.div`
+  padding: 40px 24px;
+  text-align: center;
+  background: ${st.accentRedDim};
+  color: ${st.accentRed};
+  font-size: ${st.fontSm};
+  font-weight: 500;
+
+  button {
+    margin-top: 8px;
+    cursor: pointer;
+    text-decoration: underline;
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    padding: 0;
+  }
+`;
+
+// ─── Pagination Footer ────────────────────────────────────────────────────────
+
+const PaginationFooter = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  background: ${st.bgCard};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radius};
+  padding: 11px 16px;
+  border-top: 1px solid ${(p) => p.theme.colors.border};
+  background: ${(p) => p.theme.colors.surfaceAlt};
   flex-wrap: wrap;
   gap: 8px;
-  box-shadow: ${st.shadowXs};
 `;
 
 const PaginationInfo = styled.span`
@@ -425,37 +468,32 @@ const PaginationInfo = styled.span`
 
 const PaginationBtns = styled.div`
   display: flex;
-  gap: 6px;
+  gap: 1px;
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: ${st.radiusSm};
+  overflow: hidden;
 `;
 
 const PageBtn = styled.button<{ $disabled?: boolean }>`
-  padding: 7px 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
   font-size: ${st.fontSm};
   font-weight: 500;
-  border: 1px solid ${st.border};
-  border-radius: ${st.radiusSm};
-  background: ${st.bgCard};
+  border: none;
+  border-right: 1px solid ${(p) => p.theme.colors.border};
+  background: ${(p) => p.theme.colors.surface};
   color: ${(p) => (p.$disabled ? st.textMuted : st.text)};
   cursor: ${(p) => (p.$disabled ? 'not-allowed' : 'pointer')};
   opacity: ${(p) => (p.$disabled ? 0.5 : 1)};
-  transition: all ${st.transition};
-  box-shadow: ${st.shadowXs};
+  transition: background ${st.transition}, color ${st.transition};
+
+  &:last-child { border-right: none; }
 
   &:hover:not(:disabled) {
-    background: ${st.bg};
-    border-color: ${st.borderHover};
+    background: ${(p) => p.theme.colors.surfaceAlt};
   }
-`;
-
-const ErrorBox = styled.div`
-  padding: 32px;
-  text-align: center;
-  background: ${st.accentRedDim};
-  border: 1px solid ${st.accentRed}33;
-  border-radius: ${st.radius};
-  color: ${st.accentRed};
-  font-size: ${st.fontSm};
-  font-weight: 500;
 `;
 
 // ─── Filters state ────────────────────────────────────────────────────────────
@@ -470,11 +508,10 @@ interface Filters {
 
 const PAGE_SIZE = 20;
 
-// ─── Tab content for documents (income / expense) ─────────────────────────────
+// ─── Documents tab content (filters + table + pagination — no outer wrapper) ──
 
 const DocumentsTabContent: React.FC<{
   direction: DocumentDirection;
-  onAdd?: () => void;
 }> = ({ direction }) => {
   const [filters, setFilters] = useState<Filters>({
     status: '',
@@ -505,7 +542,7 @@ const DocumentsTabContent: React.FC<{
 
   return (
     <>
-      <FiltersPanel>
+      <FiltersStrip>
         <FinanceFilterSelect
           value={filters.documentType}
           onChange={(val) => setFilter('documentType', val)}
@@ -516,7 +553,6 @@ const DocumentsTabContent: React.FC<{
           ]}
           placeholder="Wszystkie typy"
         />
-
         <FinanceFilterSelect
           value={filters.status}
           onChange={(val) => setFilter('status', val)}
@@ -527,7 +563,6 @@ const DocumentsTabContent: React.FC<{
           ]}
           placeholder="Wszystkie statusy"
         />
-
         <DateInput
           type="date"
           value={filters.dateFrom}
@@ -540,33 +575,29 @@ const DocumentsTabContent: React.FC<{
           onChange={(e) => setFilter('dateTo', e.target.value)}
           title="Data do"
         />
-
         <FilterSeparator />
-
         {hasFilters && (
           <ClearFiltersBtn onClick={clearFilters}>Wyczyść filtry</ClearFiltersBtn>
         )}
-
-        <RefreshButton onClick={() => refetch()} title="Odśwież">
+        <RefreshBtn onClick={() => refetch()} title="Odśwież">
           <RefreshIcon />
-        </RefreshButton>
-      </FiltersPanel>
+        </RefreshBtn>
+      </FiltersStrip>
 
       {isError ? (
-        <ErrorBox>
-          Nie udało się załadować dokumentów.{' '}
-          <button onClick={() => refetch()} style={{ cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', color: 'inherit', font: 'inherit' }}>
-            Spróbuj ponownie
-          </button>
-        </ErrorBox>
+        <InlineError>
+          Nie udało się załadować dokumentów.
+          <br />
+          <button onClick={() => refetch()}>Spróbuj ponownie</button>
+        </InlineError>
       ) : (
         <DocumentsTable documents={documents} isLoading={isLoading} />
       )}
 
       {totalPages > 1 && (
-        <PaginationBar>
+        <PaginationFooter>
           <PaginationInfo>
-            {(filters.page - 1) * PAGE_SIZE + 1}–{Math.min(filters.page * PAGE_SIZE, total)} z {total}
+            Wyświetlanie {(filters.page - 1) * PAGE_SIZE + 1}–{Math.min(filters.page * PAGE_SIZE, total)} z {total}
           </PaginationInfo>
           <PaginationBtns>
             <PageBtn
@@ -574,22 +605,21 @@ const DocumentsTabContent: React.FC<{
               disabled={filters.page === 1}
               onClick={() => setFilters((p) => ({ ...p, page: p.page - 1 }))}
             >
-              Poprzednia
+              <ChevronLeftIcon /> Poprzednia
             </PageBtn>
             <PageBtn
               $disabled={filters.page >= totalPages}
               disabled={filters.page >= totalPages}
               onClick={() => setFilters((p) => ({ ...p, page: p.page + 1 }))}
             >
-              Następna
+              Następna <ChevronRightIcon />
             </PageBtn>
           </PaginationBtns>
-        </PaginationBar>
+        </PaginationFooter>
       )}
     </>
   );
 };
-
 
 // ─── Main View ────────────────────────────────────────────────────────────────
 
@@ -632,38 +662,37 @@ export const FinanceView: React.FC = () => {
           <SectionLabelText>Dokumenty i raporty</SectionLabelText>
           <SectionLabelLine />
         </SectionLabel>
-        <TabsRow>
-          <Tab $active={activeTab === 'income'} onClick={() => setActiveTab('income')}>
-            Dokumenty przychodowe
-          </Tab>
-          <Tab $active={activeTab === 'expense'} onClick={() => setActiveTab('expense')}>
-            Dokumenty kosztowe
-          </Tab>
-          <Tab $active={activeTab === 'cash'} onClick={() => setActiveTab('cash')}>
-            Kasa
-          </Tab>
-          <Tab $active={activeTab === 'summary'} onClick={() => setActiveTab('summary')}>
-            Podsumowanie
-          </Tab>
-          <Tab $active={activeTab === 'invoicing'} onClick={() => setActiveTab('invoicing')}>
-            Faktury zewnętrzne
-          </Tab>
-        </TabsRow>
+
+        <PanelCard>
+          <TabBar>
+            <TabItem $active={activeTab === 'income'} onClick={() => setActiveTab('income')}>
+              Dokumenty przychodowe
+            </TabItem>
+            <TabItem $active={activeTab === 'expense'} onClick={() => setActiveTab('expense')}>
+              Dokumenty kosztowe
+            </TabItem>
+            <TabItem $active={activeTab === 'cash'} onClick={() => setActiveTab('cash')}>
+              Kasa
+            </TabItem>
+            <TabItem $active={activeTab === 'summary'} onClick={() => setActiveTab('summary')}>
+              Podsumowanie
+            </TabItem>
+            <TabItem $active={activeTab === 'invoicing'} onClick={() => setActiveTab('invoicing')}>
+              Faktury zewnętrzne
+            </TabItem>
+          </TabBar>
+
+          {activeTab === 'income' && (
+            <DocumentsTabContent direction={DocumentDirection.INCOME} />
+          )}
+          {activeTab === 'expense' && (
+            <DocumentsTabContent direction={DocumentDirection.EXPENSE} />
+          )}
+          {activeTab === 'cash' && <CashRegisterPanel />}
+          {activeTab === 'summary' && <FinanceSummaryReport />}
+          {activeTab === 'invoicing' && <InvoicingCredentialsPanel />}
+        </PanelCard>
       </div>
-
-      {activeTab === 'income' && (
-        <DocumentsTabContent direction={DocumentDirection.INCOME} onAdd={handleAddDoc} />
-      )}
-
-      {activeTab === 'expense' && (
-        <DocumentsTabContent direction={DocumentDirection.EXPENSE} onAdd={handleAddDoc} />
-      )}
-
-      {activeTab === 'cash' && <CashRegisterPanel />}
-
-      {activeTab === 'summary' && <FinanceSummaryReport />}
-
-      {activeTab === 'invoicing' && <InvoicingCredentialsPanel />}
 
       <CreateDocumentModal
         isOpen={isModalOpen}

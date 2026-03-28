@@ -30,8 +30,6 @@ const Table = styled.table`
   min-width: 600px;
   border-collapse: collapse;
   background: ${(p) => p.theme.colors.surface};
-  border-radius: ${(p) => p.theme.radii.lg};
-  overflow: hidden;
 `;
 
 const Thead = styled.thead`
@@ -121,14 +119,6 @@ const Dropdown = styled.div`
   overflow: hidden;
 `;
 
-const DropdownHead = styled.div`
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(99, 102, 241, 0.02) 100%);
-  font-size: 13px;
-  font-weight: 700;
-  color: #0f172a;
-`;
 
 const DropdownBody = styled.div`
   padding: 8px;
