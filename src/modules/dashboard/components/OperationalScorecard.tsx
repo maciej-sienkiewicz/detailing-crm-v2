@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import styled, { css, keyframes } from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import {
   Clock,
@@ -20,6 +20,7 @@ import {
 import { t } from '@/common/i18n';
 import { formatCurrency, formatPhoneNumber, formatDate } from '@/common/utils/formatters';
 import type { OperationalStats, VisitDetail } from '../types';
+import { StatTile, StatTileSkeleton } from '@/common/components/StatTile';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -92,95 +93,6 @@ const ScorecardContainer = styled.div`
   }
 `;
 
-// ─── KPI Card ────────────────────────────────────────────────────────────────
-
-const Card = styled.div<{ $variant: CardVariant; $isActive: boolean; $clickable: boolean }>`
-  position: relative;
-  background: ${p => CARD_CONFIG[p.$variant].bgGradient};
-  border: 1px solid ${p => p.theme.colors.border};
-  border-top: 3px solid ${p => CARD_CONFIG[p.$variant].accentColor};
-  border-radius: ${p => p.theme.radii.xl};
-  padding: 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.04);
-  transition: transform 180ms ease, box-shadow 180ms ease, border-color 150ms ease;
-
-  ${p => p.$clickable && css`
-    cursor: pointer;
-    user-select: none;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 14px rgba(0,0,0,0.09), 0 16px 40px rgba(0,0,0,0.06);
-    }
-  `}
-
-  ${p => p.$isActive && css`
-    border-color: ${CARD_CONFIG[p.$variant].accentColor}50;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.09), 0 16px 40px rgba(0,0,0,0.06),
-      0 0 0 3px ${CARD_CONFIG[p.$variant].accentColor}18;
-  `}
-`;
-
-const CardTop = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
-`;
-
-const CardIconWrap = styled.div<{ $variant: CardVariant }>`
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
-  background: ${p => CARD_CONFIG[p.$variant].iconBg};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  svg {
-    width: 20px;
-    height: 20px;
-    color: ${p => CARD_CONFIG[p.$variant].accentColor};
-    stroke-width: 1.75;
-  }
-`;
-
-const CardArrow = styled.div<{ $active: boolean }>`
-  display: flex;
-  align-items: center;
-  color: ${p => p.theme.colors.textMuted};
-  transition: transform 200ms ease, color 150ms ease;
-  transform: ${p => p.$active ? 'rotate(90deg)' : 'rotate(0deg)'};
-
-  svg { width: 15px; height: 15px; }
-`;
-
-const CardValue = styled.div`
-  font-size: 48px;
-  font-weight: 800;
-  color: ${p => p.theme.colors.text};
-  line-height: 1;
-  margin-bottom: 8px;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -2px;
-`;
-
-const CardLabel = styled.div`
-  font-size: 11px;
-  font-weight: 700;
-  color: ${p => p.theme.colors.textMuted};
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 10px;
-`;
-
-const BadgeRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 22px;
-`;
-
 const OverdueBadge = styled.span`
   display: inline-flex;
   align-items: center;
@@ -200,27 +112,6 @@ const SubLabel = styled.span<{ $variant: CardVariant }>`
   font-size: 11px;
   color: ${p => CARD_CONFIG[p.$variant].accentColor};
   font-weight: 500;
-`;
-
-// ─── Skeleton ────────────────────────────────────────────────────────────────
-
-const shimmer = keyframes`
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-`;
-
-const SkeletonPulse = styled.div<{ $w?: string; $h?: string }>`
-  height: ${p => p.$h ?? '14px'};
-  width: ${p => p.$w ?? '100%'};
-  border-radius: 6px;
-  background: linear-gradient(
-    90deg,
-    ${p => p.theme.colors.surfaceAlt} 0%,
-    ${p => p.theme.colors.surfaceHover} 50%,
-    ${p => p.theme.colors.surfaceAlt} 100%
-  );
-  background-size: 200% 100%;
-  animation: ${shimmer} 1.5s infinite;
 `;
 
 // ─── Drawer Overlay ───────────────────────────────────────────────────────────
@@ -562,53 +453,43 @@ const KpiCard = ({
   overdueBadge,
   subLabel,
 }: KpiCardProps) => {
-  const Icon = CARD_CONFIG[variant].icon;
+  const cfg = CARD_CONFIG[variant];
+
+  const subContent = (
+    <>
+      {typeof overdueBadge === 'number' && overdueBadge > 0 && (
+        <OverdueBadge>
+          <AlertTriangle />
+          {t.dashboard.stats.overdue}: {overdueBadge}
+        </OverdueBadge>
+      )}
+      {subLabel && <SubLabel $variant={variant}>{subLabel}</SubLabel>}
+    </>
+  );
 
   return (
-    <Card
-      $variant={variant}
-      $isActive={isActive}
-      $clickable={hasDetails}
-      onClick={() => hasDetails && onToggle()}
-    >
-      <CardTop>
-        <CardIconWrap $variant={variant}>
-          <Icon />
-        </CardIconWrap>
-        {hasDetails && (
-          <CardArrow $active={isActive}>
-            <ChevronRight />
-          </CardArrow>
-        )}
-      </CardTop>
-
-      <CardValue>{value}</CardValue>
-      <CardLabel>{label}</CardLabel>
-
-      <BadgeRow>
-        {typeof overdueBadge === 'number' && overdueBadge > 0 && (
-          <OverdueBadge>
-            <AlertTriangle />
-            {t.dashboard.stats.overdue}: {overdueBadge}
-          </OverdueBadge>
-        )}
-        {subLabel && <SubLabel $variant={variant}>{subLabel}</SubLabel>}
-      </BadgeRow>
-    </Card>
+    <StatTile
+      accentColor={cfg.accentColor}
+      bgGradient={cfg.bgGradient}
+      iconBg={cfg.iconBg}
+      icon={cfg.icon}
+      value={value}
+      label={label}
+      subContent={subContent}
+      onClick={hasDetails ? onToggle : undefined}
+      isActive={isActive}
+    />
   );
 };
 
 // ─── Skeleton Card ────────────────────────────────────────────────────────────
 
 const SkeletonCard = ({ variant }: { variant: CardVariant }) => (
-  <Card $variant={variant} $isActive={false} $clickable={false}>
-    <CardTop>
-      <div style={{ width: 40, height: 40, borderRadius: 11, background: '#f1f5f9' }} />
-    </CardTop>
-    <SkeletonPulse $h="48px" $w="60px" style={{ marginBottom: 8 }} />
-    <SkeletonPulse $h="11px" $w="55%" style={{ marginBottom: 10 }} />
-    <BadgeRow />
-  </Card>
+  <StatTileSkeleton
+    accentColor={CARD_CONFIG[variant].accentColor}
+    bgGradient={CARD_CONFIG[variant].bgGradient}
+    iconBg={CARD_CONFIG[variant].iconBg}
+  />
 );
 
 // ─── Visit Drawer ─────────────────────────────────────────────────────────────
