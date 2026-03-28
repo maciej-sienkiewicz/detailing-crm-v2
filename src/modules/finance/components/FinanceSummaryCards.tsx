@@ -73,10 +73,10 @@ export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo }) => {
   if (isLoading) {
     return (
       <CardsGrid>
-        <StatTileSkeleton {...TILE_CONFIGS.revenue} />
-        <StatTileSkeleton {...TILE_CONFIGS.costs} />
-        <StatTileSkeleton {...TILE_CONFIGS.profit} />
-        <StatTileSkeleton {...TILE_CONFIGS.receivables} />
+        <StatTileSkeleton {...TILE_CONFIGS.revenue} compact />
+        <StatTileSkeleton {...TILE_CONFIGS.costs} compact />
+        <StatTileSkeleton {...TILE_CONFIGS.profit} compact />
+        <StatTileSkeleton {...TILE_CONFIGS.receivables} compact />
       </CardsGrid>
     );
   }
@@ -87,6 +87,7 @@ export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo }) => {
     <CardsGrid>
       <StatTile
         {...TILE_CONFIGS.revenue}
+        compact
         value={formatMoney(summary.totalRevenue)}
         label="Przychody"
         subContent={<SubText>opłacone faktury / paragony</SubText>}
@@ -94,6 +95,7 @@ export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo }) => {
 
       <StatTile
         {...TILE_CONFIGS.costs}
+        compact
         value={formatMoney(summary.totalCosts)}
         label="Koszty"
         subContent={<SubText>opłacone faktury kosztowe</SubText>}
@@ -101,6 +103,7 @@ export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo }) => {
 
       <StatTile
         {...TILE_CONFIGS.profit}
+        compact
         value={formatMoney(summary.profit)}
         label="Zysk"
         subContent={<SubText>przychody − koszty</SubText>}
@@ -108,6 +111,7 @@ export const FinanceSummaryCards: React.FC<Props> = ({ dateFrom, dateTo }) => {
 
       <StatTile
         {...TILE_CONFIGS.receivables}
+        compact
         value={formatMoney(summary.pendingReceivables)}
         label="Należności"
         subContent={

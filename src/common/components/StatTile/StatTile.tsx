@@ -25,6 +25,7 @@ export interface StatTileProps extends StatTileConfig {
   subContent?: React.ReactNode;
   onClick?: () => void;
   isActive?: boolean;
+  compact?: boolean;
 }
 
 // ─── Styled components ────────────────────────────────────────────────────────
@@ -34,13 +35,14 @@ const TileCard = styled.div<{
   $bgGradient: string;
   $clickable: boolean;
   $isActive: boolean;
+  $compact: boolean;
 }>`
   position: relative;
   background: ${p => p.$bgGradient};
   border: 1px solid ${p => p.theme.colors.border};
   border-top: 3px solid ${p => p.$accentColor};
   border-radius: ${p => p.theme.radii.xl};
-  padding: 20px;
+  padding: ${p => p.$compact ? '14px 16px' : '20px'};
   box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.04);
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 150ms ease;
 
@@ -62,25 +64,25 @@ const TileCard = styled.div<{
   `}
 `;
 
-const TileTop = styled.div`
+const TileTop = styled.div<{ $compact: boolean }>`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 16px;
+  margin-bottom: ${p => p.$compact ? '10px' : '16px'};
 `;
 
-const TileIconWrap = styled.div<{ $iconBg: string; $accentColor: string }>`
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
+const TileIconWrap = styled.div<{ $iconBg: string; $accentColor: string; $compact: boolean }>`
+  width: ${p => p.$compact ? '32px' : '40px'};
+  height: ${p => p.$compact ? '32px' : '40px'};
+  border-radius: ${p => p.$compact ? '8px' : '11px'};
   background: ${p => p.$iconBg};
   display: flex;
   align-items: center;
   justify-content: center;
 
   svg {
-    width: 20px;
-    height: 20px;
+    width: ${p => p.$compact ? '16px' : '20px'};
+    height: ${p => p.$compact ? '16px' : '20px'};
     color: ${p => p.$accentColor};
     stroke-width: 1.75;
   }
@@ -95,30 +97,30 @@ const TileArrow = styled.div<{ $active: boolean }>`
   svg { width: 15px; height: 15px; }
 `;
 
-const TileValue = styled.div`
-  font-size: 48px;
+const TileValue = styled.div<{ $compact: boolean }>`
+  font-size: ${p => p.$compact ? '26px' : '48px'};
   font-weight: 800;
   color: ${p => p.theme.colors.text};
   line-height: 1;
-  margin-bottom: 8px;
+  margin-bottom: ${p => p.$compact ? '5px' : '8px'};
   font-variant-numeric: tabular-nums;
-  letter-spacing: -2px;
+  letter-spacing: ${p => p.$compact ? '-0.5px' : '-2px'};
 `;
 
-const TileLabel = styled.div`
+const TileLabel = styled.div<{ $compact: boolean }>`
   font-size: 11px;
   font-weight: 700;
   color: ${p => p.theme.colors.textMuted};
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: 10px;
+  margin-bottom: ${p => p.$compact ? '6px' : '10px'};
 `;
 
 const TileSubRow = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
-  min-height: 22px;
+  min-height: 18px;
 `;
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
@@ -154,16 +156,18 @@ export const StatTile: React.FC<StatTileProps> = ({
   subContent,
   onClick,
   isActive = false,
+  compact = false,
 }) => (
   <TileCard
     $accentColor={accentColor}
     $bgGradient={bgGradient}
     $clickable={!!onClick}
     $isActive={isActive}
+    $compact={compact}
     onClick={onClick}
   >
-    <TileTop>
-      <TileIconWrap $iconBg={iconBg} $accentColor={accentColor}>
+    <TileTop $compact={compact}>
+      <TileIconWrap $iconBg={iconBg} $accentColor={accentColor} $compact={compact}>
         <Icon />
       </TileIconWrap>
       {onClick && (
@@ -173,32 +177,40 @@ export const StatTile: React.FC<StatTileProps> = ({
       )}
     </TileTop>
 
-    <TileValue>{value}</TileValue>
-    <TileLabel>{label}</TileLabel>
+    <TileValue $compact={compact}>{value}</TileValue>
+    <TileLabel $compact={compact}>{label}</TileLabel>
     {subContent !== undefined && <TileSubRow>{subContent}</TileSubRow>}
   </TileCard>
 );
 
 export interface StatTileSkeletonProps extends StatTileConfig {
   icon?: React.ElementType;
+  compact?: boolean;
 }
 
 export const StatTileSkeleton: React.FC<StatTileSkeletonProps> = ({
   accentColor,
   bgGradient,
   iconBg,
+  compact = false,
 }) => (
   <TileCard
     $accentColor={accentColor}
     $bgGradient={bgGradient}
     $clickable={false}
     $isActive={false}
+    $compact={compact}
   >
-    <TileTop>
-      <div style={{ width: 40, height: 40, borderRadius: 11, background: iconBg }} />
+    <TileTop $compact={compact}>
+      <div style={{
+        width: compact ? 32 : 40,
+        height: compact ? 32 : 40,
+        borderRadius: compact ? 8 : 11,
+        background: iconBg,
+      }} />
     </TileTop>
-    <SkeletonPulse $h="48px" $w="60%" style={{ marginBottom: 8 }} />
-    <SkeletonPulse $h="11px" $w="50%" style={{ marginBottom: 10 }} />
+    <SkeletonPulse $h={compact ? '26px' : '48px'} $w="60%" style={{ marginBottom: compact ? 5 : 8 }} />
+    <SkeletonPulse $h="11px" $w="50%" style={{ marginBottom: compact ? 6 : 10 }} />
     <TileSubRow />
   </TileCard>
 );
