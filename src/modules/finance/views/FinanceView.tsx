@@ -9,7 +9,6 @@ import {
   DocumentsTable,
   CreateDocumentModal,
   CashRegisterPanel,
-  FinanceSummaryReport,
   InvoicingCredentialsPanel,
 } from '../components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -367,7 +366,7 @@ const FinanceFilterSelect: React.FC<FinanceSelectProps> = ({ value, onChange, op
   );
 };
 
-const DateInput = styled.input`
+const StyledDateInput = styled.input`
   padding: 5px 10px;
   font-size: ${st.fontSm};
   border: 1px solid ${(p) => p.theme.colors.border};
@@ -375,6 +374,7 @@ const DateInput = styled.input`
   background: ${(p) => p.theme.colors.surface};
   color: ${st.text};
   outline: none;
+  cursor: pointer;
   transition: border-color ${st.transition}, box-shadow ${st.transition};
 
   &:focus {
@@ -382,6 +382,26 @@ const DateInput = styled.input`
     box-shadow: ${st.shadowBlue};
   }
 `;
+
+interface DateInputProps {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  title?: string;
+}
+
+const DateInput: React.FC<DateInputProps> = ({ value, onChange, title }) => {
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <StyledDateInput
+      ref={ref}
+      type="date"
+      value={value}
+      onChange={onChange}
+      title={title}
+      onClick={() => (ref.current as any)?.showPicker?.()}
+    />
+  );
+};
 
 const FilterSeparator = styled.div`
   flex: 1;
@@ -674,9 +694,6 @@ export const FinanceView: React.FC = () => {
             <TabItem $active={activeTab === 'cash'} onClick={() => setActiveTab('cash')}>
               Kasa
             </TabItem>
-            <TabItem $active={activeTab === 'summary'} onClick={() => setActiveTab('summary')}>
-              Podsumowanie
-            </TabItem>
             <TabItem $active={activeTab === 'invoicing'} onClick={() => setActiveTab('invoicing')}>
               Faktury zewnętrzne
             </TabItem>
@@ -689,7 +706,6 @@ export const FinanceView: React.FC = () => {
             <DocumentsTabContent direction={DocumentDirection.EXPENSE} />
           )}
           {activeTab === 'cash' && <CashRegisterPanel />}
-          {activeTab === 'summary' && <FinanceSummaryReport />}
           {activeTab === 'invoicing' && <InvoicingCredentialsPanel />}
         </PanelCard>
       </div>

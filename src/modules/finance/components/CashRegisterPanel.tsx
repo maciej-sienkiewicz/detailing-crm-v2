@@ -4,213 +4,271 @@ import { useCashRegister, useCashHistory, useAdjustCash } from '../hooks/useFina
 import { formatMoney, formatDate, inputValueToGrosze } from '../utils/formatters';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
+// ─── Animations ───────────────────────────────────────────────────────────────
+
 const shimmer = keyframes`
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 `;
 
-const Grid = styled.div`
+// ─── Layout ───────────────────────────────────────────────────────────────────
+
+const Content = styled.div`
+  padding: 24px;
   display: grid;
   grid-template-columns: 1fr;
   gap: 20px;
+  align-items: start;
 
   @media (min-width: ${(p) => p.theme.breakpoints.lg}) {
-    grid-template-columns: 360px 1fr;
+    grid-template-columns: 320px 1fr;
   }
 `;
 
-const Panel = styled.div`
-  background: ${st.bgCard};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radius};
-  padding: 24px;
+// ─── Left column ──────────────────────────────────────────────────────────────
+
+const LeftColumn = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  box-shadow: ${st.shadowSm};
+  gap: 16px;
 `;
 
-const PanelTitle = styled.h3`
-  font-size: ${st.fontXs};
-  font-weight: 700;
-  color: ${st.textMuted};
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  margin: 0;
-`;
-
-const BalanceBlock = styled.div`
+const BalanceCard = styled.div`
+  background: linear-gradient(140deg, #f0fdf4 0%, #ffffff 55%);
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-top: 3px solid #16a34a;
+  border-radius: ${(p) => p.theme.radii.xl};
+  padding: 20px 22px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 20px 24px;
-  background: ${st.gradientCardGreen};
-  border: 1px solid ${st.accentGreen}22;
-  border-radius: ${st.radiusSm};
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 4px;
-    height: 100%;
-    background: ${st.accentGreen};
-    border-radius: 0 2px 2px 0;
-  }
+  gap: 4px;
 `;
 
 const BalanceLabel = styled.span`
-  font-size: ${st.fontXs};
+  font-size: 11px;
   font-weight: 700;
-  color: ${st.textMuted};
+  color: ${(p) => p.theme.colors.textMuted};
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.08em;
 `;
 
 const BalanceAmount = styled.div`
-  font-size: ${st.fontHero};
+  font-size: 36px;
   font-weight: 800;
-  color: ${st.accentGreen};
+  color: ${(p) => p.theme.colors.text};
   font-feature-settings: 'tnum';
-  line-height: 1;
-  letter-spacing: -1px;
+  line-height: 1.1;
+  letter-spacing: -1.5px;
+  margin-top: 4px;
 `;
 
 const BalanceSub = styled.div`
-  font-size: ${st.fontXs};
-  color: ${st.textMuted};
-  margin-top: 2px;
+  font-size: 12px;
+  color: ${(p) => p.theme.colors.textMuted};
+  margin-top: 4px;
 `;
 
-const Divider = styled.hr`
-  border: none;
-  border-top: 1px solid ${st.border};
-  margin: 0;
+// ─── Form ─────────────────────────────────────────────────────────────────────
+
+const FormCard = styled.div`
+  background: ${(p) => p.theme.colors.surface};
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: ${(p) => p.theme.radii.xl};
+  overflow: hidden;
 `;
 
-const AdjustForm = styled.form`
+const FormHeader = styled.div`
+  padding: 12px 18px;
+  background: ${(p) => p.theme.colors.surfaceAlt};
+  border-bottom: 1px solid ${(p) => p.theme.colors.border};
+  font-size: 11px;
+  font-weight: 700;
+  color: ${(p) => p.theme.colors.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+`;
+
+const FormBody = styled.form`
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 `;
 
-const AdjustTitle = styled.div`
-  font-size: ${st.fontXs};
-  font-weight: 700;
-  color: ${st.textMuted};
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
+const FieldLabel = styled.label`
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: ${(p) => p.theme.colors.textSecondary};
+  margin-bottom: 4px;
 `;
 
-const InputRow = styled.div`
+const FieldGroup = styled.div`
   display: flex;
-  gap: 8px;
+  flex-direction: column;
 `;
 
-const AmountInput = styled.input`
-  flex: 1;
-  padding: 9px 12px;
+const Input = styled.input`
+  padding: 8px 12px;
   font-size: ${st.fontSm};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radiusSm};
-  background: ${st.bgCard};
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: 8px;
+  background: ${(p) => p.theme.colors.surface};
   color: ${st.text};
   outline: none;
-  font-feature-settings: 'tnum';
-  transition: border-color ${st.transition}, box-shadow ${st.transition};
-
-  &:focus {
-    border-color: ${st.accentBlue};
-    box-shadow: ${st.shadowBlue};
-  }
-`;
-
-const CommentInput = styled.input`
   width: 100%;
-  padding: 9px 12px;
-  font-size: ${st.fontSm};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radiusSm};
-  background: ${st.bgCard};
-  color: ${st.text};
-  outline: none;
   box-sizing: border-box;
   transition: border-color ${st.transition}, box-shadow ${st.transition};
 
+  &::placeholder { color: ${(p) => p.theme.colors.textMuted}; }
+
   &:focus {
     border-color: ${st.accentBlue};
     box-shadow: ${st.shadowBlue};
   }
 `;
 
-const AdjustBtn = styled.button<{ $variant?: 'positive' | 'negative' }>`
-  padding: 9px 16px;
+const ButtonRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 2px;
+`;
+
+const ActionBtn = styled.button<{ $variant: 'positive' | 'negative' }>`
+  padding: 9px 12px;
   font-size: ${st.fontSm};
   font-weight: 600;
-  border: 1px solid ${(p) => (p.$variant === 'negative' ? `${st.accentRed}44` : `${st.accentGreen}44`)};
-  border-radius: ${st.radiusSm};
+  border-radius: 8px;
   cursor: pointer;
   transition: all ${st.transition};
   white-space: nowrap;
-
-  background: ${(p) => (p.$variant === 'negative' ? st.accentRedDim : st.accentGreenDim)};
-  color: ${(p) => (p.$variant === 'negative' ? st.accentRed : st.accentGreen)};
+  border: 1px solid ${(p) =>
+    p.$variant === 'positive' ? `${st.accentGreen}44` : `${st.accentRed}44`};
+  background: ${(p) =>
+    p.$variant === 'positive' ? st.accentGreenDim : st.accentRedDim};
+  color: ${(p) =>
+    p.$variant === 'positive' ? st.accentGreen : st.accentRed};
 
   &:hover:not(:disabled) {
-    background: ${(p) => (p.$variant === 'negative' ? '#fee2e2' : '#dcfce7')};
+    background: ${(p) =>
+      p.$variant === 'positive' ? '#dcfce7' : '#fee2e2'};
+    transform: translateY(-1px);
     box-shadow: ${st.shadowXs};
   }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:active:not(:disabled) { transform: translateY(0); }
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
 `;
 
 const ErrorMsg = styled.p`
   font-size: ${st.fontXs};
   color: ${st.accentRed};
   margin: 0;
+  padding: 6px 10px;
+  background: ${st.accentRedDim};
+  border-radius: 6px;
+  border: 1px solid ${st.accentRed}22;
 `;
 
-// ─── History ─────────────────────────────────────────────────────────────────
+// ─── Right column — History ───────────────────────────────────────────────────
+
+const HistoryCard = styled.div`
+  background: ${(p) => p.theme.colors.surface};
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: ${(p) => p.theme.radii.xl};
+  overflow: hidden;
+`;
+
+const HistoryHeader = styled.div`
+  padding: 12px 18px;
+  background: ${(p) => p.theme.colors.surfaceAlt};
+  border-bottom: 1px solid ${(p) => p.theme.colors.border};
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const HistoryTitle = styled.span`
+  font-size: 11px;
+  font-weight: 700;
+  color: ${(p) => p.theme.colors.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+`;
+
+const HistoryCount = styled.span`
+  font-size: 11px;
+  font-weight: 600;
+  color: ${(p) => p.theme.colors.textMuted};
+  background: ${(p) => p.theme.colors.border};
+  padding: 1px 7px;
+  border-radius: 20px;
+`;
+
+const HistoryScroll = styled.div`
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+`;
 
 const HistoryTable = styled.table`
   width: 100%;
+  min-width: 560px;
   border-collapse: collapse;
 `;
 
 const HTh = styled.th<{ $align?: string }>`
-  padding: 10px 14px;
+  padding: 10px 16px;
   text-align: ${(p) => p.$align || 'left'};
-  font-size: ${st.fontXs};
+  font-size: 11px;
   font-weight: 700;
-  color: ${st.textMuted};
+  color: ${(p) => p.theme.colors.textMuted};
   text-transform: uppercase;
-  letter-spacing: 0.6px;
-  border-bottom: 1px solid ${st.border};
-  background: ${st.bg};
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  border-bottom: 1px solid ${(p) => p.theme.colors.border};
+  background: ${(p) => p.theme.colors.surfaceAlt};
 `;
 
 const HTr = styled.tr`
-  border-bottom: 1px solid ${st.border};
+  border-bottom: 1px solid ${(p) => p.theme.colors.border};
   transition: background ${st.transition};
 
   &:last-child { border-bottom: none; }
-  &:hover { background: ${st.bg}; }
+  &:hover { background: ${(p) => p.theme.colors.surfaceHover}; }
 `;
 
 const HTd = styled.td<{ $align?: string; $mono?: boolean }>`
-  padding: 10px 14px;
+  padding: 11px 16px;
   font-size: ${st.fontSm};
-  color: ${st.text};
+  color: ${(p) => p.theme.colors.text};
   text-align: ${(p) => p.$align || 'left'};
+  vertical-align: middle;
   ${(p) => p.$mono && `font-feature-settings: 'tnum';`}
 `;
 
-const AmountBadge = styled.span<{ $positive: boolean }>`
+const AmountChip = styled.span<{ $positive: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 12px;
   font-weight: 700;
-  color: ${(p) => (p.$positive ? st.accentGreen : st.accentRed)};
   font-feature-settings: 'tnum';
+  background: ${(p) => (p.$positive ? '#dcfce7' : '#fee2e2')};
+  color: ${(p) => (p.$positive ? '#166534' : '#991b1b')};
+  border: 1px solid ${(p) => (p.$positive ? '#86efac' : '#fca5a5')};
+`;
+
+const TypeBadge = styled.span`
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  background: ${(p) => p.theme.colors.surfaceAlt};
+  color: ${(p) => p.theme.colors.textSecondary};
+  border: 1px solid ${(p) => p.theme.colors.border};
 `;
 
 const Skeleton = styled.div<{ $w?: string; $h?: string }>`
@@ -223,11 +281,13 @@ const Skeleton = styled.div<{ $w?: string; $h?: string }>`
 `;
 
 const EmptyHistory = styled.div`
-  padding: 32px;
+  padding: 48px 24px;
   text-align: center;
   font-size: ${st.fontSm};
-  color: ${st.textMuted};
+  color: ${(p) => p.theme.colors.textMuted};
 `;
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export const CashRegisterPanel: React.FC = () => {
   const { cashRegister, isLoading: cashLoading, refetch } = useCashRegister();
@@ -254,75 +314,87 @@ export const CashRegisterPanel: React.FC = () => {
   };
 
   return (
-    <Grid>
-      {/* Left: balance + adjust form */}
-      <Panel>
-        <PanelTitle>Stan kasy</PanelTitle>
-
+    <Content>
+      {/* Left: balance + form */}
+      <LeftColumn>
         {cashLoading ? (
-          <BalanceBlock>
+          <BalanceCard>
             <BalanceLabel>Saldo</BalanceLabel>
-            <Skeleton $h="44px" $w="70%" />
-            <Skeleton $h="11px" $w="50%" />
-          </BalanceBlock>
+            <Skeleton $h="40px" $w="70%" />
+            <Skeleton $h="12px" $w="50%" />
+          </BalanceCard>
         ) : (
-          <BalanceBlock>
-            <BalanceLabel>Saldo</BalanceLabel>
+          <BalanceCard>
+            <BalanceLabel>Saldo kasy</BalanceLabel>
             <BalanceAmount>{formatMoney(cashRegister?.balance ?? 0)}</BalanceAmount>
             <BalanceSub>
-              Aktualizacja: {cashRegister ? formatDate(cashRegister.updatedAt) : '—'}
+              Ostatnia aktualizacja: {cashRegister ? formatDate(cashRegister.updatedAt) : '—'}
             </BalanceSub>
-          </BalanceBlock>
+          </BalanceCard>
         )}
 
-        <Divider />
+        <FormCard>
+          <FormHeader>Korekta ręczna</FormHeader>
+          <FormBody onSubmit={(e) => e.preventDefault()}>
+            <FieldGroup>
+              <FieldLabel>Kwota (PLN)</FieldLabel>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0,00"
+                value={amountDisplay}
+                onChange={(e) => setAmountDisplay(e.target.value)}
+              />
+            </FieldGroup>
 
-        <AdjustForm onSubmit={(e) => e.preventDefault()}>
-          <AdjustTitle>Korekta ręczna</AdjustTitle>
+            <FieldGroup>
+              <FieldLabel>Komentarz</FieldLabel>
+              <Input
+                type="text"
+                placeholder="Opis operacji (wymagany)"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+              />
+            </FieldGroup>
 
-          <InputRow>
-            <AmountInput
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="0.00 PLN"
-              value={amountDisplay}
-              onChange={(e) => setAmountDisplay(e.target.value)}
-            />
-          </InputRow>
+            {adjustError && <ErrorMsg>{adjustError}</ErrorMsg>}
 
-          <CommentInput
-            type="text"
-            placeholder="Komentarz (wymagany)"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-          />
-
-          {adjustError && <ErrorMsg>{adjustError}</ErrorMsg>}
-
-          <InputRow>
-            <AdjustBtn $variant="positive" onClick={() => handleAdjust(1)} disabled={adjustCash.isPending}>
-              + Wpłata
-            </AdjustBtn>
-            <AdjustBtn $variant="negative" onClick={() => handleAdjust(-1)} disabled={adjustCash.isPending}>
-              − Wypłata
-            </AdjustBtn>
-          </InputRow>
-        </AdjustForm>
-      </Panel>
+            <ButtonRow>
+              <ActionBtn
+                $variant="positive"
+                onClick={() => handleAdjust(1)}
+                disabled={adjustCash.isPending}
+              >
+                + Wpłata
+              </ActionBtn>
+              <ActionBtn
+                $variant="negative"
+                onClick={() => handleAdjust(-1)}
+                disabled={adjustCash.isPending}
+              >
+                − Wypłata
+              </ActionBtn>
+            </ButtonRow>
+          </FormBody>
+        </FormCard>
+      </LeftColumn>
 
       {/* Right: history */}
-      <Panel>
-        <PanelTitle>Historia operacji ({historyTotal})</PanelTitle>
+      <HistoryCard>
+        <HistoryHeader>
+          <HistoryTitle>Historia operacji</HistoryTitle>
+          {historyTotal > 0 && <HistoryCount>{historyTotal}</HistoryCount>}
+        </HistoryHeader>
 
         {histLoading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {[1,2,3,4,5].map((i) => <Skeleton key={i} $h="36px" />)}
+          <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} $h="40px" />)}
           </div>
         ) : operations.length === 0 ? (
           <EmptyHistory>Brak operacji kasowych</EmptyHistory>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <HistoryScroll>
             <HistoryTable>
               <thead>
                 <tr>
@@ -336,26 +408,26 @@ export const CashRegisterPanel: React.FC = () => {
               <tbody>
                 {operations.map((op) => (
                   <HTr key={op.id}>
-                    <HTd>{formatDate(op.createdAt)}</HTd>
-                    <HTd>{op.operationTypeLabel}</HTd>
+                    <HTd style={{ whiteSpace: 'nowrap' }}>{formatDate(op.createdAt)}</HTd>
+                    <HTd><TypeBadge>{op.operationTypeLabel}</TypeBadge></HTd>
                     <HTd $align="right" $mono>
-                      <AmountBadge $positive={op.amount >= 0}>
+                      <AmountChip $positive={op.amount >= 0}>
                         {op.amount >= 0 ? '+' : ''}{formatMoney(op.amount)}
-                      </AmountBadge>
+                      </AmountChip>
                     </HTd>
-                    <HTd $align="right" $mono>{formatMoney(op.balanceAfter)}</HTd>
-                    <HTd>
-                      <span style={{ color: st.textMuted, fontSize: st.fontSm }}>
-                        {op.comment || '—'}
-                      </span>
+                    <HTd $align="right" $mono style={{ color: st.textSecondary }}>
+                      {formatMoney(op.balanceAfter)}
+                    </HTd>
+                    <HTd style={{ color: st.textSecondary, maxWidth: 240 }}>
+                      {op.comment || <span style={{ color: st.textMuted }}>—</span>}
                     </HTd>
                   </HTr>
                 ))}
               </tbody>
             </HistoryTable>
-          </div>
+          </HistoryScroll>
         )}
-      </Panel>
-    </Grid>
+      </HistoryCard>
+    </Content>
   );
 };

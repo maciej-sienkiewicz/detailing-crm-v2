@@ -159,7 +159,7 @@ export interface FinanceSummary {
   overduePayables: number;
 }
 
-export type FinanceTab = 'income' | 'expense' | 'cash' | 'summary' | 'invoicing';
+export type FinanceTab = 'income' | 'expense' | 'cash' | 'invoicing';
 
 export interface SyncInvoicesResult {
   synced: number;
