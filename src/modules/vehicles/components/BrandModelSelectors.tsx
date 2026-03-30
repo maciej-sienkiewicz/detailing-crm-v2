@@ -238,7 +238,7 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
 
   return (
     <DropdownContainer ref={containerRef}>
-      <Trigger ref={triggerRef} onClick={() => !isLoading && setOpen(!open)} $disabled={isLoading} $compact={compact} aria-haspopup="listbox" aria-expanded={open}>
+      <Trigger type="button" ref={triggerRef} onClick={() => !isLoading && setOpen(!open)} $disabled={isLoading} $compact={compact} aria-haspopup="listbox" aria-expanded={open}>
         {selectedLabel ? (
           <span>{selectedLabel}</span>
         ) : (
@@ -376,7 +376,7 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
 
   return (
     <DropdownContainer ref={containerRef}>
-      <Trigger ref={triggerRef} onClick={() => !disabled && setOpen(!open)} $disabled={disabled} $compact={compact} aria-haspopup="listbox" aria-expanded={open}>
+      <Trigger type="button" ref={triggerRef} onClick={() => !disabled && setOpen(!open)} $disabled={disabled} $compact={compact} aria-haspopup="listbox" aria-expanded={open}>
         {selectedLabel ? (
           <span>{selectedLabel}</span>
         ) : (
