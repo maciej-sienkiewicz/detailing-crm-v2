@@ -115,6 +115,7 @@ const Placeholder = styled.span<{ $compact?: boolean }>`
 const SearchContainer = styled.div`
   position: sticky;
   top: 0;
+  z-index: 1;
   background: ${props => props.theme.colors.surface};
   padding: 8px 10px;
   border-bottom: 1px solid ${props => props.theme.colors.border};
