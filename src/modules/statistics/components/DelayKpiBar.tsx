@@ -20,13 +20,6 @@ const Grid = styled.div`
     }
 `;
 
-// ─── Sub-content helpers ──────────────────────────────────────────────────────
-
-const Sub = styled.span`
-    font-size: 12px;
-    color: ${p => p.theme.colors.textMuted};
-`;
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const fmtDays = (days: number) => {
@@ -35,6 +28,12 @@ const fmtDays = (days: number) => {
 };
 
 const fmtPct = (pct: number) => `${pct.toFixed(1)}%`;
+
+const serviceNameFontSize = (name: string): string => {
+    if (name.length > 30) return '14px';
+    if (name.length > 20) return '18px';
+    return '22px';
+};
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -46,51 +45,49 @@ interface DelayKpiBarProps {
 export const DelayKpiBar = ({ overview, worstService }: DelayKpiBarProps) => (
     <Grid>
         <StatTile
+            compact
             accentColor="#F59E0B"
             bgGradient="linear-gradient(135deg, #fff 0%, rgba(245,158,11,0.04) 100%)"
             iconBg="rgba(245,158,11,0.10)"
             icon={Clock}
             value={fmtDays(overview.avgDelayDays)}
             label="Średnie opóźnienie"
-            subContent={<Sub>poślizg względem obietnicy</Sub>}
         />
 
         <StatTile
+            compact
             accentColor="#EF4444"
             bgGradient="linear-gradient(135deg, #fff 0%, rgba(239,68,68,0.04) 100%)"
             iconBg="rgba(239,68,68,0.10)"
             icon={AlertTriangle}
             value={overview.visitsWithDelay}
             label="Wizyty z opóźnieniem"
-            subContent={
-                <Sub>
-                    z {overview.totalVisitsCompleted} &nbsp;·&nbsp; {fmtPct(overview.delayRatePct)} wizyt
-                </Sub>
-            }
         />
 
         <StatTile
+            compact
             accentColor="#10B981"
             bgGradient="linear-gradient(135deg, #fff 0%, rgba(16,185,129,0.04) 100%)"
             iconBg="rgba(16,185,129,0.10)"
             icon={CheckCircle2}
             value={fmtPct(overview.onTimeRatePct)}
             label="Terminowość"
-            subContent={<Sub>wizyt oddanych w terminie</Sub>}
         />
 
         <StatTile
+            compact
             accentColor="#3B82F6"
             bgGradient="linear-gradient(135deg, #fff 0%, rgba(59,130,246,0.04) 100%)"
             iconBg="rgba(59,130,246,0.10)"
             icon={Wrench}
-            value={worstService?.serviceName ?? '—'}
-            label="Najczęstsza przyczyna"
-            subContent={
+            value={
                 worstService
-                    ? <Sub>{worstService.occurrences}× · śr. {fmtDays(worstService.avgDelayDays)}</Sub>
-                    : undefined
+                    ? <span style={{ fontSize: serviceNameFontSize(worstService.serviceName), lineHeight: 1.2 }}>
+                        {worstService.serviceName}
+                      </span>
+                    : '—'
             }
+            label="Najczęstsza przyczyna"
         />
     </Grid>
 );
