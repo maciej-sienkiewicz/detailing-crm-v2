@@ -135,15 +135,26 @@ const ClearSelectionBtn = styled.button`
 
 // ─── Two-column breakdown ─────────────────────────────────────────────────────
 
-const TablesGrid = styled.div`
+const twoColGrid = `
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
-    align-items: start;
 
-    @media (max-width: ${props => props.theme.breakpoints.lg}) {
+    @media (max-width: ${(props: any) => props.theme.breakpoints.lg}) {
         grid-template-columns: 1fr;
     }
+`;
+
+/** Shared header row — both column titles live here so they always align. */
+const TablesHeaderRow = styled.div`
+    ${twoColGrid}
+    align-items: center;
+`;
+
+/** Tables sit in a separate grid below the header row. */
+const TablesGrid = styled.div`
+    ${twoColGrid}
+    align-items: start;
 `;
 
 const TableColumn = styled.div`
@@ -533,18 +544,42 @@ export const StatisticsView = () => {
                     <SectionRule />
                 </SectionHeading>
 
+                {/* Column headers in a shared grid — guaranteed same-line alignment */}
+                <TablesHeaderRow>
+                    <TableColumnHeader>
+                        <TableColumnTitle>{t.statistics.breakdown.categoriesTitle}</TableColumnTitle>
+                        <AddButton
+                            onClick={() => { setEditingCategory(undefined); setIsFormModalOpen(true); }}
+                        >
+                            + {t.statistics.categories.add}
+                        </AddButton>
+                    </TableColumnHeader>
+
+                    <TableColumnHeader>
+                        <TableColumnTitle>
+                            {selectedCategory
+                                ? selectedCategory.name
+                                : t.statistics.breakdown.servicesTitle}
+                        </TableColumnTitle>
+                        <TableColumnControls>
+                            {selectedCategory && (
+                                <ServiceTableFilterLabel>
+                                    przypisane usługi
+                                </ServiceTableFilterLabel>
+                            )}
+                            {selectedCategory && (
+                                <ClearSelectionBtn onClick={() => setSelectedCategoryId(null)}>
+                                    ✕ Pokaż wszystkie
+                                </ClearSelectionBtn>
+                            )}
+                        </TableColumnControls>
+                    </TableColumnHeader>
+                </TablesHeaderRow>
+
+                {/* Tables in a matching grid below */}
                 <TablesGrid>
                     {/* LEFT: Categories */}
                     <TableColumn>
-                        <TableColumnHeader>
-                            <TableColumnTitle>{t.statistics.breakdown.categoriesTitle}</TableColumnTitle>
-                            <AddButton
-                                onClick={() => { setEditingCategory(undefined); setIsFormModalOpen(true); }}
-                            >
-                                + {t.statistics.categories.add}
-                            </AddButton>
-                        </TableColumnHeader>
-
                         {catLoading && <LoadingOverlay><Spinner /></LoadingOverlay>}
                         {catError && (
                             <ErrorBox>
@@ -592,26 +627,6 @@ export const StatisticsView = () => {
 
                     {/* RIGHT: Services */}
                     <TableColumn>
-                        <TableColumnHeader>
-                            <TableColumnTitle>
-                                {selectedCategory
-                                    ? selectedCategory.name
-                                    : t.statistics.breakdown.servicesTitle}
-                            </TableColumnTitle>
-                            <TableColumnControls>
-                                {selectedCategory && (
-                                    <ServiceTableFilterLabel>
-                                        przypisane usługi
-                                    </ServiceTableFilterLabel>
-                                )}
-                                {selectedCategory && (
-                                    <ClearSelectionBtn onClick={() => setSelectedCategoryId(null)}>
-                                        ✕ Pokaż wszystkie
-                                    </ClearSelectionBtn>
-                                )}
-                            </TableColumnControls>
-                        </TableColumnHeader>
-
                         {!selectedCategoryId && unassignedCount > 0 && (
                             <DragHint>
                                 ⚠ {unassignedCount} usług bez kategorii — przeciągnij na wybraną kategorię po lewej.
