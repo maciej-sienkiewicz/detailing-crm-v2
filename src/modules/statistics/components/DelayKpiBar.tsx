@@ -20,6 +20,13 @@ const Grid = styled.div`
     }
 `;
 
+// ─── Sub-content helpers ──────────────────────────────────────────────────────
+
+const Sub = styled.span`
+    font-size: 12px;
+    color: ${p => p.theme.colors.textMuted};
+`;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const fmtDays = (days: number) => {
@@ -52,6 +59,7 @@ export const DelayKpiBar = ({ overview, worstService }: DelayKpiBarProps) => (
             icon={Clock}
             value={fmtDays(overview.avgDelayDays)}
             label="Średnie opóźnienie"
+            subContent={<Sub>poślizg względem obietnicy</Sub>}
         />
 
         <StatTile
@@ -62,6 +70,7 @@ export const DelayKpiBar = ({ overview, worstService }: DelayKpiBarProps) => (
             icon={AlertTriangle}
             value={overview.visitsWithDelay}
             label="Wizyty z opóźnieniem"
+            subContent={<Sub>z {overview.totalVisitsCompleted} &nbsp;·&nbsp; {fmtPct(overview.delayRatePct)} wizyt</Sub>}
         />
 
         <StatTile
@@ -72,6 +81,7 @@ export const DelayKpiBar = ({ overview, worstService }: DelayKpiBarProps) => (
             icon={CheckCircle2}
             value={fmtPct(overview.onTimeRatePct)}
             label="Terminowość"
+            subContent={<Sub>wizyt oddanych w terminie</Sub>}
         />
 
         <StatTile
@@ -88,6 +98,11 @@ export const DelayKpiBar = ({ overview, worstService }: DelayKpiBarProps) => (
                     : '—'
             }
             label="Najczęstsza przyczyna"
+            subContent={
+                worstService
+                    ? <Sub>{worstService.occurrences}× w opóźnionych · śr. {fmtDays(worstService.avgDelayDays)}</Sub>
+                    : undefined
+            }
         />
     </Grid>
 );
