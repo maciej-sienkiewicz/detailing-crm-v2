@@ -55,7 +55,9 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
     const [vehicleModel, setVehicleModel] = useState('');
     const [vehicleYear, setVehicleYear] = useState('');
     const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
+    const [isAddingNewVehicle, setIsAddingNewVehicle] = useState(false);
     const vehicleBlurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const vehicleAutoSelectedRef = useRef(false);
 
     // ─── Service state ─────────────────────────────────────────────────────────
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
@@ -183,6 +185,24 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         }
     }, [selectedServiceIds.length, errors.services]);
 
+    // Auto-select the only vehicle when customer has exactly one
+    useEffect(() => {
+        if (
+            vehicles.length === 1 &&
+            !vehicleAutoSelectedRef.current &&
+            !selectedVehicle &&
+            selectedCustomer &&
+            !selectedCustomer.isNew
+        ) {
+            vehicleAutoSelectedRef.current = true;
+            const v = vehicles[0];
+            setSelectedVehicle({ id: v.id, brand: v.brand ?? '', model: v.model ?? '', year: v.year, isNew: false });
+            setVehicleBrand(v.brand ?? '');
+            setVehicleModel(v.model ?? '');
+            setVehicleYear(v.year ? String(v.year) : '');
+        }
+    }, [vehicles]);
+
     // ─── Clear form ────────────────────────────────────────────────────────────
     const clearForm = () => {
         setTitle('');
@@ -205,6 +225,8 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         setVehicleYear('');
         setVehicleEditMode(false);
         setShowVehicleDropdown(false);
+        setIsAddingNewVehicle(false);
+        vehicleAutoSelectedRef.current = false;
         setNotes('');
         setTempServices({});
     };
@@ -408,6 +430,16 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         setCustomerEditMode(false);
     };
 
+    const handleVehicleSelectTriggerClick = () => {
+        if (!selectedCustomer) return;
+        if (vehicleBlurTimerRef.current) {
+            clearTimeout(vehicleBlurTimerRef.current);
+            vehicleBlurTimerRef.current = null;
+        }
+        setShowVehicleDropdown(prev => !prev);
+        setFocusedField('vehicle');
+    };
+
     const handleVehicleFieldFocus = () => {
         if (!selectedCustomer) return;
         if (vehicleBlurTimerRef.current) {
@@ -433,6 +465,7 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         if (!br && !mo) return;
         setSelectedVehicle({ id: '', brand: br, model: mo, year: yr ? parseInt(yr) : undefined, isNew: true });
         setShowVehicleDropdown(false);
+        setIsAddingNewVehicle(false);
     };
 
     const handleEnterVehicleEditMode = () => {
@@ -467,6 +500,8 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         setVehicleBrand('');
         setVehicleModel('');
         setVehicleYear('');
+        setIsAddingNewVehicle(false);
+        vehicleAutoSelectedRef.current = false;
         setCustomerFirstName(customer.firstName ?? '');
         setCustomerLastName(customer.lastName ?? '');
         setCustomerPhone(customer.phone ?? '');
@@ -586,8 +621,10 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
         vehicleModel, setVehicleModel,
         vehicleYear, setVehicleYear,
         showVehicleDropdown, setShowVehicleDropdown,
+        isAddingNewVehicle, setIsAddingNewVehicle,
         vehicles,
         vehicleEditMode,
+        handleVehicleSelectTriggerClick,
         handleVehicleFieldFocus,
         handleVehicleFieldBlur,
         handleAddNewVehicleDirectly,

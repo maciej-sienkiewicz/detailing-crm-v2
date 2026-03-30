@@ -398,6 +398,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 </S.IconWrapper>
                                 <S.RowContent>
                                     {form.selectedVehicle && form.vehicleEditMode ? (
+                                        /* ── stan: pojazd wybrany, tryb edycji ── */
                                         <>
                                             <S.CustomerHint style={{ color: '#0ea5e9' }}>
                                                 Edytuj dane pojazdu
@@ -447,6 +448,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             </S.CustomerEditActions>
                                         </>
                                     ) : form.selectedVehicle ? (
+                                        /* ── stan: pojazd wybrany, chip ── */
                                         <S.SelectedCustomerChip>
                                             <S.ChipCheck>✓</S.ChipCheck>
                                             <S.ChipInfo>
@@ -472,16 +474,82 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     form.setVehicleModel('');
                                                     form.setVehicleYear('');
                                                 }}
-                                                title="Usuń pojazd"
+                                                title="Zmień pojazd"
                                             >
                                                 <IconX />
                                             </S.ChipClear>
                                         </S.SelectedCustomerChip>
-                                    ) : (
+                                    ) : form.vehicles.length > 0 && !form.isAddingNewVehicle ? (
+                                        /* ── stan: klient ma pojazdy – wybierz z listy ── */
                                         <S.DropdownContainer>
+                                            <S.VehicleSelectButton
+                                                type="button"
+                                                $dropdownOpen={form.showVehicleDropdown}
+                                                disabled={!form.selectedCustomer}
+                                                onClick={form.handleVehicleSelectTriggerClick}
+                                                onBlur={form.handleVehicleFieldBlur}
+                                            >
+                                                <span style={{ color: '#c8d4e0' }}>Wybierz pojazd</span>
+                                                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0 }}>
+                                                    <path d="M1 1l4 4 4-4" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                                </svg>
+                                            </S.VehicleSelectButton>
+                                            {form.showVehicleDropdown && form.selectedCustomer && (
+                                                <S.Dropdown>
+                                                    <S.DropdownSeparator>Pojazdy klienta</S.DropdownSeparator>
+                                                    {form.vehicles.map(v => (
+                                                        <S.DropdownItem
+                                                            key={v.id}
+                                                            type="button"
+                                                            onMouseDown={(e) => e.preventDefault()}
+                                                            onClick={() => {
+                                                                form.handleVehicleSelect({ id: v.id, brand: v.brand, model: v.model, year: v.year, isNew: false });
+                                                            }}
+                                                            $accentColor={form.accentColor}
+                                                        >
+                                                            <span>{v.brand} {v.model}</span>
+                                                            <S.DropdownItemMeta>
+                                                                {[v.year, v.licensePlate].filter(Boolean).join('  ·  ')}
+                                                            </S.DropdownItemMeta>
+                                                        </S.DropdownItem>
+                                                    ))}
+                                                    <S.DropdownSeparator>Inny pojazd?</S.DropdownSeparator>
+                                                    <S.DropdownAddButton
+                                                        type="button"
+                                                        onMouseDown={(e) => e.preventDefault()}
+                                                        onClick={() => {
+                                                            form.setIsAddingNewVehicle(true);
+                                                            form.setShowVehicleDropdown(false);
+                                                            form.setFocusedField(null);
+                                                        }}
+                                                    >
+                                                        <IconPlus />
+                                                        <span>Dodaj nowy pojazd</span>
+                                                    </S.DropdownAddButton>
+                                                </S.Dropdown>
+                                            )}
+                                        </S.DropdownContainer>
+                                    ) : (
+                                        /* ── stan: brak pojazdów lub dodawanie nowego ── */
+                                        <>
+                                            {form.vehicles.length > 0 && (
+                                                <S.CustomerHint>
+                                                    <button
+                                                        type="button"
+                                                        style={{ background: 'none', border: 'none', color: '#0ea5e9', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}
+                                                        onClick={() => {
+                                                            form.setIsAddingNewVehicle(false);
+                                                            form.setVehicleBrand('');
+                                                            form.setVehicleModel('');
+                                                            form.setVehicleYear('');
+                                                        }}
+                                                    >
+                                                        ← Wróć do listy pojazdów
+                                                    </button>
+                                                </S.CustomerHint>
+                                            )}
                                             <S.CustomerInputBlock
-                                                $focused={form.focusedField === 'vehicle' && !!form.selectedCustomer}
-                                                $dropdownOpen={form.showVehicleDropdown && !!form.selectedCustomer}
+                                                $focused={form.focusedField === 'vehicle'}
                                                 style={!form.selectedCustomer ? { opacity: 0.5, pointerEvents: 'none' } : undefined}
                                             >
                                                 <S.VehicleInputRow>
@@ -490,8 +558,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         <BrandSelect
                                                             compact
                                                             value={form.vehicleBrand}
-                                                            onChange={(brand) => { form.setVehicleBrand(brand); form.setVehicleModel(''); form.setShowVehicleDropdown(true); }}
-                                                            onBlur={form.handleVehicleFieldBlur}
+                                                            onChange={(brand) => { form.setVehicleBrand(brand); form.setVehicleModel(''); form.setFocusedField('vehicle'); }}
+                                                            onBlur={() => form.setFocusedField(null)}
                                                         />
                                                     </S.CustomerFieldGroup>
                                                     <S.CustomerFieldGroup $borderRight>
@@ -500,8 +568,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             compact
                                                             brand={form.vehicleBrand}
                                                             value={form.vehicleModel}
-                                                            onChange={(model) => { form.setVehicleModel(model); form.setShowVehicleDropdown(true); }}
-                                                            onBlur={form.handleVehicleFieldBlur}
+                                                            onChange={(model) => { form.setVehicleModel(model); form.setFocusedField('vehicle'); }}
+                                                            onBlur={() => form.setFocusedField(null)}
                                                         />
                                                     </S.CustomerFieldGroup>
                                                     <S.CustomerFieldGroup>
@@ -513,65 +581,23 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             placeholder="2021"
                                                             maxLength={4}
                                                             value={form.vehicleYear}
-                                                            onChange={(e) => { form.setVehicleYear(e.target.value.replace(/\D/g, '')); form.setShowVehicleDropdown(true); }}
-                                                            onFocus={form.handleVehicleFieldFocus}
-                                                            onBlur={form.handleVehicleFieldBlur}
+                                                            onChange={(e) => { form.setVehicleYear(e.target.value.replace(/\D/g, '')); form.setFocusedField('vehicle'); }}
+                                                            onFocus={() => form.setFocusedField('vehicle')}
+                                                            onBlur={() => form.setFocusedField(null)}
                                                             autoComplete="off"
                                                         />
                                                     </S.CustomerFieldGroup>
                                                 </S.VehicleInputRow>
                                             </S.CustomerInputBlock>
-
-                                            {form.showVehicleDropdown && form.selectedCustomer && (
-                                                <S.Dropdown>
-                                                    {form.vehicles.length > 0 && (
-                                                        <S.DropdownSeparator>Pojazdy klienta</S.DropdownSeparator>
-                                                    )}
-                                                    {form.vehicles
-                                                        .filter(v => {
-                                                            const brandOk = !form.vehicleBrand.trim() || (v.brand || '').toLowerCase().includes(form.vehicleBrand.toLowerCase());
-                                                            const modelOk = !form.vehicleModel.trim() || (v.model || '').toLowerCase().includes(form.vehicleModel.toLowerCase());
-                                                            const yearOk  = !form.vehicleYear.trim()  || String(v.year ?? '').startsWith(form.vehicleYear.trim());
-                                                            return brandOk && modelOk && yearOk;
-                                                        })
-                                                        .map(v => (
-                                                            <S.DropdownItem
-                                                                key={v.id}
-                                                                type="button"
-                                                                onMouseDown={(e) => e.preventDefault()}
-                                                                onClick={() => {
-                                                                    form.handleVehicleSelect({ id: v.id, brand: v.brand, model: v.model, year: v.year, isNew: false });
-                                                                }}
-                                                                $accentColor={form.accentColor}
-                                                            >
-                                                                <span>{v.brand} {v.model}</span>
-                                                                <S.DropdownItemMeta>
-                                                                    {[v.year, v.licensePlate].filter(Boolean).join('  ·  ')}
-                                                                </S.DropdownItemMeta>
-                                                            </S.DropdownItem>
-                                                        ))}
-                                                    {form.vehicles.length > 0 && (
-                                                        <S.DropdownSeparator>Nie ten pojazd?</S.DropdownSeparator>
-                                                    )}
-                                                    <S.DropdownAddButton
-                                                        type="button"
-                                                        onMouseDown={(e) => e.preventDefault()}
-                                                        onClick={() => {
-                                                            form.handleAddNewVehicleDirectly();
-                                                            form.setFocusedField(null);
-                                                        }}
-                                                    >
-                                                        <IconPlus />
-                                                        <span>
-                                                            {form.vehicles.length > 0
-                                                                ? 'To inny pojazd — dodaj jako nowy'
-                                                                : 'Dodaj nowy pojazd'
-                                                            }
-                                                        </span>
-                                                    </S.DropdownAddButton>
-                                                </S.Dropdown>
+                                            {(form.vehicleBrand || form.vehicleModel) && (
+                                                <S.CustomerEditActions>
+                                                    <S.CustomerEditConfirmBtn type="button" onClick={form.handleAddNewVehicleDirectly}>
+                                                        <IconCheck />
+                                                        Dodaj pojazd
+                                                    </S.CustomerEditConfirmBtn>
+                                                </S.CustomerEditActions>
                                             )}
-                                        </S.DropdownContainer>
+                                        </>
                                     )}
                                 </S.RowContent>
                             </S.Row>

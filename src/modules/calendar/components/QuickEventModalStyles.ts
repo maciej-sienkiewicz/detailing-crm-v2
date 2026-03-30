@@ -750,6 +750,32 @@ export const VehicleInputRow = styled.div`
     grid-template-columns: 1fr 1fr 88px;
 `;
 
+export const VehicleSelectButton = styled.button<{ $dropdownOpen?: boolean }>`
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: #ffffff;
+    border: 1.5px solid ${p => p.$dropdownOpen ? '#0ea5e9' : '#e2e8f0'};
+    border-radius: ${p => p.$dropdownOpen ? '12px 12px 0 0' : '12px'};
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    color: #0f172a;
+    transition: border-color 150ms ease, border-radius 100ms ease, box-shadow 150ms ease;
+
+    ${p => p.$dropdownOpen && `
+        border-bottom-color: transparent;
+        box-shadow: 0 0 0 3px rgba(14,165,233,0.14);
+        clip-path: inset(-4px -4px 0 -4px);
+    `}
+
+    &:hover:not(:disabled) { border-color: #94a3b8; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+    &:focus { outline: none; }
+`;
+
 export const CustomerFieldGroup = styled.div<{ $borderRight?: boolean }>`
     padding: 8px 14px;
     border-right: ${p => p.$borderRight ? '1px solid #f1f5f9' : 'none'};
