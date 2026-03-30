@@ -594,6 +594,7 @@ export const OperationalDataTable = ({
                                 : 'Brak danych klienta';
                             const phoneLabel = op.customerPhone ? ` · ${op.customerPhone}` : '';
                             const isReservationCreated = op.type === 'RESERVATION' && op.status === 'CREATED';
+                            const isMidnight = formatTime(op.endDateTime) == '00:00'
 
                             return (
                                 <DataRow
@@ -649,7 +650,7 @@ export const OperationalDataTable = ({
                                     {/* Date */}
                                     <DateCellWrap>
                                         <DateMain>{formatDate(op.startDateTime)}</DateMain>
-                                        <DateSub>{formatTime(op.startDateTime)}</DateSub>
+                                        {isMidnight && (<DateSub>{formatTime(op.startDateTime)}</DateSub>)}
                                     </DateCellWrap>
 
                                     {/* Amount */}
