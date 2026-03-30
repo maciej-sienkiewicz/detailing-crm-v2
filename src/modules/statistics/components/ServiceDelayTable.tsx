@@ -27,12 +27,10 @@ const TableHead = styled.div`
     background: ${st.bgCardAlt};
     border-bottom: 1px solid ${st.border};
 
-    /* Separator before numeric columns */
     & > *:nth-child(3),
     & > *:nth-child(4),
     & > *:nth-child(5) {
         padding-left: 16px;
-        border-left: 1px solid ${st.border};
     }
 
     @media (max-width: 800px) {
@@ -136,7 +134,6 @@ const InactiveBadge = styled.span`
 const OccurrenceCell = styled.div`
     text-align: right;
     padding-left: 16px;
-    border-left: 1px solid ${st.border};
 `;
 
 const BigNum = styled.span<{ $color?: string }>`
@@ -155,7 +152,6 @@ const SmallText = styled.span`
 const DelayCell = styled.div`
     text-align: right;
     padding-left: 16px;
-    border-left: 1px solid ${st.border};
 `;
 
 const BarCell = styled.div`
@@ -163,7 +159,6 @@ const BarCell = styled.div`
     align-items: center;
     gap: 8px;
     padding-left: 16px;
-    border-left: 1px solid ${st.border};
 
     @media (max-width: 800px) {
         display: none;
