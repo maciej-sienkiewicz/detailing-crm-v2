@@ -155,25 +155,6 @@ const RetryButton = styled.button`
     }
 `;
 
-const InsightBox = styled.div`
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 14px 18px;
-    background: ${st.accentAmberDim};
-    border: 1px solid ${st.accentAmber}44;
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontSm};
-    color: ${st.textSecondary};
-    line-height: 1.5;
-`;
-
-const InsightIcon = styled.span`
-    font-size: 18px;
-    flex-shrink: 0;
-    line-height: 1.4;
-`;
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -208,10 +189,6 @@ export const DelayStatisticsView = () => {
             displayData.services[0]
           )
         : null;
-
-    const showInsight = displayData &&
-        displayData.overview.delayRatePct > 0 &&
-        worstService !== null;
 
     return (
         <ViewContainer>
@@ -263,27 +240,6 @@ export const DelayStatisticsView = () => {
                             worstService={worstService}
                         />
                     </Section>
-
-                    {/* Insight box */}
-                    {showInsight && (
-                        <InsightBox>
-                            <InsightIcon>💡</InsightIcon>
-                            <span>
-                                W wybranym okresie{' '}
-                                <strong>{displayData.overview.delayRatePct.toFixed(1)}%</strong> wizyt
-                                zakończyło się z opóźnieniem. Usługą najczęściej powiązaną z opóźnieniami
-                                jest <strong>„{worstService!.serviceName}"</strong> — wystąpiła
-                                w <strong>{worstService!.occurrences}</strong> opóźnionych wizytach,
-                                powodując średnio{' '}
-                                <strong>
-                                    {worstService!.avgDelayDays < 1
-                                        ? `${Math.round(worstService!.avgDelayDays * 24)} godzin`
-                                        : `${worstService!.avgDelayDays.toFixed(1)} dni`}
-                                </strong>{' '}
-                                opóźnienia.
-                            </span>
-                        </InsightBox>
-                    )}
 
                     {/* Trend chart */}
                     <Section>

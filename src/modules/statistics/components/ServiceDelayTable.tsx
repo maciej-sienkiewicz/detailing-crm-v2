@@ -21,14 +21,22 @@ const Wrapper = styled.div`
 
 const TableHead = styled.div`
     display: grid;
-    grid-template-columns: 36px 1fr 100px 110px 200px;
+    grid-template-columns: 36px 1fr 120px 130px 220px;
     gap: 0;
     padding: 10px 20px;
     background: ${st.bgCardAlt};
     border-bottom: 1px solid ${st.border};
 
+    /* Separator before numeric columns */
+    & > *:nth-child(3),
+    & > *:nth-child(4),
+    & > *:nth-child(5) {
+        padding-left: 16px;
+        border-left: 1px solid ${st.border};
+    }
+
     @media (max-width: 800px) {
-        grid-template-columns: 36px 1fr 100px 110px;
+        grid-template-columns: 36px 1fr 120px 130px;
     }
 `;
 
@@ -63,7 +71,7 @@ const TableBody = styled.div``;
 
 const Row = styled.div<{ $rank: number }>`
     display: grid;
-    grid-template-columns: 36px 1fr 100px 110px 200px;
+    grid-template-columns: 36px 1fr 120px 130px 220px;
     gap: 0;
     padding: 14px 20px;
     align-items: center;
@@ -79,7 +87,7 @@ const Row = styled.div<{ $rank: number }>`
     }
 
     @media (max-width: 800px) {
-        grid-template-columns: 36px 1fr 100px 110px;
+        grid-template-columns: 36px 1fr 120px 130px;
     }
 `;
 
@@ -127,6 +135,8 @@ const InactiveBadge = styled.span`
 
 const OccurrenceCell = styled.div`
     text-align: right;
+    padding-left: 16px;
+    border-left: 1px solid ${st.border};
 `;
 
 const BigNum = styled.span<{ $color?: string }>`
@@ -144,12 +154,16 @@ const SmallText = styled.span`
 
 const DelayCell = styled.div`
     text-align: right;
+    padding-left: 16px;
+    border-left: 1px solid ${st.border};
 `;
 
 const BarCell = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
+    padding-left: 16px;
+    border-left: 1px solid ${st.border};
 
     @media (max-width: 800px) {
         display: none;
