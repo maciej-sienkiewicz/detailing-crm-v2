@@ -1,6 +1,7 @@
 // src/modules/calendar/components/QuickEventModal/index.tsx
 
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { DateTimePicker } from '../DateTimePicker';
 import { QuickServiceModal } from '../QuickServiceModal';
 import { PriceInputModal } from '../PriceInputModal';
@@ -26,6 +27,25 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     onSave,
 }, ref) => {
     const form = useQuickEventForm({ isOpen, eventData, onClose, onSave, ref });
+
+    const [serviceDropdownPos, setServiceDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+
+    useEffect(() => {
+        if (!form.showServiceDropdown) { setServiceDropdownPos(null); return; }
+        const el = form.serviceInputRef.current;
+        if (!el) return;
+        const update = () => {
+            const r = el.getBoundingClientRect();
+            setServiceDropdownPos({ top: r.bottom, left: r.left, width: r.width });
+        };
+        update();
+        window.addEventListener('scroll', update, true);
+        window.addEventListener('resize', update);
+        return () => {
+            window.removeEventListener('scroll', update, true);
+            window.removeEventListener('resize', update);
+        };
+    }, [form.showServiceDropdown]);
 
     if (!eventData) return null;
 
@@ -636,12 +656,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 setTimeout(() => form.setShowServiceDropdown(false), 200);
                                             }}
                                         />
-                                        {form.showServiceDropdown && (
-                                            <S.Dropdown>
+                                        {form.showServiceDropdown && serviceDropdownPos && createPortal(
+                                            <S.ServicePortalDropdown style={{ top: serviceDropdownPos.top, left: serviceDropdownPos.left, width: serviceDropdownPos.width }}>
                                                 {form.filteredServices.map((service: Service) => (
                                                     <S.DropdownItem
                                                         key={service.id}
                                                         type="button"
+                                                        onMouseDown={(e) => e.preventDefault()}
                                                         onClick={() => form.addService(service)}
                                                         $accentColor={form.accentColor}
                                                     >
@@ -654,18 +675,20 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         </span>
                                                     </S.DropdownItem>
                                                 ))}
-                                                    <S.DropdownAddButton
-                                                        type="button"
-                                                        onClick={() => {
-                                                            form.setIsQuickServiceModalOpen(true);
-                                                            form.setShowServiceDropdown(false);
-                                                            form.setFocusedField(null);
-                                                        }}
-                                                    >
-                                                        <IconPlus />
-                                                        <span>Wprowadź nową usługę</span>
-                                                    </S.DropdownAddButton>
-                                            </S.Dropdown>
+                                                <S.DropdownAddButton
+                                                    type="button"
+                                                    onMouseDown={(e) => e.preventDefault()}
+                                                    onClick={() => {
+                                                        form.setIsQuickServiceModalOpen(true);
+                                                        form.setShowServiceDropdown(false);
+                                                        form.setFocusedField(null);
+                                                    }}
+                                                >
+                                                    <IconPlus />
+                                                    <span>Wprowadź nową usługę</span>
+                                                </S.DropdownAddButton>
+                                            </S.ServicePortalDropdown>,
+                                            document.body
                                         )}
                                     </S.DropdownContainer>
 

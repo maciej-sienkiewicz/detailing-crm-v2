@@ -227,6 +227,21 @@ export const Dropdown = styled.div`
     overflow-x: hidden;
 `;
 
+export const ServicePortalDropdown = styled.div`
+    position: fixed;
+    z-index: 9999;
+    background: #ffffff;
+    border: 1.5px solid #0ea5e9;
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    box-shadow:
+        0 8px 20px -4px rgba(0,0,0,0.10),
+        0 0 0 3px rgba(14,165,233,0.10);
+    max-height: 220px;
+    overflow-y: auto;
+    overflow-x: hidden;
+`;
+
 export const DropdownItem = styled.button<{ $accentColor?: string }>`
     width: 100%;
     padding: 10px 16px;
