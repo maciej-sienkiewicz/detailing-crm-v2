@@ -659,21 +659,22 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         {form.showServiceDropdown && serviceDropdownPos && createPortal(
                                             <S.ServicePortalDropdown style={{ top: serviceDropdownPos.top, left: serviceDropdownPos.left, width: serviceDropdownPos.width }}>
                                                 {form.filteredServices.map((service: Service) => (
-                                                    <S.DropdownItem
+                                                    <S.ServiceDropdownItem
                                                         key={service.id}
                                                         type="button"
                                                         onMouseDown={(e) => e.preventDefault()}
                                                         onClick={() => form.addService(service)}
-                                                        $accentColor={form.accentColor}
                                                     >
-                                                        <span>{service.name}</span>
-                                                        <span>
-                                                            {service.requireManualPrice
-                                                                ? 'NIESTANDARDOWA'
-                                                                : `${(service.basePriceNet / 100).toFixed(2)} zł netto · ${((service.basePriceNet / 100) * (100 + service.vatRate) / 100).toFixed(2)} zł brutto`
-                                                            }
-                                                        </span>
-                                                    </S.DropdownItem>
+                                                        <S.ServiceDropdownName>{service.name}</S.ServiceDropdownName>
+                                                        {service.requireManualPrice ? (
+                                                            <S.ServiceDropdownManualBadge>WYCENA</S.ServiceDropdownManualBadge>
+                                                        ) : (
+                                                            <S.ServiceDropdownPrices>
+                                                                <S.ServiceDropdownGross>{((service.basePriceNet / 100) * (100 + service.vatRate) / 100).toFixed(2)} zł brutto</S.ServiceDropdownGross>
+                                                                <S.ServiceDropdownNet>{(service.basePriceNet / 100).toFixed(2)} zł netto</S.ServiceDropdownNet>
+                                                            </S.ServiceDropdownPrices>
+                                                        )}
+                                                    </S.ServiceDropdownItem>
                                                 ))}
                                                 <S.DropdownAddButton
                                                     type="button"

@@ -313,6 +313,77 @@ export const DropdownAddButton = styled.button`
     }
 `;
 
+// ─── Service dropdown items ───────────────────────────────────────────────────
+
+export const ServiceDropdownItem = styled.button`
+    width: 100%;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #f1f5f9;
+    text-align: left;
+    cursor: pointer;
+    transition: background 150ms ease, border-left 150ms ease, padding-left 150ms ease;
+
+    &:last-child { border-bottom: none; }
+
+    &:hover {
+        background: #f8fafc;
+        border-left: 3px solid #0ea5e9;
+        padding-left: 13px;
+    }
+`;
+
+export const ServiceDropdownName = styled.span`
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f172a;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+`;
+
+export const ServiceDropdownPrices = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+    flex-shrink: 0;
+`;
+
+export const ServiceDropdownGross = styled.span`
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+    font-feature-settings: 'tnum';
+    white-space: nowrap;
+`;
+
+export const ServiceDropdownNet = styled.span`
+    font-size: 11px;
+    font-weight: 400;
+    color: #94a3b8;
+    font-feature-settings: 'tnum';
+    white-space: nowrap;
+`;
+
+export const ServiceDropdownManualBadge = styled.span`
+    font-size: 11px;
+    font-weight: 600;
+    color: #d97706;
+    background: #fef3c7;
+    padding: 2px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+`;
+
 // ─── Selected customer chip ───────────────────────────────────────────────────
 
 export const SelectedCustomerChip = styled.div`
