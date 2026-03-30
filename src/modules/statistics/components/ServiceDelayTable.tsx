@@ -1,6 +1,7 @@
 // src/modules/statistics/components/ServiceDelayTable.tsx
 import { useState } from 'react';
 import styled from 'styled-components';
+import { Eye, EyeOff } from 'lucide-react';
 import type { ServiceDelayItem } from '../types';
 import { st } from './StatisticsTheme';
 
@@ -19,9 +20,12 @@ const Wrapper = styled.div`
     overflow: hidden;
 `;
 
+const COLS = '36px 1fr 120px 130px 220px 40px';
+const COLS_MOBILE = '36px 1fr 120px 130px 40px';
+
 const TableHead = styled.div`
     display: grid;
-    grid-template-columns: 36px 1fr 120px 130px 220px;
+    grid-template-columns: ${COLS};
     gap: 0;
     padding: 10px 20px;
     background: ${st.bgCardAlt};
@@ -34,7 +38,7 @@ const TableHead = styled.div`
     }
 
     @media (max-width: 800px) {
-        grid-template-columns: 36px 1fr 120px 130px;
+        grid-template-columns: ${COLS_MOBILE};
     }
 `;
 
@@ -67,14 +71,15 @@ const SortIcon = styled.span<{ $dir: SortDir; $active: boolean }>`
 
 const TableBody = styled.div``;
 
-const Row = styled.div<{ $rank: number }>`
+const Row = styled.div<{ $excluded: boolean }>`
     display: grid;
-    grid-template-columns: 36px 1fr 120px 130px 220px;
+    grid-template-columns: ${COLS};
     gap: 0;
     padding: 14px 20px;
     align-items: center;
     border-bottom: 1px solid ${st.border};
-    transition: background ${st.transition};
+    transition: background ${st.transition}, opacity ${st.transition};
+    opacity: ${p => p.$excluded ? 0.4 : 1};
 
     &:last-child {
         border-bottom: none;
@@ -85,7 +90,7 @@ const Row = styled.div<{ $rank: number }>`
     }
 
     @media (max-width: 800px) {
-        grid-template-columns: 36px 1fr 120px 130px;
+        grid-template-columns: ${COLS_MOBILE};
     }
 `;
 
@@ -191,6 +196,35 @@ const BarLabel = styled.span<{ $color: string }>`
     font-variant-numeric: tabular-nums;
 `;
 
+const ToggleCell = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+`;
+
+const EyeButton = styled.button<{ $excluded: boolean }>`
+    all: unset;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: ${st.radiusSm};
+    cursor: pointer;
+    color: ${p => p.$excluded ? st.accentAmber : st.textMuted};
+    transition: color ${st.transition}, background ${st.transition};
+
+    svg {
+        width: 15px;
+        height: 15px;
+    }
+
+    &:hover {
+        background: ${st.bgCardAlt};
+        color: ${p => p.$excluded ? st.accentAmber : st.text};
+    }
+`;
+
 const EmptyRow = styled.div`
     padding: 40px 20px;
     text-align: center;
@@ -214,9 +248,16 @@ const delayColor = (pct: number): string => {
 interface ServiceDelayTableProps {
     services: ServiceDelayItem[];
     isLoading?: boolean;
+    excludedIds: Set<string>;
+    onToggleExclude: (serviceId: string) => void;
 }
 
-export const ServiceDelayTable = ({ services, isLoading }: ServiceDelayTableProps) => {
+export const ServiceDelayTable = ({
+    services,
+    isLoading,
+    excludedIds,
+    onToggleExclude,
+}: ServiceDelayTableProps) => {
     const [sortKey, setSortKey] = useState<SortKey>('occurrences');
     const [sortDir, setSortDir] = useState<SortDir>('desc');
 
@@ -268,6 +309,7 @@ export const ServiceDelayTable = ({ services, isLoading }: ServiceDelayTableProp
                 >
                     Udział opóźnień {sortIcon('delayRatePct')}
                 </Th>
+                <Th />
             </TableHead>
 
             <TableBody>
@@ -282,9 +324,10 @@ export const ServiceDelayTable = ({ services, isLoading }: ServiceDelayTableProp
                 {!isLoading && sorted.map((service, idx) => {
                     const rank = idx + 1;
                     const color = delayColor(service.delayRatePct);
+                    const excluded = excludedIds.has(service.serviceId);
 
                     return (
-                        <Row key={service.serviceId} $rank={rank}>
+                        <Row key={service.serviceId} $excluded={excluded}>
                             <Rank $rank={rank}>{rank}</Rank>
 
                             <ServiceName>
@@ -313,6 +356,16 @@ export const ServiceDelayTable = ({ services, isLoading }: ServiceDelayTableProp
                                     {service.delayRatePct.toFixed(0)}%
                                 </BarLabel>
                             </BarCell>
+
+                            <ToggleCell>
+                                <EyeButton
+                                    $excluded={excluded}
+                                    onClick={() => onToggleExclude(service.serviceId)}
+                                    title={excluded ? 'Włącz do analizy' : 'Wyklucz z analizy'}
+                                >
+                                    {excluded ? <EyeOff /> : <Eye />}
+                                </EyeButton>
+                            </ToggleCell>
                         </Row>
                     );
                 })}

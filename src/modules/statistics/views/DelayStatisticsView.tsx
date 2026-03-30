@@ -1,6 +1,7 @@
 // src/modules/statistics/views/DelayStatisticsView.tsx
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import styled from 'styled-components';
+import { EyeOff, X } from 'lucide-react';
 import { StatsFilters } from '../components/StatsFilters';
 import { StatsNav } from '../components/StatsNav';
 import { DelayKpiBar } from '../components/DelayKpiBar';
@@ -155,6 +156,86 @@ const RetryButton = styled.button`
     }
 `;
 
+// ─── Exclusion banner ─────────────────────────────────────────────────────────
+
+const ExclusionBanner = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: ${st.bgCardAlt};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    flex-wrap: wrap;
+`;
+
+const BannerIcon = styled.span`
+    display: flex;
+    align-items: center;
+    color: ${st.textMuted};
+    flex-shrink: 0;
+
+    svg { width: 14px; height: 14px; }
+`;
+
+const BannerLabel = styled.span`
+    font-size: ${st.fontXs};
+    font-weight: 600;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+`;
+
+const ChipList = styled.div`
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex: 1;
+`;
+
+const Chip = styled.div`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px 3px 10px;
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontXs};
+    font-weight: 500;
+    color: ${st.textSecondary};
+`;
+
+const ChipRemove = styled.button`
+    all: unset;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    color: ${st.textMuted};
+    border-radius: 50%;
+    padding: 1px;
+    transition: color ${st.transition};
+
+    svg { width: 11px; height: 11px; }
+
+    &:hover { color: ${st.accentRed}; }
+`;
+
+const ClearAllBtn = styled.button`
+    all: unset;
+    cursor: pointer;
+    font-size: ${st.fontXs};
+    font-weight: 600;
+    color: ${st.accentBlue};
+    white-space: nowrap;
+    padding: 3px 6px;
+    border-radius: 4px;
+    transition: background ${st.transition};
+
+    &:hover { background: ${st.accentBlueDim}; }
+`;
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -170,24 +251,48 @@ export const DelayStatisticsView = () => {
     const [granularity, setGranularity] = useState<Granularity>('MONTHLY');
     const [startDate, setStartDate] = useState(oneYearAgo());
     const [endDate, setEndDate] = useState(today());
+    const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
+
+    const excludedArray = Array.from(excludedIds);
 
     const { delayStats, isLoading, isFetching, isError, refetch } = useDelayStats(
         granularity,
         startDate,
-        endDate
+        endDate,
+        excludedArray
     );
 
-    // Keep previous data visible while refetching
     const lastDataRef = useRef(delayStats);
     if (delayStats !== undefined) lastDataRef.current = delayStats;
     const displayData = delayStats ?? lastDataRef.current;
 
-    // Worst offender: highest occurrences among services
+    const handleToggleExclude = useCallback((serviceId: string) => {
+        setExcludedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(serviceId)) {
+                next.delete(serviceId);
+            } else {
+                next.add(serviceId);
+            }
+            return next;
+        });
+    }, []);
+
+    const handleClearAll = useCallback(() => {
+        setExcludedIds(new Set());
+    }, []);
+
+    // Build name map for banner chips
+    const serviceNameMap = new Map(
+        displayData?.services.map(s => [s.serviceId, s.serviceName]) ?? []
+    );
+
     const worstService = displayData?.services.length
-        ? displayData.services.reduce((best, s) =>
-            s.occurrences > best.occurrences ? s : best,
-            displayData.services[0]
-          )
+        ? displayData.services
+            .filter(s => !excludedIds.has(s.serviceId))
+            .reduce((best, s) => s.occurrences > best.occurrences ? s : best,
+                displayData.services.filter(s => !excludedIds.has(s.serviceId))[0] ?? displayData.services[0]
+            )
         : null;
 
     return (
@@ -229,6 +334,27 @@ export const DelayStatisticsView = () => {
             {displayData && (
                 <ContentArea $fading={isFetching && !isLoading}>
 
+                    {/* Exclusion banner */}
+                    {excludedIds.size > 0 && (
+                        <ExclusionBanner>
+                            <BannerIcon><EyeOff /></BannerIcon>
+                            <BannerLabel>Wykluczone:</BannerLabel>
+                            <ChipList>
+                                {excludedArray.map(id => (
+                                    <Chip key={id}>
+                                        {serviceNameMap.get(id) ?? id}
+                                        <ChipRemove onClick={() => handleToggleExclude(id)} title="Przywróć">
+                                            <X />
+                                        </ChipRemove>
+                                    </Chip>
+                                ))}
+                            </ChipList>
+                            <ClearAllBtn onClick={handleClearAll}>
+                                Wyczyść wszystko
+                            </ClearAllBtn>
+                        </ExclusionBanner>
+                    )}
+
                     {/* KPI section */}
                     <Section>
                         <SectionHeading>
@@ -262,6 +388,8 @@ export const DelayStatisticsView = () => {
                         <ServiceDelayTable
                             services={displayData.services}
                             isLoading={isLoading}
+                            excludedIds={excludedIds}
+                            onToggleExclude={handleToggleExclude}
                         />
                     </Section>
 

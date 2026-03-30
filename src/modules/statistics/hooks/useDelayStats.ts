@@ -8,11 +8,12 @@ export const DELAY_STATS_KEY = 'statistics-delays';
 export const useDelayStats = (
     granularity: Granularity,
     startDate: string,
-    endDate: string
+    endDate: string,
+    excludedServiceIds: string[] = []
 ) => {
     const { data, isLoading, isFetching, isError, refetch } = useQuery({
-        queryKey: [DELAY_STATS_KEY, granularity, startDate, endDate],
-        queryFn: () => delayStatsApi.getDelayStats(granularity, startDate, endDate),
+        queryKey: [DELAY_STATS_KEY, granularity, startDate, endDate, excludedServiceIds],
+        queryFn: () => delayStatsApi.getDelayStats(granularity, startDate, endDate, excludedServiceIds),
         enabled: !!startDate && !!endDate,
         placeholderData: keepPreviousData,
     });
