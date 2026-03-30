@@ -670,7 +670,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         <span>
                                                             {service.requireManualPrice
                                                                 ? 'NIESTANDARDOWA'
-                                                                : `${((service.basePriceNet / 100) * (100 + service.vatRate) / 100).toFixed(2)} zł brutto`
+                                                                : `${(service.basePriceNet / 100).toFixed(2)} zł netto · ${((service.basePriceNet / 100) * (100 + service.vatRate) / 100).toFixed(2)} zł brutto`
                                                             }
                                                         </span>
                                                     </S.DropdownItem>
