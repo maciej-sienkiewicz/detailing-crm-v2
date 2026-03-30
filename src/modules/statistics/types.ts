@@ -86,3 +86,48 @@ export interface UpdateCategoryRequest {
     description?: string | null;
     color?: string | null;
 }
+
+// ─── Delay Statistics ─────────────────────────────────────────────────────────
+
+export interface DelayTrendPoint {
+    period: string;
+    avgDelayDays: number;
+    visitCount: number;
+    delayedCount: number;
+}
+
+export interface ServiceDelayItem {
+    serviceId: string;
+    serviceName: string;
+    isActive: boolean;
+    /** Liczba wizyt z opóźnieniem, w których wystąpiła ta usługa */
+    occurrences: number;
+    /** Łączna liczba wizyt, w których wystąpiła ta usługa */
+    totalOccurrences: number;
+    /** Średnia liczba dni opóźnienia gdy ta usługa jest w wizycie */
+    avgDelayDays: number;
+    /** Procent wizyt z tą usługą, które były opóźnione (0–100) */
+    delayRatePct: number;
+}
+
+export interface DelayOverview {
+    avgDelayDays: number;
+    medianDelayDays: number;
+    visitsWithDelay: number;
+    totalVisitsCompleted: number;
+    /** Procent wizyt z opóźnieniem (0–100) */
+    delayRatePct: number;
+    /** Procent wizyt zrealizowanych na czas (0–100) */
+    onTimeRatePct: number;
+    trend: DelayTrendPoint[];
+}
+
+export interface DelayStats {
+    period: {
+        granularity: Granularity;
+        startDate: string;
+        endDate: string;
+    };
+    overview: DelayOverview;
+    services: ServiceDelayItem[];
+}

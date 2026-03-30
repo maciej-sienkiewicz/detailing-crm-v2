@@ -20,7 +20,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import {DashboardView} from "@/modules/dashboard";
 import {GrowthEngineView} from "@/modules/growth-engine";
 import {FinanceView} from "@/modules/finance";
-import { StatisticsView, CategoryDetailView } from "@/modules/statistics";
+import { StatisticsView, CategoryDetailView, DelayStatisticsView } from "@/modules/statistics";
 import { CompetitionMonitoringView } from "@/modules/competition-monitoring";
 import { SmsCampaignsView } from "@/modules/sms-campaigns";
 
@@ -201,6 +201,14 @@ export const router = createBrowserRouter([
         element: (
             <ProtectedRoute>
                 <Layout><StatisticsView /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/statistics/delays',
+        element: (
+            <ProtectedRoute>
+                <Layout><DelayStatisticsView /></Layout>
             </ProtectedRoute>
         ),
     },

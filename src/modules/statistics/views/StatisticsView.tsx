@@ -7,6 +7,7 @@ import { StatsTotalsBar } from '../components/StatsTotalsBar';
 import { StatsChart } from '../components/StatsChart';
 import { BreakdownTable } from '../components/BreakdownTable';
 import { CategoryFormModal } from '../components/CategoryFormModal';
+import { StatsNav } from '../components/StatsNav';
 import { useCategories, useDeleteCategory, useAssignService, useUnassignService } from '../hooks/useCategories';
 import { useBreakdown, useCategoryStats } from '../hooks/useStats';
 import type { Category, Granularity } from '../types';
@@ -466,6 +467,7 @@ export const StatisticsView = () => {
                     <PageTitle>{t.statistics.title}</PageTitle>
                     <PageSubtitle>Analiza przychodów i struktury usług</PageSubtitle>
                 </PageTitleGroup>
+                <StatsNav />
             </PageHeader>
 
             {/* ── Filters ──────────────────────────────────── */}
