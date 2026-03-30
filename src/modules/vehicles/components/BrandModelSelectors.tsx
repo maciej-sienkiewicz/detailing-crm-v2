@@ -80,7 +80,7 @@ const PortalMenu = styled.div`
   border: 1px solid ${props => props.theme.colors.border};
   border-radius: ${props => props.theme.radii.lg};
   box-shadow: ${props => props.theme.shadows.lg};
-  padding: ${props => props.theme.spacing.xs} 0;
+  padding: 0 0 ${props => props.theme.spacing.xs} 0;
   z-index: 2001; // above modal overlay (1000)
   max-height: 320px;
   overflow: auto;
