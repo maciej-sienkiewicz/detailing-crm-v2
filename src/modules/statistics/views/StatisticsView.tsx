@@ -531,11 +531,6 @@ export const StatisticsView = () => {
                 <SectionHeading>
                     <SectionTitle>Podział według kategorii</SectionTitle>
                     <SectionRule />
-                    <AddButton
-                        onClick={() => { setEditingCategory(undefined); setIsFormModalOpen(true); }}
-                    >
-                        + {t.statistics.categories.add}
-                    </AddButton>
                 </SectionHeading>
 
                 <TablesGrid>
@@ -543,6 +538,11 @@ export const StatisticsView = () => {
                     <TableColumn>
                         <TableColumnHeader>
                             <TableColumnTitle>{t.statistics.breakdown.categoriesTitle}</TableColumnTitle>
+                            <AddButton
+                                onClick={() => { setEditingCategory(undefined); setIsFormModalOpen(true); }}
+                            >
+                                + {t.statistics.categories.add}
+                            </AddButton>
                         </TableColumnHeader>
 
                         {catLoading && <LoadingOverlay><Spinner /></LoadingOverlay>}
