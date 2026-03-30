@@ -9,33 +9,44 @@ const DropdownContainer = styled.div`
   position: relative;
 `;
 
-const Trigger = styled.button<{ $disabled?: boolean }>`
+const Trigger = styled.button<{ $disabled?: boolean; $compact?: boolean }>`
   width: 100%;
   display: flex;
   align-items: center;
   gap: ${props => props.theme.spacing.sm};
-  padding: 9px 12px;
-  border: 1px solid ${props => props.theme.colors.border};
-  border-radius: ${props => props.theme.radii.md};
-  background: #F8FAFC;
-  color: ${props => props.theme.colors.text};
-  font-size: ${props => props.theme.fontSizes.sm};
   cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
   opacity: ${props => props.$disabled ? 0.6 : 1};
   transition: all ${props => props.theme.transitions.fast};
   font-weight: ${props => props.theme.fontWeights.normal};
 
-  &:hover:not(:disabled) {
-    background: #FFFFFF;
-    border-color: ${props => props.theme.colors.border};
-  }
-
-  &:focus {
-    outline: none;
-    background: #FFFFFF;
-    border-color: ${props => props.theme.colors.primary};
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-  }
+  ${props => props.$compact ? `
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: #0f172a;
+    font-size: 14px;
+    font-family: inherit;
+    line-height: 1.4;
+    &:focus { outline: none; }
+  ` : `
+    padding: 9px 12px;
+    border: 1px solid ${props.theme.colors.border};
+    border-radius: ${props.theme.radii.md};
+    background: #F8FAFC;
+    color: ${props.theme.colors.text};
+    font-size: ${props.theme.fontSizes.sm};
+    &:hover:not(:disabled) {
+      background: #FFFFFF;
+      border-color: ${props.theme.colors.border};
+    }
+    &:focus {
+      outline: none;
+      background: #FFFFFF;
+      border-color: ${props.theme.colors.primary};
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+  `}
 `;
 
 const Caret = styled.span`
@@ -97,8 +108,8 @@ const MenuItem = styled.button<{ $selected?: boolean }>`
   }
 `;
 
-const Placeholder = styled.span`
-  color: ${props => props.theme.colors.textMuted};
+const Placeholder = styled.span<{ $compact?: boolean }>`
+  color: ${props => props.$compact ? '#c8d4e0' : props.theme.colors.textMuted};
 `;
 
 const SearchContainer = styled.div`
@@ -136,9 +147,10 @@ interface BrandSelectProps {
   placeholder?: string;
   onBlur?: () => void;
   autoOpen?: boolean;
+  compact?: boolean;
 }
 
-export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', onBlur, autoOpen = false }: BrandSelectProps) => {
+export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', onBlur, autoOpen = false, compact = false }: BrandSelectProps) => {
   const { data, isLoading } = useVehicleMetadata();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -226,11 +238,11 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
 
   return (
     <DropdownContainer ref={containerRef}>
-      <Trigger ref={triggerRef} onClick={() => !isLoading && setOpen(!open)} $disabled={isLoading} aria-haspopup="listbox" aria-expanded={open}>
+      <Trigger ref={triggerRef} onClick={() => !isLoading && setOpen(!open)} $disabled={isLoading} $compact={compact} aria-haspopup="listbox" aria-expanded={open}>
         {selectedLabel ? (
           <span>{selectedLabel}</span>
         ) : (
-          <Placeholder>{placeholder}</Placeholder>
+          <Placeholder $compact={compact}>{placeholder}</Placeholder>
         )}
         <Caret />
       </Trigger>
@@ -267,9 +279,10 @@ interface ModelSelectProps {
   placeholder?: string;
   onBlur?: () => void;
   autoOpen?: boolean;
+  compact?: boolean;
 }
 
-export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz model', onBlur, autoOpen = false }: ModelSelectProps) => {
+export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz model', onBlur, autoOpen = false, compact = false }: ModelSelectProps) => {
   const { data, isLoading } = useVehicleMetadata();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -363,11 +376,11 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
 
   return (
     <DropdownContainer ref={containerRef}>
-      <Trigger ref={triggerRef} onClick={() => !disabled && setOpen(!open)} $disabled={disabled} aria-haspopup="listbox" aria-expanded={open}>
+      <Trigger ref={triggerRef} onClick={() => !disabled && setOpen(!open)} $disabled={disabled} $compact={compact} aria-haspopup="listbox" aria-expanded={open}>
         {selectedLabel ? (
           <span>{selectedLabel}</span>
         ) : (
-          <Placeholder>{disabled ? 'Wybierz markę najpierw' : placeholder}</Placeholder>
+          <Placeholder $compact={compact}>{disabled ? 'Wybierz markę najpierw' : placeholder}</Placeholder>
         )}
         <Caret />
       </Trigger>

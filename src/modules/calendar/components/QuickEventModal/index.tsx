@@ -8,6 +8,7 @@ import { QuickColorModal } from '../QuickColorModal';
 import { Toggle } from '@/common/components/Toggle';
 import * as S from '../QuickEventModalStyles';
 import { useQuickEventForm } from './useQuickEventForm';
+import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { roundTo2 } from './helpers';
 import {
     IconClock, IconUser, IconCar, IconSettings, IconNote,
@@ -405,24 +406,21 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 <S.VehicleInputRow>
                                                     <S.CustomerFieldGroup $borderRight>
                                                         <S.CustomerFieldLabel>Marka</S.CustomerFieldLabel>
-                                                        <S.CustomerFieldInput
-                                                            type="text" placeholder="BMW"
+                                                        <BrandSelect
+                                                            compact
                                                             value={form.vehicleBrand}
-                                                            onChange={(e) => form.setVehicleBrand(e.target.value)}
-                                                            onFocus={() => form.setFocusedField('vehicle')}
+                                                            onChange={(brand) => { form.setVehicleBrand(brand); form.setVehicleModel(''); form.setFocusedField('vehicle'); }}
                                                             onBlur={() => form.setFocusedField(null)}
-                                                            autoComplete="off" autoFocus
                                                         />
                                                     </S.CustomerFieldGroup>
                                                     <S.CustomerFieldGroup $borderRight>
                                                         <S.CustomerFieldLabel>Model</S.CustomerFieldLabel>
-                                                        <S.CustomerFieldInput
-                                                            type="text" placeholder="320d"
+                                                        <ModelSelect
+                                                            compact
+                                                            brand={form.vehicleBrand}
                                                             value={form.vehicleModel}
-                                                            onChange={(e) => form.setVehicleModel(e.target.value)}
-                                                            onFocus={() => form.setFocusedField('vehicle')}
+                                                            onChange={(model) => { form.setVehicleModel(model); form.setFocusedField('vehicle'); }}
                                                             onBlur={() => form.setFocusedField(null)}
-                                                            autoComplete="off"
                                                         />
                                                     </S.CustomerFieldGroup>
                                                     <S.CustomerFieldGroup>
@@ -489,28 +487,21 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 <S.VehicleInputRow>
                                                     <S.CustomerFieldGroup $borderRight>
                                                         <S.CustomerFieldLabel>Marka</S.CustomerFieldLabel>
-                                                        <S.CustomerFieldInput
-                                                            ref={form.vehicleBrandInputRef}
-                                                            type="text"
-                                                            placeholder={form.selectedCustomer ? 'BMW' : 'Najpierw wybierz klienta'}
+                                                        <BrandSelect
+                                                            compact
                                                             value={form.vehicleBrand}
-                                                            onChange={(e) => { form.setVehicleBrand(e.target.value); form.setShowVehicleDropdown(true); }}
-                                                            onFocus={form.handleVehicleFieldFocus}
+                                                            onChange={(brand) => { form.setVehicleBrand(brand); form.setVehicleModel(''); form.setShowVehicleDropdown(true); }}
                                                             onBlur={form.handleVehicleFieldBlur}
-                                                            autoComplete="off"
                                                         />
                                                     </S.CustomerFieldGroup>
                                                     <S.CustomerFieldGroup $borderRight>
                                                         <S.CustomerFieldLabel>Model</S.CustomerFieldLabel>
-                                                        <S.CustomerFieldInput
-                                                            ref={form.vehicleModelInputRef}
-                                                            type="text"
-                                                            placeholder="320d"
+                                                        <ModelSelect
+                                                            compact
+                                                            brand={form.vehicleBrand}
                                                             value={form.vehicleModel}
-                                                            onChange={(e) => { form.setVehicleModel(e.target.value); form.setShowVehicleDropdown(true); }}
-                                                            onFocus={form.handleVehicleFieldFocus}
+                                                            onChange={(model) => { form.setVehicleModel(model); form.setShowVehicleDropdown(true); }}
                                                             onBlur={form.handleVehicleFieldBlur}
-                                                            autoComplete="off"
                                                         />
                                                     </S.CustomerFieldGroup>
                                                     <S.CustomerFieldGroup>
