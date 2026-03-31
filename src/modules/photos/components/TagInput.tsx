@@ -8,7 +8,9 @@ import { TagChip } from './TagChip';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const Wrapper = styled.div`
+const Wrapper = styled.div``;
+
+const InputWrapper = styled.div`
     position: relative;
 `;
 
@@ -159,61 +161,63 @@ export const TagInput = ({
 
     return (
         <Wrapper>
-            <InputArea
-                $focused={focused}
-                onClick={() => inputRef.current?.focus()}
-            >
-                {tags.map(tag => (
-                    <TagChip
-                        key={tag}
-                        label={tag}
-                        size="md"
-                        onRemove={() => removeTag(tag)}
-                    />
-                ))}
-                <TextInput
-                    ref={inputRef}
-                    value={inputValue}
-                    placeholder={tags.length === 0 ? placeholder : ''}
-                    autoComplete="off"
-                    onChange={e => {
-                        setInputValue(e.target.value);
-                        setHighlightIdx(-1);
-                    }}
-                    onKeyDown={handleKeyDown}
-                    onFocus={() => setFocused(true)}
-                    onBlur={() => setTimeout(() => setFocused(false), 160)}
-                />
-            </InputArea>
-
-            {showDropdown && (
-                <Dropdown>
-                    {filtered.map((s, i) => (
-                        <DropdownItem
-                            key={s}
-                            $highlighted={i === highlightIdx}
-                            onMouseDown={e => {
-                                e.preventDefault(); // prevent blur
-                                addTag(s);
-                            }}
-                        >
-                            {s}
-                        </DropdownItem>
+            <InputWrapper>
+                <InputArea
+                    $focused={focused}
+                    onClick={() => inputRef.current?.focus()}
+                >
+                    {tags.map(tag => (
+                        <TagChip
+                            key={tag}
+                            label={tag}
+                            size="md"
+                            onRemove={() => removeTag(tag)}
+                        />
                     ))}
-                    {inputValue.trim() && !filtered.includes(inputValue.trim()) && !tags.includes(inputValue.trim()) && (
-                        <DropdownItem
-                            key="__new__"
-                            $highlighted={highlightIdx === filtered.length}
-                            onMouseDown={e => {
-                                e.preventDefault();
-                                addTag(inputValue);
-                            }}
-                        >
-                            Utwórz „{inputValue.trim()}"
-                        </DropdownItem>
-                    )}
-                </Dropdown>
-            )}
+                    <TextInput
+                        ref={inputRef}
+                        value={inputValue}
+                        placeholder={tags.length === 0 ? placeholder : ''}
+                        autoComplete="off"
+                        onChange={e => {
+                            setInputValue(e.target.value);
+                            setHighlightIdx(-1);
+                        }}
+                        onKeyDown={handleKeyDown}
+                        onFocus={() => setFocused(true)}
+                        onBlur={() => setTimeout(() => setFocused(false), 160)}
+                    />
+                </InputArea>
+
+                {showDropdown && (
+                    <Dropdown>
+                        {filtered.map((s, i) => (
+                            <DropdownItem
+                                key={s}
+                                $highlighted={i === highlightIdx}
+                                onMouseDown={e => {
+                                    e.preventDefault(); // prevent blur
+                                    addTag(s);
+                                }}
+                            >
+                                {s}
+                            </DropdownItem>
+                        ))}
+                        {inputValue.trim() && !filtered.includes(inputValue.trim()) && !tags.includes(inputValue.trim()) && (
+                            <DropdownItem
+                                key="__new__"
+                                $highlighted={highlightIdx === filtered.length}
+                                onMouseDown={e => {
+                                    e.preventDefault();
+                                    addTag(inputValue);
+                                }}
+                            >
+                                Utwórz „{inputValue.trim()}"
+                            </DropdownItem>
+                        )}
+                    </Dropdown>
+                )}
+            </InputWrapper>
 
             <Hint>Enter lub przecinek aby dodać · Backspace aby usunąć ostatni</Hint>
         </Wrapper>
