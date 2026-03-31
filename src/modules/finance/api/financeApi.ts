@@ -5,7 +5,6 @@ import type {
   CreateDocumentRequest,
   DocumentListFilters,
   CashRegister,
-  CashOperation,
   CashHistoryResponse,
   CashAdjustRequest,
   FinanceSummary,

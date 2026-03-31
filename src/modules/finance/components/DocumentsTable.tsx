@@ -623,7 +623,7 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
             <tr>
               <Th>Data sprzedaży</Th><Th>Nazwa dokumentu</Th><Th>Numer dokumentu</Th>
               <Th>Klient</Th><Th $align="right">Kwota</Th><Th>Płatność</Th>
-              <Th>Źródło</Th><Th>Synchronizacja</Th><Th $width="44px" />
+              <Th>Źródło</Th><Th>Sync</Th><Th $width="44px" />
             </tr>
           </Thead>
           <tbody>
@@ -666,7 +666,7 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
               <Th $align="right">Kwota</Th>
               <Th>Płatność</Th>
               <Th>Źródło</Th>
-              <Th>Synchronizacja</Th>
+              <Th>Sync</Th>
               <Th $width="44px" />
             </tr>
           </Thead>
