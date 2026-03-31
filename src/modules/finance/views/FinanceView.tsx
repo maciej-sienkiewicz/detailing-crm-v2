@@ -407,6 +407,48 @@ const FilterSeparator = styled.div`
   flex: 1;
 `;
 
+// ─── Toggle Switch ────────────────────────────────────────────────────────────
+
+const ToggleLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+`;
+
+const ToggleTrack = styled.span<{ $on: boolean }>`
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 17px;
+  border-radius: 999px;
+  background: ${(p) => (p.$on ? st.accentBlue : p.theme.colors.border)};
+  transition: background 0.18s ease;
+  flex-shrink: 0;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: ${(p) => (p.$on ? '15px' : '2px')};
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+    transition: left 0.18s ease;
+  }
+`;
+
+const ToggleText = styled.span`
+  font-size: ${st.fontSm};
+  font-weight: 500;
+  color: ${st.textSecondary};
+  white-space: nowrap;
+`;
+
 const ClearFiltersBtn = styled.button`
   padding: 5px 11px;
   font-size: ${st.fontSm};
@@ -540,6 +582,7 @@ const DocumentsTabContent: React.FC<{
     documentType: '',
     page: 1,
   });
+  const [showDeleted, setShowDeleted] = useState(false);
 
   const { documents, total, isLoading, isError, refetch } = useFinanceDocuments({
     direction,
@@ -547,6 +590,7 @@ const DocumentsTabContent: React.FC<{
     dateFrom: filters.dateFrom || undefined,
     dateTo: filters.dateTo || undefined,
     documentType: filters.documentType || undefined,
+    includeDeleted: showDeleted || undefined,
     page: filters.page,
     pageSize: PAGE_SIZE,
   });
@@ -599,6 +643,16 @@ const DocumentsTabContent: React.FC<{
         {hasFilters && (
           <ClearFiltersBtn onClick={clearFilters}>Wyczyść filtry</ClearFiltersBtn>
         )}
+        <ToggleLabel>
+          <ToggleTrack $on={showDeleted} />
+          <ToggleText>Wyświetl usunięte</ToggleText>
+          <input
+            type="checkbox"
+            checked={showDeleted}
+            onChange={(e) => setShowDeleted(e.target.checked)}
+            style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+          />
+        </ToggleLabel>
         <RefreshBtn onClick={() => refetch()} title="Odśwież">
           <RefreshIcon />
         </RefreshBtn>

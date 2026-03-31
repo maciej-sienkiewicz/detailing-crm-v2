@@ -75,6 +75,7 @@ export interface FinancialDocument {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  deletedAt: string | null;
 }
 
 export interface FinancialDocumentListResponse {
@@ -111,6 +112,7 @@ export interface DocumentListFilters {
   visitId?: string;
   dateFrom?: string;
   dateTo?: string;
+  includeDeleted?: boolean;
   page: number;
   pageSize: number;
 }

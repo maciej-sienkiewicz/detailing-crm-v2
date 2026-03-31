@@ -8,6 +8,7 @@ import {
   useUpdateDocumentStatus,
   useDeleteDocument,
   useUpdateDocumentNumber,
+  useRestoreDocument,
 } from '../hooks/useFinance';
 import { formatMoney, formatDate } from '../utils/formatters';
 
@@ -61,18 +62,30 @@ const Th = styled.th<{ $align?: 'left' | 'right' | 'center'; $width?: string }>`
 
 const Tbody = styled.tbody``;
 
-const Tr = styled.tr`
+const Tr = styled.tr<{ $deleted?: boolean }>`
   border-bottom: 1px solid ${(p) => p.theme.colors.border};
   transition: background 0.12s ease;
   animation: ${fadeIn} 0.18s ease-out;
   cursor: pointer;
+  position: relative;
 
   &:last-child { border-bottom: none; }
 
-  &:hover {
-    background: ${(p) => p.theme.colors.surfaceHover};
-    .doc-edit-btn { opacity: 1; }
-  }
+  ${(p) =>
+    p.$deleted
+      ? `
+    background: rgba(239, 68, 68, 0.03);
+    border-left: 3px solid rgba(239, 68, 68, 0.25);
+    opacity: 0.6;
+    cursor: default;
+    &:hover { background: rgba(239, 68, 68, 0.05); }
+  `
+      : `
+    &:hover {
+      background: ${p.theme.colors.surfaceHover};
+      .doc-edit-btn { opacity: 1; }
+    }
+  `}
 `;
 
 // ─── Unified cell typography ─────────────────────────────────────────────────
@@ -314,7 +327,7 @@ const EmDash = styled.span`
   font-size: 13px;
 `;
 
-const DeleteBtn = styled.button`
+const ActionBtn = styled.button<{ $variant: 'delete' | 'restore' }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -329,7 +342,11 @@ const DeleteBtn = styled.button`
   transition: all 0.12s ease;
 
   tr:hover & { opacity: 1; }
-  &:hover { background: #fee2e2; color: #ef4444; border-color: #fca5a5; }
+
+  ${(p) =>
+    p.$variant === 'delete'
+      ? `&:hover { background: #fee2e2; color: #ef4444; border-color: #fca5a5; }`
+      : `&:hover { background: #dcfce7; color: #16a34a; border-color: #86efac; }`}
 
   svg { width: 14px; height: 14px; }
 `;
@@ -437,6 +454,13 @@ const IconTrash = () => (
   </svg>
 );
 
+const IconRestore = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+    <path d="M3 3v5h5" />
+  </svg>
+);
+
 const IconSyncOk = () => (
   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
     <polyline points="20 6 9 17 4 12" />
@@ -503,9 +527,10 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
   const numberInputRef = useRef<HTMLInputElement>(null);
   const navigate      = useNavigate();
 
-  const updateStatus = useUpdateDocumentStatus();
-  const deleteDoc    = useDeleteDocument();
-  const updateNumber = useUpdateDocumentNumber();
+  const updateStatus  = useUpdateDocumentStatus();
+  const deleteDoc     = useDeleteDocument();
+  const restoreDoc    = useRestoreDocument();
+  const updateNumber  = useUpdateDocumentNumber();
 
   // Close status dropdown on outside click
   useEffect(() => {
@@ -543,13 +568,18 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
     setOpenStatusId(null);
   };
 
-  // ── Delete ─────────────────────────────────────────────────────────────────
+  // ── Delete / Restore ───────────────────────────────────────────────────────
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (window.confirm('Czy na pewno chcesz usunąć ten dokument?')) {
       deleteDoc.mutate(id);
     }
+  };
+
+  const handleRestore = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    restoreDoc.mutate(id);
   };
 
   // ── Inline number editing ──────────────────────────────────────────────────
@@ -656,8 +686,14 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                   ? `${doc.customerFirstName ?? ''} ${doc.customerLastName ?? ''}`.trim()
                   : null);
 
+              const isDeleted = !!doc.deletedAt;
+
               return (
-                <Tr key={doc.id} onClick={() => onDocumentClick?.(doc)}>
+                <Tr
+                  key={doc.id}
+                  $deleted={isDeleted}
+                  onClick={() => !isDeleted && onDocumentClick?.(doc)}
+                >
 
                   {/* Data sprzedaży */}
                   <Td>
@@ -792,9 +828,23 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
 
                   {/* Akcje */}
                   <Td onClick={(e) => e.stopPropagation()}>
-                    <DeleteBtn onClick={(e) => handleDelete(doc.id, e)} title="Usuń dokument">
-                      <IconTrash />
-                    </DeleteBtn>
+                    {isDeleted ? (
+                      <ActionBtn
+                        $variant="restore"
+                        onClick={(e) => handleRestore(doc.id, e)}
+                        title="Przywróć dokument"
+                      >
+                        <IconRestore />
+                      </ActionBtn>
+                    ) : (
+                      <ActionBtn
+                        $variant="delete"
+                        onClick={(e) => handleDelete(doc.id, e)}
+                        title="Usuń dokument"
+                      >
+                        <IconTrash />
+                      </ActionBtn>
+                    )}
                   </Td>
 
                 </Tr>
@@ -823,16 +873,20 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                     {STATUS_LABELS[s]}
                   </DropdownItem>
                 ))}
-                <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', margin: '4px 0' }} />
-                <DropdownItem
-                  $danger
-                  onClick={(e) => {
-                    handleDelete(openStatusId, e);
-                    setOpenStatusId(null);
-                  }}
-                >
-                  Usuń dokument
-                </DropdownItem>
+                {!documents.find((d) => d.id === openStatusId)?.deletedAt && (
+                  <>
+                    <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', margin: '4px 0' }} />
+                    <DropdownItem
+                      $danger
+                      onClick={(e) => {
+                        handleDelete(openStatusId, e);
+                        setOpenStatusId(null);
+                      }}
+                    >
+                      Usuń dokument
+                    </DropdownItem>
+                  </>
+                )}
               </DropdownBody>
             </Dropdown>
           </>,

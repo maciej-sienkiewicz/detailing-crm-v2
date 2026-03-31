@@ -91,6 +91,18 @@ export const useDeleteDocument = () => {
   });
 };
 
+export const useRestoreDocument = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => financeApi.restoreDocument(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: FINANCE_DOCS_KEY });
+      queryClient.invalidateQueries({ queryKey: FINANCE_SUMMARY_KEY });
+    },
+  });
+};
+
 export const useCashRegister = () => {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: FINANCE_CASH_KEY,

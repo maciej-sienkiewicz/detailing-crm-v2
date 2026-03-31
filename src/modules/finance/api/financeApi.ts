@@ -27,8 +27,9 @@ export const financeApi = {
     if (filters.documentType) params.append('documentType', filters.documentType);
     if (filters.status)       params.append('status',       filters.status);
     if (filters.visitId)      params.append('visitId',      filters.visitId);
-    if (filters.dateFrom)     params.append('dateFrom',     filters.dateFrom);
-    if (filters.dateTo)       params.append('dateTo',       filters.dateTo);
+    if (filters.dateFrom)       params.append('dateFrom',       filters.dateFrom);
+    if (filters.dateTo)         params.append('dateTo',         filters.dateTo);
+    if (filters.includeDeleted) params.append('includeDeleted', 'true');
     const response = await apiClient.get(`${BASE}/documents?${params}`);
     return response.data;
   },
@@ -55,6 +56,11 @@ export const financeApi = {
 
   deleteDocument: async (id: string): Promise<void> => {
     await apiClient.delete(`${BASE}/documents/${id}`);
+  },
+
+  restoreDocument: async (id: string): Promise<FinancialDocument> => {
+    const response = await apiClient.post(`${BASE}/documents/${id}/restore`);
+    return response.data;
   },
 
   // ── Cash register ──────────────────────────────────────────────────────────
