@@ -493,23 +493,47 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
                                         </NoteDisplay>
                                     </Td>
                                     <Td data-label="Cena bazowa">
-                                        {service.requireManualPrice ? <CustomPriceLabel>Cena niestandardowa</CustomPriceLabel> : <PriceValue>{formatCurrency(service.basePriceNet / 100)}</PriceValue>}
+                                        {service.requireManualPrice ? <CustomPriceLabel>Cena niestandardowa</CustomPriceLabel> : (
+                                            <PriceCell>
+                                                <div><PriceLabel>Netto</PriceLabel> <PriceValue>{formatCurrency(service.basePriceNet / 100)}</PriceValue></div>
+                                                <div><PriceLabel>Brutto</PriceLabel> <PriceValue>{formatCurrency((service.basePriceNet + Math.round(service.basePriceNet * service.vatRate / 100)) / 100)}</PriceValue></div>
+                                            </PriceCell>
+                                        )}
                                     </Td>
                                     <Td data-label="Rabat">
                                         <DiscountCell>
                                             <DiscountTypeDropdown value={service.adjustment.type} onChange={(t) => onChange(services.map(s => s.id === service.id ? { ...s, adjustment: { ...s.adjustment, type: t } } : s))} />
                                             <DiscountInputWrapper>
-                                                <DiscountInput value={discountInputValues[service.id] ?? (service.adjustment.value || '')} onChange={(e) => setDiscountInputValues({ ...discountInputValues, [service.id]: e.target.value })} onBlur={() => {
-                                                    const val = parseFloat(discountInputValues[service.id]);
-                                                    onChange(services.map(s => s.id === service.id ? { ...s, adjustment: { ...s.adjustment, value: isNaN(val) ? 0 : val } } : s));
-                                                    setDiscountInputValues({ ...discountInputValues, [service.id]: '' });
-                                                }} />
+                                                <DiscountInput
+                                                    value={
+                                                        discountInputValues[service.id] !== undefined
+                                                            ? discountInputValues[service.id]
+                                                            : (service.adjustment.value === 0 ? '' :
+                                                                service.adjustment.type !== 'PERCENT'
+                                                                    ? service.adjustment.value / 100
+                                                                    : service.adjustment.value)
+                                                    }
+                                                    onChange={(e) => setDiscountInputValues({ ...discountInputValues, [service.id]: e.target.value })}
+                                                    onBlur={() => {
+                                                        const rawStr = discountInputValues[service.id];
+                                                        if (rawStr !== undefined) {
+                                                            const val = parseFloat(rawStr);
+                                                            const storeVal = isNaN(val) ? 0 :
+                                                                service.adjustment.type !== 'PERCENT' ? Math.round(val * 100) : val;
+                                                            onChange(services.map(s => s.id === service.id ? { ...s, adjustment: { ...s.adjustment, value: storeVal } } : s));
+                                                        }
+                                                        setDiscountInputValues(prev => { const next = { ...prev }; delete next[service.id]; return next; });
+                                                    }}
+                                                />
                                                 <DiscountSuffix>{service.adjustment.type === 'PERCENT' ? '%' : 'PLN'}</DiscountSuffix>
                                             </DiscountInputWrapper>
                                         </DiscountCell>
                                     </Td>
                                     <Td data-label="Cena końcowa">
-                                        <PriceValue $highlight={pricing.hasDiscount}>{formatCurrency(pricing.finalPriceGross / 100)}</PriceValue>
+                                        <PriceCell>
+                                            <div><PriceLabel>Netto</PriceLabel> <PriceValue $highlight={pricing.hasDiscount}>{formatCurrency(pricing.finalPriceNet / 100)}</PriceValue></div>
+                                            <div><PriceLabel>Brutto</PriceLabel> <PriceValue $highlight={pricing.hasDiscount}>{formatCurrency(pricing.finalPriceGross / 100)}</PriceValue></div>
+                                        </PriceCell>
                                     </Td>
                                     <Td>
                                         <ActionButton onClick={() => onChange(services.filter(s => s.id !== service.id))}>
