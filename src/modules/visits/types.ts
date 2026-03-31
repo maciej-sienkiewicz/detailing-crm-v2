@@ -252,6 +252,7 @@ export interface VisitPhoto {
     uploadedAt: string;
     thumbnailUrl: string;  // Presigned URL (valid for 10 min)
     fullSizeUrl: string;   // Presigned URL (valid for 10 min)
+    tags?: string[];       // User-assigned tags
 }
 
 export interface VisitPhotosResponse {
