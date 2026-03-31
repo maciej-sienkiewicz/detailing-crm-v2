@@ -15,6 +15,7 @@ export interface PhotoSlot {
     uploadedAt: string;
     thumbnailUrl?: string; // Presigned URL from backend (valid for 10 min)
     previewUrl?: string; // Local preview URL for uploaded photos (client-side only)
+    tags?: string[]; // User-assigned tags
 }
 
 export interface PriceAdjustment {

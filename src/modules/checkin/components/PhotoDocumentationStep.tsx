@@ -1,13 +1,16 @@
 // src/modules/checkin/components/PhotoDocumentationStep.tsx
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { Toggle } from '@/common/components/Toggle';
 import { usePhotoUpload } from '../hooks/usePhotoUpload';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { CheckInFormData, DamagePoint } from '../types';
+import type { CheckInFormData, DamagePoint, PhotoSlot } from '../types';
 import { VehicleDamageMapper } from './VehicleDamageMapper';
 import { CheckinQRGenerator } from './CheckinQRGenerator';
+import { TagChip } from '@/modules/photos/components/TagChip';
+import { PhotoTagEditModal } from '@/modules/photos/components/PhotoTagEditModal';
+import { useTagSuggestions, useUpdatePhotoTags } from '@/modules/photos/hooks/usePhotoTags';
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -194,7 +197,6 @@ const HiddenInput = styled.input`
     display: none;
 `;
 
-
 // ─── Photo grid ───────────────────────────────────────────────────────────────
 
 const SectionDivider = styled.div`
@@ -219,7 +221,7 @@ const PhotosTitle = styled.div`
 const PhotoGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    gap: 12px;
 
     @media (min-width: 640px) {
         grid-template-columns: repeat(3, 1fr);
@@ -230,12 +232,26 @@ const PhotoGrid = styled.div`
     }
 `;
 
-const PhotoCard = styled.div`
-    aspect-ratio: 4 / 3;
+// Wraps the image box + tags footer together
+const PhotoCardWrapper = styled.div`
+    display: flex;
+    flex-direction: column;
     border-radius: 10px;
     border: 1px solid ${st.border};
     overflow: hidden;
+    background: ${st.bgCardAlt};
+    transition: box-shadow ${st.transition}, border-color ${st.transition};
+
+    &:hover {
+        border-color: ${st.borderHover};
+        box-shadow: ${st.shadowMd};
+    }
+`;
+
+const PhotoImageBox = styled.div`
+    aspect-ratio: 4 / 3;
     position: relative;
+    overflow: hidden;
     background: ${st.bgCardAlt};
 
     &:hover .photo-overlay {
@@ -301,6 +317,48 @@ const DeletePhotoBtn = styled.button`
     &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
+// Tags footer (below the image, always visible)
+const TagsFooter = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 10px 8px;
+    flex-wrap: wrap;
+    background: ${st.bgCard};
+    border-top: 1px solid ${st.border};
+    min-height: 38px;
+    cursor: pointer;
+    transition: background ${st.transition};
+
+    &:hover {
+        background: ${st.bgCardAlt};
+    }
+`;
+
+const AddTagBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    border: 1px dashed ${st.border};
+    background: transparent;
+    font-size: 10px;
+    font-weight: 600;
+    color: ${st.textMuted};
+    cursor: pointer;
+    transition: all ${st.transition};
+    white-space: nowrap;
+
+    svg { width: 9px; height: 9px; }
+
+    &:hover {
+        border-color: ${st.accentBlue};
+        color: ${st.accentBlue};
+        background: ${st.accentBlueDim};
+    }
+`;
+
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 const isMobileDevice = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -327,10 +385,15 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
     } = usePhotoUpload(reservationId);
 
     const [showDamageSection, setShowDamageSection] = useState(false);
+    const [editingPhoto, setEditingPhoto] = useState<PhotoSlot | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
     const isMobile = isMobileDevice();
+
+    // Tag support
+    const { data: suggestions = [] } = useTagSuggestions();
+    const updatePhotoTags = useUpdatePhotoTags();
 
     useEffect(() => {
         if (photos && photos.length > 0) onChange({ photos });
@@ -362,6 +425,21 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
 
     const handleDamagePointsChange = (points: DamagePoint[]) => {
         onChange({ damagePoints: points });
+    };
+
+    // When modal closes, persist tags locally + save to backend
+    const handleTagsSave = useCallback((photoId: string, tags: string[]) => {
+        const updatedPhotos = uploadedPhotos.map(p =>
+            p.id === photoId ? { ...p, tags } : p
+        );
+        onChange({ photos: updatedPhotos });
+
+        updatePhotoTags.mutate({ photoId, tags });
+        setEditingPhoto(null);
+    }, [uploadedPhotos, onChange, updatePhotoTags]);
+
+    const openTagEditor = (photo: PhotoSlot) => {
+        setEditingPhoto(photo);
     };
 
     return (
@@ -458,25 +536,46 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
                             </PhotosHeader>
                             <PhotoGrid>
                                 {uploadedPhotos.map(photo => (
-                                    <PhotoCard key={photo.id}>
-                                        {(photo.thumbnailUrl || photo.previewUrl) && (
-                                            <PhotoImg
-                                                src={photo.thumbnailUrl || photo.previewUrl}
-                                                alt={photo.fileName || 'Zdjęcie pojazdu'}
-                                            />
-                                        )}
-                                        <DeletePhotoBtn
-                                            onClick={() => handleDeletePhoto(photo.id)}
-                                            disabled={isDeleting}
-                                            title="Usuń zdjęcie"
-                                        >
-                                            ×
-                                        </DeletePhotoBtn>
-                                        <PhotoOverlay className="photo-overlay">
-                                            {photo.fileName && <PhotoName>{photo.fileName}</PhotoName>}
-                                            {photo.uploadedAt && <PhotoTime>{formatTimestamp(photo.uploadedAt)}</PhotoTime>}
-                                        </PhotoOverlay>
-                                    </PhotoCard>
+                                    <PhotoCardWrapper key={photo.id}>
+                                        {/* Image */}
+                                        <PhotoImageBox>
+                                            {(photo.thumbnailUrl || photo.previewUrl) && (
+                                                <PhotoImg
+                                                    src={photo.thumbnailUrl || photo.previewUrl}
+                                                    alt={photo.fileName || 'Zdjęcie pojazdu'}
+                                                />
+                                            )}
+                                            <DeletePhotoBtn
+                                                onClick={() => handleDeletePhoto(photo.id)}
+                                                disabled={isDeleting}
+                                                title="Usuń zdjęcie"
+                                            >
+                                                ×
+                                            </DeletePhotoBtn>
+                                            <PhotoOverlay className="photo-overlay">
+                                                {photo.fileName && <PhotoName>{photo.fileName}</PhotoName>}
+                                                {photo.uploadedAt && <PhotoTime>{formatTimestamp(photo.uploadedAt)}</PhotoTime>}
+                                            </PhotoOverlay>
+                                        </PhotoImageBox>
+
+                                        {/* Tags footer */}
+                                        <TagsFooter onClick={() => openTagEditor(photo)}>
+                                            {(photo.tags ?? []).map(tag => (
+                                                <TagChip key={tag} label={tag} size="sm" />
+                                            ))}
+                                            <AddTagBtn
+                                                type="button"
+                                                onClick={e => { e.stopPropagation(); openTagEditor(photo); }}
+                                                title="Dodaj lub edytuj tagi"
+                                            >
+                                                <svg fill="none" viewBox="0 0 10 10" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                                                    <line x1="5" y1="1" x2="5" y2="9" />
+                                                    <line x1="1" y1="5" x2="9" y2="5" />
+                                                </svg>
+                                                {(photo.tags ?? []).length === 0 ? 'Dodaj tagi' : 'Edytuj'}
+                                            </AddTagBtn>
+                                        </TagsFooter>
+                                    </PhotoCardWrapper>
                                 ))}
                             </PhotoGrid>
                         </>
@@ -532,6 +631,21 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
                     </SectionBody>
                 )}
             </SectionCard>
+
+            {/* Tag edit modal */}
+            {editingPhoto && (
+                <PhotoTagEditModal
+                    isOpen={!!editingPhoto}
+                    photoId={editingPhoto.id}
+                    fileName={editingPhoto.fileName}
+                    thumbnailUrl={editingPhoto.thumbnailUrl || editingPhoto.previewUrl}
+                    initialTags={editingPhoto.tags ?? []}
+                    suggestions={suggestions}
+                    onClose={() => setEditingPhoto(null)}
+                    onTagsChange={handleTagsSave}
+                    isSaving={updatePhotoTags.isPending}
+                />
+            )}
         </StepContainer>
     );
 };

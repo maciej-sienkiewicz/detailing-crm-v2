@@ -1,9 +1,17 @@
-import { useState, useRef } from 'react';
+// src/modules/visits/components/DocumentGallery.tsx
+
+import { useState, useRef, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
 import { formatDateTime } from '@/common/utils';
 import type { VisitDocument, DocumentType, VisitPhoto } from '../types';
 import { ImageViewerModal } from './ImageViewerModal';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { TagChip } from '@/modules/photos/components/TagChip';
+import { PhotoTagEditModal } from '@/modules/photos/components/PhotoTagEditModal';
+import { useTagSuggestions, useUpdatePhotoTags } from '@/modules/photos/hooks/usePhotoTags';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const GalleryContainer = styled.div`
     background: white;
@@ -32,38 +40,101 @@ const Title = styled.h3`
     color: ${props => props.theme.colors.text};
 `;
 
-const CategoryTabs = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.xs};
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-`;
-
-const CategoryTab = styled.button<{ $isActive: boolean }>`
+const UploadButton = styled.label`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    border: none;
+    background: var(--brand-primary);
+    color: white;
     border-radius: ${props => props.theme.radii.md};
-    background: ${props => props.$isActive
-    ? 'linear-gradient(135deg, var(--brand-primary) 0%, #0284c7 100%)'
-    : props.theme.colors.surfaceAlt
-};
-    color: ${props => props.$isActive ? 'white' : props.theme.colors.textMuted};
-    font-size: ${props => props.theme.fontSizes.xs};
+    font-size: ${props => props.theme.fontSizes.sm};
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    white-space: nowrap;
 
     &:hover {
-        background: ${props => props.$isActive
-    ? 'linear-gradient(135deg, var(--brand-primary) 0%, #0284c7 100%)'
-    : props.theme.colors.surfaceHover
-};
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    svg {
+        width: 16px;
+        height: 16px;
     }
 `;
 
+const HiddenFileInput = styled.input`
+    display: none;
+`;
+
+// ─── Tag filter bar ───────────────────────────────────────────────────────────
+
+const FilterBar = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 12px ${props => props.theme.spacing.lg};
+    border-bottom: 1px solid ${props => props.theme.colors.border};
+    background: ${st.bg};
+`;
+
+const FilterLabel = styled.span`
+    font-size: 11px;
+    font-weight: 700;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+`;
+
+const AllFilterBtn = styled.button<{ $active: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    border: 1px solid ${p => p.$active ? st.accentBlue : st.border};
+    background: ${p => p.$active ? st.accentBlue : 'transparent'};
+    color: ${p => p.$active ? '#fff' : st.textSecondary};
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 140ms ease;
+    white-space: nowrap;
+
+    &:hover {
+        border-color: ${st.accentBlue};
+        color: ${p => p.$active ? '#fff' : st.accentBlue};
+    }
+`;
+
+// ─── Gallery content ──────────────────────────────────────────────────────────
+
 const GalleryContent = styled.div`
     padding: ${props => props.theme.spacing.lg};
+`;
+
+const SectionTitle = styled.h4`
+    margin: 0 0 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: ${props => props.theme.colors.text};
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
+const CountBadge = styled.span`
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 7px;
+    background: ${st.accentBlueDim};
+    color: ${st.accentBlue};
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 600;
 `;
 
 const PhotoGrid = styled.div`
@@ -72,9 +143,11 @@ const PhotoGrid = styled.div`
     gap: ${props => props.theme.spacing.md};
 `;
 
+// ─── Photo card ───────────────────────────────────────────────────────────────
+
 const PhotoCard = styled.div`
-    position: relative;
-    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
     border-radius: ${props => props.theme.radii.md};
     overflow: hidden;
     border: 1px solid ${props => props.theme.colors.border};
@@ -87,11 +160,18 @@ const PhotoCard = styled.div`
     }
 `;
 
+const PhotoImageBox = styled.div`
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+`;
+
 const PhotoImage = styled.img`
     width: 100%;
     height: 100%;
     object-fit: cover;
     cursor: pointer;
+    display: block;
 `;
 
 const PhotoPlaceholder = styled.div`
@@ -110,7 +190,7 @@ const PhotoOverlay = styled.div`
     left: 0;
     right: 0;
     padding: ${props => props.theme.spacing.sm};
-    background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+    background: linear-gradient(0deg, rgba(0,0,0,0.75) 0%, transparent 100%);
     color: white;
     display: flex;
     justify-content: space-between;
@@ -122,7 +202,7 @@ const PhotoInfo = styled.div`
     min-width: 0;
 `;
 
-const PhotoName = styled.div`
+const PhotoNameText = styled.div`
     font-size: ${props => props.theme.fontSizes.xs};
     font-weight: 500;
     white-space: nowrap;
@@ -146,7 +226,7 @@ const IconButton = styled.button`
     height: 28px;
     border: none;
     border-radius: ${props => props.theme.radii.sm};
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
@@ -156,21 +236,65 @@ const IconButton = styled.button`
     color: white;
 
     &:hover {
-        background: rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.28);
         transform: scale(1.1);
     }
 
     svg {
-        width: 16px;
-        height: 16px;
+        width: 15px;
+        height: 15px;
     }
 `;
 
 const DeleteIconButton = styled(IconButton)`
     &:hover {
-        background: rgba(220, 38, 38, 0.9);
+        background: rgba(220, 38, 38, 0.85);
     }
 `;
+
+// Tags strip — shown below the image box
+const PhotoTagsStrip = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px 8px;
+    background: white;
+    border-top: 1px solid ${props => props.theme.colors.border};
+    min-height: 36px;
+    cursor: pointer;
+    transition: background 140ms ease;
+
+    &:hover {
+        background: ${st.bg};
+    }
+`;
+
+const AddTagInlineBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 7px;
+    border-radius: 9999px;
+    border: 1px dashed ${st.border};
+    background: transparent;
+    font-size: 10px;
+    font-weight: 600;
+    color: ${st.textMuted};
+    cursor: pointer;
+    transition: all 140ms ease;
+    white-space: nowrap;
+
+    svg { width: 9px; height: 9px; }
+
+    &:hover {
+        border-color: ${st.accentBlue};
+        color: ${st.accentBlue};
+        background: ${st.accentBlueDim};
+    }
+`;
+
+// ─── Document list ────────────────────────────────────────────────────────────
 
 const DocumentList = styled.div`
     display: flex;
@@ -264,34 +388,6 @@ const DeleteButton = styled(ActionButton)`
     }
 `;
 
-const UploadButton = styled.label`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    background: var(--brand-primary);
-    color: white;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        opacity: 0.9;
-        transform: translateY(-1px);
-    }
-
-    svg {
-        width: 16px;
-        height: 16px;
-    }
-`;
-
-const HiddenFileInput = styled.input`
-    display: none;
-`;
-
 const EmptyState = styled.div`
     text-align: center;
     padding: ${props => props.theme.spacing.xxl};
@@ -304,49 +400,85 @@ const SectionDivider = styled.div`
     margin: ${props => props.theme.spacing.xl} 0;
 `;
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Collect all unique tags from all photos */
+function collectAllTags(photos: NormalisedPhoto[]): string[] {
+    const set = new Set<string>();
+    photos.forEach(p => (p.tags ?? []).forEach(t => set.add(t)));
+    return Array.from(set).sort();
+}
+
+// Normalised shape used only inside this component
+interface NormalisedPhoto {
+    id: string;
+    fileName: string;
+    fileUrl: string;
+    fullSizeUrl: string;
+    uploadedAt: string;
+    description?: string;
+    isVisitPhoto: boolean;
+    tags?: string[];
+}
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+
 interface DocumentGalleryProps {
     documents: VisitDocument[];
-    visitPhotos?: VisitPhoto[];  // Photos from check-in
+    visitPhotos?: VisitPhoto[];
     isLoadingPhotos?: boolean;
     onUpload: (file: File, type: DocumentType, category: string) => void;
     onUploadPhoto: (file: File, description?: string) => void;
     onDelete: (documentId: string) => void;
     onDeletePhoto: (photoId: string) => void;
+    onUpdatePhotoTags?: (photoId: string, tags: string[]) => void;
     isUploading: boolean;
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export const DocumentGallery = ({
-                                     documents,
-                                     visitPhotos = [],
-                                     isLoadingPhotos = false,
-                                     onUpload,
-                                     onUploadPhoto,
-                                     onDelete,
-                                     onDeletePhoto,
-                                     isUploading,
-                                 }: DocumentGalleryProps) => {
+    documents,
+    visitPhotos = [],
+    isLoadingPhotos = false,
+    onUpload,
+    onUploadPhoto,
+    onDelete,
+    onDeletePhoto,
+    onUpdatePhotoTags,
+    isUploading,
+}: DocumentGalleryProps) => {
     const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
     const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<{ id: string; isPhoto: boolean; name: string } | null>(null);
+    const [editingPhoto, setEditingPhoto] = useState<NormalisedPhoto | null>(null);
+    const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
+    const [localTagsMap, setLocalTagsMap] = useState<Record<string, string[]>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Combine visit photos and document photos
+    // Tag support
+    const { data: suggestions = [] } = useTagSuggestions();
+    const updatePhotoTags = useUpdatePhotoTags({
+        onSuccess: (photoId, tags) => {
+            setLocalTagsMap(prev => ({ ...prev, [photoId]: tags }));
+            onUpdatePhotoTags?.(photoId, tags);
+        },
+    });
+
     const documentPhotos = documents.filter(doc => doc.type === 'PHOTO' || doc.type === 'DAMAGE_MAP');
 
-    // Convert visit photos to a common format for display
-    const visitPhotosAsPhotos = visitPhotos.map(vp => ({
-        id: vp.id,
-        fileName: vp.fileName,
-        fileUrl: vp.thumbnailUrl,
-        fullSizeUrl: vp.fullSizeUrl,
-        uploadedAt: vp.uploadedAt,
-        description: vp.description,
-        isVisitPhoto: true,
-    }));
-
-    // Merge all photos (visit photos first, then document photos)
-    const allPhotos = [
-        ...visitPhotosAsPhotos,
+    // Build normalised list, merging local tag overrides
+    const allPhotos: NormalisedPhoto[] = useMemo(() => [
+        ...visitPhotos.map(vp => ({
+            id: vp.id,
+            fileName: vp.fileName,
+            fileUrl: vp.thumbnailUrl,
+            fullSizeUrl: vp.fullSizeUrl,
+            uploadedAt: vp.uploadedAt,
+            description: vp.description,
+            isVisitPhoto: true,
+            tags: localTagsMap[vp.id] ?? vp.tags ?? [],
+        })),
         ...documentPhotos.map(p => ({
             id: p.id,
             fileName: p.fileName,
@@ -355,8 +487,18 @@ export const DocumentGallery = ({
             uploadedAt: p.uploadedAt,
             description: undefined,
             isVisitPhoto: false,
-        }))
-    ];
+            tags: localTagsMap[p.id] ?? [],
+        })),
+    ], [visitPhotos, documentPhotos, localTagsMap]);
+
+    const allTags = useMemo(() => collectAllTags(allPhotos), [allPhotos]);
+
+    const filteredPhotos = useMemo(() =>
+        activeTagFilter
+            ? allPhotos.filter(p => (p.tags ?? []).includes(activeTagFilter))
+            : allPhotos,
+        [allPhotos, activeTagFilter]
+    );
 
     const pdfs = documents.filter(doc =>
         doc.type === 'PDF' ||
@@ -369,22 +511,14 @@ export const DocumentGallery = ({
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Check if file is an image based on extension or MIME type
             const isImage = file.type.startsWith('image/') ||
-                           /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(file.name);
-
+                /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(file.name);
             if (isImage) {
-                // Use new photo upload endpoint for images
                 onUploadPhoto(file);
             } else {
-                // Use existing document upload for PDFs and other files
-                const type: DocumentType = 'PDF';
-                onUpload(file, type, 'inne');
+                onUpload(file, 'PDF', 'inne');
             }
-
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
+            if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
 
@@ -398,16 +532,11 @@ export const DocumentGallery = ({
         document.body.removeChild(link);
     };
 
-    const handleImageClick = (index: number) => {
-        setSelectedPhotoIndex(index);
-    };
-
-    const handleCloseModal = () => {
-        setSelectedPhotoIndex(null);
-    };
+    const handleImageClick = (index: number) => setSelectedPhotoIndex(index);
+    const handleCloseModal = () => setSelectedPhotoIndex(null);
 
     const handleNextImage = () => {
-        if (selectedPhotoIndex !== null && selectedPhotoIndex < allPhotos.length - 1) {
+        if (selectedPhotoIndex !== null && selectedPhotoIndex < filteredPhotos.length - 1) {
             setSelectedPhotoIndex(selectedPhotoIndex + 1);
         }
     };
@@ -425,13 +554,11 @@ export const DocumentGallery = ({
 
     const handleConfirmDelete = () => {
         if (!itemToDelete) return;
-
         if (itemToDelete.isPhoto) {
             onDeletePhoto(itemToDelete.id);
         } else {
             onDelete(itemToDelete.id);
         }
-
         setDeleteConfirmModalOpen(false);
         setItemToDelete(null);
     };
@@ -441,10 +568,19 @@ export const DocumentGallery = ({
         setItemToDelete(null);
     };
 
-    const selectedPhoto = selectedPhotoIndex !== null ? allPhotos[selectedPhotoIndex] : null;
+    const handleTagsSave = useCallback((photoId: string, tags: string[]) => {
+        setLocalTagsMap(prev => ({ ...prev, [photoId]: tags }));
+        updatePhotoTags.mutate({ photoId, tags });
+        setEditingPhoto(null);
+    }, [updatePhotoTags]);
+
+    const openTagEditor = (photo: NormalisedPhoto) => setEditingPhoto(photo);
+
+    const selectedPhoto = selectedPhotoIndex !== null ? filteredPhotos[selectedPhotoIndex] : null;
 
     return (
         <GalleryContainer>
+            {/* ── Header ────────────────────────────────────────────── */}
             <GalleryHeader>
                 <HeaderTop>
                     <Title>Dokumentacja</Title>
@@ -466,74 +602,134 @@ export const DocumentGallery = ({
                 </HeaderTop>
             </GalleryHeader>
 
+            {/* ── Tag filter bar (only when tags exist) ─────────────── */}
+            {allTags.length > 0 && (
+                <FilterBar>
+                    <FilterLabel>Filtruj:</FilterLabel>
+                    <AllFilterBtn
+                        $active={activeTagFilter === null}
+                        onClick={() => setActiveTagFilter(null)}
+                    >
+                        Wszystkie ({allPhotos.length})
+                    </AllFilterBtn>
+                    {allTags.map(tag => (
+                        <TagChip
+                            key={tag}
+                            label={tag}
+                            size="sm"
+                            active={activeTagFilter === tag}
+                            onClick={() => setActiveTagFilter(prev => prev === tag ? null : tag)}
+                        />
+                    ))}
+                </FilterBar>
+            )}
+
+            {/* ── Content ───────────────────────────────────────────── */}
             <GalleryContent>
-                {/* All Photos Section */}
-                {allPhotos.length > 0 && (
+
+                {/* Photos section */}
+                {filteredPhotos.length > 0 && (
                     <div style={{ marginBottom: '24px' }}>
-                        <h4 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 600 }}>
-                            Zdjęcia ({allPhotos.length})
-                        </h4>
+                        <SectionTitle>
+                            Zdjęcia
+                            <CountBadge>{filteredPhotos.length}</CountBadge>
+                            {activeTagFilter && (
+                                <span style={{ fontSize: '12px', fontWeight: 400, color: st.textMuted }}>
+                                    · filtr: <strong style={{ color: st.accentBlue }}>{activeTagFilter}</strong>
+                                </span>
+                            )}
+                        </SectionTitle>
                         <PhotoGrid>
-                            {allPhotos.map((photo, index) => (
+                            {filteredPhotos.map((photo, index) => (
                                 <PhotoCard key={photo.id}>
-                                    {photo.fileUrl ? (
-                                        <PhotoImage
-                                            src={photo.fileUrl}
-                                            alt={photo.fileName}
-                                            onClick={() => handleImageClick(index)}
-                                        />
-                                    ) : (
-                                        <PhotoPlaceholder>📸</PhotoPlaceholder>
-                                    )}
-                                    <PhotoOverlay>
-                                        <PhotoInfo>
-                                            <PhotoName>{photo.fileName}</PhotoName>
-                                            {photo.description && (
-                                                <PhotoDate style={{ marginTop: '2px' }}>{photo.description}</PhotoDate>
-                                            )}
-                                            <PhotoDate>{formatDateTime(photo.uploadedAt)}</PhotoDate>
-                                        </PhotoInfo>
-                                        <PhotoActions>
-                                            <IconButton
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDownload(photo.fullSizeUrl, photo.fileName);
-                                                }}
-                                                title="Pobierz"
-                                            >
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                                    <polyline points="7 10 12 15 17 10"/>
-                                                    <line x1="12" y1="15" x2="12" y2="3"/>
-                                                </svg>
-                                            </IconButton>
-                                            <DeleteIconButton
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDeleteClick(photo.id, photo.isVisitPhoto, photo.fileName);
-                                                }}
-                                                title="Usuń"
-                                            >
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <polyline points="3 6 5 6 21 6"/>
-                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                                    <line x1="10" y1="11" x2="10" y2="17"/>
-                                                    <line x1="14" y1="11" x2="14" y2="17"/>
-                                                </svg>
-                                            </DeleteIconButton>
-                                        </PhotoActions>
-                                    </PhotoOverlay>
+                                    {/* Image */}
+                                    <PhotoImageBox>
+                                        {photo.fileUrl ? (
+                                            <PhotoImage
+                                                src={photo.fileUrl}
+                                                alt={photo.fileName}
+                                                onClick={() => handleImageClick(index)}
+                                            />
+                                        ) : (
+                                            <PhotoPlaceholder>📸</PhotoPlaceholder>
+                                        )}
+                                        <PhotoOverlay>
+                                            <PhotoInfo>
+                                                <PhotoNameText>{photo.fileName}</PhotoNameText>
+                                                {photo.description && (
+                                                    <PhotoDate style={{ marginTop: '2px' }}>{photo.description}</PhotoDate>
+                                                )}
+                                                <PhotoDate>{formatDateTime(photo.uploadedAt)}</PhotoDate>
+                                            </PhotoInfo>
+                                            <PhotoActions>
+                                                <IconButton
+                                                    onClick={e => { e.stopPropagation(); openTagEditor(photo); }}
+                                                    title="Edytuj tagi"
+                                                >
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                                                        <line x1="7" y1="7" x2="7.01" y2="7"/>
+                                                    </svg>
+                                                </IconButton>
+                                                <IconButton
+                                                    onClick={e => {
+                                                        e.stopPropagation();
+                                                        handleDownload(photo.fullSizeUrl, photo.fileName);
+                                                    }}
+                                                    title="Pobierz"
+                                                >
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                        <polyline points="7 10 12 15 17 10"/>
+                                                        <line x1="12" y1="15" x2="12" y2="3"/>
+                                                    </svg>
+                                                </IconButton>
+                                                <DeleteIconButton
+                                                    onClick={e => {
+                                                        e.stopPropagation();
+                                                        handleDeleteClick(photo.id, photo.isVisitPhoto, photo.fileName);
+                                                    }}
+                                                    title="Usuń"
+                                                >
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <polyline points="3 6 5 6 21 6"/>
+                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                                    </svg>
+                                                </DeleteIconButton>
+                                            </PhotoActions>
+                                        </PhotoOverlay>
+                                    </PhotoImageBox>
+
+                                    {/* Tags strip */}
+                                    <PhotoTagsStrip onClick={() => openTagEditor(photo)}>
+                                        {(photo.tags ?? []).map(tag => (
+                                            <TagChip key={tag} label={tag} size="sm" />
+                                        ))}
+                                        <AddTagInlineBtn
+                                            type="button"
+                                            onClick={e => { e.stopPropagation(); openTagEditor(photo); }}
+                                        >
+                                            <svg fill="none" viewBox="0 0 10 10" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                                                <line x1="5" y1="1" x2="5" y2="9" />
+                                                <line x1="1" y1="5" x2="9" y2="5" />
+                                            </svg>
+                                            {(photo.tags ?? []).length === 0 ? 'Dodaj tagi' : 'Edytuj'}
+                                        </AddTagInlineBtn>
+                                    </PhotoTagsStrip>
                                 </PhotoCard>
                             ))}
                         </PhotoGrid>
                     </div>
                 )}
 
+                {/* PDFs */}
                 {pdfs.length > 0 && (
                     <div>
-                        <h4 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 600 }}>
-                            Dokumenty PDF ({pdfs.length})
-                        </h4>
+                        {filteredPhotos.length > 0 && <SectionDivider />}
+                        <SectionTitle>
+                            Dokumenty PDF
+                            <CountBadge>{pdfs.length}</CountBadge>
+                        </SectionTitle>
                         <DocumentList>
                             {pdfs.map(doc => (
                                 <DocumentCard key={doc.id}>
@@ -545,9 +741,7 @@ export const DocumentGallery = ({
                                         </DocumentMeta>
                                     </DocumentInfo>
                                     <DocumentActions>
-                                        <ActionButton
-                                            onClick={() => handleDownload(doc.fileUrl, doc.fileName)}
-                                        >
+                                        <ActionButton onClick={() => handleDownload(doc.fileUrl, doc.fileName)}>
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                                                 <polyline points="7 10 12 15 17 10"/>
@@ -555,9 +749,7 @@ export const DocumentGallery = ({
                                             </svg>
                                             Pobierz
                                         </ActionButton>
-                                        <DeleteButton
-                                            onClick={() => handleDeleteClick(doc.id, false, doc.fileName)}
-                                        >
+                                        <DeleteButton onClick={() => handleDeleteClick(doc.id, false, doc.fileName)}>
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <polyline points="3 6 5 6 21 6"/>
                                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -571,14 +763,16 @@ export const DocumentGallery = ({
                     </div>
                 )}
 
-                {allPhotos.length === 0 && pdfs.length === 0 && (
+                {filteredPhotos.length === 0 && pdfs.length === 0 && (
                     <EmptyState>
-                        Brak dokumentów dla tej wizyty
+                        {activeTagFilter
+                            ? `Brak zdjęć z tagiem „${activeTagFilter}"`
+                            : 'Brak dokumentów dla tej wizyty'}
                     </EmptyState>
                 )}
             </GalleryContent>
 
-            {/* Photo viewer modal */}
+            {/* Photo viewer */}
             {selectedPhoto && (
                 <ImageViewerModal
                     imageUrl={selectedPhoto.fullSizeUrl}
@@ -586,14 +780,14 @@ export const DocumentGallery = ({
                     isOpen={selectedPhotoIndex !== null}
                     onClose={handleCloseModal}
                     onDownload={() => handleDownload(selectedPhoto.fullSizeUrl, selectedPhoto.fileName)}
-                    hasNext={selectedPhotoIndex !== null && selectedPhotoIndex < allPhotos.length - 1}
+                    hasNext={selectedPhotoIndex !== null && selectedPhotoIndex < filteredPhotos.length - 1}
                     hasPrev={selectedPhotoIndex !== null && selectedPhotoIndex > 0}
                     onNext={handleNextImage}
                     onPrev={handlePrevImage}
                 />
             )}
 
-            {/* Delete confirmation modal */}
+            {/* Delete confirm */}
             <ConfirmationModal
                 isOpen={deleteConfirmModalOpen}
                 title="Usuń plik"
@@ -604,6 +798,21 @@ export const DocumentGallery = ({
                 onConfirm={handleConfirmDelete}
                 onCancel={handleCancelDelete}
             />
+
+            {/* Tag edit modal */}
+            {editingPhoto && (
+                <PhotoTagEditModal
+                    isOpen={!!editingPhoto}
+                    photoId={editingPhoto.id}
+                    fileName={editingPhoto.fileName}
+                    thumbnailUrl={editingPhoto.fileUrl}
+                    initialTags={editingPhoto.tags ?? []}
+                    suggestions={suggestions}
+                    onClose={() => setEditingPhoto(null)}
+                    onTagsChange={handleTagsSave}
+                    isSaving={updatePhotoTags.isPending}
+                />
+            )}
         </GalleryContainer>
     );
 };
