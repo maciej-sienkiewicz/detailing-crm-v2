@@ -3,7 +3,7 @@
 import { apiClient } from '@/core';
 import type { PhotoTagsResponse, TagSuggestionsResponse } from '../types';
 
-const USE_MOCKS = false;
+const USE_MOCKS = true;
 
 const MOCK_SUGGESTIONS: string[] = [
     'przód', 'tył', 'lewy bok', 'prawy bok',
