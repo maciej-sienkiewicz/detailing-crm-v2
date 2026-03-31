@@ -68,6 +68,17 @@ export const useUpdateDocumentStatus = () => {
   });
 };
 
+export const useUpdateDocumentNumber = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, documentNumber }: { id: string; documentNumber: string }) =>
+      financeApi.updateDocumentNumber(id, documentNumber),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: FINANCE_DOCS_KEY });
+    },
+  });
+};
+
 export const useDeleteDocument = () => {
   const queryClient = useQueryClient();
 

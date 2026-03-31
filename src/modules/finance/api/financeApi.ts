@@ -471,6 +471,17 @@ const mockCreateDocument = async (data: CreateDocumentRequest): Promise<Financia
   });
 };
 
+const mockUpdateDocumentNumber = async (id: string, documentNumber: string): Promise<FinancialDocument> => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const index = mockDocumentsStore.findIndex((d) => d.id === id);
+      if (index === -1) { reject(new Error('Document not found')); return; }
+      mockDocumentsStore[index] = { ...mockDocumentsStore[index], documentNumber, updatedAt: new Date().toISOString() };
+      resolve(mockDocumentsStore[index]);
+    }, 200);
+  });
+};
+
 const mockUpdateStatus = async (id: string, status: string): Promise<FinancialDocument> => {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
@@ -663,6 +674,12 @@ export const financeApi = {
     if (USE_MOCKS) return mockCreateDocument(data);
 
     const response = await apiClient.post(`${BASE_PATH}/documents`, data);
+    return response.data;
+  },
+
+  updateDocumentNumber: async (id: string, documentNumber: string): Promise<FinancialDocument> => {
+    if (USE_MOCKS) return mockUpdateDocumentNumber(id, documentNumber);
+    const response = await apiClient.patch(`${BASE_PATH}/documents/${id}`, { documentNumber });
     return response.data;
   },
 
