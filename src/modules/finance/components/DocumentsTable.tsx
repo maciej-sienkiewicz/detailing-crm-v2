@@ -49,9 +49,9 @@ const Th = styled.th<{ $align?: 'left' | 'right' | 'center'; $width?: string }>`
   text-align: ${(p) => p.$align || 'left'};
   font-size: 11px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.5);
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.55px;
   white-space: nowrap;
   width: ${(p) => p.$width || 'auto'};
 
@@ -75,68 +75,116 @@ const Tr = styled.tr`
   }
 `;
 
-const Td = styled.td<{ $align?: 'left' | 'right' | 'center'; $mono?: boolean }>`
-  padding: 12px 16px;
-  font-size: ${(p) => p.theme.fontSizes.sm};
+// ─── Unified cell typography ─────────────────────────────────────────────────
+//
+//  Every cell follows the same two-level anatomy:
+//    CellPrimary  — 13px / weight 500 / text color   (main value)
+//    CellSecondary — 12px / weight 400 / muted color  (metadata, always margin-top 3px)
+//
+// ─────────────────────────────────────────────────────────────────────────────
+
+const Td = styled.td<{ $align?: 'left' | 'right' | 'center' }>`
+  padding: 13px 16px;
+  font-size: 13px;
+  font-weight: 400;
   color: ${(p) => p.theme.colors.text};
   vertical-align: middle;
   text-align: ${(p) => p.$align || 'left'};
-
-  ${(p) =>
-    p.$mono &&
-    css`
-      font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
-      font-feature-settings: 'tnum';
-    `}
 
   &:first-child { padding-left: 20px; }
   &:last-child  { padding-right: 20px; }
 `;
 
-// ─── Date ────────────────────────────────────────────────────────────────────
-
-const DatePrimary = styled.span`
+const CellPrimary = styled.span`
   display: block;
+  font-size: 13px;
   font-weight: 500;
+  color: ${(p) => p.theme.colors.text};
   white-space: nowrap;
 `;
 
-const DueDateText = styled.span<{ $overdue?: boolean }>`
+const CellSecondary = styled.span<{ $danger?: boolean }>`
   display: block;
   margin-top: 3px;
-  font-size: ${(p) => p.theme.fontSizes.xs};
-  color: ${(p) => (p.$overdue ? '#ef4444' : p.theme.colors.textMuted)};
+  font-size: 12px;
+  font-weight: 400;
+  color: ${(p) => (p.$danger ? '#ef4444' : p.theme.colors.textMuted)};
   white-space: nowrap;
 `;
 
-// ─── Document type ────────────────────────────────────────────────────────────
+// ─── Unified badge system ─────────────────────────────────────────────────────
+//
+//  One badge anatomy for the entire table.
+//  Variant controls colour only; shape, size, weight are always identical.
+//
+//  Variants:
+//    blue   → Invoice / App source
+//    teal   → Receipt
+//    purple → Other doc type / External source
+//    green  → Paid / Synced
+//    amber  → Pending / Sync-pending
+//    red    → Overdue / Sync-failed
+//    slate  → Neutral fallback
+//
+// ─────────────────────────────────────────────────────────────────────────────
 
-const DocTypeBadge = styled.span<{ $type: string }>`
+type BadgeVariant = 'blue' | 'teal' | 'purple' | 'green' | 'amber' | 'red' | 'slate';
+
+const BADGE_COLORS: Record<BadgeVariant, { bg: string; color: string; border: string }> = {
+  blue:   { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+  teal:   { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
+  purple: { bg: '#f5f3ff', color: '#6d28d9', border: '#ddd6fe' },
+  green:  { bg: '#dcfce7', color: '#166534', border: '#86efac' },
+  amber:  { bg: '#fef9c3', color: '#92400e', border: '#fde68a' },
+  red:    { bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' },
+  slate:  { bg: '#f1f5f9', color: '#475569', border: '#cbd5e1' },
+};
+
+const Badge = styled.span<{ $variant: BadgeVariant }>`
   display: inline-flex;
   align-items: center;
-  padding: 3px 10px;
-  border-radius: ${(p) => p.theme.radii.full};
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 5px;
   font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.05px;
   white-space: nowrap;
-  background: ${(p) =>
-    p.$type === 'INVOICE' ? '#eff6ff' : p.$type === 'RECEIPT' ? '#f0fdf4' : '#f5f3ff'};
-  color: ${(p) =>
-    p.$type === 'INVOICE' ? '#1d4ed8' : p.$type === 'RECEIPT' ? '#15803d' : '#7c3aed'};
-  border: 1px solid ${(p) =>
-    p.$type === 'INVOICE' ? '#bfdbfe' : p.$type === 'RECEIPT' ? '#bbf7d0' : '#ddd6fe'};
+  background: ${(p) => BADGE_COLORS[p.$variant].bg};
+  color: ${(p) => BADGE_COLORS[p.$variant].color};
+  border: 1px solid ${(p) => BADGE_COLORS[p.$variant].border};
+
+  svg { flex-shrink: 0; }
 `;
 
-const DocDescription = styled.span`
-  display: block;
-  margin-top: 4px;
-  font-size: ${(p) => p.theme.fontSizes.xs};
-  color: ${(p) => p.theme.colors.textMuted};
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+// Status is interactive (button) but shares the same visual anatomy as Badge
+const StatusBadge = styled.button<{ $variant: BadgeVariant }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05px;
   white-space: nowrap;
+  background: ${(p) => BADGE_COLORS[p.$variant].bg};
+  color: ${(p) => BADGE_COLORS[p.$variant].color};
+  border: 1px solid ${(p) => BADGE_COLORS[p.$variant].border};
+  cursor: pointer;
+  transition: filter 0.12s ease;
+
+  &:hover { filter: brightness(0.93); }
 `;
+
+const docTypeVariant = (type: string): BadgeVariant =>
+  type === 'INVOICE' ? 'blue' : type === 'RECEIPT' ? 'teal' : 'purple';
+
+const statusVariant = (status: string): BadgeVariant =>
+  status === 'PAID' ? 'green' : status === 'OVERDUE' ? 'red' : 'amber';
+
+const syncVariant = (s: Exclude<SyncStatus, 'na'>): BadgeVariant =>
+  s === 'synced' ? 'green' : s === 'failed' ? 'red' : 'amber';
 
 // ─── Document number (inline edit) ───────────────────────────────────────────
 
@@ -147,11 +195,10 @@ const DocNumberWrap = styled.div`
 `;
 
 const DocNumberValue = styled.span`
-  font-weight: 600;
-  color: var(--brand-primary);
-  font-family: 'JetBrains Mono', 'SF Mono', monospace;
   font-size: 13px;
-  letter-spacing: -0.2px;
+  font-weight: 500;
+  color: ${(p) => p.theme.colors.text};
+  letter-spacing: -0.1px;
   white-space: nowrap;
 `;
 
@@ -190,8 +237,7 @@ const NumberInput = styled.input`
   border: 2px solid var(--brand-primary);
   border-radius: 6px;
   font-size: 13px;
-  font-family: 'JetBrains Mono', 'SF Mono', monospace;
-  font-weight: 600;
+  font-weight: 500;
   color: #0f172a;
   background: #fff;
   outline: none;
@@ -232,120 +278,76 @@ const IconBtn = styled.button<{ $variant?: 'save' | 'cancel' }>`
   svg { width: 12px; height: 12px; }
 `;
 
-// ─── Client ──────────────────────────────────────────────────────────────────
-
-const ClientName = styled.span`
-  display: block;
-  font-weight: 500;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const ClientNip = styled.span`
-  display: block;
-  margin-top: 2px;
-  font-size: ${(p) => p.theme.fontSizes.xs};
-  color: ${(p) => p.theme.colors.textMuted};
-`;
-
 // ─── Amount ──────────────────────────────────────────────────────────────────
+//
+//  Amounts retain tabular monospace font — this is correct premium practice
+//  for financial data (prevents column jitter, aids scannability).
+//  Only weight and size are normalised to the shared typographic scale.
+//
+// ─────────────────────────────────────────────────────────────────────────────
 
-const AmountGross = styled.span`
+const AmountPrimary = styled.span`
   display: block;
-  font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
-  font-feature-settings: 'tnum';
-  white-space: nowrap;
-`;
-
-const AmountNet = styled.span`
-  display: block;
-  margin-top: 2px;
-  font-size: ${(p) => p.theme.fontSizes.xs};
-  color: ${(p) => p.theme.colors.textMuted};
-  font-family: 'JetBrains Mono', monospace;
-  font-feature-settings: 'tnum';
-  white-space: nowrap;
-`;
-
-// ─── Payment status ───────────────────────────────────────────────────────────
-
-const statusColors: Record<string, { bg: string; color: string; border: string }> = {
-  PAID:    { bg: '#dcfce7', color: '#166534', border: '#86efac' },
-  PENDING: { bg: '#fef9c3', color: '#854d0e', border: '#fde047' },
-  OVERDUE: { bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' },
-};
-
-const StatusBadge = styled.button<{ $status: string }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  border-radius: ${(p) => p.theme.radii.full};
-  border: 1px solid ${(p) => statusColors[p.$status]?.border || p.theme.colors.border};
-  background: ${(p) => statusColors[p.$status]?.bg || 'transparent'};
-  color: ${(p) => statusColors[p.$status]?.color || p.theme.colors.text};
-  cursor: pointer;
-  transition: filter 0.12s ease;
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-feature-settings: 'tnum';
   white-space: nowrap;
-
-  &:hover { filter: brightness(0.93); }
+  color: ${(p) => p.theme.colors.text};
 `;
 
-const PaymentMethodLabel = styled.span`
+const AmountSecondary = styled.span`
   display: block;
-  font-size: ${(p) => p.theme.fontSizes.xs};
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 400;
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-feature-settings: 'tnum';
+  white-space: nowrap;
   color: ${(p) => p.theme.colors.textMuted};
-  margin-bottom: 5px;
-  white-space: nowrap;
 `;
 
-// ─── Source ───────────────────────────────────────────────────────────────────
+// ─── Misc ─────────────────────────────────────────────────────────────────────
 
-const SourceBadge = styled.span<{ $external: boolean }>`
+const EmDash = styled.span`
+  color: ${(p) => p.theme.colors.textMuted};
+  font-size: 13px;
+`;
+
+const DeleteBtn = styled.button`
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: ${(p) => p.theme.radii.full};
-  font-size: 11px;
-  font-weight: 500;
-  white-space: nowrap;
-  background: ${(p) => (p.$external ? '#f5f3ff' : '#f0f9ff')};
-  color: ${(p) => (p.$external ? '#7c3aed' : '#0369a1')};
-  border: 1px solid ${(p) => (p.$external ? '#ddd6fe' : '#bae6fd')};
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: ${(p) => p.theme.colors.textMuted};
+  opacity: 0;
+  transition: all 0.12s ease;
 
-  svg { flex-shrink: 0; }
+  tr:hover & { opacity: 1; }
+  &:hover { background: #fee2e2; color: #ef4444; border-color: #fca5a5; }
+
+  svg { width: 14px; height: 14px; }
 `;
 
-// ─── Sync status ──────────────────────────────────────────────────────────────
-
-const SyncBadge = styled.span<{ $s: 'synced' | 'failed' | 'pending' }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: ${(p) => p.theme.radii.full};
-  font-size: 11px;
-  font-weight: 500;
-  white-space: nowrap;
-  background: ${(p) =>
-    p.$s === 'synced' ? '#dcfce7' : p.$s === 'failed' ? '#fee2e2' : '#fef9c3'};
-  color: ${(p) =>
-    p.$s === 'synced' ? '#166534' : p.$s === 'failed' ? '#991b1b' : '#854d0e'};
-  border: 1px solid ${(p) =>
-    p.$s === 'synced' ? '#86efac' : p.$s === 'failed' ? '#fca5a5' : '#fde047'};
-
-  svg { flex-shrink: 0; }
+const Skeleton = styled.div<{ $w?: string }>`
+  height: 14px;
+  width: ${(p) => p.$w || '100%'};
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: ${shimmer} 1.5s infinite;
+  border-radius: 4px;
 `;
 
-const Muted = styled.span`
-  color: #9ca3af;
-  font-size: 16px;
+const EmptyState = styled.div`
+  padding: 56px;
+  text-align: center;
+  color: ${(p) => p.theme.colors.textMuted};
+  font-size: ${(p) => p.theme.fontSizes.sm};
 `;
 
 // ─── Status dropdown ──────────────────────────────────────────────────────────
@@ -399,44 +401,6 @@ const DropdownItem = styled.button<{ $active?: boolean; $danger?: boolean }>`
   }
 `;
 
-// ─── Misc ─────────────────────────────────────────────────────────────────────
-
-const DeleteBtn = styled.button`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid transparent;
-  background: transparent;
-  border-radius: 6px;
-  cursor: pointer;
-  color: ${(p) => p.theme.colors.textMuted};
-  opacity: 0;
-  transition: all 0.12s ease;
-
-  tr:hover & { opacity: 1; }
-  &:hover { background: #fee2e2; color: #ef4444; border-color: #fca5a5; }
-
-  svg { width: 14px; height: 14px; }
-`;
-
-const Skeleton = styled.div<{ $w?: string }>`
-  height: 14px;
-  width: ${(p) => p.$w || '100%'};
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: ${shimmer} 1.5s infinite;
-  border-radius: 4px;
-`;
-
-const EmptyState = styled.div`
-  padding: 56px;
-  text-align: center;
-  color: ${(p) => p.theme.colors.textMuted};
-  font-size: ${(p) => p.theme.fontSizes.sm};
-`;
-
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
 const IconPencil = () => (
@@ -473,19 +437,22 @@ const IconTrash = () => (
   </svg>
 );
 
-const IconApp = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-    <line x1="8" y1="21" x2="16" y2="21" />
-    <line x1="12" y1="17" x2="12" y2="21" />
+const IconSyncOk = () => (
+  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+    <polyline points="20 6 9 17 4 12" />
   </svg>
 );
 
-const IconExternal = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-    <polyline points="15 3 21 3 21 9" />
-    <line x1="10" y1="14" x2="21" y2="3" />
+const IconSyncFail = () => (
+  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+const IconSyncWait = () => (
+  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
   </svg>
 );
 
@@ -626,18 +593,18 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
             <tr>
               <Th>Data sprzedaży</Th><Th>Nazwa dokumentu</Th><Th>Numer dokumentu</Th>
               <Th>Klient</Th><Th $align="right">Kwota</Th><Th>Płatność</Th>
-              <Th>Źródło</Th><Th $align="center">Synchronizacja</Th><Th $width="44px" />
+              <Th>Źródło</Th><Th>Synchronizacja</Th><Th $width="44px" />
             </tr>
           </Thead>
           <tbody>
             {[1, 2, 3, 4, 5].map((i) => (
               <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
                 {[70, 100, 110, 130, 80, 110, 90, 90].map((w, j) => (
-                  <td key={j} style={{ padding: '14px 16px' }}>
+                  <td key={j} style={{ padding: '13px 16px' }}>
                     <Skeleton $w={`${w}px`} />
                   </td>
                 ))}
-                <td style={{ padding: '14px 16px' }} />
+                <td style={{ padding: '13px 16px' }} />
               </tr>
             ))}
           </tbody>
@@ -669,7 +636,7 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
               <Th $align="right">Kwota</Th>
               <Th>Płatność</Th>
               <Th>Źródło</Th>
-              <Th $align="center">Synchronizacja</Th>
+              <Th>Synchronizacja</Th>
               <Th $width="44px" />
             </tr>
           </Thead>
@@ -694,19 +661,27 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
 
                   {/* Data sprzedaży */}
                   <Td>
-                    <DatePrimary>{formatDate(doc.issueDate)}</DatePrimary>
+                    <CellPrimary>{formatDate(doc.issueDate)}</CellPrimary>
                     {doc.dueDate && (
-                      <DueDateText $overdue={isOverdue}>
+                      <CellSecondary $danger={isOverdue}>
                         Termin: {formatDate(doc.dueDate)}
-                      </DueDateText>
+                      </CellSecondary>
                     )}
                   </Td>
 
                   {/* Nazwa dokumentu */}
                   <Td>
-                    <DocTypeBadge $type={doc.documentType}>{doc.documentTypeLabel}</DocTypeBadge>
+                    <Badge $variant={docTypeVariant(doc.documentType)}>
+                      {doc.documentTypeLabel}
+                    </Badge>
                     {doc.description && (
-                      <DocDescription title={doc.description}>{doc.description}</DocDescription>
+                      <CellSecondary
+                        as="span"
+                        title={doc.description}
+                        style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}
+                      >
+                        {doc.description}
+                      </CellSecondary>
                     )}
                   </Td>
 
@@ -757,69 +732,61 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                   <Td>
                     {clientName ? (
                       <>
-                        <ClientName title={clientName}>{clientName}</ClientName>
+                        <CellPrimary
+                          as="span"
+                          title={clientName}
+                          style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}
+                        >
+                          {clientName}
+                        </CellPrimary>
                         {doc.counterpartyNip && (
-                          <ClientNip>NIP: {doc.counterpartyNip}</ClientNip>
+                          <CellSecondary>NIP: {doc.counterpartyNip}</CellSecondary>
                         )}
                       </>
                     ) : (
-                      <Muted>—</Muted>
+                      <EmDash>—</EmDash>
                     )}
                   </Td>
 
                   {/* Kwota */}
                   <Td $align="right">
-                    <AmountGross>{formatMoney(doc.totalGross)}</AmountGross>
-                    <AmountNet>{formatMoney(doc.totalNet)} netto</AmountNet>
+                    <AmountPrimary>{formatMoney(doc.totalGross)}</AmountPrimary>
+                    <AmountSecondary>{formatMoney(doc.totalNet)} netto</AmountSecondary>
                   </Td>
 
                   {/* Płatność: metoda + status */}
                   <Td onClick={(e) => e.stopPropagation()}>
-                    <PaymentMethodLabel>{doc.paymentMethodLabel}</PaymentMethodLabel>
                     <StatusBadge
-                      $status={doc.status}
+                      $variant={statusVariant(doc.status)}
                       onClick={(e) => handleStatusClick(doc.id, e)}
                     >
                       {doc.statusLabel}
                       <IconChevron />
                     </StatusBadge>
+                    <CellSecondary style={{ marginTop: 4 }}>{doc.paymentMethodLabel}</CellSecondary>
                   </Td>
 
                   {/* Źródło */}
                   <Td>
-                    <SourceBadge $external={isExternal}>
-                      {isExternal ? <IconExternal /> : <IconApp />}
+                    <Badge $variant={isExternal ? 'purple' : 'blue'}>
                       {isExternal ? (doc.providerLabel ?? doc.sourceLabel) : 'Aplikacja'}
-                    </SourceBadge>
+                    </Badge>
                   </Td>
 
                   {/* Synchronizacja */}
-                  <Td $align="center">
+                  <Td>
                     {syncStatus === 'na' ? (
-                      <Muted>—</Muted>
+                      <EmDash>—</EmDash>
                     ) : (
-                      <SyncBadge
-                        $s={syncStatus}
+                      <Badge
+                        $variant={syncVariant(syncStatus)}
                         title={doc.providerSyncError ?? doc.providerSyncStatusLabel ?? undefined}
                       >
-                        {syncStatus === 'synced' && (
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        )}
-                        {syncStatus === 'failed' && (
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                          </svg>
-                        )}
-                        {syncStatus === 'pending' && (
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <circle cx="12" cy="12" r="10" />
-                            <polyline points="12 6 12 12 16 14" />
-                          </svg>
-                        )}
+                        {syncStatus === 'synced'  && <IconSyncOk />}
+                        {syncStatus === 'failed'  && <IconSyncFail />}
+                        {syncStatus === 'pending' && <IconSyncWait />}
                         {SYNC_LABELS[syncStatus]}
-                      </SyncBadge>
+                      </Badge>
                     )}
                   </Td>
 
