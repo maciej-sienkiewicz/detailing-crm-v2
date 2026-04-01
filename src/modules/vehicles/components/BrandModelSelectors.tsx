@@ -381,7 +381,7 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
         {selectedLabel ? (
           <span>{selectedLabel}</span>
         ) : (
-          <Placeholder $compact={compact}>{disabled ? 'Wybierz markę najpierw' : placeholder}</Placeholder>
+          <Placeholder $compact={compact}>{disabled ? 'Wybierz markę' : placeholder}</Placeholder>
         )}
         <Caret />
       </Trigger>
@@ -391,7 +391,7 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
             <SearchInput
               ref={searchRef}
               type="text"
-              placeholder={brand ? 'Szukaj modelu...' : 'Wybierz markę najpierw'}
+              placeholder={brand ? 'Szukaj modelu...' : 'Wybierz markę'}
               value={query}
               onChange={e => setQuery(e.target.value)}
               disabled={!brand}
