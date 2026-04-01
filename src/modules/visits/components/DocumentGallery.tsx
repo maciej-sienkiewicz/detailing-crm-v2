@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import { formatDateTime } from '@/common/utils';
 import type { VisitDocument, VisitPhoto } from '../types';
 import { ImageViewerModal } from './ImageViewerModal';
+import { PdfViewerModal } from './PdfViewerModal';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { TagChip } from '@/modules/photos/components/TagChip';
 import { PhotoTagEditModal } from '@/modules/photos/components/PhotoTagEditModal';
@@ -393,6 +394,7 @@ export const DocumentGallery = ({
     const [editingPhoto, setEditingPhoto] = useState<NormalisedPhoto | null>(null);
     const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
     const [localTagsMap, setLocalTagsMap] = useState<Record<string, string[]>>({});
+    const [previewPdf, setPreviewPdf] = useState<{ fileUrl: string; fileName: string } | null>(null);
 
     // Tag support
     const { data: suggestions = [] } = useTagSuggestions();
@@ -456,8 +458,8 @@ export const DocumentGallery = ({
         document.body.removeChild(link);
     };
 
-    const handlePreview = (fileUrl: string) => {
-        window.open(fileUrl, '_blank', 'noopener,noreferrer');
+    const handlePreview = (fileUrl: string, fileName: string) => {
+        setPreviewPdf({ fileUrl, fileName });
     };
 
     const handleImageClick = (index: number) => setSelectedPhotoIndex(index);
@@ -647,7 +649,7 @@ export const DocumentGallery = ({
                                         </DocumentMeta>
                                     </DocumentInfo>
                                     <DocumentActions>
-                                        <ActionButton onClick={() => handlePreview(doc.fileUrl)}>
+                                        <ActionButton onClick={() => handlePreview(doc.fileUrl, doc.fileName)}>
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                                                 <circle cx="12" cy="12" r="3"/>
@@ -687,6 +689,15 @@ export const DocumentGallery = ({
                     </EmptyState>
                 )}
             </GalleryContent>
+
+            {/* PDF viewer */}
+            <PdfViewerModal
+                isOpen={!!previewPdf}
+                fileUrl={previewPdf?.fileUrl ?? ''}
+                fileName={previewPdf?.fileName ?? ''}
+                onClose={() => setPreviewPdf(null)}
+                onDownload={() => previewPdf && handleDownload(previewPdf.fileUrl, previewPdf.fileName)}
+            />
 
             {/* Photo viewer */}
             {selectedPhoto && (
