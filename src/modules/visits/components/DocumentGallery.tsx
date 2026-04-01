@@ -1,9 +1,9 @@
 // src/modules/visits/components/DocumentGallery.tsx
 
-import { useState, useRef, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
 import { formatDateTime } from '@/common/utils';
-import type { VisitDocument, DocumentType, VisitPhoto } from '../types';
+import type { VisitDocument, VisitPhoto } from '../types';
 import { ImageViewerModal } from './ImageViewerModal';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { TagChip } from '@/modules/photos/components/TagChip';
@@ -12,43 +12,6 @@ import { useTagSuggestions, useUpdatePhotoTags } from '@/modules/photos/hooks/us
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-
-const DocActionsBar = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding: 10px 20px;
-    background: ${st.bg};
-    border-bottom: 1px solid ${props => props.theme.colors.border};
-`;
-
-const UploadButton = styled.label`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    background: var(--brand-primary);
-    color: white;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        opacity: 0.9;
-        transform: translateY(-1px);
-    }
-
-    svg {
-        width: 16px;
-        height: 16px;
-    }
-`;
-
-const HiddenFileInput = styled.input`
-    display: none;
-`;
 
 // ─── Tag filter bar ───────────────────────────────────────────────────────────
 
@@ -409,12 +372,9 @@ interface DocumentGalleryProps {
     documents: VisitDocument[];
     visitPhotos?: VisitPhoto[];
     isLoadingPhotos?: boolean;
-    onUpload: (file: File, type: DocumentType, category: string) => void;
-    onUploadPhoto: (file: File, description?: string) => void;
     onDelete: (documentId: string) => void;
     onDeletePhoto: (photoId: string) => void;
     onUpdatePhotoTags?: (photoId: string, tags: string[]) => void;
-    isUploading: boolean;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -423,12 +383,9 @@ export const DocumentGallery = ({
     documents,
     visitPhotos = [],
     isLoadingPhotos = false,
-    onUpload,
-    onUploadPhoto,
     onDelete,
     onDeletePhoto,
     onUpdatePhotoTags,
-    isUploading,
 }: DocumentGalleryProps) => {
     const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
     const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
@@ -436,7 +393,6 @@ export const DocumentGallery = ({
     const [editingPhoto, setEditingPhoto] = useState<NormalisedPhoto | null>(null);
     const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
     const [localTagsMap, setLocalTagsMap] = useState<Record<string, string[]>>({});
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Tag support
     const { data: suggestions = [] } = useTagSuggestions();
@@ -490,20 +446,6 @@ export const DocumentGallery = ({
         doc.type === 'OTHER'
     );
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const isImage = file.type.startsWith('image/') ||
-                /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(file.name);
-            if (isImage) {
-                onUploadPhoto(file);
-            } else {
-                onUpload(file, 'PDF', 'inne');
-            }
-            if (fileInputRef.current) fileInputRef.current.value = '';
-        }
-    };
-
     const handleDownload = (fileUrl: string, fileName: string) => {
         const link = document.createElement('a');
         link.href = fileUrl;
@@ -512,6 +454,10 @@ export const DocumentGallery = ({
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    };
+
+    const handlePreview = (fileUrl: string) => {
+        window.open(fileUrl, '_blank', 'noopener,noreferrer');
     };
 
     const handleImageClick = (index: number) => setSelectedPhotoIndex(index);
@@ -562,25 +508,6 @@ export const DocumentGallery = ({
 
     return (
         <>
-            {/* ── Actions bar ───────────────────────────────────────── */}
-            <DocActionsBar>
-                <UploadButton>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="17 8 12 3 7 8"/>
-                        <line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                    {isUploading ? 'Wysyłanie...' : 'Dodaj plik'}
-                    <HiddenFileInput
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*,.pdf"
-                        onChange={handleFileSelect}
-                        disabled={isUploading}
-                    />
-                </UploadButton>
-            </DocActionsBar>
-
             {/* ── Tag filter bar (only when tags exist) ─────────────── */}
             {allTags.length > 0 && (
                 <FilterBar>
@@ -720,7 +647,17 @@ export const DocumentGallery = ({
                                         </DocumentMeta>
                                     </DocumentInfo>
                                     <DocumentActions>
-                                        <ActionButton onClick={() => handleDownload(doc.fileUrl, doc.fileName)}>
+                                        <ActionButton onClick={() => handlePreview(doc.fileUrl)}>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                <circle cx="12" cy="12" r="3"/>
+                                            </svg>
+                                            Podgląd
+                                        </ActionButton>
+                                        <ActionButton
+                                            title="Pobierz"
+                                            onClick={() => handleDownload(doc.fileUrl, doc.fileName)}
+                                        >
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                                                 <polyline points="7 10 12 15 17 10"/>

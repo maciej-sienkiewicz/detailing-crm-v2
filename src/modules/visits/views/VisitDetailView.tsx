@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { useVisitDetail, useVisitDocuments, useVisitPhotos } from '../hooks';
@@ -159,8 +159,15 @@ const SectionBody = styled.div<{ $visible: boolean; $flush?: boolean }>`
     animation: ${fadeUp} 0.2s ease;
 `;
 
-const DocsSectionHeader = styled(SectionHeader)`
-    padding: 0;
+const DocsSectionHeader = styled.div`
+    width: 100%;
+    display: flex;
+    align-items: center;
+    background: ${st.bg};
+    border-bottom: 1px solid ${st.border};
+    cursor: pointer;
+    transition: background ${st.transition};
+    &:hover { background: ${st.bgCardAlt}; }
 `;
 
 const DocsHeaderMain = styled.div`
@@ -192,11 +199,43 @@ const StatPill = styled.span<{ $color?: 'blue' | 'amber' }>`
     border: 1px solid ${p => p.$color === 'amber' ? 'rgba(245,158,11,0.25)' : 'rgba(59,130,246,0.2)'};
 `;
 
-const DocsHeaderChevron = styled.div`
-    padding: 14px 20px 14px 0;
+const DocsHeaderRight = styled.div`
     display: flex;
     align-items: center;
+    gap: 10px;
+    padding-right: 16px;
     flex-shrink: 0;
+`;
+
+const UploadHeaderLabel = styled.label<{ $uploading?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: ${st.accentBlue};
+    color: white;
+    border: none;
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    cursor: ${p => p.$uploading ? 'not-allowed' : 'pointer'};
+    opacity: ${p => p.$uploading ? 0.6 : 1};
+    transition: all ${st.transition};
+    box-shadow: ${st.shadowXs};
+    white-space: nowrap;
+    user-select: none;
+
+    &:hover {
+        background: ${p => p.$uploading ? st.accentBlue : '#2563EB'};
+        box-shadow: ${p => p.$uploading ? st.shadowXs : st.shadowSm};
+        transform: ${p => p.$uploading ? 'none' : 'translateY(-1px)'};
+    }
+
+    svg { width: 13px; height: 13px; flex-shrink: 0; }
+`;
+
+const HiddenFileInput = styled.input`
+    display: none;
 `;
 
 // ─── Loading / Error ──────────────────────────────────────────────────────────
@@ -377,6 +416,19 @@ export const VisitDetailView = () => {
     const pdfCount = documents.filter(d => !['PHOTO', 'DAMAGE_MAP'].includes(d.type)).length;
     const totalDocCount = photoCount + pdfCount;
 
+    const docFileInputRef = useRef<HTMLInputElement>(null);
+    const handleDocFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(file.name);
+        if (isImage) {
+            handleUploadPhoto(file);
+        } else {
+            handleUploadDocument(file, 'PDF', 'inne');
+        }
+        if (docFileInputRef.current) docFileInputRef.current.value = '';
+    };
+
     return (
         <ViewContainer>
             <VisitHeader
@@ -403,8 +455,11 @@ export const VisitDetailView = () => {
                         <Section>
                             <DocsSectionHeader
                                 onClick={() => setIsDocsOpen(v => !v)}
+                                role="button"
+                                tabIndex={0}
                                 aria-expanded={isDocsOpen}
                                 aria-controls="docs-section"
+                                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setIsDocsOpen(v => !v); }}
                             >
                                 <DocsHeaderMain>
                                     <SectionIconWrap>
@@ -441,22 +496,36 @@ export const VisitDetailView = () => {
                                         )}
                                     </DocsHeaderStats>
                                 </DocsHeaderMain>
-                                <DocsHeaderChevron>
+                                <DocsHeaderRight>
+                                    <UploadHeaderLabel
+                                        $uploading={isUploading || isUploadingPhoto}
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <line x1="12" y1="5" x2="12" y2="19" />
+                                            <line x1="5" y1="12" x2="19" y2="12" />
+                                        </svg>
+                                        {isUploading || isUploadingPhoto ? 'Wysyłanie...' : 'Dodaj plik'}
+                                        <HiddenFileInput
+                                            ref={docFileInputRef}
+                                            type="file"
+                                            accept="image/*,.pdf"
+                                            onChange={handleDocFileSelect}
+                                            disabled={isUploading || isUploadingPhoto}
+                                        />
+                                    </UploadHeaderLabel>
                                     <ChevronIcon $open={isDocsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <polyline points="6 9 12 15 18 9" />
                                     </ChevronIcon>
-                                </DocsHeaderChevron>
+                                </DocsHeaderRight>
                             </DocsSectionHeader>
                             <SectionBody $flush $visible={isDocsOpen} id="docs-section">
                                 <DocumentGallery
                                     documents={documents}
                                     visitPhotos={visitPhotos}
                                     isLoadingPhotos={isLoadingPhotos}
-                                    onUpload={handleUploadDocument}
-                                    onUploadPhoto={handleUploadPhoto}
                                     onDelete={handleDeleteDocument}
                                     onDeletePhoto={handleDeletePhoto}
-                                    isUploading={isUploading || isUploadingPhoto}
                                 />
                             </SectionBody>
                         </Section>
