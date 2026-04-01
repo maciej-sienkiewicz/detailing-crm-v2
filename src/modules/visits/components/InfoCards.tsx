@@ -258,7 +258,7 @@ export const CustomerInfoCard = ({ customer, onViewDetails }: CustomerInfoCardPr
 
                 <StatsGrid>
                     <StatCell>
-                        <StatLabel>LTV</StatLabel>
+                        <StatLabel>Przychód</StatLabel>
                         <StatValue>
                             {formatCurrency(
                                 customer.stats.totalSpent.grossAmount / 100,

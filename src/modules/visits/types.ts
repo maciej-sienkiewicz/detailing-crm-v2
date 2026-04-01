@@ -102,6 +102,7 @@ export interface VisitDocument {
 
 export interface Visit {
     id: string;
+    title: string;
     visitNumber: string;
     status: VisitStatus;
     scheduledDate: string;

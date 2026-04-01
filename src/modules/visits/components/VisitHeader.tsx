@@ -319,7 +319,7 @@ export const VisitHeader = ({
                     </BreadcrumbRow>
 
                     <TitleRow>
-                        <VisitNumber>{visit.visitNumber}</VisitNumber>
+                        <VisitNumber>{visit.title}</VisitNumber>
                         {visit.vehicle.licensePlate && (
                             <LicensePlateBadge>{visit.vehicle.licensePlate}</LicensePlateBadge>
                         )}
