@@ -27,6 +27,13 @@ const fadeUp = keyframes`
     to   { opacity: 1; transform: translateY(0); }
 `;
 
+// Opacity-only fade for top-level containers — transform-based animations
+// on ancestors break position:fixed modals (they become the containing block).
+const fadeIn = keyframes`
+    from { opacity: 0; }
+    to   { opacity: 1; }
+`;
+
 const spin = keyframes`
     to { transform: rotate(360deg); }
 `;
@@ -38,7 +45,7 @@ const ViewContainer = styled.main`
     flex-direction: column;
     min-height: 100vh;
     background: ${st.bg};
-    animation: ${fadeUp} 0.3s ease both;
+    animation: ${fadeIn} 0.3s ease both;
 `;
 
 const ContentArea = styled.div`
