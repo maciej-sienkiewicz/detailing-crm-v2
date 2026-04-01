@@ -71,38 +71,18 @@ const SectionControls = styled.div`
     flex-wrap: wrap;
 `;
 
-// ─── "ORAZ" connector between sections ───────────────────────────────────────
+// ─── separator between sections ──────────────────────────────────────────────
 
-const ConnectorWrap = styled.div`
-    display: flex;
-    align-items: center;
-    padding: 0 20px;
+const SectionDivider = styled.div`
+    width: 1px;
+    align-self: stretch;
+    margin: 14px 20px;
+    background: ${p => p.theme.colors.border};
     flex-shrink: 0;
 
     @media (max-width: 768px) {
         display: none;
     }
-`;
-
-const AndBadge = styled.div<{ $active: boolean }>`
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    white-space: nowrap;
-    padding: 4px 10px;
-    border-radius: 9999px;
-    transition: all 0.25s ease;
-
-    ${p => p.$active ? css`
-        background: rgba(14, 165, 233, 0.08);
-        color: var(--brand-primary);
-        border: 1px solid rgba(14, 165, 233, 0.3);
-    ` : css`
-        background: transparent;
-        color: ${p.theme.colors.border};
-        border: 1px solid ${p.theme.colors.border};
-    `}
 `;
 
 // ─── right side: count + clear ────────────────────────────────────────────────
@@ -452,7 +432,6 @@ export const GalleryFilterBar = ({
     const hasVehicleFilter = !!brand || !!model;
     const hasTagFilter = activeTags.length > 0;
     const hasAnyFilter = hasVehicleFilter || hasTagFilter;
-    const andActive = hasVehicleFilter && hasTagFilter;
 
     const countLabel = isFetching
         ? '…'
@@ -489,10 +468,7 @@ export const GalleryFilterBar = ({
                 </SectionControls>
             </FilterSection>
 
-            {/* ── ORAZ connector ── */}
-            <ConnectorWrap>
-                <AndBadge $active={andActive}>ORAZ</AndBadge>
-            </ConnectorWrap>
+            <SectionDivider />
 
             {/* ── TAGI ── */}
             <FilterSection $grow>

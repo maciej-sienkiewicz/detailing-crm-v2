@@ -24,12 +24,25 @@ const Page = styled.div`
 `;
 
 const PageHeader = styled.div`
-    padding: ${p => p.theme.spacing.lg} ${p => p.theme.spacing.xl};
-    background: ${p => p.theme.colors.surface};
-    border-bottom: 1px solid ${p => p.theme.colors.border};
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 65%, #0c1f35 100%);
+    padding: 24px ${p => p.theme.spacing.xl};
     display: flex;
     align-items: center;
     gap: ${p => p.theme.spacing.md};
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 4px 20px rgba(0, 0, 0, 0.14);
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: -60px;
+        right: -40px;
+        width: 280px;
+        height: 280px;
+        background: radial-gradient(circle, rgba(14, 165, 233, 0.12) 0%, transparent 65%);
+        pointer-events: none;
+    }
 
     @media (max-width: 640px) {
         padding: ${p => p.theme.spacing.md};
@@ -37,33 +50,41 @@ const PageHeader = styled.div`
 `;
 
 const HeaderIcon = styled.div`
+    position: relative;
+    z-index: 1;
     width: 44px;
     height: 44px;
     border-radius: ${p => p.theme.radii.lg};
-    background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-dark));
+    background: rgba(14, 165, 233, 0.18);
+    border: 1px solid rgba(14, 165, 233, 0.3);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    color: white;
+    color: #7dd3fc;
 
     svg { width: 22px; height: 22px; }
 `;
 
-const HeaderText = styled.div``;
+const HeaderText = styled.div`
+    position: relative;
+    z-index: 1;
+`;
 
 const PageTitle = styled.h1`
-    margin: 0 0 2px;
-    font-size: ${p => p.theme.fontSizes.xl};
-    font-weight: 800;
-    color: ${p => p.theme.colors.text};
-    line-height: 1.2;
+    margin: 0 0 3px;
+    font-size: 26px;
+    font-weight: 700;
+    color: #f1f5f9;
+    letter-spacing: -0.4px;
+    line-height: 1.1;
 `;
 
 const PageSubtitle = styled.p`
     margin: 0;
     font-size: ${p => p.theme.fontSizes.sm};
-    color: ${p => p.theme.colors.textMuted};
+    color: #475569;
+    font-weight: 500;
 `;
 
 // ─── main content ─────────────────────────────────────────────────────────────
