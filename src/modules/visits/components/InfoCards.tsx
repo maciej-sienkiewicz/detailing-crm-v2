@@ -5,11 +5,11 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 
 // ─── Shared ───────────────────────────────────────────────────────────────────
 
-const Card = styled.div`
+const SidebarCard = styled.div`
     background: ${st.bgCard};
     border: 1px solid ${st.border};
     border-radius: ${st.radius};
-    padding: 20px 24px 24px;
+    overflow: hidden;
     box-shadow: ${st.shadowSm};
 `;
 
@@ -17,54 +17,81 @@ const CardHeader = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
+    padding: 13px 16px;
     border-bottom: 1px solid ${st.border};
+    background: ${st.bg};
 `;
 
-const CardHeaderLeft = styled.div`
+const CardTitleGroup = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+`;
+
+const CardIconWrap = styled.div`
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: ${st.gradientBlue};
+    color: white;
+    flex-shrink: 0;
 `;
 
 const CardTitle = styled.h3`
     margin: 0;
-    font-size: ${st.fontMd};
+    font-size: ${st.fontSm};
     font-weight: 700;
     color: ${st.text};
 `;
 
-const CardSubtitle = styled.span`
-    display: block;
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    font-weight: 400;
-    margin-top: 2px;
+const ViewBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: transparent;
+    color: ${st.accentBlue};
+    border: 1px solid ${st.accentBlue}44;
+    border-radius: ${st.radiusFull};
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all ${st.transition};
+    white-space: nowrap;
+
+    &:hover {
+        background: ${st.accentBlueDim};
+        border-color: ${st.accentBlue};
+    }
+
+    svg { width: 11px; height: 11px; }
 `;
 
-const InfoGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px 24px;
-`;
-
-const InfoItem = styled.div<{ $full?: boolean }>`
+const CardBody = styled.div`
+    padding: 14px 16px;
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    ${props => props.$full && 'grid-column: 1 / -1;'}
+    gap: 10px;
 `;
 
-const InfoLabel = styled.span`
-    font-size: 11px;
+const Row = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+`;
+
+const Label = styled.span`
+    font-size: 10px;
+    font-weight: 700;
     color: ${st.textMuted};
     text-transform: uppercase;
     letter-spacing: 0.6px;
-    font-weight: 700;
 `;
 
-const InfoValue = styled.span`
+const Value = styled.span`
     font-size: ${st.fontSm};
     color: ${st.text};
     font-weight: 500;
@@ -77,193 +104,89 @@ const MissingValue = styled.span`
     font-weight: 400;
 `;
 
-const SectionDivider = styled.div`
+const Divider = styled.div`
     height: 1px;
     background: ${st.border};
-    margin: 18px 0;
-`;
-
-const ViewDetailsIconButton = styled.button`
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    background: transparent;
-    color: ${st.textMuted};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    cursor: pointer;
-    transition: all ${st.transition};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-
-    &:hover {
-        background: ${st.bg};
-        border-color: ${st.accentBlue};
-        color: ${st.accentBlue};
-    }
-`;
-
-// ─── Customer-specific ────────────────────────────────────────────────────────
-
-const CustomerAvatar = styled.div`
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: ${st.gradientBlue};
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: 700;
-    flex-shrink: 0;
-    letter-spacing: 0.5px;
-    user-select: none;
-`;
-
-const StatBadge = styled.div<{ $variant: 'success' | 'info' }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 10px;
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontXs};
-    font-weight: 600;
-
-    ${props => props.$variant === 'success' && `
-        background: ${st.accentGreenDim};
-        color: ${st.accentGreen};
-    `}
-
-    ${props => props.$variant === 'info' && `
-        background: ${st.accentBlueDim};
-        color: ${st.accentBlue};
-    `}
+    margin: 2px 0;
 `;
 
 const StatsRow = styled.div`
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
+`;
+
+const StatChip = styled.div<{ $green?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: ${st.radiusFull};
+    font-size: 11px;
+    font-weight: 600;
+
+    ${props => props.$green ? `
+        background: ${st.accentGreenDim};
+        color: ${st.accentGreen};
+    ` : `
+        background: ${st.accentBlueDim};
+        color: ${st.accentBlue};
+    `}
 `;
 
 // ─── Vehicle-specific ─────────────────────────────────────────────────────────
 
-const CardIcon = styled.div`
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: ${st.gradientBlue};
-    color: white;
-    flex-shrink: 0;
-`;
-
-const LicensePlate = styled.div`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px 10px 4px 20px;
-    background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 100%);
-    border: 2px solid #000000;
-    border-radius: 4px;
-    font-family: 'Courier New', monospace;
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 700;
-    letter-spacing: 0.15em;
-    color: #000000;
-    box-shadow:
-        0 1px 3px rgba(0, 0, 0, 0.12),
-        inset 0 1px 0 rgba(255, 255, 255, 0.9),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
-    position: relative;
-    text-transform: uppercase;
-    width: fit-content;
-
-    &::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 16px;
-        background: linear-gradient(180deg, #003399 0%, #002266 100%);
-        border-right: 1px solid #000000;
-        border-radius: 2px 0 0 2px;
-    }
-
-    &::after {
-        content: 'PL';
-        position: absolute;
-        left: 3px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 8px;
-        font-weight: 700;
-        color: #ffffff;
-        letter-spacing: 0.3px;
-    }
-`;
-
-const HandoffGrid = styled.div`
+const IntakeGrid = styled.div`
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 12px;
-    padding: 14px 16px;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 10px 12px;
     background: ${st.bg};
     border-radius: ${st.radiusSm};
     border: 1px solid ${st.border};
 `;
 
-const HandoffItem = styled.div`
+const IntakeItem = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
 `;
 
-const StatusPill = styled.span<{ $state: 'yes' | 'no' }>`
+const StatusPill = styled.span<{ $ok: boolean }>`
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 3px 10px;
+    gap: 3px;
+    padding: 2px 8px;
     border-radius: ${st.radiusFull};
-    font-size: ${st.fontXs};
+    font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.02em;
-    cursor: default;
     width: fit-content;
 
-    ${props => props.$state === 'yes' && `
+    ${props => props.$ok ? `
         background: ${st.accentGreenDim};
         color: ${st.accentGreen};
-    `}
-
-    ${props => props.$state === 'no' && `
+    ` : `
         background: ${st.bg};
-        color: ${st.textSecondary};
+        color: ${st.textMuted};
         border: 1px solid ${st.border};
     `}
 `;
 
-const HandoffPersonBox = styled.div`
-    margin-top: 14px;
-    padding: 14px 16px;
+const HandoffBox = styled.div`
+    padding: 10px 12px;
     background: ${st.bg};
     border-radius: ${st.radiusSm};
     border: 1px solid ${st.border};
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 `;
 
-const HandoffPersonLabel = styled.div`
-    font-size: 11px;
-    color: ${st.textMuted};
+const HandoffLabel = styled.div`
+    font-size: 10px;
+    font-weight: 700;
+    color: ${st.accentAmber};
     text-transform: uppercase;
     letter-spacing: 0.6px;
-    font-weight: 700;
-    margin-bottom: 12px;
 `;
 
 // ─── CustomerInfoCard ─────────────────────────────────────────────────────────
@@ -274,79 +197,71 @@ interface CustomerInfoCardProps {
 }
 
 export const CustomerInfoCard = ({ customer, onViewDetails }: CustomerInfoCardProps) => {
-    const initials = [customer.firstName?.[0], customer.lastName?.[0]]
-        .filter(Boolean)
-        .join('')
-        .toUpperCase();
-
-    const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || null;
+    const pluralVisits = (n: number) => n === 1 ? '1 wizyta' : `${n} wizyt`;
+    const pluralVehicles = (n: number) => n === 1 ? '1 pojazd' : `${n} pojazdów`;
 
     return (
-        <Card>
+        <SidebarCard>
             <CardHeader>
-                <CardHeaderLeft>
-                    <CustomerAvatar aria-hidden="true">{initials}</CustomerAvatar>
-                    <div>
-                        <CardTitle>{fullName ?? <MissingValue>Nie wprowadzono danych</MissingValue>}</CardTitle>
-                        {customer.companyName && (
-                            <CardSubtitle>{customer.companyName}</CardSubtitle>
-                        )}
-                    </div>
-                </CardHeaderLeft>
-                {onViewDetails && (
-                    <ViewDetailsIconButton
-                        onClick={onViewDetails}
-                        title="Pokaż pełne informacje o kliencie"
-                        aria-label="Pokaż pełne informacje o kliencie"
-                    >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" fill="currentColor"/>
-                            <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke="currentColor" strokeWidth="2" fill="none"/>
+                <CardTitleGroup>
+                    <CardIconWrap aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <circle cx="12" cy="8" r="4" />
+                            <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" />
                         </svg>
-                    </ViewDetailsIconButton>
+                    </CardIconWrap>
+                    <CardTitle>Klient</CardTitle>
+                </CardTitleGroup>
+                {onViewDetails && (
+                    <ViewBtn onClick={onViewDetails} aria-label="Otwórz profil klienta">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                            <polyline points="15 3 21 3 21 9" />
+                            <line x1="10" y1="14" x2="21" y2="3" />
+                        </svg>
+                        Profil
+                    </ViewBtn>
                 )}
             </CardHeader>
 
-            <InfoGrid>
-                <InfoItem>
-                    <InfoLabel>Email</InfoLabel>
+            <CardBody>
+                <Row>
+                    <Label>Email</Label>
                     {customer.email
-                        ? <InfoValue>{customer.email}</InfoValue>
+                        ? <Value>{customer.email}</Value>
                         : <MissingValue>Nie wprowadzono danych</MissingValue>
                     }
-                </InfoItem>
-                <InfoItem>
-                    <InfoLabel>Telefon</InfoLabel>
+                </Row>
+
+                <Row>
+                    <Label>Telefon</Label>
                     {customer.phone
-                        ? <InfoValue>{customer.phone}</InfoValue>
+                        ? <Value>{customer.phone}</Value>
                         : <MissingValue>Nie wprowadzono danych</MissingValue>
                     }
-                </InfoItem>
+                </Row>
+
                 {customer.companyName && (
-                    <InfoItem $full>
-                        <InfoLabel>Firma</InfoLabel>
-                        <InfoValue>{customer.companyName}</InfoValue>
-                    </InfoItem>
+                    <Row>
+                        <Label>Firma</Label>
+                        <Value>{customer.companyName}</Value>
+                    </Row>
                 )}
-            </InfoGrid>
 
-            <SectionDivider />
+                <Divider />
 
-            <StatsRow>
-                <StatBadge $variant="success">
-                    LTV: {formatCurrency(
-                        customer.stats.totalSpent.grossAmount / 100,
-                        customer.stats.totalSpent.currency
-                    )}
-                </StatBadge>
-                <StatBadge $variant="info">
-                    {customer.stats.totalVisits} {customer.stats.totalVisits === 1 ? 'wizyta' : 'wizyt'}
-                </StatBadge>
-                <StatBadge $variant="info">
-                    {customer.stats.vehiclesCount} {customer.stats.vehiclesCount === 1 ? 'pojazd' : 'pojazdów'}
-                </StatBadge>
-            </StatsRow>
-        </Card>
+                <StatsRow>
+                    <StatChip $green>
+                        LTV: {formatCurrency(
+                            customer.stats.totalSpent.grossAmount / 100,
+                            customer.stats.totalSpent.currency
+                        )}
+                    </StatChip>
+                    <StatChip>{pluralVisits(customer.stats.totalVisits)}</StatChip>
+                    <StatChip>{pluralVehicles(customer.stats.vehiclesCount)}</StatChip>
+                </StatsRow>
+            </CardBody>
+        </SidebarCard>
     );
 };
 
@@ -381,123 +296,88 @@ export const VehicleInfoCard = ({
     onViewDetails,
 }: VehicleInfoCardProps) => {
     const hasMileage = typeof mileageAtArrival === 'number' && mileageAtArrival > 0;
-    const mileageFormatted = hasMileage ? mileageAtArrival!.toLocaleString('pl-PL') : null;
+    const mileageStr = hasMileage ? `${mileageAtArrival!.toLocaleString('pl-PL')} km` : null;
 
     return (
-        <Card>
+        <SidebarCard>
             <CardHeader>
-                <CardHeaderLeft>
-                    <CardIcon aria-label="Informacje o pojeździe" title="Informacje o pojeździe">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-                            <path d="M5 11l1.5-4.5h11L19 11" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-                            <rect x="3" y="11" width="18" height="7" rx="2" fill="currentColor" opacity="0.15" stroke="currentColor" strokeWidth="1.5"/>
-                            <circle cx="7.5" cy="18.5" r="1.5" fill="currentColor"/>
-                            <circle cx="16.5" cy="18.5" r="1.5" fill="currentColor"/>
-                            <path d="M3 14h18" stroke="currentColor" strokeWidth="1.5" opacity="0.4"/>
+                <CardTitleGroup>
+                    <CardIconWrap aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M5 11l1.5-4.5h11L19 11" strokeLinecap="round" />
+                            <rect x="3" y="11" width="18" height="7" rx="2" fill="currentColor" fillOpacity="0.2" />
+                            <circle cx="7.5" cy="18.5" r="1.5" fill="currentColor" />
+                            <circle cx="16.5" cy="18.5" r="1.5" fill="currentColor" />
                         </svg>
-                    </CardIcon>
-                    <CardTitle>Informacje o pojeździe</CardTitle>
-                </CardHeaderLeft>
+                    </CardIconWrap>
+                    <CardTitle>Stan przy przyjęciu</CardTitle>
+                </CardTitleGroup>
                 {onViewDetails && (
-                    <ViewDetailsIconButton
-                        onClick={onViewDetails}
-                        title="Pokaż pełne informacje o pojeździe"
-                        aria-label="Pokaż pełne informacje o pojeździe"
-                    >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" fill="currentColor"/>
-                            <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke="currentColor" strokeWidth="2" fill="none"/>
+                    <ViewBtn onClick={onViewDetails} aria-label="Otwórz kartę pojazdu">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                            <polyline points="15 3 21 3 21 9" />
+                            <line x1="10" y1="14" x2="21" y2="3" />
                         </svg>
-                    </ViewDetailsIconButton>
+                        Karta
+                    </ViewBtn>
                 )}
             </CardHeader>
 
-            <InfoGrid>
-                <InfoItem>
-                    <InfoLabel>Tablice rejestracyjne</InfoLabel>
-                    {vehicle.licensePlate
-                        ? <LicensePlate>{vehicle.licensePlate}</LicensePlate>
-                        : <MissingValue>Nie wprowadzono danych</MissingValue>
-                    }
-                </InfoItem>
-                <InfoItem>
-                    <InfoLabel>Rok produkcji</InfoLabel>
-                    {vehicle.yearOfProduction
-                        ? <InfoValue>{vehicle.yearOfProduction}</InfoValue>
-                        : <MissingValue>Nie wprowadzono danych</MissingValue>
-                    }
-                </InfoItem>
-                <InfoItem>
-                    <InfoLabel>Marka</InfoLabel>
-                    {vehicle.brand
-                        ? <InfoValue>{vehicle.brand}</InfoValue>
-                        : <MissingValue>Nie wprowadzono danych</MissingValue>
-                    }
-                </InfoItem>
-                <InfoItem>
-                    <InfoLabel>Model</InfoLabel>
-                    {vehicle.model
-                        ? <InfoValue>{vehicle.model}</InfoValue>
-                        : <MissingValue>Nie wprowadzono danych</MissingValue>
-                    }
-                </InfoItem>
+            <CardBody>
+                <IntakeGrid>
+                    <IntakeItem style={{ gridColumn: '1 / -1' }}>
+                        <Label>Przebieg przy przyjęciu</Label>
+                        {mileageStr
+                            ? <Value>{mileageStr}</Value>
+                            : <MissingValue>Nie wprowadzono danych</MissingValue>
+                        }
+                    </IntakeItem>
+                    <IntakeItem>
+                        <Label>Kluczyki</Label>
+                        <StatusPill $ok={keysHandedOver}>
+                            {keysHandedOver ? '✓ Tak' : '— Nie'}
+                        </StatusPill>
+                    </IntakeItem>
+                    <IntakeItem>
+                        <Label>Dokumenty</Label>
+                        <StatusPill $ok={documentsHandedOver}>
+                            {documentsHandedOver ? '✓ Tak' : '— Nie'}
+                        </StatusPill>
+                    </IntakeItem>
+                </IntakeGrid>
+
                 {vehicle.color && (
-                    <InfoItem>
-                        <InfoLabel>Kolor</InfoLabel>
-                        <InfoValue>{vehicle.color}</InfoValue>
-                    </InfoItem>
+                    <Row>
+                        <Label>Kolor</Label>
+                        <Value>{vehicle.color}</Value>
+                    </Row>
                 )}
-            </InfoGrid>
 
-            <HandoffGrid>
-                <HandoffItem>
-                    <InfoLabel>Przebieg przy przyjęciu</InfoLabel>
-                    {mileageFormatted
-                        ? <InfoValue>{mileageFormatted} km</InfoValue>
-                        : <MissingValue>Nie wprowadzono danych</MissingValue>
-                    }
-                </HandoffItem>
-                <HandoffItem>
-                    <InfoLabel>Kluczyki</InfoLabel>
-                    <StatusPill $state={keysHandedOver ? 'yes' : 'no'}>
-                        {keysHandedOver ? '✓ Tak' : '— Nie'}
-                    </StatusPill>
-                </HandoffItem>
-                <HandoffItem>
-                    <InfoLabel>Dokumenty</InfoLabel>
-                    <StatusPill $state={documentsHandedOver ? 'yes' : 'no'}>
-                        {documentsHandedOver ? '✓ Tak' : '— Nie'}
-                    </StatusPill>
-                </HandoffItem>
-            </HandoffGrid>
-
-            {vehicleHandoff?.isHandedOffByOtherPerson && (
-                <HandoffPersonBox>
-                    <HandoffPersonLabel>Pojazd przekazała inna osoba</HandoffPersonLabel>
-                    <InfoGrid>
-                        <InfoItem>
-                            <InfoLabel>Imię i nazwisko</InfoLabel>
-                            <InfoValue>
+                {vehicleHandoff?.isHandedOffByOtherPerson && (
+                    <HandoffBox>
+                        <HandoffLabel>Przekazała inna osoba</HandoffLabel>
+                        <Row>
+                            <Label>Imię i nazwisko</Label>
+                            <Value>
                                 {vehicleHandoff.contactPerson.firstName} {vehicleHandoff.contactPerson.lastName}
-                            </InfoValue>
-                        </InfoItem>
-                        <InfoItem>
-                            <InfoLabel>Telefon</InfoLabel>
-                            {vehicleHandoff.contactPerson.phone
-                                ? <InfoValue>{vehicleHandoff.contactPerson.phone}</InfoValue>
-                                : <MissingValue>Nie wprowadzono danych</MissingValue>
-                            }
-                        </InfoItem>
-                        <InfoItem $full>
-                            <InfoLabel>E-mail</InfoLabel>
-                            {vehicleHandoff.contactPerson.email
-                                ? <InfoValue>{vehicleHandoff.contactPerson.email}</InfoValue>
-                                : <MissingValue>Nie wprowadzono danych</MissingValue>
-                            }
-                        </InfoItem>
-                    </InfoGrid>
-                </HandoffPersonBox>
-            )}
-        </Card>
+                            </Value>
+                        </Row>
+                        {vehicleHandoff.contactPerson.phone && (
+                            <Row>
+                                <Label>Telefon</Label>
+                                <Value>{vehicleHandoff.contactPerson.phone}</Value>
+                            </Row>
+                        )}
+                        {vehicleHandoff.contactPerson.email && (
+                            <Row>
+                                <Label>E-mail</Label>
+                                <Value>{vehicleHandoff.contactPerson.email}</Value>
+                            </Row>
+                        )}
+                    </HandoffBox>
+                )}
+            </CardBody>
+        </SidebarCard>
     );
 };

@@ -16,7 +16,7 @@ import { VisitComments } from '../components/VisitComments';
 import { EditServicesModal } from '../components/EditServicesModal';
 import { InProgressToReadyWizard, ReadyToCompletedWizard } from '../components/transitions/TransitionWizards';
 import type { DocumentType, ServiceStatus } from '../types';
-import { useToast } from "@/common/components/Toast";
+import { useToast } from '@/common/components/Toast';
 import { AuditTimeline } from '@/common/components/AuditTimeline';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
@@ -38,71 +38,24 @@ const ViewContainer = styled.main`
     flex-direction: column;
     min-height: 100vh;
     background: ${st.bg};
+    animation: ${fadeUp} 0.3s ease both;
 `;
 
 const ContentArea = styled.div`
     flex: 1;
-    padding: 24px;
+    padding: 20px 24px 40px;
     max-width: 1600px;
     margin: 0 auto;
     width: 100%;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: 28px 32px;
+        padding: 24px 32px 48px;
     }
 `;
 
-// ─── Tabs ─────────────────────────────────────────────────────────────────────
+// ─── Main grid ────────────────────────────────────────────────────────────────
 
-const TabsRow = styled.div`
-    display: flex;
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    padding: 4px;
-    margin-bottom: 20px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    box-shadow: ${st.shadowXs};
-`;
-
-const TabButton = styled.button<{ $isActive: boolean }>`
-    padding: 8px 20px;
-    font-size: ${st.fontSm};
-    font-weight: ${props => props.$isActive ? 600 : 400};
-    color: ${props => props.$isActive ? st.accentBlue : st.textSecondary};
-    background: ${props => props.$isActive ? st.accentBlueDim : 'transparent'};
-    border: 1px solid ${props => props.$isActive ? `${st.accentBlue}33` : 'transparent'};
-    border-radius: ${st.radiusSm};
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all ${st.transition};
-    flex-shrink: 0;
-
-    &:hover {
-        color: ${props => props.$isActive ? st.accentBlue : st.text};
-        background: ${props => props.$isActive ? st.accentBlueDim : st.bg};
-    }
-`;
-
-const TabContent = styled.div`
-    animation: ${fadeUp} 0.25s ease;
-`;
-
-// ─── Grid layouts ─────────────────────────────────────────────────────────────
-
-const InfoGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        grid-template-columns: 1fr 1fr;
-    }
-`;
-
-const ServicesAndCommentsGrid = styled.div`
+const MainGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr;
     gap: 20px;
@@ -110,8 +63,101 @@ const ServicesAndCommentsGrid = styled.div`
     align-items: start;
 
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
-        grid-template-columns: 2fr 1fr;
+        grid-template-columns: 1fr 320px;
     }
+
+    @media (min-width: ${props => props.theme.breakpoints.xl}) {
+        grid-template-columns: 1fr 340px;
+    }
+`;
+
+const MainColumn = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+`;
+
+const Sidebar = styled.aside`
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+`;
+
+// ─── Section wrapper (docs, audit) ────────────────────────────────────────────
+
+const Section = styled.div`
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    overflow: hidden;
+    box-shadow: ${st.shadowSm};
+    margin-bottom: 16px;
+`;
+
+const SectionHeader = styled.button`
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: ${st.bg};
+    border: none;
+    border-bottom: 1px solid ${st.border};
+    cursor: pointer;
+    transition: background ${st.transition};
+    text-align: left;
+
+    &:hover { background: ${st.bgCardAlt}; }
+`;
+
+const SectionHeaderLeft = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+`;
+
+const SectionIconWrap = styled.div`
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: ${st.gradientBlue};
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+`;
+
+const SectionTitle = styled.span`
+    font-size: ${st.fontSm};
+    font-weight: 700;
+    color: ${st.text};
+`;
+
+const SectionCount = styled.span`
+    font-size: 11px;
+    font-weight: 600;
+    color: ${st.textMuted};
+    background: ${st.bgCardAlt};
+    border: 1px solid ${st.border};
+    padding: 1px 8px;
+    border-radius: ${st.radiusFull};
+`;
+
+const ChevronIcon = styled.svg<{ $open: boolean }>`
+    width: 16px;
+    height: 16px;
+    color: ${st.textMuted};
+    transition: transform 250ms ease;
+    transform: ${props => props.$open ? 'rotate(180deg)' : 'rotate(0deg)'};
+    flex-shrink: 0;
+`;
+
+const SectionBody = styled.div<{ $visible: boolean }>`
+    display: ${props => props.$visible ? 'block' : 'none'};
+    padding: 20px;
+    animation: ${fadeUp} 0.2s ease;
 `;
 
 // ─── Loading / Error ──────────────────────────────────────────────────────────
@@ -126,8 +172,8 @@ const LoadingContainer = styled.div`
 `;
 
 const Spinner = styled.div`
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
     border: 3px solid ${st.border};
     border-top-color: ${st.accentBlue};
     border-radius: 50%;
@@ -159,7 +205,7 @@ const ErrorMessage = styled.p`
 `;
 
 const RetryButton = styled.button`
-    padding: 9px 20px;
+    padding: 9px 22px;
     background: ${st.accentBlue};
     color: white;
     border: none;
@@ -169,13 +215,8 @@ const RetryButton = styled.button`
     cursor: pointer;
     transition: all ${st.transition};
     box-shadow: ${st.shadowSm};
-
     &:hover { background: #2563EB; box-shadow: ${st.shadowMd}; }
 `;
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type TabValue = 'overview' | 'documentation' | 'audit';
 
 // ─── View ─────────────────────────────────────────────────────────────────────
 
@@ -183,11 +224,12 @@ export const VisitDetailView = () => {
     const { visitId } = useParams<{ visitId: string }>();
     const navigate = useNavigate();
 
-    const [activeTab, setActiveTab] = useState<TabValue>('overview');
     const [isTransitionWizardOpen, setIsTransitionWizardOpen] = useState(false);
     const [transitionType, setTransitionType] = useState<'in_progress_to_ready' | 'ready_to_completed' | null>(null);
     const [isEditServicesModalOpen, setIsEditServicesModalOpen] = useState(false);
     const [highlightPendingServices, setHighlightPendingServices] = useState(false);
+    const [isDocsOpen, setIsDocsOpen] = useState(false);
+    const [isAuditOpen, setIsAuditOpen] = useState(false);
 
     const { visitDetail, isLoading, isError, refetch } = useVisitDetail(visitId!);
     const { documents } = useVisitDocuments(visitId!);
@@ -243,7 +285,6 @@ export const VisitDetailView = () => {
                     'Nie można oznaczyć wizyty jako gotowej',
                     `${pendingCount === 1 ? 'Jedna usługa wymaga' : `${pendingCount} usługi wymagają`} potwierdzenia przed zakończeniem.`
                 );
-                setActiveTab('overview');
                 setHighlightPendingServices(true);
                 setTimeout(() => setHighlightPendingServices(false), 4000);
                 return;
@@ -258,9 +299,7 @@ export const VisitDetailView = () => {
         }
     };
 
-    const handlePrintProtocol = () => {
-        window.print();
-    };
+    const handlePrintProtocol = () => { window.print(); };
 
     const handleCancelVisit = () => {
         if (window.confirm('Czy na pewno chcesz odrzucić tę wizytę? Ta operacja jest nieodwracalna.')) {
@@ -268,70 +307,34 @@ export const VisitDetailView = () => {
         }
     };
 
-    const handleMileageChange = (mileage: number) => {
-        updateVisit({ mileageAtArrival: mileage });
-    };
-
-    const handleKeysToggle = (checked: boolean) => {
-        updateVisit({ keysHandedOver: checked });
-    };
-
-    const handleDocumentsToggle = (checked: boolean) => {
-        updateVisit({ documentsHandedOver: checked });
-    };
+    const handleMileageChange = (mileage: number) => { updateVisit({ mileageAtArrival: mileage }); };
+    const handleKeysToggle = (checked: boolean) => { updateVisit({ keysHandedOver: checked }); };
+    const handleDocumentsToggle = (checked: boolean) => { updateVisit({ documentsHandedOver: checked }); };
 
     const handleUploadDocument = (file: File, type: DocumentType, category: string) => {
-        uploadDocument({
-            visitId: visitId!,
-            customerId: visit.customer.id,
-            file,
-            type,
-            category
-        });
+        uploadDocument({ visitId: visitId!, customerId: visit.customer.id, file, type, category });
     };
 
     const handleUploadPhoto = (file: File, description?: string) => {
-        uploadPhoto({
-            visitId: visitId!,
-            file,
-            description
-        });
+        uploadPhoto({ visitId: visitId!, file, description });
     };
 
-    const handleDeleteDocument = (documentId: string) => {
-        deleteDocument(documentId);
-    };
+    const handleDeleteDocument = (documentId: string) => { deleteDocument(documentId); };
+    const handleDeletePhoto = (photoId: string) => { deletePhoto(photoId); };
 
-    const handleDeletePhoto = (photoId: string) => {
-        deletePhoto(photoId);
-    };
-
-    const handleEditServicesClick = () => {
-        setIsEditServicesModalOpen(true);
-    };
+    const handleEditServicesClick = () => { setIsEditServicesModalOpen(true); };
 
     const handleSaveServicesChanges = (payload: import('../types').ServicesChangesPayload) => {
         saveServicesChanges(payload, {
-            onSuccess: () => {
-                setIsEditServicesModalOpen(false);
-            },
+            onSuccess: () => { setIsEditServicesModalOpen(false); },
         });
     };
 
     const handleUpdateServiceStatus = (serviceLineItemId: string, status: ServiceStatus) => {
-        updateServiceStatus({
-            serviceLineItemId,
-            payload: { status },
-        });
+        updateServiceStatus({ serviceLineItemId, payload: { status } });
     };
 
-    const handleViewCustomerDetails = () => {
-        navigate(`/customers/${visit.customer.id}`);
-    };
-
-    const handleViewVehicleDetails = () => {
-        navigate(`/vehicles/${visit.vehicle.id}`);
-    };
+    const totalDocCount = documents.length + visitPhotos.length;
 
     return (
         <ViewContainer>
@@ -345,67 +348,70 @@ export const VisitDetailView = () => {
             <ContentArea>
                 <StatusStepper currentStatus={visit.status} />
 
-                <TabsRow>
-                    <TabButton
-                        $isActive={activeTab === 'overview'}
-                        onClick={() => setActiveTab('overview')}
-                    >
-                        Przegląd
-                    </TabButton>
-                    <TabButton
-                        $isActive={activeTab === 'documentation'}
-                        onClick={() => setActiveTab('documentation')}
-                    >
-                        Dokumentacja ({documents.length + visitPhotos.length})
-                    </TabButton>
-                    <TabButton
-                        $isActive={activeTab === 'audit'}
-                        onClick={() => setActiveTab('audit')}
-                    >
-                        Audyt
-                    </TabButton>
-                </TabsRow>
+                <MainGrid>
+                    <MainColumn>
+                        <ServicesTable
+                            services={visit.services}
+                            visitStatus={visit.status}
+                            visitId={visitId!}
+                            onEditClick={handleEditServicesClick}
+                            highlightPending={highlightPendingServices}
+                        />
+                    </MainColumn>
 
-                {activeTab === 'overview' && (
-                    <TabContent>
-                        <InfoGrid>
-                            <CustomerInfoCard
-                                customer={visit.customer}
-                                onViewDetails={handleViewCustomerDetails}
-                            />
-                            <VehicleInfoCard
-                                vehicle={visit.vehicle}
-                                mileageAtArrival={visit.mileageAtArrival}
-                                keysHandedOver={visit.keysHandedOver}
-                                documentsHandedOver={visit.documentsHandedOver}
-                                vehicleHandoff={visit.vehicleHandoff}
-                                onMileageChange={handleMileageChange}
-                                onKeysToggle={handleKeysToggle}
-                                onDocumentsToggle={handleDocumentsToggle}
-                                onViewDetails={handleViewVehicleDetails}
-                            />
-                        </InfoGrid>
+                    <Sidebar>
+                        <CustomerInfoCard
+                            customer={visit.customer}
+                            onViewDetails={() => navigate(`/customers/${visit.customer.id}`)}
+                        />
+                        <VehicleInfoCard
+                            vehicle={visit.vehicle}
+                            mileageAtArrival={visit.mileageAtArrival}
+                            keysHandedOver={visit.keysHandedOver}
+                            documentsHandedOver={visit.documentsHandedOver}
+                            vehicleHandoff={visit.vehicleHandoff}
+                            onMileageChange={handleMileageChange}
+                            onKeysToggle={handleKeysToggle}
+                            onDocumentsToggle={handleDocumentsToggle}
+                            onViewDetails={() => navigate(`/vehicles/${visit.vehicle.id}`)}
+                        />
+                        {visit.technicalNotes && (
+                            <TechnicalNotesCard notes={visit.technicalNotes} />
+                        )}
+                        <VisitComments
+                            visitId={visitId!}
+                            comments={comments}
+                            isLoading={isLoadingComments}
+                        />
+                    </Sidebar>
+                </MainGrid>
 
-                        <ServicesAndCommentsGrid>
-                            <ServicesTable
-                                services={visit.services}
-                                visitStatus={visit.status}
-                                visitId={visitId!}
-                                onEditClick={handleEditServicesClick}
-                                highlightPending={highlightPendingServices}
-                            />
-                            <VisitComments
-                                visitId={visitId!}
-                                comments={comments}
-                                isLoading={isLoadingComments}
-                            />
-                        </ServicesAndCommentsGrid>
-                        {visit.technicalNotes && <TechnicalNotesCard notes={visit.technicalNotes} />}
-                    </TabContent>
-                )}
-
-                {activeTab === 'documentation' && (
-                    <TabContent>
+                {/* Dokumentacja ───────────────────────────────────────────── */}
+                <Section>
+                    <SectionHeader
+                        onClick={() => setIsDocsOpen(v => !v)}
+                        aria-expanded={isDocsOpen}
+                        aria-controls="docs-section"
+                    >
+                        <SectionHeaderLeft>
+                            <SectionIconWrap>
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="3" y="3" width="7" height="7" rx="1" />
+                                    <rect x="14" y="3" width="7" height="7" rx="1" />
+                                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                                    <rect x="14" y="14" width="7" height="7" rx="1" />
+                                </svg>
+                            </SectionIconWrap>
+                            <SectionTitle>Dokumentacja</SectionTitle>
+                            {totalDocCount > 0 && (
+                                <SectionCount>{totalDocCount}</SectionCount>
+                            )}
+                        </SectionHeaderLeft>
+                        <ChevronIcon $open={isDocsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="6 9 12 15 18 9" />
+                        </ChevronIcon>
+                    </SectionHeader>
+                    <SectionBody $visible={isDocsOpen} id="docs-section">
                         <DocumentGallery
                             documents={documents}
                             visitPhotos={visitPhotos}
@@ -416,24 +422,40 @@ export const VisitDetailView = () => {
                             onDeletePhoto={handleDeletePhoto}
                             isUploading={isUploading || isUploadingPhoto}
                         />
-                    </TabContent>
-                )}
+                    </SectionBody>
+                </Section>
 
-                {activeTab === 'audit' && (
-                    <TabContent>
+                {/* Historia zmian ─────────────────────────────────────────── */}
+                <Section>
+                    <SectionHeader
+                        onClick={() => setIsAuditOpen(v => !v)}
+                        aria-expanded={isAuditOpen}
+                        aria-controls="audit-section"
+                    >
+                        <SectionHeaderLeft>
+                            <SectionIconWrap>
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <polyline points="12 6 12 12 16 14" />
+                                </svg>
+                            </SectionIconWrap>
+                            <SectionTitle>Historia zmian</SectionTitle>
+                        </SectionHeaderLeft>
+                        <ChevronIcon $open={isAuditOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="6 9 12 15 18 9" />
+                        </ChevronIcon>
+                    </SectionHeader>
+                    <SectionBody $visible={isAuditOpen} id="audit-section">
                         <AuditTimeline module="VISIT" entityId={visitId!} />
-                    </TabContent>
-                )}
+                    </SectionBody>
+                </Section>
             </ContentArea>
 
             {transitionType === 'in_progress_to_ready' && (
                 <InProgressToReadyWizard
                     visit={visit}
                     isOpen={isTransitionWizardOpen}
-                    onClose={() => {
-                        setIsTransitionWizardOpen(false);
-                        setTransitionType(null);
-                    }}
+                    onClose={() => { setIsTransitionWizardOpen(false); setTransitionType(null); }}
                 />
             )}
 
@@ -441,10 +463,7 @@ export const VisitDetailView = () => {
                 <ReadyToCompletedWizard
                     visit={visit}
                     isOpen={isTransitionWizardOpen}
-                    onClose={() => {
-                        setIsTransitionWizardOpen(false);
-                        setTransitionType(null);
-                    }}
+                    onClose={() => { setIsTransitionWizardOpen(false); setTransitionType(null); }}
                 />
             )}
 
