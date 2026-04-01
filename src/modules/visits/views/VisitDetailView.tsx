@@ -154,10 +154,50 @@ const ChevronIcon = styled.svg<{ $open: boolean }>`
     flex-shrink: 0;
 `;
 
-const SectionBody = styled.div<{ $visible: boolean }>`
+const SectionBody = styled.div<{ $visible: boolean; $flush?: boolean }>`
     display: ${props => props.$visible ? 'block' : 'none'};
-    padding: 20px;
+    padding: ${props => props.$flush ? '0' : '20px'};
     animation: ${fadeUp} 0.2s ease;
+`;
+
+const DocsSectionHeader = styled(SectionHeader)`
+    padding: 0;
+`;
+
+const DocsHeaderMain = styled.div`
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    min-width: 0;
+`;
+
+const DocsHeaderStats = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+`;
+
+const StatPill = styled.span<{ $color?: 'blue' | 'amber' }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: ${st.radiusFull};
+    background: ${p => p.$color === 'amber' ? 'rgba(245,158,11,0.12)' : st.accentBlueDim};
+    color: ${p => p.$color === 'amber' ? '#d97706' : st.accentBlue};
+    border: 1px solid ${p => p.$color === 'amber' ? 'rgba(245,158,11,0.25)' : 'rgba(59,130,246,0.2)'};
+`;
+
+const DocsHeaderChevron = styled.div`
+    padding: 14px 20px 14px 0;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
 `;
 
 // ─── Loading / Error ──────────────────────────────────────────────────────────
@@ -334,7 +374,9 @@ export const VisitDetailView = () => {
         updateServiceStatus({ serviceLineItemId, payload: { status } });
     };
 
-    const totalDocCount = documents.length + visitPhotos.length;
+    const photoCount = visitPhotos.length + documents.filter(d => d.type === 'PHOTO' || d.type === 'DAMAGE_MAP').length;
+    const pdfCount = documents.filter(d => !['PHOTO', 'DAMAGE_MAP'].includes(d.type)).length;
+    const totalDocCount = photoCount + pdfCount;
 
     return (
         <ViewContainer>
@@ -388,12 +430,12 @@ export const VisitDetailView = () => {
 
                 {/* Dokumentacja ───────────────────────────────────────────── */}
                 <Section>
-                    <SectionHeader
+                    <DocsSectionHeader
                         onClick={() => setIsDocsOpen(v => !v)}
                         aria-expanded={isDocsOpen}
                         aria-controls="docs-section"
                     >
-                        <SectionHeaderLeft>
+                        <DocsHeaderMain>
                             <SectionIconWrap>
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -403,15 +445,38 @@ export const VisitDetailView = () => {
                                 </svg>
                             </SectionIconWrap>
                             <SectionTitle>Dokumentacja</SectionTitle>
-                            {totalDocCount > 0 && (
-                                <SectionCount>{totalDocCount}</SectionCount>
-                            )}
-                        </SectionHeaderLeft>
-                        <ChevronIcon $open={isDocsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="6 9 12 15 18 9" />
-                        </ChevronIcon>
-                    </SectionHeader>
-                    <SectionBody $visible={isDocsOpen} id="docs-section">
+                            <DocsHeaderStats>
+                                {photoCount > 0 && (
+                                    <StatPill $color="blue">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                                            <circle cx="8.5" cy="8.5" r="1.5" />
+                                            <polyline points="21 15 16 10 5 21" />
+                                        </svg>
+                                        {photoCount}
+                                    </StatPill>
+                                )}
+                                {pdfCount > 0 && (
+                                    <StatPill $color="amber">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                        </svg>
+                                        {pdfCount}
+                                    </StatPill>
+                                )}
+                                {totalDocCount === 0 && (
+                                    <SectionCount>Brak plików</SectionCount>
+                                )}
+                            </DocsHeaderStats>
+                        </DocsHeaderMain>
+                        <DocsHeaderChevron>
+                            <ChevronIcon $open={isDocsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="6 9 12 15 18 9" />
+                            </ChevronIcon>
+                        </DocsHeaderChevron>
+                    </DocsSectionHeader>
+                    <SectionBody $flush $visible={isDocsOpen} id="docs-section">
                         <DocumentGallery
                             documents={documents}
                             visitPhotos={visitPhotos}

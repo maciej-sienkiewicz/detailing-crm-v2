@@ -13,31 +13,13 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const GalleryContainer = styled.div`
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    overflow: hidden;
-`;
-
-const GalleryHeader = styled.div`
-    padding: ${props => props.theme.spacing.lg};
-    background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
-    border-bottom: 2px solid ${props => props.theme.colors.border};
-`;
-
-const HeaderTop = styled.div`
+const DocActionsBar = styled.div`
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: ${props => props.theme.spacing.md};
-`;
-
-const Title = styled.h3`
-    margin: 0;
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: 700;
-    color: ${props => props.theme.colors.text};
+    justify-content: flex-end;
+    padding: 10px 20px;
+    background: ${st.bg};
+    border-bottom: 1px solid ${props => props.theme.colors.border};
 `;
 
 const UploadButton = styled.label`
@@ -579,28 +561,25 @@ export const DocumentGallery = ({
     const selectedPhoto = selectedPhotoIndex !== null ? filteredPhotos[selectedPhotoIndex] : null;
 
     return (
-        <GalleryContainer>
-            {/* ── Header ────────────────────────────────────────────── */}
-            <GalleryHeader>
-                <HeaderTop>
-                    <Title>Dokumentacja</Title>
-                    <UploadButton>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="17 8 12 3 7 8"/>
-                            <line x1="12" y1="3" x2="12" y2="15"/>
-                        </svg>
-                        {isUploading ? 'Wysyłanie...' : 'Dodaj plik'}
-                        <HiddenFileInput
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*,.pdf"
-                            onChange={handleFileSelect}
-                            disabled={isUploading}
-                        />
-                    </UploadButton>
-                </HeaderTop>
-            </GalleryHeader>
+        <>
+            {/* ── Actions bar ───────────────────────────────────────── */}
+            <DocActionsBar>
+                <UploadButton>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    {isUploading ? 'Wysyłanie...' : 'Dodaj plik'}
+                    <HiddenFileInput
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={handleFileSelect}
+                        disabled={isUploading}
+                    />
+                </UploadButton>
+            </DocActionsBar>
 
             {/* ── Tag filter bar (only when tags exist) ─────────────── */}
             {allTags.length > 0 && (
@@ -813,6 +792,6 @@ export const DocumentGallery = ({
                     isSaving={updatePhotoTags.isPending}
                 />
             )}
-        </GalleryContainer>
+        </>
     );
 };
