@@ -186,6 +186,12 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
         }
     }, [selectedServiceIds.length, errors.services]);
 
+    useEffect(() => {
+        if (errors.customer) {
+            setErrors(prev => { const { customer: _, ...rest } = prev; return rest; });
+        }
+    }, [customerFirstName, customerLastName, customerPhone, customerEmail]);
+
     // Auto-select the only vehicle when customer has exactly one
     useEffect(() => {
         if (
@@ -379,12 +385,28 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
         }, 300);
     };
 
+    const validateCustomerFields = (fn: string, ln: string, ph: string, em: string): string | null => {
+        if (fn.length < 2) return 'Imię klienta jest wymagane (minimum 2 znaki)';
+        if (ln.length < 2) return 'Nazwisko klienta jest wymagane (minimum 2 znaki)';
+        if (!ph && !em) return 'Podaj co najmniej numer telefonu lub adres email klienta';
+        return null;
+    };
+
     const handleAddNewCustomerDirectly = () => {
         const fn = customerFirstName.trim();
         const ln = customerLastName.trim();
         const ph = customerPhone.trim();
         const em = customerEmail.trim();
         if (!fn && !ln && !ph && !em) return;
+        const error = validateCustomerFields(fn, ln, ph, em);
+        if (error) {
+            setErrors(prev => ({ ...prev, customer: error }));
+            if (fn.length < 2) customerInputRef.current?.focus();
+            else if (ln.length < 2) customerLastNameInputRef.current?.focus();
+            else customerPhoneInputRef.current?.focus();
+            return;
+        }
+        setErrors(prev => { const { customer: _, ...rest } = prev; return rest; });
         setSelectedCustomer({ id: '', firstName: fn, lastName: ln, phone: ph, email: em, isNew: true });
         setSelectedCustomerId(undefined);
         setSelectedVehicle(null);
@@ -406,6 +428,17 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
         const ln = customerLastName.trim();
         const ph = customerPhone.trim();
         const em = customerEmail.trim();
+        if (selectedCustomer.isNew) {
+            const error = validateCustomerFields(fn, ln, ph, em);
+            if (error) {
+                setErrors(prev => ({ ...prev, customer: error }));
+                if (fn.length < 2) customerInputRef.current?.focus();
+                else if (ln.length < 2) customerLastNameInputRef.current?.focus();
+                else customerPhoneInputRef.current?.focus();
+                return;
+            }
+            setErrors(prev => { const { customer: _, ...rest } = prev; return rest; });
+        }
         const changed = fn !== (selectedCustomer.firstName ?? '')
             || ln !== (selectedCustomer.lastName ?? '')
             || ph !== (selectedCustomer.phone ?? '')
