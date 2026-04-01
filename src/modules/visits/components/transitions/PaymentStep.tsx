@@ -2,133 +2,142 @@ import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { formatCurrency } from '@/common/utils';
 import type { PaymentMethod, InvoiceType, PaymentDetails } from '../../hooks/useStateTransition';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 
 const Container = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
+    gap: 20px;
 `;
 
-const Description = styled.p`
-    margin: 0;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
-    line-height: 1.6;
-`;
+// ─── Amount row ───────────────────────────────────────────────────────────────
 
-const AmountCard = styled.div`
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    border-radius: ${props => props.theme.radii.lg};
-    padding: ${props => props.theme.spacing.xl};
-    text-align: center;
-    box-shadow: ${props => props.theme.shadows.xl};
-`;
-
-const AmountLabel = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: rgba(255, 255, 255, 0.9);
-    margin-bottom: ${props => props.theme.spacing.xs};
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 600;
-`;
-
-const AmountValue = styled.div`
-    font-size: ${props => props.theme.fontSizes.xxxl};
-    font-weight: 700;
-    color: white;
-    line-height: 1.2;
-
-    @media (max-width: ${props => props.theme.breakpoints.sm}) {
-        font-size: ${props => props.theme.fontSizes.xxl};
-    }
-`;
-
-const OptionsSection = styled.div`
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    padding: ${props => props.theme.spacing.lg};
-`;
-
-const SectionTitle = styled.h3`
-    margin: 0 0 ${props => props.theme.spacing.md};
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: 600;
-    color: ${props => props.theme.colors.text};
+const AmountRow = styled.div`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
-
-    svg {
-        width: 20px;
-        height: 20px;
-        color: var(--brand-primary);
-    }
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: ${st.bg};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
 `;
 
-const OptionGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: ${props => props.theme.spacing.md};
+const AmountLabel = styled.span`
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
 `;
 
-const OptionButton = styled.button<{ $selected: boolean }>`
+const AmountValue = styled.span`
+    font-size: 20px;
+    font-weight: 700;
+    color: ${st.text};
+    letter-spacing: -0.3px;
+`;
+
+// ─── Option group ─────────────────────────────────────────────────────────────
+
+const Group = styled.div`
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: ${props => props.theme.spacing.sm};
-    padding: ${props => props.theme.spacing.lg};
-    background: ${props => props.$selected
-    ? 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)'
-    : 'white'
-};
-    border: 2px solid ${props => props.$selected
-    ? 'var(--brand-primary)'
-    : props.theme.colors.border
-};
-    border-radius: ${props => props.theme.radii.md};
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-        border-color: var(--brand-primary);
-        transform: translateY(-2px);
-        box-shadow: ${props => props.theme.shadows.md};
-    }
+    gap: 8px;
 `;
 
-const OptionIcon = styled.div`
-    font-size: 32px;
-`;
-
-const OptionLabel = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
-    color: ${props => props.theme.colors.text};
-    text-align: center;
-`;
-
-const InfoBox = styled.div`
-    padding: ${props => props.theme.spacing.md};
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    border: 1px solid var(--brand-primary);
-    border-radius: ${props => props.theme.radii.md};
-    display: flex;
-    gap: ${props => props.theme.spacing.sm};
-`;
-
-const InfoIcon = styled.div`
-    font-size: 20px;
-    flex-shrink: 0;
-`;
-
-const InfoText = styled.p`
+const GroupLabel = styled.p`
     margin: 0;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: #0c4a6e;
-    line-height: 1.5;
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
 `;
+
+const PillRow = styled.div`
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+`;
+
+const Pill = styled.button<{ $selected: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 140ms ease;
+    white-space: nowrap;
+
+    ${p => p.$selected ? `
+        background: ${st.accentBlue};
+        color: white;
+        border: 1px solid ${st.accentBlue};
+        box-shadow: ${st.shadowXs};
+    ` : `
+        background: ${st.bgCard};
+        color: ${st.textSecondary};
+        border: 1px solid ${st.border};
+        &:hover { border-color: ${st.accentBlue}; color: ${st.accentBlue}; background: ${st.accentBlueDim}; }
+    `}
+
+    svg { width: 13px; height: 13px; }
+`;
+
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
+const CashIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="2" y="6" width="20" height="12" rx="2"/>
+        <circle cx="12" cy="12" r="2"/>
+        <path d="M6 12h.01M18 12h.01"/>
+    </svg>
+);
+
+const CardIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="2" y="5" width="20" height="14" rx="2"/>
+        <line x1="2" y1="10" x2="22" y2="10"/>
+    </svg>
+);
+
+const TransferIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <polyline points="17 1 21 5 17 9"/>
+        <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+        <polyline points="7 23 3 19 7 15"/>
+        <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+    </svg>
+);
+
+const InvoiceIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+    </svg>
+);
+
+const ReceiptIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/>
+        <line x1="8" y1="10" x2="16" y2="10"/>
+        <line x1="8" y1="14" x2="14" y2="14"/>
+    </svg>
+);
+
+const OtherDocIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+        <polyline points="13 2 13 9 20 9"/>
+    </svg>
+);
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 interface PaymentStepProps {
     totalAmount: number;
@@ -136,90 +145,65 @@ interface PaymentStepProps {
     onComplete: (payment: PaymentDetails) => void;
 }
 
+const paymentMethods: Array<{ value: PaymentMethod; label: string; icon: React.ReactNode }> = [
+    { value: 'cash',     label: 'Gotówka', icon: <CashIcon /> },
+    { value: 'card',     label: 'Karta',   icon: <CardIcon /> },
+    { value: 'transfer', label: 'Przelew', icon: <TransferIcon /> },
+];
+
+const invoiceTypes: Array<{ value: InvoiceType; label: string; icon: React.ReactNode }> = [
+    { value: 'INVOICE', label: 'Faktura VAT', icon: <InvoiceIcon /> },
+    { value: 'RECEIPT', label: 'Paragon',     icon: <ReceiptIcon /> },
+    { value: 'other',   label: 'Inny',        icon: <OtherDocIcon /> },
+];
+
 export const PaymentStep = ({ totalAmount, currency, onComplete }: PaymentStepProps) => {
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
-    const [invoiceType, setInvoiceType] = useState<InvoiceType>('vat');
+    const [invoiceType, setInvoiceType] = useState<InvoiceType>('INVOICE');
 
-    // Update payment data whenever selection changes, but don't call onComplete yet
-    // onComplete should only be called when user clicks "Finish" button
     useEffect(() => {
-        onComplete({
-            method: paymentMethod,
-            invoiceType,
-            amount: totalAmount,
-        });
+        onComplete({ method: paymentMethod, invoiceType, amount: totalAmount });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [paymentMethod, invoiceType, totalAmount]); // Removed onComplete from deps to prevent infinite loop
-
-    const paymentMethods: Array<{ value: PaymentMethod; label: string; icon: string }> = [
-        { value: 'cash', label: 'Gotówka', icon: '💵' },
-        { value: 'card', label: 'Karta', icon: '💳' },
-        { value: 'transfer', label: 'Przelew', icon: '🏦' },
-    ];
-
-    const invoiceTypes: Array<{ value: InvoiceType; label: string; icon: string }> = [
-        { value: 'INVOICE', label: 'Faktura VAT', icon: '📄' },
-        { value: 'RECEIPT', label: 'Paragon', icon: '🧾' },
-        { value: 'other', label: 'Inny', icon: '📋' },
-    ];
+    }, [paymentMethod, invoiceType, totalAmount]);
 
     return (
         <Container>
-            <AmountCard>
-                <AmountLabel>Kwota do zapłaty</AmountLabel>
+            <AmountRow>
+                <AmountLabel>Do zapłaty</AmountLabel>
                 <AmountValue>{formatCurrency(totalAmount / 100, currency)}</AmountValue>
-            </AmountCard>
+            </AmountRow>
 
-            <OptionsSection>
-                <SectionTitle>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/>
-                        <path d="M12 18V6"/>
-                    </svg>
-                    Metoda płatności
-                </SectionTitle>
-
-                <OptionGrid>
-                    {paymentMethods.map(method => (
-                        <OptionButton
-                            key={method.value}
-                            $selected={paymentMethod === method.value}
-                            onClick={() => setPaymentMethod(method.value)}
+            <Group>
+                <GroupLabel>Metoda płatności</GroupLabel>
+                <PillRow>
+                    {paymentMethods.map(m => (
+                        <Pill
+                            key={m.value}
+                            $selected={paymentMethod === m.value}
+                            onClick={() => setPaymentMethod(m.value)}
                         >
-                            <OptionIcon>{method.icon}</OptionIcon>
-                            <OptionLabel>{method.label}</OptionLabel>
-                        </OptionButton>
+                            {m.icon}
+                            {m.label}
+                        </Pill>
                     ))}
-                </OptionGrid>
-            </OptionsSection>
+                </PillRow>
+            </Group>
 
-            <OptionsSection>
-                <SectionTitle>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                        <line x1="16" y1="13" x2="8" y2="13"/>
-                        <line x1="16" y1="17" x2="8" y2="17"/>
-                        <polyline points="10 9 9 9 8 9"/>
-                    </svg>
-                    Dokument księgowy
-                </SectionTitle>
-
-                <OptionGrid>
-                    {invoiceTypes.map(type => (
-                        <OptionButton
-                            key={type.value}
-                            $selected={invoiceType === type.value}
-                            onClick={() => setInvoiceType(type.value)}
+            <Group>
+                <GroupLabel>Dokument księgowy</GroupLabel>
+                <PillRow>
+                    {invoiceTypes.map(t => (
+                        <Pill
+                            key={t.value}
+                            $selected={invoiceType === t.value}
+                            onClick={() => setInvoiceType(t.value)}
                         >
-                            <OptionIcon>{type.icon}</OptionIcon>
-                            <OptionLabel>{type.label}</OptionLabel>
-                        </OptionButton>
+                            {t.icon}
+                            {t.label}
+                        </Pill>
                     ))}
-                </OptionGrid>
-            </OptionsSection>
-
+                </PillRow>
+            </Group>
         </Container>
     );
 };

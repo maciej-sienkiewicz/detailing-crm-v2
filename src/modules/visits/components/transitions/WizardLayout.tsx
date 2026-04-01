@@ -1,152 +1,177 @@
-import styled from 'styled-components';
-import { Button, ButtonGroup } from '@/common/components/Button';
+import styled, { keyframes } from 'styled-components';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
+
+const fadeIn = keyframes`
+    from { opacity: 0; }
+    to   { opacity: 1; }
+`;
+
+const slideUp = keyframes`
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+`;
 
 const Overlay = styled.div`
     position: fixed;
     inset: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(3px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    padding: ${props => props.theme.spacing.md};
+    padding: 20px;
+    animation: ${fadeIn} 0.18s ease;
 `;
 
 const WizardContainer = styled.div`
-    background: white;
-    border-radius: ${props => props.theme.radii.xl};
-    box-shadow: ${props => props.theme.shadows.xl};
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
     width: 100%;
-    max-width: 600px;
+    max-width: 520px;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
-    animation: slideIn 0.3s ease-out;
-
-    @keyframes slideIn {
-        from {
-            opacity: 0;
-            transform: scale(0.95) translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-        }
-    }
+    animation: ${slideUp} 0.22s ease;
 `;
 
 const WizardHeader = styled.div`
-    padding: ${props => props.theme.spacing.lg} ${props => props.theme.spacing.xl};
-    border-bottom: 1px solid ${props => props.theme.colors.border};
+    padding: 16px 20px 14px;
+    border-bottom: 1px solid ${st.border};
+    background: ${st.bg};
+    flex-shrink: 0;
 `;
 
 const HeaderTop = styled.div`
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: ${props => props.theme.spacing.md};
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
 `;
 
-const HeaderLeft = styled.div`
-    flex: 1;
-`;
-
-const TitleRow = styled.div`
+const IconWrap = styled.div`
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: ${st.gradientBlue};
+    color: white;
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.md};
+    justify-content: center;
+    flex-shrink: 0;
+
+    svg { width: 14px; height: 14px; }
+`;
+
+const HeaderText = styled.div`
+    flex: 1;
+    min-width: 0;
 `;
 
 const WizardTitle = styled.h2`
     margin: 0;
-    font-size: ${props => props.theme.fontSizes.xl};
+    font-size: ${st.fontMd};
     font-weight: 700;
-    color: ${props => props.theme.colors.text};
+    color: ${st.text};
+    line-height: 1.2;
 `;
 
 const WizardSubtitle = styled.p`
-    margin: ${props => props.theme.spacing.xs} 0 0;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
+    margin: 2px 0 0;
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
 `;
 
-const CloseButton = styled.button`
-    background: none;
+const CloseBtn = styled.button`
+    width: 28px;
+    height: 28px;
     border: none;
-    font-size: ${props => props.theme.fontSizes.xl};
-    color: ${props => props.theme.colors.textMuted};
+    border-radius: 7px;
+    background: transparent;
+    color: ${st.textMuted};
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    padding: ${props => props.theme.spacing.xs};
-    line-height: 1;
-    transition: color ${props => props.theme.transitions.fast};
+    transition: all ${st.transition};
+    flex-shrink: 0;
 
-    &:hover {
-        color: ${props => props.theme.colors.text};
-    }
+    &:hover { background: ${st.bgCardAlt}; color: ${st.text}; }
+    svg { width: 16px; height: 16px; }
+`;
+
+const ProgressRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
 `;
 
 const ProgressBar = styled.div`
-    width: 100%;
-    height: 4px;
-    background: ${props => props.theme.colors.surfaceAlt};
-    border-radius: ${props => props.theme.radii.full};
+    flex: 1;
+    height: 3px;
+    background: ${st.border};
+    border-radius: ${st.radiusFull};
     overflow: hidden;
 `;
 
-const ProgressFill = styled.div<{ $progress: number }>`
+const ProgressFill = styled.div<{ $pct: number }>`
     height: 100%;
-    width: ${props => props.$progress}%;
-    background: linear-gradient(90deg, var(--brand-primary) 0%, #10b981 100%);
+    width: ${p => p.$pct}%;
+    background: ${st.accentBlue};
     transition: width 0.3s ease;
 `;
 
-const StepIndicator = styled.div`
-    display: flex;
-    align-items: center;
-    gap: ${props => props.theme.spacing.xs};
-    margin-top: ${props => props.theme.spacing.sm};
-`;
-
-const StepDot = styled.div<{ $active: boolean; $completed: boolean }>`
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: ${props => {
-    if (props.$completed) return '#10b981';
-    if (props.$active) return 'var(--brand-primary)';
-    return props.theme.colors.border;
-}};
-    transition: all 0.3s ease;
+const StepLabel = styled.span`
+    font-size: 10px;
+    font-weight: 700;
+    color: ${st.textMuted};
+    white-space: nowrap;
 `;
 
 const WizardBody = styled.div`
-    padding: ${props => props.theme.spacing.xl};
+    padding: 20px;
     overflow-y: auto;
     flex: 1;
 `;
 
 const WizardFooter = styled.div`
-    padding: ${props => props.theme.spacing.lg} ${props => props.theme.spacing.xl};
-    border-top: 1px solid ${props => props.theme.colors.border};
-    background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
-`;
-
-const IconWrapper = styled.div`
-    width: 40px;
-    height: 40px;
-    border-radius: ${props => props.theme.radii.lg};
-    background: linear-gradient(135deg, var(--brand-primary) 0%, #0284c7 100%);
+    padding: 12px 20px;
+    border-top: 1px solid ${st.border};
     display: flex;
     align-items: center;
-    justify-content: center;
-    box-shadow: ${props => props.theme.shadows.md};
+    justify-content: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
+`;
 
-    svg {
-        width: 20px;
-        height: 20px;
+const FooterBtn = styled.button<{ $primary?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    cursor: pointer;
+    transition: all ${st.transition};
+    white-space: nowrap;
+
+    ${p => p.$primary ? `
+        background: ${st.accentBlue};
         color: white;
-    }
+        border: none;
+        box-shadow: ${st.shadowXs};
+        &:hover:not(:disabled) { background: #2563EB; box-shadow: ${st.shadowSm}; transform: translateY(-1px); }
+    ` : `
+        background: transparent;
+        color: ${st.textSecondary};
+        border: 1px solid ${st.border};
+        &:hover:not(:disabled) { border-color: ${st.accentBlue}; color: ${st.accentBlue}; background: ${st.accentBlueDim}; }
+    `}
+
+    &:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; }
 `;
 
 interface WizardLayoutProps {
@@ -171,104 +196,82 @@ interface WizardLayoutProps {
 }
 
 export const WizardLayout = ({
-                                 isOpen,
-                                 onClose,
-                                 title,
-                                 subtitle,
-                                 icon,
-                                 currentStep,
-                                 totalSteps,
-                                 onBack,
-                                 onNext,
-                                 onFinish,
-                                 onSkip,
-                                 nextLabel = 'Kontynuuj',
-                                 backLabel = 'Wstecz',
-                                 finishLabel = 'Zakończ',
-                                 skipLabel = 'Pomiń',
-                                 isProcessing = false,
-                                 disableNext = false,
-                                 children,
-                             }: WizardLayoutProps) => {
+    isOpen,
+    onClose,
+    title,
+    subtitle,
+    icon,
+    currentStep,
+    totalSteps,
+    onBack,
+    onNext,
+    onFinish,
+    onSkip,
+    nextLabel = 'Kontynuuj',
+    backLabel = 'Wstecz',
+    finishLabel = 'Zakończ',
+    skipLabel = 'Pomiń',
+    isProcessing = false,
+    disableNext = false,
+    children,
+}: WizardLayoutProps) => {
     if (!isOpen) return null;
 
-    const progress = (currentStep / totalSteps) * 100;
-    const isLastStep = currentStep === totalSteps;
+    const pct = (currentStep / totalSteps) * 100;
+    const isLast = currentStep === totalSteps;
 
-    const handlePrimaryAction = () => {
-        if (isLastStep && onFinish) {
-            onFinish();
-        } else if (onNext) {
-            onNext();
-        }
+    const handlePrimary = () => {
+        if (isLast && onFinish) onFinish();
+        else if (onNext) onNext();
     };
 
     return (
         <Overlay onClick={onClose}>
-            <WizardContainer onClick={(e) => e.stopPropagation()}>
+            <WizardContainer onClick={e => e.stopPropagation()}>
                 <WizardHeader>
                     <HeaderTop>
-                        <HeaderLeft>
-                            <TitleRow>
-                                {icon && <IconWrapper>{icon}</IconWrapper>}
-                                <WizardTitle>{title}</WizardTitle>
-                            </TitleRow>
+                        {icon && <IconWrap>{icon}</IconWrap>}
+                        <HeaderText>
+                            <WizardTitle>{title}</WizardTitle>
                             {subtitle && <WizardSubtitle>{subtitle}</WizardSubtitle>}
-                        </HeaderLeft>
-                        <CloseButton onClick={onClose}>×</CloseButton>
+                        </HeaderText>
+                        <CloseBtn onClick={onClose} title="Zamknij">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </CloseBtn>
                     </HeaderTop>
-                    <ProgressBar>
-                        <ProgressFill $progress={progress} />
-                    </ProgressBar>
-                    <StepIndicator>
-                        {Array.from({ length: totalSteps }, (_, i) => (
-                            <StepDot
-                                key={i}
-                                $active={i + 1 === currentStep}
-                                $completed={i + 1 < currentStep}
-                            />
-                        ))}
-                    </StepIndicator>
+                    <ProgressRow>
+                        <ProgressBar>
+                            <ProgressFill $pct={pct} />
+                        </ProgressBar>
+                        <StepLabel>{currentStep} / {totalSteps}</StepLabel>
+                    </ProgressRow>
                 </WizardHeader>
 
                 <WizardBody>{children}</WizardBody>
 
                 <WizardFooter>
-                    <ButtonGroup>
-                        {currentStep > 1 && onBack && (
-                            <Button
-                                onClick={onBack}
-                                disabled={isProcessing}
-                                $variant="secondary"
-                            >
-                                {backLabel}
-                            </Button>
-                        )}
-                        {onSkip && (
-                            <Button
-                                onClick={onSkip}
-                                disabled={isProcessing}
-                                $variant="secondary"
-                            >
-                                {skipLabel}
-                            </Button>
-                        )}
-                        {(onNext || onFinish) && (
-                            <Button
-                                onClick={handlePrimaryAction}
-                                disabled={disableNext || isProcessing}
-                                $variant="primary"
-                                $fullWidth={!onBack && !onSkip && currentStep === 1}
-                            >
-                                {isProcessing
-                                    ? 'Przetwarzanie...'
-                                    : isLastStep
-                                        ? finishLabel
-                                        : nextLabel
-                                }
-                            </Button>
-                        )}
-                    </ButtonGroup>
+                    {currentStep > 1 && onBack && (
+                        <FooterBtn onClick={onBack} disabled={isProcessing}>
+                            {backLabel}
+                        </FooterBtn>
+                    )}
+                    {onSkip && (
+                        <FooterBtn onClick={onSkip} disabled={isProcessing}>
+                            {skipLabel}
+                        </FooterBtn>
+                    )}
+                    {(onNext || onFinish) && (
+                        <FooterBtn
+                            $primary
+                            onClick={handlePrimary}
+                            disabled={disableNext || isProcessing}
+                        >
+                            {isProcessing ? 'Przetwarzanie...' : isLast ? finishLabel : nextLabel}
+                        </FooterBtn>
+                    )}
                 </WizardFooter>
             </WizardContainer>
         </Overlay>
