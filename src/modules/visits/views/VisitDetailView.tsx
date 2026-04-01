@@ -460,6 +460,31 @@ export const VisitDetailView = () => {
                                 />
                             </SectionBody>
                         </Section>
+
+                        {/* Historia zmian ───────────────────────────────── */}
+                        <Section>
+                            <SectionHeader
+                                onClick={() => setIsAuditOpen(v => !v)}
+                                aria-expanded={isAuditOpen}
+                                aria-controls="audit-section"
+                            >
+                                <SectionHeaderLeft>
+                                    <SectionIconWrap>
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <polyline points="12 6 12 12 16 14" />
+                                        </svg>
+                                    </SectionIconWrap>
+                                    <SectionTitle>Historia zmian</SectionTitle>
+                                </SectionHeaderLeft>
+                                <ChevronIcon $open={isAuditOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="6 9 12 15 18 9" />
+                                </ChevronIcon>
+                            </SectionHeader>
+                            <SectionBody $visible={isAuditOpen} id="audit-section">
+                                <AuditTimeline module="VISIT" entityId={visitId!} />
+                            </SectionBody>
+                        </Section>
                     </MainColumn>
 
                     <Sidebar>
@@ -488,31 +513,6 @@ export const VisitDetailView = () => {
                         />
                     </Sidebar>
                 </MainGrid>
-
-                {/* Historia zmian ─────────────────────────────────────────── */}
-                <Section>
-                    <SectionHeader
-                        onClick={() => setIsAuditOpen(v => !v)}
-                        aria-expanded={isAuditOpen}
-                        aria-controls="audit-section"
-                    >
-                        <SectionHeaderLeft>
-                            <SectionIconWrap>
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <polyline points="12 6 12 12 16 14" />
-                                </svg>
-                            </SectionIconWrap>
-                            <SectionTitle>Historia zmian</SectionTitle>
-                        </SectionHeaderLeft>
-                        <ChevronIcon $open={isAuditOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="6 9 12 15 18 9" />
-                        </ChevronIcon>
-                    </SectionHeader>
-                    <SectionBody $visible={isAuditOpen} id="audit-section">
-                        <AuditTimeline module="VISIT" entityId={visitId!} />
-                    </SectionBody>
-                </Section>
             </ContentArea>
 
             {transitionType === 'in_progress_to_ready' && (

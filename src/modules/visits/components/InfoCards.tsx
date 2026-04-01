@@ -110,27 +110,39 @@ const Divider = styled.div`
     margin: 2px 0;
 `;
 
-const StatsRow = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+const StatsGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: ${st.border};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    overflow: hidden;
 `;
 
-const StatChip = styled.div<{ $green?: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    padding: 3px 9px;
-    border-radius: ${st.radiusFull};
-    font-size: 11px;
-    font-weight: 600;
+const StatCell = styled.div`
+    background: ${st.bgCard};
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+`;
 
-    ${props => props.$green ? `
-        background: ${st.accentGreenDim};
-        color: ${st.accentGreen};
-    ` : `
-        background: ${st.accentBlueDim};
-        color: ${st.accentBlue};
-    `}
+const StatValue = styled.div`
+    font-size: 13px;
+    font-weight: 700;
+    color: ${st.text};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+`;
+
+const StatLabel = styled.div`
+    font-size: 10px;
+    font-weight: 600;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 `;
 
 // ─── Vehicle-specific ─────────────────────────────────────────────────────────
@@ -138,11 +150,7 @@ const StatChip = styled.div<{ $green?: boolean }>`
 const IntakeGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    padding: 10px 12px;
-    background: ${st.bg};
-    border-radius: ${st.radiusSm};
-    border: 1px solid ${st.border};
+    gap: 10px;
 `;
 
 const IntakeItem = styled.div`
@@ -172,13 +180,11 @@ const StatusPill = styled.span<{ $ok: boolean }>`
 `;
 
 const HandoffBox = styled.div`
-    padding: 10px 12px;
-    background: ${st.bg};
-    border-radius: ${st.radiusSm};
-    border: 1px solid ${st.border};
     display: flex;
     flex-direction: column;
     gap: 8px;
+    padding-top: 2px;
+    border-top: 1px solid ${st.border};
 `;
 
 const HandoffLabel = styled.div`
@@ -250,16 +256,25 @@ export const CustomerInfoCard = ({ customer, onViewDetails }: CustomerInfoCardPr
 
                 <Divider />
 
-                <StatsRow>
-                    <StatChip $green>
-                        LTV: {formatCurrency(
-                            customer.stats.totalSpent.grossAmount / 100,
-                            customer.stats.totalSpent.currency
-                        )}
-                    </StatChip>
-                    <StatChip>{pluralVisits(customer.stats.totalVisits)}</StatChip>
-                    <StatChip>{pluralVehicles(customer.stats.vehiclesCount)}</StatChip>
-                </StatsRow>
+                <StatsGrid>
+                    <StatCell>
+                        <StatLabel>LTV</StatLabel>
+                        <StatValue>
+                            {formatCurrency(
+                                customer.stats.totalSpent.grossAmount / 100,
+                                customer.stats.totalSpent.currency
+                            )}
+                        </StatValue>
+                    </StatCell>
+                    <StatCell>
+                        <StatLabel>Wizyty</StatLabel>
+                        <StatValue>{customer.stats.totalVisits}</StatValue>
+                    </StatCell>
+                    <StatCell>
+                        <StatLabel>Pojazdy</StatLabel>
+                        <StatValue>{customer.stats.vehiclesCount}</StatValue>
+                    </StatCell>
+                </StatsGrid>
             </CardBody>
         </SidebarCard>
     );
