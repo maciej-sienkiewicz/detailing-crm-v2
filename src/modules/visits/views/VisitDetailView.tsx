@@ -315,6 +315,7 @@ export const VisitDetailView = () => {
     const [highlightPendingServices, setHighlightPendingServices] = useState(false);
     const [isDocsOpen, setIsDocsOpen] = useState(false);
     const [isAuditOpen, setIsAuditOpen] = useState(false);
+    const docFileInputRef = useRef<HTMLInputElement>(null);
 
     const { visitDetail, isLoading, isError, refetch } = useVisitDetail(visitId!);
     const { documents } = useVisitDocuments(visitId!);
@@ -423,7 +424,6 @@ export const VisitDetailView = () => {
     const pdfCount = documents.filter(d => !['PHOTO', 'DAMAGE_MAP'].includes(d.type)).length;
     const totalDocCount = photoCount + pdfCount;
 
-    const docFileInputRef = useRef<HTMLInputElement>(null);
     const handleDocFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
