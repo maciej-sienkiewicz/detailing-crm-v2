@@ -23,29 +23,39 @@ const Page = styled.div`
     background: ${p => p.theme.colors.background};
 `;
 
+const HeaderWrap = styled.div`
+    padding: ${p => p.theme.spacing.lg} ${p => p.theme.spacing.xl};
+    flex-shrink: 0;
+
+    @media (max-width: 640px) {
+        padding: ${p => p.theme.spacing.md};
+    }
+`;
+
 const PageHeader = styled.div`
     position: relative;
     overflow: hidden;
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 65%, #0c1f35 100%);
-    padding: 24px ${p => p.theme.spacing.xl};
+    border-radius: ${p => p.theme.radii.xl};
+    padding: 28px 32px;
     display: flex;
     align-items: center;
     gap: ${p => p.theme.spacing.md};
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 4px 20px rgba(0, 0, 0, 0.14);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 8px 32px rgba(0, 0, 0, 0.16);
 
     &::before {
         content: '';
         position: absolute;
-        top: -60px;
-        right: -40px;
-        width: 280px;
-        height: 280px;
-        background: radial-gradient(circle, rgba(14, 165, 233, 0.12) 0%, transparent 65%);
+        top: -80px;
+        right: -60px;
+        width: 320px;
+        height: 320px;
+        background: radial-gradient(circle, rgba(14, 165, 233, 0.14) 0%, transparent 65%);
         pointer-events: none;
     }
 
     @media (max-width: 640px) {
-        padding: ${p => p.theme.spacing.md};
+        padding: 22px 20px;
     }
 `;
 
@@ -454,19 +464,21 @@ export const GalleryView = () => {
     return (
         <Page>
             {/* Header */}
-            <PageHeader>
-                <HeaderIcon>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" />
-                        <circle cx="8.5" cy="8.5" r="1.5" />
-                        <polyline points="21 15 16 10 5 21" />
-                    </svg>
-                </HeaderIcon>
-                <HeaderText>
-                    <PageTitle>Galeria</PageTitle>
-                    <PageSubtitle>Wszystkie zdjęcia z wizyt, pojazdów i klientów</PageSubtitle>
-                </HeaderText>
-            </PageHeader>
+            <HeaderWrap>
+                <PageHeader>
+                    <HeaderIcon>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <polyline points="21 15 16 10 5 21" />
+                        </svg>
+                    </HeaderIcon>
+                    <HeaderText>
+                        <PageTitle>Galeria</PageTitle>
+                        <PageSubtitle>Wszystkie zdjęcia z wizyt, pojazdów i klientów</PageSubtitle>
+                    </HeaderText>
+                </PageHeader>
+            </HeaderWrap>
 
             {/* Filters */}
             <GalleryFilterBar
