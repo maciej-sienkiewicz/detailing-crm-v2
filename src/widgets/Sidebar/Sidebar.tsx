@@ -6,6 +6,7 @@ import {
     Target,
     Users,
     Car,
+    Images,
     BarChart3,
     TrendingUp,
     Zap,
@@ -55,6 +56,7 @@ const menuSections: MenuSection[] = [
         items: [
             { path: '/customers', label: 'Klienci',  icon: Users },
             { path: '/vehicles',  label: 'Pojazdy',  icon: Car },
+            { path: '/gallery',   label: 'Galeria',  icon: Images },
         ],
     },
     {

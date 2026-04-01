@@ -23,6 +23,7 @@ import {FinanceView} from "@/modules/finance";
 import { StatisticsView, CategoryDetailView, DelayStatisticsView } from "@/modules/statistics";
 import { CompetitionMonitoringView } from "@/modules/competition-monitoring";
 import { SmsCampaignsView } from "@/modules/sms-campaigns";
+import { GalleryView } from "@/modules/gallery/views/GalleryView";
 
 export const router = createBrowserRouter([
     {
@@ -233,6 +234,14 @@ export const router = createBrowserRouter([
         element: (
             <ProtectedRoute>
                 <Layout><SmsCampaignsView /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/gallery',
+        element: (
+            <ProtectedRoute>
+                <Layout><GalleryView /></Layout>
             </ProtectedRoute>
         ),
     },
