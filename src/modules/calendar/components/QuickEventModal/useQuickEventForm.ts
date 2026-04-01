@@ -401,6 +401,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
         const error = validateCustomerFields(fn, ln, ph, em);
         if (error) {
             setErrors(prev => ({ ...prev, customer: error }));
+            showError('Dane klienta', error);
             if (fn.length < 2) customerInputRef.current?.focus();
             else if (ln.length < 2) customerLastNameInputRef.current?.focus();
             else customerPhoneInputRef.current?.focus();
@@ -432,6 +433,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
             const error = validateCustomerFields(fn, ln, ph, em);
             if (error) {
                 setErrors(prev => ({ ...prev, customer: error }));
+                showError('Dane klienta', error);
                 if (fn.length < 2) customerInputRef.current?.focus();
                 else if (ln.length < 2) customerLastNameInputRef.current?.focus();
                 else customerPhoneInputRef.current?.focus();

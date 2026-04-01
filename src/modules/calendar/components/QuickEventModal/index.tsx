@@ -434,7 +434,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         </>
                                     )}
 
-                                    {form.errors.customer && <S.ErrorMessage>{form.errors.customer}</S.ErrorMessage>}
                                 </S.RowContent>
                             </S.Row>
 
