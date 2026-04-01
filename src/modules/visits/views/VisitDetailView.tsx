@@ -328,7 +328,7 @@ export const VisitDetailView = () => {
     const { comments, isLoading: isLoadingComments } = useVisitComments(visitId!);
     const { updateServiceStatus } = useUpdateServiceStatus(visitId!);
     const { saveServicesChanges, isSaving } = useSaveServicesChanges(visitId!);
-    const { showSuccess, showWarning } = useToast();
+    const { showSuccess, showWarning, showInfo } = useToast();
 
     if (isLoading) {
         return (
@@ -385,13 +385,9 @@ export const VisitDetailView = () => {
         }
     };
 
-    const handlePrintProtocol = () => { window.print(); };
+    const handlePrintProtocol = () => { showInfo('To jeszcze nie działa, trzeba obgadać'); };
 
-    const handleCancelVisit = () => {
-        if (window.confirm('Czy na pewno chcesz odrzucić tę wizytę? Ta operacja jest nieodwracalna.')) {
-            updateVisit({ status: 'REJECTED' });
-        }
-    };
+    const handleCancelVisit = () => { showInfo('To jeszcze nie działa, trzeba obgadać'); };
 
     const handleMileageChange = (mileage: number) => { updateVisit({ mileageAtArrival: mileage }); };
     const handleKeysToggle = (checked: boolean) => { updateVisit({ keysHandedOver: checked }); };
