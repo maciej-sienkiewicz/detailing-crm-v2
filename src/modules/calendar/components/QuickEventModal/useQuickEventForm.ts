@@ -24,7 +24,7 @@ interface UseQuickEventFormOptions {
     ref: React.ForwardedRef<QuickEventModalRef>;
 }
 
-export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEventFormOptions) {
+export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: UseQuickEventFormOptions) {
     // ─── Form state ────────────────────────────────────────────────────────────
     const [title, setTitle] = useState('');
     const [startDateTime, setStartDateTime] = useState('');
@@ -175,6 +175,17 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref }: UseQuickEv
             setTimeout(() => titleInputRef.current?.focus(), 100);
         }
     }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                onClose();
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
 
     useEffect(() => {
         if (selectedServiceIds.length > 0 && errors.services) {
