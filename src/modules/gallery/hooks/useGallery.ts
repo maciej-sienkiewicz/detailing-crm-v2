@@ -16,7 +16,6 @@ export const useGallery = (filters: GalleryFilters) => {
         photos: data?.photos ?? [],
         pagination: data?.pagination,
         availableTags: data?.availableTags ?? [],
-        availableBrands: data?.availableBrands ?? [],
         isLoading,
         isFetching,
         error,

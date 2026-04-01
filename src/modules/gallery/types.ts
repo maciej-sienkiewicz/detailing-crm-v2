@@ -26,7 +26,8 @@ export interface GalleryPhoto {
 
 export interface GalleryFilters {
     tags: string[];
-    search: string;
+    brand: string;
+    model: string;
     page: number;
     pageSize: number;
 }
@@ -42,5 +43,4 @@ export interface GalleryResponse {
     photos: GalleryPhoto[];
     pagination: GalleryPagination;
     availableTags: string[];
-    availableBrands: string[];
 }

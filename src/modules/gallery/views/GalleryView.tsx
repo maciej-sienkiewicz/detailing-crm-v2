@@ -1,8 +1,7 @@
 // src/modules/gallery/views/GalleryView.tsx
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
-import { TagChip } from '@/modules/photos/components/TagChip';
 import { GalleryFilterBar } from '../components/GalleryFilterBar';
 import { GalleryLightbox } from '../components/GalleryLightbox';
 import { useGallery } from '../hooks/useGallery';
@@ -350,6 +349,21 @@ const SkeletonCard = styled.div`
     animation: ${shimmer} 1.4s infinite linear;
 `;
 
+// ─── card tag pill (monochrome, on dark overlay) ──────────────────────────────
+
+const CardTag = styled.span`
+    display: inline-flex;
+    padding: 2px 7px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(2px);
+`;
+
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 12;
@@ -371,26 +385,29 @@ function buildPageNumbers(current: number, total: number): (number | '…')[] {
 
 export const GalleryView = () => {
     const [page, setPage] = useState(1);
-    const [search, setSearch] = useState('');
+    const [brand, setBrand] = useState('');
+    const [model, setModel] = useState('');
     const [activeTags, setActiveTags] = useState<string[]>([]);
     const [selectedPhoto, setSelectedPhoto] = useState<GalleryPhoto | null>(null);
-    const [debouncedSearch, setDebouncedSearch] = useState('');
-
-    // Debounce search
-    useEffect(() => {
-        const t = setTimeout(() => {
-            setDebouncedSearch(search);
-            setPage(1);
-        }, 300);
-        return () => clearTimeout(t);
-    }, [search]);
 
     const { photos, pagination, availableTags, isFetching, isLoading } = useGallery({
         tags: activeTags,
-        search: debouncedSearch,
+        brand,
+        model,
         page,
         pageSize: PAGE_SIZE,
     });
+
+    const handleBrandChange = useCallback((b: string) => {
+        setBrand(b);
+        setModel('');
+        setPage(1);
+    }, []);
+
+    const handleModelChange = useCallback((m: string) => {
+        setModel(m);
+        setPage(1);
+    }, []);
 
     const handleTagToggle = useCallback((tag: string) => {
         setActiveTags(prev =>
@@ -404,8 +421,11 @@ export const GalleryView = () => {
         setPage(1);
     }, []);
 
-    const handleSearchChange = useCallback((v: string) => {
-        setSearch(v);
+    const handleClearAll = useCallback(() => {
+        setBrand('');
+        setModel('');
+        setActiveTags([]);
+        setPage(1);
     }, []);
 
     const pageNumbers = pagination ? buildPageNumbers(page, pagination.totalPages) : [];
@@ -429,12 +449,15 @@ export const GalleryView = () => {
 
             {/* Filters */}
             <GalleryFilterBar
-                search={search}
-                onSearchChange={handleSearchChange}
+                brand={brand}
+                model={model}
+                onBrandChange={handleBrandChange}
+                onModelChange={handleModelChange}
                 activeTags={activeTags}
                 availableTags={availableTags}
                 onTagToggle={handleTagToggle}
                 onClearTags={handleClearTags}
+                onClearAll={handleClearAll}
                 totalPhotos={pagination?.total ?? 0}
                 isFetching={isFetching}
             />
@@ -459,7 +482,7 @@ export const GalleryView = () => {
                             </EmptyIcon>
                             <EmptyTitle>Brak zdjęć</EmptyTitle>
                             <EmptyDesc>
-                                {activeTags.length > 0 || debouncedSearch
+                                {activeTags.length > 0 || brand || model
                                     ? 'Żadne zdjęcie nie pasuje do podanych filtrów.'
                                     : 'Nie dodano jeszcze żadnych zdjęć.'}
                             </EmptyDesc>
@@ -497,7 +520,7 @@ export const GalleryView = () => {
                                         {photo.tags.length > 0 && (
                                             <CardTags>
                                                 {photo.tags.slice(0, 3).map(tag => (
-                                                    <TagChip key={tag} label={tag} size="sm" />
+                                                    <CardTag key={tag}>{tag}</CardTag>
                                                 ))}
                                                 {photo.tags.length > 3 && (
                                                     <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', alignSelf: 'center' }}>

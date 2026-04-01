@@ -444,21 +444,19 @@ const MOCK_PHOTOS: GalleryPhoto[] = [
 ];
 
 function photosMatchFilters(photo: GalleryPhoto, filters: GalleryFilters): boolean {
-    const { tags, search } = filters;
+    const { tags, brand, model } = filters;
 
     if (tags.length > 0) {
         const hasAllTags = tags.every(t => photo.tags.includes(t));
         if (!hasAllTags) return false;
     }
 
-    if (search.trim()) {
-        const q = search.trim().toLowerCase();
-        const brandModel = `${photo.vehicleBrand ?? ''} ${photo.vehicleModel ?? ''}`.toLowerCase();
-        const plate = (photo.vehicleLicensePlate ?? '').toLowerCase();
-        const customer = (photo.customerName ?? '').toLowerCase();
-        if (!brandModel.includes(q) && !plate.includes(q) && !customer.includes(q)) {
-            return false;
-        }
+    if (brand) {
+        if ((photo.vehicleBrand ?? '').toLowerCase() !== brand.toLowerCase()) return false;
+    }
+
+    if (model) {
+        if ((photo.vehicleModel ?? '').toLowerCase() !== model.toLowerCase()) return false;
     }
 
     return true;
@@ -480,22 +478,18 @@ export const galleryApi = {
             const photos = filtered.slice(start, start + pageSize);
 
             const allTags = Array.from(new Set(MOCK_PHOTOS.flatMap(p => p.tags))).sort();
-            const allBrands = Array.from(
-                new Set(MOCK_PHOTOS.map(p => p.vehicleBrand).filter(Boolean) as string[])
-            ).sort();
-
             return {
                 photos,
                 pagination: { total, page: safePage, pageSize, totalPages },
                 availableTags: allTags,
-                availableBrands: allBrands,
             };
         }
 
         const params = new URLSearchParams();
         params.set('page', String(filters.page));
         params.set('pageSize', String(filters.pageSize));
-        if (filters.search) params.set('search', filters.search);
+        if (filters.brand) params.set('brand', filters.brand);
+        if (filters.model) params.set('model', filters.model);
         if (filters.tags.length) params.set('tags', filters.tags.join(','));
 
         const response = await apiClient.get(`/v1/gallery?${params.toString()}`);
