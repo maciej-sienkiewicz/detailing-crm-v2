@@ -226,7 +226,8 @@ export const ReadyToCompletedWizard = ({
             case 3:
                 return (
                     <PaymentStep
-                        totalAmount={visit.totalCost.grossAmount}
+                        netAmount={visit.totalCost.netAmount}
+                        grossAmount={visit.totalCost.grossAmount}
                         currency={visit.totalCost.currency}
                         onComplete={handlePaymentComplete}
                     />
