@@ -53,7 +53,34 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         <>
             <S.Overlay $isOpen={isOpen} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
                 <S.ModalContainer $isOpen={isOpen}>
-                    <form onSubmit={form.handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                    <form
+                        onSubmit={form.handleSubmit}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                                e.preventDefault();
+                                onClose();
+                                return;
+                            }
+                            if (e.key === 'Enter') {
+                                const customerFields = [
+                                    form.customerInputRef.current,
+                                    form.customerLastNameInputRef.current,
+                                    form.customerPhoneInputRef.current,
+                                    form.customerEmailInputRef.current,
+                                ];
+                                if (customerFields.includes(e.target as HTMLInputElement)) {
+                                    e.preventDefault();
+                                    if (!form.selectedCustomer) {
+                                        form.handleAddNewCustomerDirectly();
+                                        form.setFocusedField(null);
+                                    } else if (form.customerEditMode) {
+                                        form.handleConfirmEdit();
+                                    }
+                                }
+                            }
+                        }}
+                        style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
+                    >
 
                         {/* ── Header ─────────────────────────────────────────────── */}
                         <S.Header>
@@ -157,7 +184,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             onChange={(e) => form.setCustomerFirstName(e.target.value)}
                                                             onFocus={() => form.setFocusedField('customer')}
                                                             onBlur={() => form.setFocusedField(null)}
-                                                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); form.handleConfirmEdit(); } }}
                                                             autoComplete="off"
                                                             autoFocus
                                                         />
@@ -172,7 +198,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             onChange={(e) => form.setCustomerLastName(e.target.value)}
                                                             onFocus={() => form.setFocusedField('customer')}
                                                             onBlur={() => form.setFocusedField(null)}
-                                                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); form.handleConfirmEdit(); } }}
                                                             autoComplete="off"
                                                         />
                                                     </S.CustomerFieldGroup>
@@ -188,7 +213,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             onChange={(e) => form.setCustomerPhone(e.target.value)}
                                                             onFocus={() => form.setFocusedField('customer')}
                                                             onBlur={() => form.setFocusedField(null)}
-                                                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); form.handleConfirmEdit(); } }}
                                                             autoComplete="off"
                                                         />
                                                     </S.CustomerFieldGroup>
@@ -202,7 +226,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             onChange={(e) => form.setCustomerEmail(e.target.value)}
                                                             onFocus={() => form.setFocusedField('customer')}
                                                             onBlur={() => form.setFocusedField(null)}
-                                                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); form.handleConfirmEdit(); } }}
                                                             autoComplete="off"
                                                         />
                                                     </S.CustomerFieldGroup>
@@ -291,7 +314,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                 }}
                                                                 onFocus={form.handleCustomerFieldFocus}
                                                                 onBlur={form.handleCustomerFieldBlur}
-                                                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); form.handleAddNewCustomerDirectly(); form.setFocusedField(null); } }}
                                                                 autoComplete="off"
                                                             />
                                                         </S.CustomerFieldGroup>
@@ -308,7 +330,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                 }}
                                                                 onFocus={form.handleCustomerFieldFocus}
                                                                 onBlur={form.handleCustomerFieldBlur}
-                                                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); form.handleAddNewCustomerDirectly(); form.setFocusedField(null); } }}
                                                                 autoComplete="off"
                                                             />
                                                         </S.CustomerFieldGroup>
@@ -327,7 +348,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                 }}
                                                                 onFocus={form.handleCustomerFieldFocus}
                                                                 onBlur={form.handleCustomerFieldBlur}
-                                                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); form.handleAddNewCustomerDirectly(); form.setFocusedField(null); } }}
                                                                 autoComplete="off"
                                                             />
                                                         </S.CustomerFieldGroup>
@@ -344,7 +364,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                 }}
                                                                 onFocus={form.handleCustomerFieldFocus}
                                                                 onBlur={form.handleCustomerFieldBlur}
-                                                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); form.handleAddNewCustomerDirectly(); form.setFocusedField(null); } }}
                                                                 autoComplete="off"
                                                             />
                                                         </S.CustomerFieldGroup>
