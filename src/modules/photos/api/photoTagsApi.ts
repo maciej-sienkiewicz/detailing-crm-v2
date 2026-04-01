@@ -3,7 +3,7 @@
 import { apiClient } from '@/core';
 import type { PhotoTagsResponse, TagSuggestionsResponse } from '../types';
 
-const USE_MOCKS = true;
+const USE_MOCKS = false;
 
 const MOCK_SUGGESTIONS: string[] = [
     'przód', 'tył', 'lewy bok', 'prawy bok',
@@ -21,7 +21,7 @@ export const photoTagsApi = {
             await new Promise(r => setTimeout(r, 150));
             return { suggestions: MOCK_SUGGESTIONS };
         }
-        const response = await apiClient.get('/photo-tags/suggestions');
+        const response = await apiClient.get('/v1/photo-tags/suggestions');
         return response.data;
     },
 
@@ -33,7 +33,7 @@ export const photoTagsApi = {
             await new Promise(r => setTimeout(r, 200));
             return { tags };
         }
-        const response = await apiClient.put(`/photos/${photoId}/tags`, { tags });
+        const response = await apiClient.put(`/v1/photos/${photoId}/tags`, { tags });
         return response.data;
     },
 };

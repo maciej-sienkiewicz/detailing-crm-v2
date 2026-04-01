@@ -3,7 +3,7 @@
 import { apiClient } from '@/core/apiClient';
 import type { GalleryFilters, GalleryResponse, GalleryPhoto } from '../types';
 
-const USE_MOCKS = true;
+const USE_MOCKS = false;
 
 // ─── mock data ────────────────────────────────────────────────────────────────
 
