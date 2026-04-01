@@ -24,11 +24,11 @@ const Page = styled.div`
 `;
 
 const HeaderWrap = styled.div`
-    padding: ${p => p.theme.spacing.lg} ${p => p.theme.spacing.xl};
+    padding: ${p => p.theme.spacing.lg};
     flex-shrink: 0;
 
-    @media (max-width: 640px) {
-        padding: ${p => p.theme.spacing.md};
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
+        padding: ${p => p.theme.spacing.xl};
     }
 `;
 
@@ -38,9 +38,6 @@ const PageHeader = styled.div`
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 65%, #0c1f35 100%);
     border-radius: ${p => p.theme.radii.xl};
     padding: 28px 32px;
-    display: flex;
-    align-items: center;
-    gap: ${p => p.theme.spacing.md};
     box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 8px 32px rgba(0, 0, 0, 0.16);
 
     &::before {
@@ -54,45 +51,31 @@ const PageHeader = styled.div`
         pointer-events: none;
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: ${p => p.theme.breakpoints.sm}) {
         padding: 22px 20px;
     }
 `;
 
-const HeaderIcon = styled.div`
-    position: relative;
-    z-index: 1;
-    width: 44px;
-    height: 44px;
-    border-radius: ${p => p.theme.radii.lg};
-    background: rgba(14, 165, 233, 0.18);
-    border: 1px solid rgba(14, 165, 233, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: #7dd3fc;
-
-    svg { width: 22px; height: 22px; }
-`;
-
-const HeaderText = styled.div`
-    position: relative;
-    z-index: 1;
-`;
-
 const PageTitle = styled.h1`
-    margin: 0 0 3px;
-    font-size: 26px;
+    position: relative;
+    z-index: 1;
+    margin: 0 0 4px;
+    font-size: 30px;
     font-weight: 700;
     color: #f1f5f9;
-    letter-spacing: -0.4px;
+    letter-spacing: -0.5px;
     line-height: 1.1;
+
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
+        font-size: 34px;
+    }
 `;
 
 const PageSubtitle = styled.p`
+    position: relative;
+    z-index: 1;
     margin: 0;
-    font-size: ${p => p.theme.fontSizes.sm};
+    font-size: 14px;
     color: #475569;
     font-weight: 500;
 `;
@@ -466,17 +449,8 @@ export const GalleryView = () => {
             {/* Header */}
             <HeaderWrap>
                 <PageHeader>
-                    <HeaderIcon>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="3" y="3" width="18" height="18" rx="2" />
-                            <circle cx="8.5" cy="8.5" r="1.5" />
-                            <polyline points="21 15 16 10 5 21" />
-                        </svg>
-                    </HeaderIcon>
-                    <HeaderText>
-                        <PageTitle>Galeria</PageTitle>
-                        <PageSubtitle>Wszystkie zdjęcia z wizyt, pojazdów i klientów</PageSubtitle>
-                    </HeaderText>
+                    <PageTitle>Galeria</PageTitle>
+                    <PageSubtitle>Wszystkie zdjęcia z wizyt, pojazdów i klientów</PageSubtitle>
                 </PageHeader>
             </HeaderWrap>
 
