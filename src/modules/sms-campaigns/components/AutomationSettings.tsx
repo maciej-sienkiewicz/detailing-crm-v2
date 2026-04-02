@@ -39,23 +39,23 @@ const Card = styled.div`
 const CardHeader = styled.div<{ $enabled: boolean }>`
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 18px 24px;
-  background: ${(p) => (p.$enabled ? st.gradientCardBlue : st.bgCard)};
-  border-bottom: 1px solid ${(p) => (p.$enabled ? `${st.accentBlue}22` : st.border)};
-  transition: background ${st.transition};
+  gap: 10px;
+  padding: 13px 16px;
+  background: ${st.bg};
+  border-bottom: 1px solid ${st.border};
+  border-left: 3px solid ${(p) => (p.$enabled ? st.accentBlue : 'transparent')};
+  transition: border-color ${st.transition};
 `;
 
-const CardIcon = styled.div<{ $enabled: boolean }>`
-  width: 44px;
-  height: 44px;
-  border-radius: ${st.radiusSm};
+const CardIcon = styled.div`
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
-  background: ${(p) => (p.$enabled ? st.accentBlueDim : st.bgCardAlt)};
-  transition: background ${st.transition};
+  background: ${st.gradientBlue};
+  color: white;
   flex-shrink: 0;
 `;
 
@@ -66,7 +66,7 @@ const CardTitleGroup = styled.div`
 
 const CardTitle = styled.h3`
   margin: 0 0 2px;
-  font-size: ${st.fontMd};
+  font-size: ${st.fontSm};
   font-weight: 700;
   color: ${st.text};
 `;
@@ -121,7 +121,7 @@ const ToggleLabel = styled.span<{ $on: boolean }>`
 // ─── Card body ────────────────────────────────────────────────────────────────
 
 const CardBody = styled.div`
-  padding: 20px 24px;
+  padding: 14px 16px 18px;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -280,6 +280,12 @@ const SavedBadge = styled.span`
   font-weight: 700;
 `;
 
+const ActionBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
 const SkeletonBox = styled.div<{ $w?: string; $h?: string }>`
   width: ${(p) => p.$w ?? '100%'};
   height: ${(p) => p.$h ?? '14px'};
@@ -413,7 +419,7 @@ export const AutomationSettings: React.FC = () => {
         {[0, 1].map((i) => (
           <Card key={i}>
             <CardHeader $enabled={false}>
-              <SkeletonBox $w="44px" $h="44px" style={{ borderRadius: '8px', flexShrink: 0 }} />
+              <SkeletonBox $w="28px" $h="28px" style={{ borderRadius: '7px', flexShrink: 0 }} />
               <CardTitleGroup>
                 <SkeletonBox $w="45%" $h="16px" style={{ marginBottom: 6 }} />
                 <SkeletonBox $w="65%" $h="11px" />
@@ -430,7 +436,12 @@ export const AutomationSettings: React.FC = () => {
       {/* ── Pre-visit reminder ── */}
       <Card>
         <CardHeader $enabled={localConfig.preVisit.enabled}>
-          <CardIcon $enabled={localConfig.preVisit.enabled}>⏰</CardIcon>
+          <CardIcon>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+          </CardIcon>
           <CardTitleGroup>
             <CardTitle>Przypomnienie przed wizytą</CardTitle>
             <CardSubtitle>
@@ -462,7 +473,11 @@ export const AutomationSettings: React.FC = () => {
       {/* ── Post-visit follow-up ── */}
       <Card>
         <CardHeader $enabled={localConfig.postVisit.enabled}>
-          <CardIcon $enabled={localConfig.postVisit.enabled}>✅</CardIcon>
+          <CardIcon>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </CardIcon>
           <CardTitleGroup>
             <CardTitle>Wiadomość po wizycie</CardTitle>
             <CardSubtitle>
@@ -492,12 +507,12 @@ export const AutomationSettings: React.FC = () => {
       </Card>
 
       {/* ── Save bar ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <ActionBar>
         <SaveButton onClick={handleSave} disabled={updateMutation.isPending}>
-          {updateMutation.isPending ? 'Zapisywanie…' : '✓ Zapisz ustawienia'}
+          {updateMutation.isPending ? 'Zapisywanie…' : 'Zapisz ustawienia'}
         </SaveButton>
-        {savedAt && <SavedBadge>✓ Zapisano</SavedBadge>}
-      </div>
+        {savedAt && <SavedBadge>Zapisano</SavedBadge>}
+      </ActionBar>
     </Container>
   );
 };
