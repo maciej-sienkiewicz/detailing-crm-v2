@@ -227,20 +227,11 @@ export async function previewAudience(filters: CampaignFilters): Promise<Audienc
 }
 
 export async function fetchAutomationConfig(): Promise<SmsAutomationConfig> {
-  if (USE_MOCKS) {
-    await delay(300);
-    return { ...mockAutomation, preVisit: { ...mockAutomation.preVisit }, postVisit: { ...mockAutomation.postVisit } };
-  }
   const { data } = await apiClient.get<SmsAutomationConfig>('/v1/sms-campaigns/automation');
   return data;
 }
 
 export async function updateAutomationConfig(config: SmsAutomationConfig): Promise<SmsAutomationConfig> {
-  if (USE_MOCKS) {
-    await delay(500);
-    Object.assign(mockAutomation, config);
-    return { ...config };
-  }
   const { data } = await apiClient.put<SmsAutomationConfig>('/v1/sms-campaigns/automation', config);
   return data;
 }
