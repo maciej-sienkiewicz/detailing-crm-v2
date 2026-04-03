@@ -409,10 +409,14 @@ const VisitRow = ({
         </VisitMainRow>
 
         <VisitSecondRow>
-          <CustomerName>{visit.customerFirstName} {visit.customerLastName}</CustomerName>
+          { (visit.customerFirstName && visit.customerLastName) && (
+              <>
+                <CustomerName>{visit.customerFirstName} {visit.customerLastName}</CustomerName>
+                <Dot />
+              </>
+          )}
           {visit.phoneNumber && (
             <>
-              <Dot />
               <PhoneChip>{formatPhoneNumber(visit.phoneNumber)}</PhoneChip>
             </>
           )}
