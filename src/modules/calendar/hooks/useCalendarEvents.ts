@@ -22,7 +22,8 @@ export const useCalendarEvents = (
             return calendarApi.getCalendarEvents(dateRange, appointmentStatuses, visitStatuses);
         },
         enabled: !!dateRange,
-        staleTime: 1000 * 60 * 5, // Consider data stale after 5 minutes
-        gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
+        staleTime: 0, // Always consider data stale - refetch on every mount
+        gcTime: 0, // Do not keep stale data in cache
+        refetchOnMount: 'always', // Always refetch when component mounts (back button, redirect, URL entry)
     });
 };
