@@ -478,7 +478,7 @@ export const PostsModal = ({ profile, onClose }: PostsModalProps) => {
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 14.5h-2v-6h2v6zm0-8h-2V6h2v2.5z" />
                             </svg>
-                            Oceny trenują AI
+                            Na podstawie ocen będą generowane posty.
                         </AiHint>
                         <CloseBtn onClick={onClose} title="Zamknij (Esc)">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

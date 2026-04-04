@@ -515,23 +515,6 @@ export const CompetitionMonitoringView = () => {
                 <HeroText>
                     <HeroHeading>Monitoring Konkurencji</HeroHeading>
                     <HeroSubtitle>Obserwuj i analizuj profile Instagram konkurentów</HeroSubtitle>
-                    {(activeCount > 0 || pendingCount > 0) && (
-                        <HeroBadges>
-                            {activeCount > 0 && (
-                                <HeroBadge $color={st.accentGreen} $bg={st.accentGreenDim}>
-                                    <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
-                                        <circle cx="4" cy="4" r="4" />
-                                    </svg>
-                                    {activeCount} aktywnych
-                                </HeroBadge>
-                            )}
-                            {pendingCount > 0 && (
-                                <HeroBadge $color={st.accentAmber} $bg={st.accentAmberDim}>
-                                    {pendingCount} oczekujących
-                                </HeroBadge>
-                            )}
-                        </HeroBadges>
-                    )}
                 </HeroText>
 
                 <HeroActions>
