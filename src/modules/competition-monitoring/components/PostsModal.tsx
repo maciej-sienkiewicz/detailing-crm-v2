@@ -434,20 +434,24 @@ export const PostsModal = ({ profile, onClose }: PostsModalProps) => {
         setAnimatingKey(key);
         setTimeout(() => setAnimatingKey(null), 450);
 
+        // Oblicz nową wartość PRZED setState — dzięki temu updater jest czystą funkcją
+        // (bez side-effectów), co jest wymagane przez React StrictMode
+        const newReaction: Reaction | null = reactions[postId] === type ? null : type;
+
         setReactions(prev => {
             const next = { ...prev };
-            const newReaction: Reaction | null = next[postId] === type ? null : type;
             if (newReaction === null) {
                 delete next[postId];
             } else {
                 next[postId] = newReaction;
             }
             saveReactions(next);
-            // Sync to server (fire-and-forget — UI jest już zaktualizowane optimistically)
-            instagramApi.reactToPost(postId, newReaction);
             return next;
         });
-    }, []);
+
+        // API call całkowicie poza updaterem — wykona się dokładnie raz
+        instagramApi.reactToPost(postId, newReaction);
+    }, [reactions]);
 
     const likedCount   = posts.filter(p => reactions[p.id] === 'liked').length;
     const dislikedCount = posts.filter(p => reactions[p.id] === 'disliked').length;
