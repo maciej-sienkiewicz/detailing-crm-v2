@@ -2,7 +2,7 @@ import { apiClient } from '@/core/apiClient';
 import type { InstagramProfile, InstagramPost, ProfileSummary, WeeklyStat } from '../types';
 
 const BASE_PATH = '/v1/instagram/profiles';
-const USE_MOCKS = true;
+const USE_MOCKS = false;
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
