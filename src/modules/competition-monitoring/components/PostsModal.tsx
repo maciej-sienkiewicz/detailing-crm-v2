@@ -1,7 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import styled, { keyframes, css } from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useInstagramPosts } from '../hooks/useInstagramPosts';
+import { instagramApi } from '../api/instagramApi';
 import type { InstagramProfile } from '../types';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
@@ -434,12 +436,15 @@ export const PostsModal = ({ profile, onClose }: PostsModalProps) => {
 
         setReactions(prev => {
             const next = { ...prev };
-            if (next[postId] === type) {
-                delete next[postId];   // toggle off
+            const newReaction: Reaction | null = next[postId] === type ? null : type;
+            if (newReaction === null) {
+                delete next[postId];
             } else {
-                next[postId] = type;
+                next[postId] = newReaction;
             }
             saveReactions(next);
+            // Sync to server (fire-and-forget — UI jest już zaktualizowane optimistically)
+            instagramApi.reactToPost(postId, newReaction);
             return next;
         });
     }, []);
@@ -447,7 +452,7 @@ export const PostsModal = ({ profile, onClose }: PostsModalProps) => {
     const likedCount   = posts.filter(p => reactions[p.id] === 'liked').length;
     const dislikedCount = posts.filter(p => reactions[p.id] === 'disliked').length;
 
-    return (
+    const modal = (
         <Overlay onClick={handleOverlayClick}>
             <Panel>
                 {/* Header */}
@@ -580,4 +585,6 @@ export const PostsModal = ({ profile, onClose }: PostsModalProps) => {
             </Panel>
         </Overlay>
     );
+
+    return createPortal(modal, document.body);
 };
