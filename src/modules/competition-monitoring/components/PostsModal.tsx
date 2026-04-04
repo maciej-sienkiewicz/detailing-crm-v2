@@ -434,20 +434,24 @@ export const PostsModal = ({ profile, onClose }: PostsModalProps) => {
         setAnimatingKey(key);
         setTimeout(() => setAnimatingKey(null), 450);
 
+        // Oblicz nową wartość PRZED setState — dzięki temu updater jest czystą funkcją
+        // (bez side-effectów), co jest wymagane przez React StrictMode
+        const newReaction: Reaction | null = reactions[postId] === type ? null : type;
+
         setReactions(prev => {
             const next = { ...prev };
-            const newReaction: Reaction | null = next[postId] === type ? null : type;
             if (newReaction === null) {
                 delete next[postId];
             } else {
                 next[postId] = newReaction;
             }
             saveReactions(next);
-            // Sync to server (fire-and-forget — UI jest już zaktualizowane optimistically)
-            instagramApi.reactToPost(postId, newReaction);
             return next;
         });
-    }, []);
+
+        // API call całkowicie poza updaterem — wykona się dokładnie raz
+        instagramApi.reactToPost(postId, newReaction);
+    }, [reactions]);
 
     const likedCount   = posts.filter(p => reactions[p.id] === 'liked').length;
     const dislikedCount = posts.filter(p => reactions[p.id] === 'disliked').length;
@@ -478,7 +482,7 @@ export const PostsModal = ({ profile, onClose }: PostsModalProps) => {
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 14.5h-2v-6h2v6zm0-8h-2V6h2v2.5z" />
                             </svg>
-                            Na podstawie ocen będą generowane posty.
+                            Oceny trenują AI
                         </AiHint>
                         <CloseBtn onClick={onClose} title="Zamknij (Esc)">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
