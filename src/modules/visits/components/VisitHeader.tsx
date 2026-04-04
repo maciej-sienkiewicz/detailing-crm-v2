@@ -285,6 +285,7 @@ interface VisitHeaderProps {
     onCompleteVisit: () => void;
     onPrintProtocol: () => void;
     onCancelVisit: () => void;
+    onGeneratePost: () => void;
 }
 
 export const VisitHeader = ({
@@ -292,6 +293,7 @@ export const VisitHeader = ({
     onCompleteVisit,
     onPrintProtocol,
     onCancelVisit,
+    onGeneratePost,
 }: VisitHeaderProps) => {
     const navigate = useNavigate();
 
@@ -354,6 +356,13 @@ export const VisitHeader = ({
                 </HeaderLeft>
 
                 <HeaderRight>
+                    <ActionButton $variant="secondary" onClick={onGeneratePost} title="Generuj post Instagram">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5" />
+                        </svg>
+                        Generuj post
+                    </ActionButton>
+
                     <ActionButton $variant="secondary" onClick={onPrintProtocol} title="Drukuj protokół">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <polyline points="6 9 6 2 18 2 18 9" />

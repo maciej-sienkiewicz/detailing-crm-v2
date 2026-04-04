@@ -15,6 +15,8 @@ import { DocumentGallery } from '../components/DocumentGallery';
 import { VisitComments } from '../components/VisitComments';
 import { EditServicesModal } from '../components/EditServicesModal';
 import { InProgressToReadyWizard, ReadyToCompletedWizard } from '../components/transitions/TransitionWizards';
+import { GeneratePostModal } from '@/modules/competition-monitoring/components/GeneratePostModal';
+import type { GeneratePostPrefill } from '@/modules/competition-monitoring/components/GeneratePostModal';
 import type { DocumentType, ServiceStatus } from '../types';
 import { useToast } from '@/common/components/Toast';
 import { AuditTimeline } from '@/common/components/AuditTimeline';
@@ -312,6 +314,7 @@ export const VisitDetailView = () => {
     const [isTransitionWizardOpen, setIsTransitionWizardOpen] = useState(false);
     const [transitionType, setTransitionType] = useState<'in_progress_to_ready' | 'ready_to_completed' | null>(null);
     const [isEditServicesModalOpen, setIsEditServicesModalOpen] = useState(false);
+    const [isGeneratePostOpen, setIsGeneratePostOpen] = useState(false);
     const [highlightPendingServices, setHighlightPendingServices] = useState(false);
     const [isDocsOpen, setIsDocsOpen] = useState(false);
     const [isAuditOpen, setIsAuditOpen] = useState(false);
@@ -387,6 +390,41 @@ export const VisitDetailView = () => {
 
     const handlePrintProtocol = () => { showInfo('To jeszcze nie działa, trzeba obgadać'); };
 
+    const buildGeneratePostPrefill = (): GeneratePostPrefill => {
+        const { vehicle, services, status } = visit;
+        const vehicleLabel = [vehicle.brand, vehicle.model].filter(Boolean).join(' ');
+        const serviceNames = services
+            .filter(s => s.status !== 'REJECTED')
+            .map(s => s.serviceName);
+
+        const topic = [vehicleLabel, serviceNames.length > 0 ? serviceNames.join(', ') : '']
+            .filter(Boolean)
+            .join(' — ');
+
+        const statusLabel =
+            status === 'COMPLETED'        ? 'Realizacja zakończona.'       :
+            status === 'READY_FOR_PICKUP' ? 'Pojazd gotowy do odbioru.'    :
+            status === 'IN_PROGRESS'      ? 'Realizacja w toku.'           : '';
+
+        const context = [
+            statusLabel,
+            serviceNames.length > 0 ? `Usługi: ${serviceNames.join(', ')}.` : '',
+        ].filter(Boolean).join(' ');
+
+        // Heuristic: detect dominant service type from names
+        const namesLower = serviceNames.map(n => n.toLowerCase()).join(' ');
+        const detectedServiceType: GeneratePostPrefill['serviceType'] =
+            /\bppf\b|paint protection/.test(namesLower)             ? 'ppf'       :
+            /ceramik|ceramic/.test(namesLower)                      ? 'ceramic'   :
+            /tapicerk|wnętrze|interior|skór/.test(namesLower)       ? 'interior'  :
+            /oklej|wrap|foli(?!a ppf)/.test(namesLower)             ? 'wrap'      :
+            /poler|polish|korekta/.test(namesLower)                 ? 'polish'    :
+            /detailing/.test(namesLower)                            ? 'detailing' :
+            undefined;
+
+        return { topic, context, serviceType: detectedServiceType };
+    };
+
     const handleCancelVisit = () => { showInfo('To jeszcze nie działa, trzeba obgadać'); };
 
     const handleMileageChange = (mileage: number) => { updateVisit({ mileageAtArrival: mileage }); };
@@ -439,6 +477,7 @@ export const VisitDetailView = () => {
                 onCompleteVisit={handleCompleteVisit}
                 onPrintProtocol={handlePrintProtocol}
                 onCancelVisit={handleCancelVisit}
+                onGeneratePost={() => setIsGeneratePostOpen(true)}
             />
 
             <ContentArea>
@@ -611,6 +650,13 @@ export const VisitDetailView = () => {
                 onSaveChanges={handleSaveServicesChanges}
                 isSavingChanges={isSaving}
             />
+
+            {isGeneratePostOpen && (
+                <GeneratePostModal
+                    onClose={() => setIsGeneratePostOpen(false)}
+                    prefill={buildGeneratePostPrefill()}
+                />
+            )}
         </ViewContainer>
     );
 };

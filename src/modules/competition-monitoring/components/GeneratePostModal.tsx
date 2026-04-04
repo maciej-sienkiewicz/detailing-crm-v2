@@ -706,19 +706,26 @@ const SERVICE_TYPES: { value: string; label: string; icon: React.ReactNode }[] =
 
 type Phase = 'form' | 'loading' | 'result';
 
+export interface GeneratePostPrefill {
+    topic?: string;
+    context?: string;
+    serviceType?: GenerateInstagramPostRequest['serviceType'];
+}
+
 interface Props {
     onClose: () => void;
+    prefill?: GeneratePostPrefill;
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
-export const GeneratePostModal: React.FC<Props> = ({ onClose }) => {
+export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     const [phase, setPhase] = useState<Phase>('form');
-    const [topic, setTopic]           = useState('');
-    const [context, setContext]       = useState('');
+    const [topic, setTopic]           = useState(prefill?.topic    ?? '');
+    const [context, setContext]       = useState(prefill?.context  ?? '');
     const [tone, setTone]             = useState<string | null>(null);
     const [length, setLength]         = useState<string | null>(null);
-    const [serviceType, setService]   = useState<string | null>(null);
+    const [serviceType, setService]   = useState<string | null>(prefill?.serviceType ?? null);
     const [styleNotes, setNotes]      = useState<string[]>([]);
     const [noteInput, setNoteInput]   = useState('');
     const [result, setResult]         = useState('');
