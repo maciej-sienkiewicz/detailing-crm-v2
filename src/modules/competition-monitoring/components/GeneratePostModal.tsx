@@ -1,7 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
-import { X, Copy, Check, RotateCcw, Sparkles, Wand2 } from 'lucide-react';
+import {
+    X, Copy, Check, RotateCcw, Sparkles, Wand2,
+    Award, Cpu, Heart, Coffee,
+    Shield, Droplets, Star, Car, PaintBucket, Zap, MoreHorizontal,
+} from 'lucide-react';
 import type { GenerateInstagramPostRequest } from '../types';
 import { instagramApi } from '../api/instagramApi';
 
@@ -241,40 +245,158 @@ const HintText = styled.p`
   line-height: 1.4;
 `;
 
-const OptionsGrid = styled.div`
+// ─── Tone select cards ─────────────────────────────────────────────────────────
+
+const ToneGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-
-  @media (max-width: 520px) {
-    grid-template-columns: 1fr;
-  }
+  gap: 8px;
 `;
 
-// ─── Option chips ──────────────────────────────────────────────────────────────
-
-const ChipsRow = styled.div`
+const ToneCard = styled.button<{ $active: boolean }>`
   display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-`;
-
-const OptionChip = styled.button<{ $active: boolean }>`
-  padding: 6px 14px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 14px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 150ms ease;
+  text-align: left;
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
   border: 1.5px solid ${p => p.$active ? '#3B82F6' : '#E2E8F0'};
-  background: ${p => p.$active ? '#EFF6FF' : '#fff'};
-  color: ${p => p.$active ? '#2563EB' : '#64748B'};
+  background: ${p => p.$active ? '#F0F7FF' : '#fff'};
+  box-shadow: ${p => p.$active ? '0 0 0 3px rgba(59,130,246,0.10)' : '0 1px 2px rgba(15,23,42,0.04)'};
 
   &:hover {
-    border-color: #93C5FD;
-    color: #2563EB;
-    background: #F0F9FF;
+    border-color: ${p => p.$active ? '#3B82F6' : '#CBD5E1'};
+    background: ${p => p.$active ? '#F0F7FF' : '#FAFBFC'};
   }
+`;
+
+const ToneIconBox = styled.div<{ $active: boolean }>`
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: ${p => p.$active ? 'rgba(59,130,246,0.12)' : '#F1F5F9'};
+  color: ${p => p.$active ? '#2563EB' : '#94A3B8'};
+  transition: background 150ms, color 150ms;
+`;
+
+const ToneText = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+`;
+
+const ToneLabel = styled.span<{ $active: boolean }>`
+  font-size: 13px;
+  font-weight: 600;
+  color: ${p => p.$active ? '#1E40AF' : '#0F172A'};
+  line-height: 1.3;
+`;
+
+const ToneDesc = styled.span`
+  font-size: 11px;
+  color: #94A3B8;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+// ─── Length segmented control ──────────────────────────────────────────────────
+
+const SegmentedWrap = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  background: #F1F5F9;
+  border-radius: 10px;
+  padding: 3px;
+`;
+
+const SegmentBtn = styled.button<{ $active: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: none;
+  transition: background 180ms ease, box-shadow 180ms ease, color 180ms ease;
+  background: ${p => p.$active ? '#ffffff' : 'transparent'};
+  box-shadow: ${p => p.$active ? '0 1px 4px rgba(15,23,42,0.10), 0 0 0 1px rgba(15,23,42,0.05)' : 'none'};
+
+  &:hover {
+    background: ${p => p.$active ? '#ffffff' : 'rgba(255,255,255,0.5)'};
+  }
+`;
+
+const SegmentLabel = styled.span<{ $active: boolean }>`
+  font-size: 13px;
+  font-weight: ${p => p.$active ? 700 : 500};
+  color: ${p => p.$active ? '#0F172A' : '#64748B'};
+  transition: color 180ms, font-weight 180ms;
+`;
+
+const SegmentMeta = styled.span<{ $active: boolean }>`
+  font-size: 11px;
+  color: ${p => p.$active ? '#3B82F6' : '#94A3B8'};
+  transition: color 180ms;
+`;
+
+// ─── Service type icon grid ────────────────────────────────────────────────────
+
+const ServiceGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+`;
+
+const ServiceCell = styled.button<{ $active: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+  border: 1.5px solid ${p => p.$active ? '#3B82F6' : '#E2E8F0'};
+  background: ${p => p.$active ? '#F0F7FF' : '#fff'};
+  box-shadow: ${p => p.$active ? '0 0 0 3px rgba(59,130,246,0.10)' : '0 1px 2px rgba(15,23,42,0.04)'};
+
+  &:hover {
+    border-color: ${p => p.$active ? '#3B82F6' : '#CBD5E1'};
+    background: ${p => p.$active ? '#F0F7FF' : '#FAFBFC'};
+  }
+`;
+
+const ServiceIconBox = styled.div<{ $active: boolean }>`
+  color: ${p => p.$active ? '#2563EB' : '#94A3B8'};
+  transition: color 150ms;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const ServiceLabel = styled.span<{ $active: boolean }>`
+  font-size: 11px;
+  font-weight: ${p => p.$active ? 700 : 500};
+  color: ${p => p.$active ? '#1E40AF' : '#64748B'};
+  text-align: center;
+  line-height: 1.2;
+  transition: color 150ms, font-weight 150ms;
 `;
 
 // ─── Style notes (tag input) ───────────────────────────────────────────────────
@@ -558,26 +680,26 @@ const RegenerateBtn = styled.button`
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
 
-const TONES: { value: string; label: string }[] = [
-    { value: 'premium',   label: 'Premium'     },
-    { value: 'technical', label: 'Techniczny'   },
-    { value: 'emotional', label: 'Emocjonalny'  },
-    { value: 'casual',    label: 'Swobodny'     },
+const TONES: { value: string; label: string; desc: string; icon: React.ReactNode }[] = [
+    { value: 'premium',   label: 'Premium',     desc: 'Ekskluzywny, elegancki', icon: <Award    size={16} strokeWidth={2} /> },
+    { value: 'technical', label: 'Techniczny',  desc: 'Ekspercki, precyzyjny',  icon: <Cpu      size={16} strokeWidth={2} /> },
+    { value: 'emotional', label: 'Emocjonalny', desc: 'Angażujący, osobisty',   icon: <Heart    size={16} strokeWidth={2} /> },
+    { value: 'casual',    label: 'Swobodny',    desc: 'Luźny, przyjazny',       icon: <Coffee   size={16} strokeWidth={2} /> },
 ];
 
-const LENGTHS: { value: string; label: string }[] = [
-    { value: 'short', label: 'Krótki' },
-    { value: 'full',  label: 'Pełny'  },
+const LENGTHS: { value: string; label: string; meta: string }[] = [
+    { value: 'short', label: 'Krótki', meta: '~150 znaków' },
+    { value: 'full',  label: 'Pełny',  meta: '~500 znaków' },
 ];
 
-const SERVICE_TYPES: { value: string; label: string }[] = [
-    { value: 'ppf',       label: 'PPF'         },
-    { value: 'ceramic',   label: 'Ceramika'     },
-    { value: 'detailing', label: 'Detailing'    },
-    { value: 'interior',  label: 'Wnętrze'      },
-    { value: 'wrap',      label: 'Oklejanie'    },
-    { value: 'polish',    label: 'Polerowanie'  },
-    { value: 'other',     label: 'Inne'         },
+const SERVICE_TYPES: { value: string; label: string; icon: React.ReactNode }[] = [
+    { value: 'ppf',       label: 'PPF',        icon: <Shield         size={18} strokeWidth={1.8} /> },
+    { value: 'ceramic',   label: 'Ceramika',   icon: <Droplets       size={18} strokeWidth={1.8} /> },
+    { value: 'detailing', label: 'Detailing',  icon: <Sparkles       size={18} strokeWidth={1.8} /> },
+    { value: 'interior',  label: 'Wnętrze',    icon: <Car            size={18} strokeWidth={1.8} /> },
+    { value: 'wrap',      label: 'Oklejanie',  icon: <PaintBucket    size={18} strokeWidth={1.8} /> },
+    { value: 'polish',    label: 'Polerowanie',icon: <Zap            size={18} strokeWidth={1.8} /> },
+    { value: 'other',     label: 'Inne',       icon: <MoreHorizontal size={18} strokeWidth={1.8} /> },
 ];
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -759,57 +881,65 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose }) => {
                     <HintText>Szczegóły realizacji, specyfika klienta, użyte produkty itp.</HintText>
                 </FormSection>
 
-                <OptionsGrid>
-                    {/* Tone */}
-                    <FormSection style={{ marginBottom: 0 }}>
-                        <FieldLabel>Ton</FieldLabel>
-                        <ChipsRow>
-                            {TONES.map(t => (
-                                <OptionChip
-                                    key={t.value}
-                                    type="button"
-                                    $active={tone === t.value}
-                                    onClick={() => setTone(prev => prev === t.value ? null : t.value)}
-                                >
-                                    {t.label}
-                                </OptionChip>
-                            ))}
-                        </ChipsRow>
-                    </FormSection>
+                {/* Tone */}
+                <FormSection>
+                    <FieldLabel>Ton</FieldLabel>
+                    <ToneGrid>
+                        {TONES.map(t => (
+                            <ToneCard
+                                key={t.value}
+                                type="button"
+                                $active={tone === t.value}
+                                onClick={() => setTone(prev => prev === t.value ? null : t.value)}
+                            >
+                                <ToneIconBox $active={tone === t.value}>
+                                    {t.icon}
+                                </ToneIconBox>
+                                <ToneText>
+                                    <ToneLabel $active={tone === t.value}>{t.label}</ToneLabel>
+                                    <ToneDesc>{t.desc}</ToneDesc>
+                                </ToneText>
+                            </ToneCard>
+                        ))}
+                    </ToneGrid>
+                </FormSection>
 
-                    {/* Length */}
-                    <FormSection style={{ marginBottom: 0 }}>
-                        <FieldLabel>Długość</FieldLabel>
-                        <ChipsRow>
-                            {LENGTHS.map(l => (
-                                <OptionChip
-                                    key={l.value}
-                                    type="button"
-                                    $active={length === l.value}
-                                    onClick={() => setLength(prev => prev === l.value ? null : l.value)}
-                                >
-                                    {l.label}
-                                </OptionChip>
-                            ))}
-                        </ChipsRow>
-                    </FormSection>
-                </OptionsGrid>
+                {/* Length */}
+                <FormSection>
+                    <FieldLabel>Długość</FieldLabel>
+                    <SegmentedWrap>
+                        {LENGTHS.map(l => (
+                            <SegmentBtn
+                                key={l.value}
+                                type="button"
+                                $active={length === l.value}
+                                onClick={() => setLength(prev => prev === l.value ? null : l.value)}
+                            >
+                                <SegmentLabel $active={length === l.value}>{l.label}</SegmentLabel>
+                                <SegmentMeta $active={length === l.value}>{l.meta}</SegmentMeta>
+                            </SegmentBtn>
+                        ))}
+                    </SegmentedWrap>
+                </FormSection>
 
                 {/* Service type */}
-                <FormSection style={{ marginTop: 20 }}>
+                <FormSection>
                     <FieldLabel>Rodzaj usługi</FieldLabel>
-                    <ChipsRow>
+                    <ServiceGrid>
                         {SERVICE_TYPES.map(s => (
-                            <OptionChip
+                            <ServiceCell
                                 key={s.value}
                                 type="button"
                                 $active={serviceType === s.value}
                                 onClick={() => setService(prev => prev === s.value ? null : s.value)}
                             >
-                                {s.label}
-                            </OptionChip>
+                                <ServiceIconBox $active={serviceType === s.value}>
+                                    {s.icon}
+                                </ServiceIconBox>
+                                <ServiceLabel $active={serviceType === s.value}>{s.label}</ServiceLabel>
+                            </ServiceCell>
                         ))}
-                    </ChipsRow>
+                    </ServiceGrid>
                 </FormSection>
 
                 {/* Style notes */}
