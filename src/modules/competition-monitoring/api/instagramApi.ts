@@ -302,6 +302,11 @@ const mockGetSummary = async (): Promise<ProfileSummary[]> => {
     return mockSummaries;
 };
 
+const mockReactToPost = async (postId: string, reaction: 'liked' | 'disliked' | null): Promise<void> => {
+    await delay(150);
+    console.debug('[mock] reactToPost', postId, reaction);
+};
+
 // ─── API object ───────────────────────────────────────────────────────────────
 
 export const instagramApi = {
@@ -358,5 +363,23 @@ export const instagramApi = {
             params: { weeks: 52 },
         });
         return response.data;
+    },
+
+    /**
+     * Save user's reaction to an Instagram post for AI training.
+     *
+     * Backend endpoint: POST /api/v1/instagram/posts/{postId}/reaction
+     * Body: { reaction: 'LIKED' | 'DISLIKED' | null }
+     *   null = reaction removed (user toggled off)
+     *
+     * The backend stores these per-user reactions and exposes them
+     * to the AI content-generation pipeline via
+     * GET /api/v1/instagram/posts/reactions?studioProfileId={id}
+     */
+    reactToPost: async (postId: string, reaction: 'liked' | 'disliked' | null): Promise<void> => {
+        if (USE_MOCKS) return mockReactToPost(postId, reaction);
+        await apiClient.post(`/v1/instagram/posts/${postId}/reaction`, {
+            reaction: reaction?.toUpperCase() ?? null,
+        });
     },
 };
