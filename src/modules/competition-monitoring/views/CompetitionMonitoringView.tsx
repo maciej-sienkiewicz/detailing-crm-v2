@@ -11,6 +11,7 @@ import { PostsModal } from '../components/PostsModal';
 import type { InstagramProfile, InstagramProfileStatus } from '../types';
 import { CompetitionTable } from '@/modules/competition-monitoring/components/CompetitionTable.tsx';
 import { PostVolumeChart } from '@/modules/competition-monitoring/components/PostVolumeChart.tsx';
+import { GeneratePostModal } from '../components/GeneratePostModal';
 
 const fadeUp = keyframes`
     from { opacity: 0; transform: translateY(10px); }
@@ -141,6 +142,34 @@ const AddButton = styled.button`
     &:hover {
         background: #2563eb;
         box-shadow: ${st.shadowSm};
+        transform: translateY(-1px);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+`;
+
+const GenerateButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 20px;
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: ${st.radiusFull};
+    cursor: pointer;
+    transition: all ${st.transition};
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.14);
+        border-color: rgba(255, 255, 255, 0.24);
+        color: #fff;
         transform: translateY(-1px);
     }
 
@@ -385,6 +414,7 @@ export const CompetitionMonitoringView = () => {
 
     const [activeTab, setActiveTab] = useState<Tab>('analytics');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
     const [selectedProfile, setSelectedProfile] = useState<InstagramProfile | null>(null);
     const [activeFilter, setActiveFilter] = useState<FilterType>('ALL');
 
@@ -518,6 +548,12 @@ export const CompetitionMonitoringView = () => {
                 </HeroText>
 
                 <HeroActions>
+                    <GenerateButton onClick={() => setIsGenerateModalOpen(true)}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                        </svg>
+                        Generuj post
+                    </GenerateButton>
                     <AddButton onClick={() => setIsAddModalOpen(true)}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <line x1="12" y1="5" x2="12" y2="19" />
@@ -591,6 +627,12 @@ export const CompetitionMonitoringView = () => {
                 <PostsModal
                     profile={selectedProfile}
                     onClose={handleClosePosts}
+                />
+            )}
+
+            {isGenerateModalOpen && (
+                <GeneratePostModal
+                    onClose={() => setIsGenerateModalOpen(false)}
                 />
             )}
         </ViewContainer>

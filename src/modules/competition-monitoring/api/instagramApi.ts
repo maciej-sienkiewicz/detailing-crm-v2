@@ -1,5 +1,5 @@
 import { apiClient } from '@/core/apiClient';
-import type { InstagramProfile, InstagramPost, ProfileSummary, WeeklyStat } from '../types';
+import type { InstagramProfile, InstagramPost, ProfileSummary, WeeklyStat, GenerateInstagramPostRequest, InstagramPostResult } from '../types';
 
 const BASE_PATH = '/v1/instagram/profiles';
 const USE_MOCKS = false;
@@ -307,6 +307,21 @@ const mockReactToPost = async (postId: string, reaction: 'liked' | 'disliked' | 
     console.debug('[mock] reactToPost', postId, reaction);
 };
 
+const mockGeneratePost = async (req: GenerateInstagramPostRequest): Promise<InstagramPostResult> => {
+    await delay(2800);
+    const serviceTag = req.serviceType ?? 'detailing';
+    const tonePrefix: Record<string, string> = {
+        premium: '✨ Ekskluzywna realizacja.',
+        technical: '🔬 Technicznie precyzyjnie.',
+        emotional: '❤️ To coś więcej niż auto.',
+        casual: '😎 Jesteśmy z tego zadowoleni!',
+    };
+    const prefix = req.postTone ? tonePrefix[req.postTone] : '✨';
+    return {
+        content: `${prefix}\n\n${req.topic}\n\n${req.context ? req.context + '\n\n' : ''}✅ Profesjonalne podejście\n✅ Najwyższa jakość materiałów\n✅ Gwarancja satysfakcji\n\nZapisz się już teraz — link w bio 👆\n\n#detailing #${serviceTag} #premium #wroclaw #profesjonalizm`,
+    };
+};
+
 // ─── API object ───────────────────────────────────────────────────────────────
 
 export const instagramApi = {
@@ -381,5 +396,11 @@ export const instagramApi = {
         await apiClient.post(`/v1/instagram/posts/${postId}/reaction`, {
             reaction: reaction?.toUpperCase() ?? null,
         });
+    },
+
+    generatePost: async (req: GenerateInstagramPostRequest): Promise<InstagramPostResult> => {
+        if (USE_MOCKS) return mockGeneratePost(req);
+        const response = await apiClient.post<InstagramPostResult>('/v1/instagram/posts/generate', req);
+        return response.data;
     },
 };
