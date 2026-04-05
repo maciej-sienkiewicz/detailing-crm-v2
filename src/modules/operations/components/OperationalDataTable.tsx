@@ -272,15 +272,13 @@ const MenuBtn = styled.button`
 `;
 
 const DropdownMenu = styled.div`
-    position: absolute;
-    right: 0;
-    top: calc(100% + 6px);
+    position: fixed;
     min-width: 188px;
     background: ${st.bgCard};
     border: 1px solid ${st.border};
     border-radius: ${st.radius};
     box-shadow: ${st.shadowLg};
-    z-index: 200;
+    z-index: 1000;
     overflow: hidden;
     animation: ${fadeIn} 120ms ease both;
 `;
@@ -467,6 +465,7 @@ export const OperationalDataTable = ({
     const navigate = useNavigate();
 
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
 
     const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; op: Operation | null }>({
         isOpen: false, op: null,
@@ -515,7 +514,14 @@ export const OperationalDataTable = ({
     const toggleMenu = (id: string, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        setOpenMenuId(prev => prev === id ? null : id);
+        if (openMenuId === id) {
+            setOpenMenuId(null);
+            setMenuPos(null);
+        } else {
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            setMenuPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+            setOpenMenuId(id);
+        }
     };
 
     // Delete
@@ -680,8 +686,8 @@ export const OperationalDataTable = ({
                                             <DotsIcon />
                                         </MenuBtn>
 
-                                        {openMenuId === op.id && (
-                                            <DropdownMenu>
+                                        {openMenuId === op.id && menuPos && (
+                                            <DropdownMenu style={{ top: menuPos.top, right: menuPos.right }}>
                                                 {isReservationCreated && (
                                                     <>
                                                         <DropdownItem onClick={() => openChangeDate(op)}>
