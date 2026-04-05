@@ -69,7 +69,7 @@ const HeaderCell = styled.span`
     white-space: nowrap;
 `;
 
-const DataRow = styled.div<{ $accentColor: string; $clickable?: boolean }>`
+const DataRow = styled.div<{ $accentColor: string; $clickable?: boolean; $menuOpen?: boolean }>`
     display: grid;
     grid-template-columns: ${COLS};
     gap: 12px;
@@ -80,6 +80,8 @@ const DataRow = styled.div<{ $accentColor: string; $clickable?: boolean }>`
     transition: background ${st.transition};
     animation: ${fadeIn} 200ms ease both;
     align-items: center;
+    position: relative;
+    z-index: ${props => props.$menuOpen ? 10 : 0};
 
     &:hover {
         background: ${props => props.$clickable ? st.bgCardAlt : 'transparent'};
@@ -601,6 +603,7 @@ export const OperationalDataTable = ({
                                     key={op.id}
                                     $accentColor={accentColor}
                                     $clickable={clickable}
+                                    $menuOpen={openMenuId === op.id}
                                     onClick={() => clickable && handleRowClick(op)}
                                 >
                                     {/* Title */}

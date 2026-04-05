@@ -44,11 +44,13 @@ const Th = styled.th`
 
 const TableBody = styled.tbody``;
 
-const Tr = styled.tr`
+const Tr = styled.tr<{ $menuOpen?: boolean }>`
     border-bottom: 1px solid ${st.border};
     transition: background ${st.transition};
     cursor: pointer;
     animation: ${fadeIn} 200ms ease both;
+    position: relative;
+    z-index: ${props => props.$menuOpen ? 10 : 0};
 
     &:last-child {
         border-bottom: none;
@@ -358,7 +360,7 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
                         const hasLicensePlate = vehicle.licensePlate?.trim();
 
                         return (
-                            <Tr key={vehicle.id} onClick={() => onRowClick?.(vehicle.id)}>
+                            <Tr key={vehicle.id} $menuOpen={openMenuId === vehicle.id} onClick={() => onRowClick?.(vehicle.id)}>
                                 <Td>
                                     {hasLicensePlate ? (
                                         <LicensePlate>{vehicle.licensePlate}</LicensePlate>
