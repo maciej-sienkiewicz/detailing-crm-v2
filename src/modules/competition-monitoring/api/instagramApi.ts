@@ -400,7 +400,7 @@ export const instagramApi = {
 
     generatePost: async (req: GenerateInstagramPostRequest): Promise<InstagramPostResult> => {
         if (USE_MOCKS) return mockGeneratePost(req);
-        const response = await apiClient.post<InstagramPostResult>('/v1/instagram/posts/generate', req);
+        const response = await apiClient.post<InstagramPostResult>('/v1/instagram/ai/generate', req);
         return response.data;
     },
 };

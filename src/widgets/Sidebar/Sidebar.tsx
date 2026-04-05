@@ -19,7 +19,7 @@ import {
     PanelLeftClose,
     PanelLeftOpen,
     X,
-    Menu,
+    Menu, InstagramIcon,
 } from 'lucide-react';
 import { useSidebar } from './context/SidebarContext';
 import { SidebarMenu, MenuSection } from './SidebarMenu';
@@ -65,7 +65,7 @@ const menuSections: MenuSection[] = [
             { path: '/finance',                label: 'Finanse',          icon: BarChart3 },
             { path: '/statistics',             label: 'Statystyki',       icon: TrendingUp },
             { path: '/growth-engine',          label: 'Growth Engine',    icon: Zap },
-            { path: '/competition-monitoring', label: 'Monitoring',       icon: Activity },
+            { path: '/instagram', label: 'Instagram',       icon: InstagramIcon },
         ],
     },
     {

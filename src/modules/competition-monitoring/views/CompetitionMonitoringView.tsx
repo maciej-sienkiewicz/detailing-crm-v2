@@ -543,7 +543,7 @@ export const CompetitionMonitoringView = () => {
             {/* Hero */}
             <HeroCard>
                 <HeroText>
-                    <HeroHeading>Monitoring Konkurencji</HeroHeading>
+                    <HeroHeading>Zarządzanie Instagramem</HeroHeading>
                     <HeroSubtitle>Obserwuj i analizuj profile Instagram konkurentów</HeroSubtitle>
                 </HeroText>
 
