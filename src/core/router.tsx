@@ -222,7 +222,7 @@ export const router = createBrowserRouter([
         ),
     },
     {
-        path: '/competition-monitoring',
+        path: '/instagram',
         element: (
             <ProtectedRoute>
                 <Layout><CompetitionMonitoringView /></Layout>
