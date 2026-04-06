@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import type { VehicleListItem } from '../types';
 import { formatCurrency, formatDate } from '@/common/utils';
@@ -438,7 +439,7 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
                                             <DotsIcon />
                                         </MenuBtn>
 
-                                        {openMenuId === vehicle.id && menuPos && (
+                                        {openMenuId === vehicle.id && menuPos && createPortal(
                                             <DropdownMenu style={{ top: menuPos.top, right: menuPos.right }}>
                                                 <DropdownItem
                                                     $danger
@@ -447,7 +448,8 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
                                                     <TrashIcon />
                                                     Usuń pojazd
                                                 </DropdownItem>
-                                            </DropdownMenu>
+                                            </DropdownMenu>,
+                                            document.body
                                         )}
                                     </ActionsCellWrap>
                                 </ActionsCell>

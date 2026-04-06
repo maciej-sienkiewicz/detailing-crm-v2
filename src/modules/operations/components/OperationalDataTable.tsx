@@ -1,6 +1,7 @@
 // src/modules/operations/components/OperationalDataTable.tsx
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { useOperations } from '../hooks/useOperations';
@@ -686,7 +687,7 @@ export const OperationalDataTable = ({
                                             <DotsIcon />
                                         </MenuBtn>
 
-                                        {openMenuId === op.id && menuPos && (
+                                        {openMenuId === op.id && menuPos && createPortal(
                                             <DropdownMenu style={{ top: menuPos.top, right: menuPos.right }}>
                                                 {isReservationCreated && (
                                                     <>
@@ -705,7 +706,8 @@ export const OperationalDataTable = ({
                                                     <TrashIcon />
                                                     Usuń {isVisit ? 'wizytę' : 'rezerwację'}
                                                 </DropdownItem>
-                                            </DropdownMenu>
+                                            </DropdownMenu>,
+                                            document.body
                                         )}
                                     </ActionsCellWrap>
                                 </DataRow>
