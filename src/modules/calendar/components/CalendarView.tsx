@@ -18,6 +18,7 @@ import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
 import { QuickEventModal, type QuickEventFormData, type QuickEventModalRef } from './QuickEventModal';
 import { EventSummaryPopover } from './EventSummaryPopover';
 import { CalendarFilterDropdown } from './CalendarFilterDropdown';
+import { CalendarStatusBar } from './CalendarStatusBar';
 import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData } from '../types';
 import type { Operation } from '@/modules/operations/types';
 import '../calendar.css';
@@ -761,26 +762,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         return () => cancelAnimationFrame(rafId);
     }, [isCollapsed]);
 
-    // Badge on the FullCalendar "Filtruj" button (desktop) – updated whenever filters change
-    useEffect(() => {
-        const btn = document.querySelector('.fc-filter-button');
-        if (!btn) return;
-
-        btn.querySelector('.fc-filter-badge')?.remove();
-
-        if (deselectedCount > 0) {
-            const badge = document.createElement('span');
-            badge.className = 'fc-filter-badge';
-            badge.style.cssText =
-                'display:inline-flex;align-items:center;justify-content:center;' +
-                'min-width:16px;height:16px;padding:0 4px;margin-left:6px;' +
-                'background:#1a73e8;border-radius:8px;' +
-                'font-size:10px;font-weight:500;color:#fff;';
-            badge.textContent = String(deselectedCount);
-            btn.appendChild(badge);
-        }
-    }, [deselectedCount]);
-
     const handleMobileViewChange = useCallback((view: CalendarViewType) => {
         calendarRef.current?.getApi().changeView(view);
     }, []);
@@ -1100,7 +1081,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 </MobileActions>
             </MobileHeader>
 
+            {/* Quick-filter status bar – always visible, replaces the hidden dropdown on desktop */}
+            <CalendarStatusBar
+                selectedAppointmentStatuses={selectedAppointmentStatuses}
+                selectedVisitStatuses={selectedVisitStatuses}
+                onAppointmentStatusesChange={setSelectedAppointmentStatuses}
+                onVisitStatusesChange={setSelectedVisitStatuses}
+            />
+
             <CalendarWrapper>
+                {/* Dropdown kept as a secondary entry point for the mobile "Filtruj" pill */}
                 <CalendarFilterDropdown
                     selectedAppointmentStatuses={selectedAppointmentStatuses}
                     selectedVisitStatuses={selectedVisitStatuses}
@@ -1117,17 +1107,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 // Initial view
                 initialView="dayGridMonth"
 
-                // Custom buttons
-                customButtons={{
-                    filter: {
-                        text: 'Filtruj',
-                        click: () => setIsFilterOpen(!isFilterOpen),
-                    },
-                }}
-
                 // Header configuration
                 headerToolbar={{
-                    left: 'prev,next today filter',
+                    left: 'prev,next today',
                     center: 'title',
                     right: 'dayGridMonth,timeGridWeek,timeGridDay',
                 }}
@@ -1186,35 +1168,83 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 // Hide event time from calendar tiles
                 displayEventTime={false}
 
-                // Custom event content – adds calendar icon to reservation tiles
+                // Custom event content – type icon + title + optional status badge
                 eventContent={(arg) => {
-                    const isAppointment = arg.event.extendedProps.type === 'APPOINTMENT';
-                    const status = arg.event.extendedProps.status;
+                    const props = arg.event.extendedProps as AppointmentEventData | VisitEventData;
+                    const isAppointment = props.type === 'APPOINTMENT';
+                    const status = props.status as string | undefined;
                     const isCancelled = status === 'ABANDONED' || status === 'CANCELLED';
+
+                    // Show a compact status badge only for states that aren't already
+                    // communicated by color or opacity (i.e. non-default active states).
+                    const statusBadge = (() => {
+                        if (status === 'READY_FOR_PICKUP') return { text: 'Do odbioru', color: '#10b981' };
+                        if (status === 'REJECTED')         return { text: 'Odrzucona',  color: '#ef4444' };
+                        if (status === 'ABANDONED')        return { text: 'Porzucona',  color: '#94a3b8' };
+                        if (status === 'CANCELLED')        return { text: 'Anulowana',  color: '#94a3b8' };
+                        if (status === 'ARCHIVED')         return { text: 'Archiwum',   color: '#9ca3af' };
+                        return null;
+                    })();
+
                     return (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden', width: '100%' }}>
-                            {isAppointment && (
+                            {/* Type icon – calendar for appointments, wrench for visits */}
+                            {isAppointment ? (
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
-                                    width="11"
-                                    height="11"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    style={{ flexShrink: 0, opacity: 0.9 }}
+                                    width="11" height="11" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" strokeWidth="2.5"
+                                    strokeLinecap="round" strokeLinejoin="round"
+                                    style={{ flexShrink: 0, opacity: 0.85 }}
                                 >
                                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                                     <line x1="16" y1="2" x2="16" y2="6" />
                                     <line x1="8" y1="2" x2="8" y2="6" />
                                     <line x1="3" y1="10" x2="21" y2="10" />
                                 </svg>
+                            ) : (
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="11" height="11" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" strokeWidth="2.5"
+                                    strokeLinecap="round" strokeLinejoin="round"
+                                    style={{ flexShrink: 0, opacity: 0.85 }}
+                                >
+                                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                                </svg>
                             )}
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600, fontSize: '13px', lineHeight: '1.4', textDecoration: isCancelled ? 'line-through' : 'none' }}>
+
+                            {/* Title */}
+                            <span style={{
+                                flex: 1,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                fontWeight: 600,
+                                fontSize: '13px',
+                                lineHeight: '1.4',
+                                textDecoration: isCancelled ? 'line-through' : 'none',
+                            }}>
                                 {arg.event.title}
                             </span>
+
+                            {/* Status badge – shown only for non-default / non-obvious states */}
+                            {statusBadge && (
+                                <span style={{
+                                    flexShrink: 0,
+                                    fontSize: '10px',
+                                    fontWeight: 700,
+                                    padding: '1px 5px',
+                                    borderRadius: '4px',
+                                    background: `${statusBadge.color}28`,
+                                    color: statusBadge.color,
+                                    border: `1px solid ${statusBadge.color}50`,
+                                    lineHeight: '1.5',
+                                    letterSpacing: '0.1px',
+                                }}>
+                                    {statusBadge.text}
+                                </span>
+                            )}
                         </div>
                     );
                 }}
