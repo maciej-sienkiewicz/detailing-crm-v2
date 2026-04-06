@@ -186,6 +186,10 @@ const CustomerPhone = styled.div`
 `;
 
 const VehicleSubInfo = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 5px;
     margin-top: 3px;
     font-size: 12px;
     font-weight: 600;
@@ -634,8 +638,8 @@ export const OperationalDataTable = ({
                                                     <LicensePlate>{op.vehicle.licensePlate}</LicensePlate>
                                                 )}
                                                 <VehicleSubInfo>
-                                                    {op.vehicle.brand && <div>{op.vehicle.brand}</div>}
-                                                    {op.vehicle.model && <div>{op.vehicle.model}</div>}
+                                                    {op.vehicle.brand && <span>{op.vehicle.brand}</span>}
+                                                    {op.vehicle.model && <span>{op.vehicle.model}</span>}
                                                 </VehicleSubInfo>
                                             </>
                                         ) : (
