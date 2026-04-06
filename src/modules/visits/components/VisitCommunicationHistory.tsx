@@ -515,7 +515,7 @@ const PreviewModal = ({ entry, onClose }: PreviewModalProps) => {
                         <MetaValue>{entry.recipientAddress}</MetaValue>
                     </MetaItem>
                     <MetaItem>
-                        <MetaLabel>Wysłano:</MetaLabel>
+                        <MetaLabel>{entry.status === 'RECEIVED' ? 'Otrzymano:' : 'Wysłano:'}</MetaLabel>
                         <MetaValue>{formatDateShort(entry.sentAt)}</MetaValue>
                     </MetaItem>
                     <MetaItem>
