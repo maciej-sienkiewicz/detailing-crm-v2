@@ -129,10 +129,8 @@ const VehicleName = styled.div`
     font-size: 14px;
     font-weight: 700;
     color: ${st.text};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.3;
+    line-height: 1.4;
+    word-break: break-word;
 `;
 
 const PlaceholderText = styled.div`
@@ -188,16 +186,11 @@ const CustomerPhone = styled.div`
 `;
 
 const VehicleSubInfo = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
     margin-top: 3px;
     font-size: 12px;
     font-weight: 600;
     color: ${st.text};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 1.5;
 `;
 
 // Date cell
@@ -641,7 +634,8 @@ export const OperationalDataTable = ({
                                                     <LicensePlate>{op.vehicle.licensePlate}</LicensePlate>
                                                 )}
                                                 <VehicleSubInfo>
-                                                    {op.vehicle.brand} {op.vehicle.model}
+                                                    {op.vehicle.brand && <div>{op.vehicle.brand}</div>}
+                                                    {op.vehicle.model && <div>{op.vehicle.model}</div>}
                                                 </VehicleSubInfo>
                                             </>
                                         ) : (
