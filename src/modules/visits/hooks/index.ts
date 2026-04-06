@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { visitApi } from '../api/visitApi';
 import { visitCommentApi } from '../api/visitCommentApi';
+import { communicationApi } from '../api/communicationApi';
 import type {
     UpdateVisitPayload,
     UploadDocumentPayload,
@@ -334,6 +335,25 @@ export const useSaveServicesChanges = (visitId: string) => {
     return {
         saveServicesChanges: mutate,
         isSaving: isPending,
+    };
+};
+
+// Communication history hooks
+export const visitCommunicationQueryKey = (visitId: string) => ['visit', visitId, 'communication'];
+
+export const useVisitCommunication = (visitId: string) => {
+    const { data, isLoading, isError, refetch } = useQuery({
+        queryKey: visitCommunicationQueryKey(visitId),
+        queryFn: () => communicationApi.getVisitCommunication(visitId),
+        enabled: !!visitId,
+    });
+
+    return {
+        communication: data,
+        entries: data?.entries || [],
+        isLoading,
+        isError,
+        refetch,
     };
 };
 

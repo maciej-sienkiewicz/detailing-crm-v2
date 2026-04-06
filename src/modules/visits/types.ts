@@ -259,3 +259,27 @@ export interface VisitPhoto {
 export interface VisitPhotosResponse {
     photos: VisitPhoto[];
 }
+
+// ─── Communication History ────────────────────────────────────────────────────
+
+export type CommunicationChannel = 'EMAIL' | 'SMS';
+export type CommunicationStatus = 'SENT' | 'FAILED';
+
+export interface CommunicationEntry {
+    id: string;
+    visitId: string | null;
+    channel: CommunicationChannel;
+    messageType: string;
+    messageTypeLabel: string;
+    recipientAddress: string;
+    subject: string | null;
+    bodyContent: string;
+    status: CommunicationStatus;
+    errorMessage: string | null;
+    sentAt: string;
+}
+
+export interface VisitCommunicationResponse {
+    visitId: string;
+    entries: CommunicationEntry[];
+}

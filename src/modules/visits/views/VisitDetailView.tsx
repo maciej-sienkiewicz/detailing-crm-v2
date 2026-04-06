@@ -4,7 +4,7 @@ import styled, { keyframes } from 'styled-components';
 import { useVisitDetail, useVisitDocuments, useVisitPhotos } from '../hooks';
 import { useUpdateVisit } from '../hooks';
 import { useUploadDocument, useUploadPhoto, useDeleteDocument, useDeletePhoto } from '../hooks';
-import { useVisitComments } from '../hooks';
+import { useVisitComments, useVisitCommunication } from '../hooks';
 import { useUpdateServiceStatus, useSaveServicesChanges } from '../hooks';
 import { VisitHeader } from '../components/VisitHeader';
 import { StatusStepper } from '../components/StatusStepper';
@@ -13,6 +13,7 @@ import { TechnicalNotesCard } from '../components/TechnicalNotesCard';
 import { ServicesTable } from '../components/ServicesTable';
 import { DocumentGallery } from '../components/DocumentGallery';
 import { VisitComments } from '../components/VisitComments';
+import { VisitCommunicationHistory } from '../components/VisitCommunicationHistory';
 import { EditServicesModal } from '../components/EditServicesModal';
 import { InProgressToReadyWizard, ReadyToCompletedWizard } from '../components/transitions/TransitionWizards';
 import { GeneratePostModal } from '@/modules/competition-monitoring/components/GeneratePostModal';
@@ -318,6 +319,7 @@ export const VisitDetailView = () => {
     const [highlightPendingServices, setHighlightPendingServices] = useState(false);
     const [isDocsOpen, setIsDocsOpen] = useState(false);
     const [isAuditOpen, setIsAuditOpen] = useState(false);
+    const [isCommunicationOpen, setIsCommunicationOpen] = useState(true);
     const docFileInputRef = useRef<HTMLInputElement>(null);
 
     const { visitDetail, isLoading, isError, refetch } = useVisitDetail(visitId!);
@@ -329,6 +331,7 @@ export const VisitDetailView = () => {
     const { deleteDocument } = useDeleteDocument(visitId!);
     const { deletePhoto } = useDeletePhoto(visitId!);
     const { comments, isLoading: isLoadingComments } = useVisitComments(visitId!);
+    const { entries: communicationEntries, isLoading: isLoadingCommunication } = useVisitCommunication(visitId!);
     const { updateServiceStatus } = useUpdateServiceStatus(visitId!);
     const { saveServicesChanges, isSaving } = useSaveServicesChanges(visitId!);
     const { showSuccess, showWarning, showInfo } = useToast();
@@ -492,6 +495,54 @@ export const VisitDetailView = () => {
                             onEditClick={handleEditServicesClick}
                             highlightPending={highlightPendingServices}
                         />
+
+                        {/* Komunikacja ──────────────────────────────────── */}
+                        <Section>
+                            <SectionHeader
+                                onClick={() => setIsCommunicationOpen(v => !v)}
+                                aria-expanded={isCommunicationOpen}
+                                aria-controls="communication-section"
+                            >
+                                <SectionHeaderLeft>
+                                    <SectionIconWrap style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)' }}>
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <rect x="2" y="4" width="20" height="16" rx="2" />
+                                            <path d="M2 7l10 7 10-7" />
+                                        </svg>
+                                    </SectionIconWrap>
+                                    <SectionTitle>Komunikacja z klientem</SectionTitle>
+                                    {communicationEntries.length > 0 && (
+                                        <SectionCount>{communicationEntries.length}</SectionCount>
+                                    )}
+                                    {communicationEntries.some(e => e.status === 'FAILED') && (
+                                        <span style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: 4,
+                                            fontSize: 11,
+                                            fontWeight: 700,
+                                            padding: '1px 8px',
+                                            borderRadius: 9999,
+                                            background: 'rgba(239,68,68,0.12)',
+                                            color: '#EF4444',
+                                            border: '1px solid rgba(239,68,68,0.25)',
+                                        }}>
+                                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                            Błąd wysyłki
+                                        </span>
+                                    )}
+                                </SectionHeaderLeft>
+                                <ChevronIcon $open={isCommunicationOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="6 9 12 15 18 9" />
+                                </ChevronIcon>
+                            </SectionHeader>
+                            <SectionBody $visible={isCommunicationOpen} $flush id="communication-section">
+                                <VisitCommunicationHistory
+                                    entries={communicationEntries}
+                                    isLoading={isLoadingCommunication}
+                                />
+                            </SectionBody>
+                        </Section>
 
                         {/* Dokumentacja ─────────────────────────────────── */}
                         <Section>
