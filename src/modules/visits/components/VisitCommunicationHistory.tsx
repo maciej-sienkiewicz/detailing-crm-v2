@@ -139,7 +139,7 @@ const EntryRight = styled.div`
     flex-shrink: 0;
 `;
 
-const StatusBadge = styled.span<{ $status: 'SENT' | 'FAILED' }>`
+const StatusBadge = styled.span<{ $status: 'SENT' | 'RECEIVED' | 'FAILED' }>`
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -147,14 +147,26 @@ const StatusBadge = styled.span<{ $status: 'SENT' | 'FAILED' }>`
     font-weight: 700;
     padding: 2px 8px;
     border-radius: ${st.radiusFull};
-    background: ${p => p.$status === 'SENT'
-        ? 'rgba(16,185,129,0.12)'
-        : 'rgba(239,68,68,0.12)'
+    background: ${p =>
+        p.$status === 'FAILED'
+            ? 'rgba(239,68,68,0.12)'
+            : p.$status === 'RECEIVED'
+                ? st.accentBlueDim
+                : 'rgba(16,185,129,0.12)'
     };
-    color: ${p => p.$status === 'SENT' ? st.accentGreen : st.accentRed};
-    border: 1px solid ${p => p.$status === 'SENT'
-        ? 'rgba(16,185,129,0.25)'
-        : 'rgba(239,68,68,0.25)'
+    color: ${p =>
+        p.$status === 'FAILED'
+            ? st.accentRed
+            : p.$status === 'RECEIVED'
+                ? st.accentBlue
+                : st.accentGreen
+    };
+    border: 1px solid ${p =>
+        p.$status === 'FAILED'
+            ? 'rgba(239,68,68,0.25)'
+            : p.$status === 'RECEIVED'
+                ? 'rgba(59,130,246,0.2)'
+                : 'rgba(16,185,129,0.25)'
     };
 `;
 
@@ -510,7 +522,9 @@ const PreviewModal = ({ entry, onClose }: PreviewModalProps) => {
                         <StatusBadge $status={entry.status}>
                             {entry.status === 'SENT'
                                 ? <><CheckIcon /> Wysłano</>
-                                : <><AlertIcon /> Błąd wysyłki</>
+                                : entry.status === 'RECEIVED'
+                                    ? <><CheckIcon /> Otrzymano</>
+                                    : <><AlertIcon /> Błąd wysyłki</>
                             }
                         </StatusBadge>
                     </MetaItem>
@@ -621,7 +635,9 @@ export const VisitCommunicationHistory = ({
                                     <StatusBadge $status={entry.status}>
                                         {entry.status === 'SENT'
                                             ? <><CheckIcon /> Wysłano</>
-                                            : <><AlertIcon /> Błąd</>
+                                            : entry.status === 'RECEIVED'
+                                                ? <><CheckIcon /> Otrzymano</>
+                                                : <><AlertIcon /> Błąd</>
                                         }
                                     </StatusBadge>
                                     <PreviewHint>Podgląd →</PreviewHint>

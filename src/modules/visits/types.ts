@@ -263,7 +263,7 @@ export interface VisitPhotosResponse {
 // ─── Communication History ────────────────────────────────────────────────────
 
 export type CommunicationChannel = 'EMAIL' | 'SMS';
-export type CommunicationStatus = 'SENT' | 'FAILED';
+export type CommunicationStatus = 'SENT' | 'RECEIVED' | 'FAILED';
 
 export interface CommunicationEntry {
     id: string;
