@@ -435,7 +435,7 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
         const { basePriceNet, vatRate, adjustment } = service;
         let finalPriceNet = basePriceNet;
         switch (adjustment.type) {
-            case 'PERCENT': finalPriceNet = adjustment.value <= 100 ? Math.round(basePriceNet * (1 - adjustment.value / 100)) : Math.round(basePriceNet * adjustment.value / 100); break;
+            case 'PERCENT': { const pct = Math.round(basePriceNet * Math.abs(adjustment.value) / 100); finalPriceNet = adjustment.value > 0 ? basePriceNet + pct : basePriceNet - pct; break; }
             case 'FIXED_NET': finalPriceNet = basePriceNet - adjustment.value; break;
             case 'FIXED_GROSS': finalPriceNet = Math.round((((basePriceNet * (100 + vatRate)) / 100 - adjustment.value) * 100) / (100 + vatRate)); break;
             case 'SET_NET': finalPriceNet = adjustment.value; break;
@@ -459,7 +459,7 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
         if (isNaN(value)) return;
 
         if (discountType === 'PERCENT') {
-            onChange(services.map(s => ({ ...s, adjustment: { type: 'PERCENT' as const, value } })));
+            onChange(services.map(s => ({ ...s, adjustment: { type: 'PERCENT' as const, value: -Math.abs(value) } })));
             closeDiscountModal();
             return;
         }
@@ -557,7 +557,7 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
                                                             : (service.adjustment.value === 0 ? '' :
                                                                 service.adjustment.type !== 'PERCENT'
                                                                     ? service.adjustment.value / 100
-                                                                    : service.adjustment.value)
+                                                                    : Math.abs(service.adjustment.value))
                                                     }
                                                     onChange={(e) => setDiscountInputValues({ ...discountInputValues, [service.id]: e.target.value })}
                                                     onBlur={() => {
@@ -565,7 +565,7 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
                                                         if (rawStr !== undefined) {
                                                             const val = parseFloat(rawStr);
                                                             const storeVal = isNaN(val) ? 0 :
-                                                                service.adjustment.type !== 'PERCENT' ? Math.round(val * 100) : val;
+                                                                service.adjustment.type !== 'PERCENT' ? Math.round(val * 100) : -Math.abs(val);
                                                             onChange(services.map(s => s.id === service.id ? { ...s, adjustment: { ...s.adjustment, value: storeVal } } : s));
                                                         }
                                                         setDiscountInputValues(prev => { const next = { ...prev }; delete next[service.id]; return next; });
