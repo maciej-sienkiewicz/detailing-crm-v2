@@ -1,5 +1,6 @@
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import styled from 'styled-components';
 import { CheckInWizardView } from './CheckInWizardView';
 import { t } from '@/common/i18n';
@@ -39,46 +40,6 @@ const LoadingText = styled.p`
     color: ${props => props.theme.colors.text};
 `;
 
-const ErrorContainer = styled.div`
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background-color: ${props => props.theme.colors.background};
-    padding: ${props => props.theme.spacing.xl};
-    text-align: center;
-`;
-
-const ErrorIcon = styled.div`
-    width: 80px;
-    height: 80px;
-    border-radius: ${props => props.theme.radii.full};
-    background-color: ${props => props.theme.colors.errorLight};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: ${props => props.theme.spacing.lg};
-
-    svg {
-        width: 40px;
-        height: 40px;
-        color: ${props => props.theme.colors.error};
-    }
-`;
-
-const ErrorTitle = styled.h1`
-    font-size: ${props => props.theme.fontSizes.xl};
-    font-weight: ${props => props.theme.fontWeights.bold};
-    color: ${props => props.theme.colors.text};
-    margin: 0 0 ${props => props.theme.spacing.sm} 0;
-`;
-
-const ErrorMessage = styled.p`
-    font-size: ${props => props.theme.fontSizes.md};
-    color: ${props => props.theme.colors.textSecondary};
-    margin: 0;
-`;
 
 interface ReservationResponse {
     id: string;
@@ -139,6 +100,7 @@ interface ReservationResponse {
 export const CheckInWizardWrapper = () => {
     const { reservationId } = useParams<{ reservationId: string }>();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
     const { data: reservationData, isLoading, error } = useQuery({
         queryKey: ['reservations', reservationId],
@@ -228,6 +190,21 @@ export const CheckInWizardWrapper = () => {
         navigate(`/visits/${visitId}`);
     };
 
+    const isFullyLoaded = !isLoading && !isLoadingColors && !isLoadingCustomerDetail && !isLoadingVehicleDetail;
+    const hasLoadError = isFullyLoaded && (!!error || !reservation || !colors);
+    const hasInvalidStatus = isFullyLoaded && !!reservation && (
+        reservation.status !== 'CREATED' &&
+        reservation.status !== 'SCHEDULED' &&
+        reservation.status !== 'CANCELLED'
+    );
+
+    useEffect(() => {
+        if (hasLoadError || hasInvalidStatus) {
+            queryClient.clear();
+            navigate(-1);
+        }
+    }, [hasLoadError, hasInvalidStatus]);
+
     if (isLoading || isLoadingColors || isLoadingCustomerDetail || isLoadingVehicleDetail) {
         return (
             <LoadingContainer>
@@ -237,36 +214,8 @@ export const CheckInWizardWrapper = () => {
         );
     }
 
-    if (error || !reservation || !colors) {
-        return (
-            <ErrorContainer>
-                <ErrorIcon>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </ErrorIcon>
-                <ErrorTitle>{t.checkin.errors.loadReservationFailed}</ErrorTitle>
-                <ErrorMessage>
-                    {error instanceof Error ? error.message : 'Nie znaleziono rezerwacji'}
-                </ErrorMessage>
-            </ErrorContainer>
-        );
-    }
-
-    if (reservation.status !== 'CREATED' && reservation.status !== 'SCHEDULED' && reservation.status !== 'CANCELLED') {
-        return (
-            <ErrorContainer>
-                <ErrorIcon>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                </ErrorIcon>
-                <ErrorTitle>Nieprawidłowy status rezerwacji</ErrorTitle>
-                <ErrorMessage>
-                    Rezerwacja musi być w statusie POTWIERDZONA lub ZAPLANOWANA aby rozpocząć wizytę
-                </ErrorMessage>
-            </ErrorContainer>
-        );
+    if (hasLoadError || hasInvalidStatus) {
+        return null;
     }
 
     // Sprawdzamy czy mamy pełne dane klienta
