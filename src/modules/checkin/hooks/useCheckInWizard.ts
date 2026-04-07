@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { checkinApi } from '../api/checkinApi';
 import { DASHBOARD_STATS_KEY } from '@/modules/dashboard/hooks/useDashboard';
-import type { CheckInFormData, CheckInStep, ReservationToVisitPayload } from '../types';
+import type { CheckInFormData, CheckInStep, ReservationToVisitPayload, WalkInVisitPayload } from '../types';
 
 const DRAFT_STORAGE_KEY = 'checkin_draft';
 
@@ -89,6 +89,15 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
     const createVisitMutation = useMutation({
         mutationFn: (payload: ReservationToVisitPayload) =>
             checkinApi.createVisitFromReservation(payload),
+        onSuccess: () => {
+            clearDraft();
+            queryClient.invalidateQueries({ queryKey: DASHBOARD_STATS_KEY });
+        },
+    });
+
+    const createWalkInMutation = useMutation({
+        mutationFn: (payload: WalkInVisitPayload) =>
+            checkinApi.createWalkInVisit(payload),
         onSuccess: () => {
             clearDraft();
             queryClient.invalidateQueries({ queryKey: DASHBOARD_STATS_KEY });
@@ -222,8 +231,7 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
             };
         });
 
-        const payload: ReservationToVisitPayload = {
-            reservationId,
+        const sharedPayload = {
             title: formData.title || undefined,
             startDateTime: startInstant,
             endDateTime: endInstant,
@@ -238,14 +246,23 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
                 },
             } : undefined,
             technicalState: formData.technicalState,
-            photoIds: formData.photos.map(p => p.id), // Use 'id' instead of 'fileId'
+            photoIds: formData.photos.map(p => p.id),
             damagePoints: formData.damagePoints || [],
             services: transformedServices,
             appointmentColorId: formData.appointmentColorId,
         };
 
+        if (!reservationId) {
+            const walkInPayload: WalkInVisitPayload = sharedPayload;
+            return createWalkInMutation.mutateAsync(walkInPayload);
+        }
+
+        const payload: ReservationToVisitPayload = { ...sharedPayload, reservationId };
         return createVisitMutation.mutateAsync(payload);
     };
+
+    const isSubmitting = createVisitMutation.isPending || createWalkInMutation.isPending;
+    const submitError = createVisitMutation.error ?? createWalkInMutation.error;
 
     return {
         currentStep,
@@ -258,7 +275,7 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
         goToStep,
         submitCheckIn,
         saveDraft,
-        isSubmitting: createVisitMutation.isPending,
-        submitError: createVisitMutation.error,
+        isSubmitting,
+        submitError,
     };
 };

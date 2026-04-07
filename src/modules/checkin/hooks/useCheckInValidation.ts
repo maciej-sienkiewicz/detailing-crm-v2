@@ -57,6 +57,11 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
                 validationErrors.services = 'Dodaj przynajmniej jedną usługę';
             }
 
+            // Walidacja koloru wizyty
+            if (!formData.appointmentColorId) {
+                validationErrors.color = 'Wybierz kolor wizyty';
+            }
+
             // Walidacja przekazania pojazdu przez inną osobę
             if (formData.vehicleHandoff.isHandedOffByOtherPerson) {
                 const handoff = formData.vehicleHandoff.contactPerson;
