@@ -208,7 +208,7 @@ export const CustomerVisitHistory = ({ visits, reservations = [] }: CustomerVisi
                                             </VisitTypeBadge>
                                         </VisitTitleRow>
                                         <VisitDetails>
-                                            <span>{formatDateTime(entry.data.date)}</span>
+                                            <span>{formatDateTime(entry.data.date).replace(", 00:00", "")}</span>
                                             {entry.data.licensePlate && entry.data.vehicleName && (
                                                 <>
                                                     <span>·</span>

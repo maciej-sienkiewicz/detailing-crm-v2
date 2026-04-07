@@ -381,7 +381,7 @@ export const pl: TranslationKeys = {
             owners: 'właścicieli',
             lastVisit: 'Ostatnia wizyta',
             totalVisits: 'Liczba wizyt',
-            totalSpent: 'Suma wydatków',
+            totalSpent: 'Suma przychodów',
         },
         detail: {
             overview: 'Przegląd',
@@ -423,7 +423,7 @@ export const pl: TranslationKeys = {
             },
             stats: {
                 totalVisits: 'Liczba wizyt',
-                totalSpent: 'Suma wydatków',
+                totalSpent: 'Suma przychodów',
                 averageCost: 'Średni koszt wizyty',
                 lastVisit: 'Ostatnia wizyta',
             },
