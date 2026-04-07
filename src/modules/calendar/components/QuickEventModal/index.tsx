@@ -29,6 +29,24 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const form = useQuickEventForm({ isOpen, eventData, onClose, onSave, ref });
 
     const [serviceDropdownPos, setServiceDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+    const [vehicleDropdownPos, setVehicleDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+
+    useEffect(() => {
+        if (!form.showVehicleDropdown) { setVehicleDropdownPos(null); return; }
+        const el = form.vehicleSelectButtonRef.current;
+        if (!el) return;
+        const update = () => {
+            const r = el.getBoundingClientRect();
+            setVehicleDropdownPos({ top: r.bottom, left: r.left, width: r.width });
+        };
+        update();
+        window.addEventListener('scroll', update, true);
+        window.addEventListener('resize', update);
+        return () => {
+            window.removeEventListener('scroll', update, true);
+            window.removeEventListener('resize', update);
+        };
+    }, [form.showVehicleDropdown]);
 
     useEffect(() => {
         if (!form.showServiceDropdown) { setServiceDropdownPos(null); return; }
@@ -529,6 +547,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         /* ── stan: klient ma pojazdy – wybierz z listy ── */
                                         <S.DropdownContainer>
                                             <S.VehicleSelectButton
+                                                ref={form.vehicleSelectButtonRef}
                                                 type="button"
                                                 $dropdownOpen={form.showVehicleDropdown}
                                                 disabled={!form.selectedCustomer}
@@ -540,8 +559,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     <path d="M1 1l4 4 4-4" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                                 </svg>
                                             </S.VehicleSelectButton>
-                                            {form.showVehicleDropdown && form.selectedCustomer && (
-                                                <S.Dropdown>
+                                            {form.showVehicleDropdown && form.selectedCustomer && vehicleDropdownPos && createPortal(
+                                                <S.ServicePortalDropdown style={{ top: vehicleDropdownPos.top, left: vehicleDropdownPos.left, width: vehicleDropdownPos.width }}>
                                                     <S.DropdownSeparator>Pojazdy klienta</S.DropdownSeparator>
                                                     {form.vehicles.map(v => (
                                                         <S.DropdownItem
@@ -572,7 +591,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         <IconPlus />
                                                         <span>Dodaj nowy pojazd</span>
                                                     </S.DropdownAddButton>
-                                                </S.Dropdown>
+                                                </S.ServicePortalDropdown>,
+                                                document.body
                                             )}
                                         </S.DropdownContainer>
                                     ) : (

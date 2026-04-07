@@ -97,6 +97,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
     const vehicleBrandInputRef = useRef<HTMLInputElement>(null);
     const vehicleModelInputRef = useRef<HTMLInputElement>(null);
     const vehicleYearInputRef = useRef<HTMLInputElement>(null);
+    const vehicleSelectButtonRef = useRef<HTMLButtonElement>(null);
     const serviceInputRef = useRef<HTMLInputElement>(null);
     const colorSectionRef = useRef<HTMLDivElement>(null);
 
@@ -708,6 +709,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
         vehicleBrandInputRef,
         vehicleModelInputRef,
         vehicleYearInputRef,
+        vehicleSelectButtonRef,
         serviceInputRef,
         colorSectionRef,
 
