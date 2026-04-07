@@ -314,7 +314,7 @@ const NextBtn = styled.button<{ $disabled?: boolean }>`
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface CheckInWizardViewProps {
-    reservationId: string;
+    reservationId?: string;
     initialData: Partial<CheckInFormData>;
     colors: AppointmentColor[];
     onComplete: (visitId: string) => void;
