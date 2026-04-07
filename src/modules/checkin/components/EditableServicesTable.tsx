@@ -457,10 +457,56 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
     const handleApplyDiscount = () => {
         const value = parseFloat(targetPrice);
         if (isNaN(value)) return;
-        const updated = services.map(s => ({
-            ...s,
-            adjustment: { type: discountType, value: ['PERCENT'].includes(discountType) ? value : Math.round(value * 100) }
-        }));
+
+        if (discountType === 'PERCENT') {
+            onChange(services.map(s => ({ ...s, adjustment: { type: 'PERCENT' as const, value } })));
+            closeDiscountModal();
+            return;
+        }
+
+        const valueInCents = Math.round(value * 100);
+        const getBaseGross = (s: ServiceLineItem) => s.basePriceNet + Math.round(s.basePriceNet * s.vatRate / 100);
+
+        let updated: ServiceLineItem[];
+
+        if (discountType === 'FIXED_NET') {
+            const totalBaseNet = services.reduce((sum, s) => sum + s.basePriceNet, 0);
+            if (totalBaseNet === 0) return;
+            let remaining = valueInCents;
+            updated = services.map((s, i) => {
+                const share = i === services.length - 1 ? remaining : Math.round(valueInCents * s.basePriceNet / totalBaseNet);
+                remaining -= share;
+                return { ...s, adjustment: { type: 'FIXED_NET' as const, value: share } };
+            });
+        } else if (discountType === 'FIXED_GROSS') {
+            const totalBaseGross = services.reduce((sum, s) => sum + getBaseGross(s), 0);
+            if (totalBaseGross === 0) return;
+            let remaining = valueInCents;
+            updated = services.map((s, i) => {
+                const share = i === services.length - 1 ? remaining : Math.round(valueInCents * getBaseGross(s) / totalBaseGross);
+                remaining -= share;
+                return { ...s, adjustment: { type: 'FIXED_GROSS' as const, value: share } };
+            });
+        } else if (discountType === 'SET_NET') {
+            const totalBaseNet = services.reduce((sum, s) => sum + s.basePriceNet, 0);
+            if (totalBaseNet === 0) return;
+            let remaining = valueInCents;
+            updated = services.map((s, i) => {
+                const share = i === services.length - 1 ? remaining : Math.round(valueInCents * s.basePriceNet / totalBaseNet);
+                remaining -= share;
+                return { ...s, adjustment: { type: 'SET_NET' as const, value: share } };
+            });
+        } else { // SET_GROSS
+            const totalBaseGross = services.reduce((sum, s) => sum + getBaseGross(s), 0);
+            if (totalBaseGross === 0) return;
+            let remaining = valueInCents;
+            updated = services.map((s, i) => {
+                const share = i === services.length - 1 ? remaining : Math.round(valueInCents * getBaseGross(s) / totalBaseGross);
+                remaining -= share;
+                return { ...s, adjustment: { type: 'SET_GROSS' as const, value: share } };
+            });
+        }
+
         onChange(updated);
         closeDiscountModal();
     };
