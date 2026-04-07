@@ -907,12 +907,13 @@ export const VerificationStep = ({
                             />
                         </FieldGroup>
                         <FieldGroup>
-                            <Label>Kolor w kalendarzu</Label>
+                            <Label>Kolor w kalendarzu *</Label>
                             <ColorDropdown
                                 colors={colors}
                                 value={formData.appointmentColorId}
                                 onChange={(val) => onChange({ appointmentColorId: val })}
                             />
+                            {errors.color && <ErrorMessage>{errors.color}</ErrorMessage>}
                         </FieldGroup>
                     </FormGrid>
                 </SectionBody>

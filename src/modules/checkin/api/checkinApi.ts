@@ -3,6 +3,7 @@
 import { apiClient } from '@/core';
 import type {
     ReservationToVisitPayload,
+    WalkInVisitPayload,
     CreateVisitFromReservationResponse,
     MobileUploadSession,
     UploadUrlRequest,
@@ -124,6 +125,19 @@ export const checkinApi = {
         }
         const response = await apiClient.post(
             `${BASE_PATH}/reservation-to-visit`,
+            payload
+        );
+        return response.data;
+    },
+
+    createWalkInVisit: async (
+        payload: WalkInVisitPayload
+    ): Promise<CreateVisitFromReservationResponse> => {
+        if (USE_MOCKS) {
+            return mockCreateVisitFromReservation(payload as any);
+        }
+        const response = await apiClient.post(
+            `${BASE_PATH}/walk-in`,
             payload
         );
         return response.data;

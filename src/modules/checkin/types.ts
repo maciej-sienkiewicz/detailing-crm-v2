@@ -196,7 +196,34 @@ export type CheckInVehicleIdentity =
     };
 
 export interface ReservationToVisitPayload {
-    reservationId?: string;
+    reservationId: string;
+    /** Instant (UTC ISO-8601 with 'Z') */
+    startDateTime?: string;
+    /** Instant (UTC ISO-8601 with 'Z') */
+    endDateTime?: string;
+    customer?: CheckInCustomerIdentity;
+    vehicle: CheckInVehicleIdentity;
+    vehicleHandoff?: {
+        contactPerson: {
+            firstName: string;
+            lastName: string;
+            phone: string;
+            email: string;
+        };
+    };
+    technicalState: {
+        mileage: number;
+        deposit: DepositItem;
+        inspectionNotes: string;
+    };
+    title?: string;
+    photoIds: string[];
+    damagePoints: DamagePoint[];
+    services: ServiceLineItem[];
+    appointmentColorId: string;
+}
+
+export interface WalkInVisitPayload {
     /** Instant (UTC ISO-8601 with 'Z') */
     startDateTime?: string;
     /** Instant (UTC ISO-8601 with 'Z') */
