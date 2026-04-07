@@ -32,8 +32,28 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
                         validationErrors.phone = t.customers.validation.phoneInvalid;
                     }
                 }
+            } else if (formData.isNewCustomer) {
+                // Nowy klient (np. walk-in) — waliduj pola jak przy hasFullCustomerData
+                if (!formData.customerData.firstName || formData.customerData.firstName.length < 2) {
+                    validationErrors.firstName = t.customers.validation.firstNameMin;
+                }
+                if (!formData.customerData.lastName || formData.customerData.lastName.length < 2) {
+                    validationErrors.lastName = t.customers.validation.lastNameMin;
+                }
+                const hasEmail = !!formData.customerData.email && formData.customerData.email.trim().length > 0;
+                const hasPhone = !!formData.customerData.phone && formData.customerData.phone.trim().length > 0;
+                if (!hasEmail && !hasPhone) {
+                    validationErrors.contact = 'Podaj e-mail lub numer telefonu';
+                } else {
+                    if (hasEmail && !isValidEmail(formData.customerData.email)) {
+                        validationErrors.email = t.customers.validation.emailInvalid;
+                    }
+                    if (hasPhone && !isValidPolishPhone(formData.customerData.phone)) {
+                        validationErrors.phone = t.customers.validation.phoneInvalid;
+                    }
+                }
             } else {
-                // Jeśli nie ma pełnych danych, musi być wybór klienta
+                // Istniejący klient bez pełnych danych — wymagaj wybrania z listy
                 if (!formData.customerData.id) {
                     validationErrors.customer = 'Musisz wybrać klienta';
                 } else {
