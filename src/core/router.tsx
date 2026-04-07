@@ -8,6 +8,7 @@ import { VehicleDetailView, VehicleListView } from '@/modules/vehicles';
 import { OperationListView } from '@/modules/operations';
 import { VisitDetailView } from '@/modules/visits';
 import { CheckInWizardWrapper } from '@/modules/checkin/views/CheckInWizardWrapper';
+import { WalkInCheckInWrapper } from '@/modules/checkin/views/WalkInCheckInWrapper';
 import { MobilePhotoUploadWrapper } from '@/modules/checkin/views/MobilePhotoUploadWrapper';
 import { LoginView, SignupView } from '@/modules/auth';
 import { ServiceListView } from "@/modules/services";
@@ -115,6 +116,16 @@ export const router = createBrowserRouter([
         element: (
             <ProtectedRoute>
                 <Layout><VisitDetailView /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/checkin/new',
+        element: (
+            <ProtectedRoute>
+                <Layout>
+                    <WalkInCheckInWrapper />
+                </Layout>
             </ProtectedRoute>
         ),
     },

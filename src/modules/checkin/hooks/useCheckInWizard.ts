@@ -6,7 +6,7 @@ import type { CheckInFormData, CheckInStep, ReservationToVisitPayload } from '..
 
 const DRAFT_STORAGE_KEY = 'checkin_draft';
 
-export const useCheckInWizard = (reservationId: string, initialData: Partial<CheckInFormData>) => {
+export const useCheckInWizard = (reservationId: string | undefined, initialData: Partial<CheckInFormData>) => {
     const queryClient = useQueryClient();
     const [currentStep, setCurrentStep] = useState<CheckInStep>('verification');
     const [completedSteps, setCompletedSteps] = useState<CheckInStep[]>([]);
@@ -59,7 +59,7 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
     ];
 
     useEffect(() => {
-        const savedDraft = localStorage.getItem(`${DRAFT_STORAGE_KEY}_${reservationId}`);
+        const savedDraft = localStorage.getItem(`${DRAFT_STORAGE_KEY}_${reservationId ?? 'walkin'}`);
         if (savedDraft) {
             try {
                 const draft = JSON.parse(savedDraft);
@@ -79,11 +79,11 @@ export const useCheckInWizard = (reservationId: string, initialData: Partial<Che
             completedSteps,
             savedAt: new Date().toISOString(),
         };
-        localStorage.setItem(`${DRAFT_STORAGE_KEY}_${reservationId}`, JSON.stringify(draft));
+        localStorage.setItem(`${DRAFT_STORAGE_KEY}_${reservationId ?? 'walkin'}`, JSON.stringify(draft));
     };
 
     const clearDraft = () => {
-        localStorage.removeItem(`${DRAFT_STORAGE_KEY}_${reservationId}`);
+        localStorage.removeItem(`${DRAFT_STORAGE_KEY}_${reservationId ?? 'walkin'}`);
     };
 
     const createVisitMutation = useMutation({

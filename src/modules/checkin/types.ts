@@ -196,7 +196,7 @@ export type CheckInVehicleIdentity =
     };
 
 export interface ReservationToVisitPayload {
-    reservationId: string;
+    reservationId?: string;
     /** Instant (UTC ISO-8601 with 'Z') */
     startDateTime?: string;
     /** Instant (UTC ISO-8601 with 'Z') */
