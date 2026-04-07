@@ -7,6 +7,7 @@ import { SignatureStep } from './SignatureStep';
 import { PaymentStep } from './PaymentStep';
 import { useStateTransitionWizard } from '../../hooks/useStateTransition';
 import { useVisitComments } from '../../hooks';
+import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
 import type { Visit } from '../../types';
 
 interface InProgressToReadyWizardProps {
@@ -152,6 +153,26 @@ export const ReadyToCompletedWizard = ({
     const displayStep = skipBriefing ? currentStep - 1 : currentStep;
     const displayTotalSteps = skipBriefing ? totalSteps - 1 : totalSteps;
 
+    const { calculateServicePrice } = useServicePricing();
+
+    const calculatedTotals = (() => {
+        let totalFinalNet = 0;
+        let totalFinalGross = 0;
+        visit.services.forEach(service => {
+            const isPending = (service.hasPendingChange ?? (service.status === 'PENDING'));
+            const isEditPending = isPending && service.pendingOperation === 'EDIT' && (service.previousPriceNet ?? null) !== null && (service.previousPriceGross ?? null) !== null;
+            if (isEditPending) {
+                totalFinalNet += service.previousPriceNet as number;
+                totalFinalGross += service.previousPriceGross as number;
+            } else {
+                const pricing = calculateServicePrice(service);
+                totalFinalNet += pricing.finalPriceNet;
+                totalFinalGross += pricing.finalPriceGross;
+            }
+        });
+        return { netAmount: totalFinalNet, grossAmount: totalFinalGross };
+    })();
+
     const handlePaymentComplete = (payment: any) => {
         // Only update wizard data with payment details
         // Don't call handleFinish here - it will be called when user clicks the final button
@@ -226,8 +247,8 @@ export const ReadyToCompletedWizard = ({
             case 3:
                 return (
                     <PaymentStep
-                        netAmount={visit.totalCost.netAmount}
-                        grossAmount={visit.totalCost.grossAmount}
+                        netAmount={calculatedTotals.netAmount}
+                        grossAmount={calculatedTotals.grossAmount}
                         currency={visit.totalCost.currency}
                         onComplete={handlePaymentComplete}
                     />
