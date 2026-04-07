@@ -214,7 +214,6 @@ const FILTERS: { value: FilterStatus; label: string }[] = [
     { value: 'READY_FOR_PICKUP', label: 'Do odbioru'   },
     { value: 'COMPLETED',        label: 'Zakończone'   },
     { value: 'REJECTED',         label: 'Odrzucone'    },
-    { value: 'ARCHIVED',         label: 'Archiwum'     },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
