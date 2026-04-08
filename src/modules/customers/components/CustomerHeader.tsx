@@ -410,10 +410,6 @@ export const CustomerHeader = ({ data, onEditCustomer, onEditCompany }: Customer
                         {formatCurrency(lifetimeValue.grossAmount, lifetimeValue.currency)}
                     </StatValue>
                 </StatItem>
-                <StatItem>
-                    <StatLabel>Wizyty</StatLabel>
-                    <StatValue>{visitCount} {visitsLabel}</StatValue>
-                </StatItem>
                 {customer.lastVisitDate && (
                     <StatItem>
                         <StatLabel>Ostatnia wizyta</StatLabel>
@@ -424,12 +420,6 @@ export const CustomerHeader = ({ data, onEditCustomer, onEditCompany }: Customer
                     <StatLabel>Klient od</StatLabel>
                     <StatValue>{formatDate(customer.createdAt)}</StatValue>
                 </StatItem>
-                {customer.vehicleCount > 0 && (
-                    <StatItem>
-                        <StatLabel>Pojazdy</StatLabel>
-                        <StatValue>{customer.vehicleCount}</StatValue>
-                    </StatItem>
-                )}
             </StatsStrip>
         </HeroHeader>
     );
