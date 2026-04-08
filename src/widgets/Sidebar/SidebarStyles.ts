@@ -325,6 +325,65 @@ export const SidebarFooter = styled.div<{ $isCollapsed: boolean }>`
     flex-shrink: 0;
 `;
 
+export const FooterMenuLink = styled(Link)<{ $isCollapsed: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    margin-bottom: 1px;
+    color: ${S.text};
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 140ms ease, color 140ms ease;
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
+        justify-content: ${p => p.$isCollapsed ? 'center' : 'flex-start'};
+    }
+
+    &:hover {
+        background-color: ${S.bgHover};
+        color: ${S.textHover};
+    }
+`;
+
+export const FooterMenuButton = styled.button<{ $isCollapsed: boolean; $danger?: boolean }>`
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    margin-bottom: 1px;
+    color: ${p => p.$danger ? '#ef4444' : S.text};
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    transition: background-color 140ms ease, color 140ms ease;
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    text-align: left;
+
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
+        justify-content: ${p => p.$isCollapsed ? 'center' : 'flex-start'};
+    }
+
+    &:hover {
+        background-color: ${p => p.$danger ? 'rgba(239, 68, 68, 0.08)' : S.bgHover};
+        color: ${p => p.$danger ? '#f87171' : S.textHover};
+    }
+`;
+
 export const VersionRow = styled.div<{ $isCollapsed: boolean }>`
     display: flex;
     align-items: center;

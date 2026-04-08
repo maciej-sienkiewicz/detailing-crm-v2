@@ -3,25 +3,27 @@ import {
     LayoutDashboard,
     Calendar,
     CalendarCheck,
-    Target,
     Users,
     Car,
     Images,
     BarChart3,
     TrendingUp,
-    Zap,
-    Activity,
     MessageSquare,
-    Wrench,
     FileText,
-    ClipboardCheck,
     UserCog,
     PanelLeftClose,
     PanelLeftOpen,
     X,
-    Menu, InstagramIcon,
+    Menu,
+    InstagramIcon,
+    Search,
+    Settings,
+    LogOut,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
+import { useAuth } from '@/core/context/AuthContext';
+import { authApi } from '@/modules/auth/api/authApi';
 import { SidebarMenu, MenuSection } from './SidebarMenu';
 import {
     Overlay,
@@ -39,54 +41,52 @@ import {
     VersionText,
     ExpandButton,
     MobileMenuButton,
+    FooterMenuLink,
+    FooterMenuButton,
+    MenuItemIcon,
+    MenuItemText,
 } from './SidebarStyles';
 
 const menuSections: MenuSection[] = [
     {
-        title: 'Operacje',
+        title: 'Główne',
         items: [
-            { path: '/dashboard',  label: 'Tablica',  icon: LayoutDashboard },
-            { path: '/calendar',   label: 'Kalendarz',  icon: Calendar },
-            { path: '/operations', label: 'Wizyty',     icon: CalendarCheck},
-            { path: '/leads',      label: 'Leady',      icon: Target },
+            { path: '/dashboard',  label: 'Tablica',   icon: LayoutDashboard },
+            { path: '/operations', label: 'Wizyty',    icon: CalendarCheck },
+            { path: '/calendar',   label: 'Kalendarz', icon: Calendar },
         ],
     },
     {
-        title: 'Klienci & Pojazdy',
+        title: 'Baza klientów',
         items: [
-            { path: '/customers', label: 'Klienci',  icon: Users },
-            { path: '/vehicles',  label: 'Pojazdy',  icon: Car },
-            { path: '/gallery',   label: 'Galeria',  icon: Images },
+            { path: '/customers', label: 'Klienci',   icon: Users },
+            { path: '/vehicles',  label: 'Samochody', icon: Car },
         ],
     },
     {
-        title: 'Finanse & Analityka',
+        title: 'Administracja',
         items: [
-            { path: '/finance',                label: 'Finanse',          icon: BarChart3 },
-            { path: '/statistics',             label: 'Statystyki',       icon: TrendingUp },
-            { path: '/growth-engine',          label: 'Growth Engine',    icon: Zap },
-            { path: '/instagram', label: 'Instagram',       icon: InstagramIcon },
+            { path: '/documents',  label: 'Dokumenty',  icon: FileText },
+            { path: '/reports',    label: 'Raporty',    icon: BarChart3 },
+            { path: '/statistics', label: 'Statystyki', icon: TrendingUp },
+            { path: '/team',       label: 'Pracownicy', icon: UserCog },
+            { path: '/gallery',    label: 'Galeria',    icon: Images },
         ],
     },
     {
         title: 'Marketing',
         items: [
-            { path: '/sms-campaigns', label: 'Kampanie SMS', icon: MessageSquare },
-        ],
-    },
-    {
-        title: 'Konfiguracja',
-        items: [
-            { path: '/services',  label: 'Usługi',     icon: Wrench },
-            { path: '/consents',  label: 'Zgody',      icon: FileText },
-            { path: '/protocols', label: 'Protokoły',  icon: ClipboardCheck },
-            { path: '/team',      label: 'Zespół',     icon: UserCog },
+            { path: '/sms-campaigns',  label: 'Kampanie SMS', icon: MessageSquare },
+            { path: '/instagram',      label: 'Instagram',    icon: InstagramIcon },
+            { path: '/google-reviews', label: 'Google',       icon: Search },
         ],
     },
 ];
 
 export const Sidebar = () => {
     const { isCollapsed, isMobileOpen, toggleCollapse, toggleMobileMenu, closeMobileMenu } = useSidebar();
+    const { setAuthenticated } = useAuth();
+    const navigate = useNavigate();
 
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
@@ -95,6 +95,16 @@ export const Sidebar = () => {
         document.addEventListener('keydown', handleEscape);
         return () => document.removeEventListener('keydown', handleEscape);
     }, [isMobileOpen, closeMobileMenu]);
+
+    const handleLogout = async () => {
+        try {
+            await authApi.logout();
+        } catch {
+            // ignore errors, proceed with logout
+        }
+        setAuthenticated(false);
+        navigate('/login');
+    };
 
     return (
         <>
@@ -131,6 +141,18 @@ export const Sidebar = () => {
                 />
 
                 <SidebarFooter $isCollapsed={isCollapsed}>
+                    <FooterMenuLink to="/settings" $isCollapsed={isCollapsed} onClick={closeMobileMenu}>
+                        <MenuItemIcon $isActive={false}>
+                            <Settings />
+                        </MenuItemIcon>
+                        <MenuItemText $isCollapsed={isCollapsed}>Ustawienia</MenuItemText>
+                    </FooterMenuLink>
+                    <FooterMenuButton $isCollapsed={isCollapsed} $danger onClick={handleLogout}>
+                        <MenuItemIcon $isActive={false} style={{ color: 'inherit' }}>
+                            <LogOut />
+                        </MenuItemIcon>
+                        <MenuItemText $isCollapsed={isCollapsed}>Wyloguj</MenuItemText>
+                    </FooterMenuButton>
                     <VersionRow $isCollapsed={isCollapsed}>
                         <StatusDot />
                         <VersionText $isCollapsed={isCollapsed}>v1.0.0 · Online</VersionText>
