@@ -1,104 +1,91 @@
 // src/modules/customers/components/DocumentsManager.tsx
 
 import React, { useState, useMemo } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { useCustomerDocuments, useDeleteDocument } from '../hooks/useCustomerDocuments';
 import { DocumentCard } from './DocumentCard';
 import { UploadDocumentModal } from './UploadDocumentModal';
 import { ImageViewerModal } from './ImageViewerModal';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CustomerDocument } from '../types';
+
+// ─── Animations ───────────────────────────────────────────────────────────────
+
+const spin = keyframes`
+    to { transform: rotate(360deg); }
+`;
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const Container = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
-    padding: ${props => props.theme.spacing.lg};
+    gap: 16px;
+    padding: 20px;
 `;
 
-const Header = styled.header`
+const Toolbar = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.md};
+    gap: 10px;
 
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
+    @media (min-width: ${props => props.theme.breakpoints.sm}) {
         flex-direction: row;
-        justify-content: space-between;
         align-items: center;
+        justify-content: space-between;
     }
 `;
 
-const Title = styled.h2`
-    margin: 0;
-    font-size: ${props => props.theme.fontSizes.lg};
-    font-weight: 700;
-    color: ${props => props.theme.colors.text};
-`;
+const SearchInput = styled.input`
+    flex: 1;
+    min-width: 0;
+    padding: 8px 14px;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontSm};
+    background: ${st.bgCard};
+    color: ${st.text};
+    transition: border-color ${st.transition}, box-shadow ${st.transition};
 
-const Actions = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.sm};
-    flex-wrap: wrap;
+    &:focus {
+        outline: none;
+        border-color: ${st.accentBlue};
+        box-shadow: ${st.shadowBlue};
+    }
+
+    &::placeholder { color: ${st.textMuted}; }
 `;
 
 const UploadButton = styled.button`
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    background: linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 90%, black) 100%);
+    gap: 7px;
+    padding: 8px 18px;
+    background: ${st.accentBlue};
     color: white;
     border: none;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontSm};
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+    transition: all ${st.transition};
+    box-shadow: ${st.shadowSm};
+    white-space: nowrap;
+    flex-shrink: 0;
 
     &:hover {
+        background: #2563EB;
+        box-shadow: ${st.shadowMd};
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
     }
 
-    svg {
-        width: 16px;
-        height: 16px;
-    }
+    svg { width: 14px; height: 14px; }
 `;
-
-const Filters = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.sm};
-    flex-wrap: wrap;
-`;
-
-const SearchInput = styled.input`
-    flex: 1;
-    min-width: 200px;
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    background: white;
-    color: ${props => props.theme.colors.text};
-    transition: border-color 0.2s ease;
-
-    &:focus {
-        outline: none;
-        border-color: var(--brand-primary);
-    }
-
-    &::placeholder {
-        color: ${props => props.theme.colors.textMuted};
-    }
-`;
-
 
 const DocumentsGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr;
-    gap: ${props => props.theme.spacing.md};
+    gap: 12px;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         grid-template-columns: repeat(2, 1fr);
@@ -110,115 +97,114 @@ const DocumentsGrid = styled.div`
 `;
 
 const EmptyState = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
     text-align: center;
-    padding: ${props => props.theme.spacing.xxl} ${props => props.theme.spacing.lg};
-    background: ${props => props.theme.colors.surfaceAlt};
-    border-radius: ${props => props.theme.radii.lg};
 `;
 
 const EmptyIcon = styled.div`
-    width: 64px;
-    height: 64px;
-    margin: 0 auto ${props => props.theme.spacing.md};
-    border-radius: ${props => props.theme.radii.full};
-    background: ${props => props.theme.colors.surfaceAlt};
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 12px;
+    border-radius: ${st.radius};
+    background: ${st.bgCardAlt};
+    border: 1px solid ${st.border};
     display: flex;
     align-items: center;
     justify-content: center;
-    color: ${props => props.theme.colors.textMuted};
+    color: ${st.textMuted};
 
-    svg {
-        width: 32px;
-        height: 32px;
-    }
+    svg { width: 26px; height: 26px; }
 `;
 
 const EmptyTitle = styled.h3`
-    margin: 0 0 ${props => props.theme.spacing.xs};
-    font-size: ${props => props.theme.fontSizes.lg};
+    margin: 0 0 4px;
+    font-size: ${st.fontMd};
     font-weight: 600;
-    color: ${props => props.theme.colors.text};
+    color: ${st.text};
 `;
 
 const EmptyDescription = styled.p`
     margin: 0;
-    color: ${props => props.theme.colors.textMuted};
-    font-size: ${props => props.theme.fontSizes.sm};
+    color: ${st.textMuted};
+    font-size: ${st.fontSm};
 `;
 
 const LoadingContainer = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 300px;
+    min-height: 200px;
 `;
 
 const Spinner = styled.div`
-    width: 48px;
-    height: 48px;
-    border: 4px solid ${props => props.theme.colors.border};
-    border-top-color: var(--brand-primary);
+    width: 34px;
+    height: 34px;
+    border: 3px solid ${st.border};
+    border-top-color: ${st.accentBlue};
     border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-
-    @keyframes spin {
-        to {
-            transform: rotate(360deg);
-        }
-    }
+    animation: ${spin} 0.7s linear infinite;
 `;
 
 const ErrorContainer = styled.div`
-    padding: ${props => props.theme.spacing.xl};
+    padding: 20px;
     text-align: center;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: ${props => props.theme.radii.lg};
-    color: #991b1b;
+    background: ${st.accentRedDim};
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: ${st.radiusSm};
+    color: ${st.accentRed};
+    font-size: ${st.fontSm};
+
+    button {
+        display: inline-block;
+        margin-top: 8px;
+        padding: 5px 14px;
+        background: ${st.accentRed};
+        color: white;
+        border: none;
+        border-radius: ${st.radiusFull};
+        font-size: ${st.fontXs};
+        font-weight: 600;
+        cursor: pointer;
+    }
 `;
 
 const Pagination = styled.div`
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
-    padding: ${props => props.theme.spacing.lg};
+    gap: 6px;
+    padding-top: 4px;
 `;
 
 const PageButton = styled.button<{ $isActive?: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 40px;
-    height: 40px;
-    padding: 0 ${props => props.theme.spacing.sm};
-    border: 1px solid ${props =>
-    props.$isActive ? 'var(--brand-primary)' : props.theme.colors.border
-};
-    border-radius: ${props => props.theme.radii.md};
-    background: ${props =>
-    props.$isActive ? 'var(--brand-primary)' : 'white'
-};
-    color: ${props =>
-    props.$isActive ? 'white' : props.theme.colors.text
-};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid ${props => props.$isActive ? st.accentBlue : st.border};
+    border-radius: ${st.radiusSm};
+    background: ${props => props.$isActive ? st.accentBlue : st.bgCard};
+    color: ${props => props.$isActive ? 'white' : st.text};
+    font-size: ${st.fontSm};
+    font-weight: ${props => props.$isActive ? '700' : '500'};
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all ${st.transition};
 
     &:hover:not(:disabled) {
-        border-color: var(--brand-primary);
-        background: ${props =>
-    props.$isActive ? 'var(--brand-primary)' : props.theme.colors.surfaceHover
-};
+        border-color: ${st.accentBlue};
+        background: ${props => props.$isActive ? st.accentBlue : st.bgAccentBlue};
+        color: ${props => props.$isActive ? 'white' : st.accentBlue};
     }
 
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 interface DocumentsManagerProps {
     customerId: string;
@@ -226,92 +212,51 @@ interface DocumentsManagerProps {
 
 export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [page, setPage] = useState(1);
+    const [searchQuery, setSearchQuery]             = useState('');
+    const [page, setPage]                           = useState(1);
     const limit = 9;
 
-    const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [isImageViewerOpen, setIsImageViewerOpen]   = useState(false);
+    const [currentImageIndex, setCurrentImageIndex]   = useState(0);
 
     const { documents: allDocuments, isLoading, isError, refetch } = useCustomerDocuments(customerId);
     const deleteMutation = useDeleteDocument(customerId);
 
-    // Filter documents on frontend
     const filteredDocuments = useMemo(() => {
         if (!searchQuery) return allDocuments;
-        const searchLower = searchQuery.toLowerCase();
+        const q = searchQuery.toLowerCase();
         return allDocuments.filter(doc =>
-            doc.fileName.toLowerCase().includes(searchLower) ||
-            doc.name.toLowerCase().includes(searchLower)
+            doc.fileName.toLowerCase().includes(q) ||
+            doc.name.toLowerCase().includes(q)
         );
     }, [allDocuments, searchQuery]);
 
-    // Pagination on frontend
     const { documents, pagination } = useMemo(() => {
-        const totalItems = filteredDocuments.length;
-        const totalPages = Math.ceil(totalItems / limit);
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + limit;
-        const paginatedDocs = filteredDocuments.slice(startIndex, endIndex);
-
+        const totalItems  = filteredDocuments.length;
+        const totalPages  = Math.ceil(totalItems / limit);
+        const startIndex  = (page - 1) * limit;
+        const paginatedDocs = filteredDocuments.slice(startIndex, startIndex + limit);
         return {
             documents: paginatedDocs,
-            pagination: {
-                currentPage: page,
-                totalPages,
-                totalItems,
-                itemsPerPage: limit,
-            },
+            pagination: { currentPage: page, totalPages, totalItems, itemsPerPage: limit },
         };
     }, [filteredDocuments, page, limit]);
 
-    const handleDeleteDocument = (documentId: string) => {
-        deleteMutation.mutate(documentId);
-    };
-
-    // Get viewable documents (images and PDFs) for viewer navigation
-    const viewableDocuments = useMemo(() => {
-        return allDocuments.filter(doc =>
-            doc.fileName.match(/\.(jpg|jpeg|png|gif|webp|pdf)$/i)
-        );
-    }, [allDocuments]);
+    const viewableDocuments = useMemo(() =>
+        allDocuments.filter(doc => doc.fileName.match(/\.(jpg|jpeg|png|gif|webp|pdf)$/i)),
+        [allDocuments]
+    );
 
     const handleImageClick = (document: CustomerDocument) => {
-        const docIndex = viewableDocuments.findIndex(doc => doc.id === document.id);
-        if (docIndex !== -1) {
-            setCurrentImageIndex(docIndex);
-            setIsImageViewerOpen(true);
-        }
-    };
-
-    const handleNextImage = () => {
-        if (currentImageIndex < viewableDocuments.length - 1) {
-            setCurrentImageIndex(currentImageIndex + 1);
-        }
-    };
-
-    const handlePrevImage = () => {
-        if (currentImageIndex > 0) {
-            setCurrentImageIndex(currentImageIndex - 1);
-        }
-    };
-
-    const handleDownloadCurrentImage = () => {
-        const currentDoc = viewableDocuments[currentImageIndex];
-        if (currentDoc) {
-            window.open(currentDoc.fileUrl, '_blank');
-        }
+        const idx = viewableDocuments.findIndex(doc => doc.id === document.id);
+        if (idx !== -1) { setCurrentImageIndex(idx); setIsImageViewerOpen(true); }
     };
 
     const currentDocument = viewableDocuments[currentImageIndex];
     const currentDocumentIsPDF = !!(currentDocument?.fileName.match(/\.pdf$/i));
 
     if (isLoading) {
-        return (
-            <LoadingContainer>
-                <Spinner />
-            </LoadingContainer>
-        );
+        return <LoadingContainer><Spinner /></LoadingContainer>;
     }
 
     if (isError) {
@@ -325,31 +270,21 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
 
     return (
         <Container>
-            <Header>
-                <Title>Dokumenty ({pagination.totalItems})</Title>
-                <Actions>
-                    <UploadButton onClick={() => setIsUploadModalOpen(true)}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="17,8 12,3 7,8"/>
-                            <line x1="12" y1="3" x2="12" y2="15"/>
-                        </svg>
-                        Dodaj dokument
-                    </UploadButton>
-                </Actions>
-            </Header>
-
-            <Filters>
+            <Toolbar>
                 <SearchInput
                     type="text"
                     placeholder="Szukaj dokumentów..."
                     value={searchQuery}
-                    onChange={e => {
-                        setSearchQuery(e.target.value);
-                        setPage(1);
-                    }}
+                    onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
                 />
-            </Filters>
+                <UploadButton onClick={() => setIsUploadModalOpen(true)}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Dodaj dokument
+                </UploadButton>
+            </Toolbar>
 
             {documents.length === 0 ? (
                 <EmptyState>
@@ -376,14 +311,14 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
                             <DocumentCard
                                 key={document.id}
                                 document={document}
-                                onDelete={handleDeleteDocument}
+                                onDelete={id => deleteMutation.mutate(id)}
                                 onImageClick={handleImageClick}
                                 isDeleting={deleteMutation.isPending}
                             />
                         ))}
                     </DocumentsGrid>
 
-                    {pagination && pagination.totalPages > 1 && (
+                    {pagination.totalPages > 1 && (
                         <Pagination>
                             <PageButton
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
@@ -396,18 +331,14 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
                                 .filter(p => {
                                     if (pagination.totalPages <= 7) return true;
                                     if (p === 1 || p === pagination.totalPages) return true;
-                                    if (Math.abs(p - page) <= 1) return true;
-                                    return false;
+                                    return Math.abs(p - page) <= 1;
                                 })
                                 .map((p, i, arr) => (
                                     <React.Fragment key={p}>
                                         {i > 0 && arr[i - 1] !== p - 1 && (
-                                            <span>...</span>
+                                            <span style={{ color: st.textMuted, fontSize: st.fontSm }}>…</span>
                                         )}
-                                        <PageButton
-                                            $isActive={p === page}
-                                            onClick={() => setPage(p)}
-                                        >
+                                        <PageButton $isActive={p === page} onClick={() => setPage(p)}>
                                             {p}
                                         </PageButton>
                                     </React.Fragment>
@@ -440,9 +371,9 @@ export const DocumentsManager = ({ customerId }: DocumentsManagerProps) => {
                     isPDF={currentDocumentIsPDF}
                     hasNext={currentImageIndex < viewableDocuments.length - 1}
                     hasPrev={currentImageIndex > 0}
-                    onNext={handleNextImage}
-                    onPrev={handlePrevImage}
-                    onDownload={handleDownloadCurrentImage}
+                    onNext={() => setCurrentImageIndex(i => i + 1)}
+                    onPrev={() => setCurrentImageIndex(i => i - 1)}
+                    onDownload={() => window.open(currentDocument.fileUrl, '_blank')}
                 />
             )}
         </Container>

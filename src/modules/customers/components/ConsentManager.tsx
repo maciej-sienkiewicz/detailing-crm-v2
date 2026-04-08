@@ -3,77 +3,87 @@
 import styled from 'styled-components';
 import type { MarketingConsent } from '../types';
 import { formatDateTime } from '@/common/utils';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { t } from '@/common/i18n';
 
-const ConsentContainer = styled.div`
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    padding: ${props => props.theme.spacing.lg};
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const Card = styled.div`
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    overflow: hidden;
+    box-shadow: ${st.shadowSm};
 `;
 
-const ConsentHeader = styled.header`
-    margin-bottom: ${props => props.theme.spacing.lg};
+const CardHeader = styled.header`
+    padding: 13px 18px 10px;
+    border-bottom: 1px solid ${st.border};
+    background: ${st.bg};
 `;
 
-const ConsentTitle = styled.h3`
-    margin: 0 0 ${props => props.theme.spacing.xs};
-    font-size: ${props => props.theme.fontSizes.md};
+const CardTitle = styled.h4`
+    margin: 0 0 2px;
+    font-size: ${st.fontSm};
     font-weight: 700;
-    color: ${props => props.theme.colors.text};
-    letter-spacing: -0.01em;
+    color: ${st.text};
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    svg { width: 15px; height: 15px; color: ${st.accentBlue}; }
 `;
 
-const ConsentSubtitle = styled.p`
+const CardSubtitle = styled.p`
     margin: 0;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
 `;
 
 const ConsentList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.sm};
+    gap: 0;
 `;
 
 const ConsentItem = styled.label<{ $isGranted: boolean }>`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.md};
-    padding: ${props => props.theme.spacing.md};
-    background: ${props => props.$isGranted ? '#f0f9ff' : '#fafbfc'};
-    border: 1.5px solid ${props => props.$isGranted ? 'var(--brand-primary)' : props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
+    gap: 12px;
+    padding: 11px 18px;
+    background: ${props => props.$isGranted ? st.bgAccentBlue : st.bgCard};
+    border-bottom: 1px solid ${st.border};
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background ${st.transition};
+
+    &:last-child { border-bottom: none; }
 
     &:hover {
-        border-color: var(--brand-primary);
-        background: ${props => props.$isGranted ? '#e0f2fe' : '#f8fafc'};
+        background: ${props => props.$isGranted ? 'rgba(59,130,246,0.08)' : st.bgCardAlt};
     }
 `;
 
 const ToggleSwitch = styled.div<{ $isActive: boolean }>`
     position: relative;
-    width: 48px;
-    height: 26px;
-    background: ${props => props.$isActive ? 'var(--brand-primary)' : '#cbd5e1'};
-    border-radius: 13px;
-    transition: all 0.2s ease;
+    width: 44px;
+    height: 24px;
+    background: ${props => props.$isActive ? st.accentBlue : st.border};
+    border-radius: ${st.radiusFull};
+    transition: background ${st.transition};
     flex-shrink: 0;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
 
     &::after {
         content: '';
         position: absolute;
         top: 2px;
-        left: ${props => props.$isActive ? '24px' : '2px'};
-        width: 22px;
-        height: 22px;
+        left: ${props => props.$isActive ? '22px' : '2px'};
+        width: 20px;
+        height: 20px;
         background: white;
-        border-radius: 11px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
+        transition: left 200ms cubic-bezier(0.32, 0.72, 0, 1);
     }
 `;
 
@@ -87,42 +97,45 @@ const ConsentIcon = styled.div<{ $type: MarketingConsent['type'] }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: ${props => props.theme.radii.md};
+    width: 34px;
+    height: 34px;
+    border-radius: ${st.radiusSm};
     flex-shrink: 0;
 
     ${props => {
-        const styles = {
-            email: 'background: #dbeafe; color: #1e40af;',
-            sms: 'background: #fef3c7; color: #92400e;',
-            phone: 'background: #dcfce7; color: #166534;',
-            postal: 'background: #f3e8ff; color: #6b21a8;',
+        const styles: Record<string, string> = {
+            email:   `background: ${st.accentBlueDim}; color: ${st.accentBlue};`,
+            sms:     `background: ${st.accentAmberDim}; color: ${st.accentAmber};`,
+            phone:   `background: ${st.accentGreenDim}; color: ${st.accentGreen};`,
+            postal:  'background: rgba(139,92,246,0.12); color: #7c3aed;',
         };
-        return styles[props.$type];
+        return styles[props.$type] || `background: ${st.bgCardAlt}; color: ${st.textMuted};`;
     }}
 
-    svg {
-        width: 20px;
-        height: 20px;
-    }
+    svg { width: 17px; height: 17px; }
 `;
 
 const ConsentContent = styled.div`
     flex: 1;
+    min-width: 0;
 `;
 
 const ConsentName = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
+    font-size: ${st.fontSm};
     font-weight: 600;
-    color: ${props => props.theme.colors.text};
-    margin-bottom: 2px;
+    color: ${st.text};
+    margin-bottom: 1px;
 `;
 
 const ConsentMeta = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 `;
+
+// ─── Icons ────────────────────────────────────────────────────────────────────
 
 const consentIcons = {
     email: (
@@ -149,40 +162,40 @@ const consentIcons = {
     ),
 };
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 interface ConsentManagerProps {
     consents: MarketingConsent[];
     onConsentToggle: (consentId: string, granted: boolean) => void;
     isUpdating?: boolean;
 }
 
-export const ConsentManager = ({
-                                   consents,
-                                   onConsentToggle,
-                                   isUpdating = false,
-                               }: ConsentManagerProps) => {
+export const ConsentManager = ({ consents, onConsentToggle, isUpdating = false }: ConsentManagerProps) => {
     const getConsentMeta = (consent: MarketingConsent): string => {
         if (consent.granted) {
-            return `${t.customers.detail.consents.granted}: ${formatDateTime(consent.grantedAt!)} • ${consent.lastModifiedBy}`;
+            return `${t.customers.detail.consents.granted}: ${formatDateTime(consent.grantedAt!)} · ${consent.lastModifiedBy}`;
         }
         if (consent.revokedAt) {
-            return `${t.customers.detail.consents.revoked}: ${formatDateTime(consent.revokedAt)} • ${consent.lastModifiedBy}`;
+            return `${t.customers.detail.consents.revoked}: ${formatDateTime(consent.revokedAt)} · ${consent.lastModifiedBy}`;
         }
         return t.customers.detail.consents.never;
     };
 
     return (
-        <ConsentContainer>
-            <ConsentHeader>
-                <ConsentTitle>{t.customers.detail.consents.title}</ConsentTitle>
-                <ConsentSubtitle>{t.customers.detail.consents.subtitle}</ConsentSubtitle>
-            </ConsentHeader>
+        <Card>
+            <CardHeader>
+                <CardTitle>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0 1 12 2.944a11.955 11.955 0 0 1-8.618 3.04A12.02 12.02 0 0 0 3 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                    {t.customers.detail.consents.title}
+                </CardTitle>
+                <CardSubtitle>{t.customers.detail.consents.subtitle}</CardSubtitle>
+            </CardHeader>
 
             <ConsentList>
                 {consents.map(consent => (
-                    <ConsentItem
-                        key={consent.id}
-                        $isGranted={consent.granted}
-                    >
+                    <ConsentItem key={consent.id} $isGranted={consent.granted}>
                         <HiddenCheckbox
                             type="checkbox"
                             checked={consent.granted}
@@ -200,6 +213,6 @@ export const ConsentManager = ({
                     </ConsentItem>
                 ))}
             </ConsentList>
-        </ConsentContainer>
+        </Card>
     );
 };
