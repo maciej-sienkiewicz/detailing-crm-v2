@@ -389,6 +389,12 @@ export const VehicleHeader = ({ vehicle, onEditVehicle, onEditOwners }: VehicleH
                     </StatItem>
                 )}
                 <StatItem>
+                    <StatLabel>Przebieg</StatLabel>
+                    <StatValue>
+                        {vehicle.currentMileage}
+                    </StatValue>
+                </StatItem>
+                <StatItem>
                     <StatLabel>W systemie od</StatLabel>
                     <StatValue>
                         {new Date(vehicle.createdAt).toLocaleDateString('pl-PL', {

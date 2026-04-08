@@ -550,56 +550,6 @@ export const VehicleDetailView = () => {
 
                     {/* ─── Right sidebar ────────────────────── */}
                     <SidebarColumn>
-                        {/* Dane pojazdu */}
-                        <SidebarCard>
-                            <SidebarCardHeader>
-                                <SidebarCardTitle>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                                        <path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.4L19 11"/>
-                                        <rect x="2" y="11" width="20" height="6" rx="1"/>
-                                        <circle cx="7" cy="17" r="2"/>
-                                        <circle cx="17" cy="17" r="2"/>
-                                        <path d="M5 11h14"/>
-                                    </svg>
-                                    Dane pojazdu
-                                </SidebarCardTitle>
-                            </SidebarCardHeader>
-                            {vehicle.color && (
-                                <InfoRow>
-                                    <InfoLabel>Kolor</InfoLabel>
-                                    <InfoValue>{vehicle.color}</InfoValue>
-                                </InfoRow>
-                            )}
-                            {vehicle.paintType && (
-                                <InfoRow>
-                                    <InfoLabel>Lakier</InfoLabel>
-                                    <InfoValue>
-                                        {paintLabels[vehicle.paintType.toLowerCase()] ?? vehicle.paintType}
-                                    </InfoValue>
-                                </InfoRow>
-                            )}
-                            {vehicle.currentMileage != null && (
-                                <InfoRow>
-                                    <InfoLabel>Przebieg</InfoLabel>
-                                    <InfoValue>{vehicle.currentMileage.toLocaleString()} km</InfoValue>
-                                </InfoRow>
-                            )}
-                            {vehicle.yearOfProduction && (
-                                <InfoRow>
-                                    <InfoLabel>Rok produkcji</InfoLabel>
-                                    <InfoValue>{vehicle.yearOfProduction}</InfoValue>
-                                </InfoRow>
-                            )}
-                            <InfoRow $noBorder>
-                                <InfoLabel>W systemie od</InfoLabel>
-                                <InfoValue>
-                                    {new Date(vehicle.createdAt).toLocaleDateString('pl-PL', {
-                                        day: '2-digit', month: '2-digit', year: 'numeric',
-                                    })}
-                                </InfoValue>
-                            </InfoRow>
-                        </SidebarCard>
-
                         {/* Właściciele */}
                         <SidebarCard>
                             <SidebarCardHeader>
