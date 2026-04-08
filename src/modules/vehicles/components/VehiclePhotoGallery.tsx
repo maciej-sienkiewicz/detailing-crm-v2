@@ -1,82 +1,81 @@
-import { useState } from 'react';
-import styled from 'styled-components';
+import React, { useState } from 'react';
+import styled, { keyframes } from 'styled-components';
 import type { VehiclePhoto } from '../types';
 import { useVehiclePhotoGallery, useDeleteVehiclePhoto } from '../hooks';
 import { UploadPhotoModal } from './UploadPhotoModal';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { t } from '@/common/i18n';
 
+const spin = keyframes`to { transform: rotate(360deg); }`;
+
 const GalleryContainer = styled.div`
-    background: white;
+    background: ${st.bgCard};
 `;
 
 const GalleryHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${props => props.theme.spacing.lg};
-    border-bottom: 1px solid ${props => props.theme.colors.border};
-    background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+    padding: 16px 20px;
+    border-bottom: 1px solid ${st.border};
+    background: ${st.bg};
 `;
 
 const HeaderLeft = styled.div``;
 
 const Title = styled.h3`
-    margin: 0 0 4px;
-    font-size: ${props => props.theme.fontSizes.md};
+    margin: 0 0 2px;
+    font-size: ${st.fontMd};
     font-weight: 700;
-    color: ${props => props.theme.colors.text};
+    color: ${st.text};
 `;
 
 const Subtitle = styled.p`
     margin: 0;
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
 `;
 
 const UploadButton = styled.button`
     display: inline-flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.xs};
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    background: var(--brand-primary);
+    gap: 6px;
+    padding: 7px 14px;
+    background: ${st.accentBlue};
     color: white;
     border: none;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontSm};
+    font-weight: 600;
     cursor: pointer;
-    transition: opacity 0.2s ease;
+    transition: all ${st.transition};
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
 
-    &:hover {
-        opacity: 0.9;
-    }
-
-    svg {
-        width: 16px;
-        height: 16px;
-    }
+    &:hover { background: #2563EB; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35); }
+    svg { width: 15px; height: 15px; }
 `;
 
 const PhotoGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: ${props => props.theme.spacing.md};
-    padding: ${props => props.theme.spacing.lg};
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    padding: 20px;
 `;
 
 const PhotoCard = styled.div`
     position: relative;
     aspect-ratio: 4 / 3;
-    border-radius: ${props => props.theme.radii.md};
+    border-radius: ${st.radiusSm};
     overflow: hidden;
-    border: 1px solid ${props => props.theme.colors.border};
+    border: 1px solid ${st.border};
     cursor: pointer;
     transition: all 0.2s ease;
-    background: #f8fafc;
+    background: ${st.bgCardAlt};
 
     &:hover {
-        transform: translateY(-4px);
-        box-shadow: ${props => props.theme.shadows.lg};
+        transform: translateY(-3px);
+        box-shadow: ${st.shadowMd};
+        border-color: ${st.borderHover};
     }
 `;
 
@@ -92,18 +91,16 @@ const PhotoOverlay = styled.div`
     left: 0;
     right: 0;
     background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
-    padding: ${props => props.theme.spacing.md};
+    padding: 12px;
     opacity: 0;
     transition: opacity 0.2s ease;
 
-    ${PhotoCard}:hover & {
-        opacity: 1;
-    }
+    ${PhotoCard}:hover & { opacity: 1; }
 `;
 
 const PhotoDescription = styled.p`
-    margin: 0 0 ${props => props.theme.spacing.xs};
-    font-size: ${props => props.theme.fontSizes.xs};
+    margin: 0 0 4px;
+    font-size: ${st.fontXs};
     color: white;
     line-height: 1.4;
 `;
@@ -111,25 +108,25 @@ const PhotoDescription = styled.p`
 const PhotoMeta = styled.div`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.xs};
-    font-size: ${props => props.theme.fontSizes.xs};
+    gap: 6px;
+    font-size: ${st.fontXs};
     color: rgba(255, 255, 255, 0.8);
 `;
 
 const SourceBadge = styled.span<{ $source: 'VEHICLE' | 'VISIT' }>`
     display: inline-flex;
     align-items: center;
-    padding: 2px 6px;
-    border-radius: ${props => props.theme.radii.sm};
-    font-size: ${props => props.theme.fontSizes.xs};
+    padding: 1px 6px;
+    border-radius: ${st.radiusSm};
+    font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
 
     ${props => props.$source === 'VEHICLE' ? `
-        background: var(--brand-primary);
+        background: ${st.accentBlue};
         color: white;
     ` : `
-        background: #10b981;
+        background: ${st.accentGreen};
         color: white;
     `}
 `;
@@ -138,9 +135,9 @@ const DeleteButton = styled.button`
     position: absolute;
     top: 8px;
     right: 8px;
-    width: 32px;
-    height: 32px;
-    border-radius: ${props => props.theme.radii.full};
+    width: 30px;
+    height: 30px;
+    border-radius: ${st.radiusFull};
     border: none;
     background: rgba(239, 68, 68, 0.9);
     color: white;
@@ -152,98 +149,79 @@ const DeleteButton = styled.button`
     transition: all 0.2s ease;
     z-index: 10;
 
-    ${PhotoCard}:hover & {
-        opacity: 1;
-    }
-
-    &:hover {
-        background: rgba(220, 38, 38, 1);
-        transform: scale(1.1);
-    }
-
-    svg {
-        width: 16px;
-        height: 16px;
-    }
+    ${PhotoCard}:hover & { opacity: 1; }
+    &:hover { background: ${st.accentRed}; transform: scale(1.1); }
+    svg { width: 14px; height: 14px; }
 `;
 
 const Pagination = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: ${props => props.theme.spacing.sm};
-    padding: ${props => props.theme.spacing.lg};
-    border-top: 1px solid ${props => props.theme.colors.border};
+    gap: 6px;
+    padding: 16px 20px;
+    border-top: 1px solid ${st.border};
 `;
 
 const PageButton = styled.button<{ $isActive?: boolean }>`
-    min-width: 36px;
-    height: 36px;
-    padding: 0 ${props => props.theme.spacing.sm};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    background: ${props => props.$isActive ? 'var(--brand-primary)' : 'white'};
-    color: ${props => props.$isActive ? 'white' : props.theme.colors.text};
-    font-size: ${props => props.theme.fontSizes.sm};
+    min-width: 34px;
+    height: 34px;
+    padding: 0 8px;
+    border: 1px solid ${props => props.$isActive ? st.accentBlue : st.border};
+    border-radius: ${st.radiusSm};
+    background: ${props => props.$isActive ? st.accentBlue : st.bgCard};
+    color: ${props => props.$isActive ? 'white' : st.text};
+    font-size: ${st.fontSm};
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all ${st.transition};
 
     &:hover:not(:disabled) {
-        ${props => !props.$isActive && `
-            background: ${props.theme.colors.surfaceHover};
-        `}
+        border-color: ${st.accentBlue};
+        background: ${props => props.$isActive ? st.accentBlue : st.accentBlueDim};
+        color: ${props => props.$isActive ? 'white' : st.accentBlue};
     }
-
-    &:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-    }
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
 
 const PageInfo = styled.span`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
-    margin: 0 ${props => props.theme.spacing.sm};
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
+    margin: 0 6px;
 `;
 
 const EmptyState = styled.div`
     text-align: center;
-    padding: ${props => props.theme.spacing.xxl};
-    color: ${props => props.theme.colors.textMuted};
+    padding: 48px 20px;
+    color: ${st.textMuted};
 `;
 
 const EmptyIcon = styled.div`
-    font-size: 64px;
-    margin-bottom: ${props => props.theme.spacing.md};
+    font-size: 52px;
+    margin-bottom: 12px;
     opacity: 0.5;
 `;
 
 const EmptyText = styled.p`
     margin: 0;
-    font-size: ${props => props.theme.fontSizes.md};
+    font-size: ${st.fontMd};
+    color: ${st.textMuted};
 `;
 
 const LoadingContainer = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: ${props => props.theme.spacing.xxl};
+    padding: 48px;
 `;
 
 const Spinner = styled.div`
-    width: 40px;
-    height: 40px;
-    border: 4px solid ${props => props.theme.colors.border};
-    border-top-color: var(--brand-primary);
+    width: 36px;
+    height: 36px;
+    border: 3px solid ${st.border};
+    border-top-color: ${st.accentBlue};
     border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-
-    @keyframes spin {
-        to {
-            transform: rotate(360deg);
-        }
-    }
+    animation: ${spin} 0.7s linear infinite;
 `;
 
 interface VehiclePhotoGalleryProps {
@@ -276,24 +254,18 @@ export const VehiclePhotoGallery = ({ vehicleId }: VehiclePhotoGalleryProps) => 
         const pages = [];
         const maxVisible = 5;
         let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-        let endPage = Math.min(pagination.totalPages, startPage + maxVisible - 1);
-
+        const endPage = Math.min(pagination.totalPages, startPage + maxVisible - 1);
         if (endPage - startPage < maxVisible - 1) {
             startPage = Math.max(1, endPage - maxVisible + 1);
         }
 
         for (let i = startPage; i <= endPage; i++) {
             pages.push(
-                <PageButton
-                    key={i}
-                    $isActive={i === currentPage}
-                    onClick={() => setCurrentPage(i)}
-                >
+                <PageButton key={i} $isActive={i === currentPage} onClick={() => setCurrentPage(i)}>
                     {i}
                 </PageButton>
             );
         }
-
         return pages;
     };
 
@@ -304,7 +276,10 @@ export const VehiclePhotoGallery = ({ vehicleId }: VehiclePhotoGalleryProps) => 
                     <HeaderLeft>
                         <Title>{t.vehicles.detail.photoGallery.title}</Title>
                         <Subtitle>
-                            {pagination ? `${pagination.total} ${pagination.total === 1 ? 'zdjęcie' : pagination.total < 5 ? 'zdjęcia' : 'zdjęć'}` : 'Ładowanie...'}
+                            {pagination
+                                ? `${pagination.total} ${pagination.total === 1 ? 'zdjęcie' : pagination.total < 5 ? 'zdjęcia' : 'zdjęć'}`
+                                : 'Ładowanie...'
+                            }
                         </Subtitle>
                     </HeaderLeft>
                     <UploadButton onClick={() => setIsUploadModalOpen(true)}>
@@ -316,9 +291,7 @@ export const VehiclePhotoGallery = ({ vehicleId }: VehiclePhotoGalleryProps) => 
                 </GalleryHeader>
 
                 {isLoading ? (
-                    <LoadingContainer>
-                        <Spinner />
-                    </LoadingContainer>
+                    <LoadingContainer><Spinner /></LoadingContainer>
                 ) : photos.length === 0 ? (
                     <EmptyState>
                         <EmptyIcon>📸</EmptyIcon>
@@ -336,7 +309,7 @@ export const VehiclePhotoGallery = ({ vehicleId }: VehiclePhotoGalleryProps) => 
                                     />
                                     {photo.source === 'VEHICLE' && (
                                         <DeleteButton
-                                            onClick={(e) => handleDeletePhoto(photo.id, e)}
+                                            onClick={e => handleDeletePhoto(photo.id, e)}
                                             disabled={isDeleting}
                                             title="Usuń zdjęcie"
                                         >
@@ -351,9 +324,7 @@ export const VehiclePhotoGallery = ({ vehicleId }: VehiclePhotoGalleryProps) => 
                                             <SourceBadge $source={photo.source}>
                                                 {photo.source === 'VEHICLE' ? 'Pojazd' : 'Wizyta'}
                                             </SourceBadge>
-                                            {photo.visitNumber && (
-                                                <span>• {photo.visitNumber}</span>
-                                            )}
+                                            {photo.visitNumber && <span>· {photo.visitNumber}</span>}
                                         </PhotoMeta>
                                     </PhotoOverlay>
                                 </PhotoCard>
@@ -365,22 +336,16 @@ export const VehiclePhotoGallery = ({ vehicleId }: VehiclePhotoGalleryProps) => 
                                 <PageButton
                                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                     disabled={currentPage === 1}
-                                >
-                                    ←
-                                </PageButton>
+                                >←</PageButton>
 
                                 {renderPageNumbers()}
 
                                 <PageButton
                                     onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
                                     disabled={currentPage === pagination.totalPages}
-                                >
-                                    →
-                                </PageButton>
+                                >→</PageButton>
 
-                                <PageInfo>
-                                    Strona {currentPage} z {pagination.totalPages}
-                                </PageInfo>
+                                <PageInfo>Strona {currentPage} z {pagination.totalPages}</PageInfo>
                             </Pagination>
                         )}
                     </>

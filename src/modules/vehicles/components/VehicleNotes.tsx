@@ -4,38 +4,41 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { useVehicleNotes, useCreateVehicleNote, useUpdateVehicleNote, useDeleteVehicleNote } from '../hooks/useVehicleNotes';
 import { formatDateTime } from '@/common/utils';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { VehicleNote } from '../types';
 
 /* ─── Sidebar card shell ─── */
 
 const Card = styled.div`
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
     overflow: hidden;
+    box-shadow: ${st.shadowSm};
 `;
 
 const CardHeader = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
-    border-bottom: 1px solid ${props => props.theme.colors.border};
+    padding: 13px 18px;
+    border-bottom: 1px solid ${st.border};
+    background: ${st.bg};
 `;
 
 const CardTitle = styled.h4`
     margin: 0;
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 600;
-    color: ${props => props.theme.colors.text};
+    gap: 8px;
+    font-size: ${st.fontSm};
+    font-weight: 700;
+    color: ${st.text};
 
     svg {
-        width: 16px;
-        height: 16px;
-        color: var(--brand-primary);
+        width: 15px;
+        height: 15px;
+        color: ${st.accentBlue};
     }
 `;
 
@@ -44,106 +47,101 @@ const Badge = styled.span`
     align-items: center;
     justify-content: center;
     min-width: 20px;
-    height: 20px;
+    height: 18px;
     padding: 0 6px;
-    border-radius: 10px;
-    background: ${props => props.theme.colors.surfaceAlt};
-    font-size: ${props => props.theme.fontSizes.xs};
+    border-radius: ${st.radiusFull};
+    background: ${st.bgCardAlt};
+    border: 1px solid ${st.border};
+    font-size: 11px;
     font-weight: 600;
-    color: ${props => props.theme.colors.textSecondary};
+    color: ${st.textMuted};
 `;
 
 const AddButton = styled.button`
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 5px 10px;
-    border: 1.5px solid var(--brand-primary);
-    border-radius: ${props => props.theme.radii.md};
+    padding: 4px 10px;
+    border: 1.5px solid ${st.accentBlue};
+    border-radius: ${st.radiusFull};
     background: transparent;
-    color: var(--brand-primary);
-    font-size: ${props => props.theme.fontSizes.xs};
+    color: ${st.accentBlue};
+    font-size: ${st.fontXs};
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all ${st.transition};
 
-    &:hover {
-        background: var(--brand-primary);
-        color: white;
-    }
-
-    svg {
-        width: 13px;
-        height: 13px;
-    }
+    &:hover { background: ${st.accentBlue}; color: white; }
+    svg { width: 12px; height: 12px; }
 `;
 
 /* ─── Add-note form ─── */
 
 const AddForm = styled.div`
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
-    border-bottom: 1px solid ${props => props.theme.colors.border};
-    background: ${props => props.theme.colors.surfaceAlt};
+    padding: 12px 18px;
+    border-bottom: 1px solid ${st.border};
+    background: ${st.bgCardAlt};
 `;
 
 const Textarea = styled.textarea`
     width: 100%;
     min-height: 72px;
     padding: 8px 10px;
-    border: 1.5px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.text};
-    background: white;
+    border: 1.5px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    color: ${st.text};
+    background: ${st.bgCard};
     resize: vertical;
     font-family: inherit;
     line-height: 1.5;
     box-sizing: border-box;
+    transition: border-color ${st.transition}, box-shadow ${st.transition};
 
     &:focus {
         outline: none;
-        border-color: var(--brand-primary);
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 15%, transparent);
+        border-color: ${st.accentBlue};
+        box-shadow: ${st.shadowBlue};
     }
 
-    &::placeholder {
-        color: ${props => props.theme.colors.textMuted};
-    }
+    &::placeholder { color: ${st.textMuted}; }
 `;
 
 const FormActions = styled.div`
     display: flex;
     justify-content: flex-end;
-    gap: ${props => props.theme.spacing.sm};
-    margin-top: ${props => props.theme.spacing.sm};
+    gap: 8px;
+    margin-top: 8px;
 `;
 
 const CancelBtn = styled.button`
     padding: 5px 12px;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    background: white;
-    color: ${props => props.theme.colors.textSecondary};
-    font-size: ${props => props.theme.fontSizes.xs};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusFull};
+    background: ${st.bgCard};
+    color: ${st.textSecondary};
+    font-size: ${st.fontXs};
     font-weight: 500;
     cursor: pointer;
+    transition: all ${st.transition};
 
-    &:hover { background: ${props => props.theme.colors.surfaceAlt}; }
+    &:hover { background: ${st.bgCardAlt}; border-color: ${st.borderHover}; }
 `;
 
 const SaveBtn = styled.button`
-    padding: 5px 12px;
+    padding: 5px 14px;
     border: none;
-    border-radius: ${props => props.theme.radii.md};
-    background: var(--brand-primary);
+    border-radius: ${st.radiusFull};
+    background: ${st.accentBlue};
     color: white;
-    font-size: ${props => props.theme.fontSizes.xs};
+    font-size: ${st.fontXs};
     font-weight: 600;
     cursor: pointer;
-    transition: opacity 0.15s;
+    transition: all ${st.transition};
+    box-shadow: ${st.shadowXs};
 
     &:disabled { opacity: 0.6; cursor: not-allowed; }
-    &:hover:not(:disabled) { opacity: 0.9; }
+    &:hover:not(:disabled) { background: #2563EB; box-shadow: ${st.shadowSm}; }
 `;
 
 /* ─── Note list ─── */
@@ -155,18 +153,18 @@ const NotesList = styled.ul`
 `;
 
 const NoteItem = styled.li`
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
-    border-bottom: 1px solid ${props => props.theme.colors.border};
+    padding: 12px 18px;
+    border-bottom: 1px solid ${st.border};
+    transition: background ${st.transition};
 
-    &:last-child {
-        border-bottom: none;
-    }
+    &:last-child { border-bottom: none; }
+    &:hover { background: ${st.bgCardAlt}; }
 `;
 
 const NoteContent = styled.p`
-    margin: 0 0 ${props => props.theme.spacing.xs};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.text};
+    margin: 0 0 6px;
+    font-size: ${st.fontSm};
+    color: ${st.text};
     line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-word;
@@ -176,23 +174,21 @@ const NoteFooter = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
+    gap: 8px;
 `;
 
 const NoteMeta = styled.span`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
 `;
 
 const NoteActions = styled.div`
     display: flex;
     gap: 4px;
     opacity: 0;
-    transition: opacity 0.15s;
+    transition: opacity ${st.transition};
 
-    ${NoteItem}:hover & {
-        opacity: 1;
-    }
+    ${NoteItem}:hover & { opacity: 1; }
 `;
 
 const IconBtn = styled.button<{ $danger?: boolean }>`
@@ -202,15 +198,15 @@ const IconBtn = styled.button<{ $danger?: boolean }>`
     width: 26px;
     height: 26px;
     border: none;
-    border-radius: ${props => props.theme.radii.sm};
-    background: ${props => props.theme.colors.surfaceAlt};
-    color: ${props => props.theme.colors.textMuted};
+    border-radius: ${st.radiusSm};
+    background: ${st.bgCardAlt};
+    color: ${st.textMuted};
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all ${st.transition};
 
     &:hover {
-        background: ${props => props.$danger ? '#fee2e2' : 'var(--brand-primary)'};
-        color: ${props => props.$danger ? '#dc2626' : 'white'};
+        background: ${props => props.$danger ? st.accentRedDim : st.accentBlueDim};
+        color: ${props => props.$danger ? st.accentRed : st.accentBlue};
     }
 
     svg { width: 13px; height: 13px; }
@@ -220,9 +216,9 @@ const IconBtn = styled.button<{ $danger?: boolean }>`
 
 const Empty = styled.p`
     margin: 0;
-    padding: ${props => props.theme.spacing.lg};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
+    padding: 20px 18px;
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
     text-align: center;
 `;
 

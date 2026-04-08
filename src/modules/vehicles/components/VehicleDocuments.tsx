@@ -1,49 +1,52 @@
 // src/modules/vehicles/components/VehicleDocuments.tsx
 
 import React, { useState, useMemo } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { useVehicleDocuments, useDeleteVehicleDocument } from '../hooks/useVehicleDocuments';
 import { UploadVehicleDocumentModal } from './UploadVehicleDocumentModal';
 import { ImageViewerModal } from '@/modules/customers/components/ImageViewerModal';
 import { formatDateTime } from '@/common/utils';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { VehicleDocument } from '../types';
+
+const spin = keyframes`to { transform: rotate(360deg); }`;
 
 /* ─── Document Card ──────────────────────────────────── */
 
 const Card = styled.article<{ $isClickable?: boolean }>`
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    padding: ${props => props.theme.spacing.md};
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    padding: 14px;
     transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
     position: relative;
     overflow: hidden;
     cursor: ${props => props.$isClickable ? 'pointer' : 'default'};
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.md};
+    gap: 12px;
 
     &::before {
         content: '';
         position: absolute;
         top: 0; left: 0; right: 0;
         height: 3px;
-        background: linear-gradient(90deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 70%, white) 100%);
+        background: ${st.gradientBlue};
         transform: scaleX(0);
         transform-origin: left;
         transition: transform 0.25s ease;
     }
 
     &:hover {
-        border-color: color-mix(in srgb, var(--brand-primary) 40%, transparent);
-        box-shadow: ${props => props.theme.shadows.md};
+        border-color: ${st.borderHover};
+        box-shadow: ${st.shadowMd};
         &::before { transform: scaleX(1); }
     }
 `;
 
 const CardBody = styled.div`
     display: flex;
-    gap: ${props => props.theme.spacing.md};
+    gap: 12px;
     align-items: flex-start;
 `;
 
@@ -53,15 +56,15 @@ const FileIcon = styled.div<{ $ext: string }>`
     justify-content: center;
     width: 44px;
     height: 44px;
-    border-radius: ${props => props.theme.radii.md};
+    border-radius: ${st.radiusSm};
     flex-shrink: 0;
 
     ${({ $ext }) => {
-        if ($ext === 'pdf') return 'background: #fee2e2; color: #dc2626;';
-        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes($ext)) return 'background: #dbeafe; color: #2563eb;';
-        if (['doc', 'docx'].includes($ext)) return 'background: #dbeafe; color: #1d4ed8;';
-        if (['xls', 'xlsx'].includes($ext)) return 'background: #dcfce7; color: #16a34a;';
-        return 'background: #f3f4f6; color: #6b7280;';
+        if ($ext === 'pdf') return `background: ${st.accentRedDim}; color: ${st.accentRed};`;
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes($ext)) return `background: ${st.accentBlueDim}; color: ${st.accentBlue};`;
+        if (['doc', 'docx'].includes($ext)) return `background: ${st.accentBlueDim}; color: #1d4ed8;`;
+        if (['xls', 'xlsx'].includes($ext)) return `background: ${st.accentGreenDim}; color: ${st.accentGreen};`;
+        return `background: ${st.bgCardAlt}; color: ${st.textMuted};`;
     }}
 
     svg { width: 22px; height: 22px; }
@@ -73,9 +76,9 @@ const FileInfo = styled.div`
 `;
 
 const DocName = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
+    font-size: ${st.fontSm};
     font-weight: 600;
-    color: ${props => props.theme.colors.text};
+    color: ${st.text};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -83,8 +86,8 @@ const DocName = styled.div`
 `;
 
 const DocFileName = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -94,41 +97,40 @@ const CardFooter = styled.footer`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: ${props => props.theme.spacing.sm};
-    border-top: 1px solid ${props => props.theme.colors.border};
+    padding-top: 10px;
+    border-top: 1px solid ${st.border};
 `;
 
 const UploadInfo = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
     line-height: 1.5;
 `;
 
 const CardActions = styled.div`
     display: flex;
-    gap: ${props => props.theme.spacing.xs};
+    gap: 6px;
 `;
 
 const ActionButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border: none;
-    border-radius: ${props => props.theme.radii.md};
-    background: ${props => props.theme.colors.surfaceAlt};
-    color: ${props => props.theme.colors.textMuted};
+    border-radius: ${st.radiusSm};
+    background: ${st.bgCardAlt};
+    color: ${st.textMuted};
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all ${st.transition};
 
-    &:hover { background: var(--brand-primary); color: white; }
-
-    svg { width: 15px; height: 15px; }
+    &:hover { background: ${st.accentBlueDim}; color: ${st.accentBlue}; }
+    svg { width: 14px; height: 14px; }
 `;
 
 const DeleteButton = styled(ActionButton)`
-    &:hover { background: #ef4444; color: white; }
+    &:hover { background: ${st.accentRedDim}; color: ${st.accentRed}; }
 `;
 
 function getFileIcon(ext: string) {
@@ -168,7 +170,7 @@ interface VehicleDocumentCardProps {
 
 const VehicleDocumentCard = ({ document, onDelete, onImageClick, isDeleting = false }: VehicleDocumentCardProps) => {
     const ext = document.fileName.split('.').pop()?.toLowerCase() || '';
-    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+    const isImage    = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
     const isViewable = isImage || ext === 'pdf';
 
     const handleCardClick = () => {
@@ -229,14 +231,14 @@ const VehicleDocumentCard = ({ document, onDelete, onImageClick, isDeleting = fa
 const Container = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
-    padding: ${props => props.theme.spacing.lg};
+    gap: 16px;
+    padding: 20px;
 `;
 
 const Header = styled.header`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.md};
+    gap: 12px;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         flex-direction: row;
@@ -247,9 +249,9 @@ const Header = styled.header`
 
 const Title = styled.h2`
     margin: 0;
-    font-size: ${props => props.theme.fontSizes.lg};
+    font-size: ${st.fontMd};
     font-weight: 700;
-    color: ${props => props.theme.colors.text};
+    color: ${st.text};
 `;
 
 const UploadButton = styled.button`
@@ -257,47 +259,44 @@ const UploadButton = styled.button`
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    background: linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 90%, black) 100%);
+    padding: 8px 16px;
+    background: ${st.accentBlue};
     color: white;
     border: none;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontSm};
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+    transition: all ${st.transition};
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
 
-    &:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
-    }
-
-    svg { width: 16px; height: 16px; }
+    &:hover { background: #2563EB; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35); transform: translateY(-1px); }
+    svg { width: 15px; height: 15px; }
 `;
 
 const SearchInput = styled.input`
     width: 100%;
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    background: white;
-    color: ${props => props.theme.colors.text};
-    transition: border-color 0.2s ease;
+    padding: 8px 14px;
+    border: 1.5px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    background: ${st.bgCard};
+    color: ${st.text};
+    transition: border-color ${st.transition}, box-shadow ${st.transition};
 
     &:focus {
         outline: none;
-        border-color: var(--brand-primary);
+        border-color: ${st.accentBlue};
+        box-shadow: ${st.shadowBlue};
     }
 
-    &::placeholder { color: ${props => props.theme.colors.textMuted}; }
+    &::placeholder { color: ${st.textMuted}; }
 `;
 
 const DocumentsGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr;
-    gap: ${props => props.theme.spacing.md};
+    gap: 12px;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         grid-template-columns: repeat(2, 1fr);
@@ -310,92 +309,95 @@ const DocumentsGrid = styled.div`
 
 const EmptyState = styled.div`
     text-align: center;
-    padding: ${props => props.theme.spacing.xxl} ${props => props.theme.spacing.lg};
-    background: ${props => props.theme.colors.surfaceAlt};
-    border-radius: ${props => props.theme.radii.lg};
+    padding: 40px 20px;
+    background: ${st.bgCardAlt};
+    border-radius: ${st.radius};
+    border: 1px dashed ${st.border};
 `;
 
 const EmptyIcon = styled.div`
-    width: 64px;
-    height: 64px;
-    margin: 0 auto ${props => props.theme.spacing.md};
-    border-radius: ${props => props.theme.radii.full};
-    background: ${props => props.theme.colors.surfaceAlt};
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 12px;
+    border-radius: ${st.radiusFull};
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
     display: flex;
     align-items: center;
     justify-content: center;
-    color: ${props => props.theme.colors.textMuted};
-    svg { width: 32px; height: 32px; }
+    color: ${st.textMuted};
+    svg { width: 28px; height: 28px; }
 `;
 
 const EmptyTitle = styled.h3`
-    margin: 0 0 ${props => props.theme.spacing.xs};
-    font-size: ${props => props.theme.fontSizes.lg};
+    margin: 0 0 4px;
+    font-size: ${st.fontMd};
     font-weight: 600;
-    color: ${props => props.theme.colors.text};
+    color: ${st.text};
 `;
 
 const EmptyDescription = styled.p`
     margin: 0;
-    color: ${props => props.theme.colors.textMuted};
-    font-size: ${props => props.theme.fontSizes.sm};
+    color: ${st.textMuted};
+    font-size: ${st.fontSm};
 `;
 
 const LoadingContainer = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 300px;
+    min-height: 200px;
 `;
 
 const Spinner = styled.div`
-    width: 48px;
-    height: 48px;
-    border: 4px solid ${props => props.theme.colors.border};
-    border-top-color: var(--brand-primary);
+    width: 36px;
+    height: 36px;
+    border: 3px solid ${st.border};
+    border-top-color: ${st.accentBlue};
     border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    @keyframes spin { to { transform: rotate(360deg); } }
+    animation: ${spin} 0.7s linear infinite;
 `;
 
 const ErrorContainer = styled.div`
-    padding: ${props => props.theme.spacing.xl};
+    padding: 20px;
     text-align: center;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: ${props => props.theme.radii.lg};
-    color: #991b1b;
+    background: ${st.accentRedDim};
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: ${st.radius};
+    color: ${st.accentRed};
+    font-size: ${st.fontSm};
 `;
 
 const Pagination = styled.div`
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
-    padding: ${props => props.theme.spacing.lg};
+    gap: 6px;
+    padding-top: 4px;
 `;
 
 const PageButton = styled.button<{ $isActive?: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 40px;
-    height: 40px;
-    padding: 0 ${props => props.theme.spacing.sm};
-    border: 1px solid ${props => props.$isActive ? 'var(--brand-primary)' : props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    background: ${props => props.$isActive ? 'var(--brand-primary)' : 'white'};
-    color: ${props => props.$isActive ? 'white' : props.theme.colors.text};
-    font-size: ${props => props.theme.fontSizes.sm};
+    min-width: 36px;
+    height: 36px;
+    padding: 0 8px;
+    border: 1px solid ${props => props.$isActive ? st.accentBlue : st.border};
+    border-radius: ${st.radiusSm};
+    background: ${props => props.$isActive ? st.accentBlue : st.bgCard};
+    color: ${props => props.$isActive ? 'white' : st.text};
+    font-size: ${st.fontSm};
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all ${st.transition};
 
     &:hover:not(:disabled) {
-        border-color: var(--brand-primary);
-        background: ${props => props.$isActive ? 'var(--brand-primary)' : props.theme.colors.surfaceHover};
+        border-color: ${st.accentBlue};
+        background: ${props => props.$isActive ? st.accentBlue : st.accentBlueDim};
+        color: ${props => props.$isActive ? 'white' : st.accentBlue};
     }
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
+    &:disabled { opacity: 0.45; cursor: not-allowed; }
 `;
 
 /* ─── Main Component ─────────────────────────────────── */
@@ -426,9 +428,9 @@ export const VehicleDocuments = ({ vehicleId }: VehicleDocumentsProps) => {
     }, [allDocuments, searchQuery]);
 
     const { documents, pagination } = useMemo(() => {
-        const totalItems = filteredDocuments.length;
-        const totalPages = Math.ceil(totalItems / limit);
-        const startIndex = (page - 1) * limit;
+        const totalItems  = filteredDocuments.length;
+        const totalPages  = Math.ceil(totalItems / limit);
+        const startIndex  = (page - 1) * limit;
         const paginatedDocs = filteredDocuments.slice(startIndex, startIndex + limit);
         return {
             documents: paginatedDocs,
@@ -451,9 +453,7 @@ export const VehicleDocuments = ({ vehicleId }: VehicleDocumentsProps) => {
 
     const currentDocument = viewableDocuments[currentImageIndex];
 
-    if (isLoading) {
-        return <LoadingContainer><Spinner /></LoadingContainer>;
-    }
+    if (isLoading) return <LoadingContainer><Spinner /></LoadingContainer>;
 
     if (isError) {
         return (
@@ -522,9 +522,7 @@ export const VehicleDocuments = ({ vehicleId }: VehicleDocumentsProps) => {
                             <PageButton
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
                                 disabled={page === 1}
-                            >
-                                ←
-                            </PageButton>
+                            >←</PageButton>
 
                             {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
                                 .filter(p => {
@@ -534,7 +532,7 @@ export const VehicleDocuments = ({ vehicleId }: VehicleDocumentsProps) => {
                                 })
                                 .map((p, i, arr) => (
                                     <React.Fragment key={p}>
-                                        {i > 0 && arr[i - 1] !== p - 1 && <span>...</span>}
+                                        {i > 0 && arr[i - 1] !== p - 1 && <span style={{ color: st.textMuted }}>…</span>}
                                         <PageButton $isActive={p === page} onClick={() => setPage(p)}>
                                             {p}
                                         </PageButton>
@@ -545,9 +543,7 @@ export const VehicleDocuments = ({ vehicleId }: VehicleDocumentsProps) => {
                             <PageButton
                                 onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
                                 disabled={page === pagination.totalPages}
-                            >
-                                →
-                            </PageButton>
+                            >→</PageButton>
                         </Pagination>
                     )}
                 </>
