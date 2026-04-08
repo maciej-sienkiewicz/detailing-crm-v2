@@ -16,8 +16,6 @@ import { CustomerNotes } from '../components/CustomerNotes';
 import { EditCustomerModal } from '../components/EditCustomerModal';
 import { EditCompanyModal } from '../components/EditCompanyModal';
 import { AuditTimeline } from '@/common/components/AuditTimeline';
-import { formatCurrency } from '../utils/customerMappers';
-import { formatDate } from '@/common/utils';
 import { t } from '@/common/i18n';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { Vehicle, CommunicationLog } from '../types';
@@ -60,81 +58,6 @@ const ContentArea = styled.div`
     }
 `;
 
-// ─── Metrics ──────────────────────────────────────────────────────────────────
-
-const MetricsGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 14px;
-    margin-bottom: 20px;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px;
-    }
-`;
-
-const MetricCard = styled.div<{ $highlight?: boolean }>`
-    background: ${props => props.$highlight ? st.gradientBlue : st.bgCard};
-    border: 1px solid ${props => props.$highlight ? 'transparent' : st.border};
-    border-radius: ${st.radius};
-    padding: 18px 20px;
-    box-shadow: ${props => props.$highlight
-        ? '0 4px 16px rgba(59, 130, 246, 0.25)'
-        : st.shadowSm};
-    transition: transform ${st.transition}, box-shadow ${st.transition};
-
-    &:hover {
-        transform: translateY(-2px);
-        box-shadow: ${props => props.$highlight
-            ? '0 6px 20px rgba(59, 130, 246, 0.35)'
-            : st.shadowMd};
-    }
-`;
-
-const MetricIcon = styled.div<{ $highlight?: boolean }>`
-    width: 36px;
-    height: 36px;
-    border-radius: ${st.radiusSm};
-    background: ${props => props.$highlight ? 'rgba(255,255,255,0.2)' : st.bgCardAlt};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 10px;
-
-    svg {
-        width: 18px;
-        height: 18px;
-        color: ${props => props.$highlight ? 'white' : st.accentBlue};
-    }
-`;
-
-const MetricLabel = styled.div<{ $highlight?: boolean }>`
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: ${props => props.$highlight ? 'rgba(255,255,255,0.75)' : st.textMuted};
-    margin-bottom: 4px;
-`;
-
-const MetricValue = styled.div<{ $highlight?: boolean }>`
-    font-size: ${st.fontXl};
-    font-weight: 700;
-    color: ${props => props.$highlight ? 'white' : st.text};
-    letter-spacing: -0.02em;
-
-    @media (max-width: ${props => props.theme.breakpoints.md}) {
-        font-size: ${st.fontLg};
-    }
-`;
-
-const MetricSubvalue = styled.div<{ $highlight?: boolean }>`
-    font-size: ${st.fontXs};
-    color: ${props => props.$highlight ? 'rgba(255,255,255,0.65)' : st.textMuted};
-    margin-top: 2px;
-`;
-
 // ─── Main grid ────────────────────────────────────────────────────────────────
 
 const MainGrid = styled.div`
@@ -144,11 +67,11 @@ const MainGrid = styled.div`
     align-items: start;
 
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
-        grid-template-columns: 1fr 320px;
+        grid-template-columns: 1fr 300px;
     }
 
     @media (min-width: ${props => props.theme.breakpoints.xl}) {
-        grid-template-columns: 1fr 340px;
+        grid-template-columns: 1fr 320px;
     }
 `;
 
@@ -254,7 +177,7 @@ const SidebarCardHeader = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 13px 18px;
+    padding: 11px 16px;
     border-bottom: 1px solid ${st.border};
     background: ${st.bg};
 `;
@@ -269,8 +192,8 @@ const SidebarCardTitle = styled.h4`
     gap: 8px;
 
     svg {
-        width: 15px;
-        height: 15px;
+        width: 14px;
+        height: 14px;
         color: ${st.accentBlue};
         flex-shrink: 0;
     }
@@ -282,28 +205,21 @@ const SidebarCardBadge = styled.span`
     color: ${st.textMuted};
     background: ${st.bgCardAlt};
     border: 1px solid ${st.border};
-    padding: 1px 8px;
+    padding: 1px 7px;
     border-radius: ${st.radiusFull};
 `;
 
-// ─── Info grid ────────────────────────────────────────────────────────────────
+// ─── Info rows ────────────────────────────────────────────────────────────────
 
-const InfoGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-`;
-
-const InfoItem = styled.div<{ $span?: boolean; $noBorder?: boolean }>`
+const InfoRow = styled.div<{ $noBorder?: boolean }>`
     display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding: 10px 18px;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 16px;
     border-bottom: ${props => props.$noBorder ? 'none' : `1px solid ${st.border}`};
-    ${props => props.$span && 'grid-column: 1 / -1;'}
 
-    &:last-child {
-        border-bottom: none;
-    }
+    &:last-child { border-bottom: none; }
 `;
 
 const InfoLabel = styled.span`
@@ -312,12 +228,15 @@ const InfoLabel = styled.span`
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: ${st.textMuted};
+    flex-shrink: 0;
 `;
 
 const InfoValue = styled.span`
     font-size: ${st.fontSm};
     font-weight: 500;
     color: ${st.text};
+    text-align: right;
+    word-break: break-word;
 `;
 
 // ─── Vehicles list ────────────────────────────────────────────────────────────
@@ -330,8 +249,8 @@ const VehiclesList = styled.div`
 const VehicleLink = styled(Link)`
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 18px;
+    gap: 10px;
+    padding: 9px 16px;
     text-decoration: none;
     transition: background ${st.transition};
     border-bottom: 1px solid ${st.border};
@@ -341,8 +260,8 @@ const VehicleLink = styled(Link)`
 `;
 
 const VehicleIcon = styled.div`
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
     border-radius: ${st.radiusSm};
     background: ${st.bgCardAlt};
     border: 1px solid ${st.border};
@@ -369,15 +288,24 @@ const VehicleName = styled.div`
     text-overflow: ellipsis;
 `;
 
-const VehicleMeta = styled.div`
+const VehiclePlate = styled.div`
     font-size: ${st.fontXs};
     color: ${st.textMuted};
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.05em;
 `;
 
 const VehicleArrow = styled.div`
     color: ${st.textMuted};
     flex-shrink: 0;
-    svg { width: 14px; height: 14px; }
+    svg { width: 13px; height: 13px; }
+`;
+
+const EmptySlot = styled.div`
+    padding: 14px 16px;
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
+    text-align: center;
 `;
 
 // ─── Communication list ───────────────────────────────────────────────────────
@@ -516,15 +444,11 @@ const RetryButton = styled.button`
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const commTypeLabels: Record<string, string> = {
-    email:   'E-mail',
-    sms:     'SMS',
-    phone:   'Telefon',
-    meeting: 'Spotkanie',
+    email: 'E-mail', sms: 'SMS', phone: 'Telefon', meeting: 'Spotkanie',
 };
 
 const commDirectionLabels: Record<string, string> = {
-    inbound:  'Przychodzący',
-    outbound: 'Wychodzący',
+    inbound: 'Przychodzący', outbound: 'Wychodzący',
 };
 
 function formatAddress(address: { street: string; postalCode: string; city: string } | null): string {
@@ -537,12 +461,12 @@ function formatAddress(address: { street: string; postalCode: string; city: stri
 export const CustomerDetailView = () => {
     const { customerId } = useParams<{ customerId: string }>();
 
-    const [isEditModalOpen, setIsEditModalOpen]          = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen]               = useState(false);
     const [isEditCompanyModalOpen, setIsEditCompanyModalOpen] = useState(false);
-    const [isDocsOpen, setIsDocsOpen]                    = useState(true);
-    const [isCommOpen, setIsCommOpen]                    = useState(false);
-    const [isAuditOpen, setIsAuditOpen]                  = useState(false);
-    const [visitsPage, setVisitsPage]                    = useState(1);
+    const [isDocsOpen, setIsDocsOpen]                         = useState(true);
+    const [isCommOpen, setIsCommOpen]                         = useState(false);
+    const [isAuditOpen, setIsAuditOpen]                       = useState(false);
+    const [visitsPage]                                         = useState(1);
     const visitsLimit = 50;
 
     const { customerDetail, isLoading, isError, refetch } = useCustomerDetail(customerId!);
@@ -556,7 +480,7 @@ export const CustomerDetailView = () => {
         licensePlate: v.licensePlate || vehicles.find(vh => vh.id === v.vehicleId)?.licensePlate,
     })), [rawVisits, vehicles]);
 
-    useEffect(() => { setVisitsPage(1); }, [customerId]);
+    useEffect(() => { /* page reset handled by page state */ }, [customerId]);
 
     if (isLoading) {
         return (
@@ -585,11 +509,11 @@ export const CustomerDetailView = () => {
         );
     }
 
-    const { customer, marketingConsents, lifetimeValue } = customerDetail;
+    const { customer, marketingConsents } = customerDetail;
 
     return (
         <ViewContainer>
-            {/* ─── Hero header ────────────────────────────── */}
+            {/* ─── Hero header (z stats strip) ────────── */}
             <CustomerHeader
                 data={customerDetail}
                 onEditCustomer={() => setIsEditModalOpen(true)}
@@ -597,58 +521,12 @@ export const CustomerDetailView = () => {
             />
 
             <ContentArea>
-                {/* ─── Metrics row ────────────────────────── */}
-                <MetricsGrid>
-                    <MetricCard $highlight>
-                        <MetricIcon $highlight>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <line x1="12" y1="1" x2="12" y2="23" />
-                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                            </svg>
-                        </MetricIcon>
-                        <MetricLabel $highlight>{t.customers.detail.totalRevenue}</MetricLabel>
-                        <MetricValue $highlight>
-                            {formatCurrency(lifetimeValue.grossAmount, lifetimeValue.currency)}
-                        </MetricValue>
-                        <MetricSubvalue $highlight>
-                            {formatCurrency(lifetimeValue.netAmount, lifetimeValue.currency)} netto
-                        </MetricSubvalue>
-                    </MetricCard>
-
-                    <MetricCard>
-                        <MetricIcon>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                                <line x1="16" y1="2" x2="16" y2="6" />
-                                <line x1="8" y1="2" x2="8" y2="6" />
-                                <line x1="3" y1="10" x2="21" y2="10" />
-                            </svg>
-                        </MetricIcon>
-                        <MetricLabel>{t.customers.detail.numberOfVisits}</MetricLabel>
-                        <MetricValue>{customer.totalVisits}</MetricValue>
-                    </MetricCard>
-
-                    <MetricCard>
-                        <MetricIcon>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10" />
-                                <polyline points="12 6 12 12 16 14" />
-                            </svg>
-                        </MetricIcon>
-                        <MetricLabel>{t.customers.detail.lastVisitDate}</MetricLabel>
-                        <MetricValue>
-                            {customer.lastVisitDate ? formatDate(customer.lastVisitDate) : '—'}
-                        </MetricValue>
-                    </MetricCard>
-                </MetricsGrid>
-
-                {/* ─── Two-column layout ──────────────────── */}
                 <MainGrid>
-                    {/* ─── Left column ────────────────────── */}
+                    {/* ─── Left: historia + sekcje ────────── */}
                     <MainColumn>
                         <CustomerVisitHistory visits={visits} reservations={reservations} />
 
-                        {/* Dokumenty ─────────────────────────── */}
+                        {/* Dokumenty */}
                         <Section>
                             <SectionHeader
                                 onClick={() => setIsDocsOpen(v => !v)}
@@ -673,7 +551,7 @@ export const CustomerDetailView = () => {
                             </SectionBody>
                         </Section>
 
-                        {/* Komunikacja ────────────────────────── */}
+                        {/* Komunikacja */}
                         <Section>
                             <SectionHeader
                                 onClick={() => setIsCommOpen(v => !v)}
@@ -701,7 +579,7 @@ export const CustomerDetailView = () => {
                             </SectionBody>
                         </Section>
 
-                        {/* Historia zmian ─────────────────────── */}
+                        {/* Historia zmian */}
                         <Section>
                             <SectionHeader
                                 onClick={() => setIsAuditOpen(v => !v)}
@@ -729,93 +607,17 @@ export const CustomerDetailView = () => {
 
                     {/* ─── Right sidebar ──────────────────── */}
                     <SidebarColumn>
-                        {/* Dane klienta */}
-                        <SidebarCard>
-                            <SidebarCardHeader>
-                                <SidebarCardTitle>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                                        <circle cx="12" cy="7" r="4" />
-                                    </svg>
-                                    Dane klienta
-                                </SidebarCardTitle>
-                            </SidebarCardHeader>
-                            <InfoGrid>
-                                <InfoItem $span>
-                                    <InfoLabel>Imię i nazwisko</InfoLabel>
-                                    <InfoValue>
-                                        {[customer.firstName, customer.lastName].filter(Boolean).join(' ') || '—'}
-                                    </InfoValue>
-                                </InfoItem>
-                                <InfoItem>
-                                    <InfoLabel>E-mail</InfoLabel>
-                                    <InfoValue>{customer.contact.email || '—'}</InfoValue>
-                                </InfoItem>
-                                <InfoItem>
-                                    <InfoLabel>Telefon</InfoLabel>
-                                    <InfoValue>{customer.contact.phone || '—'}</InfoValue>
-                                </InfoItem>
-                                {customer.homeAddress && (
-                                    <InfoItem $span>
-                                        <InfoLabel>Adres</InfoLabel>
-                                        <InfoValue>{formatAddress(customer.homeAddress)}</InfoValue>
-                                    </InfoItem>
-                                )}
-                                <InfoItem $noBorder>
-                                    <InfoLabel>W systemie od</InfoLabel>
-                                    <InfoValue>{formatDate(customer.createdAt)}</InfoValue>
-                                </InfoItem>
-                                <InfoItem $noBorder>
-                                    <InfoLabel>Pojazdy</InfoLabel>
-                                    <InfoValue>{customer.vehicleCount}</InfoValue>
-                                </InfoItem>
-                            </InfoGrid>
-                        </SidebarCard>
-
-                        {/* Firma */}
-                        {customer.company && (
-                            <SidebarCard>
-                                <SidebarCardHeader>
-                                    <SidebarCardTitle>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                                            <polyline points="9,22 9,12 15,12 15,22"/>
-                                        </svg>
-                                        Firma
-                                    </SidebarCardTitle>
-                                </SidebarCardHeader>
-                                <InfoGrid>
-                                    <InfoItem $span>
-                                        <InfoLabel>Nazwa</InfoLabel>
-                                        <InfoValue>{customer.company.name}</InfoValue>
-                                    </InfoItem>
-                                    <InfoItem>
-                                        <InfoLabel>NIP</InfoLabel>
-                                        <InfoValue>{customer.company.nip || '—'}</InfoValue>
-                                    </InfoItem>
-                                    <InfoItem>
-                                        <InfoLabel>REGON</InfoLabel>
-                                        <InfoValue>{customer.company.regon || '—'}</InfoValue>
-                                    </InfoItem>
-                                    {customer.company.address && (
-                                        <InfoItem $span $noBorder>
-                                            <InfoLabel>Adres</InfoLabel>
-                                            <InfoValue>{formatAddress(customer.company.address)}</InfoValue>
-                                        </InfoItem>
-                                    )}
-                                </InfoGrid>
-                            </SidebarCard>
-                        )}
-
                         {/* Pojazdy */}
                         <SidebarCard>
                             <SidebarCardHeader>
                                 <SidebarCardTitle>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <rect x="1" y="3" width="15" height="13" />
-                                        <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-                                        <circle cx="5.5" cy="18.5" r="2.5" />
-                                        <circle cx="18.5" cy="18.5" r="2.5" />
+                                    {/* Elegant car/sedan icon */}
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                                        <path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.4L19 11"/>
+                                        <rect x="2" y="11" width="20" height="6" rx="1"/>
+                                        <circle cx="7" cy="17" r="2"/>
+                                        <circle cx="17" cy="17" r="2"/>
+                                        <path d="M5 11h14"/>
                                     </svg>
                                     Pojazdy
                                 </SidebarCardTitle>
@@ -823,29 +625,26 @@ export const CustomerDetailView = () => {
                             </SidebarCardHeader>
                             <VehiclesList>
                                 {isVehiclesLoading ? (
-                                    <InfoItem $noBorder>
-                                        <InfoValue style={{ color: st.textMuted }}>Ładowanie...</InfoValue>
-                                    </InfoItem>
+                                    <EmptySlot>Ładowanie...</EmptySlot>
                                 ) : vehicles.length === 0 ? (
-                                    <InfoItem $noBorder>
-                                        <InfoValue style={{ color: st.textMuted }}>Brak przypisanych pojazdów</InfoValue>
-                                    </InfoItem>
+                                    <EmptySlot>Brak przypisanych pojazdów</EmptySlot>
                                 ) : (
                                     vehicles.map((vehicle: Vehicle) => (
                                         <VehicleLink key={vehicle.id} to={`/vehicles/${vehicle.id}`}>
                                             <VehicleIcon>
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <rect x="1" y="3" width="15" height="13" />
-                                                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-                                                    <circle cx="5.5" cy="18.5" r="2.5" />
-                                                    <circle cx="18.5" cy="18.5" r="2.5" />
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                                                    <path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.4L19 11"/>
+                                                    <rect x="2" y="11" width="20" height="6" rx="1"/>
+                                                    <circle cx="7" cy="17" r="2"/>
+                                                    <circle cx="17" cy="17" r="2"/>
+                                                    <path d="M5 11h14"/>
                                                 </svg>
                                             </VehicleIcon>
                                             <VehicleInfo>
                                                 <VehicleName>{vehicle.make} {vehicle.model}</VehicleName>
-                                                <VehicleMeta>
-                                                    {vehicle.licensePlate}{vehicle.year ? ` · ${vehicle.year}` : ''}
-                                                </VehicleMeta>
+                                                <VehiclePlate>
+                                                    {[vehicle.licensePlate, vehicle.year].filter(Boolean).join(' · ')}
+                                                </VehiclePlate>
                                             </VehicleInfo>
                                             <VehicleArrow>
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -857,6 +656,39 @@ export const CustomerDetailView = () => {
                                 )}
                             </VehiclesList>
                         </SidebarCard>
+
+                        {/* Firma — tylko dane do faktur (nazwa jest w headerze) */}
+                        {customer.company && (
+                            <SidebarCard>
+                                <SidebarCardHeader>
+                                    <SidebarCardTitle>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                            <polyline points="9,22 9,12 15,12 15,22"/>
+                                        </svg>
+                                        Dane do faktury
+                                    </SidebarCardTitle>
+                                </SidebarCardHeader>
+                                {customer.company.nip && (
+                                    <InfoRow>
+                                        <InfoLabel>NIP</InfoLabel>
+                                        <InfoValue>{customer.company.nip}</InfoValue>
+                                    </InfoRow>
+                                )}
+                                {customer.company.regon && (
+                                    <InfoRow>
+                                        <InfoLabel>REGON</InfoLabel>
+                                        <InfoValue>{customer.company.regon}</InfoValue>
+                                    </InfoRow>
+                                )}
+                                {customer.company.address && (
+                                    <InfoRow $noBorder>
+                                        <InfoLabel>Adres</InfoLabel>
+                                        <InfoValue>{formatAddress(customer.company.address)}</InfoValue>
+                                    </InfoRow>
+                                )}
+                            </SidebarCard>
+                        )}
 
                         {/* Zgody marketingowe */}
                         {marketingConsents && marketingConsents.length > 0 && (
@@ -889,7 +721,7 @@ export const CustomerDetailView = () => {
     );
 };
 
-// ─── Communication List (inline) ──────────────────────────────────────────────
+// ─── Communication List ───────────────────────────────────────────────────────
 
 function CommunicationList({ communications }: { communications: CommunicationLog[] }) {
     if (communications.length === 0) {

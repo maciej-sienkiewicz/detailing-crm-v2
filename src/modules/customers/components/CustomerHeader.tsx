@@ -3,7 +3,18 @@
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import type { CustomerDetailData } from '../types';
+import { formatCurrency } from '../utils/customerMappers';
+import { formatDate } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+
+// ─── Loyalty tier config ──────────────────────────────────────────────────────
+
+const TIER_CONFIG = {
+    bronze:   { label: 'Bronze',   bg: 'rgba(180,120,60,0.18)',  color: '#c8874a', border: 'rgba(180,120,60,0.3)'  },
+    silver:   { label: 'Silver',   bg: 'rgba(148,163,184,0.18)', color: '#94a3b8', border: 'rgba(148,163,184,0.3)' },
+    gold:     { label: 'Gold',     bg: 'rgba(245,158,11,0.18)',  color: '#f59e0b', border: 'rgba(245,158,11,0.3)'  },
+    platinum: { label: 'Platinum', bg: 'rgba(139,92,246,0.18)',  color: '#a78bfa', border: 'rgba(139,92,246,0.3)'  },
+} as const;
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -23,7 +34,7 @@ const HeroHeader = styled.header`
         right: 80px;
         width: 380px;
         height: 380px;
-        background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 65%);
+        background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 65%);
         pointer-events: none;
     }
 `;
@@ -32,25 +43,26 @@ const HeaderContent = styled.div`
     position: relative;
     z-index: 1;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 20px;
-    padding: 14px 28px;
+    padding: 14px 28px 12px;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: 16px 32px;
+        padding: 16px 32px 14px;
     }
 
     @media (max-width: ${props => props.theme.breakpoints.sm}) {
         flex-wrap: wrap;
-        gap: 12px;
+        gap: 10px;
+        padding: 12px 20px 10px;
     }
 `;
 
 const HeaderLeft = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 4px;
     min-width: 0;
     flex: 1;
 `;
@@ -59,6 +71,7 @@ const BreadcrumbRow = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
+    margin-bottom: 2px;
 `;
 
 const BackBtn = styled.button`
@@ -71,7 +84,7 @@ const BackBtn = styled.button`
     cursor: pointer;
     font-size: 12px;
     font-weight: 600;
-    color: rgba(148, 163, 184, 0.7);
+    color: rgba(148, 163, 184, 0.65);
     transition: color ${st.transition};
 
     &:hover { color: rgba(241, 245, 249, 0.9); }
@@ -79,80 +92,97 @@ const BackBtn = styled.button`
 `;
 
 const BreadcrumbSep = styled.span`
-    color: rgba(148, 163, 184, 0.3);
+    color: rgba(148, 163, 184, 0.25);
     font-size: 12px;
 `;
 
 const BreadcrumbCurrent = styled.span`
     font-size: 12px;
-    color: rgba(148, 163, 184, 0.5);
+    color: rgba(148, 163, 184, 0.4);
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 240px;
+    max-width: 200px;
 `;
 
 const TitleRow = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 11px;
     flex-wrap: wrap;
 `;
 
 const AvatarBadge = styled.div`
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
     border-radius: ${st.radiusFull};
     background: ${st.gradientBlue};
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     color: white;
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
 `;
 
 const CustomerTitle = styled.h1`
     margin: 0;
-    font-size: 20px;
+    font-size: 19px;
     font-weight: 800;
     color: #f1f5f9;
     letter-spacing: -0.3px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 400px;
+    max-width: 380px;
 
     @media (max-width: ${props => props.theme.breakpoints.md}) {
-        font-size: 17px;
-        max-width: 240px;
+        font-size: 16px;
+        max-width: 200px;
     }
+`;
+
+const TierBadge = styled.span<{ $tier: keyof typeof TIER_CONFIG }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 9px;
+    border-radius: ${st.radiusFull};
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: ${props => TIER_CONFIG[props.$tier].bg};
+    color: ${props => TIER_CONFIG[props.$tier].color};
+    border: 1px solid ${props => TIER_CONFIG[props.$tier].border};
+    flex-shrink: 0;
 `;
 
 const MetaRow = styled.div`
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
 `;
 
 const MetaItem = styled.span`
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     font-size: 12px;
     font-weight: 500;
-    color: rgba(148, 163, 184, 0.75);
+    color: rgba(148, 163, 184, 0.7);
 
-    svg { width: 12px; height: 12px; opacity: 0.6; }
+    svg { width: 11px; height: 11px; opacity: 0.55; flex-shrink: 0; }
 `;
 
 const MetaDot = styled.span`
-    color: rgba(148, 163, 184, 0.25);
+    color: rgba(148, 163, 184, 0.2);
     user-select: none;
+    font-size: 11px;
 `;
 
 const HeaderRight = styled.div`
@@ -160,6 +190,7 @@ const HeaderRight = styled.div`
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
+    padding-top: 2px;
 
     @media (max-width: ${props => props.theme.breakpoints.sm}) {
         width: 100%;
@@ -171,7 +202,7 @@ const ActionButton = styled.button<{ $primary?: boolean }>`
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 18px;
+    padding: 7px 16px;
     border-radius: ${st.radiusFull};
     font-size: ${st.fontSm};
     font-weight: 600;
@@ -184,24 +215,77 @@ const ActionButton = styled.button<{ $primary?: boolean }>`
         background: ${st.accentBlue};
         color: white;
         border-color: ${st.accentBlue};
-        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
         &:hover {
             background: #2563EB;
-            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.45);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
             transform: translateY(-1px);
         }
     ` : `
-        background: rgba(255, 255, 255, 0.06);
-        color: rgba(241, 245, 249, 0.65);
-        border-color: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(241, 245, 249, 0.6);
+        border-color: rgba(255, 255, 255, 0.09);
         &:hover {
-            background: rgba(255, 255, 255, 0.11);
+            background: rgba(255, 255, 255, 0.1);
             color: rgba(241, 245, 249, 0.9);
-            border-color: rgba(255, 255, 255, 0.18);
+            border-color: rgba(255, 255, 255, 0.16);
         }
     `}
 
-    svg { width: 15px; height: 15px; }
+    svg { width: 14px; height: 14px; }
+`;
+
+// ─── Stats strip ──────────────────────────────────────────────────────────────
+
+const StatsStrip = styled.div`
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 28px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+
+    @media (min-width: ${props => props.theme.breakpoints.md}) {
+        padding: 0 32px;
+    }
+
+    @media (max-width: ${props => props.theme.breakpoints.sm}) {
+        padding: 0 20px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        &::-webkit-scrollbar { display: none; }
+    }
+`;
+
+const StatItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 8px 20px 9px 0;
+    margin-right: 20px;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+
+    &:last-child {
+        border-right: none;
+        margin-right: 0;
+    }
+`;
+
+const StatLabel = styled.span`
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: rgba(148, 163, 184, 0.45);
+`;
+
+const StatValue = styled.span<{ $accent?: boolean }>`
+    font-size: 13px;
+    font-weight: 700;
+    color: ${props => props.$accent ? st.accentBlue : 'rgba(241, 245, 249, 0.85)'};
+    letter-spacing: -0.01em;
 `;
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -214,13 +298,20 @@ interface CustomerHeaderProps {
 
 export const CustomerHeader = ({ data, onEditCustomer, onEditCompany }: CustomerHeaderProps) => {
     const navigate = useNavigate();
-    const { customer } = data;
+    const { customer, loyaltyTier, lifetimeValue } = data;
 
     const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || 'Klient';
     const initials = `${(customer.firstName || '?').charAt(0)}${(customer.lastName || '?').charAt(0)}`.toUpperCase();
+    const hasEmail  = Boolean(customer.contact.email);
+    const hasPhone  = Boolean(customer.contact.phone);
+    const hasAddr   = Boolean(customer.homeAddress);
 
-    const hasEmail = Boolean(customer.contact.email);
-    const hasPhone = Boolean(customer.contact.phone);
+    const addressLine = customer.homeAddress
+        ? `${customer.homeAddress.street}, ${customer.homeAddress.postalCode} ${customer.homeAddress.city}`
+        : null;
+
+    const visitCount = customer.totalVisits;
+    const visitsLabel = visitCount === 1 ? 'wizyta' : visitCount < 5 ? 'wizyty' : 'wizyt';
 
     return (
         <HeroHeader>
@@ -240,6 +331,11 @@ export const CustomerHeader = ({ data, onEditCustomer, onEditCompany }: Customer
                     <TitleRow>
                         <AvatarBadge>{initials}</AvatarBadge>
                         <CustomerTitle>{fullName}</CustomerTitle>
+                        {loyaltyTier && loyaltyTier !== 'bronze' && (
+                            <TierBadge $tier={loyaltyTier}>
+                                {TIER_CONFIG[loyaltyTier].label}
+                            </TierBadge>
+                        )}
                     </TitleRow>
 
                     <MetaRow>
@@ -261,9 +357,21 @@ export const CustomerHeader = ({ data, onEditCustomer, onEditCompany }: Customer
                                 {customer.contact.phone}
                             </MetaItem>
                         )}
-                        {customer.company && (
+                        {hasAddr && addressLine && (
                             <>
                                 {(hasEmail || hasPhone) && <MetaDot>·</MetaDot>}
+                                <MetaItem>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                        <circle cx="12" cy="10" r="3"/>
+                                    </svg>
+                                    {addressLine}
+                                </MetaItem>
+                            </>
+                        )}
+                        {customer.company && (
+                            <>
+                                {(hasEmail || hasPhone || hasAddr) && <MetaDot>·</MetaDot>}
                                 <MetaItem>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -293,6 +401,36 @@ export const CustomerHeader = ({ data, onEditCustomer, onEditCompany }: Customer
                     </ActionButton>
                 </HeaderRight>
             </HeaderContent>
+
+            {/* ─── Stats strip ──────────────────────────── */}
+            <StatsStrip>
+                <StatItem>
+                    <StatLabel>Przychód</StatLabel>
+                    <StatValue $accent>
+                        {formatCurrency(lifetimeValue.grossAmount, lifetimeValue.currency)}
+                    </StatValue>
+                </StatItem>
+                <StatItem>
+                    <StatLabel>Wizyty</StatLabel>
+                    <StatValue>{visitCount} {visitsLabel}</StatValue>
+                </StatItem>
+                {customer.lastVisitDate && (
+                    <StatItem>
+                        <StatLabel>Ostatnia wizyta</StatLabel>
+                        <StatValue>{formatDate(customer.lastVisitDate)}</StatValue>
+                    </StatItem>
+                )}
+                <StatItem>
+                    <StatLabel>Klient od</StatLabel>
+                    <StatValue>{formatDate(customer.createdAt)}</StatValue>
+                </StatItem>
+                {customer.vehicleCount > 0 && (
+                    <StatItem>
+                        <StatLabel>Pojazdy</StatLabel>
+                        <StatValue>{customer.vehicleCount}</StatValue>
+                    </StatItem>
+                )}
+            </StatsStrip>
         </HeroHeader>
     );
 };
