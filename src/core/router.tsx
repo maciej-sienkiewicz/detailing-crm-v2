@@ -24,6 +24,7 @@ import { StatisticsView, CategoryDetailView, DelayStatisticsView } from "@/modul
 import { CompetitionMonitoringView } from "@/modules/competition-monitoring";
 import { SmsCampaignsView } from "@/modules/sms-campaigns";
 import { GalleryView } from "@/modules/gallery/views/GalleryView";
+import { ComingSoonView } from "@/common/components/ComingSoonView";
 
 export const router = createBrowserRouter([
     {
@@ -242,6 +243,38 @@ export const router = createBrowserRouter([
         element: (
             <ProtectedRoute>
                 <Layout><GalleryView /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/documents',
+        element: (
+            <ProtectedRoute>
+                <Layout><ComingSoonView pageName="Dokumenty" /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/reports',
+        element: (
+            <ProtectedRoute>
+                <Layout><ComingSoonView pageName="Raporty" /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/team',
+        element: (
+            <ProtectedRoute>
+                <Layout><ComingSoonView pageName="Pracownicy" /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/settings',
+        element: (
+            <ProtectedRoute>
+                <Layout><ComingSoonView pageName="Ustawienia" /></Layout>
             </ProtectedRoute>
         ),
     },
