@@ -556,10 +556,10 @@ export const vehicleApi = {
             await new Promise(resolve => setTimeout(resolve, 300));
             return [];
         }
-        const response = await apiClient.get<{ notes: VehicleNote[] }>(
+        const response = await apiClient.get<VehicleNote[] | { notes: VehicleNote[] }>(
             `${BASE_PATH}/${vehicleId}/notes`
         );
-        return response.data.notes;
+        return Array.isArray(response.data) ? response.data : response.data.notes ?? [];
     },
 
     createNote: async (vehicleId: string, payload: CreateVehicleNotePayload): Promise<VehicleNote> => {
