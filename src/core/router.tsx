@@ -183,7 +183,7 @@ export const router = createBrowserRouter([
         ),
     },
     {
-        path: '/growth-engine',
+        path: '/reports',
         element: (
             <ProtectedRoute>
                 <Layout><GrowthEngineView /></Layout>
