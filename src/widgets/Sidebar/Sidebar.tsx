@@ -66,7 +66,7 @@ const menuSections: MenuSection[] = [
     {
         title: 'Administracja',
         items: [
-            { path: '/documents',  label: 'Dokumenty',  icon: FileText },
+            { path: '/finances',  label: 'Finanse',  icon: FileText },
             { path: '/reports',    label: 'Raporty',    icon: BarChart3 },
             { path: '/statistics', label: 'Statystyki', icon: TrendingUp },
             { path: '/team',       label: 'Pracownicy', icon: UserCog },

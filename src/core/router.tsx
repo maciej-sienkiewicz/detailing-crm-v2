@@ -247,10 +247,10 @@ export const router = createBrowserRouter([
         ),
     },
     {
-        path: '/documents',
+        path: '/finances',
         element: (
             <ProtectedRoute>
-                <Layout><ComingSoonView pageName="Dokumenty" /></Layout>
+                <Layout><FinanceView /></Layout>
             </ProtectedRoute>
         ),
     },
