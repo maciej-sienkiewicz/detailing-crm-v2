@@ -25,6 +25,7 @@ import { CompetitionMonitoringView } from "@/modules/competition-monitoring";
 import { SmsCampaignsView } from "@/modules/sms-campaigns";
 import { GalleryView } from "@/modules/gallery/views/GalleryView";
 import { ComingSoonView } from "@/common/components/ComingSoonView";
+import { EmployeeListView, EmployeeDetailView } from '@/modules/employees';
 
 export const router = createBrowserRouter([
     {
@@ -266,7 +267,15 @@ export const router = createBrowserRouter([
         path: '/team',
         element: (
             <ProtectedRoute>
-                <Layout><ComingSoonView pageName="Pracownicy" /></Layout>
+                <Layout><EmployeeListView /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/team/:employeeId',
+        element: (
+            <ProtectedRoute>
+                <Layout><EmployeeDetailView /></Layout>
             </ProtectedRoute>
         ),
     },

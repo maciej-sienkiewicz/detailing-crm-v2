@@ -1,0 +1,9 @@
+export { EmployeeStatusBadge } from './EmployeeStatusBadge';
+export { EmployeeTable } from './EmployeeTable';
+export { AddEmployeeModal } from './AddEmployeeModal';
+export { TerminateEmployeeModal } from './TerminateEmployeeModal';
+export { ContractsTab } from './ContractsTab';
+export { CompensationTab } from './CompensationTab';
+export { WorkTimeTab } from './WorkTimeTab';
+export { LeavesTab } from './LeavesTab';
+export { PayrollTab } from './PayrollTab';
