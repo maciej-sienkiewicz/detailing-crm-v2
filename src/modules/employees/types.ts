@@ -8,6 +8,8 @@ export type WorkTimeStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type LeaveType = 'ANNUAL' | 'SICK' | 'UNPAID' | 'SPECIAL' | 'PARENTAL' | 'CARE';
 export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
 export type PayrollStatus = 'DRAFT' | 'CONFIRMED' | 'PAID';
+export type EmploymentMode = 'SALARY' | 'HOURLY';
+export type EtatFraction = 'FULL' | 'HALF' | 'QUARTER';
 
 // ─── Employee ─────────────────────────────────────────────────────────────────
 
@@ -144,6 +146,10 @@ export interface CompensationConfig {
     contractId: string;
     effectiveFrom: string;
     effectiveTo: string | null;
+    employmentMode: EmploymentMode;
+    etatFraction: EtatFraction | null;
+    standardMonthlyHours: number | null;
+    monthlySalaryGrossCents: number | null;
     baseSalaryGrossCents: number | null;
     hourlyRateGrossCents: number | null;
     components: CompensationComponent[];
@@ -164,8 +170,11 @@ export interface CompensationComponentPayload {
 export interface SetCompensationPayload {
     contractId: string;
     effectiveFrom: string;
-    baseSalaryGrossCents?: number | null;
+    employmentMode: EmploymentMode;
+    etatFraction?: EtatFraction | null;
+    monthlySalaryGrossCents?: number | null;
     hourlyRateGrossCents?: number | null;
+    baseSalaryGrossCents?: number | null;
     components: CompensationComponentPayload[];
 }
 

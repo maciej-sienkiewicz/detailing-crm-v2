@@ -3,7 +3,28 @@ import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useCurrentCompensation, useCompensationHistory, useSetCompensation } from '../hooks/useCompensation';
 import { useContracts } from '../hooks/useContracts';
-import type { SetCompensationPayload } from '../types';
+import type { SetCompensationPayload, EmploymentMode, EtatFraction } from '../types';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const ETAT_HOURS: Record<EtatFraction, number> = {
+    FULL: 168,
+    HALF: 84,
+    QUARTER: 42,
+};
+
+const ETAT_LABELS: Record<EtatFraction, string> = {
+    FULL: 'Pełen etat (168 h/mies.)',
+    HALF: 'Pół etatu (84 h/mies.)',
+    QUARTER: 'Ćwierć etatu (42 h/mies.)',
+};
+
+const EMPLOYMENT_MODE_LABELS: Record<EmploymentMode, string> = {
+    SALARY: 'Etat',
+    HOURLY: 'Godzinówka',
+};
+
+// ─── Styled Components ───────────────────────────────────────────────────────
 
 const Section = styled.div`
     display: flex;
@@ -51,6 +72,28 @@ const CardTitle = styled.p`
     color: ${st.textMuted};
     text-transform: uppercase;
     letter-spacing: 0.5px;
+`;
+
+const ModeMeta = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+`;
+
+const ModeBadge = styled.span<{ $mode: EmploymentMode }>`
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    background: ${p => p.$mode === 'SALARY' ? '#EFF6FF' : '#F0FDF4'};
+    color: ${p => p.$mode === 'SALARY' ? '#1D4ED8' : '#16A34A'};
+`;
+
+const EtatLabel = styled.span`
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
 `;
 
 const AmountGrid = styled.div`
@@ -205,6 +248,47 @@ const Input = styled.input`
     &:focus { border-color: ${st.accentBlue}; }
 `;
 
+const ModeToggle = styled.div`
+    display: flex;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    overflow: hidden;
+`;
+
+const ModeButton = styled.button<{ $active: boolean }>`
+    flex: 1;
+    padding: 9px 0;
+    border: none;
+    background: ${p => p.$active ? st.accentBlue : 'transparent'};
+    color: ${p => p.$active ? '#fff' : st.textSecondary};
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    cursor: pointer;
+    transition: background ${st.transition}, color ${st.transition};
+    &:hover { background: ${p => p.$active ? '#1D4ED8' : st.bgCard}; }
+`;
+
+const CalcPreview = styled.div`
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+`;
+
+const CalcLabel = styled.span`
+    font-size: ${st.fontXs};
+    color: ${st.textSecondary};
+`;
+
+const CalcValue = styled.span`
+    font-size: ${st.fontSm};
+    font-weight: 700;
+    color: ${st.accentBlue};
+`;
+
 const FormActions = styled.div`
     display: flex;
     justify-content: flex-end;
@@ -240,10 +324,14 @@ const ErrorMsg = styled.p`
     color: ${st.accentRed};
 `;
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 const formatCents = (cents: number) =>
     new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(cents / 100);
 
 interface Props { employeeId: string; }
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export const CompensationTab = ({ employeeId }: Props) => {
     const { compensation, isLoading } = useCurrentCompensation(employeeId);
@@ -252,32 +340,78 @@ export const CompensationTab = ({ employeeId }: Props) => {
     const setMutation = useSetCompensation(employeeId);
 
     const [showForm, setShowForm] = useState(false);
-    const [form, setForm] = useState<Omit<SetCompensationPayload, 'components'>>({
-        contractId: '',
-        effectiveFrom: new Date().toISOString().slice(0, 10),
-        baseSalaryGrossCents: null,
-        hourlyRateGrossCents: null,
-    });
-    const [baseSalaryPln, setBaseSalaryPln] = useState('');
+    const [contractId, setContractId] = useState('');
+    const [effectiveFrom, setEffectiveFrom] = useState(new Date().toISOString().slice(0, 10));
+    const [employmentMode, setEmploymentMode] = useState<EmploymentMode>('SALARY');
+    const [etatFraction, setEtatFraction] = useState<EtatFraction>('FULL');
+    const [monthlySalaryPln, setMonthlySalaryPln] = useState('');
     const [hourlyRatePln, setHourlyRatePln] = useState('');
     const [formError, setFormError] = useState('');
 
     const activeContracts = contracts.filter(c => c.isActive);
 
-    const handleSave = async () => {
-        if (!form.contractId) { setFormError('Wybierz umowę.'); return; }
-        if (!baseSalaryPln && !hourlyRatePln) { setFormError('Podaj wynagrodzenie podstawowe lub stawkę godzinową.'); return; }
+    const calcHourlyRate =
+        employmentMode === 'SALARY' && monthlySalaryPln && parseFloat(monthlySalaryPln) > 0
+            ? (parseFloat(monthlySalaryPln) / ETAT_HOURS[etatFraction]).toFixed(2)
+            : null;
+
+    const handleModeChange = (mode: EmploymentMode) => {
+        setEmploymentMode(mode);
+        setMonthlySalaryPln('');
+        setHourlyRatePln('');
         setFormError('');
-        const payload: SetCompensationPayload = {
-            ...form,
-            baseSalaryGrossCents: baseSalaryPln ? Math.round(parseFloat(baseSalaryPln) * 100) : null,
-            hourlyRateGrossCents: hourlyRatePln ? Math.round(parseFloat(hourlyRatePln) * 100) : null,
-            components: [],
-        };
+    };
+
+    const handleOpenForm = () => {
+        setContractId('');
+        setEffectiveFrom(new Date().toISOString().slice(0, 10));
+        setEmploymentMode('SALARY');
+        setEtatFraction('FULL');
+        setMonthlySalaryPln('');
+        setHourlyRatePln('');
+        setFormError('');
+        setShowForm(true);
+    };
+
+    const handleSave = async () => {
+        if (!contractId) { setFormError('Wybierz umowę.'); return; }
+        if (employmentMode === 'SALARY' && (!monthlySalaryPln || parseFloat(monthlySalaryPln) <= 0)) {
+            setFormError('Podaj miesięczne wynagrodzenie brutto (wartość > 0).');
+            return;
+        }
+        if (employmentMode === 'HOURLY' && (!hourlyRatePln || parseFloat(hourlyRatePln) <= 0)) {
+            setFormError('Podaj stawkę godzinową brutto (wartość > 0).');
+            return;
+        }
+        setFormError('');
+
+        const payload: SetCompensationPayload =
+            employmentMode === 'SALARY'
+                ? {
+                    contractId,
+                    effectiveFrom,
+                    employmentMode: 'SALARY',
+                    etatFraction,
+                    monthlySalaryGrossCents: Math.round(parseFloat(monthlySalaryPln) * 100),
+                    hourlyRateGrossCents: null,
+                    components: [],
+                }
+                : {
+                    contractId,
+                    effectiveFrom,
+                    employmentMode: 'HOURLY',
+                    etatFraction: null,
+                    monthlySalaryGrossCents: null,
+                    hourlyRateGrossCents: Math.round(parseFloat(hourlyRatePln) * 100),
+                    components: [],
+                };
+
         try {
             await setMutation.mutateAsync(payload);
             setShowForm(false);
-        } catch { setFormError('Wystąpił błąd. Spróbuj ponownie.'); }
+        } catch {
+            setFormError('Wystąpił błąd. Spróbuj ponownie.');
+        }
     };
 
     if (isLoading) return <Spinner />;
@@ -287,7 +421,7 @@ export const CompensationTab = ({ employeeId }: Props) => {
             <TopRow>
                 <SectionTitle>Wynagrodzenie</SectionTitle>
                 {!showForm && (
-                    <SetBtn onClick={() => setShowForm(true)}>
+                    <SetBtn onClick={handleOpenForm}>
                         {compensation ? 'Zmień wynagrodzenie' : '+ Ustaw wynagrodzenie'}
                     </SetBtn>
                 )}
@@ -296,32 +430,98 @@ export const CompensationTab = ({ employeeId }: Props) => {
             {showForm && (
                 <FormBox>
                     <FormTitle>Konfiguracja wynagrodzenia</FormTitle>
+
                     <Row>
                         <Field>
                             <Label>Umowa</Label>
-                            <Select value={form.contractId} onChange={e => setForm(p => ({ ...p, contractId: e.target.value }))}>
+                            <Select value={contractId} onChange={e => setContractId(e.target.value)}>
                                 <option value="">Wybierz umowę</option>
                                 {activeContracts.map(c => (
-                                    <option key={c.id} value={c.id}>{c.contractType} od {new Date(c.startDate).toLocaleDateString('pl-PL')}</option>
+                                    <option key={c.id} value={c.id}>
+                                        {c.contractType} od {new Date(c.startDate).toLocaleDateString('pl-PL')}
+                                    </option>
                                 ))}
                             </Select>
                         </Field>
                         <Field>
                             <Label>Obowiązuje od</Label>
-                            <Input type="date" value={form.effectiveFrom} onChange={e => setForm(p => ({ ...p, effectiveFrom: e.target.value }))} />
+                            <Input
+                                type="date"
+                                value={effectiveFrom}
+                                onChange={e => setEffectiveFrom(e.target.value)}
+                            />
                         </Field>
                     </Row>
-                    <Row>
-                        <Field>
-                            <Label>Wynagrodzenie brutto (PLN)</Label>
-                            <Input type="number" value={baseSalaryPln} onChange={e => setBaseSalaryPln(e.target.value)} placeholder="np. 5000" min={0} step={0.01} />
-                        </Field>
+
+                    <Field>
+                        <Label>Tryb zatrudnienia</Label>
+                        <ModeToggle>
+                            <ModeButton
+                                $active={employmentMode === 'SALARY'}
+                                onClick={() => handleModeChange('SALARY')}
+                            >
+                                Etat
+                            </ModeButton>
+                            <ModeButton
+                                $active={employmentMode === 'HOURLY'}
+                                onClick={() => handleModeChange('HOURLY')}
+                            >
+                                Godzinówka
+                            </ModeButton>
+                        </ModeToggle>
+                    </Field>
+
+                    {employmentMode === 'SALARY' ? (
+                        <>
+                            <Row>
+                                <Field>
+                                    <Label>Wymiar etatu</Label>
+                                    <Select
+                                        value={etatFraction}
+                                        onChange={e => setEtatFraction(e.target.value as EtatFraction)}
+                                    >
+                                        <option value="FULL">Pełen etat (168 h/mies.)</option>
+                                        <option value="HALF">Pół etatu (84 h/mies.)</option>
+                                        <option value="QUARTER">Ćwierć etatu (42 h/mies.)</option>
+                                    </Select>
+                                </Field>
+                                <Field>
+                                    <Label>Wynagrodzenie miesięczne brutto (PLN)</Label>
+                                    <Input
+                                        type="number"
+                                        value={monthlySalaryPln}
+                                        onChange={e => setMonthlySalaryPln(e.target.value)}
+                                        placeholder="np. 6000"
+                                        min={0}
+                                        step={0.01}
+                                    />
+                                </Field>
+                            </Row>
+                            {calcHourlyRate && (
+                                <CalcPreview>
+                                    <CalcLabel>
+                                        Wyliczona stawka godzinowa ({ETAT_HOURS[etatFraction]} h/mies.)
+                                    </CalcLabel>
+                                    <CalcValue>{calcHourlyRate} PLN/h</CalcValue>
+                                </CalcPreview>
+                            )}
+                        </>
+                    ) : (
                         <Field>
                             <Label>Stawka godzinowa brutto (PLN)</Label>
-                            <Input type="number" value={hourlyRatePln} onChange={e => setHourlyRatePln(e.target.value)} placeholder="np. 35.00" min={0} step={0.01} />
+                            <Input
+                                type="number"
+                                value={hourlyRatePln}
+                                onChange={e => setHourlyRatePln(e.target.value)}
+                                placeholder="np. 45.00"
+                                min={0}
+                                step={0.01}
+                            />
                         </Field>
-                    </Row>
+                    )}
+
                     {formError && <ErrorMsg>{formError}</ErrorMsg>}
+
                     <FormActions>
                         <CancelBtn onClick={() => { setShowForm(false); setFormError(''); }}>Anuluj</CancelBtn>
                         <SaveBtn onClick={handleSave} disabled={setMutation.isPending}>
@@ -334,8 +534,24 @@ export const CompensationTab = ({ employeeId }: Props) => {
             {compensation ? (
                 <Card>
                     <CardTitle>Aktualna konfiguracja</CardTitle>
+
+                    <ModeMeta>
+                        <ModeBadge $mode={compensation.employmentMode ?? 'SALARY'}>
+                            {EMPLOYMENT_MODE_LABELS[compensation.employmentMode ?? 'SALARY']}
+                        </ModeBadge>
+                        {compensation.etatFraction && (
+                            <EtatLabel>{ETAT_LABELS[compensation.etatFraction]}</EtatLabel>
+                        )}
+                    </ModeMeta>
+
                     <AmountGrid>
-                        {compensation.baseSalaryGrossCents != null && (
+                        {compensation.monthlySalaryGrossCents != null && (
+                            <AmountCard>
+                                <AmountLabel>Wynagrodzenie miesięczne brutto</AmountLabel>
+                                <AmountValue>{formatCents(compensation.monthlySalaryGrossCents)}</AmountValue>
+                            </AmountCard>
+                        )}
+                        {compensation.baseSalaryGrossCents != null && compensation.monthlySalaryGrossCents == null && (
                             <AmountCard>
                                 <AmountLabel>Wynagrodzenie brutto</AmountLabel>
                                 <AmountValue>{formatCents(compensation.baseSalaryGrossCents)}</AmountValue>
@@ -343,11 +559,16 @@ export const CompensationTab = ({ employeeId }: Props) => {
                         )}
                         {compensation.hourlyRateGrossCents != null && (
                             <AmountCard>
-                                <AmountLabel>Stawka godzinowa</AmountLabel>
+                                <AmountLabel>
+                                    {compensation.employmentMode === 'SALARY'
+                                        ? 'Stawka godzinowa (wyliczona)'
+                                        : 'Stawka godzinowa'}
+                                </AmountLabel>
                                 <AmountValue>{formatCents(compensation.hourlyRateGrossCents)}/h</AmountValue>
                             </AmountCard>
                         )}
                     </AmountGrid>
+
                     {compensation.components.length > 0 && (
                         <>
                             <ComponentsTitle>Składniki wynagrodzenia</ComponentsTitle>
@@ -363,6 +584,7 @@ export const CompensationTab = ({ employeeId }: Props) => {
                             ))}
                         </>
                     )}
+
                     <HistoryPeriod>Obowiązuje od: {new Date(compensation.effectiveFrom).toLocaleDateString('pl-PL')}</HistoryPeriod>
                 </Card>
             ) : (
@@ -374,9 +596,20 @@ export const CompensationTab = ({ employeeId }: Props) => {
                     <HistoryTitle>Historia wynagrodzeń</HistoryTitle>
                     {history.slice(1).map(h => (
                         <HistoryItem key={h.id}>
-                            <span style={{ fontSize: st.fontSm, color: st.textSecondary }}>
-                                {h.baseSalaryGrossCents != null ? formatCents(h.baseSalaryGrossCents) : '—'}
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <ModeBadge $mode={h.employmentMode ?? 'SALARY'}>
+                                    {EMPLOYMENT_MODE_LABELS[h.employmentMode ?? 'SALARY']}
+                                </ModeBadge>
+                                <span style={{ fontSize: st.fontSm, color: st.textSecondary }}>
+                                    {h.monthlySalaryGrossCents != null
+                                        ? formatCents(h.monthlySalaryGrossCents)
+                                        : h.hourlyRateGrossCents != null
+                                            ? `${formatCents(h.hourlyRateGrossCents)}/h`
+                                            : h.baseSalaryGrossCents != null
+                                                ? formatCents(h.baseSalaryGrossCents)
+                                                : '—'}
+                                </span>
+                            </div>
                             <HistoryPeriod>
                                 {new Date(h.effectiveFrom).toLocaleDateString('pl-PL')}
                                 {h.effectiveTo ? ` – ${new Date(h.effectiveTo).toLocaleDateString('pl-PL')}` : ''}
