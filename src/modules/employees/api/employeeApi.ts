@@ -9,6 +9,8 @@ import type {
     EmploymentContract,
     CreateContractPayload,
     EndContractPayload,
+    ContractAmendment,
+    CreateAmendmentPayload,
     CompensationConfig,
     SetCompensationPayload,
     WorkTimeEntry,
@@ -75,6 +77,25 @@ export const employeeApi = {
 
     endContract: async (employeeId: string, contractId: string, payload: EndContractPayload): Promise<void> => {
         await apiClient.post(`${BASE}/${employeeId}/contracts/${contractId}/end`, payload);
+    },
+
+    listAmendments: async (employeeId: string, contractId: string): Promise<ContractAmendment[]> => {
+        const res = await apiClient.get<ContractAmendment[]>(
+            `${BASE}/${employeeId}/contracts/${contractId}/amendments`
+        );
+        return res.data;
+    },
+
+    createAmendment: async (
+        employeeId: string,
+        contractId: string,
+        payload: CreateAmendmentPayload
+    ): Promise<{ amendmentId: string }> => {
+        const res = await apiClient.post<{ amendmentId: string }>(
+            `${BASE}/${employeeId}/contracts/${contractId}/amendments`,
+            payload
+        );
+        return res.data;
     },
 
     // ─── Compensation ─────────────────────────────────────────────────────────

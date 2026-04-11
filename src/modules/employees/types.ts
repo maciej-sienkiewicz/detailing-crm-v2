@@ -97,9 +97,10 @@ export interface EmployeeFilters {
 export interface EmploymentContract {
     id: string;
     contractType: ContractType;
+    /** Filled for UOP (derived from initial compensation). Null for B2B / UZ HOURLY. */
+    etatFraction: EtatFraction | null;
     startDate: string;
     endDate: string | null;
-    workingHoursPerWeek: number;
     trialPeriodEndDate: string | null;
     terminationDate: string | null;
     terminationReason: string | null;
@@ -108,13 +109,50 @@ export interface EmploymentContract {
     createdAt: string;
 }
 
+/**
+ * Discriminated union for the compensation block carried by both contract
+ * creation and amendments. TypeScript enforces that SALARY always has
+ * etatFraction + monthlySalaryGrossCents and HOURLY always has hourlyRateGrossCents.
+ */
+export type InitialCompensation =
+    | {
+          employmentMode: 'SALARY';
+          /** Billing-hours basis: 168 / 84 / 42 h per month. */
+          etatFraction: EtatFraction;
+          monthlySalaryGrossCents: number;
+      }
+    | {
+          employmentMode: 'HOURLY';
+          hourlyRateGrossCents: number;
+      };
+
 export interface CreateContractPayload {
     contractType: ContractType;
     startDate: string;
     endDate?: string | null;
-    workingHoursPerWeek: number;
     trialPeriodEndDate?: string | null;
     documentFileId?: string | null;
+    /** Compensation is mandatory at contract creation. */
+    initialCompensation: InitialCompensation;
+}
+
+// ─── Contract Amendments ──────────────────────────────────────────────────────
+
+export interface ContractAmendment {
+    id: string;
+    contractId: string;
+    effectiveFrom: string;
+    effectiveTo: string | null;
+    employmentMode: EmploymentMode;
+    etatFraction: EtatFraction | null;
+    monthlySalaryGrossCents: number | null;
+    hourlyRateGrossCents: number | null;
+    createdAt: string;
+}
+
+export interface CreateAmendmentPayload {
+    effectiveFrom: string;
+    compensation: InitialCompensation;
 }
 
 export interface EndContractPayload {

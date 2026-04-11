@@ -1,8 +1,78 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { useContracts, useCreateContract, useEndContract } from '../hooks/useContracts';
-import type { ContractType, CreateContractPayload, EndContractPayload } from '../types';
+import {
+    useContracts,
+    useCreateContract,
+    useEndContract,
+    useAmendments,
+    useCreateAmendment,
+} from '../hooks/useContracts';
+import type {
+    ContractType,
+    EtatFraction,
+    EmploymentMode,
+    EmploymentContract,
+    InitialCompensation,
+    CreateContractPayload,
+    CreateAmendmentPayload,
+} from '../types';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const ETAT_HOURS: Record<EtatFraction, number> = { FULL: 168, HALF: 84, QUARTER: 42 };
+
+const ETAT_LABELS: Record<EtatFraction, string> = {
+    FULL: 'Pełen etat (168 h/mies.)',
+    HALF: 'Pół etatu (84 h/mies.)',
+    QUARTER: 'Ćwierć etatu (42 h/mies.)',
+};
+
+const ETAT_SHORT: Record<EtatFraction, string> = {
+    FULL: '168 h/mies.',
+    HALF: '84 h/mies.',
+    QUARTER: '42 h/mies.',
+};
+
+const CONTRACT_TYPE_LABELS: Record<ContractType, string> = {
+    UOP: 'Umowa o pracę',
+    UZ: 'Umowa zlecenie',
+    B2B: 'B2B',
+};
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const today = () => new Date().toISOString().slice(0, 10);
+
+const formatCents = (c: number) =>
+    new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(c / 100);
+
+const calcHourlyPreview = (monthly: string, fraction: EtatFraction): string | null => {
+    const v = parseFloat(monthly);
+    if (!v || v <= 0) return null;
+    return (v / ETAT_HOURS[fraction]).toFixed(2);
+};
+
+const buildCompensation = (
+    employmentMode: EmploymentMode,
+    etatFraction: EtatFraction,
+    monthlySalaryPln: string,
+    hourlyRatePln: string,
+): InitialCompensation => {
+    if (employmentMode === 'SALARY') {
+        return {
+            employmentMode: 'SALARY',
+            etatFraction,
+            monthlySalaryGrossCents: Math.round(parseFloat(monthlySalaryPln) * 100),
+        };
+    }
+    return {
+        employmentMode: 'HOURLY',
+        hourlyRateGrossCents: Math.round(parseFloat(hourlyRatePln) * 100),
+    };
+};
+
+// ─── Styled Components ───────────────────────────────────────────────────────
 
 const Section = styled.div`
     display: flex;
@@ -43,7 +113,7 @@ const Card = styled.div`
     padding: 16px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
 `;
 
 const CardHeader = styled.div`
@@ -52,7 +122,7 @@ const CardHeader = styled.div`
     justify-content: space-between;
 `;
 
-const ContractType = styled.span`
+const ContractTypeBadge = styled.span`
     font-size: ${st.fontSm};
     font-weight: 700;
     color: ${st.text};
@@ -91,8 +161,56 @@ const MetaValue = styled.span`
     font-weight: 500;
 `;
 
+const CompRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: ${st.bgCardAlt};
+    border-radius: ${st.radiusSm};
+    flex-wrap: wrap;
+`;
+
+const CompModeBadge = styled.span<{ $mode: EmploymentMode }>`
+    padding: 2px 8px;
+    border-radius: ${st.radiusSm};
+    font-size: 11px;
+    font-weight: 700;
+    background: ${p => p.$mode === 'SALARY' ? '#EFF6FF' : '#F0FDF4'};
+    color: ${p => p.$mode === 'SALARY' ? '#1D4ED8' : '#16A34A'};
+`;
+
+const CompAmount = styled.span`
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    color: ${st.text};
+`;
+
+const CompDetail = styled.span`
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+`;
+
+const CardActions = styled.div`
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+`;
+
+const AmendBtn = styled.button`
+    padding: 5px 12px;
+    background: none;
+    border: 1px solid ${st.accentBlue};
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontXs};
+    font-weight: 600;
+    color: ${st.accentBlue};
+    cursor: pointer;
+    transition: all ${st.transition};
+    &:hover { background: ${st.accentBlueDim}; }
+`;
+
 const EndBtn = styled.button`
-    align-self: flex-start;
     padding: 5px 12px;
     background: none;
     border: 1px solid ${st.accentRed};
@@ -124,7 +242,7 @@ const Spinner = styled.div`
     @keyframes spin { to { transform: rotate(360deg); } }
 `;
 
-// ─── Mini Form ───────────────────────────────────────────────────────────────
+// ─── Form Shared ─────────────────────────────────────────────────────────────
 
 const FormBox = styled.div`
     background: ${st.bgCardAlt};
@@ -136,11 +254,31 @@ const FormBox = styled.div`
     gap: 12px;
 `;
 
+const InlineFormBox = styled(FormBox)`
+    margin-top: 4px;
+    background: ${st.bg};
+`;
+
 const FormTitle = styled.h4`
     margin: 0;
     font-size: ${st.fontSm};
     font-weight: 700;
     color: ${st.text};
+`;
+
+const FormSeparator = styled.div`
+    height: 1px;
+    background: ${st.border};
+    margin: 2px 0;
+`;
+
+const FormSectionLabel = styled.p`
+    margin: 0;
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
 `;
 
 const Row = styled.div`
@@ -183,6 +321,60 @@ const Select = styled.select`
     &:focus { border-color: ${st.accentBlue}; }
 `;
 
+const Textarea = styled.textarea`
+    padding: 8px 10px;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    color: ${st.text};
+    background: ${st.bgInput};
+    outline: none;
+    resize: vertical;
+    min-height: 60px;
+    &:focus { border-color: ${st.accentBlue}; }
+`;
+
+const ModeToggle = styled.div`
+    display: flex;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    overflow: hidden;
+`;
+
+const ModeButton = styled.button<{ $active: boolean }>`
+    flex: 1;
+    padding: 8px 0;
+    border: none;
+    background: ${p => p.$active ? st.accentBlue : 'transparent'};
+    color: ${p => p.$active ? '#fff' : st.textSecondary};
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    cursor: pointer;
+    transition: background ${st.transition}, color ${st.transition};
+    &:hover { background: ${p => p.$active ? '#1D4ED8' : st.bgCard}; }
+`;
+
+const CalcPreview = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 12px;
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+`;
+
+const CalcLabel = styled.span`
+    font-size: ${st.fontXs};
+    color: ${st.textSecondary};
+`;
+
+const CalcValue = styled.span`
+    font-size: ${st.fontSm};
+    font-weight: 700;
+    color: ${st.accentBlue};
+`;
+
 const FormActions = styled.div`
     display: flex;
     justify-content: flex-end;
@@ -212,17 +404,423 @@ const SaveBtn = styled.button`
     &:disabled { opacity: 0.6; cursor: not-allowed; }
 `;
 
+const DangerSaveBtn = styled(SaveBtn)`
+    background: ${st.accentRed};
+    &:hover { background: #DC2626; }
+`;
+
 const ErrorMsg = styled.p`
     margin: 0;
     font-size: ${st.fontXs};
     color: ${st.accentRed};
 `;
 
-const CONTRACT_TYPE_LABELS: Record<ContractType, string> = {
-    UOP: 'Umowa o pracę',
-    UZ: 'Umowa zlecenie',
-    B2B: 'B2B',
+// ─── Amendments history (inside ContractCard) ─────────────────────────────────
+
+const AmendmentList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border-top: 1px solid ${st.border};
+    margin-top: 4px;
+    padding-top: 10px;
+`;
+
+const AmendmentListTitle = styled.p`
+    margin: 0 0 8px 0;
+    font-size: ${st.fontXs};
+    font-weight: 600;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+`;
+
+const AmendmentRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px solid ${st.border};
+    &:last-child { border-bottom: none; }
+`;
+
+const AmendmentDate = styled.span`
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+`;
+
+// ─── Compensation form section ────────────────────────────────────────────────
+// Extracted as a render-prop pattern (plain function, not a component) to avoid
+// Rules-of-Hooks issues while still DRYing up the repeated JSX.
+
+interface CompFieldsProps {
+    contractType: ContractType;
+    employmentMode: EmploymentMode;
+    etatFraction: EtatFraction;
+    monthlySalaryPln: string;
+    hourlyRatePln: string;
+    onModeChange: (m: EmploymentMode) => void;
+    onFractionChange: (f: EtatFraction) => void;
+    onMonthlyChange: (v: string) => void;
+    onHourlyChange: (v: string) => void;
+}
+
+const CompensationFields = ({
+    contractType,
+    employmentMode,
+    etatFraction,
+    monthlySalaryPln,
+    hourlyRatePln,
+    onModeChange,
+    onFractionChange,
+    onMonthlyChange,
+    onHourlyChange,
+}: CompFieldsProps) => {
+    const isUop = contractType === 'UOP';
+    const effectiveFraction = etatFraction;
+    const preview = employmentMode === 'SALARY'
+        ? calcHourlyPreview(monthlySalaryPln, effectiveFraction)
+        : null;
+
+    return (
+        <>
+            {/* Mode toggle — hidden for UOP (always SALARY) */}
+            {!isUop && (
+                <Field>
+                    <Label>Tryb rozliczenia</Label>
+                    <ModeToggle>
+                        <ModeButton
+                            $active={employmentMode === 'SALARY'}
+                            onClick={() => onModeChange('SALARY')}
+                        >
+                            Stała miesięczna
+                        </ModeButton>
+                        <ModeButton
+                            $active={employmentMode === 'HOURLY'}
+                            onClick={() => onModeChange('HOURLY')}
+                        >
+                            Stawka godzinowa
+                        </ModeButton>
+                    </ModeToggle>
+                </Field>
+            )}
+
+            {employmentMode === 'SALARY' ? (
+                <>
+                    <Row>
+                        <Field>
+                            <Label>
+                                {isUop ? 'Wymiar etatu' : 'Podstawa godzinowa'}
+                            </Label>
+                            <Select
+                                value={effectiveFraction}
+                                onChange={e => onFractionChange(e.target.value as EtatFraction)}
+                            >
+                                <option value="FULL">Pełen etat (168 h/mies.)</option>
+                                <option value="HALF">Pół etatu (84 h/mies.)</option>
+                                <option value="QUARTER">Ćwierć etatu (42 h/mies.)</option>
+                            </Select>
+                        </Field>
+                        <Field>
+                            <Label>Wynagrodzenie miesięczne brutto (PLN)</Label>
+                            <Input
+                                type="number"
+                                value={monthlySalaryPln}
+                                onChange={e => onMonthlyChange(e.target.value)}
+                                placeholder="np. 6000"
+                                min={0}
+                                step={0.01}
+                            />
+                        </Field>
+                    </Row>
+                    {preview && (
+                        <CalcPreview>
+                            <CalcLabel>
+                                Wyliczona stawka godzinowa ({ETAT_HOURS[effectiveFraction]} h/mies.)
+                            </CalcLabel>
+                            <CalcValue>{preview} PLN/h</CalcValue>
+                        </CalcPreview>
+                    )}
+                </>
+            ) : (
+                <Field>
+                    <Label>Stawka godzinowa brutto (PLN)</Label>
+                    <Input
+                        type="number"
+                        value={hourlyRatePln}
+                        onChange={e => onHourlyChange(e.target.value)}
+                        placeholder="np. 45.00"
+                        min={0}
+                        step={0.01}
+                    />
+                </Field>
+            )}
+        </>
+    );
 };
+
+// ─── ContractCard sub-component ───────────────────────────────────────────────
+// Extracted so each card can call hooks (useAmendments, useCreateAmendment)
+// without violating Rules of Hooks.
+
+interface ContractCardProps {
+    contract: EmploymentContract;
+    employeeId: string;
+    isEndFormOpen: boolean;
+    onRequestEnd: () => void;
+    onCancelEnd: () => void;
+    endDate: string;
+    onEndDateChange: (v: string) => void;
+    onConfirmEnd: () => void;
+    endPending: boolean;
+}
+
+const ContractCard = ({
+    contract,
+    employeeId,
+    isEndFormOpen,
+    onRequestEnd,
+    onCancelEnd,
+    endDate,
+    onEndDateChange,
+    onConfirmEnd,
+    endPending,
+}: ContractCardProps) => {
+    const { amendments } = useAmendments(employeeId, contract.id);
+    const amendMutation = useCreateAmendment(employeeId, contract.id);
+
+    const isUop = contract.contractType === 'UOP';
+
+    // Amendment form state
+    const [showAmendForm, setShowAmendForm] = useState(false);
+    const [amendFrom, setAmendFrom] = useState(today());
+    const [amendMode, setAmendMode] = useState<EmploymentMode>(isUop ? 'SALARY' : 'HOURLY');
+    const [amendFraction, setAmendFraction] = useState<EtatFraction>(contract.etatFraction ?? 'FULL');
+    const [amendMonthly, setAmendMonthly] = useState('');
+    const [amendHourly, setAmendHourly] = useState('');
+    const [amendNotes, setAmendNotes] = useState('');
+    const [amendError, setAmendError] = useState('');
+
+    const openAmendForm = () => {
+        setAmendFrom(today());
+        setAmendMode(isUop ? 'SALARY' : 'HOURLY');
+        setAmendFraction(contract.etatFraction ?? 'FULL');
+        setAmendMonthly('');
+        setAmendHourly('');
+        setAmendNotes('');
+        setAmendError('');
+        setShowAmendForm(true);
+    };
+
+    const handleAmendModeChange = (m: EmploymentMode) => {
+        setAmendMode(m);
+        setAmendMonthly('');
+        setAmendHourly('');
+        setAmendError('');
+    };
+
+    const handleSaveAmendment = async () => {
+        if (!amendFrom) { setAmendError('Data obowiązywania jest wymagana.'); return; }
+        if (amendMode === 'SALARY' && (!amendMonthly || parseFloat(amendMonthly) <= 0)) {
+            setAmendError('Podaj wynagrodzenie miesięczne brutto (wartość > 0).');
+            return;
+        }
+        if (amendMode === 'HOURLY' && (!amendHourly || parseFloat(amendHourly) <= 0)) {
+            setAmendError('Podaj stawkę godzinową brutto (wartość > 0).');
+            return;
+        }
+        setAmendError('');
+
+        const payload: CreateAmendmentPayload = {
+            effectiveFrom: amendFrom,
+            compensation: buildCompensation(amendMode, amendFraction, amendMonthly, amendHourly),
+        };
+
+        // Attach optional notes if backend supports it (forward-compatible)
+        if (amendNotes) (payload as Record<string, unknown>)['notes'] = amendNotes;
+
+        try {
+            await amendMutation.mutateAsync(payload);
+            setShowAmendForm(false);
+        } catch {
+            setAmendError('Wystąpił błąd. Spróbuj ponownie.');
+        }
+    };
+
+    // ── render ──
+    return (
+        <Card>
+            <CardHeader>
+                <ContractTypeBadge>{CONTRACT_TYPE_LABELS[contract.contractType]}</ContractTypeBadge>
+                <ActiveBadge $active={contract.isActive}>
+                    {contract.isActive ? 'Aktywna' : 'Zakończona'}
+                </ActiveBadge>
+            </CardHeader>
+
+            <CardMeta>
+                <MetaItem>
+                    <MetaLabel>Od</MetaLabel>
+                    <MetaValue>{new Date(contract.startDate).toLocaleDateString('pl-PL')}</MetaValue>
+                </MetaItem>
+                {contract.endDate && (
+                    <MetaItem>
+                        <MetaLabel>Do</MetaLabel>
+                        <MetaValue>{new Date(contract.endDate).toLocaleDateString('pl-PL')}</MetaValue>
+                    </MetaItem>
+                )}
+                {contract.etatFraction && (
+                    <MetaItem>
+                        <MetaLabel>Wymiar etatu</MetaLabel>
+                        <MetaValue>{ETAT_LABELS[contract.etatFraction]}</MetaValue>
+                    </MetaItem>
+                )}
+                {contract.terminationDate && (
+                    <MetaItem>
+                        <MetaLabel>Rozwiązana</MetaLabel>
+                        <MetaValue>{new Date(contract.terminationDate).toLocaleDateString('pl-PL')}</MetaValue>
+                    </MetaItem>
+                )}
+            </CardMeta>
+
+            {/* Current compensation summary — derived from most recent amendment */}
+            {amendments.length > 0 && (() => {
+                const latest = amendments[0];
+                return (
+                    <CompRow>
+                        <CompModeBadge $mode={latest.employmentMode}>
+                            {latest.employmentMode === 'SALARY' ? 'Etat' : 'Godzinówka'}
+                        </CompModeBadge>
+                        {latest.employmentMode === 'SALARY' && latest.monthlySalaryGrossCents != null ? (
+                            <>
+                                <CompAmount>{formatCents(latest.monthlySalaryGrossCents)}/mies.</CompAmount>
+                                {latest.hourlyRateGrossCents != null && (
+                                    <CompDetail>· {formatCents(latest.hourlyRateGrossCents)}/h</CompDetail>
+                                )}
+                                {latest.etatFraction && (
+                                    <CompDetail>· {ETAT_SHORT[latest.etatFraction]}</CompDetail>
+                                )}
+                            </>
+                        ) : latest.hourlyRateGrossCents != null ? (
+                            <CompAmount>{formatCents(latest.hourlyRateGrossCents)}/h</CompAmount>
+                        ) : null}
+                        <CompDetail style={{ marginLeft: 'auto' }}>
+                            od {new Date(latest.effectiveFrom).toLocaleDateString('pl-PL')}
+                        </CompDetail>
+                    </CompRow>
+                );
+            })()}
+
+            {/* Actions */}
+            {contract.isActive && !showAmendForm && !isEndFormOpen && (
+                <CardActions>
+                    <AmendBtn onClick={openAmendForm}>+ Aneks</AmendBtn>
+                    <EndBtn onClick={onRequestEnd}>Zakończ umowę</EndBtn>
+                </CardActions>
+            )}
+
+            {/* End-contract inline form */}
+            {isEndFormOpen && (
+                <InlineFormBox>
+                    <FormTitle>Zakończ umowę</FormTitle>
+                    <Row>
+                        <Field>
+                            <Label>Data zakończenia *</Label>
+                            <Input
+                                type="date"
+                                value={endDate}
+                                onChange={e => onEndDateChange(e.target.value)}
+                            />
+                        </Field>
+                    </Row>
+                    <FormActions>
+                        <CancelBtn onClick={onCancelEnd}>Anuluj</CancelBtn>
+                        <DangerSaveBtn onClick={onConfirmEnd} disabled={endPending}>
+                            {endPending ? 'Przetwarzanie...' : 'Zakończ umowę'}
+                        </DangerSaveBtn>
+                    </FormActions>
+                </InlineFormBox>
+            )}
+
+            {/* Amendment inline form */}
+            {showAmendForm && (
+                <InlineFormBox>
+                    <FormTitle>Aneks do umowy</FormTitle>
+                    <Row>
+                        <Field>
+                            <Label>Obowiązuje od *</Label>
+                            <Input
+                                type="date"
+                                value={amendFrom}
+                                onChange={e => setAmendFrom(e.target.value)}
+                            />
+                        </Field>
+                        <Field>
+                            <Label>Notatki</Label>
+                            <Input
+                                value={amendNotes}
+                                onChange={e => setAmendNotes(e.target.value)}
+                                placeholder="Opcjonalny opis zmiany"
+                            />
+                        </Field>
+                    </Row>
+                    <FormSeparator />
+                    <FormSectionLabel>Nowe warunki wynagrodzenia</FormSectionLabel>
+                    <CompensationFields
+                        contractType={contract.contractType}
+                        employmentMode={amendMode}
+                        etatFraction={amendFraction}
+                        monthlySalaryPln={amendMonthly}
+                        hourlyRatePln={amendHourly}
+                        onModeChange={handleAmendModeChange}
+                        onFractionChange={setAmendFraction}
+                        onMonthlyChange={setAmendMonthly}
+                        onHourlyChange={setAmendHourly}
+                    />
+                    {amendError && <ErrorMsg>{amendError}</ErrorMsg>}
+                    <FormActions>
+                        <CancelBtn onClick={() => { setShowAmendForm(false); setAmendError(''); }}>
+                            Anuluj
+                        </CancelBtn>
+                        <SaveBtn onClick={handleSaveAmendment} disabled={amendMutation.isPending}>
+                            {amendMutation.isPending ? 'Zapisywanie...' : 'Zapisz aneks'}
+                        </SaveBtn>
+                    </FormActions>
+                </InlineFormBox>
+            )}
+
+            {/* Amendment history */}
+            {amendments.length > 1 && (
+                <AmendmentList>
+                    <AmendmentListTitle>Historia aneksów</AmendmentListTitle>
+                    {amendments.slice(1).map(a => (
+                        <AmendmentRow key={a.id}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <CompModeBadge $mode={a.employmentMode}>
+                                    {a.employmentMode === 'SALARY' ? 'Etat' : 'Godzinówka'}
+                                </CompModeBadge>
+                                <span style={{ fontSize: st.fontSm, color: st.textSecondary }}>
+                                    {a.employmentMode === 'SALARY' && a.monthlySalaryGrossCents != null
+                                        ? formatCents(a.monthlySalaryGrossCents)
+                                        : a.hourlyRateGrossCents != null
+                                            ? `${formatCents(a.hourlyRateGrossCents)}/h`
+                                            : '—'}
+                                </span>
+                            </div>
+                            <AmendmentDate>
+                                {new Date(a.effectiveFrom).toLocaleDateString('pl-PL')}
+                                {a.effectiveTo
+                                    ? ` – ${new Date(a.effectiveTo).toLocaleDateString('pl-PL')}`
+                                    : ''}
+                            </AmendmentDate>
+                        </AmendmentRow>
+                    ))}
+                </AmendmentList>
+            )}
+        </Card>
+    );
+};
+
+// ─── ContractsTab ─────────────────────────────────────────────────────────────
 
 interface Props { employeeId: string; }
 
@@ -231,33 +829,93 @@ export const ContractsTab = ({ employeeId }: Props) => {
     const createMutation = useCreateContract(employeeId);
     const endMutation = useEndContract(employeeId);
 
+    // Add-contract form
     const [showAddForm, setShowAddForm] = useState(false);
-    const [addForm, setAddForm] = useState<CreateContractPayload>({
-        contractType: 'UOP',
-        startDate: new Date().toISOString().slice(0, 10),
-        endDate: null,
-        workingHoursPerWeek: 40,
-    });
+    const [addContractType, setAddContractType] = useState<ContractType>('UOP');
+    const [addStartDate, setAddStartDate] = useState(today());
+    const [addEndDate, setAddEndDate] = useState('');
+    const [addTrialEnd, setAddTrialEnd] = useState('');
+    // Compensation for new contract
+    const [addMode, setAddMode] = useState<EmploymentMode>('SALARY');
+    const [addFraction, setAddFraction] = useState<EtatFraction>('FULL');
+    const [addMonthly, setAddMonthly] = useState('');
+    const [addHourly, setAddHourly] = useState('');
 
-    const [endForm, setEndForm] = useState<{ contractId: string; data: EndContractPayload } | null>(null);
+    // End-contract form (which contract is being ended)
+    const [endContractId, setEndContractId] = useState<string | null>(null);
+    const [endDate, setEndDate] = useState(today());
+
     const [formError, setFormError] = useState('');
 
-    const handleAdd = async () => {
-        if (!addForm.startDate) { setFormError('Data rozpoczęcia jest wymagana.'); return; }
+    // When contract type changes, reset compensation state
+    const handleContractTypeChange = (type: ContractType) => {
+        setAddContractType(type);
+        setAddMode(type === 'UOP' ? 'SALARY' : 'HOURLY');
+        setAddFraction('FULL');
+        setAddMonthly('');
+        setAddHourly('');
         setFormError('');
+    };
+
+    const handleAddModeChange = (m: EmploymentMode) => {
+        setAddMode(m);
+        setAddMonthly('');
+        setAddHourly('');
+        setFormError('');
+    };
+
+    const resetAddForm = () => {
+        setAddContractType('UOP');
+        setAddStartDate(today());
+        setAddEndDate('');
+        setAddTrialEnd('');
+        setAddMode('SALARY');
+        setAddFraction('FULL');
+        setAddMonthly('');
+        setAddHourly('');
+        setFormError('');
+    };
+
+    const handleAdd = async () => {
+        if (!addStartDate) { setFormError('Data rozpoczęcia jest wymagana.'); return; }
+        if (addMode === 'SALARY' && (!addMonthly || parseFloat(addMonthly) <= 0)) {
+            setFormError('Podaj wynagrodzenie miesięczne brutto (wartość > 0).');
+            return;
+        }
+        if (addMode === 'HOURLY' && (!addHourly || parseFloat(addHourly) <= 0)) {
+            setFormError('Podaj stawkę godzinową brutto (wartość > 0).');
+            return;
+        }
+        setFormError('');
+
+        const payload: CreateContractPayload = {
+            contractType: addContractType,
+            startDate: addStartDate,
+            endDate: addEndDate || null,
+            trialPeriodEndDate: addTrialEnd || null,
+            initialCompensation: buildCompensation(addMode, addFraction, addMonthly, addHourly),
+        };
+
         try {
-            await createMutation.mutateAsync(addForm);
+            await createMutation.mutateAsync(payload);
             setShowAddForm(false);
-            setAddForm({ contractType: 'UOP', startDate: new Date().toISOString().slice(0, 10), endDate: null, workingHoursPerWeek: 40 });
-        } catch { setFormError('Wystąpił błąd. Spróbuj ponownie.'); }
+            resetAddForm();
+        } catch {
+            setFormError('Wystąpił błąd. Spróbuj ponownie.');
+        }
     };
 
     const handleEnd = async () => {
-        if (!endForm) return;
+        if (!endContractId || !endDate) return;
         try {
-            await endMutation.mutateAsync({ contractId: endForm.contractId, payload: endForm.data });
-            setEndForm(null);
-        } catch { setFormError('Wystąpił błąd. Spróbuj ponownie.'); }
+            await endMutation.mutateAsync({
+                contractId: endContractId,
+                payload: { terminationDate: endDate },
+            });
+            setEndContractId(null);
+        } catch {
+            setFormError('Wystąpił błąd. Spróbuj ponownie.');
+        }
     };
 
     if (isLoading) return <Spinner />;
@@ -271,36 +929,72 @@ export const ContractsTab = ({ employeeId }: Props) => {
                 )}
             </TopRow>
 
+            {/* ── Add-contract form ── */}
             {showAddForm && (
                 <FormBox>
                     <FormTitle>Nowa umowa</FormTitle>
+
+                    <FormSectionLabel>Dane umowy</FormSectionLabel>
                     <Row>
                         <Field>
                             <Label>Typ umowy</Label>
-                            <Select value={addForm.contractType} onChange={e => setAddForm(p => ({ ...p, contractType: e.target.value as ContractType }))}>
+                            <Select
+                                value={addContractType}
+                                onChange={e => handleContractTypeChange(e.target.value as ContractType)}
+                            >
                                 <option value="UOP">Umowa o pracę</option>
                                 <option value="UZ">Umowa zlecenie</option>
                                 <option value="B2B">B2B</option>
                             </Select>
                         </Field>
                         <Field>
-                            <Label>Wymiar h/tydzień</Label>
-                            <Input type="number" value={addForm.workingHoursPerWeek} onChange={e => setAddForm(p => ({ ...p, workingHoursPerWeek: Number(e.target.value) }))} min={1} max={168} />
+                            <Label>Data rozpoczęcia *</Label>
+                            <Input
+                                type="date"
+                                value={addStartDate}
+                                onChange={e => setAddStartDate(e.target.value)}
+                            />
                         </Field>
                     </Row>
                     <Row>
                         <Field>
-                            <Label>Data rozpoczęcia *</Label>
-                            <Input type="date" value={addForm.startDate} onChange={e => setAddForm(p => ({ ...p, startDate: e.target.value }))} />
+                            <Label>Data zakończenia</Label>
+                            <Input
+                                type="date"
+                                value={addEndDate}
+                                onChange={e => setAddEndDate(e.target.value)}
+                            />
                         </Field>
                         <Field>
-                            <Label>Data zakończenia</Label>
-                            <Input type="date" value={addForm.endDate ?? ''} onChange={e => setAddForm(p => ({ ...p, endDate: e.target.value || null }))} />
+                            <Label>Koniec okresu próbnego</Label>
+                            <Input
+                                type="date"
+                                value={addTrialEnd}
+                                onChange={e => setAddTrialEnd(e.target.value)}
+                            />
                         </Field>
                     </Row>
+
+                    <FormSeparator />
+                    <FormSectionLabel>Wynagrodzenie</FormSectionLabel>
+
+                    <CompensationFields
+                        contractType={addContractType}
+                        employmentMode={addMode}
+                        etatFraction={addFraction}
+                        monthlySalaryPln={addMonthly}
+                        hourlyRatePln={addHourly}
+                        onModeChange={handleAddModeChange}
+                        onFractionChange={setAddFraction}
+                        onMonthlyChange={setAddMonthly}
+                        onHourlyChange={setAddHourly}
+                    />
+
                     {formError && <ErrorMsg>{formError}</ErrorMsg>}
                     <FormActions>
-                        <CancelBtn onClick={() => { setShowAddForm(false); setFormError(''); }}>Anuluj</CancelBtn>
+                        <CancelBtn onClick={() => { setShowAddForm(false); resetAddForm(); }}>
+                            Anuluj
+                        </CancelBtn>
                         <SaveBtn onClick={handleAdd} disabled={createMutation.isPending}>
                             {createMutation.isPending ? 'Zapisywanie...' : 'Dodaj umowę'}
                         </SaveBtn>
@@ -308,61 +1002,23 @@ export const ContractsTab = ({ employeeId }: Props) => {
                 </FormBox>
             )}
 
-            {endForm && (
-                <FormBox>
-                    <FormTitle>Zakończ umowę</FormTitle>
-                    <Row>
-                        <Field>
-                            <Label>Data zakończenia *</Label>
-                            <Input type="date" value={endForm.data.terminationDate} onChange={e => setEndForm(p => p ? { ...p, data: { ...p.data, terminationDate: e.target.value } } : null)} />
-                        </Field>
-                    </Row>
-                    <FormActions>
-                        <CancelBtn onClick={() => setEndForm(null)}>Anuluj</CancelBtn>
-                        <SaveBtn onClick={handleEnd} disabled={endMutation.isPending} style={{ background: '#EF4444' }}>
-                            {endMutation.isPending ? 'Przetwarzanie...' : 'Zakończ umowę'}
-                        </SaveBtn>
-                    </FormActions>
-                </FormBox>
-            )}
-
+            {/* ── Contract cards ── */}
             {contracts.length === 0 && !showAddForm ? (
-                <EmptyText>Brak umów. Kliknij „Dodaj umowę" aby dodać pierwszą.</EmptyText>
+                <EmptyText>Brak umów. Kliknij „+ Dodaj umowę" aby dodać pierwszą.</EmptyText>
             ) : (
                 contracts.map(c => (
-                    <Card key={c.id}>
-                        <CardHeader>
-                            <ContractType>{CONTRACT_TYPE_LABELS[c.contractType]}</ContractType>
-                            <ActiveBadge $active={c.isActive}>{c.isActive ? 'Aktywna' : 'Zakończona'}</ActiveBadge>
-                        </CardHeader>
-                        <CardMeta>
-                            <MetaItem>
-                                <MetaLabel>Od</MetaLabel>
-                                <MetaValue>{new Date(c.startDate).toLocaleDateString('pl-PL')}</MetaValue>
-                            </MetaItem>
-                            {c.endDate && (
-                                <MetaItem>
-                                    <MetaLabel>Do</MetaLabel>
-                                    <MetaValue>{new Date(c.endDate).toLocaleDateString('pl-PL')}</MetaValue>
-                                </MetaItem>
-                            )}
-                            <MetaItem>
-                                <MetaLabel>Wymiar czasu</MetaLabel>
-                                <MetaValue>{c.workingHoursPerWeek} h/tydzień</MetaValue>
-                            </MetaItem>
-                            {c.terminationDate && (
-                                <MetaItem>
-                                    <MetaLabel>Rozwiązana</MetaLabel>
-                                    <MetaValue>{new Date(c.terminationDate).toLocaleDateString('pl-PL')}</MetaValue>
-                                </MetaItem>
-                            )}
-                        </CardMeta>
-                        {c.isActive && !endForm && (
-                            <EndBtn onClick={() => setEndForm({ contractId: c.id, data: { terminationDate: new Date().toISOString().slice(0, 10) } })}>
-                                Zakończ umowę
-                            </EndBtn>
-                        )}
-                    </Card>
+                    <ContractCard
+                        key={c.id}
+                        contract={c}
+                        employeeId={employeeId}
+                        isEndFormOpen={endContractId === c.id}
+                        onRequestEnd={() => { setEndContractId(c.id); setEndDate(today()); }}
+                        onCancelEnd={() => setEndContractId(null)}
+                        endDate={endDate}
+                        onEndDateChange={setEndDate}
+                        onConfirmEnd={handleEnd}
+                        endPending={endMutation.isPending}
+                    />
                 ))
             )}
         </Section>
