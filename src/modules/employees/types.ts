@@ -1,5 +1,6 @@
 export type EmployeeStatus = 'ACTIVE' | 'TERMINATED';
 export type ContractType = 'UOP' | 'UZ' | 'B2B';
+export type BonusStatus = 'PENDING' | 'INCLUDED_IN_PAYROLL';
 export type ComponentType = 'FIXED' | 'PERCENTAGE_OF_REVENUE' | 'HOURLY' | 'BONUS';
 export type CalculationBase = 'GROSS_REVENUE' | 'NET_REVENUE' | 'HOURS_WORKED';
 export type PaymentFrequency = 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY' | 'ONE_TIME';
@@ -363,6 +364,29 @@ export interface PayrollEntry {
 
 export interface GeneratePayrollPayload {
     period: string;
+    revenueGrossCents?: number | null;
+    revenueNetCents?: number | null;
+    notes?: string | null;
+}
+
+// ─── Bonuses ──────────────────────────────────────────────────────────────────
+
+export interface BonusEntry {
+    id: string;
+    employeeId: string;
+    period: string;
+    name: string;
+    amountCents: number;
+    status: BonusStatus;
+    payrollEntryId: string | null;
+    notes: string | null;
+    createdAt: string;
+}
+
+export interface CreateBonusPayload {
+    period: string;
+    name: string;
+    amountCents: number;
     notes?: string | null;
 }
 

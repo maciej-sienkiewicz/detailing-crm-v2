@@ -2,6 +2,8 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { usePayroll, useGeneratePayroll, useConfirmPayroll } from '../hooks/usePayroll';
+import { useCurrentCompensation } from '../hooks/useCompensation';
+import { useBonuses } from '../hooks/useBonuses';
 import type { PayrollStatus, GeneratePayrollPayload, ConfirmPayrollPayload } from '../types';
 
 const Section = styled.div`
@@ -222,6 +224,16 @@ const ErrorMsg = styled.p`
     color: ${st.accentRed};
 `;
 
+const InfoNote = styled.p`
+    margin: 0;
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+    background: ${st.bgCardAlt};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    padding: 8px 10px;
+`;
+
 const STATUS_LABELS: Record<PayrollStatus, string> = {
     DRAFT: 'Szkic',
     CONFIRMED: 'Zatwierdzony',
@@ -242,12 +254,24 @@ export const PayrollTab = ({ employeeId }: Props) => {
     const { entries, isLoading } = usePayroll(employeeId);
     const generateMutation = useGeneratePayroll(employeeId);
     const confirmMutation = useConfirmPayroll(employeeId);
+    const { compensation } = useCurrentCompensation(employeeId);
 
     const [showGenerateForm, setShowGenerateForm] = useState(false);
     const [generateForm, setGenerateForm] = useState<GeneratePayrollPayload>({ period: currentMonth() });
     const [confirmingId, setConfirmingId] = useState<string | null>(null);
     const [confirmForm, setConfirmForm] = useState<ConfirmPayrollPayload>({ markAsPaid: false });
     const [formError, setFormError] = useState('');
+
+    const { bonuses: pendingBonuses } = useBonuses(employeeId, generateForm.period);
+    const pendingCount = pendingBonuses.filter(b => b.status === 'PENDING').length;
+
+    const activeComponents = compensation?.components.filter(c => c.isActive) ?? [];
+    const needsGrossRevenue = activeComponents.some(
+        c => c.type === 'PERCENTAGE_OF_REVENUE' && c.calculationBase === 'GROSS_REVENUE'
+    );
+    const needsNetRevenue = activeComponents.some(
+        c => c.type === 'PERCENTAGE_OF_REVENUE' && c.calculationBase === 'NET_REVENUE'
+    );
 
     const handleGenerate = async () => {
         if (!generateForm.period) { setFormError('Wybierz okres.'); return; }
@@ -283,9 +307,60 @@ export const PayrollTab = ({ employeeId }: Props) => {
                     <Row>
                         <Field>
                             <Label>Okres (miesiąc)</Label>
-                            <Input type="month" value={generateForm.period} onChange={e => setGenerateForm(p => ({ ...p, period: e.target.value }))} />
+                            <Input
+                                type="month"
+                                value={generateForm.period}
+                                onChange={e => setGenerateForm(p => ({ ...p, period: e.target.value }))}
+                            />
                         </Field>
                     </Row>
+                    {needsGrossRevenue && (
+                        <Row>
+                            <Field>
+                                <Label>Przychód brutto pracownika (PLN)</Label>
+                                <Input
+                                    type="number"
+                                    placeholder="np. 35000.00"
+                                    min={0}
+                                    step={0.01}
+                                    onChange={e =>
+                                        setGenerateForm(p => ({
+                                            ...p,
+                                            revenueGrossCents: e.target.value
+                                                ? Math.round(parseFloat(e.target.value) * 100)
+                                                : null,
+                                        }))
+                                    }
+                                />
+                            </Field>
+                        </Row>
+                    )}
+                    {needsNetRevenue && (
+                        <Row>
+                            <Field>
+                                <Label>Przychód netto pracownika (PLN)</Label>
+                                <Input
+                                    type="number"
+                                    placeholder="np. 28455.28"
+                                    min={0}
+                                    step={0.01}
+                                    onChange={e =>
+                                        setGenerateForm(p => ({
+                                            ...p,
+                                            revenueNetCents: e.target.value
+                                                ? Math.round(parseFloat(e.target.value) * 100)
+                                                : null,
+                                        }))
+                                    }
+                                />
+                            </Field>
+                        </Row>
+                    )}
+                    {pendingCount > 0 && (
+                        <InfoNote>
+                            Zostaną wliczone {pendingCount} oczekujące{pendingCount === 1 ? '' : 'go'} bonus{pendingCount === 1 ? '' : 'ów'} / potrąceń za okres {generateForm.period}.
+                        </InfoNote>
+                    )}
                     {formError && <ErrorMsg>{formError}</ErrorMsg>}
                     <FormActions>
                         <CancelBtn onClick={() => { setShowGenerateForm(false); setFormError(''); }}>Anuluj</CancelBtn>

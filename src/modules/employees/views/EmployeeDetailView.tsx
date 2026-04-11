@@ -11,6 +11,7 @@ import { CompensationTab } from '../components/CompensationTab';
 import { WorkTimeTab } from '../components/WorkTimeTab';
 import { LeavesTab } from '../components/LeavesTab';
 import { PayrollTab } from '../components/PayrollTab';
+import { BonusesTab } from '../components/BonusesTab';
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
 
@@ -295,12 +296,13 @@ const ErrorContainer = styled.div`
 
 // ─── Tabs definition ──────────────────────────────────────────────────────────
 
-type TabId = 'profile' | 'contracts' | 'compensation' | 'worktime' | 'leaves' | 'payroll';
+type TabId = 'profile' | 'contracts' | 'compensation' | 'bonuses' | 'worktime' | 'leaves' | 'payroll';
 
 const TABS: { id: TabId; label: string }[] = [
     { id: 'profile', label: 'Profil' },
     { id: 'contracts', label: 'Umowy' },
     { id: 'compensation', label: 'Wynagrodzenie' },
+    { id: 'bonuses', label: 'Bonusy i dodatki' },
     { id: 'worktime', label: 'Czas pracy' },
     { id: 'leaves', label: 'Urlopy' },
     { id: 'payroll', label: 'Lista płac' },
@@ -414,6 +416,8 @@ export const EmployeeDetailView = () => {
                 return <WorkTimeTab employeeId={employeeId} />;
             case 'leaves':
                 return <LeavesTab employeeId={employeeId} />;
+            case 'bonuses':
+                return <BonusesTab employeeId={employeeId} />;
             case 'payroll':
                 return <PayrollTab employeeId={employeeId} />;
         }

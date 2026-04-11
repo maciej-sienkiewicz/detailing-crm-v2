@@ -26,6 +26,8 @@ import type {
     PayrollEntry,
     GeneratePayrollPayload,
     ConfirmPayrollPayload,
+    BonusEntry,
+    CreateBonusPayload,
 } from '../types';
 
 const BASE = '/v1/employees';
@@ -201,5 +203,22 @@ export const employeeApi = {
 
     confirmPayroll: async (payrollId: string, payload: ConfirmPayrollPayload): Promise<void> => {
         await apiClient.post(`${BASE}/payroll/${payrollId}/confirm`, payload);
+    },
+
+    // ─── Bonuses ──────────────────────────────────────────────────────────────
+
+    listBonuses: async (employeeId: string, period?: string): Promise<BonusEntry[]> => {
+        const query = period ? `?period=${period}` : '';
+        const res = await apiClient.get<BonusEntry[]>(`${BASE}/${employeeId}/bonuses${query}`);
+        return res.data;
+    },
+
+    createBonus: async (employeeId: string, payload: CreateBonusPayload): Promise<{ bonusEntryId: string }> => {
+        const res = await apiClient.post<{ bonusEntryId: string }>(`${BASE}/${employeeId}/bonuses`, payload);
+        return res.data;
+    },
+
+    deleteBonus: async (employeeId: string, bonusEntryId: string): Promise<void> => {
+        await apiClient.delete(`${BASE}/${employeeId}/bonuses/${bonusEntryId}`);
     },
 };

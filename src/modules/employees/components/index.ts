@@ -7,3 +7,4 @@ export { CompensationTab } from './CompensationTab';
 export { WorkTimeTab } from './WorkTimeTab';
 export { LeavesTab } from './LeavesTab';
 export { PayrollTab } from './PayrollTab';
+export { BonusesTab } from './BonusesTab';
