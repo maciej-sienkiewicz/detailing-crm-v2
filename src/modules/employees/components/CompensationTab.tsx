@@ -229,12 +229,18 @@ export const CompensationTab = ({ employeeId }: Props) => {
                                 <AmountValue>{formatCents(compensation.baseSalaryGrossCents)}</AmountValue>
                             </AmountCard>
                         )}
+                        {compensation.hourlyRateNetCents != null && (
+                            <AmountCard>
+                                <AmountLabel>Stawka godzinowa netto</AmountLabel>
+                                <AmountValue>{formatCents(compensation.hourlyRateNetCents)}/h</AmountValue>
+                            </AmountCard>
+                        )}
                         {compensation.hourlyRateGrossCents != null && (
                             <AmountCard>
                                 <AmountLabel>
                                     {compensation.employmentMode === 'SALARY'
                                         ? 'Stawka godzinowa (wyliczona)'
-                                        : 'Stawka godzinowa'}
+                                        : 'Stawka godzinowa brutto'}
                                 </AmountLabel>
                                 <AmountValue>{formatCents(compensation.hourlyRateGrossCents)}/h</AmountValue>
                             </AmountCard>
@@ -277,11 +283,13 @@ export const CompensationTab = ({ employeeId }: Props) => {
                                 <span style={{ fontSize: st.fontSm, color: st.textSecondary }}>
                                     {h.monthlySalaryGrossCents != null
                                         ? formatCents(h.monthlySalaryGrossCents)
-                                        : h.hourlyRateGrossCents != null
-                                            ? `${formatCents(h.hourlyRateGrossCents)}/h`
-                                            : h.baseSalaryGrossCents != null
-                                                ? formatCents(h.baseSalaryGrossCents)
-                                                : '—'}
+                                        : h.hourlyRateNetCents != null
+                                            ? `${formatCents(h.hourlyRateNetCents)}/h netto`
+                                            : h.hourlyRateGrossCents != null
+                                                ? `${formatCents(h.hourlyRateGrossCents)}/h brutto`
+                                                : h.baseSalaryGrossCents != null
+                                                    ? formatCents(h.baseSalaryGrossCents)
+                                                    : '—'}
                                 </span>
                             </div>
                             <HistoryPeriod>

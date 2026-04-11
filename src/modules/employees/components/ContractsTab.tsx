@@ -54,6 +54,7 @@ const calcHourlyPreview = (monthly: string, fraction: EtatFraction): string | nu
 };
 
 const buildCompensation = (
+    contractType: ContractType,
     employmentMode: EmploymentMode,
     etatFraction: EtatFraction,
     monthlySalaryPln: string,
@@ -66,8 +67,16 @@ const buildCompensation = (
             monthlySalaryGrossCents: Math.round(parseFloat(monthlySalaryPln) * 100),
         };
     }
+    if (contractType === 'B2B') {
+        return {
+            employmentMode: 'HOURLY',
+            rateType: 'NET',
+            hourlyRateNetCents: Math.round(parseFloat(hourlyRatePln) * 100),
+        };
+    }
     return {
         employmentMode: 'HOURLY',
+        rateType: 'GROSS',
         hourlyRateGrossCents: Math.round(parseFloat(hourlyRatePln) * 100),
     };
 };
@@ -284,6 +293,12 @@ const FormSectionLabel = styled.p`
 const Row = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
+    gap: 10px;
+`;
+
+const Row3 = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 10px;
 `;
 
@@ -544,7 +559,11 @@ const CompensationFields = ({
                 </>
             ) : (
                 <Field>
-                    <Label>Stawka godzinowa brutto (PLN)</Label>
+                    <Label>
+                        {contractType === 'B2B'
+                            ? 'Stawka godzinowa netto (PLN)'
+                            : 'Stawka godzinowa brutto (PLN)'}
+                    </Label>
                     <Input
                         type="number"
                         value={hourlyRatePln}
@@ -626,14 +645,15 @@ const ContractCard = ({
             return;
         }
         if (amendMode === 'HOURLY' && (!amendHourly || parseFloat(amendHourly) <= 0)) {
-            setAmendError('Podaj stawkę godzinową brutto (wartość > 0).');
+            const rateLabel = contract.contractType === 'B2B' ? 'netto' : 'brutto';
+            setAmendError(`Podaj stawkę godzinową ${rateLabel} (wartość > 0).`);
             return;
         }
         setAmendError('');
 
         const payload: CreateAmendmentPayload = {
             effectiveFrom: amendFrom,
-            compensation: buildCompensation(amendMode, amendFraction, amendMonthly, amendHourly),
+            compensation: buildCompensation(contract.contractType, amendMode, amendFraction, amendMonthly, amendHourly),
         };
 
         // Attach optional notes if backend supports it (forward-compatible)
@@ -694,14 +714,22 @@ const ContractCard = ({
                             <>
                                 <CompAmount>{formatCents(latest.monthlySalaryGrossCents)}/mies.</CompAmount>
                                 {latest.hourlyRateGrossCents != null && (
-                                    <CompDetail>· {formatCents(latest.hourlyRateGrossCents)}/h</CompDetail>
+                                    <CompDetail>· {formatCents(latest.hourlyRateGrossCents)}/h brutto</CompDetail>
                                 )}
                                 {latest.etatFraction && (
                                     <CompDetail>· {ETAT_SHORT[latest.etatFraction]}</CompDetail>
                                 )}
                             </>
+                        ) : latest.hourlyRateNetCents != null ? (
+                            <>
+                                <CompAmount>{formatCents(latest.hourlyRateNetCents)}/h</CompAmount>
+                                <CompDetail>netto</CompDetail>
+                            </>
                         ) : latest.hourlyRateGrossCents != null ? (
-                            <CompAmount>{formatCents(latest.hourlyRateGrossCents)}/h</CompAmount>
+                            <>
+                                <CompAmount>{formatCents(latest.hourlyRateGrossCents)}/h</CompAmount>
+                                <CompDetail>brutto</CompDetail>
+                            </>
                         ) : null}
                         <CompDetail style={{ marginLeft: 'auto' }}>
                             od {new Date(latest.effectiveFrom).toLocaleDateString('pl-PL')}
@@ -801,9 +829,11 @@ const ContractCard = ({
                                 <span style={{ fontSize: st.fontSm, color: st.textSecondary }}>
                                     {a.employmentMode === 'SALARY' && a.monthlySalaryGrossCents != null
                                         ? formatCents(a.monthlySalaryGrossCents)
-                                        : a.hourlyRateGrossCents != null
-                                            ? `${formatCents(a.hourlyRateGrossCents)}/h`
-                                            : '—'}
+                                        : a.hourlyRateNetCents != null
+                                            ? `${formatCents(a.hourlyRateNetCents)}/h netto`
+                                            : a.hourlyRateGrossCents != null
+                                                ? `${formatCents(a.hourlyRateGrossCents)}/h brutto`
+                                                : '—'}
                                 </span>
                             </div>
                             <AmendmentDate>
@@ -834,7 +864,6 @@ export const ContractsTab = ({ employeeId }: Props) => {
     const [addContractType, setAddContractType] = useState<ContractType>('UOP');
     const [addStartDate, setAddStartDate] = useState(today());
     const [addEndDate, setAddEndDate] = useState('');
-    const [addTrialEnd, setAddTrialEnd] = useState('');
     // Compensation for new contract
     const [addMode, setAddMode] = useState<EmploymentMode>('SALARY');
     const [addFraction, setAddFraction] = useState<EtatFraction>('FULL');
@@ -868,7 +897,6 @@ export const ContractsTab = ({ employeeId }: Props) => {
         setAddContractType('UOP');
         setAddStartDate(today());
         setAddEndDate('');
-        setAddTrialEnd('');
         setAddMode('SALARY');
         setAddFraction('FULL');
         setAddMonthly('');
@@ -883,7 +911,8 @@ export const ContractsTab = ({ employeeId }: Props) => {
             return;
         }
         if (addMode === 'HOURLY' && (!addHourly || parseFloat(addHourly) <= 0)) {
-            setFormError('Podaj stawkę godzinową brutto (wartość > 0).');
+            const rateLabel = addContractType === 'B2B' ? 'netto' : 'brutto';
+            setFormError(`Podaj stawkę godzinową ${rateLabel} (wartość > 0).`);
             return;
         }
         setFormError('');
@@ -892,8 +921,7 @@ export const ContractsTab = ({ employeeId }: Props) => {
             contractType: addContractType,
             startDate: addStartDate,
             endDate: addEndDate || null,
-            trialPeriodEndDate: addTrialEnd || null,
-            initialCompensation: buildCompensation(addMode, addFraction, addMonthly, addHourly),
+            initialCompensation: buildCompensation(addContractType, addMode, addFraction, addMonthly, addHourly),
         };
 
         try {
@@ -935,7 +963,7 @@ export const ContractsTab = ({ employeeId }: Props) => {
                     <FormTitle>Nowa umowa</FormTitle>
 
                     <FormSectionLabel>Dane umowy</FormSectionLabel>
-                    <Row>
+                    <Row3>
                         <Field>
                             <Label>Typ umowy</Label>
                             <Select
@@ -955,8 +983,6 @@ export const ContractsTab = ({ employeeId }: Props) => {
                                 onChange={e => setAddStartDate(e.target.value)}
                             />
                         </Field>
-                    </Row>
-                    <Row>
                         <Field>
                             <Label>Data zakończenia</Label>
                             <Input
@@ -965,15 +991,7 @@ export const ContractsTab = ({ employeeId }: Props) => {
                                 onChange={e => setAddEndDate(e.target.value)}
                             />
                         </Field>
-                        <Field>
-                            <Label>Koniec okresu próbnego</Label>
-                            <Input
-                                type="date"
-                                value={addTrialEnd}
-                                onChange={e => setAddTrialEnd(e.target.value)}
-                            />
-                        </Field>
-                    </Row>
+                    </Row3>
 
                     <FormSeparator />
                     <FormSectionLabel>Wynagrodzenie</FormSectionLabel>

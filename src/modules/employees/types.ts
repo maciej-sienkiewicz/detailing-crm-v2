@@ -101,7 +101,6 @@ export interface EmploymentContract {
     etatFraction: EtatFraction | null;
     startDate: string;
     endDate: string | null;
-    trialPeriodEndDate: string | null;
     terminationDate: string | null;
     terminationReason: string | null;
     isActive: boolean;
@@ -111,8 +110,11 @@ export interface EmploymentContract {
 
 /**
  * Discriminated union for the compensation block carried by both contract
- * creation and amendments. TypeScript enforces that SALARY always has
- * etatFraction + monthlySalaryGrossCents and HOURLY always has hourlyRateGrossCents.
+ * creation and amendments.
+ *
+ * - SALARY: always requires etatFraction + monthlySalaryGrossCents (UOP / UZ).
+ * - HOURLY / GROSS: gross hourly rate for UZ contracts.
+ * - HOURLY / NET: net hourly rate for B2B contracts (invoiced amount, no ZUS/tax deduction).
  */
 export type InitialCompensation =
     | {
@@ -123,14 +125,21 @@ export type InitialCompensation =
       }
     | {
           employmentMode: 'HOURLY';
+          /** Gross hourly rate – used for UZ (Umowa zlecenie) contracts. */
+          rateType: 'GROSS';
           hourlyRateGrossCents: number;
+      }
+    | {
+          employmentMode: 'HOURLY';
+          /** Net hourly rate – used for B2B contracts (invoice amount). */
+          rateType: 'NET';
+          hourlyRateNetCents: number;
       };
 
 export interface CreateContractPayload {
     contractType: ContractType;
     startDate: string;
     endDate?: string | null;
-    trialPeriodEndDate?: string | null;
     documentFileId?: string | null;
     /** Compensation is mandatory at contract creation. */
     initialCompensation: InitialCompensation;
@@ -146,7 +155,10 @@ export interface ContractAmendment {
     employmentMode: EmploymentMode;
     etatFraction: EtatFraction | null;
     monthlySalaryGrossCents: number | null;
+    /** Gross hourly rate – populated for UZ HOURLY amendments. */
     hourlyRateGrossCents: number | null;
+    /** Net hourly rate – populated for B2B HOURLY amendments. */
+    hourlyRateNetCents: number | null;
     createdAt: string;
 }
 
@@ -189,7 +201,10 @@ export interface CompensationConfig {
     standardMonthlyHours: number | null;
     monthlySalaryGrossCents: number | null;
     baseSalaryGrossCents: number | null;
+    /** Gross hourly rate – populated for UZ HOURLY configs. */
     hourlyRateGrossCents: number | null;
+    /** Net hourly rate – populated for B2B HOURLY configs. */
+    hourlyRateNetCents: number | null;
     components: CompensationComponent[];
     createdAt: string;
 }
@@ -211,7 +226,10 @@ export interface SetCompensationPayload {
     employmentMode: EmploymentMode;
     etatFraction?: EtatFraction | null;
     monthlySalaryGrossCents?: number | null;
+    /** Gross hourly rate – for UZ HOURLY contracts. */
     hourlyRateGrossCents?: number | null;
+    /** Net hourly rate – for B2B HOURLY contracts. */
+    hourlyRateNetCents?: number | null;
     baseSalaryGrossCents?: number | null;
     components: CompensationComponentPayload[];
 }
