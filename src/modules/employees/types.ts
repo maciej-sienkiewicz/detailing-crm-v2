@@ -95,6 +95,13 @@ export interface EmployeeFilters {
 
 // ─── Contracts ────────────────────────────────────────────────────────────────
 
+export interface SalaryBasis {
+    baseSalaryGrossCents: number | null;
+    hourlyRateGrossCents: number | null;
+    effectiveFrom: string;
+    effectiveTo: string | null;
+}
+
 export interface EmploymentContract {
     id: string;
     contractType: ContractType;
@@ -107,6 +114,8 @@ export interface EmploymentContract {
     isActive: boolean;
     documentFileId: string | null;
     createdAt: string;
+    /** Active salary configuration for this contract. Null if no compensation is configured. */
+    salaryBasis: SalaryBasis | null;
 }
 
 /**

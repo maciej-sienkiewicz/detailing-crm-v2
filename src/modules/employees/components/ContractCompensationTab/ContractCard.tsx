@@ -156,28 +156,20 @@ export const ContractCard = ({
 
     // ── Salary display helpers ──
     const renderSalaryAmount = () => {
-        if (!latestAmendment) return <SalaryAmountValue style={{ fontSize: 16, color: '#94A3B8' }}>—</SalaryAmountValue>;
-        const a = latestAmendment;
-        if (a.monthlySalaryGrossCents != null) {
+        const sb = contract.salaryBasis;
+        if (!sb) return <SalaryAmountValue style={{ fontSize: 16, color: '#94A3B8' }}>—</SalaryAmountValue>;
+        if (sb.baseSalaryGrossCents != null) {
             return (
                 <>
-                    <SalaryAmountValue>{formatCents(a.monthlySalaryGrossCents)}</SalaryAmountValue>
+                    <SalaryAmountValue>{formatCents(sb.baseSalaryGrossCents)}</SalaryAmountValue>
                     <SalaryAmountLabel>brutto / mies.</SalaryAmountLabel>
                 </>
             );
         }
-        if (a.hourlyRateNetCents != null) {
+        if (sb.hourlyRateGrossCents != null) {
             return (
                 <>
-                    <SalaryAmountValue>{formatCents(a.hourlyRateNetCents)}</SalaryAmountValue>
-                    <SalaryAmountLabel>netto / godz.</SalaryAmountLabel>
-                </>
-            );
-        }
-        if (a.hourlyRateGrossCents != null) {
-            return (
-                <>
-                    <SalaryAmountValue>{formatCents(a.hourlyRateGrossCents)}</SalaryAmountValue>
+                    <SalaryAmountValue>{formatCents(sb.hourlyRateGrossCents)}</SalaryAmountValue>
                     <SalaryAmountLabel>brutto / godz.</SalaryAmountLabel>
                 </>
             );
@@ -187,11 +179,10 @@ export const ContractCard = ({
 
     // ── Inactive summary salary text ──
     const inactiveSalarySummary = (): string => {
-        const a = latestAmendment;
-        if (!a) return '';
-        if (a.monthlySalaryGrossCents != null) return `${formatCents(a.monthlySalaryGrossCents)}/mies. brutto`;
-        if (a.hourlyRateNetCents != null) return `${formatCents(a.hourlyRateNetCents)}/h netto`;
-        if (a.hourlyRateGrossCents != null) return `${formatCents(a.hourlyRateGrossCents)}/h brutto`;
+        const sb = contract.salaryBasis;
+        if (!sb) return '';
+        if (sb.baseSalaryGrossCents != null) return `${formatCents(sb.baseSalaryGrossCents)}/mies. brutto`;
+        if (sb.hourlyRateGrossCents != null) return `${formatCents(sb.hourlyRateGrossCents)}/h brutto`;
         return '';
     };
 
@@ -339,7 +330,7 @@ export const ContractCard = ({
             ) : (
                 /* ── Inactive contract – compact summary ── */
                 <InactiveSummary>
-                    {latestAmendment && (
+                    {contract.salaryBasis && (
                         <InactiveSalarySummary>{inactiveSalarySummary()}</InactiveSalarySummary>
                     )}
                     {contract.terminationDate && (
