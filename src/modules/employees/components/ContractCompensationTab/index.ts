@@ -1,0 +1,1 @@
+export { ContractCompensationTab } from './ContractCompensationTab';

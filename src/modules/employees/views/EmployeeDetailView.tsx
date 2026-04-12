@@ -6,8 +6,7 @@ import { useEmployee } from '../hooks/useEmployees';
 import { EmployeeStatusBadge } from '../components/EmployeeStatusBadge';
 import { AddEmployeeModal } from '../components/AddEmployeeModal';
 import { TerminateEmployeeModal } from '../components/TerminateEmployeeModal';
-import { ContractsTab } from '../components/ContractsTab';
-import { CompensationTab } from '../components/CompensationTab';
+import { ContractCompensationTab } from '../components/ContractCompensationTab';
 import { WorkTimeTab } from '../components/WorkTimeTab';
 import { LeavesTab } from '../components/LeavesTab';
 import { PayrollTab } from '../components/PayrollTab';
@@ -296,12 +295,11 @@ const ErrorContainer = styled.div`
 
 // ─── Tabs definition ──────────────────────────────────────────────────────────
 
-type TabId = 'profile' | 'contracts' | 'compensation' | 'bonuses' | 'worktime' | 'leaves' | 'payroll';
+type TabId = 'profile' | 'employment' | 'bonuses' | 'worktime' | 'leaves' | 'payroll';
 
 const TABS: { id: TabId; label: string }[] = [
     { id: 'profile', label: 'Profil' },
-    { id: 'contracts', label: 'Umowy' },
-    { id: 'compensation', label: 'Wynagrodzenie' },
+    { id: 'employment', label: 'Umowy i wynagrodzenie' },
     { id: 'bonuses', label: 'Bonusy i dodatki' },
     { id: 'worktime', label: 'Czas pracy' },
     { id: 'leaves', label: 'Urlopy' },
@@ -313,7 +311,7 @@ const TABS: { id: TabId; label: string }[] = [
 export const EmployeeDetailView = () => {
     const { employeeId } = useParams<{ employeeId: string }>();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<TabId>('profile');
+    const [activeTab, setActiveTab] = useState<TabId>('employment');
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isTerminateOpen, setIsTerminateOpen] = useState(false);
 
@@ -408,10 +406,8 @@ export const EmployeeDetailView = () => {
                         )}
                     </ProfileTabContent>
                 );
-            case 'contracts':
-                return <ContractsTab employeeId={employeeId} />;
-            case 'compensation':
-                return <CompensationTab employeeId={employeeId} />;
+            case 'employment':
+                return <ContractCompensationTab employeeId={employeeId} />;
             case 'worktime':
                 return <WorkTimeTab employeeId={employeeId} />;
             case 'leaves':
