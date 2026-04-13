@@ -3,7 +3,7 @@ export { EmployeeTable } from './EmployeeTable';
 export { AddEmployeeModal } from './AddEmployeeModal';
 export { TerminateEmployeeModal } from './TerminateEmployeeModal';
 export { ContractCompensationTab } from './ContractCompensationTab';
-export { WorkTimeTab } from './WorkTimeTab';
+export { WorkTimeTab } from './WorkTimeTab/index';
 export { LeavesTab } from './LeavesTab';
 export { PayrollTab } from './PayrollTab';
 export { BonusesTab } from './BonusesTab';

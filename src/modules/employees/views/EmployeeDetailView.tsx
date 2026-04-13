@@ -409,7 +409,7 @@ export const EmployeeDetailView = () => {
             case 'employment':
                 return <ContractCompensationTab employeeId={employeeId} />;
             case 'worktime':
-                return <WorkTimeTab employeeId={employeeId} />;
+                return <WorkTimeTab employeeId={employeeId} hireDate={employee.hireDate} />;
             case 'leaves':
                 return <LeavesTab employeeId={employeeId} />;
             case 'bonuses':
