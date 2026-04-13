@@ -2,12 +2,12 @@
  * MonthDetail — expanded panel shown beneath a period row.
  *
  * Contains:
- *  1. Panel header (title, total summary, "Add benefit" button)
- *  2. DayGrid — scrollable per-day regular hours grid
- *  3. Benefits section — list of non-REGULAR entries with delete capability
+ *  1. Panel header (title, total summary, "Add benefit row" button)
+ *  2. DayGrid — scrollable per-day grid: regular hours + one row per active benefit type
+ *  3. Benefits section — list of non-REGULAR entries with status/notes and delete capability
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
     ExpandedPanel,
     ExpandedPanelHeader,
@@ -33,7 +33,7 @@ import { DayGrid } from './DayGrid';
 import { AddBenefitModal } from '../AddBenefitModal';
 import { useWorkTime, useDeleteWorkTimeEntry } from '../../hooks/useWorkTime';
 import { periodDateRange } from './utils';
-import type { TimesheetStatus, WorkTimeEntry } from '../../types';
+import type { BenefitType, TimesheetStatus, WorkTimeEntry } from '../../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -76,6 +76,10 @@ export const MonthDetail = ({ employeeId, period, status }: Props) => {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [deleteError, setDeleteError] = useState('');
 
+    // Extra benefit types explicitly added by the user via the modal
+    // (types from existing entries are always shown automatically)
+    const [extraBenefitTypes, setExtraBenefitTypes] = useState<BenefitType[]>([]);
+
     const { from, to } = periodDateRange(period);
     const { entries, isLoading, isError } = useWorkTime(employeeId, from, to);
     const deleteMutation = useDeleteWorkTimeEntry(employeeId);
@@ -85,9 +89,38 @@ export const MonthDetail = ({ employeeId, period, status }: Props) => {
     const regularEntries = entries.filter(e => e.entryType === 'REGULAR');
     const benefitEntries = entries.filter(e => BENEFIT_ENTRY_TYPES.has(e.entryType));
 
+    // Benefit types that have at least one entry from the server
+    const benefitTypesFromEntries = useMemo(() => {
+        const types = new Set<BenefitType>();
+        benefitEntries.forEach(e => types.add(e.entryType as BenefitType));
+        return [...types];
+    }, [benefitEntries]);
+
+    // All active benefit types = union of server types + user-added types
+    const activeBenefitTypes = useMemo(() => {
+        const all = new Set([...benefitTypesFromEntries, ...extraBenefitTypes]);
+        return [...all];
+    }, [benefitTypesFromEntries, extraBenefitTypes]);
+
     const totalRegular = totalHours(regularEntries);
     const totalBenefit = totalHours(benefitEntries);
     const grandTotal   = totalRegular + totalBenefit;
+
+    // ── Handlers ──────────────────────────────────────────────────────────────
+
+    const handleAddBenefitRow = (type: BenefitType) => {
+        setExtraBenefitTypes(prev =>
+            prev.includes(type) ? prev : [...prev, type],
+        );
+    };
+
+    const handleRemoveBenefitRow = (type: BenefitType) => {
+        // Only allow removing types that have no server entries
+        const hasEntries = benefitEntries.some(e => e.entryType === type);
+        if (!hasEntries) {
+            setExtraBenefitTypes(prev => prev.filter(t => t !== type));
+        }
+    };
 
     const handleDelete = async (entryId: string) => {
         setDeletingId(entryId);
@@ -137,12 +170,15 @@ export const MonthDetail = ({ employeeId, period, status }: Props) => {
                 <DayGrid
                     employeeId={employeeId}
                     period={period}
-                    entries={regularEntries}
+                    regularEntries={regularEntries}
+                    benefitEntries={benefitEntries}
+                    activeBenefitTypes={activeBenefitTypes}
                     readOnly={readOnly}
+                    onRemoveBenefitRow={handleRemoveBenefitRow}
                 />
             )}
 
-            {/* ── Benefits section ── */}
+            {/* ── Benefits section — individual entry cards with status/notes ── */}
             <BenefitsSection>
                 <BenefitsSectionTitle>
                     Świadczenia{benefitEntries.length > 0 ? ` (${benefitEntries.length})` : ''}
@@ -153,7 +189,7 @@ export const MonthDetail = ({ employeeId, period, status }: Props) => {
                 {!isLoading && benefitEntries.length === 0 && (
                     <EmptyText>
                         Brak świadczeń w tym okresie.
-                        {!readOnly && ' Kliknij „Dodaj nowe świadczenie" aby dodać nadgodziny, nocki lub inne.'}
+                        {!readOnly && ' Kliknij „Dodaj nowe świadczenie" aby dodać wiersz do tabeli.'}
                     </EmptyText>
                 )}
 
@@ -194,8 +230,9 @@ export const MonthDetail = ({ employeeId, period, status }: Props) => {
             {/* ── Add benefit modal ── */}
             {showBenefitModal && (
                 <AddBenefitModal
-                    employeeId={employeeId}
                     period={period}
+                    existingTypes={activeBenefitTypes}
+                    onAdd={handleAddBenefitRow}
                     onClose={() => setShowBenefitModal(false)}
                 />
             )}

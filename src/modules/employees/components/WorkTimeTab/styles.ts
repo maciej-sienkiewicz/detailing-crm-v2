@@ -200,6 +200,11 @@ export const AddBenefitBtn = styled.button`
 /** Wrapper that enables horizontal scroll while keeping label and total columns sticky. */
 export const GridScrollWrapper = styled.div`
     overflow-x: auto;
+    /* min-width: 0 ensures this flex item never exceeds its parent width,
+       which is required for overflow-x: auto to create a scroll container
+       instead of expanding the whole page. */
+    min-width: 0;
+    width: 100%;
     border: 1px solid ${st.border};
     border-radius: ${st.radiusSm};
     background: ${st.bgCard};
@@ -426,6 +431,44 @@ export const TotalRow = styled.tr`
 
     td {
         border-top: 2px solid ${st.border};
+    }
+`;
+
+/** Label cell for benefit rows — extends LabelCell with flex layout for the remove button. */
+export const BenefitLabelCell = styled(LabelCell)`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+`;
+
+/** Small × button shown in the benefit-row label cell. */
+export const RowRemoveBtn = styled.button`
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    margin-left: auto;
+    border-radius: 50%;
+    border: 1px solid ${st.border};
+    background: none;
+    color: ${st.textMuted};
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    transition: all ${st.transition};
+
+    &:hover:not(:disabled) {
+        background: ${st.accentRedDim};
+        border-color: ${st.accentRed};
+        color: ${st.accentRed};
+    }
+
+    &:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
     }
 `;
 

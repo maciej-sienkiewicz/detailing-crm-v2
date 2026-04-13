@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { useAddWorkTimeBenefit } from '../hooks/useWorkTime';
-import type { BenefitType, AddWorkTimeBenefitPayload } from '../types';
+import type { BenefitType } from '../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Props {
-    employeeId: string;
-    /** YYYY-MM – the period the benefit is being added to. */
+    /** YYYY-MM – used only for display. */
     period: string;
+    /** Benefit types that already have an active row in the grid. */
+    existingTypes: BenefitType[];
+    /** Called when the user confirms; the modal does NOT make any API calls. */
+    onAdd: (type: BenefitType) => void;
     onClose: () => void;
 }
 
@@ -48,6 +50,11 @@ const BENEFIT_OPTIONS: { value: BenefitType; label: string; description: string;
     },
 ];
 
+const MONTH_NAMES_PL = [
+    'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
+    'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień',
+];
+
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const Overlay = styled.div`
@@ -68,7 +75,7 @@ const ModalBox = styled.div`
     box-shadow: ${st.shadowLg};
     padding: 28px;
     width: 100%;
-    max-width: 520px;
+    max-width: 480px;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -123,7 +130,7 @@ const BenefitGrid = styled.div`
     gap: 6px;
 `;
 
-const BenefitOption = styled.label<{ $selected: boolean }>`
+const BenefitOption = styled.label<{ $selected: boolean; $existing: boolean }>`
     display: flex;
     align-items: center;
     gap: 12px;
@@ -131,12 +138,15 @@ const BenefitOption = styled.label<{ $selected: boolean }>`
     border: 1.5px solid ${({ $selected }) => ($selected ? st.accentBlue : st.border)};
     border-radius: ${st.radiusSm};
     background: ${({ $selected }) => ($selected ? st.accentBlueDim : st.bgCard)};
-    cursor: pointer;
+    cursor: ${({ $existing }) => ($existing ? 'default' : 'pointer')};
+    opacity: ${({ $existing }) => ($existing ? 0.5 : 1)};
     transition: all ${st.transition};
 
     &:hover {
-        border-color: ${({ $selected }) => ($selected ? st.accentBlue : st.borderHover)};
-        background: ${({ $selected }) => ($selected ? st.accentBlueDim : st.bgCardAlt)};
+        border-color: ${({ $selected, $existing }) =>
+            $existing ? st.border : $selected ? st.accentBlue : st.borderHover};
+        background: ${({ $selected, $existing }) =>
+            $existing ? st.bgCard : $selected ? st.accentBlueDim : st.bgCardAlt};
     }
 `;
 
@@ -176,65 +186,16 @@ const MultiplierBadge = styled.span`
     flex-shrink: 0;
 `;
 
-const FieldRow = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-`;
-
-const Field = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-`;
-
-const FieldFull = styled(Field)`
-    grid-column: 1 / -1;
-`;
-
-const FieldLabel = styled.label`
+const ExistingBadge = styled.span`
     font-size: ${st.fontXs};
     font-weight: 600;
-    color: ${st.textSecondary};
-`;
-
-const Input = styled.input`
-    padding: 9px 11px;
+    color: ${st.textMuted};
+    background: ${st.bgCardAlt};
     border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontSm};
-    color: ${st.text};
-    background: ${st.bgInput};
-    outline: none;
-    transition: border-color ${st.transition};
-
-    &:focus { border-color: ${st.accentBlue}; box-shadow: ${st.shadowBlue}; }
-    &:disabled { background: ${st.bgCardAlt}; color: ${st.textMuted}; }
-`;
-
-const Textarea = styled.textarea`
-    padding: 9px 11px;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontSm};
-    color: ${st.text};
-    background: ${st.bgInput};
-    outline: none;
-    resize: vertical;
-    min-height: 56px;
-    font-family: inherit;
-    transition: border-color ${st.transition};
-
-    &:focus { border-color: ${st.accentBlue}; box-shadow: ${st.shadowBlue}; }
-`;
-
-const ErrorMsg = styled.p`
-    margin: 0;
-    font-size: ${st.fontXs};
-    color: ${st.accentRed};
-    padding: 8px 12px;
-    background: ${st.accentRedDim};
-    border-radius: ${st.radiusSm};
+    padding: 2px 8px;
+    border-radius: ${st.radiusFull};
+    white-space: nowrap;
+    flex-shrink: 0;
 `;
 
 const ModalActions = styled.div`
@@ -258,7 +219,7 @@ const CancelBtn = styled.button`
     &:hover { border-color: ${st.borderHover}; color: ${st.text}; }
 `;
 
-const SaveBtn = styled.button`
+const AddBtn = styled.button`
     padding: 8px 20px;
     background: ${st.accentBlue};
     border: none;
@@ -272,78 +233,23 @@ const SaveBtn = styled.button`
     &:disabled { opacity: 0.6; cursor: not-allowed; }
 `;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/** Returns the first day of the period (e.g. "2026-04" → "2026-04-01"). */
-function periodFirstDay(period: string): string {
-    return `${period}-01`;
-}
-
-/** Returns today's date string if it falls within the period, otherwise first day. */
-function defaultDate(period: string): string {
-    const [year, month] = period.split('-').map(Number);
-    const today = new Date();
-    if (today.getFullYear() === year && today.getMonth() + 1 === month) {
-        const d = String(today.getDate()).padStart(2, '0');
-        return `${period}-${d}`;
-    }
-    return periodFirstDay(period);
-}
-
-/** Min date for the date picker (first day of period). */
-function periodMinDate(period: string): string {
-    return `${period}-01`;
-}
-
-/** Max date for the date picker (last day of period). */
-function periodMaxDate(period: string): string {
-    const [year, month] = period.split('-').map(Number);
-    const lastDay = new Date(year, month, 0).getDate();
-    return `${period}-${String(lastDay).padStart(2, '0')}`;
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const AddBenefitModal = ({ employeeId, period, onClose }: Props) => {
-    const [selectedType, setSelectedType] = useState<BenefitType>('OVERTIME_150');
-    const [date, setDate] = useState(defaultDate(period));
-    const [hours, setHours] = useState('');
-    const [notes, setNotes] = useState('');
-    const [error, setError] = useState('');
+export const AddBenefitModal = ({ period, existingTypes, onAdd, onClose }: Props) => {
+    const [year, month] = period.split('-').map(Number);
+    const periodDisplayName = `${MONTH_NAMES_PL[month - 1]} ${year}`;
 
-    const addBenefit = useAddWorkTimeBenefit(employeeId);
+    // Pick first option that isn't already active, fall back to first option
+    const defaultType = BENEFIT_OPTIONS.find(o => !existingTypes.includes(o.value))?.value
+        ?? BENEFIT_OPTIONS[0].value;
+    const [selectedType, setSelectedType] = useState<BenefitType>(defaultType);
 
-    const handleSave = async () => {
-        const h = parseFloat(hours);
-        if (!date) { setError('Wybierz datę.'); return; }
-        if (!hours || isNaN(h) || h <= 0 || h > 24) {
-            setError('Podaj poprawną liczbę godzin (0 – 24).');
-            return;
-        }
-
-        setError('');
-
-        const payload: AddWorkTimeBenefitPayload = {
-            date,
-            benefitType: selectedType,
-            hours: h,
-            notes: notes.trim() || null,
-        };
-
-        try {
-            await addBenefit.mutateAsync(payload);
-            onClose();
-        } catch {
-            setError('Nie udało się zapisać świadczenia. Spróbuj ponownie.');
-        }
+    const handleAdd = () => {
+        onAdd(selectedType);
+        onClose();
     };
 
-    const [year, month] = period.split('-').map(Number);
-    const MONTH_NAMES_PL = [
-        'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
-        'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień',
-    ];
-    const periodDisplayName = `${MONTH_NAMES_PL[month - 1]} ${year}`;
+    const isSelectedExisting = existingTypes.includes(selectedType);
 
     return (
         <Overlay onClick={onClose}>
@@ -351,78 +257,51 @@ export const AddBenefitModal = ({ employeeId, period, onClose }: Props) => {
                 <ModalHeader>
                     <div>
                         <ModalTitle>Dodaj nowe świadczenie</ModalTitle>
-                        <ModalSubtitle>Okres: {periodDisplayName}</ModalSubtitle>
+                        <ModalSubtitle>
+                            Okres: {periodDisplayName} · Wybierz rodzaj — wiersz pojawi się w tabeli
+                        </ModalSubtitle>
                     </div>
                     <CloseBtn onClick={onClose} aria-label="Zamknij">×</CloseBtn>
                 </ModalHeader>
 
-                {/* Benefit type selection */}
                 <div>
                     <SectionLabel>Typ świadczenia</SectionLabel>
                     <BenefitGrid>
-                        {BENEFIT_OPTIONS.map(opt => (
-                            <BenefitOption key={opt.value} $selected={selectedType === opt.value}>
-                                <BenefitRadio
-                                    type="radio"
-                                    name="benefitType"
-                                    value={opt.value}
-                                    checked={selectedType === opt.value}
-                                    onChange={() => setSelectedType(opt.value)}
-                                />
-                                <BenefitInfo>
-                                    <BenefitLabel>{opt.label}</BenefitLabel>
-                                    <BenefitDesc>{opt.description}</BenefitDesc>
-                                </BenefitInfo>
-                                <MultiplierBadge>{opt.multiplier}</MultiplierBadge>
-                            </BenefitOption>
-                        ))}
+                        {BENEFIT_OPTIONS.map(opt => {
+                            const isExisting = existingTypes.includes(opt.value);
+                            return (
+                                <BenefitOption
+                                    key={opt.value}
+                                    $selected={selectedType === opt.value}
+                                    $existing={isExisting}
+                                >
+                                    <BenefitRadio
+                                        type="radio"
+                                        name="benefitType"
+                                        value={opt.value}
+                                        checked={selectedType === opt.value}
+                                        disabled={isExisting}
+                                        onChange={() => !isExisting && setSelectedType(opt.value)}
+                                    />
+                                    <BenefitInfo>
+                                        <BenefitLabel>{opt.label}</BenefitLabel>
+                                        <BenefitDesc>{opt.description}</BenefitDesc>
+                                    </BenefitInfo>
+                                    {isExisting
+                                        ? <ExistingBadge>już dodane</ExistingBadge>
+                                        : <MultiplierBadge>{opt.multiplier}</MultiplierBadge>
+                                    }
+                                </BenefitOption>
+                            );
+                        })}
                     </BenefitGrid>
                 </div>
 
-                {/* Date and hours */}
-                <FieldRow>
-                    <Field>
-                        <FieldLabel htmlFor="benefit-date">Data *</FieldLabel>
-                        <Input
-                            id="benefit-date"
-                            type="date"
-                            value={date}
-                            min={periodMinDate(period)}
-                            max={periodMaxDate(period)}
-                            onChange={e => setDate(e.target.value)}
-                        />
-                    </Field>
-                    <Field>
-                        <FieldLabel htmlFor="benefit-hours">Liczba godzin *</FieldLabel>
-                        <Input
-                            id="benefit-hours"
-                            type="number"
-                            placeholder="np. 4"
-                            min={0.5}
-                            max={24}
-                            step={0.5}
-                            value={hours}
-                            onChange={e => setHours(e.target.value)}
-                        />
-                    </Field>
-                    <FieldFull>
-                        <FieldLabel htmlFor="benefit-notes">Notatki (opcjonalne)</FieldLabel>
-                        <Textarea
-                            id="benefit-notes"
-                            placeholder="np. Praca na nocnej zmianie podczas inwentaryzacji"
-                            value={notes}
-                            onChange={e => setNotes(e.target.value)}
-                        />
-                    </FieldFull>
-                </FieldRow>
-
-                {error && <ErrorMsg>{error}</ErrorMsg>}
-
                 <ModalActions>
                     <CancelBtn onClick={onClose}>Anuluj</CancelBtn>
-                    <SaveBtn onClick={handleSave} disabled={addBenefit.isPending}>
-                        {addBenefit.isPending ? 'Zapisywanie...' : 'Dodaj świadczenie'}
-                    </SaveBtn>
+                    <AddBtn onClick={handleAdd} disabled={isSelectedExisting}>
+                        Dodaj wiersz
+                    </AddBtn>
                 </ModalActions>
             </ModalBox>
         </Overlay>
