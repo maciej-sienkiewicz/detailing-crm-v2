@@ -15,8 +15,11 @@ import type {
     SetCompensationPayload,
     WorkTimeEntry,
     WorkTimeSummary,
+    WorkTimePeriodSummary,
     LogWorkTimePayload,
     ApproveWorkTimePayload,
+    SaveDailyHoursPayload,
+    AddWorkTimeBenefitPayload,
     LeaveRequest,
     LeaveBalance,
     RequestLeavePayload,
@@ -145,6 +148,43 @@ export const employeeApi = {
 
     approveWorkTime: async (entryId: string, payload: ApproveWorkTimePayload): Promise<void> => {
         await apiClient.post(`${BASE}/worktime/${entryId}/approve`, payload);
+    },
+
+    /**
+     * Returns a chronological list of all monthly periods (from hire date to
+     * current month) together with aggregated totals and status.
+     * New endpoint: GET /v1/employees/{id}/worktime/periods
+     */
+    getWorkTimePeriods: async (employeeId: string): Promise<WorkTimePeriodSummary[]> => {
+        const res = await apiClient.get<WorkTimePeriodSummary[]>(`${BASE}/${employeeId}/worktime/periods`);
+        return res.data;
+    },
+
+    /**
+     * Creates or replaces the single REGULAR work-time entry for a given date.
+     * Sending hours = 0 removes any existing regular entry for that date.
+     * New endpoint: POST /v1/employees/{id}/worktime/daily
+     */
+    saveDailyHours: async (employeeId: string, payload: SaveDailyHoursPayload): Promise<{ entryId: string | null }> => {
+        const res = await apiClient.post<{ entryId: string | null }>(`${BASE}/${employeeId}/worktime/daily`, payload);
+        return res.data;
+    },
+
+    /**
+     * Creates a benefit (non-REGULAR) work-time entry for a specific date.
+     * New endpoint: POST /v1/employees/{id}/worktime/benefit
+     */
+    addWorkTimeBenefit: async (employeeId: string, payload: AddWorkTimeBenefitPayload): Promise<{ entryId: string }> => {
+        const res = await apiClient.post<{ entryId: string }>(`${BASE}/${employeeId}/worktime/benefit`, payload);
+        return res.data;
+    },
+
+    /**
+     * Deletes a work-time entry (regular or benefit) by its ID.
+     * New endpoint: DELETE /v1/employees/{id}/worktime/{entryId}
+     */
+    deleteWorkTimeEntry: async (employeeId: string, entryId: string): Promise<void> => {
+        await apiClient.delete(`${BASE}/${employeeId}/worktime/${entryId}`);
     },
 
     // ─── Leaves ───────────────────────────────────────────────────────────────

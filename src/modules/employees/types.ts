@@ -247,6 +247,49 @@ export interface SetCompensationPayload {
 
 // ─── Work Time ────────────────────────────────────────────────────────────────
 
+/**
+ * Status of a monthly timesheet period.
+ * DRAFT    – entries being filled in, editable.
+ * SUBMITTED – sent for approval, read-only for the employee.
+ * APPROVED  – approved by manager, fully read-only.
+ */
+export type TimesheetStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED';
+
+/**
+ * Non-standard benefit types that carry a rate multiplier different from REGULAR.
+ * Maps 1-to-1 to WorkTimeEntryType values excluding REGULAR.
+ */
+export type BenefitType = 'OVERTIME_150' | 'OVERTIME_200' | 'NIGHT_WORK' | 'HOLIDAY_WORK' | 'ON_CALL';
+
+/** Aggregated summary for a single monthly period, returned by the periods list endpoint. */
+export interface WorkTimePeriodSummary {
+    period: string;        // YYYY-MM
+    totalHours: number;
+    regularHours: number;
+    benefitHours: number;
+    status: TimesheetStatus;
+    entriesCount: number;
+}
+
+/**
+ * Payload for the simplified "save daily regular hours" endpoint.
+ * The backend converts the hours value to a WorkTimeEntry (REGULAR type).
+ * Sending hours = 0 removes any existing regular entry for that date.
+ */
+export interface SaveDailyHoursPayload {
+    date: string;   // YYYY-MM-DD
+    hours: number;  // decimal, e.g. 8.0 / 7.5
+    notes?: string | null;
+}
+
+/** Payload for adding a non-standard benefit entry to a specific date. */
+export interface AddWorkTimeBenefitPayload {
+    date: string;              // YYYY-MM-DD
+    benefitType: BenefitType;
+    hours: number;
+    notes?: string | null;
+}
+
 export interface WorkTimeEntry {
     id: string;
     employeeId: string;
