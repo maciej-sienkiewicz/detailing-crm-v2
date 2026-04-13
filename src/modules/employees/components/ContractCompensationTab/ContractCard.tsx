@@ -158,10 +158,10 @@ export const ContractCard = ({
     const renderSalaryAmount = () => {
         const sb = contract.salaryBasis;
         if (!sb) return <SalaryAmountValue style={{ fontSize: 16, color: '#94A3B8' }}>—</SalaryAmountValue>;
-        if (sb.baseSalaryGrossCents != null) {
+        if (sb.monthlySalaryGrossCents != null) {
             return (
                 <>
-                    <SalaryAmountValue>{formatCents(sb.baseSalaryGrossCents)}</SalaryAmountValue>
+                    <SalaryAmountValue>{formatCents(sb.monthlySalaryGrossCents)}</SalaryAmountValue>
                     <SalaryAmountLabel>brutto / mies.</SalaryAmountLabel>
                 </>
             );
@@ -181,8 +181,8 @@ export const ContractCard = ({
     const inactiveSalarySummary = (): string => {
         const sb = contract.salaryBasis;
         if (!sb) return '';
-        if (sb.baseSalaryGrossCents != null) return `${formatCents(sb.baseSalaryGrossCents)}/mies. brutto`;
-        if (sb.hourlyRateGrossCents != null) return `${formatCents(sb.hourlyRateGrossCents)}/h brutto`;
+        if (sb.monthlySalaryGrossCents != null) return `${formatCents(sb.monthlySalaryGrossCents)}/mies. brutto`;
+        if (sb.baseSalaryGrossCents != null) return `${formatCents(sb.baseSalaryGrossCents)}/h brutto`;
         return '';
     };
 
@@ -236,43 +236,6 @@ export const ContractCard = ({
                         <SalaryAmountBlock>
                             {renderSalaryAmount()}
                         </SalaryAmountBlock>
-
-                        {latestAmendment && (
-                            <SalaryMetaList>
-                                <SalaryMetaRow>
-                                    <SalaryMetaLabel>Tryb</SalaryMetaLabel>
-                                    <ModeBadge $mode={latestAmendment.employmentMode}>
-                                        {latestAmendment.employmentMode === 'SALARY' ? 'Etat' : 'Godzinówka'}
-                                    </ModeBadge>
-                                </SalaryMetaRow>
-                                {latestAmendment.etatFraction && (
-                                    <SalaryMetaRow>
-                                        <SalaryMetaLabel>Wymiar</SalaryMetaLabel>
-                                        <SalaryMetaValue>{ETAT_SHORT[latestAmendment.etatFraction]}</SalaryMetaValue>
-                                    </SalaryMetaRow>
-                                )}
-                                {latestAmendment.monthlySalaryGrossCents != null && latestAmendment.hourlyRateGrossCents != null && (
-                                    <SalaryMetaRow>
-                                        <SalaryMetaLabel>Stawka godz.</SalaryMetaLabel>
-                                        <SalaryMetaValue>
-                                            ~{formatCents(latestAmendment.hourlyRateGrossCents)}/h
-                                        </SalaryMetaValue>
-                                    </SalaryMetaRow>
-                                )}
-                                {latestAmendment.monthlySalaryGrossCents != null && latestAmendment.etatFraction && !latestAmendment.hourlyRateGrossCents && (
-                                    <SalaryMetaRow>
-                                        <SalaryMetaLabel>Stawka godz.</SalaryMetaLabel>
-                                        <SalaryMetaValue>
-                                            ~{calcHourlyFromMonthlyCents(latestAmendment.monthlySalaryGrossCents, latestAmendment.etatFraction)}/h
-                                        </SalaryMetaValue>
-                                    </SalaryMetaRow>
-                                )}
-                                <SalaryMetaRow>
-                                    <SalaryMetaLabel>Obowiązuje od</SalaryMetaLabel>
-                                    <SalaryMetaValue>{formatDate(latestAmendment.effectiveFrom)}</SalaryMetaValue>
-                                </SalaryMetaRow>
-                            </SalaryMetaList>
-                        )}
                     </SalarySection>
 
                     {/* Right: components */}
@@ -301,12 +264,9 @@ export const ContractCard = ({
                                             {comp.calculationBase
                                                 ? ` · ${CALC_BASE_LABELS[comp.calculationBase]}`
                                                 : ''}
+                                            {" " } {formatComponentValue(comp)}
                                         </ComponentMeta>
                                     </ComponentInfo>
-                                    <ComponentValueBadge>
-                                        {formatComponentValue(comp)}
-                                    </ComponentValueBadge>
-                                    <TypePill>{COMPONENT_TYPE_LABELS[comp.type]}</TypePill>
                                     <ComponentActionGroup>
                                         <ToggleBtn
                                             $active={comp.isActive}

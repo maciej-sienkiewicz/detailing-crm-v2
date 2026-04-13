@@ -96,6 +96,7 @@ export interface EmployeeFilters {
 // ─── Contracts ────────────────────────────────────────────────────────────────
 
 export interface SalaryBasis {
+    monthlySalaryGrossCents: number | null;
     baseSalaryGrossCents: number | null;
     hourlyRateGrossCents: number | null;
     effectiveFrom: string;
