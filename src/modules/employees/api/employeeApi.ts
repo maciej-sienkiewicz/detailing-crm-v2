@@ -14,19 +14,13 @@ import type {
     CompensationConfig,
     SetCompensationPayload,
     WorkTimeEntry,
-    WorkTimeSummary,
     WorkTimePeriodSummary,
-    LogWorkTimePayload,
-    ApproveWorkTimePayload,
-    SaveDailyHoursPayload,
-    AddWorkTimeBenefitPayload,
     SavePeriodPayload,
     LeaveRequest,
     LeaveBalance,
     RequestLeavePayload,
     ReviewLeavePayload,
     InitLeaveBalancePayload,
-    AdjustLeaveBalancePayload,
     PayrollEntry,
     GeneratePayrollPayload,
     ConfirmPayrollPayload,
@@ -95,7 +89,7 @@ export const employeeApi = {
     createAmendment: async (
         employeeId: string,
         contractId: string,
-        payload: CreateAmendmentPayload
+        payload: CreateAmendmentPayload,
     ): Promise<{ amendmentId: string }> => {
         const res = await apiClient.post<{ amendmentId: string }>(
             `${BASE}/${employeeId}/contracts/${contractId}/amendments`,
@@ -132,68 +126,15 @@ export const employeeApi = {
         return res.data;
     },
 
-    listPendingWorkTime: async (): Promise<WorkTimeEntry[]> => {
-        const res = await apiClient.get<WorkTimeEntry[]>(`${BASE}/worktime/pending`);
-        return res.data;
-    },
-
-    getWorkTimeSummary: async (employeeId: string, period: string): Promise<WorkTimeSummary> => {
-        const res = await apiClient.get<WorkTimeSummary>(`${BASE}/${employeeId}/worktime/summary?period=${period}`);
-        return res.data;
-    },
-
-    logWorkTime: async (employeeId: string, payload: LogWorkTimePayload): Promise<{ entryId: string }> => {
-        const res = await apiClient.post<{ entryId: string }>(`${BASE}/${employeeId}/worktime`, payload);
-        return res.data;
-    },
-
-    approveWorkTime: async (entryId: string, payload: ApproveWorkTimePayload): Promise<void> => {
-        await apiClient.post(`${BASE}/worktime/${entryId}/approve`, payload);
-    },
-
-    /**
-     * Returns a chronological list of all monthly periods (from hire date to
-     * current month) together with aggregated totals and status.
-     * New endpoint: GET /v1/employees/{id}/worktime/periods
-     */
     getWorkTimePeriods: async (employeeId: string): Promise<WorkTimePeriodSummary[]> => {
         const res = await apiClient.get<WorkTimePeriodSummary[]>(`${BASE}/${employeeId}/worktime/periods`);
         return res.data;
     },
 
-    /**
-     * Creates or replaces the single REGULAR work-time entry for a given date.
-     * Sending hours = 0 removes any existing regular entry for that date.
-     * New endpoint: POST /v1/employees/{id}/worktime/daily
-     */
-    saveDailyHours: async (employeeId: string, payload: SaveDailyHoursPayload): Promise<{ entryId: string | null }> => {
-        const res = await apiClient.post<{ entryId: string | null }>(`${BASE}/${employeeId}/worktime/daily`, payload);
-        return res.data;
-    },
-
-    /**
-     * Creates a benefit (non-REGULAR) work-time entry for a specific date.
-     * New endpoint: POST /v1/employees/{id}/worktime/benefit
-     */
-    addWorkTimeBenefit: async (employeeId: string, payload: AddWorkTimeBenefitPayload): Promise<{ entryId: string }> => {
-        const res = await apiClient.post<{ entryId: string }>(`${BASE}/${employeeId}/worktime/benefit`, payload);
-        return res.data;
-    },
-
-    /**
-     * Deletes a work-time entry (regular or benefit) by its ID.
-     * New endpoint: DELETE /v1/employees/{id}/worktime/{entryId}
-     */
     deleteWorkTimeEntry: async (employeeId: string, entryId: string): Promise<void> => {
         await apiClient.delete(`${BASE}/${employeeId}/worktime/${entryId}`);
     },
 
-    /**
-     * Atomically saves all regular and benefit entries for a monthly period.
-     * The backend replaces all PENDING entries for the period; APPROVED / REJECTED
-     * entries are left untouched.
-     * New endpoint: PUT /v1/employees/{id}/worktime/periods/{period}
-     */
     savePeriodWorkTime: async (
         employeeId: string,
         period: string,
@@ -206,11 +147,6 @@ export const employeeApi = {
 
     listLeaves: async (employeeId: string): Promise<LeaveRequest[]> => {
         const res = await apiClient.get<LeaveRequest[]>(`${BASE}/${employeeId}/leaves`);
-        return res.data;
-    },
-
-    listPendingLeaves: async (): Promise<LeaveRequest[]> => {
-        const res = await apiClient.get<LeaveRequest[]>(`${BASE}/leaves/pending`);
         return res.data;
     },
 
@@ -234,20 +170,10 @@ export const employeeApi = {
         return res.data;
     },
 
-    adjustLeaveBalance: async (employeeId: string, payload: AdjustLeaveBalancePayload): Promise<LeaveBalance> => {
-        const res = await apiClient.patch<LeaveBalance>(`${BASE}/${employeeId}/leave-balance/adjust`, payload);
-        return res.data;
-    },
-
     // ─── Payroll ──────────────────────────────────────────────────────────────
 
     listPayroll: async (employeeId: string): Promise<PayrollEntry[]> => {
         const res = await apiClient.get<PayrollEntry[]>(`${BASE}/${employeeId}/payroll`);
-        return res.data;
-    },
-
-    listPayrollForPeriod: async (period: string): Promise<PayrollEntry[]> => {
-        const res = await apiClient.get<PayrollEntry[]>(`${BASE}/payroll?period=${period}`);
         return res.data;
     },
 

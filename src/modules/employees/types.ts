@@ -106,7 +106,6 @@ export interface SalaryBasis {
 export interface EmploymentContract {
     id: string;
     contractType: ContractType;
-    /** Filled for UOP (derived from initial compensation). Null for B2B / UZ HOURLY. */
     etatFraction: EtatFraction | null;
     startDate: string;
     endDate: string | null;
@@ -115,34 +114,22 @@ export interface EmploymentContract {
     isActive: boolean;
     documentFileId: string | null;
     createdAt: string;
-    /** Active salary configuration for this contract. Null if no compensation is configured. */
     salaryBasis: SalaryBasis | null;
 }
 
-/**
- * Discriminated union for the compensation block carried by both contract
- * creation and amendments.
- *
- * - SALARY: always requires etatFraction + monthlySalaryGrossCents (UOP / UZ).
- * - HOURLY / GROSS: gross hourly rate for UZ contracts.
- * - HOURLY / NET: net hourly rate for B2B contracts (invoiced amount, no ZUS/tax deduction).
- */
 export type InitialCompensation =
     | {
           employmentMode: 'SALARY';
-          /** Billing-hours basis: 168 / 84 / 42 h per month. */
           etatFraction: EtatFraction;
           monthlySalaryGrossCents: number;
       }
     | {
           employmentMode: 'HOURLY';
-          /** Gross hourly rate – used for UZ (Umowa zlecenie) contracts. */
           rateType: 'GROSS';
           hourlyRateGrossCents: number;
       }
     | {
           employmentMode: 'HOURLY';
-          /** Net hourly rate – used for B2B contracts (invoice amount). */
           rateType: 'NET';
           hourlyRateNetCents: number;
       };
@@ -152,7 +139,6 @@ export interface CreateContractPayload {
     startDate: string;
     endDate?: string | null;
     documentFileId?: string | null;
-    /** Compensation is mandatory at contract creation. */
     initialCompensation: InitialCompensation;
 }
 
@@ -160,17 +146,10 @@ export interface CreateContractPayload {
 
 export interface ContractAmendment {
     id: string;
-    contractId: string;
     effectiveFrom: string;
-    effectiveTo: string | null;
-    employmentMode: EmploymentMode;
-    etatFraction: EtatFraction | null;
     monthlySalaryGrossCents: number | null;
-    /** Gross hourly rate – populated for UZ HOURLY amendments. */
     hourlyRateGrossCents: number | null;
-    /** Net hourly rate – populated for B2B HOURLY amendments. */
     hourlyRateNetCents: number | null;
-    createdAt: string;
 }
 
 export interface CreateAmendmentPayload {
@@ -212,9 +191,7 @@ export interface CompensationConfig {
     standardMonthlyHours: number | null;
     monthlySalaryGrossCents: number | null;
     baseSalaryGrossCents: number | null;
-    /** Gross hourly rate – populated for UZ HOURLY configs. */
     hourlyRateGrossCents: number | null;
-    /** Net hourly rate – populated for B2B HOURLY configs. */
     hourlyRateNetCents: number | null;
     components: CompensationComponent[];
     createdAt: string;
@@ -237,9 +214,7 @@ export interface SetCompensationPayload {
     employmentMode: EmploymentMode;
     etatFraction?: EtatFraction | null;
     monthlySalaryGrossCents?: number | null;
-    /** Gross hourly rate – for UZ HOURLY contracts. */
     hourlyRateGrossCents?: number | null;
-    /** Net hourly rate – for B2B HOURLY contracts. */
     hourlyRateNetCents?: number | null;
     baseSalaryGrossCents?: number | null;
     components: CompensationComponentPayload[];
@@ -247,109 +222,36 @@ export interface SetCompensationPayload {
 
 // ─── Work Time ────────────────────────────────────────────────────────────────
 
-/**
- * Status of a monthly timesheet period.
- * DRAFT    – entries being filled in, editable.
- * SUBMITTED – sent for approval, read-only for the employee.
- * APPROVED  – approved by manager, fully read-only.
- */
 export type TimesheetStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED';
 
-/**
- * Non-standard benefit types that carry a rate multiplier different from REGULAR.
- * Maps 1-to-1 to WorkTimeEntryType values excluding REGULAR.
- */
 export type BenefitType = 'OVERTIME_150' | 'OVERTIME_200' | 'NIGHT_WORK' | 'HOLIDAY_WORK' | 'ON_CALL';
 
-/** Aggregated summary for a single monthly period, returned by the periods list endpoint. */
 export interface WorkTimePeriodSummary {
-    period: string;        // YYYY-MM
+    period: string;
     totalHours: number;
-    regularHours: number;
-    benefitHours: number;
     status: TimesheetStatus;
-    entriesCount: number;
-}
-
-/**
- * Payload for the simplified "save daily regular hours" endpoint.
- * The backend converts the hours value to a WorkTimeEntry (REGULAR type).
- * Sending hours = 0 removes any existing regular entry for that date.
- */
-export interface SaveDailyHoursPayload {
-    date: string;   // YYYY-MM-DD
-    hours: number;  // decimal, e.g. 8.0 / 7.5
-    notes?: string | null;
-}
-
-/** Payload for adding a non-standard benefit entry to a specific date. */
-export interface AddWorkTimeBenefitPayload {
-    date: string;              // YYYY-MM-DD
-    benefitType: BenefitType;
-    hours: number;
-    notes?: string | null;
 }
 
 export interface WorkTimeEntry {
     id: string;
-    employeeId: string;
     date: string;
-    startTime: string;
-    endTime: string;
-    breakMinutes: number;
     effectiveHours: number;
     entryType: WorkTimeEntryType;
-    overtimeMultiplier: number;
     status: WorkTimeStatus;
     notes: string | null;
-    approvedBy: string | null;
-    approvedAt: string | null;
-    createdAt: string;
 }
 
-export interface WorkTimeSummary {
-    employeeId: string;
-    period: string;
-    totalHours: number;
-    regularHours: number;
-    overtimeHours: number;
-    approvedHours: number;
-    pendingHours: number;
-    entriesCount: number;
-}
-
-export interface LogWorkTimePayload {
-    date: string;
-    startTime: string;
-    endTime: string;
-    breakMinutes: number;
-    entryType: WorkTimeEntryType;
-    notes?: string | null;
-}
-
-export interface ApproveWorkTimePayload {
-    approve: boolean;
-    rejectionReason?: string | null;
-}
-
-/** One regular-hours entry in a batch period save. */
 export interface SavePeriodRegularEntry {
-    date: string;    // YYYY-MM-DD
-    hours: number;   // positive; omitting a date = delete its PENDING entry
+    date: string;
+    hours: number;
 }
 
-/** One benefit-hours entry in a batch period save. */
 export interface SavePeriodBenefitEntry {
-    date: string;          // YYYY-MM-DD
+    date: string;
     benefitType: BenefitType;
-    hours: number;         // positive; omitting a date+type = delete its PENDING entry
+    hours: number;
 }
 
-/**
- * Payload for PUT /v1/employees/{id}/worktime/periods/{period}.
- * The backend atomically replaces all PENDING entries for the period with the
- * supplied lists. APPROVED / REJECTED entries are left untouched.
- */
 export interface SavePeriodPayload {
     regular: SavePeriodRegularEntry[];
     benefits: SavePeriodBenefitEntry[];
@@ -406,36 +308,22 @@ export interface InitLeaveBalancePayload {
     notes?: string | null;
 }
 
-export interface AdjustLeaveBalancePayload {
-    year: number;
-    adjustmentDays: number;
-    notes?: string | null;
-}
-
 // ─── Payroll ──────────────────────────────────────────────────────────────────
 
 export interface PayrollBreakdown {
     componentName: string;
     calculatedAmountCents: number;
-    calculationDetails: string;
 }
 
 export interface PayrollEntry {
     id: string;
-    employeeId: string;
-    contractId: string;
     period: string;
-    baseSalaryGrossCents: number;
     totalHoursWorked: number;
     componentBreakdown: PayrollBreakdown[];
     totalGrossCents: number;
     totalNetCents: number | null;
     employerCostTotalCents: number | null;
     status: PayrollStatus;
-    notes: string | null;
-    confirmedBy: string | null;
-    confirmedAt: string | null;
-    createdAt: string;
 }
 
 export interface GeneratePayrollPayload {
@@ -445,16 +333,20 @@ export interface GeneratePayrollPayload {
     notes?: string | null;
 }
 
+export interface ConfirmPayrollPayload {
+    markAsPaid?: boolean;
+    totalNetCents?: number | null;
+    employerCostTotalCents?: number | null;
+}
+
 // ─── Bonuses ──────────────────────────────────────────────────────────────────
 
 export interface BonusEntry {
     id: string;
-    employeeId: string;
     period: string;
     name: string;
     amountCents: number;
     status: BonusStatus;
-    payrollEntryId: string | null;
     notes: string | null;
     createdAt: string;
 }
@@ -464,10 +356,4 @@ export interface CreateBonusPayload {
     name: string;
     amountCents: number;
     notes?: string | null;
-}
-
-export interface ConfirmPayrollPayload {
-    markAsPaid?: boolean;
-    totalNetCents?: number | null;
-    employerCostTotalCents?: number | null;
 }

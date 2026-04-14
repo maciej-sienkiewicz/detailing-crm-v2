@@ -4,11 +4,9 @@ import type {
     RequestLeavePayload,
     ReviewLeavePayload,
     InitLeaveBalancePayload,
-    AdjustLeaveBalancePayload,
 } from '../types';
 
 const leavesKey = (employeeId: string) => ['employees', 'leaves', employeeId];
-const pendingLeavesKey = ['employees', 'leaves', 'pending'];
 const leaveBalanceKey = (employeeId: string) => ['employees', 'leave-balance', employeeId];
 
 export const useLeaves = (employeeId: string) => {
@@ -16,15 +14,6 @@ export const useLeaves = (employeeId: string) => {
         queryKey: leavesKey(employeeId),
         queryFn: () => employeeApi.listLeaves(employeeId),
         enabled: !!employeeId,
-        staleTime: 30_000,
-    });
-    return { leaves: data ?? [], isLoading, isError, refetch };
-};
-
-export const usePendingLeaves = () => {
-    const { data, isLoading, isError, refetch } = useQuery({
-        queryKey: pendingLeavesKey,
-        queryFn: () => employeeApi.listPendingLeaves(),
         staleTime: 30_000,
     });
     return { leaves: data ?? [], isLoading, isError, refetch };
@@ -64,14 +53,6 @@ export const useInitLeaveBalance = (employeeId: string) => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (payload: InitLeaveBalancePayload) => employeeApi.initLeaveBalance(employeeId, payload),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: leaveBalanceKey(employeeId) }),
-    });
-};
-
-export const useAdjustLeaveBalance = (employeeId: string) => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (payload: AdjustLeaveBalancePayload) => employeeApi.adjustLeaveBalance(employeeId, payload),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: leaveBalanceKey(employeeId) }),
     });
 };

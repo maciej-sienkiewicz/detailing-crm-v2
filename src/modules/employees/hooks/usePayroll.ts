@@ -14,16 +14,6 @@ export const usePayroll = (employeeId: string) => {
     return { entries: data ?? [], isLoading, isError, refetch };
 };
 
-export const usePayrollForPeriod = (period: string) => {
-    const { data, isLoading, isError } = useQuery({
-        queryKey: ['employees', 'payroll', 'period', period],
-        queryFn: () => employeeApi.listPayrollForPeriod(period),
-        enabled: !!period,
-        staleTime: 60_000,
-    });
-    return { entries: data ?? [], isLoading, isError };
-};
-
 export const useGeneratePayroll = (employeeId: string) => {
     const queryClient = useQueryClient();
     return useMutation({
