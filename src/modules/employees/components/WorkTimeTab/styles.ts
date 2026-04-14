@@ -36,9 +36,6 @@ export const PeriodTable = styled.div`
     border: 1px solid ${st.border};
     border-radius: ${st.radiusSm};
     overflow: hidden;
-    /* As a flex item inside Section, min-width: auto would let this element
-       grow to its max-content width, overriding the parent's overflow-x: hidden.
-       Setting min-width: 0 ensures it never expands beyond the available space. */
     min-width: 0;
 `;
 
@@ -98,7 +95,6 @@ export const PeriodHoursLoading = styled.span`
     opacity: 0.6;
 `;
 
-/** Status badge — variant colours driven by TimesheetStatus */
 export const StatusBadge = styled.span<{ $status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | string }>`
     display: inline-flex;
     align-items: center;
@@ -114,13 +110,12 @@ export const StatusBadge = styled.span<{ $status: 'DRAFT' | 'SUBMITTED' | 'APPRO
                 return `background: rgba(16,185,129,0.12); color: #059669;`;
             case 'SUBMITTED':
                 return `background: rgba(245,158,11,0.12); color: #D97706;`;
-            default: // DRAFT or unknown
+            default:
                 return `background: ${st.bgCardAlt}; color: ${st.textMuted}; border: 1px solid ${st.border};`;
         }
     }}
 `;
 
-/** "Zatwierdź do wystawienia rachunku" button in the period row */
 export const BillingBtn = styled.button`
     display: inline-flex;
     align-items: center;
@@ -221,7 +216,6 @@ export const AddBenefitBtn = styled.button`
     }
 `;
 
-/** Row of action buttons (Save / Discard / Add-benefit) shown below the day grid. */
 export const PanelActions = styled.div`
     display: flex;
     align-items: center;
@@ -268,19 +262,14 @@ export const DiscardBtn = styled.button`
 
 // ─── Day grid (scrollable timesheet) ─────────────────────────────────────────
 
-/** Wrapper that enables horizontal scroll while keeping label and total columns sticky. */
 export const GridScrollWrapper = styled.div`
     overflow-x: auto;
-    /* min-width: 0 ensures this flex item never exceeds its parent width,
-       which is required for overflow-x: auto to create a scroll container
-       instead of expanding the whole page. */
     min-width: 0;
     width: 100%;
     border: 1px solid ${st.border};
     border-radius: ${st.radiusSm};
     background: ${st.bgCard};
 
-    /* Custom thin scrollbar */
     &::-webkit-scrollbar { height: 6px; }
     &::-webkit-scrollbar-track { background: ${st.bgCardAlt}; }
     &::-webkit-scrollbar-thumb { background: ${st.border}; border-radius: 3px; }
@@ -299,12 +288,11 @@ export const GridThead = styled.thead`
 
 export const GridTbody = styled.tbody``;
 
-// Label cell — sticky on the left
 export const LabelCell = styled.td`
     position: sticky;
     left: 0;
     z-index: 2;
-    background: inherit;
+    background: ${st.bgCard}; /* Naprawione: stały kolor tła zamiast inherit */
     min-width: 160px;
     max-width: 160px;
     padding: 8px 12px;
@@ -334,12 +322,11 @@ export const LabelTh = styled.th`
     white-space: nowrap;
 `;
 
-// Total cell — sticky on the right
 export const TotalCell = styled.td`
     position: sticky;
     right: 0;
     z-index: 2;
-    background: inherit;
+    background: ${st.bgCard}; /* Naprawione: stały kolor tła zamiast inherit */
     min-width: 72px;
     padding: 8px 10px;
     font-weight: 700;
@@ -367,7 +354,6 @@ export const TotalTh = styled.th`
     white-space: nowrap;
 `;
 
-// Per-day header cell
 export const DayTh = styled.th<{
     $weekend: boolean;
     $holiday: boolean;
@@ -382,17 +368,17 @@ export const DayTh = styled.th<{
     border-bottom: 1px solid ${st.border};
     font-weight: 600;
     color: ${({ $holiday, $weekend, $today }) =>
-        $holiday ? '#B45309' : $today ? st.accentBlue : $weekend ? st.textMuted : st.textSecondary};
+            $holiday ? '#B45309' : $today ? st.accentBlue : $weekend ? st.textMuted : st.textSecondary};
     background: ${({ $holiday, $today, $weekend, $leave }) =>
-        $holiday
-            ? 'rgba(245,158,11,0.10)'
-            : $today
-            ? 'rgba(59,130,246,0.08)'
-            : $leave
-            ? 'rgba(16,185,129,0.08)'
-            : $weekend
-            ? st.bgCardAlt
-            : 'transparent'};
+            $holiday
+                    ? 'rgba(245,158,11,0.10)'
+                    : $today
+                            ? 'rgba(59,130,246,0.08)'
+                            : $leave
+                                    ? 'rgba(16,185,129,0.08)'
+                                    : $weekend
+                                            ? st.bgCardAlt
+                                            : 'transparent'};
 `;
 
 export const DayNumber = styled.div`
@@ -423,7 +409,6 @@ export const LeaveDot = styled.div`
     margin: 2px auto 0;
 `;
 
-// Per-day data cell
 export const DayTd = styled.td<{
     $weekend: boolean;
     $holiday: boolean;
@@ -437,24 +422,23 @@ export const DayTd = styled.td<{
     border-right: 1px solid ${st.border};
     border-bottom: 1px solid ${st.border};
     background: ${({ $holiday, $today, $weekend, $leave }) =>
-        $holiday
-            ? 'rgba(245,158,11,0.05)'
-            : $today
-            ? 'rgba(59,130,246,0.04)'
-            : $leave
-            ? 'rgba(16,185,129,0.06)'
-            : $weekend
-            ? st.bgCardAlt
-            : 'transparent'};
+            $holiday
+                    ? 'rgba(245,158,11,0.05)'
+                    : $today
+                            ? 'rgba(59,130,246,0.04)'
+                            : $leave
+                                    ? 'rgba(16,185,129,0.06)'
+                                    : $weekend
+                                            ? st.bgCardAlt
+                                            : 'transparent'};
     vertical-align: middle;
 `;
 
-/** Editable hour input inside a DayTd */
 export const HoursInput = styled.input<{ $saving?: boolean; $saved?: boolean }>`
     width: 44px;
     padding: 4px 2px;
     border: 1px solid ${({ $saving, $saved }) =>
-        $saving ? st.accentAmber : $saved ? st.accentGreen : 'transparent'};
+            $saving ? st.accentAmber : $saved ? st.accentGreen : 'transparent'};
     border-radius: 4px;
     font-size: ${st.fontXs};
     font-weight: 600;
@@ -465,7 +449,6 @@ export const HoursInput = styled.input<{ $saving?: boolean; $saved?: boolean }>`
     transition: border-color ${st.transition};
     font-variant-numeric: tabular-nums;
 
-    /* Remove native number spinners */
     -moz-appearance: textfield;
     &::-webkit-outer-spin-button,
     &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -484,7 +467,6 @@ export const HoursInput = styled.input<{ $saving?: boolean; $saved?: boolean }>`
     }
 `;
 
-/** "U" badge shown in a day cell when the day falls within an approved leave */
 export const LeaveVacationBadge = styled.span`
     display: block;
     font-size: 10px;
@@ -493,7 +475,6 @@ export const LeaveVacationBadge = styled.span`
     line-height: 1;
 `;
 
-/** Read-only hours value (benefits row or approved month) */
 export const HoursValue = styled.span`
     display: block;
     font-size: ${st.fontXs};
@@ -508,7 +489,6 @@ export const EmptyDash = styled.span`
     font-size: 13px;
 `;
 
-// Total row
 export const TotalRow = styled.tr`
     background: ${st.bgCardAlt};
 
@@ -528,14 +508,13 @@ export const TotalRow = styled.tr`
     }
 `;
 
-/** Label cell for benefit rows — extends LabelCell with flex layout for the remove button. */
 export const BenefitLabelCell = styled(LabelCell)`
     display: flex;
     align-items: center;
     gap: 6px;
+    background: ${st.bgCard}; /* Naprawione: zapewnia spójne tło */
 `;
 
-/** Small × button shown in the benefit-row label cell. */
 export const RowRemoveBtn = styled.button`
     flex-shrink: 0;
     display: flex;
