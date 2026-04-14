@@ -226,11 +226,11 @@ export const PayrollTab = ({ employeeId }: Props) => {
                         <Thead>
                             <tr>
                                 <Th>Okres</Th>
-                                <Th>Status</Th>
                                 <Th>Brutto</Th>
                                 <Th>Netto</Th>
                                 <Th>Koszt pr.</Th>
                                 <Th>Godziny</Th>
+                                <Th>Status</Th>
                                 <Th></Th>
                             </tr>
                         </Thead>
@@ -255,11 +255,6 @@ export const PayrollTab = ({ employeeId }: Props) => {
                                                 </PeriodCell>
                                             </Td>
                                             <Td>
-                                                <StatusBadge $status={e.status}>
-                                                    {STATUS_LABELS[e.status]}
-                                                </StatusBadge>
-                                            </Td>
-                                            <Td>
                                                 <AmountCell>{formatCents(e.totalGrossCents)}</AmountCell>
                                             </Td>
                                             <TdMuted>
@@ -271,6 +266,11 @@ export const PayrollTab = ({ employeeId }: Props) => {
                                                     : '—'}
                                             </TdMuted>
                                             <TdMuted>{Number(e.totalHoursWorked).toFixed(1)} h</TdMuted>
+                                            <Td>
+                                                <StatusBadge $status={e.status}>
+                                                    {STATUS_LABELS[e.status]}
+                                                </StatusBadge>
+                                            </Td>
                                             <Td>
                                                 {e.status === 'DRAFT' && !confirmingId && (
                                                     <ConfirmBtn onClick={() => setConfirmingId(e.id)}>

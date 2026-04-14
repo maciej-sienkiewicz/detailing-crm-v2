@@ -24,7 +24,7 @@ const formatCents = (cents: number) =>
 
 const STATUS_LABELS: Record<BonusStatus, string> = {
     PENDING: 'Oczekujący',
-    INCLUDED_IN_PAYROLL: 'Wliczony w payroll',
+    INCLUDED_IN_PAYROLL: 'Rozliczony',
 };
 
 // ─── Add / deduction modal ────────────────────────────────────────────────────

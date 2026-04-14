@@ -332,7 +332,6 @@ export const ContractCard = ({
                                     <HistoryPeriod>od {formatDate(a.effectiveFrom)}</HistoryPeriod>
                                     <HistorySep>·</HistorySep>
                                     <HistoryAmountText>{amendmentAmountText(a)}</HistoryAmountText>
-                                    {idx === 0 && <CurrentTag>aktualna</CurrentTag>}
                                 </HistoryRow>
                             ))}
                         </HistoryList>
