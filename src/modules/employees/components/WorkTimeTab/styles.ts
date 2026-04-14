@@ -199,10 +199,11 @@ export const AddBenefitBtn = styled.button`
     }
 `;
 
-/** Row of action buttons (Save / Discard) shown below the day grid. */
+/** Row of action buttons (Save / Discard / Add-benefit) shown below the day grid. */
 export const PanelActions = styled.div`
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 10px;
 `;
 

@@ -171,26 +171,25 @@ export const MonthDetail = ({ employeeId, period, status }: Props) => {
                 />
             )}
 
-            {/* ── Action bar — Save / Discard ── */}
+            {/* ── Action bar — Add benefit / Save / Discard ── */}
             {!readOnly && !isLoading && !isError && (
                 <PanelActions>
-                    {saveError && <ErrorText style={{ margin: 0, flex: 1 }}>{saveError}</ErrorText>}
-                    <DiscardBtn onClick={handleDiscard} disabled={isSaving}>
-                        Wycofaj
-                    </DiscardBtn>
-                    <SaveBtn onClick={handleSave} disabled={isSaving}>
-                        {isSaving ? 'Zapisywanie…' : 'Zapisz'}
-                    </SaveBtn>
-                </PanelActions>
-            )}
-
-            {/* ── Add benefit button — below the grid ── */}
-            {!readOnly && (
-                <div>
+                    {/* left */}
                     <AddBenefitBtn onClick={() => setShowBenefitModal(true)}>
                         + Dodaj nowe świadczenie
                     </AddBenefitBtn>
-                </div>
+
+                    {/* right */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        {saveError && <ErrorText style={{ margin: 0 }}>{saveError}</ErrorText>}
+                        <DiscardBtn onClick={handleDiscard} disabled={isSaving}>
+                            Wycofaj
+                        </DiscardBtn>
+                        <SaveBtn onClick={handleSave} disabled={isSaving}>
+                            {isSaving ? 'Zapisywanie…' : 'Zapisz'}
+                        </SaveBtn>
+                    </div>
+                </PanelActions>
             )}
 
             {/* ── Benefits section — only rendered when entries exist ── */}
