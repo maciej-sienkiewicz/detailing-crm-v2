@@ -2,18 +2,15 @@
  * MonthDetail — expanded panel shown beneath a period row.
  *
  * Contains:
- *  1. Panel header (title, total summary, "Add benefit row" button)
- *  2. DayGrid — scrollable per-day grid: regular hours + one row per active benefit type
+ *  1. DayGrid — scrollable per-day grid: regular hours + one row per active benefit type
+ *  2. "Dodaj nowe świadczenie" button (below the grid)
  *  3. Benefits section — list of non-REGULAR entries with status/notes and delete capability
+ *     (only rendered when entries exist)
  */
 
 import { useState, useMemo } from 'react';
 import {
     ExpandedPanel,
-    ExpandedPanelHeader,
-    ExpandedPanelTitle,
-    ExpandedPanelTitleMain,
-    ExpandedPanelTitleSub,
     AddBenefitBtn,
     BenefitsSection,
     BenefitsSectionTitle,
@@ -25,10 +22,9 @@ import {
     BenefitDeleteBtn,
     BenefitStatusBadge,
     Spinner,
-    EmptyText,
     ErrorText,
 } from './styles';
-import { periodLabel, BENEFIT_TYPE_LABELS, BENEFIT_ENTRY_TYPES } from './utils';
+import { BENEFIT_TYPE_LABELS, BENEFIT_ENTRY_TYPES } from './utils';
 import { DayGrid } from './DayGrid';
 import { AddBenefitModal } from '../AddBenefitModal';
 import { useWorkTime, useDeleteWorkTimeEntry } from '../../hooks/useWorkTime';
@@ -40,16 +36,10 @@ import type { BenefitType, TimesheetStatus, WorkTimeEntry } from '../../types';
 interface Props {
     employeeId: string;
     period: string;          // YYYY-MM
-    status: TimesheetStatus; // Determines whether the period is editable
+    status: TimesheetStatus;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const STATUS_LABELS: Record<TimesheetStatus, string> = {
-    DRAFT:     'Szkic – edycja możliwa',
-    SUBMITTED: 'Złożony – oczekuje na zatwierdzenie',
-    APPROVED:  'Zatwierdzony – tylko do odczytu',
-};
 
 const WORK_STATUS_LABELS: Record<string, string> = {
     PENDING:  'Oczekujące',
@@ -63,10 +53,6 @@ function formatDate(dateStr: string): string {
         month: 'long',
         year: 'numeric',
     });
-}
-
-function totalHours(entries: WorkTimeEntry[]): number {
-    return entries.reduce((sum, e) => sum + Number(e.effectiveHours), 0);
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -87,7 +73,9 @@ export const MonthDetail = ({ employeeId, period, status }: Props) => {
     const readOnly = status === 'APPROVED';
 
     const regularEntries = entries.filter(e => e.entryType === 'REGULAR');
-    const benefitEntries = entries.filter(e => BENEFIT_ENTRY_TYPES.has(e.entryType));
+    const benefitEntries = entries.filter((e): e is WorkTimeEntry =>
+        BENEFIT_ENTRY_TYPES.has(e.entryType)
+    );
 
     // Benefit types that have at least one entry from the server
     const benefitTypesFromEntries = useMemo(() => {
@@ -102,10 +90,6 @@ export const MonthDetail = ({ employeeId, period, status }: Props) => {
         return [...all];
     }, [benefitTypesFromEntries, extraBenefitTypes]);
 
-    const totalRegular = totalHours(regularEntries);
-    const totalBenefit = totalHours(benefitEntries);
-    const grandTotal   = totalRegular + totalBenefit;
-
     // ── Handlers ──────────────────────────────────────────────────────────────
 
     const handleAddBenefitRow = (type: BenefitType) => {
@@ -115,7 +99,6 @@ export const MonthDetail = ({ employeeId, period, status }: Props) => {
     };
 
     const handleRemoveBenefitRow = (type: BenefitType) => {
-        // Only allow removing types that have no server entries
         const hasEntries = benefitEntries.some(e => e.entryType === type);
         if (!hasEntries) {
             setExtraBenefitTypes(prev => prev.filter(t => t !== type));
@@ -136,31 +119,6 @@ export const MonthDetail = ({ employeeId, period, status }: Props) => {
 
     return (
         <ExpandedPanel>
-            {/* ── Header ── */}
-            <ExpandedPanelHeader>
-                <ExpandedPanelTitle>
-                    <ExpandedPanelTitleMain>{periodLabel(period)}</ExpandedPanelTitleMain>
-                    <ExpandedPanelTitleSub>
-                        {STATUS_LABELS[status]}
-                        {grandTotal > 0 && (
-                            <>
-                                {' · '}
-                                Łącznie: <strong>{grandTotal.toFixed(2).replace('.', ',')} h</strong>
-                                {totalBenefit > 0 && (
-                                    <> (w tym świadczenia: {totalBenefit.toFixed(2).replace('.', ',')} h)</>
-                                )}
-                            </>
-                        )}
-                    </ExpandedPanelTitleSub>
-                </ExpandedPanelTitle>
-
-                {!readOnly && (
-                    <AddBenefitBtn onClick={() => setShowBenefitModal(true)}>
-                        + Dodaj nowe świadczenie
-                    </AddBenefitBtn>
-                )}
-            </ExpandedPanelHeader>
-
             {/* ── Day grid ── */}
             {isLoading && <Spinner />}
             {isError && (
@@ -178,54 +136,60 @@ export const MonthDetail = ({ employeeId, period, status }: Props) => {
                 />
             )}
 
-            {/* ── Benefits section — individual entry cards with status/notes ── */}
-            <BenefitsSection>
-                <BenefitsSectionTitle>
-                    Świadczenia{benefitEntries.length > 0 ? ` (${benefitEntries.length})` : ''}
-                </BenefitsSectionTitle>
+            {/* ── Add benefit button — below the grid ── */}
+            {!readOnly && (
+                <div>
+                    <AddBenefitBtn onClick={() => setShowBenefitModal(true)}>
+                        + Dodaj nowe świadczenie
+                    </AddBenefitBtn>
+                </div>
+            )}
 
-                {deleteError && <ErrorText>{deleteError}</ErrorText>}
+            {/* ── Benefits section — only rendered when entries exist ── */}
+            {(benefitEntries.length > 0 || deleteError) && (
+                <BenefitsSection>
+                    {benefitEntries.length > 0 && (
+                        <BenefitsSectionTitle>
+                            Świadczenia ({benefitEntries.length})
+                        </BenefitsSectionTitle>
+                    )}
 
-                {!isLoading && benefitEntries.length === 0 && (
-                    <EmptyText>
-                        Brak świadczeń w tym okresie.
-                        {!readOnly && ' Kliknij „Dodaj nowe świadczenie" aby dodać wiersz do tabeli.'}
-                    </EmptyText>
-                )}
+                    {deleteError && <ErrorText>{deleteError}</ErrorText>}
 
-                {benefitEntries.map(entry => (
-                    <BenefitCard key={entry.id}>
-                        <BenefitCardInfo>
-                            <BenefitCardName>
-                                {BENEFIT_TYPE_LABELS[entry.entryType as keyof typeof BENEFIT_TYPE_LABELS]
-                                    ?? entry.entryType}
-                            </BenefitCardName>
-                            <BenefitCardMeta>
-                                {formatDate(entry.date)}
-                                {entry.notes && <> · {entry.notes}</>}
-                            </BenefitCardMeta>
-                        </BenefitCardInfo>
+                    {benefitEntries.map(entry => (
+                        <BenefitCard key={entry.id}>
+                            <BenefitCardInfo>
+                                <BenefitCardName>
+                                    {BENEFIT_TYPE_LABELS[entry.entryType as keyof typeof BENEFIT_TYPE_LABELS]
+                                        ?? entry.entryType}
+                                </BenefitCardName>
+                                <BenefitCardMeta>
+                                    {formatDate(entry.date)}
+                                    {entry.notes && <> · {entry.notes}</>}
+                                </BenefitCardMeta>
+                            </BenefitCardInfo>
 
-                        <BenefitCardHours>
-                            {Number(entry.effectiveHours).toFixed(2).replace('.', ',')} h
-                        </BenefitCardHours>
+                            <BenefitCardHours>
+                                {Number(entry.effectiveHours).toFixed(2).replace('.', ',')} h
+                            </BenefitCardHours>
 
-                        <BenefitStatusBadge $status={entry.status}>
-                            {WORK_STATUS_LABELS[entry.status] ?? entry.status}
-                        </BenefitStatusBadge>
+                            <BenefitStatusBadge $status={entry.status}>
+                                {WORK_STATUS_LABELS[entry.status] ?? entry.status}
+                            </BenefitStatusBadge>
 
-                        {!readOnly && entry.status === 'PENDING' && (
-                            <BenefitDeleteBtn
-                                onClick={() => handleDelete(entry.id)}
-                                disabled={deletingId === entry.id}
-                                aria-label="Usuń świadczenie"
-                            >
-                                {deletingId === entry.id ? '…' : 'Usuń'}
-                            </BenefitDeleteBtn>
-                        )}
-                    </BenefitCard>
-                ))}
-            </BenefitsSection>
+                            {!readOnly && entry.status === 'PENDING' && (
+                                <BenefitDeleteBtn
+                                    onClick={() => handleDelete(entry.id)}
+                                    disabled={deletingId === entry.id}
+                                    aria-label="Usuń świadczenie"
+                                >
+                                    {deletingId === entry.id ? '…' : 'Usuń'}
+                                </BenefitDeleteBtn>
+                            )}
+                        </BenefitCard>
+                    ))}
+                </BenefitsSection>
+            )}
 
             {/* ── Add benefit modal ── */}
             {showBenefitModal && (

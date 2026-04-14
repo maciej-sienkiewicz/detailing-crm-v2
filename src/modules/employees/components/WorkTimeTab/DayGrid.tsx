@@ -341,7 +341,7 @@ export const DayGrid = ({
                             const weekend  = isWeekendDay(day);
                             const holiday  = allHolidays.has(key);
                             const today    = isToday(day);
-                            const disabled = readOnly || weekend || holiday;
+                            const disabled = readOnly;
                             const state    = saveStates[key];
                             return (
                                 <DayTd key={key} $weekend={weekend} $holiday={holiday} $today={today}>
