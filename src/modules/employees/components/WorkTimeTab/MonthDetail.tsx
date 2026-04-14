@@ -42,6 +42,7 @@ interface Props {
     employeeId: string;
     period: string;          // YYYY-MM
     status: TimesheetStatus;
+    approvedLeaveDates: Set<string>;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -62,7 +63,7 @@ function formatDate(dateStr: string): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const MonthDetail = ({ employeeId, period, status }: Props) => {
+export const MonthDetail = ({ employeeId, period, status, approvedLeaveDates }: Props) => {
     const [showBenefitModal, setShowBenefitModal] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [deleteError, setDeleteError] = useState('');
@@ -168,6 +169,7 @@ export const MonthDetail = ({ employeeId, period, status }: Props) => {
                     activeBenefitTypes={activeBenefitTypes}
                     readOnly={readOnly}
                     onRemoveBenefitRow={handleRemoveBenefitRow}
+                    approvedLeaveDates={approvedLeaveDates}
                 />
             )}
 

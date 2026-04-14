@@ -30,6 +30,8 @@ import {
     DayNumber,
     DayName,
     HolidayDot,
+    LeaveDot,
+    LeaveVacationBadge,
     HoursInput,
     EmptyDash,
     TotalRow,
@@ -60,12 +62,13 @@ export interface DayGridHandle {
 // ─── Internal types ────────────────────────────────────────────────────────────
 
 interface Props {
-    period: string;                    // YYYY-MM
-    regularEntries: WorkTimeEntry[];   // REGULAR entries for this period
-    benefitEntries: WorkTimeEntry[];   // non-REGULAR entries for this period
-    activeBenefitTypes: BenefitType[]; // which benefit rows to show
-    readOnly: boolean;                 // true when period is APPROVED
+    period: string;                          // YYYY-MM
+    regularEntries: WorkTimeEntry[];         // REGULAR entries for this period
+    benefitEntries: WorkTimeEntry[];         // non-REGULAR entries for this period
+    activeBenefitTypes: BenefitType[];       // which benefit rows to show
+    readOnly: boolean;                       // true when period is APPROVED
     onRemoveBenefitRow: (type: BenefitType) => void;
+    approvedLeaveDates?: Set<string>;        // dates covered by approved leave requests
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -113,6 +116,7 @@ export const DayGrid = forwardRef<DayGridHandle, Props>(({
     activeBenefitTypes,
     readOnly,
     onRemoveBenefitRow,
+    approvedLeaveDates,
 }, ref) => {
     const days = getDaysInMonth(period);
     const [year, month] = period.split('-').map(Number);
@@ -255,17 +259,24 @@ export const DayGrid = forwardRef<DayGridHandle, Props>(({
                             const weekend = isWeekendDay(day);
                             const holiday = allHolidays.has(key);
                             const today   = isToday(day);
+                            const leave   = approvedLeaveDates?.has(key) ?? false;
                             return (
                                 <DayTh
                                     key={key}
                                     $weekend={weekend}
                                     $holiday={holiday}
                                     $today={today}
-                                    title={holiday ? 'Dzień wolny' : undefined}
+                                    $leave={leave}
+                                    title={
+                                        holiday ? 'Dzień wolny' :
+                                        leave   ? 'Urlop zatwierdzony' :
+                                        undefined
+                                    }
                                 >
                                     <DayNumber>{day.getDate()}</DayNumber>
                                     <DayName>{dayNameShort(day)}</DayName>
                                     {holiday && <HolidayDot />}
+                                    {!holiday && leave && <LeaveDot />}
                                 </DayTh>
                             );
                         })}
@@ -282,10 +293,13 @@ export const DayGrid = forwardRef<DayGridHandle, Props>(({
                             const weekend = isWeekendDay(day);
                             const holiday = allHolidays.has(key);
                             const today   = isToday(day);
+                            const leave   = approvedLeaveDates?.has(key) ?? false;
                             return (
-                                <DayTd key={key} $weekend={weekend} $holiday={holiday} $today={today}>
-                                    {readOnly ? (
-                                        <EmptyDash>—</EmptyDash>
+                                <DayTd key={key} $weekend={weekend} $holiday={holiday} $today={today} $leave={leave}>
+                                    {leave && !readOnly ? (
+                                        <LeaveVacationBadge title="Urlop zatwierdzony">U</LeaveVacationBadge>
+                                    ) : readOnly ? (
+                                        <EmptyDash>{leave ? <LeaveVacationBadge>U</LeaveVacationBadge> : '—'}</EmptyDash>
                                     ) : (
                                         <HoursInput
                                             type="text"
@@ -339,13 +353,14 @@ export const DayGrid = forwardRef<DayGridHandle, Props>(({
                                     const weekend      = isWeekendDay(day);
                                     const holiday      = allHolidays.has(dk);
                                     const today        = isToday(day);
+                                    const leave        = approvedLeaveDates?.has(dk) ?? false;
                                     const cellEntries  = benefitMap.get(type)?.get(dk) ?? [];
                                     const hasApproved  = cellEntries.some(e => e.status === 'APPROVED');
                                     const cellDisabled = readOnly || hasApproved;
                                     const displayedHours = fmtHours(parseHoursInput(benefitLocalValues[cellKey] ?? ''));
 
                                     return (
-                                        <DayTd key={dk} $weekend={weekend} $holiday={holiday} $today={today}>
+                                        <DayTd key={dk} $weekend={weekend} $holiday={holiday} $today={today} $leave={leave}>
                                             {cellDisabled ? (
                                                 <EmptyDash
                                                     as="span"
@@ -384,6 +399,7 @@ export const DayGrid = forwardRef<DayGridHandle, Props>(({
                             const weekend  = isWeekendDay(day);
                             const holiday  = allHolidays.has(key);
                             const today    = isToday(day);
+                            const leave    = approvedLeaveDates?.has(key) ?? false;
                             const dayTotal = grandTotalByDay[key] ?? 0;
                             return (
                                 <DayTd
@@ -391,6 +407,7 @@ export const DayGrid = forwardRef<DayGridHandle, Props>(({
                                     $weekend={weekend}
                                     $holiday={holiday}
                                     $today={today}
+                                    $leave={leave}
                                     style={{ fontWeight: 700 }}
                                 >
                                     {dayTotal > 0 ? (

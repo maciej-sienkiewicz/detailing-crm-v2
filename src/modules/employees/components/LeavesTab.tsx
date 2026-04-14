@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { useLeaves, useRequestLeave, useReviewLeave, useLeaveBalance, useInitLeaveBalance } from '../hooks/useLeaves';
+import { useLeaves, useRequestLeave, useReviewLeave, useCancelLeave, useLeaveBalance, useInitLeaveBalance } from '../hooks/useLeaves';
 import type { LeaveType, LeaveStatus, RequestLeavePayload, InitLeaveBalancePayload } from '../types';
 
 const Section = styled.div`
@@ -251,6 +251,7 @@ export const LeavesTab = ({ employeeId }: Props) => {
     const { balances } = useLeaveBalance(employeeId);
     const requestMutation = useRequestLeave(employeeId);
     const reviewMutation = useReviewLeave();
+    const cancelMutation = useCancelLeave(employeeId);
     const initBalanceMutation = useInitLeaveBalance(employeeId);
 
     const currentYear = new Date().getFullYear();
@@ -292,6 +293,9 @@ export const LeavesTab = ({ employeeId }: Props) => {
 
     const handleReview = (leaveRequestId: string, approve: boolean) =>
         reviewMutation.mutate({ leaveRequestId, payload: { approve } });
+
+    const handleCancel = (leaveRequestId: string) =>
+        cancelMutation.mutate(leaveRequestId);
 
     if (isLoading) return <Spinner />;
 
@@ -440,6 +444,11 @@ export const LeavesTab = ({ employeeId }: Props) => {
                                                     Odrzuć
                                                 </ReviewBtn>
                                             </>
+                                        )}
+                                        {l.status === 'APPROVED' && (
+                                            <ReviewBtn onClick={() => handleCancel(l.id)} disabled={cancelMutation.isPending}>
+                                                Wycofaj
+                                            </ReviewBtn>
                                         )}
                                     </Td>
                                 </tr>

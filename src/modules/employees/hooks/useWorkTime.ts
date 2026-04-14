@@ -44,3 +44,13 @@ export const useSavePeriodWorkTime = (employeeId: string) => {
         },
     });
 };
+
+export const useSubmitPeriodForBilling = (employeeId: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (period: string) => employeeApi.submitPeriodForBilling(employeeId, period),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: workTimeKey(employeeId) });
+        },
+    });
+};

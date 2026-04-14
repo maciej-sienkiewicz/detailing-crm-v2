@@ -143,6 +143,10 @@ export const employeeApi = {
         await apiClient.put(`${BASE}/${employeeId}/worktime/periods/${period}`, payload);
     },
 
+    submitPeriodForBilling: async (employeeId: string, period: string): Promise<void> => {
+        await apiClient.post(`${BASE}/${employeeId}/worktime/periods/${period}/submit`);
+    },
+
     // ─── Leaves ───────────────────────────────────────────────────────────────
 
     listLeaves: async (employeeId: string): Promise<LeaveRequest[]> => {
@@ -157,6 +161,10 @@ export const employeeApi = {
 
     reviewLeave: async (leaveRequestId: string, payload: ReviewLeavePayload): Promise<void> => {
         await apiClient.post(`${BASE}/leaves/${leaveRequestId}/review`, payload);
+    },
+
+    cancelLeave: async (leaveRequestId: string): Promise<void> => {
+        await apiClient.post(`${BASE}/leaves/${leaveRequestId}/cancel`);
     },
 
     getLeaveBalance: async (employeeId: string, year?: number): Promise<LeaveBalance | LeaveBalance[]> => {

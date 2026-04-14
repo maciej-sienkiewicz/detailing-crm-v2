@@ -25,12 +25,14 @@ import {
     PeriodHours,
     PeriodHoursLoading,
     StatusBadge,
+    BillingBtn,
     OpenBtn,
     EmptyText,
 } from './styles';
 import { generatePeriods, periodLabel, currentPeriod } from './utils';
 import { MonthDetail } from './MonthDetail';
-import { useWorkTimePeriods } from '../../hooks/useWorkTime';
+import { useWorkTimePeriods, useSubmitPeriodForBilling } from '../../hooks/useWorkTime';
+import { useLeaves } from '../../hooks/useLeaves';
 import type { TimesheetStatus, WorkTimePeriodSummary } from '../../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -60,12 +62,33 @@ export const WorkTimeTab = ({ employeeId, hireDate }: Props) => {
     // Server-side aggregated summaries (new endpoint)
     const { periods: summaries, isLoading: summariesLoading } = useWorkTimePeriods(employeeId);
 
+    // Approved leaves — used to highlight leave days in the DayGrid calendar
+    const { leaves } = useLeaves(employeeId);
+
+    const submitForBillingMutation = useSubmitPeriodForBilling(employeeId);
+
     // Build lookup map: period string → summary
     const summaryMap = useMemo(() => {
         const map = new Map<string, WorkTimePeriodSummary>();
         summaries.forEach(s => map.set(s.period, s));
         return map;
     }, [summaries]);
+
+    // Build set of all dates covered by approved leave requests
+    const approvedLeaveDates = useMemo(() => {
+        const dates = new Set<string>();
+        for (const leave of leaves) {
+            if (leave.status !== 'APPROVED') continue;
+            const start = new Date(leave.startDate + 'T00:00:00');
+            const end   = new Date(leave.endDate   + 'T00:00:00');
+            const cur   = new Date(start);
+            while (cur <= end) {
+                dates.add(cur.toISOString().slice(0, 10));
+                cur.setDate(cur.getDate() + 1);
+            }
+        }
+        return dates;
+    }, [leaves]);
 
     const today = currentPeriod();
 
@@ -150,8 +173,18 @@ export const WorkTimeTab = ({ employeeId, hireDate }: Props) => {
                                     </StatusBadge>
                                 </div>
 
-                                {/* Toggle button */}
-                                <div role="cell" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                {/* Toggle button + billing submit */}
+                                <div role="cell" style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, alignItems: 'center' }}>
+                                    {status !== 'APPROVED' && (
+                                        <BillingBtn
+                                            onClick={() => submitForBillingMutation.mutate(period)}
+                                            disabled={submitForBillingMutation.isPending}
+                                            aria-label={`Zatwierdź ${periodLabel(period)} do wystawienia rachunku`}
+                                            title="Zatwierdź do wystawienia rachunku"
+                                        >
+                                            ✓ Do rozliczenia
+                                        </BillingBtn>
+                                    )}
                                     <OpenBtn
                                         $active={isExpanded}
                                         onClick={() => toggle(period)}
@@ -172,6 +205,7 @@ export const WorkTimeTab = ({ employeeId, hireDate }: Props) => {
                                     employeeId={employeeId}
                                     period={period}
                                     status={status}
+                                    approvedLeaveDates={approvedLeaveDates}
                                 />
                             )}
                         </div>

@@ -56,3 +56,14 @@ export const useInitLeaveBalance = (employeeId: string) => {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: leaveBalanceKey(employeeId) }),
     });
 };
+
+export const useCancelLeave = (employeeId: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (leaveRequestId: string) => employeeApi.cancelLeave(leaveRequestId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: leavesKey(employeeId) });
+            queryClient.invalidateQueries({ queryKey: leaveBalanceKey(employeeId) });
+        },
+    });
+};

@@ -44,7 +44,7 @@ export const PeriodTable = styled.div`
 
 export const PeriodTableHead = styled.div`
     display: grid;
-    grid-template-columns: 1fr 130px 160px 100px;
+    grid-template-columns: 1fr 130px 160px 240px;
     background: ${st.bgCardAlt};
     border-bottom: 1px solid ${st.border};
     padding: 9px 16px;
@@ -60,7 +60,7 @@ export const PeriodTh = styled.span`
 
 export const PeriodRow = styled.div<{ $even: boolean }>`
     display: grid;
-    grid-template-columns: 1fr 130px 160px 100px;
+    grid-template-columns: 1fr 130px 160px 240px;
     align-items: center;
     padding: 14px 16px;
     background: ${({ $even }) => ($even ? st.bgCard : st.bgCardAlt)};
@@ -118,6 +118,28 @@ export const StatusBadge = styled.span<{ $status: 'DRAFT' | 'SUBMITTED' | 'APPRO
                 return `background: ${st.bgCardAlt}; color: ${st.textMuted}; border: 1px solid ${st.border};`;
         }
     }}
+`;
+
+/** "Zatwierdź do wystawienia rachunku" button in the period row */
+export const BillingBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    background: none;
+    border: 1px solid ${st.accentGreen};
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontXs};
+    font-weight: 600;
+    color: ${st.accentGreen};
+    cursor: pointer;
+    transition: all ${st.transition};
+    white-space: nowrap;
+
+    &:hover:not(:disabled) {
+        background: rgba(16,185,129,0.10);
+    }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
 export const OpenBtn = styled.button<{ $active: boolean }>`
@@ -350,6 +372,7 @@ export const DayTh = styled.th<{
     $weekend: boolean;
     $holiday: boolean;
     $today: boolean;
+    $leave?: boolean;
 }>`
     min-width: 52px;
     max-width: 52px;
@@ -360,11 +383,13 @@ export const DayTh = styled.th<{
     font-weight: 600;
     color: ${({ $holiday, $weekend, $today }) =>
         $holiday ? '#B45309' : $today ? st.accentBlue : $weekend ? st.textMuted : st.textSecondary};
-    background: ${({ $holiday, $today, $weekend }) =>
+    background: ${({ $holiday, $today, $weekend, $leave }) =>
         $holiday
             ? 'rgba(245,158,11,0.10)'
             : $today
             ? 'rgba(59,130,246,0.08)'
+            : $leave
+            ? 'rgba(16,185,129,0.08)'
             : $weekend
             ? st.bgCardAlt
             : 'transparent'};
@@ -390,11 +415,20 @@ export const HolidayDot = styled.div`
     margin: 2px auto 0;
 `;
 
+export const LeaveDot = styled.div`
+    width: 4px;
+    height: 4px;
+    background: #059669;
+    border-radius: 50%;
+    margin: 2px auto 0;
+`;
+
 // Per-day data cell
 export const DayTd = styled.td<{
     $weekend: boolean;
     $holiday: boolean;
     $today: boolean;
+    $leave?: boolean;
 }>`
     min-width: 52px;
     max-width: 52px;
@@ -402,11 +436,13 @@ export const DayTd = styled.td<{
     text-align: center;
     border-right: 1px solid ${st.border};
     border-bottom: 1px solid ${st.border};
-    background: ${({ $holiday, $today, $weekend }) =>
+    background: ${({ $holiday, $today, $weekend, $leave }) =>
         $holiday
             ? 'rgba(245,158,11,0.05)'
             : $today
             ? 'rgba(59,130,246,0.04)'
+            : $leave
+            ? 'rgba(16,185,129,0.06)'
             : $weekend
             ? st.bgCardAlt
             : 'transparent'};
@@ -446,6 +482,15 @@ export const HoursInput = styled.input<{ $saving?: boolean; $saved?: boolean }>`
         border-color: transparent;
         cursor: default;
     }
+`;
+
+/** "U" badge shown in a day cell when the day falls within an approved leave */
+export const LeaveVacationBadge = styled.span`
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    color: #059669;
+    line-height: 1;
 `;
 
 /** Read-only hours value (benefits row or approved month) */
