@@ -172,6 +172,14 @@ export const ContractCard = ({
                 </>
             );
         }
+        if (sb.hourlyRateNetCents != null) {
+            return (
+                <>
+                    <SalaryAmountValue>{formatCents(sb.hourlyRateNetCents)}</SalaryAmountValue>
+                    <SalaryAmountLabel>netto / godz.</SalaryAmountLabel>
+                </>
+            );
+        }
         return <SalaryAmountValue>—</SalaryAmountValue>;
     };
 

@@ -99,6 +99,7 @@ export interface SalaryBasis {
     monthlySalaryGrossCents: number | null;
     baseSalaryGrossCents: number | null;
     hourlyRateGrossCents: number | null;
+    hourlyRateNetCents: number | null;
     effectiveFrom: string;
     effectiveTo: string | null;
 }
