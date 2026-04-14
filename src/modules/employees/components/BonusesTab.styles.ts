@@ -21,6 +21,14 @@ export {
     EmptyText,
     OutlineGreenBtn,
     OutlineRedBtn,
+    TableWrapper,
+    Table,
+    Thead,
+    Th,
+    Tbody,
+    Tr,
+    Td,
+    TdMuted,
 } from './shared.styles';
 
 // ─── Top toolbar ──────────────────────────────────────────────────────────────
@@ -43,49 +51,12 @@ export const PeriodInput = styled.input`
     &:focus { border-color: ${st.accentBlue}; }
 `;
 
-// ─── Bonus card ───────────────────────────────────────────────────────────────
+// ─── Table cells ──────────────────────────────────────────────────────────────
 
-export const Card = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-`;
-
-export const CardMain = styled.div`
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-`;
-
-export const BonusName = styled.span`
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    color: ${st.text};
-`;
-
-export const BonusMeta = styled.span`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-`;
-
-export const BonusNotes = styled.span`
-    font-size: ${st.fontXs};
-    color: ${st.textSecondary};
-    font-style: italic;
-`;
-
-export const Amount = styled.span<{ $negative: boolean }>`
-    font-size: ${st.fontMd};
+export const AmountCell = styled.span<{ $negative: boolean }>`
     font-weight: 700;
     color: ${({ $negative }) => ($negative ? st.accentRed : st.accentGreen)};
     white-space: nowrap;
-    flex-shrink: 0;
 `;
 
 export const StatusBadge = styled.span<{ $status: BonusStatus }>`
@@ -94,7 +65,6 @@ export const StatusBadge = styled.span<{ $status: BonusStatus }>`
     font-size: 11px;
     font-weight: 600;
     white-space: nowrap;
-    flex-shrink: 0;
     ${({ $status }) =>
         $status === 'PENDING'
             ? `background: ${st.accentAmberDim}; color: #D97706;`
@@ -110,9 +80,14 @@ export const DeleteBtn = styled.button`
     color: ${st.accentRed};
     cursor: pointer;
     transition: background ${st.transition};
-    flex-shrink: 0;
     &:hover { background: ${st.accentRedDim}; border-color: ${st.accentRed}; }
     &:disabled { opacity: 0.4; cursor: not-allowed; }
+`;
+
+export const NotesCell = styled.span`
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+    font-style: italic;
 `;
 
 // ─── Modal save button (green for bonus, red for deduction) ───────────────────

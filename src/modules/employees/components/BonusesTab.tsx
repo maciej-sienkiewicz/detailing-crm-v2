@@ -7,9 +7,9 @@ import {
     Overlay, ModalBox, ModalTitle, FormActions,
     Section, TopRow, SectionTitle, EmptyText,
     OutlineGreenBtn, OutlineRedBtn,
+    TableWrapper, Table, Thead, Th, Tbody, Tr, Td, TdMuted,
     Actions, PeriodInput,
-    Card, CardMain, BonusName, BonusMeta, BonusNotes,
-    Amount, StatusBadge, DeleteBtn, SaveBonusBtn,
+    AmountCell, StatusBadge, DeleteBtn, NotesCell, SaveBonusBtn,
 } from './BonusesTab.styles';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -175,31 +175,57 @@ export const BonusesTab = ({ employeeId }: Props) => {
             ) : bonuses.length === 0 ? (
                 <EmptyText>Brak bonusów i potrąceń dla wybranego okresu.</EmptyText>
             ) : (
-                bonuses.map(bonus => (
-                    <Card key={bonus.id}>
-                        <CardMain>
-                            <BonusName>{bonus.name}</BonusName>
-                            <BonusMeta>
-                                Okres: {bonus.period}
-                                {' · '}
-                                Dodano: {new Date(bonus.createdAt).toLocaleDateString('pl-PL')}
-                            </BonusMeta>
-                            {bonus.notes && <BonusNotes>{bonus.notes}</BonusNotes>}
-                        </CardMain>
-                        <Amount $negative={bonus.amountCents < 0}>
-                            {bonus.amountCents < 0 ? '−' : '+'}{formatCents(bonus.amountCents)}
-                        </Amount>
-                        <StatusBadge $status={bonus.status}>{STATUS_LABELS[bonus.status]}</StatusBadge>
-                        {bonus.status === 'PENDING' && (
-                            <DeleteBtn
-                                onClick={() => handleDelete(bonus.id)}
-                                disabled={deletingId === bonus.id}
-                            >
-                                {deletingId === bonus.id ? '...' : 'Usuń'}
-                            </DeleteBtn>
-                        )}
-                    </Card>
-                ))
+                <TableWrapper>
+                    <Table>
+                        <Thead>
+                            <tr>
+                                <Th>Nazwa</Th>
+                                <Th>Okres</Th>
+                                <Th>Dodano</Th>
+                                <Th>Notatki</Th>
+                                <Th>Kwota</Th>
+                                <Th>Status</Th>
+                                <Th></Th>
+                            </tr>
+                        </Thead>
+                        <Tbody>
+                            {bonuses.map(bonus => (
+                                <Tr key={bonus.id}>
+                                    <Td>{bonus.name}</Td>
+                                    <TdMuted>{bonus.period}</TdMuted>
+                                    <TdMuted>
+                                        {new Date(bonus.createdAt).toLocaleDateString('pl-PL')}
+                                    </TdMuted>
+                                    <Td>
+                                        {bonus.notes
+                                            ? <NotesCell>{bonus.notes}</NotesCell>
+                                            : <TdMuted as="span">—</TdMuted>}
+                                    </Td>
+                                    <Td>
+                                        <AmountCell $negative={bonus.amountCents < 0}>
+                                            {bonus.amountCents < 0 ? '−' : '+'}{formatCents(bonus.amountCents)}
+                                        </AmountCell>
+                                    </Td>
+                                    <Td>
+                                        <StatusBadge $status={bonus.status}>
+                                            {STATUS_LABELS[bonus.status]}
+                                        </StatusBadge>
+                                    </Td>
+                                    <Td>
+                                        {bonus.status === 'PENDING' && (
+                                            <DeleteBtn
+                                                onClick={() => handleDelete(bonus.id)}
+                                                disabled={deletingId === bonus.id}
+                                            >
+                                                {deletingId === bonus.id ? '...' : 'Usuń'}
+                                            </DeleteBtn>
+                                        )}
+                                    </Td>
+                                </Tr>
+                            ))}
+                        </Tbody>
+                    </Table>
+                </TableWrapper>
             )}
 
             {modal && (
