@@ -5,6 +5,7 @@ import type {
     ApproveWorkTimePayload,
     SaveDailyHoursPayload,
     AddWorkTimeBenefitPayload,
+    SavePeriodPayload,
 } from '../types';
 
 const workTimeKey = (employeeId: string) => ['employees', 'worktime', employeeId];
@@ -113,6 +114,22 @@ export const useDeleteWorkTimeEntry = (employeeId: string) => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (entryId: string) => employeeApi.deleteWorkTimeEntry(employeeId, entryId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: workTimeKey(employeeId) });
+        },
+    });
+};
+
+/**
+ * Mutation: atomically save all regular and benefit entries for a monthly period.
+ * Backed by PUT /v1/employees/{id}/worktime/periods/{period}.
+ * The backend replaces all PENDING entries; APPROVED / REJECTED are left untouched.
+ */
+export const useSavePeriodWorkTime = (employeeId: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ period, payload }: { period: string; payload: SavePeriodPayload }) =>
+            employeeApi.savePeriodWorkTime(employeeId, period, payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: workTimeKey(employeeId) });
         },

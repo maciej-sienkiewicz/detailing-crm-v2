@@ -3,12 +3,13 @@
  *
  * Contains:
  *  1. DayGrid — scrollable per-day grid: regular hours + one row per active benefit type
- *  2. "Dodaj nowe świadczenie" button (below the grid)
- *  3. Benefits section — list of non-REGULAR entries with status/notes and delete capability
+ *  2. PanelActions bar — "Wycofaj" (discard) and "Zapisz" (save) buttons
+ *  3. "Dodaj nowe świadczenie" button (below the grid, only when not read-only)
+ *  4. Benefits section — list of non-REGULAR entries with status/notes and delete capability
  *     (only rendered when entries exist)
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import {
     ExpandedPanel,
     AddBenefitBtn,
@@ -23,11 +24,15 @@ import {
     BenefitStatusBadge,
     Spinner,
     ErrorText,
+    PanelActions,
+    SaveBtn,
+    DiscardBtn,
 } from './styles';
 import { BENEFIT_TYPE_LABELS, BENEFIT_ENTRY_TYPES } from './utils';
 import { DayGrid } from './DayGrid';
+import type { DayGridHandle } from './DayGrid';
 import { AddBenefitModal } from '../AddBenefitModal';
-import { useWorkTime, useDeleteWorkTimeEntry } from '../../hooks/useWorkTime';
+import { useWorkTime, useDeleteWorkTimeEntry, useSavePeriodWorkTime } from '../../hooks/useWorkTime';
 import { periodDateRange } from './utils';
 import type { BenefitType, TimesheetStatus, WorkTimeEntry } from '../../types';
 
@@ -66,9 +71,18 @@ export const MonthDetail = ({ employeeId, period, status }: Props) => {
     // (types from existing entries are always shown automatically)
     const [extraBenefitTypes, setExtraBenefitTypes] = useState<BenefitType[]>([]);
 
+    // Incrementing this key forces DayGrid to re-mount (Discard behaviour)
+    const [resetKey, setResetKey] = useState(0);
+
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveError, setSaveError] = useState('');
+
+    const dayGridRef = useRef<DayGridHandle>(null);
+
     const { from, to } = periodDateRange(period);
     const { entries, isLoading, isError } = useWorkTime(employeeId, from, to);
     const deleteMutation = useDeleteWorkTimeEntry(employeeId);
+    const savePeriodMutation = useSavePeriodWorkTime(employeeId);
 
     const readOnly = status === 'APPROVED';
 
@@ -105,6 +119,26 @@ export const MonthDetail = ({ employeeId, period, status }: Props) => {
         }
     };
 
+    const handleSave = async () => {
+        if (!dayGridRef.current) return;
+        const payload = dayGridRef.current.getValues();
+        setIsSaving(true);
+        setSaveError('');
+        try {
+            await savePeriodMutation.mutateAsync({ period, payload });
+        } catch {
+            setSaveError('Nie udało się zapisać. Spróbuj ponownie.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleDiscard = () => {
+        setResetKey(k => k + 1);
+        setExtraBenefitTypes([]);
+        setSaveError('');
+    };
+
     const handleDelete = async (entryId: string) => {
         setDeletingId(entryId);
         setDeleteError('');
@@ -126,7 +160,8 @@ export const MonthDetail = ({ employeeId, period, status }: Props) => {
             )}
             {!isLoading && !isError && (
                 <DayGrid
-                    employeeId={employeeId}
+                    key={resetKey}
+                    ref={dayGridRef}
                     period={period}
                     regularEntries={regularEntries}
                     benefitEntries={benefitEntries}
@@ -134,6 +169,19 @@ export const MonthDetail = ({ employeeId, period, status }: Props) => {
                     readOnly={readOnly}
                     onRemoveBenefitRow={handleRemoveBenefitRow}
                 />
+            )}
+
+            {/* ── Action bar — Save / Discard ── */}
+            {!readOnly && !isLoading && !isError && (
+                <PanelActions>
+                    {saveError && <ErrorText style={{ margin: 0, flex: 1 }}>{saveError}</ErrorText>}
+                    <DiscardBtn onClick={handleDiscard} disabled={isSaving}>
+                        Wycofaj
+                    </DiscardBtn>
+                    <SaveBtn onClick={handleSave} disabled={isSaving}>
+                        {isSaving ? 'Zapisywanie…' : 'Zapisz'}
+                    </SaveBtn>
+                </PanelActions>
             )}
 
             {/* ── Add benefit button — below the grid ── */}

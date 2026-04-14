@@ -20,6 +20,7 @@ import type {
     ApproveWorkTimePayload,
     SaveDailyHoursPayload,
     AddWorkTimeBenefitPayload,
+    SavePeriodPayload,
     LeaveRequest,
     LeaveBalance,
     RequestLeavePayload,
@@ -185,6 +186,20 @@ export const employeeApi = {
      */
     deleteWorkTimeEntry: async (employeeId: string, entryId: string): Promise<void> => {
         await apiClient.delete(`${BASE}/${employeeId}/worktime/${entryId}`);
+    },
+
+    /**
+     * Atomically saves all regular and benefit entries for a monthly period.
+     * The backend replaces all PENDING entries for the period; APPROVED / REJECTED
+     * entries are left untouched.
+     * New endpoint: PUT /v1/employees/{id}/worktime/periods/{period}
+     */
+    savePeriodWorkTime: async (
+        employeeId: string,
+        period: string,
+        payload: SavePeriodPayload,
+    ): Promise<void> => {
+        await apiClient.put(`${BASE}/${employeeId}/worktime/periods/${period}`, payload);
     },
 
     // ─── Leaves ───────────────────────────────────────────────────────────────

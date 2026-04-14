@@ -199,6 +199,50 @@ export const AddBenefitBtn = styled.button`
     }
 `;
 
+/** Row of action buttons (Save / Discard) shown below the day grid. */
+export const PanelActions = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+`;
+
+export const SaveBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 20px;
+    background: ${st.accentBlue};
+    border: none;
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    transition: opacity ${st.transition};
+
+    &:hover:not(:disabled) { opacity: 0.85; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+export const DiscardBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    background: none;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    color: ${st.textSecondary};
+    cursor: pointer;
+    transition: all ${st.transition};
+
+    &:hover:not(:disabled) {
+        border-color: ${st.borderHover};
+        color: ${st.text};
+    }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
 // ─── Day grid (scrollable timesheet) ─────────────────────────────────────────
 
 /** Wrapper that enables horizontal scroll while keeping label and total columns sticky. */

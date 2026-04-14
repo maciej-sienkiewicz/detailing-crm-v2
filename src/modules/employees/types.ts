@@ -332,6 +332,29 @@ export interface ApproveWorkTimePayload {
     rejectionReason?: string | null;
 }
 
+/** One regular-hours entry in a batch period save. */
+export interface SavePeriodRegularEntry {
+    date: string;    // YYYY-MM-DD
+    hours: number;   // positive; omitting a date = delete its PENDING entry
+}
+
+/** One benefit-hours entry in a batch period save. */
+export interface SavePeriodBenefitEntry {
+    date: string;          // YYYY-MM-DD
+    benefitType: BenefitType;
+    hours: number;         // positive; omitting a date+type = delete its PENDING entry
+}
+
+/**
+ * Payload for PUT /v1/employees/{id}/worktime/periods/{period}.
+ * The backend atomically replaces all PENDING entries for the period with the
+ * supplied lists. APPROVED / REJECTED entries are left untouched.
+ */
+export interface SavePeriodPayload {
+    regular: SavePeriodRegularEntry[];
+    benefits: SavePeriodBenefitEntry[];
+}
+
 // ─── Leaves ───────────────────────────────────────────────────────────────────
 
 export interface LeaveRequest {

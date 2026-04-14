@@ -6,12 +6,16 @@
  *
  * Rows:
  *   • Header       — day number + short weekday name, coloured for weekends/holidays/today
- *   • Regular      — editable hour inputs (disabled on weekends/holidays or when period is read-only)
+ *   • Regular      — editable hour inputs (disabled when period is read-only)
  *   • Benefit rows — one per active BenefitType, per-day editable inputs
  *   • Total        — sum of all rows per day
+ *
+ * Exposes DayGridHandle via forwardRef.
+ * The parent calls ref.current.getValues() before saving to collect the full grid state.
+ * No network calls are made from within this component.
  */
 
-import { useCallback, useRef, useState, useMemo, useEffect } from 'react';
+import { useCallback, useRef, useState, useMemo, useEffect, forwardRef, useImperativeHandle } from 'react';
 import {
     GridScrollWrapper,
     GridTable,
@@ -41,13 +45,21 @@ import {
     BENEFIT_TYPE_LABELS,
 } from './utils';
 import { getPolishHolidays } from '../../utils/polishHolidays';
-import { useSaveDailyHours, useAddWorkTimeBenefit, useDeleteWorkTimeEntry } from '../../hooks/useWorkTime';
-import type { WorkTimeEntry, BenefitType } from '../../types';
+import type { WorkTimeEntry, BenefitType, SavePeriodRegularEntry, SavePeriodBenefitEntry } from '../../types';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Public handle type ────────────────────────────────────────────────────────
+
+export interface DayGridHandle {
+    /** Returns the current form values, ready to send to the batch PUT endpoint. */
+    getValues: () => {
+        regular: SavePeriodRegularEntry[];
+        benefits: SavePeriodBenefitEntry[];
+    };
+}
+
+// ─── Internal types ────────────────────────────────────────────────────────────
 
 interface Props {
-    employeeId: string;
     period: string;                    // YYYY-MM
     regularEntries: WorkTimeEntry[];   // REGULAR entries for this period
     benefitEntries: WorkTimeEntry[];   // non-REGULAR entries for this period
@@ -68,7 +80,7 @@ function buildRegularHoursMap(entries: WorkTimeEntry[]): Record<string, number> 
 
 /**
  * Builds a two-level map:  benefitType → dateStr → WorkTimeEntry[]
- * Used to look up existing entries when saving a benefit cell.
+ * Used to look up existing entries (for read-only approved cells).
  */
 function buildBenefitMap(entries: WorkTimeEntry[]): Map<string, Map<string, WorkTimeEntry[]>> {
     const map = new Map<string, Map<string, WorkTimeEntry[]>>();
@@ -92,23 +104,16 @@ function parseHoursInput(raw: string): number {
     return Math.min(n, 24);
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const SAVE_DELAY_MS = 800;
-
-type SaveState = 'idle' | 'saving' | 'saved' | 'error';
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const DayGrid = ({
-    employeeId,
+export const DayGrid = forwardRef<DayGridHandle, Props>(({
     period,
     regularEntries,
     benefitEntries,
     activeBenefitTypes,
     readOnly,
     onRemoveBenefitRow,
-}: Props) => {
+}, ref) => {
     const days = getDaysInMonth(period);
     const [year, month] = period.split('-').map(Number);
     const holidays = getPolishHolidays(year);
@@ -128,32 +133,21 @@ export const DayGrid = ({
         return init;
     });
 
-    const [saveStates, setSaveStates] = useState<Record<string, SaveState>>({});
-
-    const regularTimerRefs = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-    const saveMutation = useSaveDailyHours(employeeId);
-
     // ── Benefit rows state ───────────────────────────────────────────────────
 
     const benefitMap = useMemo(() => buildBenefitMap(benefitEntries), [benefitEntries]);
 
-    // "type:dateStr" → display string (user-typed or server value)
+    // "type:dateStr" → display string (user-typed or initialised from server)
     const [benefitLocalValues, setBenefitLocalValues] = useState<Record<string, string>>({});
-    const [benefitSaveStates, setBenefitSaveStates] = useState<Record<string, SaveState>>({});
 
-    const benefitTimerRefs = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-
-    const addBenefitMutation = useAddWorkTimeBenefit(employeeId);
-    const deleteMutation = useDeleteWorkTimeEntry(employeeId);
-
-    // Stable refs so that useEffect closures always see the latest values
+    // Stable refs so that the useEffect closure always sees current values
     const benefitMapRef = useRef(benefitMap);
     benefitMapRef.current = benefitMap;
     const daysRef = useRef(days);
     daysRef.current = days;
 
-    // Initialise cell values for newly-added benefit types (or on first load).
-    // Only fills in cells that haven't been touched by the user yet.
+    // Initialise cells for newly-added benefit types (or on first load).
+    // Only fills cells that haven't been touched yet.
     useEffect(() => {
         setBenefitLocalValues(prev => {
             const next = { ...prev };
@@ -174,102 +168,49 @@ export const DayGrid = ({
         });
     }, [activeBenefitTypes]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Ref used to avoid overwriting cells that are actively being edited
-    const activeCell = useRef<string | null>(null);
+    // ── Imperative handle — collect form values for the parent's Save handler ─
 
-    // ── Regular save helpers ─────────────────────────────────────────────────
+    useImperativeHandle(ref, () => ({
+        getValues: () => {
+            const regular: SavePeriodRegularEntry[] = days
+                .map(day => ({ date: toDateStr(day), hours: parseHoursInput(localValues[toDateStr(day)] ?? '') }))
+                .filter(e => e.hours > 0);
 
-    const triggerRegularSave = useCallback(
-        (dateKey: string, hours: number) => {
-            clearTimeout(regularTimerRefs.current[dateKey]);
-            setSaveStates(prev => ({ ...prev, [dateKey]: 'saving' }));
-            regularTimerRefs.current[dateKey] = setTimeout(async () => {
-                try {
-                    await saveMutation.mutateAsync({ date: dateKey, hours });
-                    setSaveStates(prev => ({ ...prev, [dateKey]: 'saved' }));
-                    setTimeout(() => {
-                        setSaveStates(prev => {
-                            const next = { ...prev };
-                            if (next[dateKey] === 'saved') delete next[dateKey];
-                            return next;
-                        });
-                    }, 2000);
-                } catch {
-                    setSaveStates(prev => ({ ...prev, [dateKey]: 'error' }));
-                }
-            }, SAVE_DELAY_MS);
+            const benefits: SavePeriodBenefitEntry[] = activeBenefitTypes.flatMap(type =>
+                days
+                    .map(day => {
+                        const dk = toDateStr(day);
+                        return {
+                            date: dk,
+                            benefitType: type,
+                            hours: parseHoursInput(benefitLocalValues[`${type}:${dk}`] ?? ''),
+                        };
+                    })
+                    .filter(e => e.hours > 0)
+            );
+
+            return { regular, benefits };
         },
-        [saveMutation],
-    );
+    }), [days, localValues, activeBenefitTypes, benefitLocalValues]);
 
-    const handleRegularChange = useCallback(
-        (dateKey: string, raw: string) => {
-            setLocalValues(prev => ({ ...prev, [dateKey]: raw }));
-            triggerRegularSave(dateKey, parseHoursInput(raw));
-        },
-        [triggerRegularSave],
-    );
+    // ── Change / blur handlers ───────────────────────────────────────────────
 
-    const handleRegularFocus = (dateKey: string) => { activeCell.current = dateKey; };
-    const handleRegularBlur  = (dateKey: string) => {
-        activeCell.current = null;
+    const handleRegularChange = useCallback((dateKey: string, raw: string) => {
+        setLocalValues(prev => ({ ...prev, [dateKey]: raw }));
+    }, []);
+
+    const handleRegularBlur = (dateKey: string) => {
         setLocalValues(prev => ({
             ...prev,
             [dateKey]: fmtHours(parseHoursInput(prev[dateKey] ?? '')),
         }));
     };
 
-    // ── Benefit save helpers ─────────────────────────────────────────────────
+    const handleBenefitChange = useCallback((type: BenefitType, dateKey: string, raw: string) => {
+        setBenefitLocalValues(prev => ({ ...prev, [`${type}:${dateKey}`]: raw }));
+    }, []);
 
-    const triggerBenefitSave = useCallback(
-        (type: BenefitType, dateKey: string, hours: number) => {
-            const cellKey = `${type}:${dateKey}`;
-            clearTimeout(benefitTimerRefs.current[cellKey]);
-            setBenefitSaveStates(prev => ({ ...prev, [cellKey]: 'saving' }));
-
-            benefitTimerRefs.current[cellKey] = setTimeout(async () => {
-                try {
-                    // Delete existing PENDING entries for this date+type before (re-)creating
-                    const existingPending = (benefitMapRef.current.get(type)?.get(dateKey) ?? [])
-                        .filter(e => e.status === 'PENDING');
-                    for (const entry of existingPending) {
-                        await deleteMutation.mutateAsync(entry.id);
-                    }
-                    if (hours > 0) {
-                        await addBenefitMutation.mutateAsync({
-                            date: dateKey,
-                            benefitType: type,
-                            hours,
-                        });
-                    }
-                    setBenefitSaveStates(prev => ({ ...prev, [cellKey]: 'saved' }));
-                    setTimeout(() => {
-                        setBenefitSaveStates(prev => {
-                            const next = { ...prev };
-                            if (next[cellKey] === 'saved') delete next[cellKey];
-                            return next;
-                        });
-                    }, 2000);
-                } catch {
-                    setBenefitSaveStates(prev => ({ ...prev, [cellKey]: 'error' }));
-                }
-            }, SAVE_DELAY_MS);
-        },
-        [addBenefitMutation, deleteMutation],
-    );
-
-    const handleBenefitChange = useCallback(
-        (type: BenefitType, dateKey: string, raw: string) => {
-            const cellKey = `${type}:${dateKey}`;
-            setBenefitLocalValues(prev => ({ ...prev, [cellKey]: raw }));
-            triggerBenefitSave(type, dateKey, parseHoursInput(raw));
-        },
-        [triggerBenefitSave],
-    );
-
-    const handleBenefitFocus = (cellKey: string) => { activeCell.current = cellKey; };
-    const handleBenefitBlur  = (type: BenefitType, dateKey: string) => {
-        activeCell.current = null;
+    const handleBenefitBlur = (type: BenefitType, dateKey: string) => {
         const cellKey = `${type}:${dateKey}`;
         setBenefitLocalValues(prev => ({
             ...prev,
@@ -337,15 +278,13 @@ export const DayGrid = ({
                     <tr>
                         <LabelCell>Godziny regularne</LabelCell>
                         {days.map(day => {
-                            const key      = toDateStr(day);
-                            const weekend  = isWeekendDay(day);
-                            const holiday  = allHolidays.has(key);
-                            const today    = isToday(day);
-                            const disabled = readOnly;
-                            const state    = saveStates[key];
+                            const key     = toDateStr(day);
+                            const weekend = isWeekendDay(day);
+                            const holiday = allHolidays.has(key);
+                            const today   = isToday(day);
                             return (
                                 <DayTd key={key} $weekend={weekend} $holiday={holiday} $today={today}>
-                                    {disabled ? (
+                                    {readOnly ? (
                                         <EmptyDash>—</EmptyDash>
                                     ) : (
                                         <HoursInput
@@ -354,11 +293,7 @@ export const DayGrid = ({
                                             aria-label={`Godziny regularne ${key}`}
                                             value={localValues[key] ?? ''}
                                             placeholder="0"
-                                            disabled={disabled}
-                                            $saving={state === 'saving'}
-                                            $saved={state === 'saved'}
                                             onChange={e => handleRegularChange(key, e.target.value)}
-                                            onFocus={() => handleRegularFocus(key)}
                                             onBlur={() => handleRegularBlur(key)}
                                         />
                                     )}
@@ -370,13 +305,10 @@ export const DayGrid = ({
 
                     {/* ── Benefit rows ── */}
                     {activeBenefitTypes.map(type => {
-                        const typeLabel  = BENEFIT_TYPE_LABELS[type] ?? type;
-                        const typeTotal  = days.reduce((acc, day) => {
-                            const ck = `${type}:${toDateStr(day)}`;
-                            return acc + parseHoursInput(benefitLocalValues[ck] ?? '');
+                        const typeLabel = BENEFIT_TYPE_LABELS[type] ?? type;
+                        const typeTotal = days.reduce((acc, day) => {
+                            return acc + parseHoursInput(benefitLocalValues[`${type}:${toDateStr(day)}`] ?? '');
                         }, 0);
-                        // Row can be removed only when there are no entries at all
-                        // (approved entries can't be deleted here)
                         const hasAnyEntries = (benefitMap.get(type)?.size ?? 0) > 0;
 
                         return (
@@ -402,17 +334,14 @@ export const DayGrid = ({
                                 </BenefitLabelCell>
 
                                 {days.map(day => {
-                                    const dk        = toDateStr(day);
-                                    const cellKey   = `${type}:${dk}`;
-                                    const weekend   = isWeekendDay(day);
-                                    const holiday   = allHolidays.has(dk);
-                                    const today     = isToday(day);
-                                    const cellState = benefitSaveStates[cellKey];
-
-                                    // Cells with an APPROVED entry are read-only
-                                    const cellEntries    = benefitMap.get(type)?.get(dk) ?? [];
-                                    const hasApproved    = cellEntries.some(e => e.status === 'APPROVED');
-                                    const cellDisabled   = readOnly || hasApproved;
+                                    const dk           = toDateStr(day);
+                                    const cellKey      = `${type}:${dk}`;
+                                    const weekend      = isWeekendDay(day);
+                                    const holiday      = allHolidays.has(dk);
+                                    const today        = isToday(day);
+                                    const cellEntries  = benefitMap.get(type)?.get(dk) ?? [];
+                                    const hasApproved  = cellEntries.some(e => e.status === 'APPROVED');
+                                    const cellDisabled = readOnly || hasApproved;
                                     const displayedHours = fmtHours(parseHoursInput(benefitLocalValues[cellKey] ?? ''));
 
                                     return (
@@ -434,10 +363,7 @@ export const DayGrid = ({
                                                     aria-label={`${typeLabel} ${dk}`}
                                                     value={benefitLocalValues[cellKey] ?? ''}
                                                     placeholder="0"
-                                                    $saving={cellState === 'saving'}
-                                                    $saved={cellState === 'saved'}
                                                     onChange={e => handleBenefitChange(type, dk, e.target.value)}
-                                                    onFocus={() => handleBenefitFocus(cellKey)}
                                                     onBlur={() => handleBenefitBlur(type, dk)}
                                                 />
                                             )}
@@ -454,10 +380,10 @@ export const DayGrid = ({
                     <TotalRow>
                         <LabelCell as="td">Suma</LabelCell>
                         {days.map(day => {
-                            const key     = toDateStr(day);
-                            const weekend = isWeekendDay(day);
-                            const holiday = allHolidays.has(key);
-                            const today   = isToday(day);
+                            const key      = toDateStr(day);
+                            const weekend  = isWeekendDay(day);
+                            const holiday  = allHolidays.has(key);
+                            const today    = isToday(day);
                             const dayTotal = grandTotalByDay[key] ?? 0;
                             return (
                                 <DayTd
@@ -483,4 +409,6 @@ export const DayGrid = ({
             </GridTable>
         </GridScrollWrapper>
     );
-};
+});
+
+DayGrid.displayName = 'DayGrid';
