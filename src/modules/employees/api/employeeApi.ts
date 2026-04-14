@@ -26,6 +26,9 @@ import type {
     ConfirmPayrollPayload,
     BonusEntry,
     CreateBonusPayload,
+    EmployeeDocument,
+    InitiateDocumentUploadPayload,
+    InitiateDocumentUploadResponse,
 } from '../types';
 
 const BASE = '/v1/employees';
@@ -209,5 +212,37 @@ export const employeeApi = {
 
     deleteBonus: async (employeeId: string, bonusEntryId: string): Promise<void> => {
         await apiClient.delete(`${BASE}/${employeeId}/bonuses/${bonusEntryId}`);
+    },
+
+    // ─── Documents ────────────────────────────────────────────────────────────
+
+    listDocuments: async (employeeId: string): Promise<EmployeeDocument[]> => {
+        const res = await apiClient.get<EmployeeDocument[]>(`${BASE}/${employeeId}/documents`);
+        return res.data;
+    },
+
+    initiateDocumentUpload: async (
+        employeeId: string,
+        payload: InitiateDocumentUploadPayload,
+    ): Promise<InitiateDocumentUploadResponse> => {
+        const res = await apiClient.post<InitiateDocumentUploadResponse>(
+            `${BASE}/${employeeId}/documents`,
+            payload,
+        );
+        return res.data;
+    },
+
+    getDocumentPreviewUrl: async (employeeId: string, documentId: string): Promise<string> => {
+        const res = await apiClient.get<{ url: string }>(`${BASE}/${employeeId}/documents/${documentId}/preview`);
+        return res.data.url;
+    },
+
+    getDocumentDownloadUrl: async (employeeId: string, documentId: string): Promise<string> => {
+        const res = await apiClient.get<{ url: string }>(`${BASE}/${employeeId}/documents/${documentId}/download`);
+        return res.data.url;
+    },
+
+    deleteDocument: async (employeeId: string, documentId: string): Promise<void> => {
+        await apiClient.delete(`${BASE}/${employeeId}/documents/${documentId}`);
     },
 };

@@ -340,6 +340,28 @@ export interface ConfirmPayrollPayload {
     employerCostTotalCents?: number | null;
 }
 
+// ─── Documents ────────────────────────────────────────────────────────────────
+
+export interface EmployeeDocument {
+    id: string;
+    name: string;
+    fileName: string;
+    fileUrl: string;
+    uploadedAt: string;
+    uploadedByName: string;
+}
+
+export interface InitiateDocumentUploadPayload {
+    name: string;
+    fileName: string;
+    contentType: string;
+}
+
+export interface InitiateDocumentUploadResponse {
+    documentId: string;
+    uploadUrl: string;
+}
+
 // ─── Bonuses ──────────────────────────────────────────────────────────────────
 
 export interface BonusEntry {
