@@ -10,6 +10,12 @@ const LayoutContainer = styled.div`
 
 const ContentWrapper = styled.div<{ $isCollapsed: boolean }>`
     flex: 1;
+    /* Without min-width: 0 a flex-row item's minimum size defaults to its
+       min-content width, which can be thousands of pixels when the page
+       contains a wide table.  Setting it to 0 lets the sidebar + content
+       share the viewport correctly and keeps wide tables from making the
+       whole page horizontally scrollable. */
+    min-width: 0;
     min-height: 100vh;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {

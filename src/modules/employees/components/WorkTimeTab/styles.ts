@@ -12,11 +12,6 @@ export const Section = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0;
-    /* Prevent any child (e.g. the wide day-grid table) from making the page
-       wider than this container.  overflow-x: hidden is set here (rather than
-       on the inner scroll wrapper) so that the GridScrollWrapper scrollbar
-       remains fully visible — it lives inside Section's bounds. */
-    overflow-x: hidden;
 `;
 
 export const TabHeader = styled.div`
