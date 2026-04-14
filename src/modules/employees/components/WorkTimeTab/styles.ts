@@ -12,6 +12,11 @@ export const Section = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0;
+    /* Prevent any child (e.g. the wide day-grid table) from making the page
+       wider than this container.  overflow-x: hidden is set here (rather than
+       on the inner scroll wrapper) so that the GridScrollWrapper scrollbar
+       remains fully visible — it lives inside Section's bounds. */
+    overflow-x: hidden;
 `;
 
 export const TabHeader = styled.div`
@@ -36,6 +41,10 @@ export const PeriodTable = styled.div`
     border: 1px solid ${st.border};
     border-radius: ${st.radiusSm};
     overflow: hidden;
+    /* As a flex item inside Section, min-width: auto would let this element
+       grow to its max-content width, overriding the parent's overflow-x: hidden.
+       Setting min-width: 0 ensures it never expands beyond the available space. */
+    min-width: 0;
 `;
 
 export const PeriodTableHead = styled.div`
