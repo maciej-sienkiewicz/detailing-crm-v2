@@ -82,7 +82,7 @@ export const PayrollTab = ({ employeeId }: Props) => {
     return (
         <Section>
             <TopRow>
-                <SectionTitle>Lista płac</SectionTitle>
+                <SectionTitle>Historia płatności</SectionTitle>
                 {!showGenerateForm && (
                     <GenerateBtn onClick={() => setShowGenerateForm(true)}>+ Generuj listę płac</GenerateBtn>
                 )}
@@ -91,7 +91,7 @@ export const PayrollTab = ({ employeeId }: Props) => {
             {/* ── Generate form ── */}
             {showGenerateForm && (
                 <FormBox>
-                    <FormTitle>Generuj listę płac</FormTitle>
+                    <FormTitle>Wypłata</FormTitle>
                     <FormRow>
                         <Field>
                             <Label>Okres (miesiąc)</Label>

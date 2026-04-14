@@ -730,9 +730,9 @@ export const CompensationTab = ({ employeeId }: Props) => {
                     {/* ── Components management ── */}
                     <Card>
                         <ComponentsHeader>
-                            <ComponentsTitle>Składniki dodatkowe</ComponentsTitle>
+                            <ComponentsTitle>Dodatki do pensji</ComponentsTitle>
                             <AddComponentBtn onClick={() => setShowAddModal(true)}>
-                                + Dodaj składnik
+                                + Dodaj nowy
                             </AddComponentBtn>
                         </ComponentsHeader>
 

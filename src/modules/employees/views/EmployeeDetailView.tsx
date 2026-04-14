@@ -303,7 +303,7 @@ const TABS: { id: TabId; label: string }[] = [
     { id: 'bonuses', label: 'Bonusy i dodatki' },
     { id: 'worktime', label: 'Czas pracy' },
     { id: 'leaves', label: 'Urlopy' },
-    { id: 'payroll', label: 'Lista płac' },
+    { id: 'payroll', label: 'Historia płatności' },
 ];
 
 // ─── Component ───────────────────────────────────────────────────────────────

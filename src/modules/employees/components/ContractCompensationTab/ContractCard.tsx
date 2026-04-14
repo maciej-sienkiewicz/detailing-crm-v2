@@ -247,7 +247,7 @@ export const ContractCard = ({
                     {/* Right: components */}
                     <ComponentsSection>
                         <ComponentsSectionHeader>
-                            <ComponentsSectionLabel>Składniki dodatkowe</ComponentsSectionLabel>
+                            <ComponentsSectionLabel>Dodatki do pensji</ComponentsSectionLabel>
                             <AddComponentBtn onClick={() => setShowAddComponent(true)}>
                                 + Dodaj
                             </AddComponentBtn>
@@ -257,7 +257,7 @@ export const ContractCard = ({
 
                         {!currentConfig || currentConfig.components.length === 0 ? (
                             <ComponentsEmpty>
-                                Brak składników. Dodaj np. premię od obrotu.
+                                Brak dodatków. Dodaj np. premię od obrotu.
                             </ComponentsEmpty>
                         ) : (
                             currentConfig.components.map(comp => (
