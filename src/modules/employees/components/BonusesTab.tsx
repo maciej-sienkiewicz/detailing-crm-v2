@@ -1,259 +1,16 @@
 import { useState } from 'react';
-import styled from 'styled-components';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useBonuses, useCreateBonus, useDeleteBonus } from '../hooks/useBonuses';
 import type { BonusStatus, CreateBonusPayload } from '../types';
-
-// ─── Styled components ────────────────────────────────────────────────────────
-
-const Section = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-`;
-
-const TopRow = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 8px;
-`;
-
-const SectionTitle = styled.h3`
-    margin: 0;
-    font-size: ${st.fontMd};
-    font-weight: 700;
-    color: ${st.text};
-`;
-
-const Actions = styled.div`
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    align-items: center;
-`;
-
-const PeriodInput = styled.input`
-    padding: 7px 10px;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontXs};
-    color: ${st.text};
-    background: ${st.bgInput};
-    outline: none;
-    &:focus { border-color: ${st.accentBlue}; }
-`;
-
-const AddBtn = styled.button`
-    padding: 7px 14px;
-    background: ${st.accentGreen};
-    border: none;
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: #fff;
-    cursor: pointer;
-    &:hover { background: #059669; }
-`;
-
-const DeductBtn = styled.button`
-    padding: 7px 14px;
-    background: ${st.accentRed};
-    border: none;
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: #fff;
-    cursor: pointer;
-    &:hover { opacity: 0.85; }
-`;
-
-const Card = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-`;
-
-const CardMain = styled.div`
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-`;
-
-const BonusName = styled.span`
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    color: ${st.text};
-`;
-
-const BonusMeta = styled.span`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-`;
-
-const BonusNotes = styled.span`
-    font-size: ${st.fontXs};
-    color: ${st.textSecondary};
-    font-style: italic;
-`;
-
-const Amount = styled.span<{ $negative: boolean }>`
-    font-size: ${st.fontMd};
-    font-weight: 700;
-    color: ${({ $negative }) => ($negative ? st.accentRed : st.accentGreen)};
-    white-space: nowrap;
-`;
-
-const StatusBadge = styled.span<{ $status: BonusStatus }>`
-    padding: 2px 8px;
-    border-radius: 9999px;
-    font-size: 11px;
-    font-weight: 600;
-    white-space: nowrap;
-    ${({ $status }) =>
-        $status === 'PENDING'
-            ? 'background: rgba(245,158,11,0.12); color: #D97706;'
-            : 'background: rgba(59,130,246,0.12); color: #2563EB;'}
-`;
-
-const DeleteBtn = styled.button`
-    padding: 4px 10px;
-    background: none;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontXs};
-    color: ${st.accentRed};
-    cursor: pointer;
-    &:hover { background: rgba(239,68,68,0.08); }
-    &:disabled { opacity: 0.4; cursor: not-allowed; }
-`;
-
-const EmptyText = styled.p`
-    margin: 0;
-    padding: 32px 0;
-    text-align: center;
-    color: ${st.textMuted};
-    font-size: ${st.fontSm};
-`;
-
-const Spinner = styled.div`
-    width: 32px;
-    height: 32px;
-    border: 3px solid ${st.border};
-    border-top-color: ${st.accentBlue};
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 32px auto;
-    @keyframes spin { to { transform: rotate(360deg); } }
-`;
-
-// ─── Modal ────────────────────────────────────────────────────────────────────
-
-const Overlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-`;
-
-const ModalBox = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    padding: 24px;
-    width: 100%;
-    max-width: 420px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-`;
-
-const ModalTitle = styled.h3`
-    margin: 0;
-    font-size: ${st.fontMd};
-    font-weight: 700;
-    color: ${st.text};
-`;
-
-const Field = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-`;
-
-const Label = styled.label`
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: ${st.textSecondary};
-`;
-
-const Input = styled.input`
-    padding: 8px 10px;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontSm};
-    color: ${st.text};
-    background: ${st.bgInput};
-    outline: none;
-    &:focus { border-color: ${st.accentBlue}; }
-`;
-
-const Textarea = styled.textarea`
-    padding: 8px 10px;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontSm};
-    color: ${st.text};
-    background: ${st.bgInput};
-    outline: none;
-    resize: vertical;
-    min-height: 60px;
-    &:focus { border-color: ${st.accentBlue}; }
-`;
-
-const ModalActions = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-`;
-
-const CancelBtn = styled.button`
-    padding: 7px 14px;
-    background: none;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: ${st.textSecondary};
-    cursor: pointer;
-`;
-
-const SaveBtn = styled.button<{ $danger?: boolean }>`
-    padding: 7px 16px;
-    background: ${({ $danger }) => ($danger ? st.accentRed : st.accentGreen)};
-    border: none;
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: #fff;
-    cursor: pointer;
-    &:disabled { opacity: 0.6; cursor: not-allowed; }
-`;
-
-const ErrorMsg = styled.p`
-    margin: 0;
-    font-size: ${st.fontXs};
-    color: ${st.accentRed};
-`;
+import {
+    Field, Label, Input, Textarea,
+    CancelBtn, ErrorMsg, Spinner,
+    Overlay, ModalBox, ModalTitle, FormActions,
+    Section, TopRow, SectionTitle, EmptyText,
+    OutlineGreenBtn, OutlineRedBtn,
+    Actions, PeriodInput,
+    Card, CardMain, BonusName, BonusMeta, BonusNotes,
+    Amount, StatusBadge, DeleteBtn, SaveBonusBtn,
+} from './BonusesTab.styles';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -270,7 +27,7 @@ const STATUS_LABELS: Record<BonusStatus, string> = {
     INCLUDED_IN_PAYROLL: 'Wliczony w payroll',
 };
 
-// ─── Add/deduction modal ──────────────────────────────────────────────────────
+// ─── Add / deduction modal ────────────────────────────────────────────────────
 
 interface ModalProps {
     mode: 'bonus' | 'deduction';
@@ -354,12 +111,12 @@ const AddBonusModal = ({ mode, defaultPeriod, onClose, onSave }: ModalProps) => 
                     />
                 </Field>
                 {error && <ErrorMsg>{error}</ErrorMsg>}
-                <ModalActions>
+                <FormActions>
                     <CancelBtn onClick={onClose}>Anuluj</CancelBtn>
-                    <SaveBtn $danger={mode === 'deduction'} onClick={handleSave} disabled={saving}>
+                    <SaveBonusBtn $danger={mode === 'deduction'} onClick={handleSave} disabled={saving}>
                         {saving ? 'Zapisywanie...' : mode === 'bonus' ? 'Dodaj bonus' : 'Dodaj potrącenie'}
-                    </SaveBtn>
-                </ModalActions>
+                    </SaveBonusBtn>
+                </FormActions>
             </ModalBox>
         </Overlay>
     );
@@ -406,8 +163,8 @@ export const BonusesTab = ({ employeeId }: Props) => {
                         value={period}
                         onChange={e => setPeriod(e.target.value)}
                     />
-                    <AddBtn onClick={() => setModal('bonus')}>+ Dodaj bonus</AddBtn>
-                    <DeductBtn onClick={() => setModal('deduction')}>− Dodaj potrącenie</DeductBtn>
+                    <OutlineGreenBtn onClick={() => setModal('bonus')}>+ Dodaj bonus</OutlineGreenBtn>
+                    <OutlineRedBtn onClick={() => setModal('deduction')}>− Dodaj potrącenie</OutlineRedBtn>
                 </Actions>
             </TopRow>
 

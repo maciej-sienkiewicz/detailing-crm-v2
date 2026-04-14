@@ -159,25 +159,24 @@ export const SalarySectionLabel = styled.p`
 `;
 
 export const SalaryAmountBlock = styled.div`
-    background: linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 100%);
-    border: 1px solid #BFDBFE;
-    border-radius: 10px;
-    padding: 12px 14px;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex-wrap: wrap;
 `;
 
 export const SalaryAmountValue = styled.p`
-    margin: 0 0 2px 0;
-    font-size: 22px;
-    font-weight: 800;
-    color: #1D4ED8;
-    line-height: 1.1;
-    letter-spacing: -0.03em;
+    margin: 0;
+    font-size: ${st.fontMd};
+    font-weight: 700;
+    color: ${st.text};
+    line-height: 1.2;
 `;
 
 export const SalaryAmountLabel = styled.p`
     margin: 0;
     font-size: ${st.fontXs};
-    color: #3B82F6;
+    color: ${st.textSecondary};
     font-weight: 500;
 `;
 
@@ -416,17 +415,23 @@ export const HistoryList = styled.div`
 export const HistoryRow = styled.div<{ $current?: boolean }>`
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 6px 0;
+    gap: 6px;
+    padding: 5px 0;
     border-bottom: 1px solid ${st.border};
     &:last-child { border-bottom: none; }
-    opacity: ${p => (p.$current ? 1 : 0.65)};
+    opacity: ${p => (p.$current ? 1 : 0.55)};
 `;
 
 export const HistoryRowLeft = styled.div`
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+`;
+
+export const HistorySep = styled.span`
+    color: ${st.textMuted};
+    font-size: ${st.fontXs};
+    flex-shrink: 0;
 `;
 
 export const HistoryAmountText = styled.span`

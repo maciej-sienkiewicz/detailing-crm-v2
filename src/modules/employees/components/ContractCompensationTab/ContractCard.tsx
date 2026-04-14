@@ -27,15 +27,13 @@ import {
     SalarySection, SalarySectionLabel,
     SalaryAmountBlock, SalaryAmountValue, SalaryAmountLabel,
     SalaryMetaList, SalaryMetaRow, SalaryMetaLabel, SalaryMetaValue,
-    ModeBadge,
     ComponentsSection, ComponentsSectionHeader, ComponentsSectionLabel, AddComponentBtn,
     ComponentRow, ComponentDot, ComponentInfo, ComponentName, ComponentMeta,
     ComponentValueBadge, TypePill, ComponentActionGroup, ToggleBtn, DeleteComponentBtn,
     ComponentsEmpty,
     InactiveSummary, InactiveSalarySummary, TerminationInfo,
     HistorySection, HistoryToggle, HistoryToggleIcon, HistoryList,
-    HistoryRow, HistoryRowLeft, HistoryAmountText, HistoryPeriod, CurrentTag,
-    ModeBadge as _ModeBadge,
+    HistoryRow, HistoryAmountText, HistoryPeriod, HistorySep, CurrentTag,
     ErrorMsg,
 } from './styles';
 
@@ -157,7 +155,7 @@ export const ContractCard = ({
     // ── Salary display helpers ──
     const renderSalaryAmount = () => {
         const sb = contract.salaryBasis;
-        if (!sb) return <SalaryAmountValue style={{ fontSize: 16, color: '#94A3B8' }}>—</SalaryAmountValue>;
+        if (!sb) return <SalaryAmountValue>—</SalaryAmountValue>;
         if (sb.monthlySalaryGrossCents != null) {
             return (
                 <>
@@ -174,7 +172,7 @@ export const ContractCard = ({
                 </>
             );
         }
-        return <SalaryAmountValue style={{ fontSize: 16, color: '#94A3B8' }}>—</SalaryAmountValue>;
+        return <SalaryAmountValue>—</SalaryAmountValue>;
     };
 
     // ── Inactive summary salary text ──
@@ -331,17 +329,10 @@ export const ContractCard = ({
                         <HistoryList>
                             {amendments.map((a, idx) => (
                                 <HistoryRow key={a.id} $current={idx === 0}>
-                                    <HistoryRowLeft>
-                                        <ModeBadge $mode={a.employmentMode}>
-                                            {a.employmentMode === 'SALARY' ? 'Etat' : 'Godz.'}
-                                        </ModeBadge>
-                                        <HistoryAmountText>{amendmentAmountText(a)}</HistoryAmountText>
-                                        {idx === 0 && <CurrentTag>aktualna</CurrentTag>}
-                                    </HistoryRowLeft>
-                                    <HistoryPeriod>
-                                        od {formatDate(a.effectiveFrom)}
-                                        {a.effectiveTo ? ` → ${formatDate(a.effectiveTo)}` : ''}
-                                    </HistoryPeriod>
+                                    <HistoryPeriod>od {formatDate(a.effectiveFrom)}</HistoryPeriod>
+                                    <HistorySep>·</HistorySep>
+                                    <HistoryAmountText>{amendmentAmountText(a)}</HistoryAmountText>
+                                    {idx === 0 && <CurrentTag>aktualna</CurrentTag>}
                                 </HistoryRow>
                             ))}
                         </HistoryList>

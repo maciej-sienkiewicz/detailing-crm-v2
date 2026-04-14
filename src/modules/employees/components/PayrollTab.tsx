@@ -1,244 +1,19 @@
 import { useState } from 'react';
-import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { usePayroll, useGeneratePayroll, useConfirmPayroll } from '../hooks/usePayroll';
 import { useCurrentCompensation } from '../hooks/useCompensation';
 import { useBonuses } from '../hooks/useBonuses';
-import type { PayrollStatus, GeneratePayrollPayload, ConfirmPayrollPayload } from '../types';
+import type { GeneratePayrollPayload, ConfirmPayrollPayload } from '../types';
+import {
+    Field, Label, Input, CancelBtn, ErrorMsg, Spinner, EmptyText,
+    FormActions, Section, TopRow, SectionTitle, FormBox, FormTitle, FormRow, InfoNote,
+    TableWrapper, Table, Thead, Th, Tbody, Tr, Td, TdMuted,
+    GenerateBtn, SaveBtn,
+    PeriodCell, AmountCell, StatusBadge, ConfirmBtn,
+    BreakdownTr, BreakdownTd, BreakdownAmountTd, ExpandToggle,
+} from './PayrollTab.styles';
 
-const Section = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-`;
-
-const TopRow = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-`;
-
-const SectionTitle = styled.h3`
-    margin: 0;
-    font-size: ${st.fontMd};
-    font-weight: 700;
-    color: ${st.text};
-`;
-
-const GenerateBtn = styled.button`
-    padding: 7px 16px;
-    background: ${st.accentGreen};
-    border: none;
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: #fff;
-    cursor: pointer;
-    &:hover { background: #059669; }
-`;
-
-const Card = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-`;
-
-const CardHeader = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-`;
-
-const CardPeriod = styled.span`
-    font-size: ${st.fontSm};
-    font-weight: 700;
-    color: ${st.text};
-`;
-
-const StatusBadge = styled.span<{ $status: PayrollStatus }>`
-    padding: 2px 8px;
-    border-radius: 9999px;
-    font-size: 11px;
-    font-weight: 600;
-    ${({ $status }) => {
-        if ($status === 'PAID') return 'background: rgba(16,185,129,0.12); color: #059669;';
-        if ($status === 'CONFIRMED') return 'background: rgba(59,130,246,0.12); color: #2563EB;';
-        return 'background: rgba(245,158,11,0.12); color: #D97706;';
-    }}
-`;
-
-const AmountRow = styled.div`
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-`;
-
-const AmountItem = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-`;
-
-const AmountLabel = styled.span`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-`;
-
-const AmountValue = styled.span`
-    font-size: ${st.fontMd};
-    font-weight: 700;
-    color: ${st.text};
-`;
-
-const BreakdownTitle = styled.p`
-    margin: 0;
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: ${st.textSecondary};
-`;
-
-const BreakdownRow = styled.div`
-    display: flex;
-    justify-content: space-between;
-    padding: 4px 0;
-    font-size: ${st.fontXs};
-    color: ${st.textSecondary};
-    border-bottom: 1px solid ${st.border};
-    &:last-child { border-bottom: none; }
-`;
-
-const ConfirmBtn = styled.button`
-    align-self: flex-start;
-    padding: 6px 14px;
-    background: ${st.accentBlue};
-    border: none;
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: #fff;
-    cursor: pointer;
-    &:disabled { opacity: 0.6; cursor: not-allowed; }
-`;
-
-const EmptyText = styled.p`
-    margin: 0;
-    padding: 32px 0;
-    text-align: center;
-    color: ${st.textMuted};
-    font-size: ${st.fontSm};
-`;
-
-const Spinner = styled.div`
-    width: 32px;
-    height: 32px;
-    border: 3px solid ${st.border};
-    border-top-color: ${st.accentBlue};
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 32px auto;
-    @keyframes spin { to { transform: rotate(360deg); } }
-`;
-
-const FormBox = styled.div`
-    background: ${st.bgCardAlt};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-`;
-
-const FormTitle = styled.h4`
-    margin: 0;
-    font-size: ${st.fontSm};
-    font-weight: 700;
-    color: ${st.text};
-`;
-
-const Row = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-`;
-
-const Field = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-`;
-
-const Label = styled.label`
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: ${st.textSecondary};
-`;
-
-const Input = styled.input`
-    padding: 8px 10px;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontSm};
-    color: ${st.text};
-    background: ${st.bgInput};
-    outline: none;
-    &:focus { border-color: ${st.accentBlue}; }
-`;
-
-const FormActions = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-`;
-
-const CancelBtn = styled.button`
-    padding: 7px 14px;
-    background: none;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: ${st.textSecondary};
-    cursor: pointer;
-`;
-
-const SaveBtn = styled.button`
-    padding: 7px 16px;
-    background: ${st.accentGreen};
-    border: none;
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: #fff;
-    cursor: pointer;
-    &:disabled { opacity: 0.6; cursor: not-allowed; }
-`;
-
-const ErrorMsg = styled.p`
-    margin: 0;
-    font-size: ${st.fontXs};
-    color: ${st.accentRed};
-`;
-
-const InfoNote = styled.p`
-    margin: 0;
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    background: ${st.bgCardAlt};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    padding: 8px 10px;
-`;
-
-const STATUS_LABELS: Record<PayrollStatus, string> = {
-    DRAFT: 'Szkic',
-    CONFIRMED: 'Zatwierdzony',
-    PAID: 'Wypłacony',
-};
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const formatCents = (cents: number) =>
     new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(cents / 100);
@@ -247,6 +22,14 @@ const currentMonth = () => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
+
+const STATUS_LABELS = {
+    DRAFT: 'Szkic',
+    CONFIRMED: 'Zatwierdzony',
+    PAID: 'Wypłacony',
+} as const;
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props { employeeId: string; }
 
@@ -261,6 +44,7 @@ export const PayrollTab = ({ employeeId }: Props) => {
     const [confirmingId, setConfirmingId] = useState<string | null>(null);
     const [confirmForm, setConfirmForm] = useState<ConfirmPayrollPayload>({ markAsPaid: false });
     const [formError, setFormError] = useState('');
+    const [expandedId, setExpandedId] = useState<string | null>(null);
 
     const { bonuses: pendingBonuses } = useBonuses(employeeId, generateForm.period);
     const pendingCount = pendingBonuses.filter(b => b.status === 'PENDING').length;
@@ -292,6 +76,9 @@ export const PayrollTab = ({ employeeId }: Props) => {
 
     if (isLoading) return <Spinner />;
 
+    // column count for colspan in breakdown rows
+    const COL_COUNT = 7;
+
     return (
         <Section>
             <TopRow>
@@ -301,10 +88,11 @@ export const PayrollTab = ({ employeeId }: Props) => {
                 )}
             </TopRow>
 
+            {/* ── Generate form ── */}
             {showGenerateForm && (
                 <FormBox>
                     <FormTitle>Generuj listę płac</FormTitle>
-                    <Row>
+                    <FormRow>
                         <Field>
                             <Label>Okres (miesiąc)</Label>
                             <Input
@@ -313,9 +101,9 @@ export const PayrollTab = ({ employeeId }: Props) => {
                                 onChange={e => setGenerateForm(p => ({ ...p, period: e.target.value }))}
                             />
                         </Field>
-                    </Row>
+                    </FormRow>
                     {needsGrossRevenue && (
-                        <Row>
+                        <FormRow>
                             <Field>
                                 <Label>Przychód brutto pracownika (PLN)</Label>
                                 <Input
@@ -333,10 +121,10 @@ export const PayrollTab = ({ employeeId }: Props) => {
                                     }
                                 />
                             </Field>
-                        </Row>
+                        </FormRow>
                     )}
                     {needsNetRevenue && (
-                        <Row>
+                        <FormRow>
                             <Field>
                                 <Label>Przychód netto pracownika (PLN)</Label>
                                 <Input
@@ -354,11 +142,12 @@ export const PayrollTab = ({ employeeId }: Props) => {
                                     }
                                 />
                             </Field>
-                        </Row>
+                        </FormRow>
                     )}
                     {pendingCount > 0 && (
                         <InfoNote>
-                            Zostaną wliczone {pendingCount} oczekujące{pendingCount === 1 ? '' : 'go'} bonus{pendingCount === 1 ? '' : 'ów'} / potrąceń za okres {generateForm.period}.
+                            Zostaną wliczone {pendingCount} oczekujące{pendingCount === 1 ? '' : 'go'} bonus
+                            {pendingCount === 1 ? '' : 'ów'} / potrąceń za okres {generateForm.period}.
                         </InfoNote>
                     )}
                     {formError && <ErrorMsg>{formError}</ErrorMsg>}
@@ -371,16 +160,22 @@ export const PayrollTab = ({ employeeId }: Props) => {
                 </FormBox>
             )}
 
+            {/* ── Confirm form ── */}
             {confirmingId && (
                 <FormBox>
                     <FormTitle>Zatwierdź listę płac</FormTitle>
-                    <Row>
+                    <FormRow>
                         <Field>
                             <Label>Kwota netto (PLN)</Label>
                             <Input
                                 type="number"
                                 placeholder="np. 4200.00"
-                                onChange={e => setConfirmForm(p => ({ ...p, totalNetCents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null }))}
+                                onChange={e => setConfirmForm(p => ({
+                                    ...p,
+                                    totalNetCents: e.target.value
+                                        ? Math.round(parseFloat(e.target.value) * 100)
+                                        : null,
+                                }))}
                                 min={0}
                                 step={0.01}
                             />
@@ -390,13 +185,21 @@ export const PayrollTab = ({ employeeId }: Props) => {
                             <Input
                                 type="number"
                                 placeholder="np. 6000.00"
-                                onChange={e => setConfirmForm(p => ({ ...p, employerCostTotalCents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null }))}
+                                onChange={e => setConfirmForm(p => ({
+                                    ...p,
+                                    employerCostTotalCents: e.target.value
+                                        ? Math.round(parseFloat(e.target.value) * 100)
+                                        : null,
+                                }))}
                                 min={0}
                                 step={0.01}
                             />
                         </Field>
-                    </Row>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: st.fontXs, color: st.textSecondary, cursor: 'pointer' }}>
+                    </FormRow>
+                    <label style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        fontSize: st.fontXs, color: st.textSecondary, cursor: 'pointer',
+                    }}>
                         <input
                             type="checkbox"
                             checked={confirmForm.markAsPaid ?? false}
@@ -414,53 +217,80 @@ export const PayrollTab = ({ employeeId }: Props) => {
                 </FormBox>
             )}
 
+            {/* ── Table ── */}
             {entries.length === 0 ? (
                 <EmptyText>Brak wygenerowanych list płac.</EmptyText>
             ) : (
-                entries.map(e => (
-                    <Card key={e.id}>
-                        <CardHeader>
-                            <CardPeriod>{e.period}</CardPeriod>
-                            <StatusBadge $status={e.status}>{STATUS_LABELS[e.status]}</StatusBadge>
-                        </CardHeader>
-                        <AmountRow>
-                            <AmountItem>
-                                <AmountLabel>Wynagrodzenie brutto</AmountLabel>
-                                <AmountValue>{formatCents(e.totalGrossCents)}</AmountValue>
-                            </AmountItem>
-                            {e.totalNetCents != null && (
-                                <AmountItem>
-                                    <AmountLabel>Netto</AmountLabel>
-                                    <AmountValue>{formatCents(e.totalNetCents)}</AmountValue>
-                                </AmountItem>
-                            )}
-                            {e.employerCostTotalCents != null && (
-                                <AmountItem>
-                                    <AmountLabel>Koszt pracodawcy</AmountLabel>
-                                    <AmountValue>{formatCents(e.employerCostTotalCents)}</AmountValue>
-                                </AmountItem>
-                            )}
-                            <AmountItem>
-                                <AmountLabel>Przepracowane godziny</AmountLabel>
-                                <AmountValue>{Number(e.totalHoursWorked).toFixed(1)} h</AmountValue>
-                            </AmountItem>
-                        </AmountRow>
-                        {e.componentBreakdown.length > 0 && (
-                            <>
-                                <BreakdownTitle>Składniki</BreakdownTitle>
-                                {e.componentBreakdown.map((b, i) => (
-                                    <BreakdownRow key={i}>
-                                        <span>{b.componentName}</span>
-                                        <span>{formatCents(b.calculatedAmountCents)}</span>
-                                    </BreakdownRow>
-                                ))}
-                            </>
-                        )}
-                        {e.status === 'DRAFT' && !confirmingId && (
-                            <ConfirmBtn onClick={() => setConfirmingId(e.id)}>Zatwierdź listę płac</ConfirmBtn>
-                        )}
-                    </Card>
-                ))
+                <TableWrapper>
+                    <Table>
+                        <Thead>
+                            <tr>
+                                <Th>Okres</Th>
+                                <Th>Status</Th>
+                                <Th>Brutto</Th>
+                                <Th>Netto</Th>
+                                <Th>Koszt pr.</Th>
+                                <Th>Godziny</Th>
+                                <Th></Th>
+                            </tr>
+                        </Thead>
+                        <Tbody>
+                            {entries.map(e => {
+                                const isExpanded = expandedId === e.id;
+                                const hasBreakdown = e.componentBreakdown.length > 0;
+                                return (
+                                    <>
+                                        <Tr key={e.id}>
+                                            <Td>
+                                                <PeriodCell>
+                                                    {hasBreakdown && (
+                                                        <ExpandToggle
+                                                            onClick={() => setExpandedId(isExpanded ? null : e.id)}
+                                                            title={isExpanded ? 'Zwiń składniki' : 'Rozwiń składniki'}
+                                                        >
+                                                            {isExpanded ? '▾ ' : '▸ '}
+                                                        </ExpandToggle>
+                                                    )}
+                                                    {e.period}
+                                                </PeriodCell>
+                                            </Td>
+                                            <Td>
+                                                <StatusBadge $status={e.status}>
+                                                    {STATUS_LABELS[e.status]}
+                                                </StatusBadge>
+                                            </Td>
+                                            <Td>
+                                                <AmountCell>{formatCents(e.totalGrossCents)}</AmountCell>
+                                            </Td>
+                                            <TdMuted>
+                                                {e.totalNetCents != null ? formatCents(e.totalNetCents) : '—'}
+                                            </TdMuted>
+                                            <TdMuted>
+                                                {e.employerCostTotalCents != null
+                                                    ? formatCents(e.employerCostTotalCents)
+                                                    : '—'}
+                                            </TdMuted>
+                                            <TdMuted>{Number(e.totalHoursWorked).toFixed(1)} h</TdMuted>
+                                            <Td>
+                                                {e.status === 'DRAFT' && !confirmingId && (
+                                                    <ConfirmBtn onClick={() => setConfirmingId(e.id)}>
+                                                        Zatwierdź
+                                                    </ConfirmBtn>
+                                                )}
+                                            </Td>
+                                        </Tr>
+                                        {isExpanded && hasBreakdown && e.componentBreakdown.map((b, i) => (
+                                            <BreakdownTr key={`${e.id}-b-${i}`}>
+                                                <BreakdownTd colSpan={COL_COUNT - 1}>{b.componentName}</BreakdownTd>
+                                                <BreakdownAmountTd>{formatCents(b.calculatedAmountCents)}</BreakdownAmountTd>
+                                            </BreakdownTr>
+                                        ))}
+                                    </>
+                                );
+                            })}
+                        </Tbody>
+                    </Table>
+                </TableWrapper>
             )}
         </Section>
     );
