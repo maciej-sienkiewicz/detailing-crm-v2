@@ -29,6 +29,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const form = useQuickEventForm({ isOpen, eventData, onClose, onSave, ref });
 
     const [serviceDropdownPos, setServiceDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+    const [autoOpenModel, setAutoOpenModel] = useState(false);
+
+    useEffect(() => {
+        if (!isOpen) setAutoOpenModel(false);
+    }, [isOpen]);
 
     useEffect(() => {
         if (!form.showServiceDropdown) { setServiceDropdownPos(null); return; }
@@ -456,7 +461,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         <BrandSelect
                                                             compact
                                                             value={form.vehicleBrand}
-                                                            onChange={(brand) => { form.setVehicleBrand(brand); form.setVehicleModel(''); form.setFocusedField('vehicle'); }}
+                                                            onChange={(brand) => { form.setVehicleBrand(brand); form.setVehicleModel(''); form.setFocusedField('vehicle'); setAutoOpenModel(true); }}
                                                             onBlur={() => form.setFocusedField(null)}
                                                         />
                                                     </S.CustomerFieldGroup>
@@ -468,6 +473,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             value={form.vehicleModel}
                                                             onChange={(model) => { form.setVehicleModel(model); form.setFocusedField('vehicle'); }}
                                                             onBlur={() => form.setFocusedField(null)}
+                                                            autoOpen={autoOpenModel}
                                                         />
                                                     </S.CustomerFieldGroup>
                                                     <S.CustomerFieldGroup>
@@ -604,7 +610,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         <BrandSelect
                                                             compact
                                                             value={form.vehicleBrand}
-                                                            onChange={(brand) => { form.setVehicleBrand(brand); form.setVehicleModel(''); form.setFocusedField('vehicle'); }}
+                                                            onChange={(brand) => { form.setVehicleBrand(brand); form.setVehicleModel(''); form.setFocusedField('vehicle'); setAutoOpenModel(true); }}
                                                             onBlur={() => form.setFocusedField(null)}
                                                         />
                                                     </S.CustomerFieldGroup>
@@ -616,6 +622,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             value={form.vehicleModel}
                                                             onChange={(model) => { form.setVehicleModel(model); form.setFocusedField('vehicle'); }}
                                                             onBlur={() => form.setFocusedField(null)}
+                                                            autoOpen={autoOpenModel}
                                                         />
                                                     </S.CustomerFieldGroup>
                                                     <S.CustomerFieldGroup>
