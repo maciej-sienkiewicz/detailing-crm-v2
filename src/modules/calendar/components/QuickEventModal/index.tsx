@@ -184,7 +184,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             onChange={(e) => form.setCustomerFirstName(e.target.value)}
                                                             onFocus={() => form.setFocusedField('customer')}
                                                             onBlur={() => form.setFocusedField(null)}
-                                                            autoComplete="off"
+                                                            autoComplete="new-password"
                                                             autoFocus
                                                         />
                                                     </S.CustomerFieldGroup>
@@ -198,7 +198,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             onChange={(e) => form.setCustomerLastName(e.target.value)}
                                                             onFocus={() => form.setFocusedField('customer')}
                                                             onBlur={() => form.setFocusedField(null)}
-                                                            autoComplete="off"
+                                                            autoComplete="new-password"
                                                         />
                                                     </S.CustomerFieldGroup>
                                                 </S.CustomerInputRow>
@@ -213,7 +213,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             onChange={(e) => form.setCustomerPhone(e.target.value)}
                                                             onFocus={() => form.setFocusedField('customer')}
                                                             onBlur={() => form.setFocusedField(null)}
-                                                            autoComplete="off"
+                                                            autoComplete="new-password"
                                                         />
                                                     </S.CustomerFieldGroup>
                                                     <S.CustomerFieldGroup>
@@ -226,7 +226,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             onChange={(e) => form.setCustomerEmail(e.target.value)}
                                                             onFocus={() => form.setFocusedField('customer')}
                                                             onBlur={() => form.setFocusedField(null)}
-                                                            autoComplete="off"
+                                                            autoComplete="new-password"
                                                         />
                                                     </S.CustomerFieldGroup>
                                                 </S.CustomerInputRow>
@@ -314,7 +314,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                 }}
                                                                 onFocus={form.handleCustomerFieldFocus}
                                                                 onBlur={form.handleCustomerFieldBlur}
-                                                                autoComplete="off"
+                                                                autoComplete="new-password"
                                                             />
                                                         </S.CustomerFieldGroup>
                                                         <S.CustomerFieldGroup>
@@ -330,7 +330,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                 }}
                                                                 onFocus={form.handleCustomerFieldFocus}
                                                                 onBlur={form.handleCustomerFieldBlur}
-                                                                autoComplete="off"
+                                                                autoComplete="new-password"
                                                             />
                                                         </S.CustomerFieldGroup>
                                                     </S.CustomerInputRow>
@@ -348,7 +348,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                 }}
                                                                 onFocus={form.handleCustomerFieldFocus}
                                                                 onBlur={form.handleCustomerFieldBlur}
-                                                                autoComplete="off"
+                                                                autoComplete="new-password"
                                                             />
                                                         </S.CustomerFieldGroup>
                                                         <S.CustomerFieldGroup>
@@ -364,7 +364,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                 }}
                                                                 onFocus={form.handleCustomerFieldFocus}
                                                                 onBlur={form.handleCustomerFieldBlur}
-                                                                autoComplete="off"
+                                                                autoComplete="new-password"
                                                             />
                                                         </S.CustomerFieldGroup>
                                                     </S.CustomerInputRow>
@@ -478,7 +478,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             onChange={(e) => form.setVehicleYear(e.target.value.replace(/\D/g, ''))}
                                                             onFocus={() => form.setFocusedField('vehicle')}
                                                             onBlur={() => form.setFocusedField(null)}
-                                                            autoComplete="off"
+                                                            autoComplete="new-password"
                                                         />
                                                     </S.CustomerFieldGroup>
                                                 </S.VehicleInputRow>
@@ -630,7 +630,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             onChange={(e) => { form.setVehicleYear(e.target.value.replace(/\D/g, '')); form.setFocusedField('vehicle'); }}
                                                             onFocus={() => form.setFocusedField('vehicle')}
                                                             onBlur={() => form.setFocusedField(null)}
-                                                            autoComplete="off"
+                                                            autoComplete="new-password"
                                                         />
                                                     </S.CustomerFieldGroup>
                                                 </S.VehicleInputRow>
