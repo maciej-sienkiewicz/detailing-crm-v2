@@ -17,7 +17,7 @@ export const useSmsReminder = (visitId: string) => {
     const pendingReminder = reminders.find(r => r.status === 'PENDING') ?? null;
 
     const { mutateAsync: generateContent, isPending: isGenerating } = useMutation({
-        mutationFn: () => smsReminderApi.generateContent(visitId),
+        mutationFn: (scheduledFor: string) => smsReminderApi.generateContent(visitId, scheduledFor),
     });
 
     const { mutateAsync: scheduleReminder, isPending: isScheduling } = useMutation({

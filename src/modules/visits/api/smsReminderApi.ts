@@ -20,9 +20,10 @@ export interface GeneratedSmsContentResponse {
 }
 
 export const smsReminderApi = {
-    generateContent: async (visitId: string): Promise<GeneratedSmsContentResponse> => {
+    generateContent: async (visitId: string, scheduledFor: string): Promise<GeneratedSmsContentResponse> => {
         const { data } = await apiClient.post<GeneratedSmsContentResponse>(
-            `/visits/${visitId}/sms-reminder/generate`
+            `/visits/${visitId}/sms-reminder/generate`,
+            { scheduledFor }
         );
         return data;
     },

@@ -341,7 +341,7 @@ export const SmsReminderModal = ({ visitId, customer, existingReminder, onClose 
     }, [existingReminder]);
 
     const handleGenerate = async () => {
-        const result = await generateContent();
+        const result = await generateContent(new Date(scheduledFor).toISOString());
         setMessage(result.content);
     };
 
