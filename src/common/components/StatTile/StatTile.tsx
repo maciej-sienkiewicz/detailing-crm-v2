@@ -38,11 +38,11 @@ const TileCard = styled.div<{
   $compact: boolean;
 }>`
   position: relative;
-  background: ${p => p.$bgGradient};
+  background: #ffffff;
   border: 1px solid ${p => p.theme.colors.border};
   border-top: 3px solid ${p => p.$accentColor};
   border-radius: ${p => p.theme.radii.xl};
-  padding: ${p => p.$compact ? '14px 16px' : '20px'};
+  padding: ${p => p.$compact ? '14px 16px' : '20px 20px 18px'};
   box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.04);
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 150ms ease;
 
@@ -51,7 +51,8 @@ const TileCard = styled.div<{
     user-select: none;
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 14px rgba(0,0,0,0.09), 0 16px 40px rgba(0,0,0,0.06);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      border-color: #cbd5e1;
     }
   `}
 
@@ -98,13 +99,13 @@ const TileArrow = styled.div<{ $active: boolean }>`
 `;
 
 const TileValue = styled.div<{ $compact: boolean }>`
-  font-size: ${p => p.$compact ? '26px' : '48px'};
+  font-size: ${p => p.$compact ? '26px' : '28px'};
   font-weight: 800;
   color: ${p => p.theme.colors.text};
   line-height: 1;
-  margin-bottom: ${p => p.$compact ? '5px' : '8px'};
+  margin-bottom: ${p => p.$compact ? '5px' : '4px'};
   font-variant-numeric: tabular-nums;
-  letter-spacing: ${p => p.$compact ? '-0.5px' : '-2px'};
+  letter-spacing: ${p => p.$compact ? '-0.5px' : '-1px'};
 `;
 
 const TileLabel = styled.div<{ $compact: boolean }>`
@@ -113,7 +114,7 @@ const TileLabel = styled.div<{ $compact: boolean }>`
   color: ${p => p.theme.colors.textMuted};
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: ${p => p.$compact ? '6px' : '10px'};
+  margin: 0 0 ${p => p.$compact ? '6px' : '6px'} 0;
 `;
 
 const TileSubRow = styled.div`

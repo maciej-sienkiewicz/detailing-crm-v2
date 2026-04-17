@@ -4,18 +4,20 @@
 
 import { useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CalendarPlus, Sparkles, TrendingUp, TrendingDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { OperationalScorecard } from '../components/OperationalScorecard';
 import { AnalyticsSection } from '../components/AnalyticsSection';
 import { GoogleReviewsSection } from '../components/GoogleReviewsSection';
 import { useDashboard, useDashboardSocket } from '../hooks';
+import { formatCurrency } from '@/common/utils/formatters';
+import type { OperationalStats, BusinessMetric } from '../types';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const getGreeting = (): string => {
   const h = new Date().getHours();
-  if (h >= 5 && h < 12) return 'Dzień dobry';
-  if (h >= 12 && h < 18) return 'Dzień dobry';
+  if (h >= 5 && h < 18) return 'Dzień dobry';
   return 'Dobry wieczór';
 };
 
@@ -29,11 +31,29 @@ const formatLocalDate = (): string =>
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+const getHeroDesc = (stats?: OperationalStats): string => {
+  if (!stats) return '';
+  const parts: string[] = [];
+  if (stats.incomingToday > 0) {
+    const n = stats.incomingToday;
+    const suffix = n === 1 ? 'wizyta' : n < 5 ? 'wizyty' : 'wizyt';
+    parts.push(`Dziś na warsztacie ${n} ${suffix}`);
+  }
+  if (stats.inProgress > 0) parts.push(`${stats.inProgress} w trakcie realizacji`);
+  if (stats.readyForPickup > 0) parts.push(`${stats.readyForPickup} gotowych do wydania`);
+  return parts.length > 0 ? parts.join(' · ') + '.' : 'Brak aktywnych wizyt na dziś.';
+};
+
 // ─── Animations ───────────────────────────────────────────────────────────────
 
 const fadeUp = keyframes`
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
+`;
+
+const pulse = keyframes`
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
 `;
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
@@ -60,17 +80,18 @@ const HeroCard = styled.div`
   overflow: hidden;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 65%, #0c1f35 100%);
   border-radius: ${p => p.theme.radii.xl};
-  padding: 28px 32px;
+  padding: 32px;
   box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 8px 32px rgba(0,0,0,0.16);
 
   &::before {
     content: '';
     position: absolute;
-    top: -80px;
-    right: -60px;
-    width: 320px;
-    height: 320px;
-    background: radial-gradient(circle, rgba(14, 165, 233, 0.14) 0%, transparent 65%);
+    top: -120px;
+    right: -80px;
+    width: 360px;
+    height: 360px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(14,165,233,0.35) 0%, rgba(14,165,233,0) 60%);
     pointer-events: none;
   }
 
@@ -79,28 +100,164 @@ const HeroCard = styled.div`
   }
 `;
 
-const HeroGreeting = styled.h1`
+const HeroRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 32px;
   position: relative;
-  z-index: 1;
-  margin: 0 0 4px 0;
-  font-size: 30px;
-  font-weight: 700;
-  color: #f1f5f9;
-  letter-spacing: -0.5px;
-  line-height: 1.1;
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    font-size: 34px;
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    flex-direction: column;
+    gap: 24px;
   }
 `;
 
-const HeroDate = styled.p`
+const HeroLeft = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const HeroEyebrow = styled.p`
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin: 0 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const LiveDot = styled.span`
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.2);
+  animation: ${pulse} 2s infinite;
+  flex-shrink: 0;
+`;
+
+const HeroGreeting = styled.h1`
   position: relative;
   z-index: 1;
-  margin: 0;
+  margin: 0 0 8px 0;
+  font-size: 34px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    font-size: 28px;
+  }
+`;
+
+const HeroDesc = styled.p`
   font-size: 14px;
-  color: #475569;
-  font-weight: 500;
+  color: #94a3b8;
+  max-width: 520px;
+  margin: 0 0 20px;
+  line-height: 1.55;
+`;
+
+const HeroActions = styled.div`
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+const HeroBtnPrimary = styled.button`
+  background: #0ea5e9;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  padding: 10px 20px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(14,165,233,0.28);
+  transition: all 180ms ease;
+  font-family: inherit;
+
+  &:hover {
+    background: #0284c7;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(14,165,233,0.36);
+  }
+
+  svg { width: 16px; height: 16px; stroke-width: 2; }
+`;
+
+const HeroBtnGhost = styled.button`
+  background: rgba(255,255,255,0.08);
+  color: #f1f5f9;
+  border: 1px solid rgba(255,255,255,0.14);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  padding: 10px 20px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 180ms ease;
+  font-family: inherit;
+
+  &:hover { background: rgba(255,255,255,0.14); }
+  svg { width: 16px; height: 16px; stroke-width: 2; }
+`;
+
+// ─── Hero KPI card ────────────────────────────────────────────────────────────
+
+const HeroKpiCard = styled.div`
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 18px 22px;
+  min-width: 220px;
+  backdrop-filter: blur(4px);
+  flex-shrink: 0;
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    min-width: 0;
+    width: 100%;
+  }
+`;
+
+const HeroKpiEyebrow = styled.div`
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0 0 6px;
+`;
+
+const HeroKpiNumber = styled.div`
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -1.2px;
+  line-height: 1;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+`;
+
+const HeroKpiDelta = styled.div<{ $positive: boolean }>`
+  font-size: 12px;
+  font-weight: 600;
+  color: ${p => p.$positive ? '#10b981' : '#f87171'};
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  svg { width: 13px; height: 13px; stroke-width: 2.5; }
 `;
 
 // ─── Section Divider ──────────────────────────────────────────────────────────
@@ -177,10 +334,28 @@ const RetryBtn = styled.button`
   &:hover { opacity: 0.85; }
 `;
 
+// ─── Hero KPI sub-component ───────────────────────────────────────────────────
+
+const RevenueKpiCard = ({ revenue }: { revenue?: BusinessMetric }) => {
+  if (!revenue) return null;
+  const positive = revenue.deltaPercentage >= 0;
+  return (
+    <HeroKpiCard>
+      <HeroKpiEyebrow>Przychód · tydzień</HeroKpiEyebrow>
+      <HeroKpiNumber>{formatCurrency(revenue.currentValue)}</HeroKpiNumber>
+      <HeroKpiDelta $positive={positive}>
+        {positive ? <TrendingUp /> : <TrendingDown />}
+        {positive ? '+' : ''}{revenue.deltaPercentage.toFixed(1)}% vs. poprzedni tydzień
+      </HeroKpiDelta>
+    </HeroKpiCard>
+  );
+};
+
 // ─── View ─────────────────────────────────────────────────────────────────────
 
 export const DashboardView = () => {
   useDashboardSocket();
+  const navigate = useNavigate();
 
   const {
     stats,
@@ -194,13 +369,33 @@ export const DashboardView = () => {
 
   const greeting = useMemo(() => getGreeting(), []);
   const localDate = useMemo(() => capitalize(formatLocalDate()), []);
+  const heroDesc = useMemo(() => getHeroDesc(stats), [stats]);
 
   return (
     <ViewContainer>
 
       <HeroCard>
-        <HeroGreeting>{greeting}!</HeroGreeting>
-        <HeroDate>{localDate}</HeroDate>
+        <HeroRow>
+          <HeroLeft>
+            <HeroEyebrow>
+              <LiveDot />
+              Status operacyjny · na żywo
+            </HeroEyebrow>
+            <HeroGreeting>{greeting}!</HeroGreeting>
+            {heroDesc && <HeroDesc>{heroDesc}</HeroDesc>}
+            <HeroActions>
+              <HeroBtnPrimary onClick={() => navigate('/appointments/create')}>
+                <CalendarPlus />
+                Nowa wizyta
+              </HeroBtnPrimary>
+              <HeroBtnGhost onClick={() => navigate('/instagram')}>
+                <Sparkles />
+                Generuj post
+              </HeroBtnGhost>
+            </HeroActions>
+          </HeroLeft>
+          <RevenueKpiCard revenue={revenue} />
+        </HeroRow>
       </HeroCard>
 
       {isError && (
