@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -536,7 +537,7 @@ const VisitDrawer = ({
     };
   }, []);
 
-  return (
+  return createPortal(
     <>
       <DrawerOverlay onClick={onClose} />
       <Drawer>
@@ -582,7 +583,8 @@ const VisitDrawer = ({
           </DrawerFooter>
         )}
       </Drawer>
-    </>
+    </>,
+    document.body
   );
 };
 
