@@ -16,6 +16,8 @@ import { VisitComments } from '../components/VisitComments';
 import { VisitCommunicationHistory } from '../components/VisitCommunicationHistory';
 import { EditServicesModal } from '../components/EditServicesModal';
 import { InProgressToReadyWizard, ReadyToCompletedWizard } from '../components/transitions/TransitionWizards';
+import { SmsReminderModal } from '../components/SmsReminderModal';
+import { useSmsReminder, type SmsReminderResponse } from '../hooks/useSmsReminder';
 import { GeneratePostModal } from '@/modules/competition-monitoring/components/GeneratePostModal';
 import type { GeneratePostPrefill } from '@/modules/competition-monitoring/components/GeneratePostModal';
 import type { DocumentType, ServiceStatus } from '../types';
@@ -306,6 +308,117 @@ const RetryButton = styled.button`
     &:hover { background: #2563EB; box-shadow: ${st.shadowMd}; }
 `;
 
+// ─── SMS Reminder Card ────────────────────────────────────────────────────────
+
+const ReminderCard = styled.div`
+    background: ${st.bgCard};
+    border: 1px solid rgba(59,130,246,0.25);
+    border-radius: ${st.radius};
+    overflow: hidden;
+    box-shadow: ${st.shadowSm};
+`;
+
+const ReminderCardHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px 10px;
+    background: ${st.accentBlueDim};
+    border-bottom: 1px solid rgba(59,130,246,0.15);
+`;
+
+const ReminderCardIcon = styled.div`
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: ${st.accentBlue};
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    svg { width: 12px; height: 12px; }
+`;
+
+const ReminderCardTitle = styled.span`
+    flex: 1;
+    font-size: ${st.fontSm};
+    font-weight: 700;
+    color: ${st.accentBlue};
+`;
+
+const ReminderCardBadge = styled.span`
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: ${st.radiusFull};
+    background: rgba(59,130,246,0.15);
+    color: ${st.accentBlue};
+    border: 1px solid rgba(59,130,246,0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+`;
+
+const ReminderCardBody = styled.div`
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+const ReminderDate = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: ${st.fontXs};
+    color: ${st.textSecondary};
+    svg { width: 12px; height: 12px; color: ${st.textMuted}; flex-shrink: 0; }
+`;
+
+const ReminderMessagePreview = styled.p`
+    margin: 0;
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+    line-height: 1.45;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+`;
+
+const ReminderCardActions = styled.div`
+    display: flex;
+    gap: 6px;
+    padding: 0 14px 12px;
+`;
+
+const ReminderActionBtn = styled.button<{ $danger?: boolean }>`
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 6px 10px;
+    border-radius: ${st.radiusFull};
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all ${st.transition};
+
+    ${p => p.$danger ? `
+        background: transparent;
+        color: #EF4444;
+        border: 1px solid rgba(239,68,68,0.3);
+        &:hover { background: rgba(239,68,68,0.08); border-color: #EF4444; }
+    ` : `
+        background: transparent;
+        color: ${st.textSecondary};
+        border: 1px solid ${st.border};
+        &:hover { border-color: ${st.accentBlue}; color: ${st.accentBlue}; background: ${st.accentBlueDim}; }
+    `}
+
+    svg { width: 11px; height: 11px; }
+`;
+
 // ─── View ─────────────────────────────────────────────────────────────────────
 
 export const VisitDetailView = () => {
@@ -316,6 +429,8 @@ export const VisitDetailView = () => {
     const [transitionType, setTransitionType] = useState<'in_progress_to_ready' | 'ready_to_completed' | null>(null);
     const [isEditServicesModalOpen, setIsEditServicesModalOpen] = useState(false);
     const [isGeneratePostOpen, setIsGeneratePostOpen] = useState(false);
+    const [isSmsReminderOpen, setIsSmsReminderOpen] = useState(false);
+    const [smsReminderForEdit, setSmsReminderForEdit] = useState<SmsReminderResponse | null>(null);
     const [highlightPendingServices, setHighlightPendingServices] = useState(false);
     const [isDocsOpen, setIsDocsOpen] = useState(false);
     const [isAuditOpen, setIsAuditOpen] = useState(false);
@@ -335,6 +450,7 @@ export const VisitDetailView = () => {
     const { updateServiceStatus } = useUpdateServiceStatus(visitId!);
     const { saveServicesChanges, isSaving } = useSaveServicesChanges(visitId!);
     const { showSuccess, showWarning, showInfo } = useToast();
+    const { pendingReminder } = useSmsReminder(visitId!);
 
     if (isLoading) {
         return (
@@ -389,6 +505,13 @@ export const VisitDetailView = () => {
         } else if (window.confirm('Czy na pewno chcesz zakończyć tę wizytę?')) {
             updateVisit({ status: 'COMPLETED' });
         }
+    };
+
+    const handleReadyTransitionSuccess = () => {
+        setIsTransitionWizardOpen(false);
+        setTransitionType(null);
+        setSmsReminderForEdit(null);
+        setIsSmsReminderOpen(true);
     };
 
     const handlePrintProtocol = () => { showInfo('To jeszcze nie działa, trzeba obgadać'); };
@@ -673,6 +796,45 @@ export const VisitDetailView = () => {
                             comments={comments}
                             isLoading={isLoadingComments}
                         />
+
+                        {pendingReminder && (
+                            <ReminderCard>
+                                <ReminderCardHeader>
+                                    <ReminderCardIcon>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                        </svg>
+                                    </ReminderCardIcon>
+                                    <ReminderCardTitle>SMS Przypominający</ReminderCardTitle>
+                                    <ReminderCardBadge>Zaplanowany</ReminderCardBadge>
+                                </ReminderCardHeader>
+                                <ReminderCardBody>
+                                    <ReminderDate>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <polyline points="12 6 12 12 16 14"/>
+                                        </svg>
+                                        {new Date(pendingReminder.scheduledFor).toLocaleString('pl-PL', {
+                                            day: 'numeric', month: 'short', year: 'numeric',
+                                            hour: '2-digit', minute: '2-digit'
+                                        })}
+                                    </ReminderDate>
+                                    <ReminderMessagePreview>{pendingReminder.messageContent}</ReminderMessagePreview>
+                                </ReminderCardBody>
+                                <ReminderCardActions>
+                                    <ReminderActionBtn onClick={() => {
+                                        setSmsReminderForEdit(pendingReminder);
+                                        setIsSmsReminderOpen(true);
+                                    }}>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                        </svg>
+                                        Edytuj
+                                    </ReminderActionBtn>
+                                </ReminderCardActions>
+                            </ReminderCard>
+                        )}
                     </Sidebar>
                 </MainGrid>
             </ContentArea>
@@ -682,6 +844,7 @@ export const VisitDetailView = () => {
                     visit={visit}
                     isOpen={isTransitionWizardOpen}
                     onClose={() => { setIsTransitionWizardOpen(false); setTransitionType(null); }}
+                    onTransitionSuccess={handleReadyTransitionSuccess}
                 />
             )}
 
@@ -706,6 +869,15 @@ export const VisitDetailView = () => {
                 <GeneratePostModal
                     onClose={() => setIsGeneratePostOpen(false)}
                     prefill={buildGeneratePostPrefill()}
+                />
+            )}
+
+            {isSmsReminderOpen && (
+                <SmsReminderModal
+                    visitId={visitId!}
+                    customer={visit.customer}
+                    existingReminder={smsReminderForEdit}
+                    onClose={() => { setIsSmsReminderOpen(false); setSmsReminderForEdit(null); }}
                 />
             )}
         </ViewContainer>

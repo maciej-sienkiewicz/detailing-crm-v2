@@ -14,12 +14,15 @@ interface InProgressToReadyWizardProps {
     visit: Visit;
     isOpen: boolean;
     onClose: () => void;
+    /** Called only after a successful API transition, not on manual close */
+    onTransitionSuccess?: () => void;
 }
 
 export const InProgressToReadyWizard = ({
                                             visit,
                                             isOpen,
                                             onClose,
+                                            onTransitionSuccess,
                                         }: InProgressToReadyWizardProps) => {
     const {
         currentStep,
@@ -30,7 +33,7 @@ export const InProgressToReadyWizard = ({
         handleBack,
         updateWizardData,
         handleFinish,
-    } = useStateTransitionWizard(visit.id, 'in_progress_to_ready', onClose);
+    } = useStateTransitionWizard(visit.id, 'in_progress_to_ready', onTransitionSuccess);
 
     const [notificationChannels, setNotificationChannels] = React.useState({ sms: true, email: !!visit.customer.email });
 
