@@ -9,6 +9,8 @@ import { useNavigate } from 'react-router-dom';
 import { OperationalScorecard } from '../components/OperationalScorecard';
 import { AnalyticsSection } from '../components/AnalyticsSection';
 import { GoogleReviewsSection } from '../components/GoogleReviewsSection';
+import { UpcomingVisitsPanel } from '../components/UpcomingVisitsPanel';
+import { TasksPanel } from '../components/TasksPanel';
 import { useDashboard, useDashboardSocket } from '../hooks';
 import { formatCurrency } from '@/common/utils/formatters';
 import type { OperationalStats, BusinessMetric } from '../types';
@@ -260,6 +262,18 @@ const HeroKpiDelta = styled.div<{ $positive: boolean }>`
   svg { width: 13px; height: 13px; stroke-width: 2.5; }
 `;
 
+// ─── Two-column panels grid ───────────────────────────────────────────────────
+
+const TwoColGrid = styled.div`
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    grid-template-columns: 1fr;
+  }
+`;
+
 // ─── Section Divider ──────────────────────────────────────────────────────────
 
 const SectionLabel = styled.div`
@@ -363,6 +377,8 @@ export const DashboardView = () => {
     callActivity,
     instagramPhotos,
     googleReviews,
+    upcomingVisits,
+    tasks,
     isError,
     refetch,
   } = useDashboard();
@@ -416,6 +432,11 @@ export const DashboardView = () => {
         </SectionLabel>
         <OperationalScorecard stats={stats} />
       </div>
+
+      <TwoColGrid>
+        <UpcomingVisitsPanel visits={upcomingVisits} />
+        <TasksPanel tasks={tasks} />
+      </TwoColGrid>
 
       <div>
         <SectionLabel>

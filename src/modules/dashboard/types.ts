@@ -130,6 +130,36 @@ export interface GoogleReviewsData {
 }
 
 /**
+ * Status badge variant for visit rows
+ */
+export type VisitStatusKind = 'info' | 'warn' | 'neutral' | 'success' | 'err';
+
+/**
+ * Upcoming visit entry shown in "Najbliższe wizyty" panel
+ */
+export interface UpcomingVisit {
+  id: string;
+  time: string;
+  dateLabel: string;
+  serviceName: string;
+  customerName: string;
+  vehicleName: string;
+  price: number;
+  statusKind: VisitStatusKind;
+  statusLabel: string;
+}
+
+/**
+ * Task item shown in "Do zrobienia" panel
+ */
+export interface DashboardTask {
+  id: string;
+  title: string;
+  meta: string;
+  done: boolean;
+}
+
+/**
  * Complete dashboard data response
  */
 export interface DashboardData {
@@ -145,6 +175,10 @@ export interface DashboardData {
   recentCalls: IncomingCall[];
   /** Google reviews statistics */
   googleReviews: GoogleReviewsData;
+  /** Upcoming visits for the next 2 days */
+  upcomingVisits?: UpcomingVisit[];
+  /** To-do task list */
+  tasks?: DashboardTask[];
 }
 
 // ─── WebSocket Event Types ───────────────────────────────────────────────────

@@ -4,7 +4,7 @@
  * Supports mock data mode for development and testing
  */
 
-import type { DashboardData, IncomingCall } from '../types';
+import type { DashboardData, IncomingCall, UpcomingVisit, DashboardTask } from '../types';
 import {apiClient} from "@/core";
 
 const USE_MOCKS = false;
@@ -273,6 +273,20 @@ const mockDashboardData: DashboardData = {
       timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
     },
   ],
+  upcomingVisits: [
+    { id: 'uv1', time: '09:00', dateLabel: 'dziś', serviceName: 'Detailing premium', customerName: 'Jan Kowalski', vehicleName: 'BMW X5', price: 1850, statusKind: 'info', statusLabel: 'W trakcie' },
+    { id: 'uv2', time: '10:30', dateLabel: 'dziś', serviceName: 'Polerowanie lakieru', customerName: 'Anna Nowak', vehicleName: 'Audi Q7', price: 980, statusKind: 'warn', statusLabel: 'Oczekująca' },
+    { id: 'uv3', time: '13:00', dateLabel: 'dziś', serviceName: 'Powłoka ceramiczna', customerName: 'Michał Wiśniewski', vehicleName: 'Porsche 911', price: 3200, statusKind: 'neutral', statusLabel: 'Zaplanowana' },
+    { id: 'uv4', time: '15:30', dateLabel: 'dziś', serviceName: 'Czyszczenie wnętrza', customerName: 'Katarzyna Wójcik', vehicleName: 'Mercedes GLE', price: 620, statusKind: 'neutral', statusLabel: 'Zaplanowana' },
+    { id: 'uv5', time: '08:00', dateLabel: 'jutro', serviceName: 'Korekta lakieru + ceramika', customerName: 'Piotr Kamiński', vehicleName: 'VW Touareg', price: 2480, statusKind: 'neutral', statusLabel: 'Zaplanowana' },
+  ] as UpcomingVisit[],
+  tasks: [
+    { id: 't1', title: 'Wystaw fakturę dla J. Kowalski', meta: 'Wczoraj · 1 850,00 zł', done: true },
+    { id: 't2', title: 'Zamów wosk ceramiczny', meta: 'Magazyn · niski stan', done: false },
+    { id: 't3', title: 'Zadzwoń do A. Nowak (zaległość)', meta: 'Pilne · 3 dni po terminie', done: false },
+    { id: 't4', title: 'Przygotuj post na Instagram', meta: 'Powłoka ceramiczna — Porsche 911', done: false },
+    { id: 't5', title: 'Podpisz umowę flotową (Truck-Pol)', meta: 'Oczekuje od 2 dni', done: false },
+  ] as DashboardTask[],
   googleReviews: {
     averageRating: 4.8,
     totalReviews: 247,
@@ -383,6 +397,8 @@ export const dashboardApi = {
       },
       instagramPhotos: data.instagramPhotos ?? mockDashboardData.instagramPhotos,
       googleReviews: data.googleReviews ?? mockDashboardData.googleReviews,
+      upcomingVisits: data.upcomingVisits ?? mockDashboardData.upcomingVisits,
+      tasks: data.tasks ?? mockDashboardData.tasks,
     };
   },
 
