@@ -3,7 +3,7 @@
  * Premium 4-KPI command strip + right-side visit drawer.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -71,6 +71,11 @@ const slideInRight = keyframes`
   to   { transform: translateX(0); }
 `;
 
+const slideInBottom = keyframes`
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+`;
+
 const fadeIn = keyframes`
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -123,6 +128,8 @@ const DrawerOverlay = styled.div`
   backdrop-filter: blur(3px);
   z-index: 1050;
   animation: ${fadeIn} 200ms ease;
+  touch-action: none;
+  overscroll-behavior: contain;
 `;
 
 // ─── Drawer ───────────────────────────────────────────────────────────────────
@@ -143,11 +150,12 @@ const Drawer = styled.aside`
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     width: 100%;
-    height: 80vh;
+    height: 85vh;
     top: auto;
     bottom: 0;
     border-radius: 20px 20px 0 0;
     box-shadow: 0 -4px 40px rgba(0,0,0,0.14);
+    animation: ${slideInBottom} 280ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 `;
 
@@ -237,6 +245,8 @@ const DrawerCloseBtn = styled.button`
 const DrawerBody = styled.div`
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 
   &::-webkit-scrollbar { width: 4px; }
   &::-webkit-scrollbar-track { background: transparent; }
@@ -517,6 +527,14 @@ const VisitDrawer = ({
 }) => {
   const navigate = useNavigate();
   const Icon = CARD_CONFIG[data.variant].icon;
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
   return (
     <>
