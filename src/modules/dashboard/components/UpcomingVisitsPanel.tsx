@@ -1,20 +1,21 @@
-import styled from 'styled-components';
-import { ArrowRight, User } from 'lucide-react';
+import styled, { keyframes } from 'styled-components';
+import { ArrowRight, User, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency } from '@/common/utils/formatters';
+import { useUpcomingVisits } from '../hooks/useUpcomingVisits';
 import type { UpcomingVisit, VisitStatusKind } from '../types';
 
 // ─── Badge config ─────────────────────────────────────────────────────────────
 
 const BADGE_CONFIG: Record<VisitStatusKind, { bg: string; color: string }> = {
-  info:    { bg: 'rgba(59,130,246,0.12)',   color: '#1d4ed8' },
-  warn:    { bg: 'rgba(245,158,11,0.12)',   color: '#d97706' },
-  neutral: { bg: '#f1f5f9',                 color: '#475569' },
-  success: { bg: 'rgba(16,185,129,0.12)',   color: '#059669' },
-  err:     { bg: 'rgba(239,68,68,0.12)',    color: '#dc2626' },
+  info:    { bg: 'rgba(59,130,246,0.12)',  color: '#1d4ed8' },
+  warn:    { bg: 'rgba(245,158,11,0.12)',  color: '#d97706' },
+  neutral: { bg: '#f1f5f9',               color: '#475569' },
+  success: { bg: 'rgba(16,185,129,0.12)', color: '#059669' },
+  err:     { bg: 'rgba(239,68,68,0.12)',  color: '#dc2626' },
 };
 
-// ─── Styled components ────────────────────────────────────────────────────────
+// ─── Styled ───────────────────────────────────────────────────────────────────
 
 const Panel = styled.div`
   background: #fff;
@@ -53,7 +54,6 @@ const PanelLink = styled.button`
   padding: 0;
   font-family: inherit;
   transition: opacity 150ms ease;
-
   &:hover { opacity: 0.75; }
   svg { width: 14px; height: 14px; stroke-width: 2; }
 `;
@@ -67,7 +67,6 @@ const VisitRow = styled.div`
   border-bottom: 1px solid #f1f5f9;
   cursor: pointer;
   transition: background 180ms ease;
-
   &:last-child { border-bottom: none; }
   &:hover { background: #f8fafc; }
 `;
@@ -91,13 +90,14 @@ const VisitDateLabel = styled.span`
   letter-spacing: 0.06em;
 `;
 
-const VisitInfo = styled.div``;
-
 const VisitTitle = styled.div`
   font-size: 13px;
   font-weight: 600;
   color: ${p => p.theme.colors.text};
   margin: 0 0 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const VisitMeta = styled.div`
@@ -106,6 +106,8 @@ const VisitMeta = styled.div`
   display: inline-flex;
   gap: 6px;
   align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
   svg { width: 12px; height: 12px; stroke-width: 2; flex-shrink: 0; }
 `;
 
@@ -120,7 +122,6 @@ const StatusBadge = styled.span<{ $kind: VisitStatusKind }>`
   background: ${p => BADGE_CONFIG[p.$kind].bg};
   color: ${p => BADGE_CONFIG[p.$kind].color};
   white-space: nowrap;
-
   &::before {
     content: '';
     width: 5px;
@@ -140,21 +141,70 @@ const VisitPrice = styled.div`
   white-space: nowrap;
 `;
 
-const EmptyState = styled.div`
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
+const shimmer = keyframes`
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+`;
+
+const Bone = styled.div<{ $w?: string; $h?: string }>`
+  height: ${p => p.$h ?? '13px'};
+  width: ${p => p.$w ?? '100%'};
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f1f5f9 0%, #f8fafc 50%, #f1f5f9 100%);
+  background-size: 200% 100%;
+  animation: ${shimmer} 1.5s infinite;
+`;
+
+const SkeletonRow = () => (
+  <VisitRow as="div" style={{ cursor: 'default' }}>
+    <div><Bone $h="14px" $w="40px" /><Bone $h="10px" $w="28px" style={{ marginTop: 6 }} /></div>
+    <div><Bone $h="13px" $w="70%" style={{ marginBottom: 6 }} /><Bone $h="11px" $w="50%" /></div>
+    <Bone $h="22px" $w="72px" style={{ borderRadius: 99 }} />
+    <Bone $h="14px" $w="64px" />
+  </VisitRow>
+);
+
+// ─── Empty / Error ────────────────────────────────────────────────────────────
+
+const Placeholder = styled.div`
   padding: 40px 22px;
   text-align: center;
   font-size: 14px;
   color: ${p => p.theme.colors.textMuted};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  svg { width: 20px; height: 20px; color: ${p => p.theme.colors.error}; }
 `;
+
+// ─── Row ──────────────────────────────────────────────────────────────────────
+
+const VisitRowItem = ({ visit, onNavigate }: { visit: UpcomingVisit; onNavigate: (id: string) => void }) => (
+  <VisitRow onClick={() => onNavigate(visit.id)}>
+    <VisitTime>
+      {visit.time}
+      <VisitDateLabel>{visit.dateLabel}</VisitDateLabel>
+    </VisitTime>
+    <div style={{ minWidth: 0 }}>
+      <VisitTitle>{visit.serviceName}</VisitTitle>
+      <VisitMeta>
+        <User />
+        {visit.customerName} · {visit.vehicleName}
+      </VisitMeta>
+    </div>
+    <StatusBadge $kind={visit.statusKind}>{visit.statusLabel}</StatusBadge>
+    <VisitPrice>{formatCurrency(visit.price)}</VisitPrice>
+  </VisitRow>
+);
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-interface UpcomingVisitsPanelProps {
-  visits: UpcomingVisit[];
-}
-
-export const UpcomingVisitsPanel = ({ visits }: UpcomingVisitsPanelProps) => {
+export const UpcomingVisitsPanel = () => {
   const navigate = useNavigate();
+  const { data: visits = [], isLoading, isError } = useUpcomingVisits();
 
   return (
     <Panel>
@@ -165,30 +215,28 @@ export const UpcomingVisitsPanel = ({ visits }: UpcomingVisitsPanelProps) => {
         </PanelLink>
       </PanelHead>
 
-      {visits.length === 0 ? (
-        <EmptyState>Brak zaplanowanych wizyt</EmptyState>
-      ) : (
-        visits.map(v => (
-          <VisitRow key={v.id} onClick={() => navigate(`/visits/${v.id}`)}>
-            <VisitTime>
-              {v.time}
-              <VisitDateLabel>{v.dateLabel}</VisitDateLabel>
-            </VisitTime>
-
-            <VisitInfo>
-              <VisitTitle>{v.serviceName}</VisitTitle>
-              <VisitMeta>
-                <User />
-                {v.customerName} · {v.vehicleName}
-              </VisitMeta>
-            </VisitInfo>
-
-            <StatusBadge $kind={v.statusKind}>{v.statusLabel}</StatusBadge>
-
-            <VisitPrice>{formatCurrency(v.price)}</VisitPrice>
-          </VisitRow>
-        ))
+      {isLoading && (
+        <>
+          <SkeletonRow />
+          <SkeletonRow />
+          <SkeletonRow />
+        </>
       )}
+
+      {isError && (
+        <Placeholder>
+          <AlertCircle />
+          Nie udało się załadować wizyt
+        </Placeholder>
+      )}
+
+      {!isLoading && !isError && visits.length === 0 && (
+        <Placeholder>Brak zaplanowanych wizyt na dziś i jutro</Placeholder>
+      )}
+
+      {!isLoading && !isError && visits.map(v => (
+        <VisitRowItem key={v.id} visit={v} onNavigate={id => navigate(`/visits/${id}`)} />
+      ))}
     </Panel>
   );
 };

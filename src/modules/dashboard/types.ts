@@ -175,8 +175,6 @@ export interface DashboardData {
   recentCalls: IncomingCall[];
   /** Google reviews statistics */
   googleReviews: GoogleReviewsData;
-  /** Upcoming visits for the next 2 days */
-  upcomingVisits?: UpcomingVisit[];
   /** To-do task list */
   tasks?: DashboardTask[];
 }

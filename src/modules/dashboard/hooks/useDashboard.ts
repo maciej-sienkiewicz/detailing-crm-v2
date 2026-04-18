@@ -68,7 +68,6 @@ export const useDashboard = () => {
     instagramPhotos: data?.instagramPhotos,
     recentCalls: data?.recentCalls || [],
     googleReviews: data?.googleReviews,
-    upcomingVisits: data?.upcomingVisits || [],
     tasks: data?.tasks || [],
 
     // Loading states
