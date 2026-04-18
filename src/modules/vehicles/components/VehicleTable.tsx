@@ -204,6 +204,37 @@ const NetAmt = styled.div`
     white-space: nowrap;
 `;
 
+// ─── Status badge ─────────────────────────────────────────────────────────────
+
+type StatusKind = 'active' | 'sold' | 'archived';
+
+const STATUS_CONFIG: Record<StatusKind, { label: string; bg: string; color: string }> = {
+    active:   { label: 'Aktywny',   bg: 'rgba(16,185,129,0.12)',  color: '#059669' },
+    sold:     { label: 'Sprzedany', bg: '#f1f5f9',                color: '#475569' },
+    archived: { label: 'Archiwum',  bg: '#f1f5f9',                color: '#64748b' },
+};
+
+const StatusBadge = styled.span<{ $bg: string; $color: string }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 9px;
+    border-radius: 9999px;
+    background: ${p => p.$bg};
+    color: ${p => p.$color};
+    white-space: nowrap;
+`;
+
+const StatusDot = styled.span<{ $color: string }>`
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+`;
+
 // ─── Actions cell ─────────────────────────────────────────────────────────────
 
 const ActionsCell = styled.td`
@@ -360,6 +391,7 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
                         <Th>{t.vehicles.table.lastVisit}</Th>
                         <Th>{t.vehicles.table.visits}</Th>
                         <Th>{t.vehicles.table.totalRevenue}</Th>
+                        <Th>Status</Th>
                         <Th>{t.vehicles.table.actions}</Th>
                     </tr>
                 </TableHead>
@@ -432,6 +464,18 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
                                             vehicle.stats.totalSpent.currency
                                         )} netto
                                     </NetAmt>
+                                </Td>
+
+                                <Td>
+                                    {(() => {
+                                        const cfg = STATUS_CONFIG[vehicle.status as StatusKind] ?? STATUS_CONFIG.archived;
+                                        return (
+                                            <StatusBadge $bg={cfg.bg} $color={cfg.color}>
+                                                <StatusDot $color={cfg.color} />
+                                                {cfg.label}
+                                            </StatusBadge>
+                                        );
+                                    })()}
                                 </Td>
 
                                 <ActionsCell onClick={e => e.stopPropagation()}>
