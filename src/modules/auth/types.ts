@@ -37,6 +37,8 @@ export interface User {
     userId: string;
     studioId: string;
     email: string;
+    firstName?: string;
+    lastName?: string;
     role: string;
     subscriptionStatus: string;
     trialDaysRemaining: number;
