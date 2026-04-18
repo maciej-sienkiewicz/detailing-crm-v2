@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
-import styled, { keyframes, css } from 'styled-components';
+import { useState, useEffect, useMemo } from 'react';
+import styled, { keyframes } from 'styled-components';
 import type { CustomerAdvancedFilters, CustomerTypeFilter } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { useServices } from '@/modules/services/hooks/useServices';
+import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -30,7 +32,7 @@ const Drawer = styled.aside`
     top: 0;
     right: 0;
     bottom: 0;
-    width: 380px;
+    width: 400px;
     max-width: 100vw;
     background: ${st.bgCard};
     border-left: 1px solid ${st.border};
@@ -78,10 +80,7 @@ const CloseBtn = styled.button`
         color: ${st.text};
     }
 
-    svg {
-        width: 18px;
-        height: 18px;
-    }
+    svg { width: 18px; height: 18px; }
 `;
 
 // ─── Body ─────────────────────────────────────────────────────────────────────
@@ -136,35 +135,80 @@ const TypeBtn = styled.button<{ $active: boolean }>`
     box-shadow: ${p => p.$active ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'};
     flex: 1;
 
-    &:hover {
-        color: ${p => p.$active ? '#0f172a' : '#475569'};
-    }
+    &:hover { color: ${p => p.$active ? '#0f172a' : '#475569'}; }
 `;
 
-// ─── Service chips ────────────────────────────────────────────────────────────
+// ─── Service multiselect ──────────────────────────────────────────────────────
 
-const ChipGrid = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px;
-`;
-
-const ServiceChip = styled.button<{ $active: boolean }>`
-    border: 1.5px solid ${p => p.$active ? '#0ea5e9' : '#e2e8f0'};
-    background: ${p => p.$active ? 'rgba(14,165,233,0.08)' : 'transparent'};
-    color: ${p => p.$active ? '#0ea5e9' : '#64748b'};
-    padding: 5px 12px;
-    border-radius: 9999px;
+const ServiceSearchInput = styled.input`
+    width: 100%;
+    padding: 8px 12px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 9px;
+    font-size: 13px;
     font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 150ms ease;
+    color: ${st.text};
+    background: ${st.bgCard};
+    transition: border-color 150ms ease;
+    box-sizing: border-box;
 
-    &:hover {
-        border-color: ${p => p.$active ? '#0ea5e9' : '#cbd5e1'};
-        color: ${p => p.$active ? '#0ea5e9' : '#475569'};
+    &:focus {
+        outline: none;
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
     }
+
+    &::placeholder { color: #94a3b8; }
+`;
+
+const ServiceList = styled.div`
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 9px;
+    background: ${st.bgCard};
+`;
+
+const ServiceItem = styled.label<{ $checked: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+    background: ${p => p.$checked ? 'rgba(14,165,233,0.05)' : 'transparent'};
+    transition: background 120ms ease;
+
+    &:last-child { border-bottom: none; }
+    &:hover { background: ${p => p.$checked ? 'rgba(14,165,233,0.08)' : '#f8fafc'}; }
+`;
+
+const ServiceCheckbox = styled.input`
+    width: 15px;
+    height: 15px;
+    accent-color: #0ea5e9;
+    cursor: pointer;
+    flex-shrink: 0;
+`;
+
+const ServiceName = styled.span`
+    font-size: 13px;
+    color: ${st.text};
+    font-weight: 500;
+    line-height: 1.3;
+`;
+
+const ServiceListEmpty = styled.div`
+    padding: 16px 12px;
+    text-align: center;
+    font-size: 13px;
+    color: ${st.textMuted};
+`;
+
+const SelectedCount = styled.div`
+    font-size: 12px;
+    color: #0ea5e9;
+    font-weight: 600;
 `;
 
 // ─── Activity inputs ──────────────────────────────────────────────────────────
@@ -208,15 +252,8 @@ const NumberInput = styled.input`
         box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
     }
 
-    &::placeholder {
-        color: #94a3b8;
-    }
-
-    /* hide spin arrows */
     &::-webkit-inner-spin-button,
-    &::-webkit-outer-spin-button {
-        -webkit-appearance: none;
-    }
+    &::-webkit-outer-spin-button { -webkit-appearance: none; }
     -moz-appearance: textfield;
 `;
 
@@ -226,34 +263,12 @@ const DaysSuffix = styled.span`
     flex-shrink: 0;
 `;
 
-// ─── Vehicle inputs ───────────────────────────────────────────────────────────
+// ─── Vehicle selectors wrapper ────────────────────────────────────────────────
 
 const VehicleRow = styled.div`
     display: flex;
     flex-direction: column;
     gap: 8px;
-`;
-
-const TextInput = styled.input`
-    width: 100%;
-    padding: 9px 12px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 9px;
-    font-size: 13px;
-    font-family: inherit;
-    color: ${st.text};
-    background: ${st.bgCard};
-    transition: border-color 150ms ease;
-
-    &:focus {
-        outline: none;
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
-    }
-
-    &::placeholder {
-        color: #94a3b8;
-    }
 `;
 
 // ─── Footer ───────────────────────────────────────────────────────────────────
@@ -314,19 +329,6 @@ const CUSTOMER_TYPE_OPTIONS: { id: CustomerTypeFilter; label: string }[] = [
     { id: 'business',   label: 'Firmowi'      },
 ];
 
-const AVAILABLE_SERVICES = [
-    'Detailing zewnętrzny',
-    'Detailing wewnętrzny',
-    'Korekta lakieru',
-    'Powłoka ceramiczna',
-    'Folia ochronna',
-    'Pranie tapicerki',
-    'Mycie silnika',
-    'Polerowanie reflektorów',
-    'Ozonowanie',
-    'Renowacja skóry',
-];
-
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface CustomerFilterPanelProps {
@@ -347,7 +349,10 @@ export const CustomerFilterPanel = ({
     const [customerType, setCustomerType] = useState<CustomerTypeFilter>(
         initialFilters.customerType ?? 'all'
     );
-    const [services, setServices] = useState<string[]>(initialFilters.services ?? []);
+    const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(
+        initialFilters.services ?? []
+    );
+    const [serviceSearch, setServiceSearch] = useState('');
     const [lastVisitWithinDays, setLastVisitWithinDays] = useState<string>(
         initialFilters.lastVisitWithinDays?.toString() ?? ''
     );
@@ -357,10 +362,24 @@ export const CustomerFilterPanel = ({
     const [vehicleBrand, setVehicleBrand] = useState<string>(initialFilters.vehicleBrand ?? '');
     const [vehicleModel, setVehicleModel] = useState<string>(initialFilters.vehicleModel ?? '');
 
+    const { services, isLoading: servicesLoading } = useServices({
+        search: '',
+        page: 1,
+        limit: 200,
+        showInactive: false,
+    });
+
+    const filteredServices = useMemo(() => {
+        if (!serviceSearch.trim()) return services;
+        const q = serviceSearch.toLowerCase();
+        return services.filter(s => s.name.toLowerCase().includes(q));
+    }, [services, serviceSearch]);
+
     useEffect(() => {
         if (isOpen) {
             setCustomerType(initialFilters.customerType ?? 'all');
-            setServices(initialFilters.services ?? []);
+            setSelectedServiceIds(initialFilters.services ?? []);
+            setServiceSearch('');
             setLastVisitWithinDays(initialFilters.lastVisitWithinDays?.toString() ?? '');
             setNotVisitedSinceDays(initialFilters.notVisitedSinceDays?.toString() ?? '');
             setVehicleBrand(initialFilters.vehicleBrand ?? '');
@@ -368,15 +387,21 @@ export const CustomerFilterPanel = ({
         }
     }, [isOpen, initialFilters]);
 
-    const toggleService = (service: string) => {
-        setServices(prev =>
-            prev.includes(service) ? prev.filter(s => s !== service) : [...prev, service]
+    const toggleService = (id: string) => {
+        setSelectedServiceIds(prev =>
+            prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
         );
+    };
+
+    const handleBrandChange = (brand: string) => {
+        setVehicleBrand(brand);
+        setVehicleModel('');
     };
 
     const handleClear = () => {
         setCustomerType('all');
-        setServices([]);
+        setSelectedServiceIds([]);
+        setServiceSearch('');
         setLastVisitWithinDays('');
         setNotVisitedSinceDays('');
         setVehicleBrand('');
@@ -386,7 +411,7 @@ export const CustomerFilterPanel = ({
     const handleApply = () => {
         onApply({
             customerType: customerType !== 'all' ? customerType : undefined,
-            services: services.length > 0 ? services : undefined,
+            services: selectedServiceIds.length > 0 ? selectedServiceIds : undefined,
             lastVisitWithinDays: lastVisitWithinDays ? parseInt(lastVisitWithinDays, 10) : null,
             notVisitedSinceDays: notVisitedSinceDays ? parseInt(notVisitedSinceDays, 10) : null,
             vehicleBrand: vehicleBrand.trim() || null,
@@ -428,20 +453,43 @@ export const CustomerFilterPanel = ({
                         </TypeGroup>
                     </FilterSection>
 
-                    {/* Usługi */}
+                    {/* Wykonana usługa */}
                     <FilterSection>
-                        <SectionLabel>Wykonana usługa</SectionLabel>
-                        <ChipGrid>
-                            {AVAILABLE_SERVICES.map(service => (
-                                <ServiceChip
-                                    key={service}
-                                    $active={services.includes(service)}
-                                    onClick={() => toggleService(service)}
-                                >
-                                    {service}
-                                </ServiceChip>
-                            ))}
-                        </ChipGrid>
+                        <SectionLabel>
+                            Wykonana usługa
+                            {selectedServiceIds.length > 0 && (
+                                <SelectedCount as="span" style={{ marginLeft: 8, display: 'inline' }}>
+                                    ({selectedServiceIds.length} wybranych)
+                                </SelectedCount>
+                            )}
+                        </SectionLabel>
+                        <ServiceSearchInput
+                            type="text"
+                            placeholder="Szukaj usługi..."
+                            value={serviceSearch}
+                            onChange={e => setServiceSearch(e.target.value)}
+                        />
+                        <ServiceList>
+                            {servicesLoading ? (
+                                <ServiceListEmpty>Ładowanie...</ServiceListEmpty>
+                            ) : filteredServices.length === 0 ? (
+                                <ServiceListEmpty>Brak wyników</ServiceListEmpty>
+                            ) : (
+                                filteredServices.map(service => (
+                                    <ServiceItem
+                                        key={service.id}
+                                        $checked={selectedServiceIds.includes(service.id)}
+                                    >
+                                        <ServiceCheckbox
+                                            type="checkbox"
+                                            checked={selectedServiceIds.includes(service.id)}
+                                            onChange={() => toggleService(service.id)}
+                                        />
+                                        <ServiceName>{service.name}</ServiceName>
+                                    </ServiceItem>
+                                ))
+                            )}
+                        </ServiceList>
                     </FilterSection>
 
                     {/* Aktywność */}
@@ -483,17 +531,16 @@ export const CustomerFilterPanel = ({
                     <FilterSection>
                         <SectionLabel>Pojazd</SectionLabel>
                         <VehicleRow>
-                            <TextInput
-                                type="text"
-                                placeholder="Marka (np. BMW, Toyota)"
+                            <BrandSelect
                                 value={vehicleBrand}
-                                onChange={e => setVehicleBrand(e.target.value)}
+                                onChange={handleBrandChange}
+                                placeholder="Wybierz markę"
                             />
-                            <TextInput
-                                type="text"
-                                placeholder="Model (np. 3 Series, Corolla)"
+                            <ModelSelect
+                                brand={vehicleBrand}
                                 value={vehicleModel}
-                                onChange={e => setVehicleModel(e.target.value)}
+                                onChange={setVehicleModel}
+                                placeholder="Wybierz model"
                             />
                         </VehicleRow>
                     </FilterSection>
