@@ -21,8 +21,9 @@ const SearchIconEl = styled.svg`
 
 const SearchInput = styled.input`
     width: 100%;
-    padding: 9px 14px 9px 38px;
-    background: ${st.bgCardAlt};
+    height: 40px;
+    padding: 0 14px 0 40px;
+    background: #fff;
     border: 1.5px solid ${st.border};
     border-radius: 10px;
     font-size: 13px;
@@ -35,9 +36,8 @@ const SearchInput = styled.input`
 
     &:focus {
         outline: none;
-        border-color: ${st.accentBlue};
-        background: #fff;
-        box-shadow: ${st.shadowBlue};
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
     }
 `;
 

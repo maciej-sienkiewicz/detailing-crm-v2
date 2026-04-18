@@ -31,10 +31,10 @@ const Table = styled.table`
 const TableHead = styled.thead``;
 
 const Th = styled.th`
-    padding: 10px 20px;
+    padding: 12px 20px;
     text-align: left;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     color: ${st.textMuted};
     text-transform: uppercase;
     letter-spacing: 0.07em;
@@ -46,7 +46,7 @@ const Th = styled.th`
 const TableBody = styled.tbody``;
 
 const Tr = styled.tr`
-    border-bottom: 1px solid ${st.border};
+    border-bottom: 1px solid #f1f5f9;
     transition: background ${st.transition};
     cursor: pointer;
     animation: ${fadeIn} 200ms ease both;
@@ -56,12 +56,12 @@ const Tr = styled.tr`
     }
 
     &:hover {
-        background: ${st.bgCardAlt};
+        background: ${st.bg};
     }
 `;
 
 const Td = styled.td`
-    padding: 15px 20px;
+    padding: 14px 20px;
     font-size: 13px;
     color: ${st.text};
     vertical-align: middle;
@@ -75,21 +75,42 @@ const CustomerCell = styled.div`
     gap: 12px;
 `;
 
-const AvatarBubble = styled.div`
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    background: rgba(59, 130, 246, 0.10);
-    color: #3B82F6;
+const AVATAR_GRADIENTS = [
+    'linear-gradient(135deg, #0ea5e9, #6366f1)',
+    'linear-gradient(135deg, #10b981, #0ea5e9)',
+    'linear-gradient(135deg, #6366f1, #8b5cf6)',
+    'linear-gradient(135deg, #f59e0b, #ef4444)',
+    'linear-gradient(135deg, #0ea5e9, #10b981)',
+    'linear-gradient(135deg, #3b82f6, #10b981)',
+    'linear-gradient(135deg, #8b5cf6, #0ea5e9)',
+];
+
+const pickGradient = (id: string): string => {
+    let h = 0;
+    for (const c of id) h = (h * 31 + c.charCodeAt(0)) & 0xff;
+    return AVATAR_GRADIENTS[h % AVATAR_GRADIENTS.length];
+};
+
+const getInitials = (first: string | null, last: string | null): string => {
+    const f = first?.trim()[0] ?? '';
+    const l = last?.trim()[0] ?? '';
+    return (f + l).toUpperCase() || '?';
+};
+
+const Avatar = styled.div<{ $gradient: string }>`
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: ${p => p.$gradient};
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: -0.3px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-
-    svg {
-        width: 18px;
-        height: 18px;
-    }
+    user-select: none;
 `;
 
 const NameBlock = styled.div`
@@ -97,17 +118,18 @@ const NameBlock = styled.div`
 `;
 
 const NamePrimary = styled.div`
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 600;
     color: ${st.text};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.3;
+    margin-bottom: 2px;
 `;
 
 const NamePlaceholder = styled.div`
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     color: ${st.textMuted};
     font-style: italic;
@@ -135,6 +157,13 @@ const CellSecondary = styled.div`
     color: ${st.textMuted};
 `;
 
+const PhoneText = styled.div`
+    font-size: 12px;
+    color: ${st.textSecondary};
+    letter-spacing: -0.3px;
+    font-variant-numeric: tabular-nums;
+`;
+
 // ─── Date cell ────────────────────────────────────────────────────────────────
 
 const DateMain = styled.div`
@@ -144,7 +173,7 @@ const DateMain = styled.div`
     white-space: nowrap;
 `;
 
-// ─── Count badges ─────────────────────────────────────────────────────────────
+// ─── Count badge ──────────────────────────────────────────────────────────────
 
 const CountBadge = styled.span`
     display: inline-flex;
@@ -153,21 +182,23 @@ const CountBadge = styled.span`
     min-width: 28px;
     height: 24px;
     padding: 0 8px;
-    background: var(--brand-primary);
-    color: white;
+    background: #f1f5f9;
+    color: #475569;
     font-size: 11px;
     font-weight: 700;
     border-radius: 9999px;
+    font-variant-numeric: tabular-nums;
 `;
 
 // ─── Revenue cell ─────────────────────────────────────────────────────────────
 
 const GrossAmt = styled.div`
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 700;
     color: ${st.text};
     letter-spacing: -0.3px;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 `;
 
 const NetAmt = styled.div`
@@ -175,15 +206,6 @@ const NetAmt = styled.div`
     color: ${st.textMuted};
     white-space: nowrap;
 `;
-
-// ─── Icons ────────────────────────────────────────────────────────────────────
-
-const PersonIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-        <circle cx="12" cy="7" r="4" />
-    </svg>
-);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -226,9 +248,9 @@ export const CustomerTable = ({ customers }: CustomerTableProps) => {
                             <Tr key={customer.id} onClick={() => navigate(`/customers/${customer.id}`)}>
                                 <Td>
                                     <CustomerCell>
-                                        <AvatarBubble>
-                                            <PersonIcon />
-                                        </AvatarBubble>
+                                        <Avatar $gradient={pickGradient(customer.id)}>
+                                            {getInitials(customer.firstName, customer.lastName)}
+                                        </Avatar>
                                         <NameBlock>
                                             {fullName ? (
                                                 <NamePrimary>{fullName}</NamePrimary>
@@ -241,7 +263,7 @@ export const CustomerTable = ({ customers }: CustomerTableProps) => {
                                 <Td>
                                     <CellStack>
                                         <CellPrimary>{customer.contact.email}</CellPrimary>
-                                        <CellSecondary>{formatPhoneNumber(customer.contact.phone)}</CellSecondary>
+                                        <PhoneText>{formatPhoneNumber(customer.contact.phone)}</PhoneText>
                                     </CellStack>
                                 </Td>
                                 <Td>

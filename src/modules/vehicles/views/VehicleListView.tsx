@@ -83,27 +83,27 @@ const AddButton = styled.button`
     align-items: center;
     gap: 7px;
     padding: 10px 20px;
-    background: ${st.accentBlue};
+    background: #0ea5e9;
     color: #fff;
     border: none;
-    border-radius: ${st.radiusSm};
+    border-radius: 9999px;
     font-size: ${st.fontSm};
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
     transition: all ${st.transition};
-    box-shadow: 0 1px 4px rgba(37, 99, 235, 0.25);
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
 
     &:hover {
-        background: #1D4ED8;
+        background: #0284c7;
         transform: translateY(-1px);
-        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+        box-shadow: 0 4px 14px rgba(14, 165, 233, 0.36);
     }
 
     &:active {
         transform: translateY(0);
-        box-shadow: 0 1px 4px rgba(37, 99, 235, 0.25);
+        box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
     }
 
     svg {

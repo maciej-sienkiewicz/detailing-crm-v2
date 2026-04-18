@@ -31,10 +31,10 @@ const Table = styled.table`
 const TableHead = styled.thead``;
 
 const Th = styled.th`
-    padding: 10px 20px;
+    padding: 12px 20px;
     text-align: left;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     color: ${st.textMuted};
     text-transform: uppercase;
     letter-spacing: 0.07em;
@@ -46,24 +46,24 @@ const Th = styled.th`
 const TableBody = styled.tbody``;
 
 const Tr = styled.tr<{ $menuOpen?: boolean }>`
-    border-bottom: 1px solid ${st.border};
+    border-bottom: 1px solid #f1f5f9;
     transition: background ${st.transition};
     cursor: pointer;
     animation: ${fadeIn} 200ms ease both;
     position: relative;
-    z-index: ${props => props.$menuOpen ? 10 : 0};
+    z-index: ${p => p.$menuOpen ? 10 : 0};
 
     &:last-child {
         border-bottom: none;
     }
 
     &:hover {
-        background: ${st.bgCardAlt};
+        background: ${st.bg};
     }
 `;
 
 const Td = styled.td`
-    padding: 15px 20px;
+    padding: 14px 20px;
     font-size: 13px;
     color: ${st.text};
     vertical-align: middle;
@@ -74,10 +74,10 @@ const Td = styled.td`
 const LicensePlate = styled.span`
     display: inline-flex;
     align-items: center;
-    padding: 2px 8px;
+    padding: 3px 9px;
     background: #1E293B;
     color: #fff;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.6px;
@@ -100,19 +100,19 @@ const VehicleMainCell = styled.div`
 `;
 
 const CarBubble = styled.div`
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    background: rgba(5, 150, 105, 0.10);
-    color: #059669;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981, #0ea5e9);
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
 
     svg {
-        width: 18px;
-        height: 18px;
+        width: 17px;
+        height: 17px;
     }
 `;
 
@@ -121,19 +121,19 @@ const VehicleBlock = styled.div`
 `;
 
 const VehicleNamePrimary = styled.div`
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 600;
     color: ${st.text};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.3;
+    margin-bottom: 2px;
 `;
 
 const VehicleYear = styled.div`
     font-size: 11px;
     color: ${st.textMuted};
-    margin-top: 2px;
 `;
 
 // ─── Owners cell ──────────────────────────────────────────────────────────────
@@ -176,25 +176,26 @@ const VisitBadge = styled.span`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 32px;
-    height: 32px;
-    padding: 0 10px;
-    background: ${st.bgCardAlt};
-    border: 1.5px solid ${st.border};
-    color: ${st.text};
-    font-size: 13px;
+    min-width: 28px;
+    height: 24px;
+    padding: 0 8px;
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 11px;
     font-weight: 700;
-    border-radius: 8px;
+    border-radius: 9999px;
+    font-variant-numeric: tabular-nums;
 `;
 
 // ─── Revenue cell ─────────────────────────────────────────────────────────────
 
 const GrossAmt = styled.div`
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 700;
     color: ${st.text};
     letter-spacing: -0.3px;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 `;
 
 const NetAmt = styled.div`
@@ -206,7 +207,7 @@ const NetAmt = styled.div`
 // ─── Actions cell ─────────────────────────────────────────────────────────────
 
 const ActionsCell = styled.td`
-    padding: 15px 20px;
+    padding: 14px 20px;
     text-align: right;
     vertical-align: middle;
 `;
@@ -221,11 +222,11 @@ const MenuBtn = styled.button`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border: 1.5px solid ${st.border};
-    border-radius: 8px;
-    background: ${st.bgCard};
+    border-radius: 7px;
+    background: transparent;
     color: ${st.textMuted};
     cursor: pointer;
     transition: all ${st.transition};
@@ -233,12 +234,12 @@ const MenuBtn = styled.button`
     &:hover {
         border-color: ${st.borderHover};
         color: ${st.text};
-        background: ${st.bgCardAlt};
+        background: #f1f5f9;
     }
 
     svg {
-        width: 15px;
-        height: 15px;
+        width: 14px;
+        height: 14px;
     }
 `;
 
@@ -264,13 +265,13 @@ const DropdownItem = styled.button<{ $danger?: boolean }>`
     background: none;
     font-size: 13px;
     font-weight: 500;
-    color: ${props => props.$danger ? '#DC2626' : st.text};
+    color: ${p => p.$danger ? '#DC2626' : st.text};
     cursor: pointer;
     text-align: left;
     transition: background ${st.transition};
 
     &:hover {
-        background: ${props => props.$danger ? 'rgba(220, 38, 38, 0.07)' : st.bgCardAlt};
+        background: ${p => p.$danger ? 'rgba(220, 38, 38, 0.07)' : st.bgCardAlt};
     }
 
     svg {
@@ -378,6 +379,9 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
 
                                 <Td>
                                     <VehicleMainCell>
+                                        <CarBubble>
+                                            <CarIcon />
+                                        </CarBubble>
                                         <VehicleBlock>
                                             <VehicleNamePrimary>
                                                 {vehicle.brand} {vehicle.model}
