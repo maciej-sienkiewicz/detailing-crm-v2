@@ -397,7 +397,7 @@ export const DashboardView = () => {
               Status operacyjny · na żywo
             </HeroEyebrow>
             <HeroGreeting>{greeting}!</HeroGreeting>
-            {heroDesc && <HeroDesc>{heroDesc}</HeroDesc>}
+              <HeroDesc></HeroDesc>
             <HeroActions>
               <HeroBtnPrimary onClick={() => navigate('/appointments/create')}>
                 <CalendarPlus />
@@ -436,26 +436,6 @@ export const DashboardView = () => {
         <UpcomingVisitsPanel />
         <TasksPanel tasks={tasks} />
       </TwoColGrid>
-
-      <div>
-        <SectionLabel>
-          <SectionLabelText>Analityka</SectionLabelText>
-          <SectionLabelLine />
-        </SectionLabel>
-        <AnalyticsSection
-          revenue={revenue}
-          callActivity={callActivity}
-          instagramPhotos={instagramPhotos}
-        />
-      </div>
-
-      <div>
-        <SectionLabel>
-          <SectionLabelText>Opinie Google</SectionLabelText>
-          <SectionLabelLine />
-        </SectionLabel>
-        <GoogleReviewsSection data={googleReviews} />
-      </div>
 
     </ViewContainer>
   );
