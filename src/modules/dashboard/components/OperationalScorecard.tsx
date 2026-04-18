@@ -160,10 +160,10 @@ const Drawer = styled.aside`
   }
 `;
 
-const DrawerHeader = styled.div<{ $variant: CardVariant }>`
-  padding: 20px 22px;
-  background: ${p => CARD_CONFIG[p.$variant].bgGradient};
-  border-bottom: 1px solid ${p => p.theme.colors.border};
+const DrawerHeader = styled.div`
+  padding: 18px 22px 14px;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -194,30 +194,31 @@ const DrawerTitleGroup = styled.div`
 `;
 
 const DrawerTitle = styled.div`
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
   color: ${p => p.theme.colors.text};
   letter-spacing: -0.1px;
+  margin: 0;
 `;
 
 const DrawerSubtitle = styled.div`
   font-size: 12px;
   color: ${p => p.theme.colors.textMuted};
-  margin-top: 1px;
+  margin-top: 2px;
 `;
 
-const DrawerCountBadge = styled.div<{ $variant: CardVariant }>`
+const DrawerCountBadge = styled.div`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 26px;
-  height: 26px;
-  padding: 0 8px;
-  background: ${p => CARD_CONFIG[p.$variant].accentColor}15;
-  color: ${p => CARD_CONFIG[p.$variant].accentColor};
-  border-radius: 20px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 9px;
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 9999px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   flex-shrink: 0;
 `;
 
@@ -225,20 +226,20 @@ const DrawerCloseBtn = styled.button`
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  border: 1px solid ${p => p.theme.colors.border};
-  background: rgba(255,255,255,0.7);
+  border: none;
+  background: #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: ${p => p.theme.colors.textMuted};
+  color: #64748b;
   flex-shrink: 0;
   transition: background 140ms ease, color 140ms ease;
 
   svg { width: 15px; height: 15px; }
 
   &:hover {
-    background: #ffffff;
+    background: #e2e8f0;
     color: ${p => p.theme.colors.text};
   }
 `;
@@ -265,56 +266,56 @@ const EmptyDrawer = styled.div`
 `;
 
 const DrawerFooter = styled.div`
-  padding: 12px 22px;
-  border-top: 1px solid ${p => p.theme.colors.border};
-  background: ${p => p.theme.colors.surfaceAlt};
+  padding: 14px 22px;
+  border-top: 1px solid #f1f5f9;
+  background: #f8fafc;
   flex-shrink: 0;
 `;
 
 const ViewAllBtn = styled.button`
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--brand-primary);
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #0284c7;
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
-  transition: opacity 120ms ease;
+  font-family: inherit;
+  transition: opacity 150ms ease;
 
-  svg { width: 14px; height: 14px; }
-  &:hover { opacity: 0.72; }
+  svg { width: 14px; height: 14px; stroke-width: 2; }
+  &:hover { opacity: 0.75; }
 `;
 
 // ─── Visit Item ───────────────────────────────────────────────────────────────
 
 const VisitItem = styled.div<{ $overdue: boolean; $clickable: boolean }>`
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
-  padding: 14px 22px;
-  border-bottom: 1px solid ${p => p.theme.colors.border};
+  padding: 13px 22px;
+  border-bottom: 1px solid #f1f5f9;
   border-left: 3px solid ${p => p.$overdue ? p.theme.colors.error : 'transparent'};
-  transition: background 120ms ease;
+  transition: background 150ms ease;
   cursor: ${p => p.$clickable ? 'pointer' : 'default'};
 
   &:last-child { border-bottom: none; }
-  &:hover { background: ${p => p.$clickable ? p.theme.colors.surfaceAlt : 'transparent'}; }
+  &:hover { background: ${p => p.$clickable ? '#f8fafc' : 'transparent'}; }
 `;
 
 const BrandAvatar = styled.div<{ $variant: CardVariant }>`
-  width: 38px;
-  height: 38px;
-  min-width: 38px;
-  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
   background: ${p => CARD_CONFIG[p.$variant].iconBg};
-  border: 1.5px solid ${p => CARD_CONFIG[p.$variant].accentColor}28;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: ${p => CARD_CONFIG[p.$variant].accentColor};
   flex-shrink: 0;
@@ -327,13 +328,13 @@ const VisitBody = styled.div`
 
 const VisitMainRow = styled.div`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
 `;
 
 const VehicleName = styled.span`
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: ${p => p.theme.colors.text};
   overflow: hidden;
@@ -344,11 +345,13 @@ const VehicleName = styled.span`
 `;
 
 const VisitAmount = styled.span`
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
-  color: var(--brand-primary);
+  color: ${p => p.theme.colors.text};
   white-space: nowrap;
   flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.3px;
 `;
 
 const VisitSecondRow = styled.div`
@@ -360,20 +363,21 @@ const VisitSecondRow = styled.div`
 `;
 
 const CustomerName = styled.span`
-  font-size: 12.5px;
-  color: ${p => p.theme.colors.textSecondary};
+  font-size: 11px;
+  color: #64748b;
 `;
 
 const Dot = styled.span`
   width: 3px;
   height: 3px;
   border-radius: 50%;
-  background: ${p => p.theme.colors.textMuted};
+  background: #94a3b8;
+  flex-shrink: 0;
 `;
 
 const PhoneChip = styled.span`
   font-size: 11px;
-  color: ${p => p.theme.colors.textMuted};
+  color: #64748b;
   font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   letter-spacing: -0.3px;
 `;
@@ -385,7 +389,7 @@ const DateLine = styled.div<{ $overdue: boolean }>`
   margin-top: 4px;
   font-size: 11px;
   font-weight: ${p => p.$overdue ? 600 : 400};
-  color: ${p => p.$overdue ? p.theme.colors.error : p.theme.colors.textMuted};
+  color: ${p => p.$overdue ? p.theme.colors.error : '#94a3b8'};
 
   svg { width: 11px; height: 11px; flex-shrink: 0; }
 `;
@@ -541,7 +545,7 @@ const VisitDrawer = ({
     <>
       <DrawerOverlay onClick={onClose} />
       <Drawer>
-        <DrawerHeader $variant={data.variant}>
+        <DrawerHeader>
           <DrawerIconWrap $variant={data.variant}>
             <Icon />
           </DrawerIconWrap>
@@ -549,7 +553,7 @@ const VisitDrawer = ({
             <DrawerTitle>{data.label}</DrawerTitle>
             <DrawerSubtitle>{data.subtitle}</DrawerSubtitle>
           </DrawerTitleGroup>
-          <DrawerCountBadge $variant={data.variant}>{data.visits.length}</DrawerCountBadge>
+          <DrawerCountBadge>{data.visits.length}</DrawerCountBadge>
           <DrawerCloseBtn onClick={onClose} aria-label="Zamknij">
             <X />
           </DrawerCloseBtn>
