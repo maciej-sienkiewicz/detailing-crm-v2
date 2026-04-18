@@ -8,8 +8,6 @@ import { AlertCircle, CalendarPlus, Sparkles, TrendingUp, TrendingDown } from 'l
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/core/context/AuthContext';
 import { OperationalScorecard } from '../components/OperationalScorecard';
-import { AnalyticsSection } from '../components/AnalyticsSection';
-import { GoogleReviewsSection } from '../components/GoogleReviewsSection';
 import { UpcomingVisitsPanel } from '../components/UpcomingVisitsPanel';
 import { TasksPanel } from '../components/TasksPanel';
 import { useDashboard, useDashboardSocket } from '../hooks';
@@ -385,8 +383,6 @@ export const DashboardView = () => {
   } = useDashboard();
 
   const greeting = useMemo(() => getGreeting(), []);
-  const localDate = useMemo(() => capitalize(formatLocalDate()), []);
-  const heroDesc = useMemo(() => getHeroDesc(stats), [stats]);
 
   return (
     <ViewContainer>
@@ -401,7 +397,7 @@ export const DashboardView = () => {
               <HeroGreeting>{greeting}{user?.firstName ? `, ${user.firstName}` : ''}!</HeroGreeting>
               <HeroDesc></HeroDesc>
             <HeroActions>
-              <HeroBtnPrimary onClick={() => navigate('/appointments/create')}>
+              <HeroBtnPrimary onClick={() => navigate('/checkin/new')}>
                 <CalendarPlus />
                 Nowa wizyta
               </HeroBtnPrimary>
