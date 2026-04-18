@@ -6,6 +6,7 @@ import { useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { AlertCircle, CalendarPlus, Sparkles, TrendingUp, TrendingDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/core/context/AuthContext';
 import { OperationalScorecard } from '../components/OperationalScorecard';
 import { AnalyticsSection } from '../components/AnalyticsSection';
 import { GoogleReviewsSection } from '../components/GoogleReviewsSection';
@@ -370,6 +371,7 @@ const RevenueKpiCard = ({ revenue }: { revenue?: BusinessMetric }) => {
 export const DashboardView = () => {
   useDashboardSocket();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const {
     stats,
@@ -396,7 +398,7 @@ export const DashboardView = () => {
               <LiveDot />
               Status operacyjny · na żywo
             </HeroEyebrow>
-            <HeroGreeting>{greeting}!</HeroGreeting>
+            <HeroGreeting>{greeting}{user?.firstName ? `, ${user.firstName}` : ''}!</HeroGreeting>
             {heroDesc && <HeroDesc>{heroDesc}</HeroDesc>}
             <HeroActions>
               <HeroBtnPrimary onClick={() => navigate('/appointments/create')}>
