@@ -461,6 +461,43 @@ const mockGetCustomers = async (filters: CustomerFilters): Promise<CustomerListR
         });
     }
 
+    if (filters.customerType && filters.customerType !== 'all') {
+        filteredCustomers = filteredCustomers.filter(c =>
+            filters.customerType === 'business' ? c.company !== null : c.company === null
+        );
+    }
+
+    if (filters.lastVisitWithinDays) {
+        const cutoff = Date.now() - filters.lastVisitWithinDays * 86_400_000;
+        filteredCustomers = filteredCustomers.filter(c =>
+            c.lastVisitDate && new Date(c.lastVisitDate).getTime() >= cutoff
+        );
+    }
+
+    if (filters.notVisitedSinceDays) {
+        const cutoff = Date.now() - filters.notVisitedSinceDays * 86_400_000;
+        filteredCustomers = filteredCustomers.filter(c =>
+            !c.lastVisitDate || new Date(c.lastVisitDate).getTime() < cutoff
+        );
+    }
+
+    if (filters.vehicleBrand) {
+        const brand = filters.vehicleBrand.toLowerCase();
+        filteredCustomers = filteredCustomers.filter(c =>
+            c.company?.name.toLowerCase().includes(brand) || c.vehicleCount > 0
+        );
+    }
+
+    if (filters.vehicleModel) {
+        // Mock has no model data; keep all customers with at least one vehicle
+        filteredCustomers = filteredCustomers.filter(c => c.vehicleCount > 0);
+    }
+
+    if (filters.services && filters.services.length > 0) {
+        // Mock has no per-customer service data; keep customers with visits as proxy
+        filteredCustomers = filteredCustomers.filter(c => c.totalVisits > 0);
+    }
+
     const sortedCustomers = sortCustomers(
         filteredCustomers,
         filters.sortBy,
@@ -587,17 +624,24 @@ export const customerApi = {
             limit: filters.limit.toString(),
         });
 
-        if (filters.search) {
-            params.append('search', filters.search);
-        }
+        if (filters.search) params.append('search', filters.search);
+        if (filters.sortBy) params.append('sortBy', filters.sortBy);
+        if (filters.sortDirection) params.append('sortDirection', filters.sortDirection);
 
-        if (filters.sortBy) {
-            params.append('sortBy', filters.sortBy);
+        if (filters.customerType && filters.customerType !== 'all') {
+            params.append('customerType', filters.customerType);
         }
-
-        if (filters.sortDirection) {
-            params.append('sortDirection', filters.sortDirection);
+        if (filters.services?.length) {
+            filters.services.forEach(s => params.append('services', s));
         }
+        if (filters.lastVisitWithinDays) {
+            params.append('lastVisitWithinDays', filters.lastVisitWithinDays.toString());
+        }
+        if (filters.notVisitedSinceDays) {
+            params.append('notVisitedSinceDays', filters.notVisitedSinceDays.toString());
+        }
+        if (filters.vehicleBrand) params.append('vehicleBrand', filters.vehicleBrand);
+        if (filters.vehicleModel) params.append('vehicleModel', filters.vehicleModel);
 
         const response = await apiClient.get<CustomerListResponse>(
             `${CUSTOMERS_BASE_PATH}?${params.toString()}`

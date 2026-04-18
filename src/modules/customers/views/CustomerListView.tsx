@@ -9,9 +9,11 @@ import { CustomerTable } from '../components/CustomerTable';
 import { CustomerGrid } from '../components/CustomerGrid';
 import { CustomerPagination } from '../components/CustomerPagination';
 import { AddCustomerModal } from '../components/AddCustomerModal';
+import { CustomerFilterPanel } from '../components/CustomerFilterPanel';
 import { EmptyState } from '../components/EmptyState';
 import { t, interpolate } from '@/common/i18n';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import type { CustomerAdvancedFilters } from '../types';
 
 const ViewContainer = styled.main`
     display: flex;
@@ -237,6 +239,21 @@ const SecondaryBtn = styled.button`
     svg { width: 15px; height: 15px; flex-shrink: 0; }
 `;
 
+const FilterBadge = styled.span`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: #0ea5e9;
+    color: #fff;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+`;
+
 const DataContainer = styled.div`
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
         padding: 0;
@@ -252,12 +269,29 @@ const TABS: { id: CustomerTab; label: string }[] = [
     { id: 'fleet',   label: 'Flota'      },
 ];
 
+const EMPTY_ADVANCED_FILTERS: CustomerAdvancedFilters = {};
+
+const countActiveFilters = (f: CustomerAdvancedFilters): number => {
+    let n = 0;
+    if (f.customerType && f.customerType !== 'all') n++;
+    if (f.services?.length) n++;
+    if (f.lastVisitWithinDays) n++;
+    if (f.notVisitedSinceDays) n++;
+    if (f.vehicleBrand) n++;
+    if (f.vehicleModel) n++;
+    return n;
+};
+
 export const CustomerListView = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+    const [appliedFilters, setAppliedFilters] = useState<CustomerAdvancedFilters>(EMPTY_ADVANCED_FILTERS);
     const [activeTab, setActiveTab] = useState<CustomerTab>('all');
     const { searchInput, debouncedSearch, handleSearchChange } = useCustomerSearch();
     const { page, limit, goToPage, resetPagination } = useCustomerPagination();
     const isDesktop = useBreakpoint('lg');
+
+    const activeFilterCount = countActiveFilters(appliedFilters);
 
     const filters = useMemo(
         () => ({
@@ -266,8 +300,9 @@ export const CustomerListView = () => {
             limit,
             sortBy: 'lastName' as const,
             sortDirection: 'asc' as const,
+            ...appliedFilters,
         }),
-        [debouncedSearch, page, limit]
+        [debouncedSearch, page, limit, appliedFilters]
     );
 
     const { customers, pagination, isLoading, isError, refetch } = useCustomers(filters);
@@ -364,11 +399,14 @@ export const CustomerListView = () => {
                             ))}
                         </TabGroup>
                         <Spacer />
-                        <SecondaryBtn>
+                        <SecondaryBtn onClick={() => setIsFilterPanelOpen(true)}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                             </svg>
                             Filtry
+                            {activeFilterCount > 0 && (
+                                <FilterBadge>{activeFilterCount}</FilterBadge>
+                            )}
                         </SecondaryBtn>
                         <SecondaryBtn>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -395,6 +433,16 @@ export const CustomerListView = () => {
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
                 onSuccess={() => handleCustomerCreated()}
+            />
+
+            <CustomerFilterPanel
+                isOpen={isFilterPanelOpen}
+                initialFilters={appliedFilters}
+                onApply={filters => {
+                    setAppliedFilters(filters);
+                    resetPagination();
+                }}
+                onClose={() => setIsFilterPanelOpen(false)}
             />
         </ViewContainer>
     );

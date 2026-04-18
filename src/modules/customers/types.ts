@@ -83,7 +83,18 @@ export interface CustomerSortConfig {
     direction: SortDirection;
 }
 
-export interface CustomerFilters {
+export type CustomerTypeFilter = 'all' | 'individual' | 'business';
+
+export interface CustomerAdvancedFilters {
+    customerType?: CustomerTypeFilter;
+    services?: string[];
+    lastVisitWithinDays?: number | null;
+    notVisitedSinceDays?: number | null;
+    vehicleBrand?: string | null;
+    vehicleModel?: string | null;
+}
+
+export interface CustomerFilters extends CustomerAdvancedFilters {
     search: string;
     page: number;
     limit: number;
