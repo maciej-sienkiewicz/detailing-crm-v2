@@ -15,10 +15,10 @@ import {
     PanelLeftOpen,
     X,
     Menu,
-    InstagramIcon,
-    Search,
+    Camera,
     Settings,
     LogOut,
+    Search,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
@@ -32,19 +32,18 @@ import {
     Logo,
     LogoIcon,
     LogoText,
+    LogoSub,
     HeaderActions,
     CollapseButton,
     CloseButton,
-    SidebarFooter,
-    VersionRow,
-    StatusDot,
-    VersionText,
     ExpandButton,
     MobileMenuButton,
-    FooterMenuLink,
-    FooterMenuButton,
-    MenuItemIcon,
-    MenuItemText,
+    UserProfile,
+    UserAvatar,
+    UserInfo,
+    UserName,
+    UserRole,
+    UserLogoutButton,
 } from './SidebarStyles';
 
 const menuSections: MenuSection[] = [
@@ -66,26 +65,43 @@ const menuSections: MenuSection[] = [
     {
         title: 'Administracja',
         items: [
-            { path: '/finances',  label: 'Finanse',  icon: FileText },
+            { path: '/finances',   label: 'Finanse',    icon: FileText },
             { path: '/reports',    label: 'Raporty',    icon: BarChart3 },
             { path: '/statistics', label: 'Statystyki', icon: TrendingUp },
             { path: '/team',       label: 'Pracownicy', icon: UserCog },
             { path: '/gallery',    label: 'Galeria',    icon: Images },
+            { path: '/settings',   label: 'Ustawienia', icon: Settings },
         ],
     },
     {
         title: 'Marketing',
         items: [
-            { path: '/sms-campaigns',  label: 'Kampanie SMS', icon: MessageSquare },
-            { path: '/instagram',      label: 'Instagram',    icon: InstagramIcon },
-            { path: '/google-reviews', label: 'Google',       icon: Search },
+            { path: '/sms-campaigns',  label: 'Kampanie SMS',    icon: MessageSquare },
+            { path: '/instagram',      label: 'Instagram',       icon: Camera },
+            { path: '/google-reviews', label: 'Google Reviews',  icon: Search },
         ],
     },
 ];
 
+const getRoleLabel = (role: string): string => {
+    const map: Record<string, string> = {
+        owner:    'Właściciel',
+        admin:    'Administrator',
+        employee: 'Pracownik',
+        manager:  'Menedżer',
+    };
+    return map[role.toLowerCase()] ?? role;
+};
+
+const getInitials = (firstName?: string, lastName?: string): string => {
+    const f = firstName?.[0] ?? '';
+    const l = lastName?.[0] ?? '';
+    return (f + l).toUpperCase() || 'AU';
+};
+
 export const Sidebar = () => {
     const { isCollapsed, isMobileOpen, toggleCollapse, toggleMobileMenu, closeMobileMenu } = useSidebar();
-    const { setAuthenticated } = useAuth();
+    const { user, setAuthenticated } = useAuth();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -106,6 +122,10 @@ export const Sidebar = () => {
         navigate('/login');
     };
 
+    const displayName = user
+        ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email
+        : '';
+
     return (
         <>
             <MobileMenuButton onClick={toggleMobileMenu} aria-label="Otwórz menu">
@@ -118,7 +138,10 @@ export const Sidebar = () => {
                 <SidebarHeader $isCollapsed={isCollapsed}>
                     <Logo $isCollapsed={isCollapsed}>
                         <LogoIcon>AC</LogoIcon>
-                        <LogoText $isCollapsed={isCollapsed}>AutoCRM</LogoText>
+                        <div>
+                            <LogoText $isCollapsed={isCollapsed}>AutoCRM</LogoText>
+                            <LogoSub $isCollapsed={isCollapsed}>Studio detailingu</LogoSub>
+                        </div>
                     </Logo>
                     <HeaderActions>
                         <CollapseButton
@@ -140,24 +163,23 @@ export const Sidebar = () => {
                     onNavigate={closeMobileMenu}
                 />
 
-                <SidebarFooter $isCollapsed={isCollapsed}>
-                    <FooterMenuLink to="/settings" $isCollapsed={isCollapsed} onClick={closeMobileMenu}>
-                        <MenuItemIcon $isActive={false}>
-                            <Settings />
-                        </MenuItemIcon>
-                        <MenuItemText $isCollapsed={isCollapsed}>Ustawienia</MenuItemText>
-                    </FooterMenuLink>
-                    <FooterMenuButton $isCollapsed={isCollapsed} $danger onClick={handleLogout}>
-                        <MenuItemIcon $isActive={false} style={{ color: 'inherit' }}>
-                            <LogOut />
-                        </MenuItemIcon>
-                        <MenuItemText $isCollapsed={isCollapsed}>Wyloguj</MenuItemText>
-                    </FooterMenuButton>
-                    <VersionRow $isCollapsed={isCollapsed}>
-                        <StatusDot />
-                        <VersionText $isCollapsed={isCollapsed}>v1.0.0 · Online</VersionText>
-                    </VersionRow>
-                </SidebarFooter>
+                <UserProfile $isCollapsed={isCollapsed}>
+                    <UserAvatar>
+                        {getInitials(user?.firstName, user?.lastName)}
+                    </UserAvatar>
+                    <UserInfo $isCollapsed={isCollapsed}>
+                        <UserName>{displayName}</UserName>
+                        <UserRole>{user ? getRoleLabel(user.role) : ''}</UserRole>
+                    </UserInfo>
+                    <UserLogoutButton
+                        $isCollapsed={isCollapsed}
+                        onClick={handleLogout}
+                        title="Wyloguj"
+                        aria-label="Wyloguj"
+                    >
+                        <LogOut />
+                    </UserLogoutButton>
+                </UserProfile>
 
                 {isCollapsed && (
                     <ExpandButton onClick={toggleCollapse} title="Rozwiń menu">

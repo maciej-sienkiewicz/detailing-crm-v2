@@ -4,15 +4,15 @@ import { Link } from 'react-router-dom';
 // ─── Dark Sidebar Tokens ──────────────────────────────────────────────────────
 const S = {
     bg:           '#0f172a',
-    bgHover:      'rgba(255, 255, 255, 0.05)',
+    bgHover:      'rgba(255, 255, 255, 0.04)',
     bgActive:     'rgba(14, 165, 233, 0.11)',
     border:       'rgba(255, 255, 255, 0.07)',
-    text:         '#64748b',
-    textHover:    '#94a3b8',
-    textActive:   '#e2e8f0',
+    text:         '#cbd5e1',
+    textHover:    '#f1f5f9',
+    textActive:   '#38bdf8',
     iconActive:   '#38bdf8',
     accent:       '#0ea5e9',
-    sectionLabel: '#2d3f55',
+    sectionLabel: '#64748b',
 } as const;
 
 // ─── Overlay ──────────────────────────────────────────────────────────────────
@@ -48,9 +48,7 @@ export const SidebarContainer = styled.aside<{ $isCollapsed: boolean; $isMobileO
     display: flex;
     flex-direction: column;
     overflow: hidden;
-
-    /* Subtle right shadow to separate from content */
-    box-shadow: 1px 0 0 0 ${S.border}, 4px 0 24px rgba(0, 0, 0, 0.25);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
         width: ${p => p.$isCollapsed ? '64px' : '248px'};
@@ -67,8 +65,7 @@ export const SidebarContainer = styled.aside<{ $isCollapsed: boolean; $isMobileO
 // ─── Header ───────────────────────────────────────────────────────────────────
 
 export const SidebarHeader = styled.div<{ $isCollapsed: boolean }>`
-    height: 60px;
-    padding: 0 14px;
+    padding: 20px 16px 18px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -76,7 +73,7 @@ export const SidebarHeader = styled.div<{ $isCollapsed: boolean }>`
     border-bottom: 1px solid ${S.border};
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
-        padding: 0 ${p => p.$isCollapsed ? '14px' : '14px'};
+        padding: ${p => p.$isCollapsed ? '18px 14px' : '20px 16px 18px'};
         justify-content: ${p => p.$isCollapsed ? 'center' : 'space-between'};
     }
 `;
@@ -84,39 +81,58 @@ export const SidebarHeader = styled.div<{ $isCollapsed: boolean }>`
 export const Logo = styled.div<{ $isCollapsed: boolean }>`
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     overflow: hidden;
     flex: 1;
     min-width: 0;
 `;
 
 export const LogoIcon = styled.div`
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
-    border-radius: 9px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 800;
     letter-spacing: -0.5px;
     flex-shrink: 0;
-    box-shadow: 0 2px 10px rgba(14, 165, 233, 0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
 `;
 
 export const LogoText = styled.span<{ $isCollapsed: boolean }>`
     color: #f1f5f9;
-    font-size: 14.5px;
-    font-weight: 600;
-    letter-spacing: -0.2px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
     white-space: nowrap;
     overflow: hidden;
+    line-height: 1.1;
+    display: block;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
         opacity: ${p => p.$isCollapsed ? 0 : 1};
-        max-width: ${p => p.$isCollapsed ? '0px' : '140px'};
+        max-width: ${p => p.$isCollapsed ? '0px' : '160px'};
+        transition: opacity 220ms ease, max-width 260ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+`;
+
+export const LogoSub = styled.span<{ $isCollapsed: boolean }>`
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    display: block;
+    margin-top: 2px;
+
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
+        opacity: ${p => p.$isCollapsed ? 0 : 1};
+        max-width: ${p => p.$isCollapsed ? '0px' : '160px'};
         transition: opacity 220ms ease, max-width 260ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 `;
@@ -135,7 +151,7 @@ export const CollapseButton = styled.button<{ $isCollapsed: boolean }>`
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid ${S.border};
     border-radius: 7px;
-    color: ${S.text};
+    color: ${S.sectionLabel};
     cursor: pointer;
     display: none;
     align-items: center;
@@ -161,7 +177,7 @@ export const CloseButton = styled.button`
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid ${S.border};
     border-radius: 7px;
-    color: ${S.text};
+    color: ${S.sectionLabel};
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -203,19 +219,19 @@ export const MenuSection = styled.div`
 `;
 
 export const MenuSectionTitle = styled.div<{ $isCollapsed: boolean }>`
-    padding: 0 10px 5px;
+    padding: 0 12px 4px;
     color: ${S.sectionLabel};
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.09em;
+    letter-spacing: 0.1em;
     white-space: nowrap;
     overflow: hidden;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
         opacity: ${p => p.$isCollapsed ? 0 : 1};
         max-height: ${p => p.$isCollapsed ? '0px' : '24px'};
-        padding-bottom: ${p => p.$isCollapsed ? '0' : '5px'};
+        padding-bottom: ${p => p.$isCollapsed ? '0' : '4px'};
         transition: opacity 200ms ease, max-height 260ms ease, padding-bottom 260ms ease;
     }
 `;
@@ -225,18 +241,18 @@ export const MenuSectionTitle = styled.div<{ $isCollapsed: boolean }>`
 export const MenuItemLink = styled(Link)<{ $isActive: boolean; $isCollapsed: boolean }>`
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 7px 10px;
+    gap: 11px;
+    padding: 9px 12px;
     margin-bottom: 1px;
     color: ${p => p.$isActive ? S.textActive : S.text};
     text-decoration: none;
-    border-radius: 8px;
-    transition: background-color 140ms ease, color 140ms ease;
+    border-radius: 10px;
+    transition: background-color 180ms ease, color 180ms ease;
     position: relative;
     cursor: pointer;
     background-color: ${p => p.$isActive ? S.bgActive : 'transparent'};
-    font-size: 13.5px;
-    font-weight: ${p => p.$isActive ? 500 : 400};
+    font-size: 13px;
+    font-weight: ${p => p.$isActive ? 600 : 500};
     white-space: nowrap;
     overflow: hidden;
     -webkit-tap-highlight-color: transparent;
@@ -252,18 +268,19 @@ export const MenuItemLink = styled(Link)<{ $isActive: boolean; $isCollapsed: boo
         margin-bottom: 2px;
     }
 
-    /* Left accent indicator */
+    /* Left accent indicator — sits at the container's left edge */
     &::before {
         content: '';
         position: absolute;
-        left: 0;
-        top: 18%;
-        height: 64%;
+        left: -8px;
+        top: 50%;
+        transform: translateY(-50%);
+        height: 22px;
         width: 3px;
         background: ${S.accent};
         border-radius: 0 3px 3px 0;
         opacity: ${p => p.$isActive ? 1 : 0};
-        transition: opacity 140ms ease;
+        transition: opacity 180ms ease;
     }
 
     &:hover {
@@ -280,13 +297,13 @@ export const MenuItemIcon = styled.span<{ $isActive: boolean }>`
     justify-content: center;
     flex-shrink: 0;
     color: ${p => p.$isActive ? S.iconActive : S.text};
-    transition: color 140ms ease;
+    transition: color 180ms ease;
 
-    svg { width: 16px; height: 16px; stroke-width: 1.75; }
+    svg { width: 17px; height: 17px; stroke-width: 1.75; }
 `;
 
 export const MenuItemText = styled.span<{ $isCollapsed: boolean }>`
-    font-size: 13.5px;
+    font-size: 13px;
     white-space: nowrap;
     overflow: hidden;
 
@@ -301,95 +318,31 @@ export const MenuItemText = styled.span<{ $isCollapsed: boolean }>`
     }
 `;
 
-export const MenuItemBadge = styled.span<{ $isCollapsed: boolean }>`
+export const MenuItemBadge = styled.span<{ $isCollapsed: boolean; $isActive?: boolean }>`
     margin-left: auto;
     padding: 2px 7px;
-    background: #ef4444;
-    border-radius: 20px;
+    background: ${p => p.$isActive ? 'rgba(14, 165, 233, 0.25)' : 'rgba(239, 68, 68, 0.22)'};
+    border-radius: 9999px;
     font-size: 10px;
     font-weight: 700;
-    color: white;
+    color: ${p => p.$isActive ? '#7dd3fc' : '#fca5a5'};
     line-height: 1.5;
     flex-shrink: 0;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
-        display: ${p => p.$isCollapsed ? 'none' : 'block'};
+        display: ${p => p.$isCollapsed ? 'none' : 'inline-block'};
     }
 `;
 
-// ─── Footer ───────────────────────────────────────────────────────────────────
+// ─── User Profile Footer ───────────────────────────────────────────────────────
 
-export const SidebarFooter = styled.div<{ $isCollapsed: boolean }>`
-    padding: 10px 8px;
+export const UserProfile = styled.div<{ $isCollapsed: boolean }>`
+    padding: 12px;
     border-top: 1px solid ${S.border};
     flex-shrink: 0;
-`;
-
-export const FooterMenuLink = styled(Link)<{ $isCollapsed: boolean }>`
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 7px 10px;
-    margin-bottom: 1px;
-    color: ${S.text};
-    text-decoration: none;
-    border-radius: 8px;
-    transition: background-color 140ms ease, color 140ms ease;
-    cursor: pointer;
-    font-size: 13.5px;
-    font-weight: 400;
-    white-space: nowrap;
-    overflow: hidden;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-        justify-content: ${p => p.$isCollapsed ? 'center' : 'flex-start'};
-    }
-
-    &:hover {
-        background-color: ${S.bgHover};
-        color: ${S.textHover};
-    }
-`;
-
-export const FooterMenuButton = styled.button<{ $isCollapsed: boolean; $danger?: boolean }>`
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 7px 10px;
-    margin-bottom: 1px;
-    color: ${p => p.$danger ? '#ef4444' : S.text};
-    background: transparent;
-    border: none;
-    border-radius: 8px;
-    transition: background-color 140ms ease, color 140ms ease;
-    cursor: pointer;
-    font-size: 13.5px;
-    font-weight: 400;
-    white-space: nowrap;
-    overflow: hidden;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-    text-align: left;
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-        justify-content: ${p => p.$isCollapsed ? 'center' : 'flex-start'};
-    }
-
-    &:hover {
-        background-color: ${p => p.$danger ? 'rgba(239, 68, 68, 0.08)' : S.bgHover};
-        color: ${p => p.$danger ? '#f87171' : S.textHover};
-    }
-`;
-
-export const VersionRow = styled.div<{ $isCollapsed: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 10px;
-    border-radius: 8px;
     overflow: hidden;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -397,25 +350,77 @@ export const VersionRow = styled.div<{ $isCollapsed: boolean }>`
     }
 `;
 
-export const StatusDot = styled.div`
-    width: 7px;
-    height: 7px;
+export const UserAvatar = styled.div`
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
-    background: #22c55e;
+    background: linear-gradient(135deg, #10b981, #0ea5e9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: -0.3px;
     flex-shrink: 0;
-    box-shadow: 0 0 0 2.5px rgba(34, 197, 94, 0.2);
+    user-select: none;
 `;
 
-export const VersionText = styled.span<{ $isCollapsed: boolean }>`
-    font-size: 11px;
-    color: #374151;
-    white-space: nowrap;
+export const UserInfo = styled.div<{ $isCollapsed: boolean }>`
+    flex: 1;
+    min-width: 0;
     overflow: hidden;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
         opacity: ${p => p.$isCollapsed ? 0 : 1};
         max-width: ${p => p.$isCollapsed ? '0px' : '120px'};
-        transition: opacity 200ms ease, max-width 260ms ease;
+        transition: opacity 200ms ease, max-width 260ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+`;
+
+export const UserName = styled.div`
+    font-size: 13px;
+    font-weight: 600;
+    color: #f1f5f9;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+`;
+
+export const UserRole = styled.div`
+    font-size: 11px;
+    color: ${S.sectionLabel};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+`;
+
+export const UserLogoutButton = styled.button<{ $isCollapsed: boolean }>`
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 150ms ease;
+    margin-left: auto;
+
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
+        display: ${p => p.$isCollapsed ? 'none' : 'flex'};
+    }
+
+    svg { width: 14px; height: 14px; stroke-width: 1.75; }
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: #f1f5f9;
     }
 `;
 
@@ -431,7 +436,7 @@ export const ExpandButton = styled.button`
     background: #1e293b;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 50%;
-    color: ${S.text};
+    color: ${S.sectionLabel};
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -459,7 +464,7 @@ export const MobileMenuButton = styled.button`
     background: #0f172a;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 10px;
-    color: ${S.textHover};
+    color: #94a3b8;
     cursor: pointer;
     display: flex;
     align-items: center;

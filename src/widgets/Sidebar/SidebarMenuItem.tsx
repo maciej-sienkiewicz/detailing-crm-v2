@@ -34,7 +34,7 @@ export const SidebarMenuItem = ({ item, isCollapsed, onNavigate }: SidebarMenuIt
                 {item.label}
             </MenuItemText>
             {item.badge && (
-                <MenuItemBadge $isCollapsed={isCollapsed}>
+                <MenuItemBadge $isCollapsed={isCollapsed} $isActive={isActive}>
                     {item.badge}
                 </MenuItemBadge>
             )}
