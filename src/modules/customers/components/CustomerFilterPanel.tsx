@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { createPortal } from 'react-dom';
 import type { CustomerAdvancedFilters, CustomerTypeFilter } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useServices } from '@/modules/services/hooks/useServices';
@@ -140,50 +141,112 @@ const TypeBtn = styled.button<{ $active: boolean }>`
 
 // ─── Service multiselect ──────────────────────────────────────────────────────
 
-const ServiceSearchInput = styled.input`
+const ServiceTrigger = styled.button<{ $open: boolean }>`
     width: 100%;
-    padding: 8px 12px;
-    border: 1.5px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border: 1.5px solid ${p => p.$open ? '#0ea5e9' : '#e2e8f0'};
     border-radius: 9px;
+    background: ${st.bgCard};
+    color: ${st.text};
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+    box-shadow: ${p => p.$open ? '0 0 0 3px rgba(14,165,233,0.12)' : 'none'};
+
+    &:hover { border-color: #cbd5e1; }
+`;
+
+const ServiceTriggerText = styled.span`
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+`;
+
+const ServiceTriggerPlaceholder = styled.span`
+    flex: 1;
+    color: #94a3b8;
+`;
+
+const ServiceCaret = styled.span<{ $open: boolean }>`
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid ${st.textMuted};
+    flex-shrink: 0;
+    transition: transform 180ms ease;
+    transform: ${p => p.$open ? 'rotate(180deg)' : 'rotate(0deg)'};
+`;
+
+const ServicePortalMenu = styled.div`
+    position: fixed;
+    background: #fff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    z-index: 500;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+`;
+
+const ServiceMenuSearch = styled.div`
+    position: sticky;
+    top: 0;
+    background: #fff;
+    padding: 8px 10px;
+    border-bottom: 1px solid #f1f5f9;
+    flex-shrink: 0;
+`;
+
+const ServiceMenuSearchInput = styled.input`
+    width: 100%;
+    padding: 7px 10px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
     font-size: 13px;
     font-family: inherit;
     color: ${st.text};
-    background: ${st.bgCard};
+    background: #f8fafc;
     transition: border-color 150ms ease;
     box-sizing: border-box;
 
     &:focus {
         outline: none;
         border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+        background: #fff;
     }
 
     &::placeholder { color: #94a3b8; }
 `;
 
-const ServiceList = styled.div`
-    max-height: 200px;
+const ServiceMenuList = styled.div`
     overflow-y: auto;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 9px;
-    background: ${st.bgCard};
+    max-height: 240px;
+    padding: 4px 0;
 `;
 
-const ServiceItem = styled.label<{ $checked: boolean }>`
+const ServiceMenuItem = styled.label<{ $checked: boolean }>`
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 9px 12px;
+    padding: 8px 12px;
     cursor: pointer;
-    border-bottom: 1px solid #f1f5f9;
-    background: ${p => p.$checked ? 'rgba(14,165,233,0.05)' : 'transparent'};
-    transition: background 120ms ease;
+    background: ${p => p.$checked ? 'rgba(14,165,233,0.06)' : 'transparent'};
+    transition: background 100ms ease;
 
-    &:last-child { border-bottom: none; }
-    &:hover { background: ${p => p.$checked ? 'rgba(14,165,233,0.08)' : '#f8fafc'}; }
+    &:hover { background: ${p => p.$checked ? 'rgba(14,165,233,0.10)' : '#f8fafc'}; }
 `;
 
-const ServiceCheckbox = styled.input`
+const ServiceMenuCheckbox = styled.input`
     width: 15px;
     height: 15px;
     accent-color: #0ea5e9;
@@ -191,24 +254,18 @@ const ServiceCheckbox = styled.input`
     flex-shrink: 0;
 `;
 
-const ServiceName = styled.span`
+const ServiceMenuName = styled.span`
     font-size: 13px;
     color: ${st.text};
     font-weight: 500;
     line-height: 1.3;
 `;
 
-const ServiceListEmpty = styled.div`
-    padding: 16px 12px;
+const ServiceMenuEmpty = styled.div`
+    padding: 14px 12px;
     text-align: center;
     font-size: 13px;
     color: ${st.textMuted};
-`;
-
-const SelectedCount = styled.div`
-    font-size: 12px;
-    color: #0ea5e9;
-    font-weight: 600;
 `;
 
 // ─── Activity inputs ──────────────────────────────────────────────────────────
@@ -329,6 +386,154 @@ const CUSTOMER_TYPE_OPTIONS: { id: CustomerTypeFilter; label: string }[] = [
     { id: 'business',   label: 'Firmowi'      },
 ];
 
+// ─── ServiceMultiSelect ───────────────────────────────────────────────────────
+
+type MenuPos = { top?: number; bottom?: number; left: number; width: number };
+
+interface ServiceMultiSelectProps {
+    selectedIds: string[];
+    onChange: (ids: string[]) => void;
+}
+
+const ServiceMultiSelect = ({ selectedIds, onChange }: ServiceMultiSelectProps) => {
+    const { services, isLoading } = useServices({ search: '', page: 1, limit: 200, showInactive: false });
+
+    const [open, setOpen] = useState(false);
+    const [menuPos, setMenuPos] = useState<MenuPos | null>(null);
+    const [query, setQuery] = useState('');
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const searchRef = useRef<HTMLInputElement>(null);
+    const didFocusRef = useRef(false);
+
+    const filtered = useMemo(() => {
+        if (!query.trim()) return services;
+        const q = query.toLowerCase();
+        return services.filter(s => s.name.toLowerCase().includes(q));
+    }, [services, query]);
+
+    const selectedNames = useMemo(
+        () => services.filter(s => selectedIds.includes(s.id)).map(s => s.name),
+        [services, selectedIds]
+    );
+
+    const updatePos = () => {
+        const el = triggerRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom - 6;
+        if (spaceBelow < 160) {
+            setMenuPos({ bottom: window.innerHeight - rect.top + 6, left: rect.left, width: rect.width });
+        } else {
+            setMenuPos({ top: rect.bottom + 6, left: rect.left, width: rect.width });
+        }
+    };
+
+    useEffect(() => {
+        if (!open) { didFocusRef.current = false; return; }
+        updatePos();
+        const onScroll = () => updatePos();
+        const onResize = () => updatePos();
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+        window.addEventListener('scroll', onScroll, true);
+        window.addEventListener('resize', onResize);
+        window.addEventListener('keydown', onKey);
+        return () => {
+            window.removeEventListener('scroll', onScroll, true);
+            window.removeEventListener('resize', onResize);
+            window.removeEventListener('keydown', onKey);
+        };
+    }, [open]);
+
+    useEffect(() => {
+        if (!open || !menuPos || didFocusRef.current) return;
+        didFocusRef.current = true;
+        const t = setTimeout(() => searchRef.current?.focus(), 0);
+        return () => clearTimeout(t);
+    }, [open, menuPos]);
+
+    useEffect(() => { if (open) setQuery(''); }, [open]);
+
+    useEffect(() => {
+        if (!open) return;
+        const handler = (e: MouseEvent) => {
+            const t = e.target as Node;
+            if (!triggerRef.current?.contains(t) && !menuRef.current?.contains(t)) {
+                setOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [open]);
+
+    const toggle = (id: string) => {
+        onChange(selectedIds.includes(id) ? selectedIds.filter(s => s !== id) : [...selectedIds, id]);
+    };
+
+    const label = selectedIds.length === 0
+        ? null
+        : selectedIds.length === 1
+            ? selectedNames[0] ?? '1 wybrana'
+            : `${selectedIds.length} wybranych`;
+
+    return (
+        <div style={{ position: 'relative' }}>
+            <ServiceTrigger
+                ref={triggerRef}
+                type="button"
+                $open={open}
+                onClick={() => !isLoading && setOpen(v => !v)}
+                aria-haspopup="listbox"
+                aria-expanded={open}
+            >
+                {label
+                    ? <ServiceTriggerText>{label}</ServiceTriggerText>
+                    : <ServiceTriggerPlaceholder>{isLoading ? 'Ładowanie...' : 'Wybierz usługi'}</ServiceTriggerPlaceholder>
+                }
+                <ServiceCaret $open={open} />
+            </ServiceTrigger>
+
+            {open && menuPos && createPortal(
+                <ServicePortalMenu
+                    ref={menuRef}
+                    role="listbox"
+                    aria-multiselectable="true"
+                    style={{ top: menuPos.top, bottom: menuPos.bottom, left: menuPos.left, width: menuPos.width }}
+                >
+                    <ServiceMenuSearch>
+                        <ServiceMenuSearchInput
+                            ref={searchRef}
+                            type="text"
+                            placeholder="Szukaj usługi..."
+                            value={query}
+                            onChange={e => setQuery(e.target.value)}
+                        />
+                    </ServiceMenuSearch>
+                    <ServiceMenuList>
+                        {filtered.length === 0
+                            ? <ServiceMenuEmpty>Brak wyników</ServiceMenuEmpty>
+                            : filtered.map(service => (
+                                <ServiceMenuItem
+                                    key={service.id}
+                                    $checked={selectedIds.includes(service.id)}
+                                >
+                                    <ServiceMenuCheckbox
+                                        type="checkbox"
+                                        checked={selectedIds.includes(service.id)}
+                                        onChange={() => toggle(service.id)}
+                                    />
+                                    <ServiceMenuName>{service.name}</ServiceMenuName>
+                                </ServiceMenuItem>
+                            ))
+                        }
+                    </ServiceMenuList>
+                </ServicePortalMenu>,
+                document.body
+            )}
+        </div>
+    );
+};
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface CustomerFilterPanelProps {
@@ -352,7 +557,6 @@ export const CustomerFilterPanel = ({
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(
         initialFilters.services ?? []
     );
-    const [serviceSearch, setServiceSearch] = useState('');
     const [lastVisitWithinDays, setLastVisitWithinDays] = useState<string>(
         initialFilters.lastVisitWithinDays?.toString() ?? ''
     );
@@ -362,36 +566,16 @@ export const CustomerFilterPanel = ({
     const [vehicleBrand, setVehicleBrand] = useState<string>(initialFilters.vehicleBrand ?? '');
     const [vehicleModel, setVehicleModel] = useState<string>(initialFilters.vehicleModel ?? '');
 
-    const { services, isLoading: servicesLoading } = useServices({
-        search: '',
-        page: 1,
-        limit: 200,
-        showInactive: false,
-    });
-
-    const filteredServices = useMemo(() => {
-        if (!serviceSearch.trim()) return services;
-        const q = serviceSearch.toLowerCase();
-        return services.filter(s => s.name.toLowerCase().includes(q));
-    }, [services, serviceSearch]);
-
     useEffect(() => {
         if (isOpen) {
             setCustomerType(initialFilters.customerType ?? 'all');
             setSelectedServiceIds(initialFilters.services ?? []);
-            setServiceSearch('');
             setLastVisitWithinDays(initialFilters.lastVisitWithinDays?.toString() ?? '');
             setNotVisitedSinceDays(initialFilters.notVisitedSinceDays?.toString() ?? '');
             setVehicleBrand(initialFilters.vehicleBrand ?? '');
             setVehicleModel(initialFilters.vehicleModel ?? '');
         }
     }, [isOpen, initialFilters]);
-
-    const toggleService = (id: string) => {
-        setSelectedServiceIds(prev =>
-            prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
-        );
-    };
 
     const handleBrandChange = (brand: string) => {
         setVehicleBrand(brand);
@@ -401,7 +585,6 @@ export const CustomerFilterPanel = ({
     const handleClear = () => {
         setCustomerType('all');
         setSelectedServiceIds([]);
-        setServiceSearch('');
         setLastVisitWithinDays('');
         setNotVisitedSinceDays('');
         setVehicleBrand('');
@@ -455,41 +638,11 @@ export const CustomerFilterPanel = ({
 
                     {/* Wykonana usługa */}
                     <FilterSection>
-                        <SectionLabel>
-                            Wykonana usługa
-                            {selectedServiceIds.length > 0 && (
-                                <SelectedCount as="span" style={{ marginLeft: 8, display: 'inline' }}>
-                                    ({selectedServiceIds.length} wybranych)
-                                </SelectedCount>
-                            )}
-                        </SectionLabel>
-                        <ServiceSearchInput
-                            type="text"
-                            placeholder="Szukaj usługi..."
-                            value={serviceSearch}
-                            onChange={e => setServiceSearch(e.target.value)}
+                        <SectionLabel>Wykonana usługa</SectionLabel>
+                        <ServiceMultiSelect
+                            selectedIds={selectedServiceIds}
+                            onChange={setSelectedServiceIds}
                         />
-                        <ServiceList>
-                            {servicesLoading ? (
-                                <ServiceListEmpty>Ładowanie...</ServiceListEmpty>
-                            ) : filteredServices.length === 0 ? (
-                                <ServiceListEmpty>Brak wyników</ServiceListEmpty>
-                            ) : (
-                                filteredServices.map(service => (
-                                    <ServiceItem
-                                        key={service.id}
-                                        $checked={selectedServiceIds.includes(service.id)}
-                                    >
-                                        <ServiceCheckbox
-                                            type="checkbox"
-                                            checked={selectedServiceIds.includes(service.id)}
-                                            onChange={() => toggleService(service.id)}
-                                        />
-                                        <ServiceName>{service.name}</ServiceName>
-                                    </ServiceItem>
-                                ))
-                            )}
-                        </ServiceList>
                     </FilterSection>
 
                     {/* Aktywność */}

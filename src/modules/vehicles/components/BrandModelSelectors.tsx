@@ -142,6 +142,8 @@ const EmptyState = styled.div`
   font-size: ${props => props.theme.fontSizes.sm};
 `;
 
+type MenuStyle = { top?: number; bottom?: number; left: number; width: number };
+
 interface BrandSelectProps {
   value?: string;
   onChange: (brand: string) => void;
@@ -158,7 +160,7 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const portalMenuRef = useRef<HTMLDivElement | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
-  const [menuStyle, setMenuStyle] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [menuStyle, setMenuStyle] = useState<MenuStyle | null>(null);
   const [query, setQuery] = useState('');
   const didFocusRef = useRef(false);
 
@@ -174,7 +176,12 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
     const el = triggerRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    setMenuStyle({ top: rect.bottom + 6, left: rect.left, width: rect.width });
+    const spaceBelow = window.innerHeight - rect.bottom - 6;
+    if (spaceBelow < 150) {
+      setMenuStyle({ bottom: window.innerHeight - rect.top + 6, left: rect.left, width: rect.width });
+    } else {
+      setMenuStyle({ top: rect.bottom + 6, left: rect.left, width: rect.width });
+    }
   };
 
   useEffect(() => {
@@ -229,10 +236,7 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
   // Auto-open when autoOpen is true and brands are available
   useEffect(() => {
     if (autoOpen && !isLoading && !open && brands.length > 0) {
-      // Small delay to ensure the component is fully rendered
-      const timer = setTimeout(() => {
-        setOpen(true);
-      }, 100);
+      const timer = setTimeout(() => { setOpen(true); }, 100);
       return () => clearTimeout(timer);
     }
   }, [autoOpen, isLoading, brands.length]);
@@ -248,7 +252,7 @@ export const BrandSelect = ({ value, onChange, placeholder = 'Wybierz markę', o
         <Caret />
       </Trigger>
       {open && menuStyle && createPortal(
-        <PortalMenu ref={portalMenuRef} role="listbox" style={{ top: menuStyle.top, left: menuStyle.left, width: menuStyle.width }}>
+        <PortalMenu ref={portalMenuRef} role="listbox" style={{ top: menuStyle.top, bottom: menuStyle.bottom, left: menuStyle.left, width: menuStyle.width }}>
           <SearchContainer>
             <SearchInput
               ref={searchRef}
@@ -290,7 +294,7 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const portalMenuRef = useRef<HTMLDivElement | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
-  const [menuStyle, setMenuStyle] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [menuStyle, setMenuStyle] = useState<MenuStyle | null>(null);
   const [query, setQuery] = useState('');
   const didFocusRef = useRef(false);
 
@@ -313,7 +317,12 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
     const el = triggerRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    setMenuStyle({ top: rect.bottom + 6, left: rect.left, width: rect.width });
+    const spaceBelow = window.innerHeight - rect.bottom - 6;
+    if (spaceBelow < 150) {
+      setMenuStyle({ bottom: window.innerHeight - rect.top + 6, left: rect.left, width: rect.width });
+    } else {
+      setMenuStyle({ top: rect.bottom + 6, left: rect.left, width: rect.width });
+    }
   };
 
   useEffect(() => {
@@ -367,10 +376,7 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
   // Auto-open when autoOpen is true and brand is available
   useEffect(() => {
     if (autoOpen && brand && !disabled && !open && models.length > 0) {
-      // Small delay to ensure the component is fully rendered
-      const timer = setTimeout(() => {
-        setOpen(true);
-      }, 100);
+      const timer = setTimeout(() => { setOpen(true); }, 100);
       return () => clearTimeout(timer);
     }
   }, [autoOpen, brand, disabled, models.length]);
@@ -386,7 +392,7 @@ export const ModelSelect = ({ brand, value, onChange, placeholder = 'Wybierz mod
         <Caret />
       </Trigger>
       {open && menuStyle && createPortal(
-        <PortalMenu ref={portalMenuRef} role="listbox" style={{ top: menuStyle.top, left: menuStyle.left, width: menuStyle.width }}>
+        <PortalMenu ref={portalMenuRef} role="listbox" style={{ top: menuStyle.top, bottom: menuStyle.bottom, left: menuStyle.left, width: menuStyle.width }}>
           <SearchContainer>
             <SearchInput
               ref={searchRef}
