@@ -253,8 +253,6 @@ export interface UpdateNotePayload {
     content: string;
 }
 
-export type DocumentType = 'PHOTO' | 'PDF' | 'PROTOCOL' | 'INTAKE' | 'OUTTAKE' | 'DAMAGE_MAP' | 'OTHER';
-
 export interface CustomerDocument {
     id: string;
     name: string;
@@ -264,46 +262,8 @@ export interface CustomerDocument {
     uploadedByName: string;
 }
 
-export type DocumentCategory =
-    | 'contracts'
-    | 'invoices'
-    | 'correspondence'
-    | 'identity'
-    | 'consents'
-    | 'other';
-
-export interface DocumentListResponse {
-    data: CustomerDocument[];
-    pagination: PaginationMeta;
-}
-
 export interface UploadDocumentPayload {
     file: File;
     customerId: string;
     name?: string;
-}
-
-export interface DocumentDownloadResponse {
-    documentId: string;
-    fileName: string;
-    downloadUrl: string;
-    expiresAt: string;
-    fileSize: number;
-    mimeType: string;
-}
-
-export interface ConsentUpdatePayload {
-    granted: boolean;
-    document: File;
-    ipAddress: string;
-    userAgent: string;
-}
-
-export interface DocumentFilters {
-    category?: DocumentCategory;
-    search?: string;
-    page: number;
-    limit: number;
-    sortBy?: 'uploadedAt' | 'fileName' | 'fileSize';
-    sortDirection?: SortDirection;
 }

@@ -382,7 +382,9 @@ export const DashboardView = () => {
     refetch,
   } = useDashboard();
 
-  const greeting = useMemo(() => getGreeting(), []);
+    const greeting = useMemo(() => getGreeting(), []);
+    const localDate = useMemo(() => capitalize(formatLocalDate()), []);
+    const heroDesc = useMemo(() => getHeroDesc(stats), [stats]);
 
   return (
     <ViewContainer>
@@ -395,8 +397,8 @@ export const DashboardView = () => {
               Status operacyjny · na żywo
             </HeroEyebrow>
               <HeroGreeting>{greeting}{user?.firstName ? `, ${user.firstName}` : ''}!</HeroGreeting>
-              <HeroDesc></HeroDesc>
-            <HeroActions>
+              {heroDesc && <HeroDesc>{heroDesc}</HeroDesc>}
+              <HeroActions>
               <HeroBtnPrimary onClick={() => navigate('/checkin/new')}>
                 <CalendarPlus />
                 Nowa wizyta
