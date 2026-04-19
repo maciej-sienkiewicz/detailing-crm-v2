@@ -124,6 +124,33 @@ const InfoRow = styled.div`
     color: #1e293b;
 `;
 
+const InfoRowLink = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    margin: 0 -8px;
+    font-size: 14px;
+    color: #1e293b;
+    width: calc(100% + 16px);
+    background: none;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 180ms ease, color 180ms ease;
+
+    &:hover {
+        background: rgba(99, 102, 241, 0.06);
+        color: #6366f1;
+    }
+
+    &:hover .nav-arrow {
+        opacity: 1;
+        transform: translateX(2px);
+    }
+`;
+
 const InfoIcon = styled.div`
     width: 16px;
     height: 16px;
@@ -142,22 +169,22 @@ const InfoValue = styled.div`
     font-weight: 500;
 `;
 
-const InfoValueLink = styled.button`
+const InfoValueText = styled.span`
     flex: 1;
-    color: #6366f1;
     font-weight: 500;
-    font-size: 14px;
-    background: none;
-    border: none;
-    padding: 0;
-    text-align: left;
-    cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    transition: color 0.15s;
+`;
 
-    &:hover {
-        color: #4f46e5;
+const NavArrow = styled.div`
+    width: 14px;
+    height: 14px;
+    color: #94a3b8;
+    flex-shrink: 0;
+    opacity: 0.5;
+    transition: opacity 180ms ease, transform 180ms ease;
+
+    svg {
+        width: 100%;
+        height: 100%;
     }
 `;
 
@@ -532,21 +559,32 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                         {/* Klient */}
                         <Section>
                             <SectionTitle>Klient</SectionTitle>
-                            <InfoRow>
-                                <InfoIcon>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-                                        <circle cx="12" cy="7" r="4" />
-                                    </svg>
-                                </InfoIcon>
-                                {event.customerId ? (
-                                    <InfoValueLink onClick={() => { onClose(); navigate(`/customers/${event.customerId}`); }}>
-                                        {event.customerName}
-                                    </InfoValueLink>
-                                ) : (
+                            {event.customerId ? (
+                                <InfoRowLink onClick={() => { onClose(); navigate(`/customers/${event.customerId}`); }}>
+                                    <InfoIcon>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                                            <circle cx="12" cy="7" r="4" />
+                                        </svg>
+                                    </InfoIcon>
+                                    <InfoValueText>{event.customerName}</InfoValueText>
+                                    <NavArrow className="nav-arrow">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </NavArrow>
+                                </InfoRowLink>
+                            ) : (
+                                <InfoRow>
+                                    <InfoIcon>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                                            <circle cx="12" cy="7" r="4" />
+                                        </svg>
+                                    </InfoIcon>
                                     <InfoValue>{event.customerName}</InfoValue>
-                                )}
-                            </InfoRow>
+                                </InfoRow>
+                            )}
                             {event.customerPhone && (
                                 <InfoRow>
                                     <InfoIcon>
@@ -573,22 +611,34 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                         {/* Pojazd */}
                         <Section>
                             <SectionTitle>Pojazd</SectionTitle>
-                            <InfoRow>
-                                <InfoIcon>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M5 17h14v-4H5v4zM3 7l2-3h14l2 3v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-                                        <circle cx="8.5" cy="17" r="1.5" />
-                                        <circle cx="15.5" cy="17" r="1.5" />
-                                    </svg>
-                                </InfoIcon>
-                                {event.vehicleId ? (
-                                    <InfoValueLink onClick={() => { onClose(); navigate(`/vehicles/${event.vehicleId}`); }}>
-                                        {event.vehicleInfo || '—'}
-                                    </InfoValueLink>
-                                ) : (
+                            {event.vehicleId ? (
+                                <InfoRowLink onClick={() => { onClose(); navigate(`/vehicles/${event.vehicleId}`); }}>
+                                    <InfoIcon>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M5 17h14v-4H5v4zM3 7l2-3h14l2 3v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                                            <circle cx="8.5" cy="17" r="1.5" />
+                                            <circle cx="15.5" cy="17" r="1.5" />
+                                        </svg>
+                                    </InfoIcon>
+                                    <InfoValueText>{event.vehicleInfo || '—'}</InfoValueText>
+                                    <NavArrow className="nav-arrow">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </NavArrow>
+                                </InfoRowLink>
+                            ) : (
+                                <InfoRow>
+                                    <InfoIcon>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M5 17h14v-4H5v4zM3 7l2-3h14l2 3v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                                            <circle cx="8.5" cy="17" r="1.5" />
+                                            <circle cx="15.5" cy="17" r="1.5" />
+                                        </svg>
+                                    </InfoIcon>
                                     <InfoValue>{event.vehicleInfo || '—'}</InfoValue>
-                                )}
-                            </InfoRow>
+                                </InfoRow>
+                            )}
                         </Section>
                     </InfoColumns>
 
