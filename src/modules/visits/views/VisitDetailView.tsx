@@ -773,30 +773,6 @@ export const VisitDetailView = () => {
                     </MainColumn>
 
                     <Sidebar>
-                        <CustomerInfoCard
-                            customer={visit.customer}
-                            onViewDetails={() => navigate(`/customers/${visit.customer.id}`)}
-                        />
-                        <VehicleInfoCard
-                            vehicle={visit.vehicle}
-                            mileageAtArrival={visit.mileageAtArrival}
-                            keysHandedOver={visit.keysHandedOver}
-                            documentsHandedOver={visit.documentsHandedOver}
-                            vehicleHandoff={visit.vehicleHandoff}
-                            onMileageChange={handleMileageChange}
-                            onKeysToggle={handleKeysToggle}
-                            onDocumentsToggle={handleDocumentsToggle}
-                            onViewDetails={() => navigate(`/vehicles/${visit.vehicle.id}`)}
-                        />
-                        {visit.technicalNotes && (
-                            <TechnicalNotesCard notes={visit.technicalNotes} />
-                        )}
-                        <VisitComments
-                            visitId={visitId!}
-                            comments={comments}
-                            isLoading={isLoadingComments}
-                        />
-
                         {pendingReminder && (
                             <ReminderCard>
                                 <ReminderCardHeader>
@@ -835,6 +811,29 @@ export const VisitDetailView = () => {
                                 </ReminderCardActions>
                             </ReminderCard>
                         )}
+                        <CustomerInfoCard
+                            customer={visit.customer}
+                            onViewDetails={() => navigate(`/customers/${visit.customer.id}`)}
+                        />
+                        <VehicleInfoCard
+                            vehicle={visit.vehicle}
+                            mileageAtArrival={visit.mileageAtArrival}
+                            keysHandedOver={visit.keysHandedOver}
+                            documentsHandedOver={visit.documentsHandedOver}
+                            vehicleHandoff={visit.vehicleHandoff}
+                            onMileageChange={handleMileageChange}
+                            onKeysToggle={handleKeysToggle}
+                            onDocumentsToggle={handleDocumentsToggle}
+                            onViewDetails={() => navigate(`/vehicles/${visit.vehicle.id}`)}
+                        />
+                        {visit.technicalNotes && (
+                            <TechnicalNotesCard notes={visit.technicalNotes} />
+                        )}
+                        <VisitComments
+                            visitId={visitId!}
+                            comments={comments}
+                            isLoading={isLoadingComments}
+                        />
                     </Sidebar>
                 </MainGrid>
             </ContentArea>
