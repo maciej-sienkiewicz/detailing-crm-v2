@@ -58,15 +58,15 @@ export interface VisitEventData extends CalendarEventData {
 export interface AppointmentResponse {
     id: string;
     appointmentTitle?: string | null;
+    customerId?: string;
+    vehicleId?: string | null;
     customer: {
-        id?: string;
         firstName: string;
         lastName: string;
         phone: string;
         email: string;
     };
     vehicle?: {
-        id?: string;
         brand: string;
         model: string;
         year?: number;
@@ -108,15 +108,15 @@ export interface VisitResponse {
     status: VisitStatus;
     scheduledDate: string;
     estimatedCompletionDate: string;
+    customerId?: string;
+    vehicleId?: string;
     customer: {
-        id?: string;
         firstName: string;
         lastName: string;
         phone: string;
         companyName?: string | null;
     };
     vehicle: {
-        id?: string;
         licensePlate: string;
         brand: string;
         model: string;
