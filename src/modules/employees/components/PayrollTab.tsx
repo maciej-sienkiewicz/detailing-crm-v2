@@ -49,7 +49,7 @@ export const PayrollTab = ({ employeeId }: Props) => {
     const { bonuses: pendingBonuses } = useBonuses(employeeId, generateForm.period);
     const pendingCount = pendingBonuses.filter(b => b.status === 'PENDING').length;
 
-    const activeComponents = compensation?.components.filter(c => c.isActive) ?? [];
+    const activeComponents = compensation?.components?.filter(c => c.isActive) ?? [];
     const needsGrossRevenue = activeComponents.some(
         c => c.type === 'PERCENTAGE_OF_REVENUE' && c.calculationBase === 'GROSS_REVENUE'
     );
