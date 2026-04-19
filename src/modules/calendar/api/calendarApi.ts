@@ -151,9 +151,11 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
     const eventData: AppointmentEventData = {
         id: appointment.id,
         type: 'APPOINTMENT',
+        customerId: appointment.customer.id,
         customerName,
         customerPhone: appointment.customer.phone,
         customerEmail: appointment.customer.email,
+        vehicleId: appointment.vehicle?.id,
         vehicleInfo,
         colorHex,
         appointmentTitle: appointment.appointmentTitle || undefined,
@@ -226,8 +228,10 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
     const eventData: VisitEventData = {
         id: visit.id,
         type: 'VISIT',
+        customerId: visit.customer.id,
         customerName,
         customerPhone: visit.customer.phone,
+        vehicleId: visit.vehicle.id,
         vehicleInfo,
         visitNumber: visit.visitNumber,
         status,

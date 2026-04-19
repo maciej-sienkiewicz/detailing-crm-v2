@@ -2,6 +2,7 @@
 
 import React from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import type { AppointmentEventData, VisitEventData } from '../types';
 
 const Overlay = styled.div`
@@ -139,6 +140,25 @@ const InfoValue = styled.div`
     flex: 1;
     color: #1e293b;
     font-weight: 500;
+`;
+
+const InfoValueLink = styled.button`
+    flex: 1;
+    color: #6366f1;
+    font-weight: 500;
+    font-size: 14px;
+    background: none;
+    border: none;
+    padding: 0;
+    text-align: left;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color 0.15s;
+
+    &:hover {
+        color: #4f46e5;
+    }
 `;
 
 const ServicesList = styled.div`
@@ -430,6 +450,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
     onRestoreAppointmentClick,
     onDeleteAppointmentClick,
 }) => {
+    const navigate = useNavigate();
     const isAppointment = event.type === 'APPOINTMENT';
 
     // Check if appointment is cancelled/abandoned - don't show "Porzuć" button
@@ -518,7 +539,13 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                         <circle cx="12" cy="7" r="4" />
                                     </svg>
                                 </InfoIcon>
-                                <InfoValue>{event.customerName}</InfoValue>
+                                {event.customerId ? (
+                                    <InfoValueLink onClick={() => { onClose(); navigate(`/customers/${event.customerId}`); }}>
+                                        {event.customerName}
+                                    </InfoValueLink>
+                                ) : (
+                                    <InfoValue>{event.customerName}</InfoValue>
+                                )}
                             </InfoRow>
                             {event.customerPhone && (
                                 <InfoRow>
@@ -554,7 +581,13 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                         <circle cx="15.5" cy="17" r="1.5" />
                                     </svg>
                                 </InfoIcon>
-                                <InfoValue>{event.vehicleInfo || '—'}</InfoValue>
+                                {event.vehicleId ? (
+                                    <InfoValueLink onClick={() => { onClose(); navigate(`/vehicles/${event.vehicleId}`); }}>
+                                        {event.vehicleInfo || '—'}
+                                    </InfoValueLink>
+                                ) : (
+                                    <InfoValue>{event.vehicleInfo || '—'}</InfoValue>
+                                )}
                             </InfoRow>
                         </Section>
                     </InfoColumns>

@@ -16,9 +16,11 @@ export type AppointmentStatus = 'CREATED' | 'ABANDONED' | 'CANCELLED';
 export interface CalendarEventData {
     id: string;
     type: CalendarEventType;
+    customerId?: string;
     customerName: string;
     customerPhone?: string;
     customerEmail?: string;
+    vehicleId?: string;
     vehicleInfo: string;
     status?: string;
     totalPrice?: number; // gross (brutto) in minor units
@@ -57,12 +59,14 @@ export interface AppointmentResponse {
     id: string;
     appointmentTitle?: string | null;
     customer: {
+        id?: string;
         firstName: string;
         lastName: string;
         phone: string;
         email: string;
     };
     vehicle?: {
+        id?: string;
         brand: string;
         model: string;
         year?: number;
@@ -105,12 +109,14 @@ export interface VisitResponse {
     scheduledDate: string;
     estimatedCompletionDate: string;
     customer: {
+        id?: string;
         firstName: string;
         lastName: string;
         phone: string;
         companyName?: string | null;
     };
     vehicle: {
+        id?: string;
         licensePlate: string;
         brand: string;
         model: string;
