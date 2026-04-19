@@ -4,8 +4,9 @@
  * Supports mock data mode for development and testing
  */
 
-import type { DashboardData, IncomingCall, DashboardTask } from '../types';
-import {apiClient} from "@/core";
+import type { DashboardData, IncomingCall, DashboardTask, UpcomingVisit, VisitStatusKind } from '../types';
+import type { AppointmentResponse, VisitResponse } from '@/modules/calendar/types';
+import { apiClient } from '@/core';
 
 const USE_MOCKS = false;
 
@@ -453,5 +454,86 @@ export const dashboardApi = {
     // TODO: Replace with actual API call
     // await apiClient.patch(`/v1/dashboard/calls/${callId}`, data);
     throw new Error('Real API not implemented yet');
+  },
+
+  /**
+   * Fetches upcoming appointments (CREATED) and active visits (IN_PROGRESS, READY_FOR_PICKUP)
+   * for today and tomorrow, using the unified calendar events endpoint.
+   */
+  getUpcomingEvents: async (startDate: string, endDate: string): Promise<UpcomingVisit[]> => {
+    const response = await apiClient.get<{ appointments: AppointmentResponse[]; visits: VisitResponse[] }>(
+      '/v1/calendar/events',
+      {
+        params: {
+          startDate,
+          endDate,
+          appointmentStatuses: 'CREATED',
+          visitStatuses: 'IN_PROGRESS,READY_FOR_PICKUP',
+        },
+      },
+    );
+
+    const { appointments, visits } = response.data;
+
+    const toLocalDay = (iso: string) => iso.slice(0, 10);
+    const todayIso = startDate.slice(0, 10);
+    const tomorrowDate = new Date(startDate);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrowIso = toLocalDay(tomorrowDate.toISOString());
+
+    const dateLabel = (iso: string): string => {
+      const day = toLocalDay(iso);
+      if (day === todayIso) return 'dziś';
+      if (day === tomorrowIso) return 'jutro';
+      return new Date(iso).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' });
+    };
+
+    const timeLabel = (iso: string, isAllDay: boolean): string => {
+      if (isAllDay) return '';
+      return new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', hour12: false });
+    };
+
+    type Entry = { sortKey: string; item: UpcomingVisit };
+
+    const appointmentEntries: Entry[] = appointments.map(a => {
+      const label = dateLabel(a.schedule.startDateTime);
+      const statusKind: VisitStatusKind = label === 'dziś' ? 'warn' : 'neutral';
+      return {
+        sortKey: a.schedule.startDateTime,
+        item: {
+          id: a.id,
+          time: timeLabel(a.schedule.startDateTime, a.schedule.isAllDay),
+          dateLabel: label,
+          serviceName: a.appointmentTitle || a.services.map(s => s.serviceName).slice(0, 2).join(', ') || 'Rezerwacja',
+          customerName: `${a.customer.firstName} ${a.customer.lastName}`,
+          vehicleName: a.vehicle ? `${a.vehicle.brand} ${a.vehicle.model}` : '—',
+          price: (a.totalGross ?? 0) / 100,
+          statusKind,
+          statusLabel: label === 'dziś' ? 'Oczekująca' : 'Zaplanowana',
+        },
+      };
+    });
+
+    const visitEntries: Entry[] = visits.map(v => {
+      const statusKind: VisitStatusKind = v.status === 'IN_PROGRESS' ? 'info' : 'success';
+      return {
+        sortKey: v.scheduledDate,
+        item: {
+          id: v.id,
+          time: timeLabel(v.scheduledDate, false),
+          dateLabel: dateLabel(v.scheduledDate),
+          serviceName: v.title || v.visitNumber,
+          customerName: `${v.customer.firstName} ${v.customer.lastName}`,
+          vehicleName: `${v.vehicle.brand} ${v.vehicle.model}`,
+          price: (v.totalGross ?? 0) / 100,
+          statusKind,
+          statusLabel: v.status === 'IN_PROGRESS' ? 'W trakcie' : 'Gotowa',
+        },
+      };
+    });
+
+    return [...appointmentEntries, ...visitEntries]
+      .sort((a, b) => (a.sortKey < b.sortKey ? -1 : 1))
+      .map(e => e.item);
   },
 };
