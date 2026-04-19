@@ -10,14 +10,22 @@ const toLocalDateISO = (d: Date): string => {
   return `${y}-${m}-${day}`;
 };
 
+const tzOffset = (d: Date): string => {
+  const off = -d.getTimezoneOffset();
+  const sign = off >= 0 ? '+' : '-';
+  const h = String(Math.floor(Math.abs(off) / 60)).padStart(2, '0');
+  const min = String(Math.abs(off) % 60).padStart(2, '0');
+  return `${sign}${h}:${min}`;
+};
+
 export const useUpcomingVisits = () => {
   const { startDate, endDate } = useMemo(() => {
     const now = new Date();
     const tom = new Date(now);
     tom.setDate(tom.getDate() + 1);
     return {
-      startDate: `${toLocalDateISO(now)}T00:00:00`,
-      endDate: `${toLocalDateISO(tom)}T23:59:59`,
+      startDate: `${toLocalDateISO(now)}T00:00:00${tzOffset(now)}`,
+      endDate: `${toLocalDateISO(tom)}T23:59:59${tzOffset(tom)}`,
     };
   }, []);
 
