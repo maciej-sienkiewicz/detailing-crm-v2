@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -65,25 +66,25 @@ const Delta = styled.div<{ $positive: boolean }>`
   svg { width: 13px; height: 13px; stroke-width: 2.5; }
 `;
 
-// ─── Chart popover ────────────────────────────────────────────────────────────
+// ─── Chart popover (rendered via portal to escape overflow:hidden) ────────────
 
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 `;
 
-const ChartPopover = styled.div`
-  position: absolute;
-  top: calc(100% + 10px);
-  right: 0;
+const ChartPopover = styled.div<{ $top: number; $right: number }>`
+  position: fixed;
+  top: ${p => p.$top}px;
+  right: ${p => p.$right}px;
   width: 340px;
-  background: rgba(15, 23, 42, 0.96);
+  background: rgba(15, 23, 42, 0.97);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 14px;
   padding: 18px 16px 12px;
   backdrop-filter: blur(20px);
   box-shadow: 0 16px 48px rgba(0,0,0,0.4);
-  z-index: 50;
+  z-index: 9999;
   animation: ${fadeIn} 160ms ease;
   pointer-events: none;
 `;
@@ -104,9 +105,10 @@ const CustomTooltipBox = styled.div`
   padding: 8px 12px;
   font-size: 12px;
   color: #f1f5f9;
+  pointer-events: none;
 `;
 
-// ─── Fixed multipliers — gives a realistic upward trend over 13 weeks ─────────
+// ─── Fixed shape — deterministic upward trend over 13 weeks ──────────────────
 
 const WEEK_SHAPE = [0.72, 0.79, 0.85, 0.74, 0.91, 0.86, 0.97, 0.90, 1.04, 0.96, 1.10, 1.04, 1.0];
 
@@ -114,6 +116,8 @@ const WEEK_SHAPE = [0.72, 0.79, 0.85, 0.74, 0.91, 0.86, 0.97, 0.90, 1.04, 0.96, 
 
 export const RevenueKpiCard = ({ revenue }: { revenue?: BusinessMetric }) => {
   const [hovered, setHovered] = useState(false);
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   const chartData = useMemo(() => {
     if (!revenue) return [];
@@ -132,9 +136,21 @@ export const RevenueKpiCard = ({ revenue }: { revenue?: BusinessMetric }) => {
   if (!revenue) return null;
   const positive = revenue.deltaPercentage >= 0;
 
+  const handleMouseEnter = () => {
+    if (wrapperRef.current) {
+      const rect = wrapperRef.current.getBoundingClientRect();
+      setPos({
+        top: rect.bottom + 10,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setHovered(true);
+  };
+
   return (
     <Wrapper
-      onMouseEnter={() => setHovered(true)}
+      ref={wrapperRef}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setHovered(false)}
     >
       <Card>
@@ -146,8 +162,8 @@ export const RevenueKpiCard = ({ revenue }: { revenue?: BusinessMetric }) => {
         </Delta>
       </Card>
 
-      {hovered && (
-        <ChartPopover>
+      {hovered && createPortal(
+        <ChartPopover $top={pos.top} $right={pos.right}>
           <ChartTitle>Ostatnie 3 miesiące</ChartTitle>
           <ResponsiveContainer width="100%" height={110}>
             <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
@@ -191,7 +207,8 @@ export const RevenueKpiCard = ({ revenue }: { revenue?: BusinessMetric }) => {
               />
             </AreaChart>
           </ResponsiveContainer>
-        </ChartPopover>
+        </ChartPopover>,
+        document.body
       )}
     </Wrapper>
   );
