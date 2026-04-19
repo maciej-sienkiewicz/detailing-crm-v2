@@ -135,6 +135,14 @@ export interface VisitResponse {
 }
 
 /**
+ * Response from unified GET /v1/calendar/events endpoint
+ */
+export interface CalendarEventsResponse {
+    appointments: AppointmentResponse[];
+    visits: VisitResponse[];
+}
+
+/**
  * Unified calendar event for FullCalendar
  */
 export interface CalendarEvent extends EventInput {

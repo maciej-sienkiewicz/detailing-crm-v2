@@ -3,6 +3,7 @@
 import { apiClient } from '@/core';
 import type {
     CalendarEvent,
+    CalendarEventsResponse,
     DateRange,
     AppointmentResponse,
     VisitResponse,
@@ -12,127 +13,42 @@ import type {
     AppointmentStatus,
 } from '../types';
 
+/**
+ * When true: single GET /v1/calendar/events request (new backend endpoint).
+ * When false: legacy N-requests-per-status pattern.
+ * Flip to true once the backend deploys the unified endpoint.
+ */
+const USE_UNIFIED_CALENDAR_API = true;
+
 const USE_MOCKS = false;
 
-/**
- * Calculate text color (black or white) based on background luminance
- * Uses WCAG formula for relative luminance
- */
-const getContrastingTextColor = (hexColor: string): string => {
-    // Remove # if present
-    const hex = hexColor.replace('#', '');
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-    // Convert to RGB
+const getContrastingTextColor = (hexColor: string): string => {
+    const hex = hexColor.replace('#', '');
     const r = parseInt(hex.substr(0, 2), 16) / 255;
     const g = parseInt(hex.substr(2, 2), 16) / 255;
     const b = parseInt(hex.substr(4, 2), 16) / 255;
-
-    // Apply gamma correction
     const toLinear = (c: number) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-
-    // Calculate relative luminance
     const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-
-    // Return black for light backgrounds, white for dark backgrounds
     return luminance > 0.5 ? '#000000' : '#ffffff';
 };
 
-// Mock data for development
-const mockAppointments: AppointmentResponse[] = [
-    {
-        id: 'appt_1',
-        appointmentTitle: 'Oklejanie PPF',
-        customer: {
-            firstName: 'Jan',
-            lastName: 'Kowalski',
-            phone: '+48 123 456 789',
-            email: 'jan@example.com',
-        },
-        vehicle: {
-            brand: 'BMW',
-            model: 'X5',
-        },
-        services: [
-            {
-                id: '1',
-                serviceId: 's1',
-                serviceName: 'Oklejanie PPF - cały przód',
-                basePriceNet: 400000,
-                vatRate: 23,
-                finalPriceNet: 400000,
-                finalPriceGross: 492000,
-            },
-            {
-                id: '2',
-                serviceId: 's2',
-                serviceName: 'Powłoka ceramiczna',
-                basePriceNet: 95000,
-                vatRate: 23,
-                finalPriceNet: 95000,
-                finalPriceGross: 116850,
-            },
-        ],
-        schedule: {
-            isAllDay: false,
-            startDateTime: '2026-01-20T09:00:00Z',
-            endDateTime: '2026-01-20T15:00:00Z',
-        },
-        appointmentColor: {
-            id: 'c1',
-            name: 'Red',
-            hexColor: '#ef4444',
-        },
-        totalNet: 495000,
-        totalGross: 608850,
-        totalVat: 113850,
-        status: 'CONFIRMED',
-    },
-    {
-        id: 'appt_2',
-        appointmentTitle: 'Przegląd okresowy',
-        customer: {
-            firstName: 'Anna',
-            lastName: 'Nowak',
-            phone: '+48 987 654 321',
-            email: 'anna@example.com',
-        },
-        vehicle: {
-            brand: 'Audi',
-            model: 'A4',
-        },
-        services: [
-            {
-                id: '3',
-                serviceId: 's3',
-                serviceName: 'Przegląd okresowy',
-                basePriceNet: 25000,
-                vatRate: 23,
-                finalPriceNet: 25000,
-                finalPriceGross: 30750,
-            },
-        ],
-        schedule: {
-            isAllDay: false,
-            startDateTime: '2026-01-22T10:00:00Z',
-            endDateTime: '2026-01-22T12:00:00Z',
-        },
-        appointmentColor: {
-            id: 'c2',
-            name: 'Green',
-            hexColor: '#22c55e',
-        },
-        totalNet: 25000,
-        totalGross: 30750,
-        totalVat: 5750,
-        status: 'CONFIRMED',
-    },
-];
+const isVisitOverdue = (status: VisitResponse['status'], estimatedCompletionDate: string): boolean => {
+    if (status !== 'IN_PROGRESS') return false;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const completionDate = new Date(estimatedCompletionDate);
+    completionDate.setHours(0, 0, 0, 0);
+    return todayStart > completionDate;
+};
 
-const mockVisits: VisitResponse[] = [];
+// ---------------------------------------------------------------------------
+// Transformers
+// ---------------------------------------------------------------------------
 
-/**
- * Transform appointment data to calendar event format
- */
 const transformAppointment = (appointment: AppointmentResponse): CalendarEvent => {
     const customerName = `${appointment.customer.firstName} ${appointment.customer.lastName}`;
     const vehicleInfo = appointment.vehicle
@@ -140,11 +56,7 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         : 'Brak pojazdu';
     const serviceNames = appointment.services.map(s => s.serviceName);
 
-    // Check if appointment is abandoned or cancelled
     const isCancelled = appointment.status === 'ABANDONED' || appointment.status === 'CANCELLED';
-
-    // For ABANDONED/CANCELLED appointments, always use black color
-    // Otherwise use appointmentColor or fallback
     const colorHex = isCancelled ? '#111827' : (appointment.appointmentColor?.hexColor || '#94a3b8');
     const textColor = getContrastingTextColor(colorHex);
 
@@ -178,7 +90,6 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         borderColor: 'transparent',
         textColor,
         extendedProps: eventData,
-        // Add custom class name per status
         classNames: appointment.status === 'ABANDONED'
             ? ['fc-event-abandoned']
             : appointment.status === 'CANCELLED'
@@ -188,29 +99,11 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
     };
 };
 
-/**
- * Check if an IN_PROGRESS visit is overdue (estimatedCompletionDate is at least the previous day)
- */
-const isVisitOverdue = (status: VisitResponse['status'], estimatedCompletionDate: string): boolean => {
-    if (status !== 'IN_PROGRESS') return false;
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const completionDate = new Date(estimatedCompletionDate);
-    completionDate.setHours(0, 0, 0, 0);
-    return todayStart > completionDate;
-};
-
-/**
- * Transform visit data to calendar event format
- */
 const transformVisit = (visit: VisitResponse): CalendarEvent => {
     const customerName = `${visit.customer.firstName} ${visit.customer.lastName}`;
     const vehicleInfo = `${visit.vehicle.brand} ${visit.vehicle.model}`;
-
-    // Status is already in the correct format (uppercase with underscores)
     const status = visit.status;
 
-    // Status-based colors
     const statusColors: Record<VisitEventData['status'], string> = {
         'IN_PROGRESS': '#f59e0b',
         'READY_FOR_PICKUP': '#10b981',
@@ -219,10 +112,8 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
         'ARCHIVED': '#9ca3af',
     };
 
-    // Use appointmentColor if available, otherwise fall back to status color
     const colorHex = visit.appointmentColor?.hexColor || statusColors[status];
     const textColor = getContrastingTextColor(colorHex);
-
     const overdue = isVisitOverdue(status, visit.estimatedCompletionDate);
 
     const eventData: VisitEventData = {
@@ -243,7 +134,6 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
         technicalNotes: visit.technicalNotes,
     };
 
-    // Visits are typically all-day events
     return {
         id: visit.id,
         title: visit.title || `${visit.visitNumber} | ${customerName}`,
@@ -259,114 +149,120 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
     };
 };
 
+// ---------------------------------------------------------------------------
+// Mock data
+// ---------------------------------------------------------------------------
+
+const mockAppointments: AppointmentResponse[] = [
+    {
+        id: 'appt_1',
+        appointmentTitle: 'Oklejanie PPF',
+        customer: { firstName: 'Jan', lastName: 'Kowalski', phone: '+48 123 456 789', email: 'jan@example.com' },
+        vehicle: { brand: 'BMW', model: 'X5' },
+        services: [
+            { id: '1', serviceId: 's1', serviceName: 'Oklejanie PPF - cały przód', basePriceNet: 400000, vatRate: 23, finalPriceNet: 400000, finalPriceGross: 492000 },
+            { id: '2', serviceId: 's2', serviceName: 'Powłoka ceramiczna', basePriceNet: 95000, vatRate: 23, finalPriceNet: 95000, finalPriceGross: 116850 },
+        ],
+        schedule: { isAllDay: false, startDateTime: '2026-01-20T09:00:00Z', endDateTime: '2026-01-20T15:00:00Z' },
+        appointmentColor: { id: 'c1', name: 'Red', hexColor: '#ef4444' },
+        totalNet: 495000, totalGross: 608850, totalVat: 113850, status: 'CONFIRMED',
+    },
+];
+
+const mockVisits: VisitResponse[] = [];
+
+// ---------------------------------------------------------------------------
+// Fetch strategies
+// ---------------------------------------------------------------------------
+
 /**
- * Fetch appointments for a given date range and optional status filters
+ * New unified strategy: single request to GET /v1/calendar/events.
+ * Accepts comma-separated status lists; omitting a param means "all statuses".
  */
-const fetchAppointments = async (dateRange: DateRange, statuses: AppointmentStatus[] = []): Promise<AppointmentResponse[]> => {
+const fetchUnified = async (
+    dateRange: DateRange,
+    appointmentStatuses: AppointmentStatus[],
+    visitStatuses: VisitStatus[],
+): Promise<CalendarEventsResponse> => {
     if (USE_MOCKS) {
         await new Promise(resolve => setTimeout(resolve, 500));
-        return mockAppointments;
+        return { appointments: mockAppointments, visits: mockVisits };
     }
 
-    // If no statuses selected, return empty array
-    if (statuses.length === 0) {
-        return [];
+    const params: Record<string, string> = {
+        startDate: dateRange.start,
+        endDate: dateRange.end,
+    };
+
+    if (appointmentStatuses.length > 0) {
+        params.appointmentStatuses = appointmentStatuses.join(',');
+    }
+    if (visitStatuses.length > 0) {
+        params.visitStatuses = visitStatuses.join(',');
     }
 
-    // Fetch appointments for each requested status in parallel
-    const requests = statuses.map(status =>
-        apiClient.get<{ appointments: AppointmentResponse[] }>(
-            '/v1/appointments',
-            {
-                params: {
-                    startDate: dateRange.start,
-                    endDate: dateRange.end,
-                    status,
-                },
-            }
-        )
-    );
-
-    const responses = await Promise.all(requests);
-    const allAppointments = responses.flatMap(response => response.data.appointments || []);
-
-    return allAppointments;
+    const response = await apiClient.get<CalendarEventsResponse>('/v1/calendar/events', { params });
+    return response.data;
 };
 
 /**
- * Fetch visits for a given date range and optional status filters
+ * Legacy strategy: one request per status value.
+ * Kept as fallback during backend migration.
  */
-const fetchVisits = async (dateRange: DateRange, statuses: VisitStatus[] = []): Promise<VisitResponse[]> => {
+const fetchLegacy = async (
+    dateRange: DateRange,
+    appointmentStatuses: AppointmentStatus[],
+    visitStatuses: VisitStatus[],
+): Promise<{ appointments: AppointmentResponse[]; visits: VisitResponse[] }> => {
     if (USE_MOCKS) {
         await new Promise(resolve => setTimeout(resolve, 500));
-        return mockVisits;
+        return { appointments: mockAppointments, visits: mockVisits };
     }
 
-    // If no statuses selected, return empty array
-    if (statuses.length === 0) {
-        return [];
-    }
-
-    // Fetch visits for each requested status in parallel (mirrors appointment pattern)
-    const requests = statuses.map(status =>
-        apiClient.get<{ visits: VisitResponse[] }>(
-            '/visits',
-            {
-                params: {
-                    startDate: dateRange.start,
-                    endDate: dateRange.end,
-                    status,
-                },
-            }
-        )
+    const appointmentRequests = appointmentStatuses.map(status =>
+        apiClient.get<{ appointments: AppointmentResponse[] }>('/v1/appointments', {
+            params: { startDate: dateRange.start, endDate: dateRange.end, status },
+        })
     );
 
-    const responses = await Promise.all(requests);
-    return responses.flatMap(response => response.data.visits || []);
+    const visitRequests = visitStatuses.map(status =>
+        apiClient.get<{ visits: VisitResponse[] }>('/visits', {
+            params: { startDate: dateRange.start, endDate: dateRange.end, status },
+        })
+    );
+
+    const [appointmentResponses, visitResponses] = await Promise.all([
+        Promise.all(appointmentRequests),
+        Promise.all(visitRequests).catch(() => []),
+    ]);
+
+    return {
+        appointments: appointmentResponses.flatMap(r => r.data.appointments || []),
+        visits: (visitResponses as Awaited<typeof visitRequests>).flatMap(r => r.data.visits || []),
+    };
 };
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
 export const calendarApi = {
-    /**
-     * Fetch and merge all calendar events (appointments + visits) for a date range
-     */
     getCalendarEvents: async (
         dateRange: DateRange,
         appointmentStatuses: AppointmentStatus[] = [],
-        visitStatuses: VisitStatus[] = []
+        visitStatuses: VisitStatus[] = [],
     ): Promise<CalendarEvent[]> => {
-        try {
-            console.log('[CalendarAPI] Fetching events for range:', dateRange);
-            console.log('[CalendarAPI] Appointment status filters:', appointmentStatuses);
-            console.log('[CalendarAPI] Visit status filters:', visitStatuses);
-
-            // Fetch both appointments and visits in parallel.
-            // Visits are isolated with .catch so a visits-endpoint error
-            // does not prevent appointments from rendering.
-            const [appointments, visits] = await Promise.all([
-                fetchAppointments(dateRange, appointmentStatuses),
-                fetchVisits(dateRange, visitStatuses).catch((err) => {
-                    console.error('[CalendarAPI] Failed to fetch visits:', err);
-                    return [] as VisitResponse[];
-                }),
-            ]);
-
-            console.log('[CalendarAPI] Fetched appointments:', appointments);
-            console.log('[CalendarAPI] Fetched visits:', visits);
-
-            // Transform and merge events
-            const appointmentEvents = appointments.map(transformAppointment);
-            const visitEvents = visits.map(transformVisit);
-
-            console.log('[CalendarAPI] Transformed appointment events:', appointmentEvents);
-            console.log('[CalendarAPI] Transformed visit events:', visitEvents);
-
-            const allEvents = [...appointmentEvents, ...visitEvents];
-            console.log('[CalendarAPI] All calendar events:', allEvents);
-
-            return allEvents;
-        } catch (error) {
-            console.error('[CalendarAPI] Error fetching calendar events:', error);
-            throw error;
+        if (appointmentStatuses.length === 0 && visitStatuses.length === 0) {
+            return [];
         }
+
+        const { appointments, visits } = USE_UNIFIED_CALENDAR_API
+            ? await fetchUnified(dateRange, appointmentStatuses, visitStatuses)
+            : await fetchLegacy(dateRange, appointmentStatuses, visitStatuses);
+
+        return [
+            ...appointments.map(transformAppointment),
+            ...visits.map(transformVisit),
+        ];
     },
 };
