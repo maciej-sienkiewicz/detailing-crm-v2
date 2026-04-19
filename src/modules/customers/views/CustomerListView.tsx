@@ -266,7 +266,6 @@ const TABS: { id: CustomerTab; label: string }[] = [
     { id: 'all',     label: 'Wszyscy'    },
     { id: 'active',  label: 'Aktywni'    },
     { id: 'overdue', label: 'Zaległości' },
-    { id: 'fleet',   label: 'Flota'      },
 ];
 
 const EMPTY_ADVANCED_FILTERS: CustomerAdvancedFilters = {};

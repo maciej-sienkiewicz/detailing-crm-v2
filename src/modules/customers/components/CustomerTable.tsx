@@ -245,8 +245,8 @@ export const CustomerTable = ({ customers }: CustomerTableProps) => {
                                             ? <CellMain>{name}</CellMain>
                                             : <CellItalic>Nie wprowadzono danych</CellItalic>
                                         }
-                                        {customer.contact.email && (
-                                            <CellSub>{customer.contact.email}</CellSub>
+                                        {customer.company && (
+                                            <CellSub>{customer.company.name}</CellSub>
                                         )}
                                     </CellStack>
                                 </Td>
@@ -256,8 +256,8 @@ export const CustomerTable = ({ customers }: CustomerTableProps) => {
                                         <CellMono>
                                             {formatPhoneNumber(customer.contact.phone) || '—'}
                                         </CellMono>
-                                        {customer.company && (
-                                            <CellSub>{customer.company.name}</CellSub>
+                                        {customer.contact.email && (
+                                            <CellSub>{customer.contact.email}</CellSub>
                                         )}
                                     </CellStack>
                                 </Td>
