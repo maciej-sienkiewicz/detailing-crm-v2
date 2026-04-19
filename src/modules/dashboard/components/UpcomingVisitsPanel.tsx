@@ -202,9 +202,14 @@ const VisitRowItem = ({ visit, onNavigate }: { visit: UpcomingVisit; onNavigate:
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+const VISIBLE_LIMIT = 10;
+
 export const UpcomingVisitsPanel = () => {
   const navigate = useNavigate();
   const { data: visits = [], isLoading, isError } = useUpcomingVisits();
+
+  const visible = visits.slice(0, VISIBLE_LIMIT);
+  const hasMore = visits.length > VISIBLE_LIMIT;
 
   return (
     <Panel>
@@ -231,12 +236,21 @@ export const UpcomingVisitsPanel = () => {
       )}
 
       {!isLoading && !isError && visits.length === 0 && (
-        <Placeholder>Brak zaplanowanych wizyt na dziś i jutro</Placeholder>
+        <Placeholder>Brak zaplanowanych wizyt w najbliższym czasie</Placeholder>
       )}
 
-      {!isLoading && !isError && visits.map(v => (
+      {!isLoading && !isError && visible.map(v => (
         <VisitRowItem key={v.id} visit={v} onNavigate={id => navigate(`/visits/${id}`)} />
       ))}
+
+      {!isLoading && !isError && hasMore && (
+        <PanelLink
+          onClick={() => navigate('/calendar')}
+          style={{ display: 'flex', justifyContent: 'center', padding: '12px 22px' }}
+        >
+          Pokaż wszystkie ({visits.length}) <ArrowRight />
+        </PanelLink>
+      )}
     </Panel>
   );
 };

@@ -21,11 +21,11 @@ const tzOffset = (d: Date): string => {
 export const useUpcomingVisits = () => {
   const { startDate, endDate } = useMemo(() => {
     const now = new Date();
-    const tom = new Date(now);
-    tom.setDate(tom.getDate() + 1);
+    const horizon = new Date(now);
+    horizon.setDate(horizon.getDate() + 90);
     return {
       startDate: `${toLocalDateISO(now)}T00:00:00${tzOffset(now)}`,
-      endDate: `${toLocalDateISO(tom)}T23:59:59${tzOffset(tom)}`,
+      endDate: `${toLocalDateISO(horizon)}T23:59:59${tzOffset(horizon)}`,
     };
   }, []);
 
