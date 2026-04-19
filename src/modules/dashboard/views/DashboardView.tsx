@@ -2,17 +2,18 @@
  * Dashboard View — Command Center
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { AlertCircle, CalendarPlus, Sparkles, TrendingUp, TrendingDown } from 'lucide-react';
+import { AlertCircle, CalendarPlus, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/core/context/AuthContext';
 import { OperationalScorecard } from '../components/OperationalScorecard';
 import { UpcomingVisitsPanel } from '../components/UpcomingVisitsPanel';
 import { TasksPanel } from '../components/TasksPanel';
+import { RevenueKpiCard } from '../components/RevenueKpiCard';
+import { InstagramPostModal } from '../components/InstagramPostModal';
 import { useDashboard, useDashboardSocket } from '../hooks';
-import { formatCurrency } from '@/common/utils/formatters';
-import type { OperationalStats, BusinessMetric } from '../types';
+import type { OperationalStats } from '../types';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -215,52 +216,6 @@ const HeroBtnGhost = styled.button`
   svg { width: 16px; height: 16px; stroke-width: 2; }
 `;
 
-// ─── Hero KPI card ────────────────────────────────────────────────────────────
-
-const HeroKpiCard = styled.div`
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 12px;
-  padding: 18px 22px;
-  min-width: 220px;
-  backdrop-filter: blur(4px);
-  flex-shrink: 0;
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    min-width: 0;
-    width: 100%;
-  }
-`;
-
-const HeroKpiEyebrow = styled.div`
-  font-size: 10px;
-  font-weight: 700;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin: 0 0 6px;
-`;
-
-const HeroKpiNumber = styled.div`
-  font-size: 30px;
-  font-weight: 800;
-  letter-spacing: -1.2px;
-  line-height: 1;
-  color: #fff;
-  font-variant-numeric: tabular-nums;
-`;
-
-const HeroKpiDelta = styled.div<{ $positive: boolean }>`
-  font-size: 12px;
-  font-weight: 600;
-  color: ${p => p.$positive ? '#10b981' : '#f87171'};
-  margin-top: 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  svg { width: 13px; height: 13px; stroke-width: 2.5; }
-`;
-
 // ─── Two-column panels grid ───────────────────────────────────────────────────
 
 const TwoColGrid = styled.div`
@@ -347,29 +302,13 @@ const RetryBtn = styled.button`
   &:hover { opacity: 0.85; }
 `;
 
-// ─── Hero KPI sub-component ───────────────────────────────────────────────────
-
-const RevenueKpiCard = ({ revenue }: { revenue?: BusinessMetric }) => {
-  if (!revenue) return null;
-  const positive = revenue.deltaPercentage >= 0;
-  return (
-    <HeroKpiCard>
-      <HeroKpiEyebrow>Przychód · tydzień</HeroKpiEyebrow>
-      <HeroKpiNumber>{formatCurrency(revenue.currentValue)}</HeroKpiNumber>
-      <HeroKpiDelta $positive={positive}>
-        {positive ? <TrendingUp /> : <TrendingDown />}
-        {positive ? '+' : ''}{revenue.deltaPercentage.toFixed(1)}% vs. poprzedni tydzień
-      </HeroKpiDelta>
-    </HeroKpiCard>
-  );
-};
-
 // ─── View ─────────────────────────────────────────────────────────────────────
 
 export const DashboardView = () => {
   useDashboardSocket();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [instagramModalOpen, setInstagramModalOpen] = useState(false);
 
   const {
     stats,
@@ -403,7 +342,7 @@ export const DashboardView = () => {
                 <CalendarPlus />
                 Nowa wizyta
               </HeroBtnPrimary>
-              <HeroBtnGhost onClick={() => navigate('/instagram')}>
+              <HeroBtnGhost onClick={() => setInstagramModalOpen(true)}>
                 <Sparkles />
                 Generuj post
               </HeroBtnGhost>
@@ -412,6 +351,11 @@ export const DashboardView = () => {
           <RevenueKpiCard revenue={revenue} />
         </HeroRow>
       </HeroCard>
+
+      <InstagramPostModal
+        open={instagramModalOpen}
+        onClose={() => setInstagramModalOpen(false)}
+      />
 
       {isError && (
         <ErrorBox>
