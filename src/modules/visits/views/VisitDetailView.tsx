@@ -24,6 +24,7 @@ import type { DocumentType, ServiceStatus } from '../types';
 import { useToast } from '@/common/components/Toast';
 import { AuditTimeline } from '@/common/components/AuditTimeline';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { useAutomationConfig } from '@/modules/sms-campaigns/hooks';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -169,6 +170,28 @@ const SectionBody = styled.div<{ $visible: boolean; $flush?: boolean }>`
     display: ${props => props.$visible ? 'block' : 'none'};
     padding: ${props => props.$flush ? '0' : '20px'};
     animation: ${fadeUp} 0.2s ease;
+`;
+
+const SmsDisabledNotice = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 16px 20px;
+    padding: 12px 14px;
+    background: rgba(245, 158, 11, 0.06);
+    border: 1px solid rgba(245, 158, 11, 0.22);
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    color: ${st.textSecondary};
+    line-height: 1.55;
+
+    svg {
+        width: 15px;
+        height: 15px;
+        color: #d97706;
+        flex-shrink: 0;
+        margin-top: 1px;
+    }
 `;
 
 const DocsSectionHeader = styled.div`
@@ -452,6 +475,8 @@ export const VisitDetailView = () => {
     const { saveServicesChanges, isSaving } = useSaveServicesChanges(visitId!);
     const { showSuccess, showWarning, showInfo } = useToast();
     const { pendingReminder } = useSmsReminder(visitId!);
+    const { config: smsConfig } = useAutomationConfig();
+    const smsPreVisitDisabled = smsConfig !== null && !smsConfig.preVisit.enabled;
 
     if (isLoading) {
         return (
@@ -662,6 +687,19 @@ export const VisitDetailView = () => {
                                 </ChevronIcon>
                             </SectionHeader>
                             <SectionBody $visible={isCommunicationOpen} $flush id="communication-section">
+                                {smsPreVisitDisabled && (
+                                    <SmsDisabledNotice>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="12" y1="8" x2="12" y2="12"/>
+                                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                        </svg>
+                                        <span>
+                                            Przypomnienie przed wizytą nie zostanie wysłane.{' '}
+                                            Funkcja nie została przez Ciebie włączona.
+                                        </span>
+                                    </SmsDisabledNotice>
+                                )}
                                 <VisitCommunicationHistory
                                     entries={communicationEntries}
                                     isLoading={isLoadingCommunication}
