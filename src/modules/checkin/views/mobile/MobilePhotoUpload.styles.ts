@@ -1,0 +1,632 @@
+// src/modules/checkin/views/mobile/MobilePhotoUpload.styles.ts
+// Standalone styled components — no theme provider, all values hardcoded.
+
+import styled, { keyframes, css } from 'styled-components';
+
+// ─── Animations ───────────────────────────────────────────────────────────────
+
+export const spin = keyframes`
+    to { transform: rotate(360deg); }
+`;
+
+export const pulse = keyframes`
+    0%   { transform: translate(-50%, -50%) scale(1);    box-shadow: 0 0 0 0   rgba(220, 38, 38, 0.7); }
+    70%  { transform: translate(-50%, -50%) scale(1.05); box-shadow: 0 0 0 12px rgba(220, 38, 38, 0);   }
+    100% { transform: translate(-50%, -50%) scale(1);    box-shadow: 0 0 0 0   rgba(220, 38, 38, 0);   }
+`;
+
+// ─── Layout ───────────────────────────────────────────────────────────────────
+
+export const MobileContainer = styled.div`
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    padding: 16px;
+    padding-bottom: 48px;
+    color: white;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+`;
+
+export const Header = styled.div`
+    padding: 20px 0 16px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    margin-bottom: 20px;
+`;
+
+export const Logo = styled.div`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+`;
+
+export const Title = styled.h1`
+    margin: 0 0 6px;
+    font-size: 22px;
+    font-weight: 700;
+    color: white;
+`;
+
+export const Subtitle = styled.p`
+    margin: 0;
+    font-size: 14px;
+    color: rgba(255,255,255,0.6);
+`;
+
+// ─── Tab navigation ───────────────────────────────────────────────────────────
+
+export const TabBar = styled.div`
+    display: flex;
+    background: rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 4px;
+    margin-bottom: 20px;
+    gap: 4px;
+`;
+
+export const Tab = styled.button<{ $active: boolean }>`
+    flex: 1;
+    padding: 12px 8px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    white-space: nowrap;
+
+    background: ${props => props.$active
+        ? 'linear-gradient(135deg, #0ea5e9, #0284c7)'
+        : 'transparent'};
+    color: ${props => props.$active ? 'white' : 'rgba(255,255,255,0.5)'};
+    box-shadow: ${props => props.$active ? '0 2px 12px rgba(14,165,233,0.3)' : 'none'};
+
+    svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+    &:active { opacity: 0.85; }
+`;
+
+export const TabBadge = styled.span`
+    background: rgba(255,255,255,0.2);
+    border-radius: 99px;
+    padding: 2px 7px;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 20px;
+    text-align: center;
+    line-height: 1.4;
+`;
+
+// ─── Banners & cards ──────────────────────────────────────────────────────────
+
+export const OfflineBanner = styled.div<{ $visible: boolean }>`
+    background: rgba(234, 179, 8, 0.15);
+    border: 1px solid rgba(234, 179, 8, 0.4);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #fbbf24;
+    display: ${props => props.$visible ? 'flex' : 'none'};
+    align-items: center;
+    gap: 8px;
+`;
+
+export const InfoCard = styled.div`
+    background: rgba(14, 165, 233, 0.12);
+    border: 1px solid rgba(14, 165, 233, 0.3);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.85);
+    line-height: 1.5;
+`;
+
+export const AllDoneCard = styled.div`
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    color: #86efac;
+    font-size: 14px;
+    margin-bottom: 12px;
+`;
+
+// ─── Save status ──────────────────────────────────────────────────────────────
+
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error' | 'offline';
+
+const saveColors: Record<SaveStatus, { fg: string; bg: string; border: string }> = {
+    saved:   { fg: '#86efac', bg: 'rgba(34,197,94,0.08)',   border: 'rgba(34,197,94,0.2)'  },
+    saving:  { fg: '#7dd3fc', bg: 'rgba(14,165,233,0.08)',  border: 'rgba(14,165,233,0.2)' },
+    error:   { fg: '#f87171', bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.2)'  },
+    offline: { fg: '#fbbf24', bg: 'rgba(234,179,8,0.08)',   border: 'rgba(234,179,8,0.2)'  },
+    idle:    { fg: 'transparent', bg: 'transparent', border: 'transparent' },
+};
+
+export const SaveStatusBadge = styled.div<{ $status: SaveStatus }>`
+    display: ${props => props.$status === 'idle' ? 'none' : 'flex'};
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 14px;
+    color:      ${props => saveColors[props.$status].fg};
+    background: ${props => saveColors[props.$status].bg};
+    border: 1px solid ${props => saveColors[props.$status].border};
+`;
+
+// ─── Progress ─────────────────────────────────────────────────────────────────
+
+export const ProgressBar = styled.div`
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    height: 6px;
+    overflow: hidden;
+    margin-bottom: 6px;
+`;
+
+export const ProgressFill = styled.div<{ $pct: number }>`
+    height: 100%;
+    width: ${props => props.$pct}%;
+    background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+    border-radius: 8px;
+    transition: width 0.4s ease;
+`;
+
+export const ProgressLabel = styled.div`
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 16px;
+    text-align: center;
+`;
+
+// ─── Photo cards ──────────────────────────────────────────────────────────────
+
+export const PhotoList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+`;
+
+export const PhotoCard = styled.div<{ $status: 'pending' | 'uploading' | 'done' | 'failed' }>`
+    background: rgba(255,255,255,0.05);
+    border: 2px solid ${props => {
+        switch (props.$status) {
+            case 'done':      return '#22c55e';
+            case 'failed':    return '#ef4444';
+            case 'uploading': return '#0ea5e9';
+            default:          return 'rgba(255,255,255,0.12)';
+        }
+    }};
+    border-radius: 14px;
+    overflow: hidden;
+    transition: border-color 0.3s;
+`;
+
+export const PhotoImg = styled.img`
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    display: block;
+`;
+
+export const PhotoCardBody = styled.div`
+    padding: 12px 14px;
+`;
+
+export const PhotoCardHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+`;
+
+export const PhotoCardTitle = styled.span`
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.9);
+`;
+
+export const StatusBadge = styled.span<{ $status: 'pending' | 'uploading' | 'done' | 'failed' }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    background: ${props => {
+        switch (props.$status) {
+            case 'done':      return 'rgba(34,197,94,0.2)';
+            case 'failed':    return 'rgba(239,68,68,0.2)';
+            case 'uploading': return 'rgba(14,165,233,0.2)';
+            default:          return 'rgba(255,255,255,0.1)';
+        }
+    }};
+    color: ${props => {
+        switch (props.$status) {
+            case 'done':      return '#22c55e';
+            case 'failed':    return '#f87171';
+            case 'uploading': return '#38bdf8';
+            default:          return 'rgba(255,255,255,0.6)';
+        }
+    }};
+`;
+
+export const ErrorMsg = styled.div`
+    font-size: 12px;
+    color: #f87171;
+    margin-top: 6px;
+`;
+
+export const ActionRow = styled.div`
+    display: flex;
+    gap: 8px;
+`;
+
+// ─── Buttons ──────────────────────────────────────────────────────────────────
+
+export const Btn = styled.button<{ $variant?: 'primary' | 'secondary' | 'danger' }>`
+    flex: 1;
+    padding: 13px 10px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+
+    &:active { transform: scale(0.97); }
+    &:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    background: ${props => {
+        switch (props.$variant) {
+            case 'secondary': return 'rgba(255,255,255,0.1)';
+            case 'danger':    return 'rgba(239,68,68,0.2)';
+            default:          return 'linear-gradient(135deg, #0ea5e9, #0284c7)';
+        }
+    }};
+    color: ${props => props.$variant === 'danger' ? '#f87171' : 'white'};
+    border: ${props => props.$variant === 'danger' ? '1px solid rgba(239,68,68,0.3)' : 'none'};
+`;
+
+export const CameraBtn = styled.label`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    color: white;
+    border-radius: 14px;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    box-shadow: 0 4px 20px rgba(14,165,233,0.3);
+    margin-bottom: 12px;
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+    touch-action: manipulation;
+
+    &:active { transform: scale(0.98); }
+
+    svg { width: 24px; height: 24px; flex-shrink: 0; }
+`;
+
+export const HiddenInput = styled.input`
+    display: none;
+`;
+
+// ─── Loading / expired ────────────────────────────────────────────────────────
+
+export const ExpiredScreen = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    text-align: center;
+    padding: 20px;
+    gap: 16px;
+`;
+
+export const ExpiredIcon = styled.div`
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(239,68,68,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    svg { width: 36px; height: 36px; color: #f87171; }
+`;
+
+export const ExpiredTitle = styled.h2`
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+    color: white;
+`;
+
+export const ExpiredText = styled.p`
+    font-size: 15px;
+    color: rgba(255,255,255,0.6);
+    margin: 0;
+    max-width: 300px;
+    line-height: 1.6;
+`;
+
+export const LoadingWrap = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: 16px;
+    text-align: center;
+`;
+
+export const Spinner = styled.div`
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255,255,255,0.15);
+    border-top-color: #0ea5e9;
+    border-radius: 50%;
+    animation: ${spin} 0.8s linear infinite;
+`;
+
+// ─── Damage mapper ────────────────────────────────────────────────────────────
+
+export const DamageMapperWrap = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+`;
+
+export const DiagramCard = styled.div`
+    background: #f8fafc;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+`;
+
+export const DiagramHint = styled.div`
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(0deg, rgba(0,0,0,0.55) 0%, transparent 100%);
+    padding: 24px 14px 10px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.9);
+    text-align: center;
+    pointer-events: none;
+    font-weight: 500;
+`;
+
+export const VehicleImage = styled.img`
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
+`;
+
+export const OverlayLayer = styled.div`
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+`;
+
+export const DamageMarker = styled.div<{ $isLast: boolean; $isActive: boolean }>`
+    position: absolute;
+    width: 34px;
+    height: 34px;
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 13px;
+    filter: drop-shadow(0 3px 8px rgba(0,0,0,0.4));
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    z-index: 10;
+    border: 2px solid rgba(255,255,255,0.5);
+    transition: transform 0.15s, border-color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+
+    ${props => props.$isLast && css`
+        animation: ${pulse} 2s infinite;
+    `}
+
+    ${props => props.$isActive && css`
+        transform: translate(-50%, -50%) scale(1.25) !important;
+        z-index: 20;
+        border-color: white;
+        animation: none;
+    `}
+`;
+
+export const DamageControlRow = styled.div`
+    display: flex;
+    gap: 10px;
+`;
+
+export const DamageControlBtn = styled.button`
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.75);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+
+    &:disabled { opacity: 0.3; }
+    &:active:not(:disabled) { background: rgba(255,255,255,0.13); }
+
+    svg { width: 18px; height: 18px; flex-shrink: 0; }
+`;
+
+export const DamageList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+`;
+
+export const DamageItem = styled.div<{ $isActive: boolean }>`
+    background: ${props => props.$isActive ? 'rgba(14,165,233,0.1)' : 'rgba(255,255,255,0.04)'};
+    border: 1.5px solid ${props => props.$isActive ? 'rgba(14,165,233,0.35)' : 'rgba(255,255,255,0.07)'};
+    border-radius: 14px;
+    overflow: hidden;
+    transition: background 0.2s, border-color 0.2s;
+`;
+
+export const DamageItemHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 14px;
+`;
+
+export const DamageNumber = styled.div`
+    width: 34px;
+    height: 34px;
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+    border: 1.5px solid rgba(255,255,255,0.25);
+`;
+
+export const DamageItemLabel = styled.span`
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.85);
+`;
+
+export const DamageDeleteBtn = styled.button`
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.3);
+    cursor: pointer;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+
+    &:active {
+        background: rgba(239,68,68,0.15);
+        color: #f87171;
+    }
+
+    svg { width: 20px; height: 20px; }
+`;
+
+export const DamageNoteInput = styled.textarea`
+    width: 100%;
+    padding: 12px 14px;
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.03);
+    color: rgba(255,255,255,0.88);
+    font-size: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    resize: none;
+    min-height: 60px;
+    box-sizing: border-box;
+    line-height: 1.5;
+
+    &::placeholder { color: rgba(255,255,255,0.22); }
+    &:focus { outline: none; background: rgba(14,165,233,0.05); }
+`;
+
+export const EmptyDamageState = styled.div`
+    background: rgba(255,255,255,0.03);
+    border: 2px dashed rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 32px 20px;
+    text-align: center;
+    color: rgba(255,255,255,0.35);
+    font-size: 14px;
+    line-height: 1.6;
+
+    strong {
+        display: block;
+        font-size: 15px;
+        margin-bottom: 6px;
+        color: rgba(255,255,255,0.5);
+    }
+`;
+
+export const SectionTitle = styled.h3`
+    margin: 0 0 4px;
+    font-size: 16px;
+    font-weight: 700;
+    color: white;
+`;
+
+export const SectionSubtitle = styled.p`
+    margin: 0 0 14px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.5;
+`;

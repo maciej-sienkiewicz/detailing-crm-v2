@@ -289,6 +289,27 @@ export interface MobileCheckinContext {
     tenantId: string;
 }
 
+// ─── Mobile Damage Points ─────────────────────────────────────────────────────
+
+export interface MobileDamagePointsRequest {
+    damagePoints: DamagePoint[];
+}
+
+export interface MobileDamagePointsResponse {
+    checkinId: string;
+    damagePoints: DamagePoint[];
+    savedAt: string;
+}
+
+// ─── Checkin Damage Updated WebSocket event ───────────────────────────────────
+
+export interface CheckinDamageUpdatedEvent {
+    type: 'CHECKIN_DAMAGE_UPDATED';
+    checkinId: string;
+    damagePoints: DamagePoint[];
+    updatedAt: string;
+}
+
 // ─── Mobile Photo Upload Response ─────────────────────────────────────────────
 
 export interface MobilePhotoUploadResponse {

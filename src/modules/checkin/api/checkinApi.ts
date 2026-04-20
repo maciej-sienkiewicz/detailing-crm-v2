@@ -13,6 +13,9 @@ import type {
     QRTokenResponse,
     MobileCheckinContext,
     MobilePhotoUploadResponse,
+    MobileDamagePointsRequest,
+    MobileDamagePointsResponse,
+    DamagePoint,
 } from '../types';
 
 const USE_MOCKS = false;
@@ -274,5 +277,51 @@ export const checkinApi = {
         await apiClient.delete(
             `${BASE_PATH}/${checkinId}/photos/${photoId}`
         );
+    },
+
+    // ─── Mobile Damage Points ────────────────────────────────────────────────
+
+    /**
+     * Save (replace) damage points from mobile during a check-in session.
+     * Uses X-Upload-Token header — no session cookie needed.
+     */
+    saveMobileDamagePoints: async (
+        token: string,
+        damagePoints: DamagePoint[],
+    ): Promise<MobileDamagePointsResponse> => {
+        const payload: MobileDamagePointsRequest = { damagePoints };
+        const response = await apiClient.put(
+            `${MOBILE_BASE_PATH}/damage-points`,
+            payload,
+            { headers: { 'X-Upload-Token': token } },
+        );
+        return response.data;
+    },
+
+    /**
+     * Fetch damage points saved by mobile for this check-in session.
+     * Uses X-Upload-Token header — no session cookie needed.
+     */
+    getMobileDamagePoints: async (token: string): Promise<MobileDamagePointsResponse> => {
+        const response = await apiClient.get(
+            `${MOBILE_BASE_PATH}/damage-points`,
+            { headers: { 'X-Upload-Token': token } },
+        );
+        return response.data;
+    },
+
+    /**
+     * Fetch damage points saved by mobile for a specific appointment (desktop side).
+     * Used by CheckInWizard to pre-populate the damage section.
+     */
+    getAppointmentMobileDamagePoints: async (appointmentId: string): Promise<MobileDamagePointsResponse | null> => {
+        try {
+            const response = await apiClient.get(
+                `${BASE_PATH}/${appointmentId}/mobile-damage-points`,
+            );
+            return response.data;
+        } catch {
+            return null;
+        }
     },
 };
