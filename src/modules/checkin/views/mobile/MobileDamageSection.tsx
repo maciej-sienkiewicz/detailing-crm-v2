@@ -46,12 +46,31 @@ export const MobileDamageSection = ({ logic }: Props) => {
     const listRef = useRef<HTMLDivElement>(null);
     const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
-    // Always-current ref — stable event handlers call this to avoid stale closure
-    const addPointRef = useRef(addPoint);
-    addPointRef.current = addPoint;
-
     // Guard against touch→click double-fire on mobile browsers
     const touchJustFiredRef = useRef(false);
+
+    // ─── Point management (Moved up to fix TDZ / "Cannot access before initialization") ─────
+
+    const addPoint = useCallback((x: number, y: number) => {
+        const newId = damagePoints.length > 0
+            ? Math.max(...damagePoints.map(p => p.id)) + 1
+            : 1;
+        const newPoint: DamagePoint = { id: newId, x, y, note: '' };
+        const updated = [...damagePoints, newPoint];
+        updatePoints(updated);
+        setActivePointId(newId);
+
+        // Scroll list into view after render
+        setTimeout(() => {
+            const el = document.getElementById(`damage-item-${newId}`);
+            el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 80);
+    }, [damagePoints, updatePoints]);
+
+    // Always-current ref — stable event handlers call this to avoid stale closure
+    // Now safely initialized after addPoint is defined
+    const addPointRef = useRef(addPoint);
+    addPointRef.current = addPoint;
 
     // ─── Touch tap detection ──────────────────────────────────────────────────
 
@@ -93,23 +112,7 @@ export const MobileDamageSection = ({ logic }: Props) => {
         addPointRef.current(x, y);
     }, []);
 
-    // ─── Point management ─────────────────────────────────────────────────────
-
-    const addPoint = useCallback((x: number, y: number) => {
-        const newId = damagePoints.length > 0
-            ? Math.max(...damagePoints.map(p => p.id)) + 1
-            : 1;
-        const newPoint: DamagePoint = { id: newId, x, y, note: '' };
-        const updated = [...damagePoints, newPoint];
-        updatePoints(updated);
-        setActivePointId(newId);
-
-        // Scroll list into view after render
-        setTimeout(() => {
-            const el = document.getElementById(`damage-item-${newId}`);
-            el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 80);
-    }, [damagePoints, updatePoints]);
+    // ─── Other Handlers ───────────────────────────────────────────────────────
 
     const handleMarkerTap = useCallback((e: React.MouseEvent | React.TouchEvent, id: number) => {
         e.stopPropagation();
