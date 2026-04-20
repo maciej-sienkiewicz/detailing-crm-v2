@@ -376,6 +376,29 @@ export const useApproveServiceChange = (visitId: string) => {
     };
 };
 
+export const useUpdateVisitTitle = (visitId: string) => {
+    const queryClient = useQueryClient();
+    const { showSuccess, showError } = useToast();
+
+    const { mutateAsync, isPending } = useMutation({
+        mutationFn: (title: string) => visitApi.updateTitle(visitId, title),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId) });
+            queryClient.invalidateQueries({ queryKey: ['operations'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard', 'upcoming-visits'] });
+            showSuccess('Tytuł wizyty zaktualizowany');
+        },
+        onError: () => {
+            showError('Nie udało się zaktualizować tytułu');
+        },
+    });
+
+    return {
+        updateTitle: mutateAsync,
+        isUpdating: isPending,
+    };
+};
+
 export const useRejectServiceChange = (visitId: string) => {
     const queryClient = useQueryClient();
 

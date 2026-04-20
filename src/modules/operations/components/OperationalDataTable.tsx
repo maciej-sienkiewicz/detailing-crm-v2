@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { useOperations } from '../hooks/useOperations';
 import { useDeleteOperation } from '../hooks/useDeleteOperation';
-import { useUpdateReservationDate, useCancelReservation } from '../hooks/useReservationActions';
+import { useUpdateReservationDate, useCancelReservation, useUpdateOperationTitle } from '../hooks/useReservationActions';
 import { OperationStatusBadge, getStatusAccentColor } from './OperationStatusBadge';
 import { DeleteOperationModal } from './DeleteOperationModal';
 import { ChangeDateModal } from './ChangeDateModal';
@@ -123,6 +123,10 @@ const TypeBubble = styled.div<{ $isVisit: boolean }>`
 const VehicleBlock = styled.div`
     min-width: 0;
     flex: 1;
+
+    &:hover [data-pencil] {
+        opacity: 1;
+    }
 `;
 
 const VehicleName = styled.div`
@@ -138,6 +142,77 @@ const PlaceholderText = styled.div`
     font-weight: 500;
     color: ${st.textMuted};
     font-style: italic;
+`;
+
+const TitleEditRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 4px;
+`;
+
+const TitleInput = styled.input`
+    font-size: 14px;
+    font-weight: 700;
+    color: ${st.text};
+    background: ${st.bgCardAlt};
+    border: 1.5px solid rgba(59, 130, 246, 0.45);
+    border-radius: 5px;
+    padding: 2px 6px;
+    outline: none;
+    min-width: 0;
+    width: 180px;
+    max-width: 100%;
+
+    &:focus { border-color: rgba(59, 130, 246, 0.8); }
+`;
+
+const TitleActionBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 5px;
+    border: 1px solid transparent;
+    background: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+    transition: all 140ms ease;
+    svg { width: 12px; height: 12px; }
+`;
+
+const TitleSaveBtn = styled(TitleActionBtn)`
+    color: #059669;
+    border-color: rgba(16,185,129,0.3);
+    background: rgba(16,185,129,0.08);
+    &:hover { background: rgba(16,185,129,0.18); }
+`;
+
+const TitleCancelBtn = styled(TitleActionBtn)`
+    color: ${st.textMuted};
+    border-color: ${st.border};
+    background: ${st.bgCardAlt};
+    &:hover { color: ${st.text}; }
+`;
+
+const PencilIconBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: ${st.textMuted};
+    border-radius: 4px;
+    padding: 0;
+    opacity: 0;
+    flex-shrink: 0;
+    transition: opacity 140ms ease, color 140ms ease;
+    svg { width: 12px; height: 12px; }
+    &:hover { color: ${st.text}; }
 `;
 
 const RowMeta = styled.div`
@@ -489,6 +564,11 @@ export const OperationalDataTable = ({
     const { deleteOperation, isDeleting } = useDeleteOperation();
     const { updateDate, isUpdating } = useUpdateReservationDate();
     const { cancelReservation, isCancelling } = useCancelReservation();
+    const { updateOperationTitle, isUpdatingTitle, updatingId } = useUpdateOperationTitle();
+
+    const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
+    const [draftTitle, setDraftTitle] = useState('');
+    const titleInputRef = useRef<HTMLInputElement>(null);
 
     // Close dropdown on outside click
     useEffect(() => {
@@ -497,6 +577,30 @@ export const OperationalDataTable = ({
         document.addEventListener('click', handler);
         return () => document.removeEventListener('click', handler);
     }, [openMenuId]);
+
+    useEffect(() => {
+        if (editingTitleId) titleInputRef.current?.focus();
+    }, [editingTitleId]);
+
+    const startEditTitle = (op: Operation, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDraftTitle(op.title ?? '');
+        setEditingTitleId(op.id);
+    };
+
+    const saveTitle = async (op: Operation, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await updateOperationTitle({ id: op.id, type: op.type, title: draftTitle.trim() });
+        setEditingTitleId(null);
+    };
+
+    const cancelEditTitle = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setEditingTitleId(null);
+    };
 
     const handleRowClick = useCallback((op: Operation) => {
         if (op.type === 'VISIT') {
@@ -611,16 +715,59 @@ export const OperationalDataTable = ({
                                     onClick={() => clickable && handleRowClick(op)}
                                 >
                                     {/* Title */}
-                                    <MainCell>
+                                    <MainCell onClick={e => editingTitleId === op.id && e.stopPropagation()}>
                                         <TypeBubble $isVisit={isVisit}>
                                             {isVisit ? <CarIcon /> : <CalendarIcon />}
                                         </TypeBubble>
 
                                         <VehicleBlock>
-                                            {op.title ? (
-                                                <VehicleName>{op.title}</VehicleName>
+                                            {editingTitleId === op.id ? (
+                                                <TitleEditRow>
+                                                    <TitleInput
+                                                        ref={titleInputRef}
+                                                        value={draftTitle}
+                                                        onChange={e => setDraftTitle(e.target.value)}
+                                                        onKeyDown={e => {
+                                                            if (e.key === 'Enter') saveTitle(op, e as any);
+                                                            if (e.key === 'Escape') { e.stopPropagation(); setEditingTitleId(null); }
+                                                        }}
+                                                        onClick={e => e.stopPropagation()}
+                                                        disabled={isUpdatingTitle && updatingId === op.id}
+                                                    />
+                                                    <TitleSaveBtn
+                                                        onClick={e => saveTitle(op, e)}
+                                                        title="Zapisz tytuł"
+                                                        disabled={isUpdatingTitle}
+                                                    >
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                            <polyline points="20 6 9 17 4 12" />
+                                                        </svg>
+                                                    </TitleSaveBtn>
+                                                    <TitleCancelBtn onClick={cancelEditTitle} title="Anuluj">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                            <line x1="18" y1="6" x2="6" y2="18" />
+                                                            <line x1="6" y1="6" x2="18" y2="18" />
+                                                        </svg>
+                                                    </TitleCancelBtn>
+                                                </TitleEditRow>
                                             ) : (
-                                                <PlaceholderText>Brak tytułu</PlaceholderText>
+                                                <TitleEditRow>
+                                                    {op.title ? (
+                                                        <VehicleName>{op.title}</VehicleName>
+                                                    ) : (
+                                                        <PlaceholderText>Brak tytułu</PlaceholderText>
+                                                    )}
+                                                    <PencilIconBtn
+                                                        data-pencil
+                                                        onClick={e => startEditTitle(op, e)}
+                                                        title="Edytuj tytuł"
+                                                    >
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                        </svg>
+                                                    </PencilIconBtn>
+                                                </TitleEditRow>
                                             )}
                                             <RowMeta>
                                                 <TypeTag $isVisit={isVisit}>

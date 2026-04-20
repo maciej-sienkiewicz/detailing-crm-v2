@@ -129,4 +129,8 @@ export const appointmentApi = {
         const response = await apiClient.get(`/v1/appointments/${appointmentId}`);
         return response.data;
     },
+
+    updateTitle: async (appointmentId: string, title: string): Promise<void> => {
+        await apiClient.patch(`/v1/appointments/${appointmentId}/title`, { title });
+    },
 };

@@ -502,6 +502,7 @@ export const dashboardApi = {
         sortKey: a.schedule.startDateTime,
         item: {
           id: a.id,
+          type: 'RESERVATION' as const,
           time: timeLabel(a.schedule.startDateTime, a.schedule.isAllDay),
           dateLabel: label,
           serviceName: a.appointmentTitle || a.services.map(s => s.serviceName).slice(0, 2).join(', ') || 'Rezerwacja',
@@ -520,6 +521,7 @@ export const dashboardApi = {
         sortKey: v.scheduledDate,
         item: {
           id: v.id,
+          type: 'VISIT' as const,
           time: timeLabel(v.scheduledDate, false),
           dateLabel: dateLabel(v.scheduledDate),
           serviceName: v.title || v.visitNumber,

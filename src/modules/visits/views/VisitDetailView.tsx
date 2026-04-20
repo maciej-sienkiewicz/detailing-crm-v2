@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { useVisitDetail, useVisitDocuments, useVisitPhotos } from '../hooks';
-import { useUpdateVisit } from '../hooks';
+import { useUpdateVisit, useUpdateVisitTitle } from '../hooks';
 import { useUploadDocument, useUploadPhoto, useDeleteDocument, useDeletePhoto } from '../hooks';
 import { useVisitComments, useVisitCommunication } from '../hooks';
 import { useUpdateServiceStatus, useSaveServicesChanges } from '../hooks';
@@ -441,6 +441,7 @@ export const VisitDetailView = () => {
     const { documents } = useVisitDocuments(visitId!);
     const { photos: visitPhotos, isLoading: isLoadingPhotos } = useVisitPhotos(visitId!);
     const { updateVisit } = useUpdateVisit(visitId!);
+    const { updateTitle } = useUpdateVisitTitle(visitId!);
     const { uploadDocument, isUploading } = useUploadDocument(visitId!);
     const { uploadPhoto, isUploading: isUploadingPhoto } = useUploadPhoto(visitId!);
     const { deleteDocument } = useDeleteDocument(visitId!);
@@ -604,6 +605,7 @@ export const VisitDetailView = () => {
                 onPrintProtocol={handlePrintProtocol}
                 onCancelVisit={handleCancelVisit}
                 onGeneratePost={() => setIsGeneratePostOpen(true)}
+                onTitleUpdate={updateTitle}
             />
 
             <ContentArea>

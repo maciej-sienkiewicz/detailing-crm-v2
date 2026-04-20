@@ -139,6 +139,7 @@ export type VisitStatusKind = 'info' | 'warn' | 'neutral' | 'success' | 'err';
  */
 export interface UpcomingVisit {
   id: string;
+  type: 'VISIT' | 'RESERVATION';
   time: string;
   dateLabel: string;
   serviceName: string;

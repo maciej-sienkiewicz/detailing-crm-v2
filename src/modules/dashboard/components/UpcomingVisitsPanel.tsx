@@ -1,8 +1,10 @@
+import { useState, useRef, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { ArrowRight, User, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency } from '@/common/utils/formatters';
 import { useUpcomingVisits } from '../hooks/useUpcomingVisits';
+import { useUpdateOperationTitle } from '@/modules/operations/hooks/useReservationActions';
 import type { UpcomingVisit, VisitStatusKind } from '../types';
 
 // ─── Badge config ─────────────────────────────────────────────────────────────
@@ -69,6 +71,7 @@ const VisitRow = styled.div`
   transition: background 180ms ease;
   &:last-child { border-bottom: none; }
   &:hover { background: #f8fafc; }
+  &:hover [data-pencil] { opacity: 1; }
 `;
 
 const VisitTime = styled.div`
@@ -98,6 +101,77 @@ const VisitTitle = styled.div`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+`;
+
+const TitleEditRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 3px;
+`;
+
+const TitleInput = styled.input`
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  background: #f8fafc;
+  border: 1.5px solid rgba(59,130,246,0.45);
+  border-radius: 5px;
+  padding: 2px 6px;
+  outline: none;
+  min-width: 0;
+  width: 160px;
+  max-width: 100%;
+  &:focus { border-color: rgba(59,130,246,0.8); }
+`;
+
+const TitleIconBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: all 140ms ease;
+  svg { width: 11px; height: 11px; }
+`;
+
+const TitleSaveBtn = styled(TitleIconBtn)`
+  color: #059669;
+  border-color: rgba(16,185,129,0.3);
+  background: rgba(16,185,129,0.08);
+  &:hover { background: rgba(16,185,129,0.18); }
+`;
+
+const TitleCancelBtn = styled(TitleIconBtn)`
+  color: #64748b;
+  border-color: #e2e8f0;
+  background: #f1f5f9;
+  &:hover { color: #0f172a; }
+`;
+
+const PencilBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #94a3b8;
+  border-radius: 3px;
+  padding: 0;
+  opacity: 0;
+  flex-shrink: 0;
+  transition: opacity 140ms ease, color 140ms ease;
+  svg { width: 11px; height: 11px; }
+  &:hover { color: #475569; }
 `;
 
 const VisitMeta = styled.div`
@@ -182,14 +256,78 @@ const Placeholder = styled.div`
 
 // ─── Row ──────────────────────────────────────────────────────────────────────
 
-const VisitRowItem = ({ visit, onNavigate }: { visit: UpcomingVisit; onNavigate: (id: string) => void }) => (
-  <VisitRow onClick={() => onNavigate(visit.id)}>
+interface VisitRowItemProps {
+  visit: UpcomingVisit;
+  onNavigate: (id: string, type: 'VISIT' | 'RESERVATION') => void;
+  onStartEdit: (visit: UpcomingVisit, e: React.MouseEvent) => void;
+  isEditing: boolean;
+  draftTitle: string;
+  onDraftChange: (val: string) => void;
+  onSave: (e: React.MouseEvent) => void;
+  onCancel: (e: React.MouseEvent) => void;
+  isSaving: boolean;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+}
+
+const VisitRowItem = ({
+  visit,
+  onNavigate,
+  onStartEdit,
+  isEditing,
+  draftTitle,
+  onDraftChange,
+  onSave,
+  onCancel,
+  isSaving,
+  inputRef,
+}: VisitRowItemProps) => (
+  <VisitRow onClick={() => !isEditing && onNavigate(visit.id, visit.type)}>
     <VisitTime>
       {visit.time}
       <VisitDateLabel>{visit.dateLabel}</VisitDateLabel>
     </VisitTime>
     <div style={{ minWidth: 0 }}>
-      <VisitTitle>{visit.serviceName}</VisitTitle>
+      {isEditing ? (
+        <TitleEditRow>
+          <TitleInput
+            ref={inputRef}
+            value={draftTitle}
+            onChange={e => onDraftChange(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') onSave(e as any);
+              if (e.key === 'Escape') onCancel(e as any);
+              e.stopPropagation();
+            }}
+            onClick={e => e.stopPropagation()}
+            disabled={isSaving}
+          />
+          <TitleSaveBtn onClick={onSave} title="Zapisz tytuł" disabled={isSaving}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </TitleSaveBtn>
+          <TitleCancelBtn onClick={onCancel} title="Anuluj">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </TitleCancelBtn>
+        </TitleEditRow>
+      ) : (
+        <TitleEditRow>
+          <VisitTitle>{visit.serviceName}</VisitTitle>
+          <PencilBtn
+            data-pencil
+            onClick={e => onStartEdit(visit, e)}
+            title="Edytuj tytuł"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+          </PencilBtn>
+        </TitleEditRow>
+      )}
       <VisitMeta>
         <User />
         {visit.customerName} · {visit.vehicleName}
@@ -207,9 +345,43 @@ const VISIBLE_LIMIT = 10;
 export const UpcomingVisitsPanel = () => {
   const navigate = useNavigate();
   const { data: visits = [], isLoading, isError } = useUpcomingVisits();
+  const { updateOperationTitle, isUpdatingTitle, updatingId } = useUpdateOperationTitle();
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftTitle, setDraftTitle] = useState('');
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingId) titleInputRef.current?.focus();
+  }, [editingId]);
 
   const visible = visits.slice(0, VISIBLE_LIMIT);
   const hasMore = visits.length > VISIBLE_LIMIT;
+
+  const handleNavigate = (id: string, type: 'VISIT' | 'RESERVATION') => {
+    if (type === 'VISIT') navigate(`/visits/${id}`);
+    else navigate(`/appointments/${id}/edit`);
+  };
+
+  const handleStartEdit = (visit: UpcomingVisit, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDraftTitle(visit.serviceName);
+    setEditingId(visit.id);
+  };
+
+  const handleSave = async (visit: UpcomingVisit, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    await updateOperationTitle({ id: visit.id, type: visit.type, title: draftTitle.trim() });
+    setEditingId(null);
+  };
+
+  const handleCancel = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEditingId(null);
+  };
 
   return (
     <Panel>
@@ -240,7 +412,19 @@ export const UpcomingVisitsPanel = () => {
       )}
 
       {!isLoading && !isError && visible.map(v => (
-        <VisitRowItem key={v.id} visit={v} onNavigate={id => navigate(`/visits/${id}`)} />
+        <VisitRowItem
+          key={v.id}
+          visit={v}
+          onNavigate={handleNavigate}
+          onStartEdit={handleStartEdit}
+          isEditing={editingId === v.id}
+          draftTitle={draftTitle}
+          onDraftChange={setDraftTitle}
+          onSave={e => handleSave(v, e)}
+          onCancel={handleCancel}
+          isSaving={isUpdatingTitle && updatingId === v.id}
+          inputRef={titleInputRef}
+        />
       ))}
 
       {!isLoading && !isError && hasMore && (

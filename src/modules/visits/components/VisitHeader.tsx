@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import type { Visit, VisitStatus } from '../types';
@@ -219,6 +220,62 @@ const HeaderRight = styled.div`
     flex-shrink: 0;
 `;
 
+const TitleEditInput = styled.input`
+    background: rgba(255, 255, 255, 0.08);
+    border: 1.5px solid rgba(59, 130, 246, 0.5);
+    border-radius: 6px;
+    color: #f1f5f9;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    padding: 2px 8px;
+    outline: none;
+    min-width: 0;
+    width: 280px;
+    max-width: 100%;
+
+    &:focus {
+        border-color: rgba(59, 130, 246, 0.8);
+        background: rgba(255, 255, 255, 0.12);
+    }
+`;
+
+const TitleIconBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: none;
+    cursor: pointer;
+    transition: all 160ms ease;
+    flex-shrink: 0;
+    padding: 0;
+
+    svg { width: 14px; height: 14px; }
+`;
+
+const PencilBtn = styled(TitleIconBtn)`
+    color: rgba(148, 163, 184, 0.5);
+    &:hover { color: rgba(241, 245, 249, 0.8); background: rgba(255,255,255,0.08); }
+`;
+
+const SaveBtn = styled(TitleIconBtn)`
+    color: #6EE7B7;
+    border-color: rgba(16, 185, 129, 0.3);
+    background: rgba(16, 185, 129, 0.1);
+    &:hover { background: rgba(16, 185, 129, 0.2); }
+`;
+
+const CancelEditBtn = styled(TitleIconBtn)`
+    color: rgba(148, 163, 184, 0.6);
+    border-color: rgba(148, 163, 184, 0.2);
+    background: rgba(255,255,255,0.04);
+    &:hover { color: rgba(241, 245, 249, 0.8); background: rgba(255,255,255,0.08); }
+`;
+
 const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'danger' }>`
     display: inline-flex;
     align-items: center;
@@ -286,6 +343,7 @@ interface VisitHeaderProps {
     onPrintProtocol: () => void;
     onCancelVisit: () => void;
     onGeneratePost: () => void;
+    onTitleUpdate?: (title: string) => Promise<void>;
 }
 
 export const VisitHeader = ({
@@ -294,8 +352,38 @@ export const VisitHeader = ({
     onPrintProtocol,
     onCancelVisit,
     onGeneratePost,
+    onTitleUpdate,
 }: VisitHeaderProps) => {
     const navigate = useNavigate();
+
+    const [isEditingTitle, setIsEditingTitle] = useState(false);
+    const [draftTitle, setDraftTitle] = useState('');
+    const [isSavingTitle, setIsSavingTitle] = useState(false);
+    const titleInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (isEditingTitle) titleInputRef.current?.focus();
+    }, [isEditingTitle]);
+
+    const startEditTitle = () => {
+        setDraftTitle(visit.title ?? '');
+        setIsEditingTitle(true);
+    };
+
+    const saveTitle = async () => {
+        if (!onTitleUpdate || isSavingTitle) return;
+        setIsSavingTitle(true);
+        try {
+            await onTitleUpdate(draftTitle.trim());
+            setIsEditingTitle(false);
+        } finally {
+            setIsSavingTitle(false);
+        }
+    };
+
+    const cancelEditTitle = () => {
+        setIsEditingTitle(false);
+    };
 
     const isTerminal = visit.status === 'COMPLETED' || visit.status === 'REJECTED' || visit.status === 'ARCHIVED';
     const statusCfg = STATUS_CONFIG[visit.status];
@@ -321,11 +409,47 @@ export const VisitHeader = ({
                     </BreadcrumbRow>
 
                     <TitleRow>
-                        <VisitNumber>{visit.title}</VisitNumber>
-                        {visit.vehicle.licensePlate && (
+                        {isEditingTitle ? (
+                            <>
+                                <TitleEditInput
+                                    ref={titleInputRef}
+                                    value={draftTitle}
+                                    onChange={e => setDraftTitle(e.target.value)}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter') saveTitle();
+                                        if (e.key === 'Escape') cancelEditTitle();
+                                    }}
+                                    disabled={isSavingTitle}
+                                />
+                                <SaveBtn onClick={saveTitle} disabled={isSavingTitle} title="Zapisz tytuł">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                </SaveBtn>
+                                <CancelEditBtn onClick={cancelEditTitle} title="Anuluj">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <line x1="18" y1="6" x2="6" y2="18" />
+                                        <line x1="6" y1="6" x2="18" y2="18" />
+                                    </svg>
+                                </CancelEditBtn>
+                            </>
+                        ) : (
+                            <>
+                                <VisitNumber>{visit.title}</VisitNumber>
+                                {onTitleUpdate && (
+                                    <PencilBtn onClick={startEditTitle} title="Edytuj tytuł wizyty">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                        </svg>
+                                    </PencilBtn>
+                                )}
+                            </>
+                        )}
+                        {!isEditingTitle && visit.vehicle.licensePlate && (
                             <LicensePlateBadge>{visit.vehicle.licensePlate}</LicensePlateBadge>
                         )}
-                        {vehicleLabel && <VehicleLabel>{vehicleLabel}</VehicleLabel>}
+                        {!isEditingTitle && vehicleLabel && <VehicleLabel>{vehicleLabel}</VehicleLabel>}
                     </TitleRow>
 
                     <MetaRow>

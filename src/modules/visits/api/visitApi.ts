@@ -517,6 +517,10 @@ export const visitApi = {
         await apiClient.delete(`${BASE_PATH}/${visitId}`);
     },
 
+    updateTitle: async (visitId: string, title: string): Promise<void> => {
+        await apiClient.patch(`${BASE_PATH}/${visitId}/title`, { title });
+    },
+
     confirmDraftVisit: async (visitId: string): Promise<{ visitId: string; message: string }> => {
         if (USE_MOCKS) {
             await new Promise(resolve => setTimeout(resolve, 600));
