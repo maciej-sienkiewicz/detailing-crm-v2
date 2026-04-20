@@ -231,8 +231,14 @@ const GenerateBtn = styled.button<{ $loading?: boolean }>`
     svg { width: 13px; height: 13px; flex-shrink: 0; }
 `;
 
-const DateInput = styled.input`
-    width: 100%;
+const DaysRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
+const DaysInput = styled.input`
+    width: 80px;
     padding: 9px 12px;
     background: ${st.bg};
     border: 1px solid ${st.border};
@@ -240,18 +246,51 @@ const DateInput = styled.input`
     color: ${st.text};
     font-size: ${st.fontSm};
     font-family: inherit;
+    font-weight: 700;
     outline: none;
     transition: border-color ${st.transition};
     box-sizing: border-box;
-    color-scheme: dark;
-
+    text-align: center;
+    -moz-appearance: textfield;
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button { -webkit-appearance: none; }
     &:focus { border-color: ${st.accentBlue}; }
 `;
 
-const DateHint = styled.p`
-    margin: 4px 0 0;
+const DaysSuffix = styled.span`
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
+    white-space: nowrap;
+`;
+
+const PresetRow = styled.div`
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+`;
+
+const PresetBtn = styled.button<{ $active: boolean }>`
+    padding: 4px 10px;
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontXs};
+    font-weight: 600;
+    cursor: pointer;
+    transition: all ${st.transition};
+    border: 1px solid ${p => p.$active ? st.accentBlue : st.border};
+    background: ${p => p.$active ? st.accentBlueDim : 'transparent'};
+    color: ${p => p.$active ? st.accentBlue : st.textMuted};
+    &:hover { border-color: ${st.accentBlue}; color: ${st.accentBlue}; background: ${st.accentBlueDim}; }
+`;
+
+const DatePreview = styled.p`
+    margin: 8px 0 0;
     font-size: ${st.fontXs};
     color: ${st.textMuted};
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    svg { width: 11px; height: 11px; opacity: 0.6; flex-shrink: 0; }
 `;
 
 const Btn = styled.button<{ $primary?: boolean; $danger?: boolean }>`
@@ -293,16 +332,26 @@ const Btn = styled.button<{ $primary?: boolean; $danger?: boolean }>`
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function toDatetimeLocalValue(date: Date): string {
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+const DAY_PRESETS = [7, 14, 30, 60, 90];
+
+function scheduledDateFromDays(days: number): Date {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    d.setHours(16, 0, 0, 0);
+    return d;
 }
 
-function defaultScheduledFor(): string {
-    const d = new Date();
-    d.setDate(d.getDate() + 90);
-    d.setHours(10, 0, 0, 0);
-    return toDatetimeLocalValue(d);
+function formatPreviewDate(days: number): string {
+    return scheduledDateFromDays(days).toLocaleDateString('pl-PL', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+    });
+}
+
+function daysFromNowForDate(isoDate: string): number {
+    const diff = new Date(isoDate).getTime() - Date.now();
+    return Math.max(1, Math.round(diff / 86_400_000));
 }
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -321,12 +370,9 @@ export const SmsReminderModal = ({ visitId, customer, existingReminder, onClose 
     const isEditMode = !!existingReminder;
 
     const [message, setMessage] = useState(existingReminder?.messageContent ?? '');
-    const [scheduledFor, setScheduledFor] = useState<string>(() => {
-        if (existingReminder) {
-            return toDatetimeLocalValue(new Date(existingReminder.scheduledFor));
-        }
-        return defaultScheduledFor();
-    });
+    const [days, setDays] = useState<number>(() =>
+        existingReminder ? daysFromNowForDate(existingReminder.scheduledFor) : 90
+    );
 
     const { generateContent, isGenerating, scheduleReminder, isScheduling, updateReminder, isUpdating, cancelReminder, isCancelling } = useSmsReminder(visitId);
 
@@ -336,29 +382,33 @@ export const SmsReminderModal = ({ visitId, customer, existingReminder, onClose 
     useEffect(() => {
         if (existingReminder) {
             setMessage(existingReminder.messageContent);
-            setScheduledFor(toDatetimeLocalValue(new Date(existingReminder.scheduledFor)));
+            setDays(daysFromNowForDate(existingReminder.scheduledFor));
         }
     }, [existingReminder]);
 
+    const handleDaysChange = (raw: string) => {
+        const val = parseInt(raw, 10);
+        if (!isNaN(val) && val >= 1 && val <= 999) setDays(val);
+        else if (raw === '') setDays(1);
+    };
+
     const handleGenerate = async () => {
-        const result = await generateContent(new Date(scheduledFor).toISOString());
+        const result = await generateContent(scheduledDateFromDays(days).toISOString());
         setMessage(result.content);
     };
 
     const handleSubmit = async () => {
         if (!message.trim()) return;
+        const scheduledFor = scheduledDateFromDays(days).toISOString();
 
         if (isEditMode && existingReminder) {
             await updateReminder({
                 reminderId: existingReminder.id,
                 messageContent: message,
-                scheduledFor: new Date(scheduledFor).toISOString(),
+                scheduledFor,
             });
         } else {
-            await scheduleReminder({
-                messageContent: message,
-                scheduledFor: new Date(scheduledFor).toISOString(),
-            });
+            await scheduleReminder({ messageContent: message, scheduledFor });
         }
         onClose();
     };
@@ -381,7 +431,7 @@ export const SmsReminderModal = ({ visitId, customer, existingReminder, onClose 
                     <HeaderText>
                         <Title>{isEditMode ? 'Edytuj zaplanowany SMS' : 'Zaplanuj SMS przypominający'}</Title>
                         <Subtitle>
-                            {isEditMode ? 'Zmień treść lub termin wysyłki' : 'Wyślij przypomnienie za 90 dni'}
+                            {isEditMode ? 'Zmień treść lub termin wysyłki' : 'Wybierz za ile dni wysłać przypomnienie'}
                         </Subtitle>
                     </HeaderText>
                     <CloseBtn onClick={onClose} title="Zamknij">
@@ -444,14 +494,41 @@ export const SmsReminderModal = ({ visitId, customer, existingReminder, onClose 
                     </div>
 
                     <div>
-                        <FieldLabel>Termin wysyłki</FieldLabel>
-                        <DateInput
-                            type="datetime-local"
-                            value={scheduledFor}
-                            onChange={e => setScheduledFor(e.target.value)}
-                            disabled={isBusy}
-                        />
-                        <DateHint>Domyślnie 90 dni od dziś</DateHint>
+                        <FieldLabel htmlFor="sms-days">Wyślij za</FieldLabel>
+                        <DaysRow>
+                            <DaysInput
+                                id="sms-days"
+                                type="number"
+                                min={1}
+                                max={999}
+                                value={days}
+                                onChange={e => handleDaysChange(e.target.value)}
+                                disabled={isBusy}
+                            />
+                            <DaysSuffix>dni od dziś</DaysSuffix>
+                        </DaysRow>
+                        <PresetRow>
+                            {DAY_PRESETS.map(p => (
+                                <PresetBtn
+                                    key={p}
+                                    $active={days === p}
+                                    onClick={() => setDays(p)}
+                                    disabled={isBusy}
+                                    type="button"
+                                >
+                                    {p} dni
+                                </PresetBtn>
+                            ))}
+                        </PresetRow>
+                        <DatePreview>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            SMS zostanie wysłany: <strong>{formatPreviewDate(days)} o 16:00</strong>
+                        </DatePreview>
                     </div>
                 </Body>
 
