@@ -1,13 +1,13 @@
 // src/modules/checkin/components/CheckinQRGenerator.tsx
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import styled from 'styled-components';
 import { QRCodeSVG } from 'qrcode.react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useCheckinQRToken } from '../hooks/useCheckinQRToken';
 import { useCheckinSocket } from '../hooks/useCheckinSocket';
 import { checkinApi } from '../api/checkinApi';
-import type { CheckinPhotoUploadedEvent } from '../types';
+import type { CheckinPhotoUploadedEvent, CheckinDamageUpdatedEvent, DamagePoint } from '../types';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -285,6 +285,7 @@ interface QrPhoto {
 
 interface CheckinQRGeneratorProps {
     appointmentId: string;
+    onDamageUpdated?: (points: DamagePoint[]) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -297,12 +298,15 @@ function formatCountdown(seconds: number): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const CheckinQRGenerator = ({ appointmentId }: CheckinQRGeneratorProps) => {
+export const CheckinQRGenerator = ({ appointmentId, onDamageUpdated }: CheckinQRGeneratorProps) => {
     const { tokenData, qrUrl, secondsLeft, isExpired, isLoading, error, refresh } =
         useCheckinQRToken(appointmentId);
 
     const [photos, setPhotos] = useState<QrPhoto[]>([]);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    const onDamageUpdatedRef = useRef(onDamageUpdated);
+    onDamageUpdatedRef.current = onDamageUpdated;
 
     const handlePhotoUploaded = useCallback((event: CheckinPhotoUploadedEvent) => {
         setPhotos(prev => {
@@ -320,9 +324,14 @@ export const CheckinQRGenerator = ({ appointmentId }: CheckinQRGeneratorProps) =
         }, 3000);
     }, []);
 
+    const handleDamageUpdated = useCallback((event: CheckinDamageUpdatedEvent) => {
+        onDamageUpdatedRef.current?.(event.damagePoints);
+    }, []);
+
     useCheckinSocket({
         checkinId: tokenData?.checkinId ?? null,
         onPhotoUploaded: handlePhotoUploaded,
+        onDamageUpdated: handleDamageUpdated,
         enabled: !!tokenData && !isExpired,
     });
 

@@ -46,6 +46,13 @@ export const MobileDamageSection = ({ logic }: Props) => {
     const listRef = useRef<HTMLDivElement>(null);
     const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
+    // Always-current ref — stable event handlers call this to avoid stale closure
+    const addPointRef = useRef(addPoint);
+    addPointRef.current = addPoint;
+
+    // Guard against touch→click double-fire on mobile browsers
+    const touchJustFiredRef = useRef(false);
+
     // ─── Touch tap detection ──────────────────────────────────────────────────
 
     const handleOverlayTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
@@ -67,20 +74,24 @@ export const MobileDamageSection = ({ logic }: Props) => {
         const x = ((t.clientX - rect.left) / rect.width) * 100;
         const y = ((t.clientY - rect.top) / rect.height) * 100;
 
-        // Ignore taps outside image bounds
         if (x < 0 || x > 100 || y < 0 || y > 100) return;
 
-        addPoint(x, y);
-    }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+        // Suppress the synthetic click event the browser fires after touch
+        touchJustFiredRef.current = true;
+        setTimeout(() => { touchJustFiredRef.current = false; }, 600);
 
-    // Fallback click for desktop testing
+        addPointRef.current(x, y);
+    }, []);
+
+    // Click handler: used on desktop; skipped when touch already handled the tap
     const handleOverlayClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        if (touchJustFiredRef.current) return;
         if (!imageRef.current) return;
         const rect = imageRef.current.getBoundingClientRect();
         const x = ((e.clientX - rect.left) / rect.width) * 100;
         const y = ((e.clientY - rect.top) / rect.height) * 100;
-        addPoint(x, y);
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+        addPointRef.current(x, y);
+    }, []);
 
     // ─── Point management ─────────────────────────────────────────────────────
 

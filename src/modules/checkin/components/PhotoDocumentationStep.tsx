@@ -521,9 +521,12 @@ export const PhotoDocumentationStep = ({ formData, reservationId, onChange }: Ph
                         )}
                     </UploadZone>
 
-                    {/* QR code generator */}
+                    {/* QR code generator — also listens for mobile damage updates */}
                     <div style={{ marginTop: 16 }}>
-                        <CheckinQRGenerator appointmentId={reservationId} />
+                        <CheckinQRGenerator
+                            appointmentId={reservationId}
+                            onDamageUpdated={handleDamagePointsChange}
+                        />
                     </div>
 
                     {/* Photo grid */}
