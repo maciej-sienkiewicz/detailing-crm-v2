@@ -93,3 +93,18 @@ export interface GenerateInstagramPostRequest {
 export interface InstagramPostResult {
     content: string;
 }
+
+export interface InstagramStory {
+    storyId: string;
+    imageUrl: string | null;
+    videoUrl: string | null;
+    takenAt: string;
+    profileId: string;
+    username: string;
+}
+
+export interface StoryGroup {
+    profileId: string;
+    username: string;
+    stories: InstagramStory[];
+}

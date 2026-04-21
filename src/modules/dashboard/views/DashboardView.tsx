@@ -11,6 +11,7 @@ import { OperationalScorecard } from '../components/OperationalScorecard';
 import { UpcomingVisitsPanel } from '../components/UpcomingVisitsPanel';
 import { TasksPanel } from '../components/TasksPanel';
 import { RevenueKpiCard } from '../components/RevenueKpiCard';
+import { CompetitorStoriesSection } from '../components/CompetitorStoriesSection';
 import { GeneratePostModal } from '@/modules/competition-monitoring/components/GeneratePostModal';
 import { useDashboard, useDashboardSocket } from '../hooks';
 import type { OperationalStats } from '../types';
@@ -379,6 +380,8 @@ export const DashboardView = () => {
         <UpcomingVisitsPanel />
         <TasksPanel tasks={tasks} />
       </TwoColGrid>
+
+      <CompetitorStoriesSection />
 
     </ViewContainer>
   );

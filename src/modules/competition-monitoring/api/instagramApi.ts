@@ -1,5 +1,5 @@
 import { apiClient } from '@/core/apiClient';
-import type { InstagramProfile, InstagramPost, ProfileSummary, WeeklyStat, GenerateInstagramPostRequest, InstagramPostResult } from '../types';
+import type { InstagramProfile, InstagramPost, InstagramStory, ProfileSummary, WeeklyStat, GenerateInstagramPostRequest, InstagramPostResult } from '../types';
 
 const BASE_PATH = '/v1/instagram/profiles';
 const USE_MOCKS = false;
@@ -254,6 +254,60 @@ const mockSummaries: ProfileSummary[] = [
     },
 ];
 
+const mockStories: InstagramStory[] = [
+    // autoperfect_wroclaw — 3 stories (mix image + video)
+    {
+        storyId: 'st-1',
+        imageUrl: 'https://scontent-lga3-3.cdninstagram.com/v/t51.82787-15/655644628_18409807504178385_3731828278410475725_n.heic?stp=dst-jpg_e35_s480x480_tt6&_nc_cat=104&ig_cache_key=Mzg2MTI4ODEwNjA0MDk0NTE3Mw%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6InhwaWRzLjE0NDB4MTQ0MC5zZHIuQzMifQ%3D%3D&_nc_ohc=-7_5ZMMHn5wQ7kNvwEzZLjN&_nc_oc=AdqejhirwlRkBabnUcgMp0gMQgu0yYAdgGWXcItgTSh1gnVyM7h0tU93KTOnXs4dNz0&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent-lga3-3.cdninstagram.com&_nc_gid=tjbWXHXs_cK0mJAfkCGycA&_nc_ss=7a32e&oh=00_Af3ibMaO--Jf_dk4EXuxAVLDyz6MKeelYA3P8q7UgDSjoQ&oe=69ED6B83',
+        videoUrl: null,
+        takenAt: new Date(Date.now() - 2 * 3600_000).toISOString(),
+        profileId: 'p-101',
+        username: 'autoperfect_wroclaw',
+    },
+    {
+        storyId: 'st-2',
+        imageUrl: null,
+        videoUrl: 'https://scontent-sea5-1.cdninstagram.com/o1/v/t2/f2/m78/AQOQ_bpN---Gko_bXK32bCXCZV9-jIFMhCEiJBqWTjp975_hILa0R5_cCKVU-UUzwCG5lLM6qgvfh-2RLow1O1WVhFyGJhQ3jeehtog.mp4?_nc_cat=111&_nc_sid=5e9851&_nc_ht=scontent-sea5-1.cdninstagram.com&_nc_ohc=slsJaQ3FMtQQ7kNvwHh91yi&efg=eyJ2ZW5jb2RlX3RhZyI6Inhwdl9wcm9ncmVzc2l2ZS5JTlNUQUdSQU0uU1RPUlkuQzMuNzIwLmRhc2hfYmFzZWxpbmVfMV92MSIsInhwdl9hc3NldF9pZCI6MTg0MTM3NTMzOTgxNzgzODUsImFzc2V0X2FnZV9kYXlzIjowLCJ2aV91c2VjYXNlX2lkIjoxMDEwMCwiZHVyYXRpb25fcyI6MTcsInVybGdlbl9zb3VyY2UiOiJ3d3cifQ%3D%3D&ccb=17-1&vs=453267677633648&_nc_vs=HBksFQIYUWlnX3hwdl9wbGFjZW1lbnRfcGVybWFuZW50X3YyLzgyNDJBNTIzODA2MDRFNDcwNUMxQjZDQzYzOTMzNzg1X3ZpZGVvX2Rhc2hpbml0Lm1wNBUAAsgBEgAVAhhRaWdfeHB2X3BsYWNlbWVudF9wZXJtYW5lbnRfdjIvNTQ0NDVCOUFGQjE0Qzg0NkJBQzQwQUMzNDVDQUVGOUZfYXVkaW9fZGFzaGluaXQubXA0FQICyAESACgAGAAbAogHdXNlX29pbAExEnByb2dyZXNzaXZlX3JlY2lwZQExFQAAJqLJveTBzbVBFQIoAkMzLBdAMSp--dsi0RgSZGFzaF9iYXNlbGluZV8xX3YxEQB16Adl6J0BAA&_nc_gid=Ed-X1RaGHD5qrUx091wKRQ&_nc_ss=7a32e&_nc_zt=28&oh=00_Af33Jv0P7OyraJeTkS8EjagdBSPUdxbcc9ZYuTo0c-oBwg&oe=69E98C44',
+        takenAt: new Date(Date.now() - 5 * 3600_000).toISOString(),
+        profileId: 'p-101',
+        username: 'autoperfect_wroclaw',
+    },
+    {
+        storyId: 'st-3',
+        imageUrl: 'https://scontent-lga3-3.cdninstagram.com/v/t51.82787-15/655644628_18409807504178385_3731828278410475725_n.heic?stp=dst-jpg_e35_s480x480_tt6&_nc_cat=104&ig_cache_key=Mzg2MTI4ODEwNjA0MDk0NTE3Mw%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6InhwaWRzLjE0NDB4MTQ0MC5zZHIuQzMifQ%3D%3D&_nc_ohc=-7_5ZMMHn5wQ7kNvwEzZLjN&_nc_oc=AdqejhirwlRkBabnUcgMp0gMQgu0yYAdgGWXcItgTSh1gnVyM7h0tU93KTOnXs4dNz0&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent-lga3-3.cdninstagram.com&_nc_gid=tjbWXHXs_cK0mJAfkCGycA&_nc_ss=7a32e&oh=00_Af3ibMaO--Jf_dk4EXuxAVLDyz6MKeelYA3P8q7UgDSjoQ&oe=69ED6B83',
+        videoUrl: null,
+        takenAt: new Date(Date.now() - 20 * 3600_000).toISOString(),
+        profileId: 'p-101',
+        username: 'autoperfect_wroclaw',
+    },
+    // detailpro_pl — 2 stories
+    {
+        storyId: 'st-4',
+        imageUrl: 'https://scontent-lga3-3.cdninstagram.com/v/t51.82787-15/655644628_18409807504178385_3731828278410475725_n.heic?stp=dst-jpg_e35_s480x480_tt6&_nc_cat=104&ig_cache_key=Mzg2MTI4ODEwNjA0MDk0NTE3Mw%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6InhwaWRzLjE0NDB4MTQ0MC5zZHIuQzMifQ%3D%3D&_nc_ohc=-7_5ZMMHn5wQ7kNvwEzZLjN&_nc_oc=AdqejhirwlRkBabnUcgMp0gMQgu0yYAdgGWXcItgTSh1gnVyM7h0tU93KTOnXs4dNz0&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent-lga3-3.cdninstagram.com&_nc_gid=tjbWXHXs_cK0mJAfkCGycA&_nc_ss=7a32e&oh=00_Af3ibMaO--Jf_dk4EXuxAVLDyz6MKeelYA3P8q7UgDSjoQ&oe=69ED6B83',
+        videoUrl: null,
+        takenAt: new Date(Date.now() - 1 * 3600_000).toISOString(),
+        profileId: 'p-105',
+        username: 'detailpro_pl',
+    },
+    {
+        storyId: 'st-5',
+        imageUrl: null,
+        videoUrl: 'https://scontent-sea5-1.cdninstagram.com/o1/v/t2/f2/m78/AQOQ_bpN---Gko_bXK32bCXCZV9-jIFMhCEiJBqWTjp975_hILa0R5_cCKVU-UUzwCG5lLM6qgvfh-2RLow1O1WVhFyGJhQ3jeehtog.mp4?_nc_cat=111&_nc_sid=5e9851&_nc_ht=scontent-sea5-1.cdninstagram.com&_nc_ohc=slsJaQ3FMtQQ7kNvwHh91yi&efg=eyJ2ZW5jb2RlX3RhZyI6Inhwdl9wcm9ncmVzc2l2ZS5JTlNUQUdSQU0uU1RPUlkuQzMuNzIwLmRhc2hfYmFzZWxpbmVfMV92MSIsInhwdl9hc3NldF9pZCI6MTg0MTM3NTMzOTgxNzgzODUsImFzc2V0X2FnZV9kYXlzIjowLCJ2aV91c2VjYXNlX2lkIjoxMDEwMCwiZHVyYXRpb25fcyI6MTcsInVybGdlbl9zb3VyY2UiOiJ3d3cifQ%3D%3D&ccb=17-1&vs=453267677633648&_nc_vs=HBksFQIYUWlnX3hwdl9wbGFjZW1lbnRfcGVybWFuZW50X3YyLzgyNDJBNTIzODA2MDRFNDcwNUMxQjZDQzYzOTMzNzg1X3ZpZGVvX2Rhc2hpbml0Lm1wNBUAAsgBEgAVAhhRaWdfeHB2X3BsYWNlbWVudF9wZXJtYW5lbnRfdjIvNTQ0NDVCOUFGQjE0Qzg0NkJBQzQwQUMzNDVDQUVGOUZfYXVkaW9fZGFzaGluaXQubXA0FQICyAESACgAGAAbAogHdXNlX29pbAExEnByb2dyZXNzaXZlX3JlY2lwZQExFQAAJqLJveTBzbVBFQIoAkMzLBdAMSp--dsi0RgSZGFzaF9iYXNlbGluZV8xX3YxEQB16Adl6J0BAA&_nc_gid=Ed-X1RaGHD5qrUx091wKRQ&_nc_ss=7a32e&_nc_zt=28&oh=00_Af33Jv0P7OyraJeTkS8EjagdBSPUdxbcc9ZYuTo0c-oBwg&oe=69E98C44',
+        takenAt: new Date(Date.now() - 10 * 3600_000).toISOString(),
+        profileId: 'p-105',
+        username: 'detailpro_pl',
+    },
+    // carcare_studio — 1 story (image)
+    {
+        storyId: 'st-6',
+        imageUrl: 'https://scontent-lga3-3.cdninstagram.com/v/t51.82787-15/655644628_18409807504178385_3731828278410475725_n.heic?stp=dst-jpg_e35_s480x480_tt6&_nc_cat=104&ig_cache_key=Mzg2MTI4ODEwNjA0MDk0NTE3Mw%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6InhwaWRzLjE0NDB4MTQ0MC5zZHIuQzMifQ%3D%3D&_nc_ohc=-7_5ZMMHn5wQ7kNvwEzZLjN&_nc_oc=AdqejhirwlRkBabnUcgMp0gMQgu0yYAdgGWXcItgTSh1gnVyM7h0tU93KTOnXs4dNz0&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent-lga3-3.cdninstagram.com&_nc_gid=tjbWXHXs_cK0mJAfkCGycA&_nc_ss=7a32e&oh=00_Af3ibMaO--Jf_dk4EXuxAVLDyz6MKeelYA3P8q7UgDSjoQ&oe=69ED6B83',
+        videoUrl: null,
+        takenAt: new Date(Date.now() - 36 * 3600_000).toISOString(),
+        profileId: 'p-104',
+        username: 'carcare_studio',
+    },
+];
+
 // ─── Mock handlers ────────────────────────────────────────────────────────────
 
 const mockListProfiles = async (): Promise<InstagramProfile[]> => {
@@ -401,6 +455,18 @@ export const instagramApi = {
     generatePost: async (req: GenerateInstagramPostRequest): Promise<InstagramPostResult> => {
         if (USE_MOCKS) return mockGeneratePost(req);
         const response = await apiClient.post<InstagramPostResult>('/v1/instagram/ai/generate', req);
+        return response.data;
+    },
+
+    getStories: async (hoursBack: number = 72): Promise<InstagramStory[]> => {
+        if (USE_MOCKS) {
+            await delay(400);
+            const cutoff = Date.now() - hoursBack * 3_600_000;
+            return mockStories.filter(s => new Date(s.takenAt).getTime() >= cutoff);
+        }
+        const response = await apiClient.get<InstagramStory[]>('/v1/instagram/stories', {
+            params: { hoursBack },
+        });
         return response.data;
     },
 };
