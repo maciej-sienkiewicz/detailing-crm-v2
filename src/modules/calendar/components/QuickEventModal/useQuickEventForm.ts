@@ -335,11 +335,16 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
             return;
         }
         setIsSubmitting(true);
+        const vehicleToSubmit = selectedVehicle ?? (
+            isAddingNewVehicle && (vehicleBrand.trim() || vehicleModel.trim())
+                ? { id: '', brand: vehicleBrand.trim(), model: vehicleModel.trim(), year: vehicleYear.trim() ? parseInt(vehicleYear.trim()) : undefined, isNew: true as const }
+                : null
+        );
         try {
             await Promise.resolve(onSave({
                 title,
                 customer: selectedCustomer,
-                vehicle: selectedVehicle,
+                vehicle: vehicleToSubmit,
                 startDateTime,
                 endDateTime,
                 isAllDay,

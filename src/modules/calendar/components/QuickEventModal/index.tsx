@@ -642,14 +642,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     </S.CustomerFieldGroup>
                                                 </S.VehicleInputRow>
                                             </S.CustomerInputBlock>
-                                            {(form.vehicleBrand || form.vehicleModel) && (
-                                                <S.CustomerEditActions>
-                                                    <S.CustomerEditConfirmBtn type="button" onClick={form.handleAddNewVehicleDirectly}>
-                                                        <IconCheck />
-                                                        Dodaj pojazd
-                                                    </S.CustomerEditConfirmBtn>
-                                                </S.CustomerEditActions>
-                                            )}
                                         </>
                                     )}
                                 </S.RowContent>
