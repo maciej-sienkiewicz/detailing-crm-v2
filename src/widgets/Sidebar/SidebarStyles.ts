@@ -26,7 +26,7 @@ export const Overlay = styled.div<{ $isVisible: boolean }>`
         inset: 0;
         background: rgba(0, 0, 0, 0.65);
         backdrop-filter: blur(4px);
-        z-index: 999;
+        z-index: 99;
         animation: fadeIn 220ms ease;
 
         @keyframes fadeIn {
@@ -44,7 +44,7 @@ export const SidebarContainer = styled.aside<{ $isCollapsed: boolean; $isMobileO
     top: 0;
     height: 100vh;
     background-color: ${S.bg};
-    z-index: 1000;
+    z-index: 100;
     display: flex;
     flex-direction: column;
     overflow: hidden;
