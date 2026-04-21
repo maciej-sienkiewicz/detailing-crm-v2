@@ -397,7 +397,7 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose, defaultD
     }
   };
 
-  return (
+  return createPortal(
     <Overlay $open={isOpen} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <Modal>
         <ModalHeader>
@@ -555,6 +555,7 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose, defaultD
           </Footer>
         </Form>
       </Modal>
-    </Overlay>
+    </Overlay>,
+    document.body
   );
 };
