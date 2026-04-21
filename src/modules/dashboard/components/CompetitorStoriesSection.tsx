@@ -287,66 +287,6 @@ const BarTrack = styled.div`
     overflow: hidden;
 `;
 
-const BarDone = styled.div`
-    height: 100%;
-    width: 100%;
-    background: #fff;
-    border-radius: 2px;
-`;
-
-const BarPending = styled.div`
-    height: 100%;
-    width: 0%;
-    background: #fff;
-    border-radius: 2px;
-`;
-
-// rAF-driven progress bar — directly mutates DOM width each frame,
-// bypassing CSS transition entirely so it always works after remount.
-interface ActiveBarProps {
-    duration: number;
-    onDone: () => void;
-}
-
-function ActiveBar({ duration, onDone }: ActiveBarProps) {
-    const ref = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const el = ref.current;
-        if (!el) return;
-
-        const start = performance.now();
-        let raf: number;
-
-        const tick = (now: number) => {
-            const progress = Math.min((now - start) / duration, 1);
-            el.style.width = `${progress * 100}%`;
-            if (progress < 1) {
-                raf = requestAnimationFrame(tick);
-            } else {
-                onDone();
-            }
-        };
-
-        raf = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(raf);
-    // onDone ref is stable (advanceSafe uses refs internally), duration is constant
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    return (
-        <div
-            ref={ref}
-            style={{
-                height: '100%',
-                background: '#fff',
-                borderRadius: '2px',
-                width: '0%',
-            }}
-        />
-    );
-}
-
 // ─── Viewer header ────────────────────────────────────────────────────────────
 
 const ViewerHeader = styled.div`
@@ -441,10 +381,14 @@ function StoryViewer({ groups, initialGroup, onClose }: ViewerProps) {
     const color = profileColor(group?.profileId ?? '');
     const storyIsVideo = !!story?.videoUrl;
 
+    // Always-current refs so rAF callbacks never capture stale state
     const giRef = useRef(gi);
     const siRef = useRef(si);
     giRef.current = gi;
     siRef.current = si;
+
+    // Refs to each bar's fill element — indexed by story position
+    const barFillRefs = useRef<(HTMLDivElement | null)[]>([]);
 
     const advanceSafe = useCallback(() => {
         const curGi = giRef.current;
@@ -471,6 +415,46 @@ function StoryViewer({ groups, initialGroup, onClose }: ViewerProps) {
             setSi(0);
         }
     }, []);
+
+    // rAF loop — lives here so it never depends on child component mount timing.
+    // Runs whenever gi/si/storyIsVideo changes; directly mutates bar DOM widths.
+    useEffect(() => {
+        const fills = barFillRefs.current;
+        const total = group?.stories.length ?? 0;
+
+        // Snap done/pending bars immediately
+        for (let i = 0; i < total; i++) {
+            const el = fills[i];
+            if (!el) continue;
+            if (i < si) { el.style.width = '100%'; continue; }
+            if (i > si) { el.style.width = '0%';   continue; }
+            el.style.width = '0%'; // active bar starts at 0
+        }
+
+        if (storyIsVideo) return; // videos advance via onEnded
+
+        const activeFill = fills[si];
+        if (!activeFill) return;
+
+        let start: number | null = null;
+        let raf: number;
+
+        const tick = (now: number) => {
+            if (start === null) start = now;
+            const progress = Math.min((now - start) / STORY_DURATION_MS, 1);
+            activeFill.style.width = `${progress * 100}%`;
+            if (progress < 1) {
+                raf = requestAnimationFrame(tick);
+            } else {
+                advanceSafe();
+            }
+        };
+
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+    // advanceSafe is stable (uses refs); group.stories.length changes only on gi change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [gi, si, storyIsVideo]);
 
     // Keyboard navigation
     useEffect(() => {
@@ -510,19 +494,19 @@ function StoryViewer({ groups, initialGroup, onClose }: ViewerProps) {
                 <TopGrad />
                 <BotGrad />
 
-                {/* Progress bars */}
+                {/* Progress bars — fill divs are always rendered; widths driven by rAF above */}
                 <Bars>
                     {group.stories.map((_, i) => (
-                        <BarTrack key={i}>
-                            {i < si && <BarDone />}
-                            {i === si && !storyIsVideo && (
-                                <ActiveBar
-                                    key={`${gi}-${si}`}
-                                    duration={STORY_DURATION_MS}
-                                    onDone={advanceSafe}
-                                />
-                            )}
-                            {i > si && <BarPending />}
+                        <BarTrack key={`${gi}-${i}`}>
+                            <div
+                                ref={el => { barFillRefs.current[i] = el; }}
+                                style={{
+                                    height: '100%',
+                                    background: '#fff',
+                                    borderRadius: '2px',
+                                    width: i < si ? '100%' : '0%',
+                                }}
+                            />
                         </BarTrack>
                     ))}
                 </Bars>
