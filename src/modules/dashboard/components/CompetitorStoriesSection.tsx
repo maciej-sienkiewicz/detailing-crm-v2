@@ -45,10 +45,6 @@ function timeAgo(iso: string): string {
     return `${Math.floor(sec / 86400)} dni temu`;
 }
 
-function isVideo(story: InstagramStory): boolean {
-    return !!story.videoUrl;
-}
-
 // ─── Animations ───────────────────────────────────────────────────────────────
 
 const shimmer = keyframes`
@@ -66,21 +62,21 @@ const scaleIn = keyframes`
     to   { opacity: 1; transform: scale(1); }
 `;
 
-const fillProgress = keyframes`
-    from { transform: scaleX(0); }
-    to   { transform: scaleX(1); }
+// ─── Section layout ───────────────────────────────────────────────────────────
+
+const SectionWrapper = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${p => p.theme.spacing.md};
 `;
 
-// ─── Section shell ────────────────────────────────────────────────────────────
-
-const SectionHeader = styled.div`
+const SectionLabel = styled.div`
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: -${p => p.theme.spacing.md};
 `;
 
-const SectionTitle = styled.span`
+const SectionLabelText = styled.span`
     font-size: 11px;
     font-weight: 700;
     color: ${p => p.theme.colors.textMuted};
@@ -89,7 +85,7 @@ const SectionTitle = styled.span`
     white-space: nowrap;
 `;
 
-const SectionLine = styled.div`
+const SectionLabelLine = styled.div`
     flex: 1;
     height: 1px;
     background: ${p => p.theme.colors.border};
@@ -140,7 +136,6 @@ const StoryRing = styled.div<{ $hasNew: boolean }>`
         p.$hasNew
             ? 'linear-gradient(45deg, #fcaf45, #ff3c5f 40%, #833ab4 70%, #405de6)'
             : p.theme.colors.border};
-    transition: background 300ms ease;
 `;
 
 const AvatarInner = styled.div<{ $color: string }>`
@@ -156,7 +151,6 @@ const AvatarInner = styled.div<{ $color: string }>`
     font-weight: 700;
     color: #fff;
     letter-spacing: -0.5px;
-    overflow: hidden;
 `;
 
 const CircleUsername = styled.span`
@@ -293,18 +287,62 @@ const BarTrack = styled.div`
     overflow: hidden;
 `;
 
-const BarFill = styled.div<{ $state: 'done' | 'active' | 'pending'; $duration: number }>`
+const BarDone = styled.div`
     height: 100%;
-    border-radius: 2px;
+    width: 100%;
     background: #fff;
-    transform-origin: left;
-
-    ${p => p.$state === 'done'    && css`transform: scaleX(1);`}
-    ${p => p.$state === 'pending' && css`transform: scaleX(0);`}
-    ${p => p.$state === 'active'  && css`
-        animation: ${fillProgress} ${p.$duration}ms linear forwards;
-    `}
+    border-radius: 2px;
 `;
+
+const BarPending = styled.div`
+    height: 100%;
+    width: 0%;
+    background: #fff;
+    border-radius: 2px;
+`;
+
+// JS-driven active bar: uses CSS transition + rAF to guarantee animation restart
+interface ActiveBarProps {
+    duration: number;
+    onDone: () => void;
+}
+
+function ActiveBar({ duration, onDone }: ActiveBarProps) {
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        // Two rAFs ensure the browser has committed the initial 0% paint
+        // before we set width to 100%, so CSS transition always fires
+        let raf2: number;
+        const raf1 = requestAnimationFrame(() => {
+            raf2 = requestAnimationFrame(() => {
+                if (ref.current) ref.current.style.width = '100%';
+            });
+        });
+
+        const timer = setTimeout(onDone, duration);
+
+        return () => {
+            cancelAnimationFrame(raf1);
+            cancelAnimationFrame(raf2);
+            clearTimeout(timer);
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    return (
+        <div
+            ref={ref}
+            style={{
+                height: '100%',
+                background: '#fff',
+                borderRadius: '2px',
+                width: '0%',
+                transition: `width ${duration}ms linear`,
+            }}
+        />
+    );
+}
 
 // ─── Viewer header ────────────────────────────────────────────────────────────
 
@@ -382,7 +420,7 @@ const TapZone = styled.div<{ $side: 'left' | 'right' }>`
     cursor: pointer;
 `;
 
-// ─── Story viewer component ───────────────────────────────────────────────────
+// ─── Story viewer ─────────────────────────────────────────────────────────────
 
 interface ViewerProps {
     groups: StoryGroup[];
@@ -394,61 +432,55 @@ function StoryViewer({ groups, initialGroup, onClose }: ViewerProps) {
     const [gi, setGi] = useState(initialGroup);
     const [si, setSi] = useState(0);
     const [muted, setMuted] = useState(true);
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
     const group = groups[gi];
     const story = group?.stories[si];
     const color = profileColor(group?.profileId ?? '');
-    const storyIsVideo = story ? isVideo(story) : false;
+    const storyIsVideo = !!story?.videoUrl;
 
-    const advance = useCallback(() => {
-        if (!group) return;
-        if (si < group.stories.length - 1) {
-            setSi(i => i + 1);
-        } else if (gi < groups.length - 1) {
-            setGi(i => i + 1);
+    const giRef = useRef(gi);
+    const siRef = useRef(si);
+    giRef.current = gi;
+    siRef.current = si;
+
+    const advanceSafe = useCallback(() => {
+        const curGi = giRef.current;
+        const curSi = siRef.current;
+        const grp = groups[curGi];
+        if (!grp) return;
+        if (curSi < grp.stories.length - 1) {
+            setSi(curSi + 1);
+        } else if (curGi < groups.length - 1) {
+            setGi(curGi + 1);
             setSi(0);
         } else {
             onClose();
         }
-    }, [group, si, gi, groups.length, onClose]);
+    }, [groups, onClose]);
 
     const goBack = useCallback(() => {
-        if (si > 0) {
-            setSi(i => i - 1);
-        } else if (gi > 0) {
-            setGi(i => i - 1);
+        const curGi = giRef.current;
+        const curSi = siRef.current;
+        if (curSi > 0) {
+            setSi(curSi - 1);
+        } else if (curGi > 0) {
+            setGi(curGi - 1);
             setSi(0);
         }
-    }, [si, gi]);
-
-    // Auto-advance (only for images; videos advance when they end)
-    useEffect(() => {
-        if (storyIsVideo) return;
-        clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(advance, STORY_DURATION_MS);
-        return () => clearTimeout(timerRef.current);
-    }, [gi, si, storyIsVideo, advance]);
+    }, []);
 
     // Keyboard navigation
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
-            if (e.key === 'Escape')      onClose();
-            else if (e.key === 'ArrowRight') advance();
+            if (e.key === 'Escape')          onClose();
+            else if (e.key === 'ArrowRight') advanceSafe();
             else if (e.key === 'ArrowLeft')  goBack();
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-    }, [onClose, advance, goBack]);
+    }, [onClose, advanceSafe, goBack]);
 
     if (!group || !story) return null;
-
-    const barState = (i: number): 'done' | 'active' | 'pending' => {
-        if (i < si) return 'done';
-        if (i === si) return 'active';
-        return 'pending';
-    };
 
     return createPortal(
         <Overlay onClick={onClose}>
@@ -457,13 +489,12 @@ function StoryViewer({ groups, initialGroup, onClose }: ViewerProps) {
                 {/* Media */}
                 {storyIsVideo ? (
                     <VideoFill
-                        ref={videoRef}
                         key={story.storyId}
                         src={story.videoUrl!}
                         autoPlay
                         playsInline
                         muted={muted}
-                        onEnded={advance}
+                        onEnded={advanceSafe}
                     />
                 ) : story.imageUrl ? (
                     <MediaFill key={story.storyId} src={story.imageUrl} alt="" />
@@ -479,12 +510,16 @@ function StoryViewer({ groups, initialGroup, onClose }: ViewerProps) {
                 {/* Progress bars */}
                 <Bars>
                     {group.stories.map((_, i) => (
-                        <BarTrack key={`${gi}-${i}`}>
-                            <BarFill
-                                key={`${gi}-${si}-${i}`}
-                                $state={storyIsVideo && i === si ? 'pending' : barState(i)}
-                                $duration={STORY_DURATION_MS}
-                            />
+                        <BarTrack key={i}>
+                            {i < si && <BarDone />}
+                            {i === si && !storyIsVideo && (
+                                <ActiveBar
+                                    key={`${gi}-${si}`}
+                                    duration={STORY_DURATION_MS}
+                                    onDone={advanceSafe}
+                                />
+                            )}
+                            {i > si && <BarPending />}
                         </BarTrack>
                     ))}
                 </Bars>
@@ -513,7 +548,7 @@ function StoryViewer({ groups, initialGroup, onClose }: ViewerProps) {
 
                 {/* Tap zones */}
                 <TapZone $side="left"  onClick={goBack} />
-                <TapZone $side="right" onClick={advance} />
+                <TapZone $side="right" onClick={advanceSafe} />
 
             </ViewerWrap>
         </Overlay>,
@@ -521,7 +556,7 @@ function StoryViewer({ groups, initialGroup, onClose }: ViewerProps) {
     );
 }
 
-// ─── Main section component ───────────────────────────────────────────────────
+// ─── Main section ─────────────────────────────────────────────────────────────
 
 export function CompetitorStoriesSection() {
     const [viewer, setViewer] = useState<{ open: boolean; groupIdx: number }>({
@@ -541,11 +576,11 @@ export function CompetitorStoriesSection() {
     if (!isLoading && groups.length === 0) return null;
 
     return (
-        <div>
-            <SectionHeader>
-                <SectionTitle>Co robiła konkurencja przez ostatnie 3 dni?</SectionTitle>
-                <SectionLine />
-            </SectionHeader>
+        <SectionWrapper>
+            <SectionLabel>
+                <SectionLabelText>Co robiła konkurencja przez ostatnie 3 dni?</SectionLabelText>
+                <SectionLabelLine />
+            </SectionLabel>
 
             <StoriesCard>
                 <StoriesRow>
@@ -593,6 +628,6 @@ export function CompetitorStoriesSection() {
                     onClose={() => setViewer(v => ({ ...v, open: false }))}
                 />
             )}
-        </div>
+        </SectionWrapper>
     );
 }
