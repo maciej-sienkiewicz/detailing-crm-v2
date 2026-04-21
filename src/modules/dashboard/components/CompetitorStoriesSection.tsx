@@ -344,6 +344,37 @@ function ActiveBar({ duration, onDone }: ActiveBarProps) {
     );
 }
 
+// JS-driven progress bar for video stories: tracks video.currentTime
+function VideoActiveBar({ videoRef }: { videoRef: React.RefObject<HTMLVideoElement> }) {
+    const barRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        const update = () => {
+            if (barRef.current && video.duration) {
+                barRef.current.style.width = `${(video.currentTime / video.duration) * 100}%`;
+            }
+        };
+
+        video.addEventListener('timeupdate', update);
+        return () => video.removeEventListener('timeupdate', update);
+    }, [videoRef]);
+
+    return (
+        <div
+            ref={barRef}
+            style={{
+                height: '100%',
+                background: '#fff',
+                borderRadius: '2px',
+                width: '0%',
+            }}
+        />
+    );
+}
+
 // ─── Viewer header ────────────────────────────────────────────────────────────
 
 const ViewerHeader = styled.div`
@@ -432,6 +463,7 @@ function StoryViewer({ groups, initialGroup, onClose }: ViewerProps) {
     const [gi, setGi] = useState(initialGroup);
     const [si, setSi] = useState(0);
     const [muted, setMuted] = useState(true);
+    const videoRef = useRef<HTMLVideoElement>(null);
 
     const group = groups[gi];
     const story = group?.stories[si];
@@ -489,6 +521,7 @@ function StoryViewer({ groups, initialGroup, onClose }: ViewerProps) {
                 {/* Media */}
                 {storyIsVideo ? (
                     <VideoFill
+                        ref={videoRef}
                         key={story.storyId}
                         src={story.videoUrl!}
                         autoPlay
@@ -517,6 +550,12 @@ function StoryViewer({ groups, initialGroup, onClose }: ViewerProps) {
                                     key={`${gi}-${si}`}
                                     duration={STORY_DURATION_MS}
                                     onDone={advanceSafe}
+                                />
+                            )}
+                            {i === si && storyIsVideo && (
+                                <VideoActiveBar
+                                    key={`${gi}-${si}`}
+                                    videoRef={videoRef}
                                 />
                             )}
                             {i > si && <BarPending />}
