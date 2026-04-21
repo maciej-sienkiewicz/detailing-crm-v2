@@ -301,7 +301,8 @@ const BarPending = styled.div`
     border-radius: 2px;
 `;
 
-// JS-driven active bar: uses CSS transition + rAF to guarantee animation restart
+// rAF-driven progress bar — directly mutates DOM width each frame,
+// bypassing CSS transition entirely so it always works after remount.
 interface ActiveBarProps {
     duration: number;
     onDone: () => void;
@@ -311,22 +312,25 @@ function ActiveBar({ duration, onDone }: ActiveBarProps) {
     const ref = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        // Two rAFs ensure the browser has committed the initial 0% paint
-        // before we set width to 100%, so CSS transition always fires
-        let raf2: number;
-        const raf1 = requestAnimationFrame(() => {
-            raf2 = requestAnimationFrame(() => {
-                if (ref.current) ref.current.style.width = '100%';
-            });
-        });
+        const el = ref.current;
+        if (!el) return;
 
-        const timer = setTimeout(onDone, duration);
+        const start = performance.now();
+        let raf: number;
 
-        return () => {
-            cancelAnimationFrame(raf1);
-            cancelAnimationFrame(raf2);
-            clearTimeout(timer);
+        const tick = (now: number) => {
+            const progress = Math.min((now - start) / duration, 1);
+            el.style.width = `${progress * 100}%`;
+            if (progress < 1) {
+                raf = requestAnimationFrame(tick);
+            } else {
+                onDone();
+            }
         };
+
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+    // onDone ref is stable (advanceSafe uses refs internally), duration is constant
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -338,7 +342,6 @@ function ActiveBar({ duration, onDone }: ActiveBarProps) {
                 background: '#fff',
                 borderRadius: '2px',
                 width: '0%',
-                transition: `width ${duration}ms linear`,
             }}
         />
     );
