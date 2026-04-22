@@ -513,6 +513,15 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
 
     const totals = calculateTotals();
 
+    const getLiveAdjustment = (service: ServiceLineItem) => {
+        const raw = discountInputValues[service.id];
+        if (raw === undefined) return service.adjustment;
+        const val = parseFloat(raw);
+        const storeVal = isNaN(val) ? 0 :
+            service.adjustment.type !== 'PERCENT' ? Math.round(val * 100) : -Math.abs(val);
+        return { ...service.adjustment, value: storeVal };
+    };
+
     return (
         <>
             <ServiceAutocomplete onSelect={(s) => onChange([...services, {
@@ -529,7 +538,7 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
                     </Thead>
                     <Tbody>
                         {services.map(service => {
-                            const pricing = calculateServicePrice(service);
+                            const pricing = calculateServicePrice({ ...service, adjustment: getLiveAdjustment(service) });
                             return (
                                 <Tr key={service.id}>
                                     <Td data-label="Nazwa usługi">
