@@ -8,8 +8,8 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
         const validationErrors: Record<string, string> = {};
 
         if (currentStep === 'verification') {
-            // Walidacja danych klienta - tylko jeśli hasFullCustomerData jest true
-            if (formData.hasFullCustomerData) {
+            // Walidacja danych klienta - gdy mamy pełne dane lub to nowy klient (walk-in)
+            if (formData.hasFullCustomerData || formData.isNewCustomer) {
                 if (!formData.customerData.firstName || formData.customerData.firstName.length < 2) {
                     validationErrors.firstName = t.customers.validation.firstNameMin;
                 }
