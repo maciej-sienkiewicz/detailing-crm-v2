@@ -97,6 +97,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
     const vehicleBrandInputRef = useRef<HTMLInputElement>(null);
     const vehicleModelInputRef = useRef<HTMLInputElement>(null);
     const vehicleYearInputRef = useRef<HTMLInputElement>(null);
+    const vehicleSectionRef = useRef<HTMLDivElement>(null);
     const serviceInputRef = useRef<HTMLInputElement>(null);
     const colorSectionRef = useRef<HTMLDivElement>(null);
 
@@ -397,12 +398,12 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
         return null;
     };
 
-    const handleAddNewCustomerDirectly = () => {
+    const handleAddNewCustomerDirectly = (): boolean => {
         const fn = customerFirstName.trim();
         const ln = customerLastName.trim();
         const ph = customerPhone.trim();
         const em = customerEmail.trim();
-        if (!fn && !ln && !ph && !em) return;
+        if (!fn && !ln && !ph && !em) return false;
         const error = validateCustomerFields(fn, ln, ph, em);
         if (error) {
             setErrors(prev => ({ ...prev, customer: error }));
@@ -410,7 +411,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
             if (fn.length < 2) customerInputRef.current?.focus();
             else if (ln.length < 2) customerLastNameInputRef.current?.focus();
             else customerPhoneInputRef.current?.focus();
-            return;
+            return false;
         }
         setErrors(prev => { const { customer: _, ...rest } = prev; return rest; });
         setSelectedCustomer({ id: '', firstName: fn, lastName: ln, phone: ph, email: em, isNew: true });
@@ -421,6 +422,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
         setVehicleYear('');
         setShowCustomerDropdown(false);
         setCustomerEditMode(false);
+        return true;
     };
 
     const handleEnterEditMode = () => {
@@ -713,6 +715,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
         vehicleBrandInputRef,
         vehicleModelInputRef,
         vehicleYearInputRef,
+        vehicleSectionRef,
         serviceInputRef,
         colorSectionRef,
 

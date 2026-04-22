@@ -67,18 +67,39 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 return;
                             }
                             if (e.key === 'Enter') {
-                                const customerFields = [
-                                    form.customerInputRef.current,
-                                    form.customerLastNameInputRef.current,
-                                    form.customerPhoneInputRef.current,
-                                    form.customerEmailInputRef.current,
-                                ];
-                                if (customerFields.includes(e.target as HTMLInputElement)) {
-                                    e.preventDefault();
-                                    if (!form.selectedCustomer) {
-                                        form.handleAddNewCustomerDirectly();
+                                const target = e.target as HTMLInputElement;
+                                if (!form.selectedCustomer) {
+                                    if (target === form.customerInputRef.current) {
+                                        e.preventDefault();
+                                        form.customerLastNameInputRef.current?.focus();
+                                        return;
+                                    }
+                                    if (target === form.customerLastNameInputRef.current) {
+                                        e.preventDefault();
+                                        form.customerPhoneInputRef.current?.focus();
+                                        return;
+                                    }
+                                    if (target === form.customerPhoneInputRef.current || target === form.customerEmailInputRef.current) {
+                                        e.preventDefault();
+                                        const confirmed = form.handleAddNewCustomerDirectly();
                                         form.setFocusedField(null);
-                                    } else if (form.customerEditMode) {
+                                        if (confirmed) {
+                                            setTimeout(() => {
+                                                const btn = form.vehicleSectionRef.current?.querySelector('button, input') as HTMLElement | null;
+                                                btn?.focus();
+                                            }, 50);
+                                        }
+                                        return;
+                                    }
+                                } else if (form.customerEditMode) {
+                                    const customerFields = [
+                                        form.customerInputRef.current,
+                                        form.customerLastNameInputRef.current,
+                                        form.customerPhoneInputRef.current,
+                                        form.customerEmailInputRef.current,
+                                    ];
+                                    if (customerFields.includes(target)) {
+                                        e.preventDefault();
                                         form.handleConfirmEdit();
                                     }
                                 }
@@ -447,7 +468,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 <S.IconWrapper $color={form.focusedField === 'vehicle' ? form.accentColor : undefined}>
                                     <IconCar />
                                 </S.IconWrapper>
-                                <S.RowContent>
+                                <S.RowContent ref={form.vehicleSectionRef}>
                                     {form.selectedVehicle && form.vehicleEditMode ? (
                                         /* ── stan: pojazd wybrany, tryb edycji ── */
                                         <>
@@ -610,7 +631,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                         <BrandSelect
                                                             compact
                                                             value={form.vehicleBrand}
-                                                            onChange={(brand) => { form.setVehicleBrand(brand); form.setVehicleModel(''); form.setFocusedField('vehicle'); setAutoOpenModel(true); }}
+                                                            onChange={(brand) => {
+                                                                form.setVehicleBrand(brand);
+                                                                form.setVehicleModel('');
+                                                                form.setFocusedField('vehicle');
+                                                                setTimeout(() => form.vehicleYearInputRef.current?.focus(), 0);
+                                                            }}
                                                             onBlur={() => form.setFocusedField(null)}
                                                         />
                                                     </S.CustomerFieldGroup>
@@ -622,7 +648,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             value={form.vehicleModel}
                                                             onChange={(model) => { form.setVehicleModel(model); form.setFocusedField('vehicle'); }}
                                                             onBlur={() => form.setFocusedField(null)}
-                                                            autoOpen={autoOpenModel}
+                                                            autoOpen={false}
                                                         />
                                                     </S.CustomerFieldGroup>
                                                     <S.CustomerFieldGroup>
