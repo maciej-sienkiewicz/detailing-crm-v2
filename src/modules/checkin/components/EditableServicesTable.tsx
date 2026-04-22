@@ -446,8 +446,17 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
         return { finalPriceNet, finalPriceGross, hasDiscount: finalPriceNet !== basePriceNet };
     };
 
+    const getLiveAdjustment = (service: ServiceLineItem) => {
+        const raw = discountInputValues[service.id];
+        if (raw === undefined) return service.adjustment;
+        const val = parseFloat(raw);
+        const storeVal = isNaN(val) ? 0 :
+            service.adjustment.type !== 'PERCENT' ? Math.round(val * 100) : -Math.abs(val);
+        return { ...service.adjustment, value: storeVal };
+    };
+
     const calculateTotals = () => services.reduce((acc, s) => {
-        const p = calculateServicePrice(s);
+        const p = calculateServicePrice({ ...s, adjustment: getLiveAdjustment(s) });
         return { totalNet: acc.totalNet + p.finalPriceNet, totalGross: acc.totalGross + p.finalPriceGross };
     }, { totalNet: 0, totalGross: 0 });
 
@@ -512,15 +521,6 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
     };
 
     const totals = calculateTotals();
-
-    const getLiveAdjustment = (service: ServiceLineItem) => {
-        const raw = discountInputValues[service.id];
-        if (raw === undefined) return service.adjustment;
-        const val = parseFloat(raw);
-        const storeVal = isNaN(val) ? 0 :
-            service.adjustment.type !== 'PERCENT' ? Math.round(val * 100) : -Math.abs(val);
-        return { ...service.adjustment, value: storeVal };
-    };
 
     return (
         <>
