@@ -79,16 +79,15 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         form.customerPhoneInputRef.current?.focus();
                                         return;
                                     }
-                                    if (target === form.customerPhoneInputRef.current || target === form.customerEmailInputRef.current) {
+                                    if (target === form.customerPhoneInputRef.current) {
                                         e.preventDefault();
-                                        const confirmed = form.handleAddNewCustomerDirectly();
+                                        form.customerEmailInputRef.current?.focus();
+                                        return;
+                                    }
+                                    if (target === form.customerEmailInputRef.current) {
+                                        e.preventDefault();
+                                        form.handleAddNewCustomerDirectly();
                                         form.setFocusedField(null);
-                                        if (confirmed) {
-                                            setTimeout(() => {
-                                                const btn = form.vehicleSectionRef.current?.querySelector('button, input') as HTMLElement | null;
-                                                btn?.focus();
-                                            }, 50);
-                                        }
                                         return;
                                     }
                                 } else if (form.customerEditMode) {

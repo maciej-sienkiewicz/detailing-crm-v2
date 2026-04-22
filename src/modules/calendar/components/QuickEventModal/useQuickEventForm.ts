@@ -58,6 +58,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
     const [isAddingNewVehicle, setIsAddingNewVehicle] = useState(false);
     const vehicleBlurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const vehicleAutoSelectedRef = useRef(false);
+    const vehicleAutoOpenRef = useRef(false);
 
     // ─── Service state ─────────────────────────────────────────────────────────
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
@@ -106,7 +107,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
     const queryClient = useQueryClient();
 
     // ─── Queries ───────────────────────────────────────────────────────────────
-    const { data: customerVehicles } = useCustomerVehicles(
+    const { data: customerVehicles, isLoading: vehiclesLoading } = useCustomerVehicles(
         selectedCustomerId && !selectedCustomer?.isNew ? selectedCustomerId : undefined
     );
     const vehicles = customerVehicles || [];
@@ -211,6 +212,26 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
         }
     }, [vehicles]);
 
+    // Auto-open vehicle section after customer is confirmed / selected
+    useEffect(() => {
+        if (!vehicleAutoOpenRef.current) return;
+        if (vehiclesLoading) return;
+        if (!selectedCustomer || selectedVehicle) { vehicleAutoOpenRef.current = false; return; }
+
+        vehicleAutoOpenRef.current = false;
+
+        if (vehicles.length > 1) {
+            setShowVehicleDropdown(true);
+            setFocusedField('vehicle');
+        } else if (vehicles.length === 0) {
+            setTimeout(() => {
+                const btn = vehicleSectionRef.current?.querySelector('button') as HTMLElement | null;
+                btn?.focus();
+            }, 50);
+        }
+        // vehicles.length === 1 is already handled by vehicleAutoSelectedRef effect
+    }, [vehicles, vehiclesLoading, selectedCustomer, selectedVehicle]);
+
     // ─── Clear form ────────────────────────────────────────────────────────────
     const clearForm = () => {
         setTitle('');
@@ -235,6 +256,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
         setShowVehicleDropdown(false);
         setIsAddingNewVehicle(false);
         vehicleAutoSelectedRef.current = false;
+        vehicleAutoOpenRef.current = false;
         setNotes('');
         setTempServices({});
     };
@@ -422,6 +444,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
         setVehicleYear('');
         setShowCustomerDropdown(false);
         setCustomerEditMode(false);
+        vehicleAutoOpenRef.current = true;
         return true;
     };
 
@@ -545,6 +568,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
         setVehicleYear('');
         setIsAddingNewVehicle(false);
         vehicleAutoSelectedRef.current = false;
+        vehicleAutoOpenRef.current = true;
         setCustomerFirstName(customer.firstName ?? '');
         setCustomerLastName(customer.lastName ?? '');
         setCustomerPhone(customer.phone ?? '');
