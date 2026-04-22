@@ -337,7 +337,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
         }
         setIsSubmitting(true);
         const vehicleToSubmit = selectedVehicle ?? (
-            isAddingNewVehicle && (vehicleBrand.trim() || vehicleModel.trim())
+            (isAddingNewVehicle || vehicles.length === 0) && (vehicleBrand.trim() || vehicleModel.trim())
                 ? { id: '', brand: vehicleBrand.trim(), model: vehicleModel.trim(), year: vehicleYear.trim() ? parseInt(vehicleYear.trim()) : undefined, isNew: true as const }
                 : null
         );
