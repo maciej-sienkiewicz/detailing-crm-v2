@@ -634,7 +634,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                 form.setVehicleBrand(brand);
                                                                 form.setVehicleModel('');
                                                                 form.setFocusedField('vehicle');
-                                                                setTimeout(() => form.vehicleYearInputRef.current?.focus(), 0);
+                                                                setAutoOpenModel(true);
                                                             }}
                                                             onBlur={() => form.setFocusedField(null)}
                                                         />
@@ -645,9 +645,14 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             compact
                                                             brand={form.vehicleBrand}
                                                             value={form.vehicleModel}
-                                                            onChange={(model) => { form.setVehicleModel(model); form.setFocusedField('vehicle'); }}
+                                                            onChange={(model) => {
+                                                                form.setVehicleModel(model);
+                                                                form.setFocusedField('vehicle');
+                                                                setAutoOpenModel(false);
+                                                                setTimeout(() => form.vehicleYearInputRef.current?.focus(), 0);
+                                                            }}
                                                             onBlur={() => form.setFocusedField(null)}
-                                                            autoOpen={false}
+                                                            autoOpen={autoOpenModel}
                                                         />
                                                     </S.CustomerFieldGroup>
                                                     <S.CustomerFieldGroup>
