@@ -9,6 +9,7 @@
 export interface VisitDetail {
   /** Unique visit identifier */
   id: string;
+  name: string;
   /** Vehicle brand */
   brand: string;
   /** Vehicle model */

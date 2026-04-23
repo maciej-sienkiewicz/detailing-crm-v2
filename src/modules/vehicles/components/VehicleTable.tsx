@@ -391,7 +391,6 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
                         <Th>{t.vehicles.table.lastVisit}</Th>
                         <Th>{t.vehicles.table.visits}</Th>
                         <Th>{t.vehicles.table.totalRevenue}</Th>
-                        <Th>Status</Th>
                         <Th>{t.vehicles.table.actions}</Th>
                     </tr>
                 </TableHead>
@@ -464,18 +463,6 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
                                             vehicle.stats.totalSpent.currency
                                         )} netto
                                     </NetAmt>
-                                </Td>
-
-                                <Td>
-                                    {(() => {
-                                        const cfg = STATUS_CONFIG[vehicle.status as StatusKind] ?? STATUS_CONFIG.archived;
-                                        return (
-                                            <StatusBadge $bg={cfg.bg} $color={cfg.color}>
-                                                <StatusDot $color={cfg.color} />
-                                                {cfg.label}
-                                            </StatusBadge>
-                                        );
-                                    })()}
                                 </Td>
 
                                 <ActionsCell onClick={e => e.stopPropagation()}>

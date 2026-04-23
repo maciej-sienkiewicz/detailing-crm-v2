@@ -419,7 +419,7 @@ const VisitRow = ({
 
       <VisitBody>
         <VisitMainRow>
-          <VehicleName>{visit.brand} {visit.model}</VehicleName>
+          <VehicleName>{visit.name}</VehicleName>
           <VisitAmount>{formatCurrency(visit.amount)}</VisitAmount>
         </VisitMainRow>
 
