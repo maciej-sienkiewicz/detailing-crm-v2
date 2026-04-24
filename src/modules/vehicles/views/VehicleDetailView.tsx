@@ -1,385 +1,49 @@
 // src/modules/vehicles/views/VehicleDetailView.tsx
 
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import styled, { keyframes } from 'styled-components';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useVehicleDetail } from '../hooks/useVehicleDetail';
 import { useVehicleVisits } from '../hooks/useVehicleVisits';
-import { useVehicleAppointments } from '../hooks/useVehicleAppointments';
-import { VehicleHeader } from '../components/VehicleHeader';
-import { VehicleVisitHistory } from '../components/VehicleVisitHistory';
-import { VehiclePhotoGallery } from '../components/VehiclePhotoGallery';
 import { VehicleDocuments } from '../components/VehicleDocuments';
+import { VehiclePhotoGallery } from '../components/VehiclePhotoGallery';
 import { VehicleNotes } from '../components/VehicleNotes';
 import { VehicleAuditTimeline } from '../components/VehicleAuditTimeline';
 import { EditVehicleModal } from '../components/EditVehicleModal';
 import { EditOwnersModal } from '../components/EditOwnersModal';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { SharedButton } from '@/common/styles/sharedButtonStyles';
+import { formatCurrency, formatDate } from '@/common/utils';
 import { t } from '@/common/i18n';
-import type { VehicleOwner } from '../types';
+import type { VehicleOwner, VehicleVisit } from '../types';
 
-// ─── Animations ───────────────────────────────────────────────────────────────
-
-const fadeIn = keyframes`
-    from { opacity: 0; }
-    to   { opacity: 1; }
-`;
-
-const fadeUp = keyframes`
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
-`;
-
-const spin = keyframes`
-    to { transform: rotate(360deg); }
-`;
-
-// ─── Layout ───────────────────────────────────────────────────────────────────
-
-const ViewContainer = styled.main`
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    background: ${st.bg};
-    animation: ${fadeIn} 0.3s ease both;
-`;
-
-const ContentArea = styled.div`
-    flex: 1;
-    padding: 20px 24px 40px;
-    max-width: 1600px;
-    margin: 0 auto;
-    width: 100%;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: 24px 32px 48px;
-    }
-`;
-
-// ─── Main grid ────────────────────────────────────────────────────────────────
-
-const MainGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-    align-items: start;
-
-    @media (min-width: ${props => props.theme.breakpoints.lg}) {
-        grid-template-columns: 1fr 300px;
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.xl}) {
-        grid-template-columns: 1fr 320px;
-    }
-`;
-
-const MainColumn = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    min-width: 0;
-`;
-
-const SidebarColumn = styled.aside`
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-`;
-
-// ─── Collapsible section ──────────────────────────────────────────────────────
-
-const Section = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    overflow: hidden;
-    box-shadow: ${st.shadowSm};
-`;
-
-const SectionHeader = styled.button`
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 20px;
-    background: ${st.bg};
-    border: none;
-    border-bottom: 1px solid ${st.border};
-    cursor: pointer;
-    transition: background ${st.transition};
-    text-align: left;
-
-    &:hover { background: ${st.bgCardAlt}; }
-`;
-
-const SectionHeaderLeft = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-`;
-
-const SectionIconWrap = styled.div<{ $gradient?: string }>`
-    width: 30px;
-    height: 30px;
-    border-radius: ${st.radiusSm};
-    background: ${props => props.$gradient || st.gradientBlue};
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-`;
-
-const SectionTitle = styled.span`
-    font-size: ${st.fontSm};
-    font-weight: 700;
-    color: ${st.text};
-`;
-
-const SectionCount = styled.span`
-    font-size: 11px;
-    font-weight: 600;
-    color: ${st.textMuted};
-    background: ${st.bgCardAlt};
-    border: 1px solid ${st.border};
-    padding: 1px 8px;
-    border-radius: ${st.radiusFull};
-`;
-
-const ChevronIcon = styled.svg<{ $open: boolean }>`
-    width: 16px;
-    height: 16px;
-    color: ${st.textMuted};
-    transition: transform 250ms ease;
-    transform: ${props => props.$open ? 'rotate(180deg)' : 'rotate(0deg)'};
-    flex-shrink: 0;
-`;
-
-const SectionBody = styled.div<{ $visible: boolean; $flush?: boolean }>`
-    display: ${props => props.$visible ? 'block' : 'none'};
-    padding: ${props => props.$flush ? '0' : '20px'};
-    animation: ${fadeUp} 0.2s ease;
-`;
-
-// ─── Sidebar cards ────────────────────────────────────────────────────────────
-
-const SidebarCard = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    overflow: hidden;
-    box-shadow: ${st.shadowSm};
-`;
-
-const SidebarCardHeader = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 11px 16px;
-    border-bottom: 1px solid ${st.border};
-    background: ${st.bg};
-`;
-
-const SidebarCardTitle = styled.h4`
-    margin: 0;
-    font-size: ${st.fontSm};
-    font-weight: 700;
-    color: ${st.text};
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    svg {
-        width: 14px;
-        height: 14px;
-        color: ${st.accentBlue};
-        flex-shrink: 0;
-    }
-`;
-
-const SidebarCardBadge = styled.span`
-    font-size: 11px;
-    font-weight: 600;
-    color: ${st.textMuted};
-    background: ${st.bgCardAlt};
-    border: 1px solid ${st.border};
-    padding: 1px 7px;
-    border-radius: ${st.radiusFull};
-`;
-
-const SidebarCardAction = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    border: 1.5px solid ${st.accentBlue};
-    border-radius: ${st.radiusFull};
-    background: transparent;
-    color: ${st.accentBlue};
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
-
-    &:hover { background: ${st.accentBlue}; color: white; }
-    svg { width: 12px; height: 12px; }
-`;
-
-// ─── Info rows ────────────────────────────────────────────────────────────────
-
-const InfoRow = styled.div<{ $noBorder?: boolean }>`
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 8px 16px;
-    border-bottom: ${props => props.$noBorder ? 'none' : `1px solid ${st.border}`};
-
-    &:last-child { border-bottom: none; }
-`;
-
-const InfoLabel = styled.span`
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: ${st.textMuted};
-    flex-shrink: 0;
-`;
-
-const InfoValue = styled.span`
-    font-size: ${st.fontSm};
-    font-weight: 500;
-    color: ${st.text};
-    text-align: right;
-    word-break: break-word;
-`;
-
-// ─── Owners list ──────────────────────────────────────────────────────────────
-
-const OwnersList = styled.div`
-    display: flex;
-    flex-direction: column;
-`;
-
-const OwnerLink = styled(Link)`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 16px;
-    text-decoration: none;
-    transition: background ${st.transition};
-    border-bottom: 1px solid ${st.border};
-
-    &:last-child { border-bottom: none; }
-    &:hover { background: ${st.bgCardAlt}; }
-`;
-
-const OwnerAvatar = styled.div`
-    width: 32px;
-    height: 32px;
-    border-radius: ${st.radiusFull};
-    background: ${st.gradientBlue};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    font-size: 11px;
-    font-weight: 700;
-    color: white;
-`;
-
-const OwnerInfo = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
-
-const OwnerName = styled.div`
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    color: ${st.text};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-`;
-
-const OwnerRole = styled.div`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-`;
-
-const OwnerArrow = styled.div`
-    color: ${st.textMuted};
-    flex-shrink: 0;
-    svg { width: 13px; height: 13px; }
-`;
-
-const EmptySlot = styled.div`
-    padding: 14px 16px;
-    font-size: ${st.fontSm};
-    color: ${st.textMuted};
-    text-align: center;
-`;
-
-// ─── Loading / Error ──────────────────────────────────────────────────────────
-
-const LoadingContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 400px;
-    gap: 16px;
-`;
-
-const Spinner = styled.div`
-    width: 38px;
-    height: 38px;
-    border: 3px solid ${st.border};
-    border-top-color: ${st.accentBlue};
-    border-radius: 50%;
-    animation: ${spin} 0.7s linear infinite;
-`;
-
-const LoadingText = styled.p`
-    margin: 0;
-    color: ${st.textMuted};
-    font-size: ${st.fontSm};
-`;
-
-const ErrorContainer = styled.div`
-    padding: 48px 32px;
-    text-align: center;
-`;
-
-const ErrorTitle = styled.h2`
-    margin: 0 0 8px;
-    font-size: 20px;
-    font-weight: 700;
-    color: ${st.accentRed};
-`;
-
-const ErrorMessage = styled.p`
-    margin: 0 0 20px;
-    color: ${st.textSecondary};
-    font-size: ${st.fontSm};
-`;
-
-const RetryButton = styled.button`
-    padding: 9px 22px;
-    background: ${st.accentBlue};
-    color: white;
-    border: none;
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
-    box-shadow: ${st.shadowSm};
-    &:hover { background: #2563EB; box-shadow: ${st.shadowMd}; }
-`;
+import {
+    ViewContainer, PageContent,
+    BreadcrumbNav, BreadcrumbLink, BreadcrumbSep, BreadcrumbCurrent,
+    PageHeader, HeaderLeft, HeaderMetaRow, PageTitle, MetaText, HeaderActions,
+    VehicleStatusBadge, StatusDot,
+    TwoColGrid, LeftRail, MainCol,
+    Panel, PanelHead, PanelTitle, PanelBody, PanelBodyFlush, PanelCountBadge, PanelAction,
+    IdentityRow, VehicleIconWrap, IdentityMeta, IdentityName, IdentityId, LicensePlateBadge,
+    OwnerItem, OwnerAvatar, OwnerInfo, OwnerName, OwnerRole,
+    SummaryStrip, SumCell, KpiEyebrow, KpiValue, KpiDelta,
+    VisitRow, VisitDateCol, VisitDateMain, VisitDateSub, VisitInfo, VisitTitle, VisitSub, VisitAmount,
+    StatusBadge,
+    PrefRow, PrefKey, PrefVal,
+    NoteText,
+    CollapsibleSection, CollapsibleHeader, CollapsibleHeaderLeft,
+    SectionIconWrap, CollapsibleTitle, CollapsibleBadge, ChevronIcon, CollapsibleBody,
+    CenteredBox, SpinnerEl, LoadingText, ErrorTitle, ErrorMsg,
+} from './VehicleDetailView.styles';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const MONTH_LABELS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
+
+const paintLabels: Record<string, string> = {
+    metallic: 'Metalik',
+    matte:    'Mat',
+    pearl:    'Perła',
+    solid:    'Akryl',
+};
 
 const roleLabels: Record<string, string> = {
     PRIMARY:  'Właściciel',
@@ -387,11 +51,10 @@ const roleLabels: Record<string, string> = {
     COMPANY:  'Firma',
 };
 
-const paintLabels: Record<string, string> = {
-    metallic: 'Metalik',
-    matte:    'Mat',
-    pearl:    'Perła',
-    solid:    'Akryl',
+const statusLabels: Record<string, string> = {
+    active:   'Aktywny',
+    sold:     'Sprzedany',
+    archived: 'Archiwum',
 };
 
 function getOwnerInitials(owner: VehicleOwner): string {
@@ -403,10 +66,21 @@ function getOwnerInitials(owner: VehicleOwner): string {
         .slice(0, 2);
 }
 
+function visitStatusBadge(status: string): { label: string; kind: 'success' | 'info' | 'warn' | 'neutral' | 'error' } {
+    switch (status) {
+        case 'completed':   return { label: 'Zakończona',  kind: 'success' };
+        case 'in-progress': return { label: 'W trakcie',   kind: 'info' };
+        case 'scheduled':   return { label: 'Zaplanowana', kind: 'neutral' };
+        case 'cancelled':   return { label: 'Anulowana',   kind: 'error' };
+        default:            return { label: status,        kind: 'neutral' };
+    }
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export const VehicleDetailView = () => {
     const { vehicleId } = useParams<{ vehicleId: string }>();
+    const navigate = useNavigate();
 
     const [isDocsOpen,   setIsDocsOpen]   = useState(true);
     const [isPhotosOpen, setIsPhotosOpen] = useState(false);
@@ -414,25 +88,20 @@ export const VehicleDetailView = () => {
     const [isEditModalOpen,       setIsEditModalOpen]       = useState(false);
     const [isEditOwnersModalOpen, setIsEditOwnersModalOpen] = useState(false);
 
-    const {
-        vehicleDetail,
-        isLoading,
-        isError,
-        refetch,
-    } = useVehicleDetail(vehicleId!);
+    const { vehicleDetail, isLoading, isError, refetch } = useVehicleDetail(vehicleId!);
+    const { visits } = useVehicleVisits(vehicleId!);
 
-    const { visits }       = useVehicleVisits(vehicleId!);
-    const { appointments } = useVehicleAppointments(vehicleId!);
+    // ── Loading ──────────────────────────────────────────────────────────────
 
     if (isLoading) {
         return (
             <ViewContainer>
-                <ContentArea>
-                    <LoadingContainer>
-                        <Spinner />
+                <PageContent>
+                    <CenteredBox>
+                        <SpinnerEl />
                         <LoadingText>Ładowanie danych pojazdu...</LoadingText>
-                    </LoadingContainer>
-                </ContentArea>
+                    </CenteredBox>
+                </PageContent>
             </ViewContainer>
         );
     }
@@ -440,168 +109,436 @@ export const VehicleDetailView = () => {
     if (isError || !vehicleDetail) {
         return (
             <ViewContainer>
-                <ContentArea>
-                    <ErrorContainer>
+                <PageContent>
+                    <CenteredBox>
                         <ErrorTitle>{t.common.error}</ErrorTitle>
-                        <ErrorMessage>{t.vehicles.error.detailLoadFailed}</ErrorMessage>
-                        <RetryButton onClick={() => refetch()}>{t.common.retry}</RetryButton>
-                    </ErrorContainer>
-                </ContentArea>
+                        <ErrorMsg>{t.vehicles.error.detailLoadFailed}</ErrorMsg>
+                        <SharedButton $variant="primary" onClick={() => refetch()}>
+                            {t.common.retry}
+                        </SharedButton>
+                    </CenteredBox>
+                </PageContent>
             </ViewContainer>
         );
     }
 
     const { vehicle, photos } = vehicleDetail;
+    const vehicleName = [vehicle.brand, vehicle.model].filter(Boolean).join(' ') || 'Pojazd';
+    const yearSuffix  = vehicle.yearOfProduction ? ` (${vehicle.yearOfProduction})` : '';
+
+    const totalSpent   = vehicle.stats?.totalSpent  ?? { grossAmount: 0, currency: 'PLN' };
+    const totalVisits  = vehicle.stats?.totalVisits ?? 0;
+    const lastVisit    = vehicle.stats?.lastVisitDate ?? null;
+    const avgCost      = vehicle.stats?.averageVisitCost ?? { grossAmount: 0, currency: 'PLN' };
+
+    const recentVisits = visits.slice(0, 6);
 
     return (
         <ViewContainer>
-            {/* ─── Hero header (ze stats strip) ────────── */}
-            <VehicleHeader
-                vehicle={vehicle}
-                onEditVehicle={() => setIsEditModalOpen(true)}
-                onEditOwners={() => setIsEditOwnersModalOpen(true)}
-            />
+            <PageContent>
 
-            <ContentArea>
-                <MainGrid>
-                    {/* ─── Left: historia + sekcje ──────────── */}
-                    <MainColumn>
-                        <VehicleVisitHistory visits={visits} appointments={appointments} />
+                {/* ─── Breadcrumb ────────────────────────────────── */}
+                <BreadcrumbNav aria-label="Nawigacja">
+                    <BreadcrumbLink to="/vehicles">Pojazdy</BreadcrumbLink>
+                    <BreadcrumbSep>›</BreadcrumbSep>
+                    <BreadcrumbCurrent>{vehicle.licensePlate || vehicleName}</BreadcrumbCurrent>
+                </BreadcrumbNav>
 
-                        {/* Dokumenty */}
-                        <Section>
-                            <SectionHeader
-                                onClick={() => setIsDocsOpen(v => !v)}
-                                aria-expanded={isDocsOpen}
-                                aria-controls="docs-section"
-                            >
-                                <SectionHeaderLeft>
-                                    <SectionIconWrap>
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                            <polyline points="14 2 14 8 20 8"/>
+                {/* ─── Page header ───────────────────────────────── */}
+                <PageHeader>
+                    <HeaderLeft>
+                        <HeaderMetaRow>
+                            <VehicleStatusBadge $status={vehicle.status}>
+                                <StatusDot $status={vehicle.status} />
+                                {statusLabels[vehicle.status] ?? vehicle.status}
+                            </VehicleStatusBadge>
+                            {vehicle.yearOfProduction && (
+                                <MetaText>rocznik {vehicle.yearOfProduction}</MetaText>
+                            )}
+                        </HeaderMetaRow>
+                        <PageTitle>{vehicleName}</PageTitle>
+                    </HeaderLeft>
+
+                    <HeaderActions>
+                        <SharedButton
+                            $variant="secondary"
+                            $size="sm"
+                            onClick={() => setIsEditOwnersModalOpen(true)}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                            Właściciele
+                        </SharedButton>
+                        <SharedButton
+                            $variant="secondary"
+                            $size="sm"
+                            onClick={() => setIsEditModalOpen(true)}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                            Edytuj dane
+                        </SharedButton>
+                        <SharedButton
+                            $variant="primary"
+                            $size="sm"
+                            onClick={() => navigate('/checkin/new', {
+                                state: { prefillVehicle: { id: vehicle.id, licensePlate: vehicle.licensePlate } },
+                            })}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                                <line x1="12" y1="14" x2="12" y2="18"/>
+                                <line x1="10" y1="16" x2="14" y2="16"/>
+                            </svg>
+                            Nowa wizyta
+                        </SharedButton>
+                    </HeaderActions>
+                </PageHeader>
+
+                {/* ─── Two-column layout ─────────────────────────── */}
+                <TwoColGrid>
+
+                    {/* ── LEFT RAIL ────────────────────────────────── */}
+                    <LeftRail>
+
+                        {/* Vehicle identity card */}
+                        <Panel>
+                            <PanelBody>
+                                <IdentityRow>
+                                    <VehicleIconWrap aria-hidden="true">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                            <path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.4L19 11"/>
+                                            <rect x="2" y="11" width="20" height="6" rx="1"/>
+                                            <circle cx="7" cy="17" r="2"/>
+                                            <circle cx="17" cy="17" r="2"/>
+                                            <path d="M5 11h14"/>
                                         </svg>
-                                    </SectionIconWrap>
-                                    <SectionTitle>Dokumenty</SectionTitle>
-                                </SectionHeaderLeft>
-                                <ChevronIcon $open={isDocsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="6 9 12 15 18 9" />
-                                </ChevronIcon>
-                            </SectionHeader>
-                            <SectionBody $visible={isDocsOpen} $flush id="docs-section">
-                                <VehicleDocuments vehicleId={vehicleId!} />
-                            </SectionBody>
-                        </Section>
+                                    </VehicleIconWrap>
+                                    <IdentityMeta>
+                                        <IdentityName>{vehicleName}{yearSuffix}</IdentityName>
+                                        <IdentityId>ID: {vehicle.id.slice(0, 8).toUpperCase()}</IdentityId>
+                                    </IdentityMeta>
+                                </IdentityRow>
 
-                        {/* Zdjęcia */}
-                        <Section>
-                            <SectionHeader
-                                onClick={() => setIsPhotosOpen(v => !v)}
-                                aria-expanded={isPhotosOpen}
-                                aria-controls="photos-section"
-                            >
-                                <SectionHeaderLeft>
-                                    <SectionIconWrap $gradient="linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                            <circle cx="8.5" cy="8.5" r="1.5"/>
-                                            <polyline points="21 15 16 10 5 21"/>
-                                        </svg>
-                                    </SectionIconWrap>
-                                    <SectionTitle>Zdjęcia</SectionTitle>
-                                    {photos.length > 0 && (
-                                        <SectionCount>{photos.length}</SectionCount>
-                                    )}
-                                </SectionHeaderLeft>
-                                <ChevronIcon $open={isPhotosOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="6 9 12 15 18 9" />
-                                </ChevronIcon>
-                            </SectionHeader>
-                            <SectionBody $visible={isPhotosOpen} $flush id="photos-section">
-                                <VehiclePhotoGallery vehicleId={vehicleId!} photos={photos} />
-                            </SectionBody>
-                        </Section>
+                                <LicensePlateBadge>{vehicle.licensePlate || '—'}</LicensePlateBadge>
+                            </PanelBody>
+                        </Panel>
 
-                        {/* Historia zmian */}
-                        <Section>
-                            <SectionHeader
-                                onClick={() => setIsAuditOpen(v => !v)}
-                                aria-expanded={isAuditOpen}
-                                aria-controls="audit-section"
-                            >
-                                <SectionHeaderLeft>
-                                    <SectionIconWrap $gradient="linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <circle cx="12" cy="12" r="10"/>
-                                            <polyline points="12 6 12 12 16 14"/>
-                                        </svg>
-                                    </SectionIconWrap>
-                                    <SectionTitle>Historia zmian</SectionTitle>
-                                </SectionHeaderLeft>
-                                <ChevronIcon $open={isAuditOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="6 9 12 15 18 9" />
-                                </ChevronIcon>
-                            </SectionHeader>
-                            <SectionBody $visible={isAuditOpen} id="audit-section">
-                                <VehicleAuditTimeline vehicleId={vehicleId!} />
-                            </SectionBody>
-                        </Section>
-                    </MainColumn>
-
-                    {/* ─── Right sidebar ────────────────────── */}
-                    <SidebarColumn>
-                        {/* Właściciele */}
-                        <SidebarCard>
-                            <SidebarCardHeader>
-                                <SidebarCardTitle>
+                        {/* Technical specs */}
+                        <Panel>
+                            <PanelHead>
+                                <PanelTitle>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <circle cx="12" cy="12" r="3"/>
+                                        <path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M4.93 4.93A10 10 0 0 1 19.07 19.07"/>
+                                    </svg>
+                                    Dane techniczne
+                                </PanelTitle>
+                            </PanelHead>
+                            <PanelBody>
+                                <PrefRow>
+                                    <PrefKey>Marka</PrefKey>
+                                    <PrefVal>{vehicle.brand || '—'}</PrefVal>
+                                </PrefRow>
+                                <PrefRow>
+                                    <PrefKey>Model</PrefKey>
+                                    <PrefVal>{vehicle.model || '—'}</PrefVal>
+                                </PrefRow>
+                                {vehicle.yearOfProduction && (
+                                    <PrefRow>
+                                        <PrefKey>Rocznik</PrefKey>
+                                        <PrefVal>{vehicle.yearOfProduction}</PrefVal>
+                                    </PrefRow>
+                                )}
+                                {vehicle.color && (
+                                    <PrefRow>
+                                        <PrefKey>Kolor</PrefKey>
+                                        <PrefVal>{vehicle.color}</PrefVal>
+                                    </PrefRow>
+                                )}
+                                {vehicle.paintType && (
+                                    <PrefRow>
+                                        <PrefKey>Lakier</PrefKey>
+                                        <PrefVal>{paintLabels[vehicle.paintType.toLowerCase()] ?? vehicle.paintType}</PrefVal>
+                                    </PrefRow>
+                                )}
+                                {vehicle.currentMileage != null && (
+                                    <PrefRow>
+                                        <PrefKey>Przebieg</PrefKey>
+                                        <PrefVal>{vehicle.currentMileage.toLocaleString('pl-PL')} km</PrefVal>
+                                    </PrefRow>
+                                )}
+                                <PrefRow>
+                                    <PrefKey>W systemie</PrefKey>
+                                    <PrefVal>
+                                        {new Date(vehicle.createdAt).toLocaleDateString('pl-PL', {
+                                            day: '2-digit', month: '2-digit', year: 'numeric',
+                                        })}
+                                    </PrefVal>
+                                </PrefRow>
+                            </PanelBody>
+                        </Panel>
+
+                        {/* Owners */}
+                        <Panel>
+                            <PanelHead>
+                                <PanelTitle>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
                                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                                         <circle cx="9" cy="7" r="4"/>
                                         <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                                         <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                                     </svg>
                                     Właściciele
-                                </SidebarCardTitle>
-                                <SidebarCardBadge>{vehicle.owners.length}</SidebarCardBadge>
-                            </SidebarCardHeader>
-                            <OwnersList>
+                                </PanelTitle>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <PanelCountBadge>{vehicle.owners.length}</PanelCountBadge>
+                                    <PanelAction onClick={() => setIsEditOwnersModalOpen(true)}>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                            <line x1="12" y1="5" x2="12" y2="19"/>
+                                            <line x1="5" y1="12" x2="19" y2="12"/>
+                                        </svg>
+                                        Zarządzaj
+                                    </PanelAction>
+                                </div>
+                            </PanelHead>
+                            <PanelBodyFlush>
                                 {vehicle.owners.length === 0 ? (
-                                    <EmptySlot>Brak przypisanych właścicieli</EmptySlot>
+                                    <PanelBody>
+                                        <NoteText>Brak przypisanych właścicieli.</NoteText>
+                                    </PanelBody>
                                 ) : (
-                                    vehicle.owners.map(owner => (
-                                        <OwnerLink key={owner.customerId} to={`/customers/${owner.customerId}`}>
+                                    vehicle.owners.map((owner: VehicleOwner) => (
+                                        <OwnerItem key={owner.customerId} to={`/customers/${owner.customerId}`}>
                                             <OwnerAvatar>{getOwnerInitials(owner)}</OwnerAvatar>
                                             <OwnerInfo>
                                                 <OwnerName>{owner.customerName}</OwnerName>
                                                 <OwnerRole>{roleLabels[owner.role] ?? owner.role}</OwnerRole>
                                             </OwnerInfo>
-                                            <OwnerArrow>
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M9 18l6-6-6-6"/>
-                                                </svg>
-                                            </OwnerArrow>
-                                        </OwnerLink>
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2">
+                                                <path d="M9 18l6-6-6-6"/>
+                                            </svg>
+                                        </OwnerItem>
                                     ))
                                 )}
-                            </OwnersList>
-                            <div style={{ padding: '8px 16px', borderTop: `1px solid ${st.border}` }}>
-                                <SidebarCardAction onClick={() => setIsEditOwnersModalOpen(true)}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <line x1="12" y1="5" x2="12" y2="19"/>
-                                        <line x1="5" y1="12" x2="19" y2="12"/>
-                                    </svg>
-                                    Zarządzaj
-                                </SidebarCardAction>
-                            </div>
-                        </SidebarCard>
+                            </PanelBodyFlush>
+                        </Panel>
 
-                        {/* Notatki */}
+                        {/* Notes */}
                         <VehicleNotes vehicleId={vehicleId!} />
-                    </SidebarColumn>
-                </MainGrid>
-            </ContentArea>
 
-            {/* ─── Modals ──────────────────────────────────── */}
+                    </LeftRail>
+
+                    {/* ── MAIN COLUMN ──────────────────────────────── */}
+                    <MainCol>
+
+                        {/* KPI summary strip */}
+                        <SummaryStrip>
+                            <SumCell>
+                                <KpiEyebrow>Łączny przychód</KpiEyebrow>
+                                <KpiValue>
+                                    {formatCurrency(totalSpent.grossAmount, totalSpent.currency)}
+                                </KpiValue>
+                                <KpiDelta>{totalVisits} wizyt łącznie</KpiDelta>
+                            </SumCell>
+
+                            <SumCell>
+                                <KpiEyebrow>Wizyty</KpiEyebrow>
+                                <KpiValue>{totalVisits}</KpiValue>
+                                <KpiDelta>
+                                    śr. {totalVisits > 0
+                                        ? formatCurrency(avgCost.grossAmount, avgCost.currency)
+                                        : '—'} / wizyta
+                                </KpiDelta>
+                            </SumCell>
+
+                            <SumCell>
+                                <KpiEyebrow>Ostatnia wizyta</KpiEyebrow>
+                                <KpiValue>
+                                    {lastVisit ? formatDate(lastVisit) : '—'}
+                                </KpiValue>
+                                <KpiDelta>
+                                    {lastVisit
+                                        ? `${Math.floor((Date.now() - new Date(lastVisit).getTime()) / 86400000)} dni temu`
+                                        : 'Brak wizyt'}
+                                </KpiDelta>
+                            </SumCell>
+
+                            <SumCell>
+                                <KpiEyebrow>Przebieg</KpiEyebrow>
+                                <KpiValue>
+                                    {vehicle.currentMileage != null
+                                        ? vehicle.currentMileage.toLocaleString('pl-PL')
+                                        : '—'}
+                                </KpiValue>
+                                <KpiDelta>km</KpiDelta>
+                            </SumCell>
+                        </SummaryStrip>
+
+                        {/* Recent visits */}
+                        <Panel>
+                            <PanelHead>
+                                <PanelTitle>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <polyline points="12 6 12 12 16 14"/>
+                                    </svg>
+                                    Historia wizyt
+                                </PanelTitle>
+                                {visits.length > 6 && (
+                                    <span style={{ fontSize: 12, color: '#64748b' }}>
+                                        Łącznie: <strong style={{ color: '#0f172a' }}>{visits.length}</strong>
+                                    </span>
+                                )}
+                            </PanelHead>
+                            <PanelBodyFlush>
+                                {recentVisits.length === 0 ? (
+                                    <PanelBody>
+                                        <NoteText>Brak historii wizyt dla tego pojazdu.</NoteText>
+                                    </PanelBody>
+                                ) : (
+                                    recentVisits.map((visit: VehicleVisit) => {
+                                        const d = new Date(visit.date);
+                                        const { label, kind } = visitStatusBadge(visit.status);
+                                        return (
+                                            <VisitRow
+                                                key={visit.id}
+                                                $active={visit.status === 'in-progress'}
+                                                onClick={() => navigate(`/visits/${visit.id}`)}
+                                            >
+                                                <VisitDateCol>
+                                                    <VisitDateMain>
+                                                        {d.getDate().toString().padStart(2, '0')}.{(d.getMonth() + 1).toString().padStart(2, '0')}
+                                                    </VisitDateMain>
+                                                    <VisitDateSub>
+                                                        {d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
+                                                    </VisitDateSub>
+                                                </VisitDateCol>
+
+                                                <VisitInfo>
+                                                    <VisitTitle>{visit.description || 'Wizyta'}</VisitTitle>
+                                                    <VisitSub>
+                                                        {visit.customerName}
+                                                        {visit.createdBy ? ` · ${visit.createdBy}` : ''}
+                                                    </VisitSub>
+                                                </VisitInfo>
+
+                                                <StatusBadge $kind={kind} className="visit-hide-sm">{label}</StatusBadge>
+
+                                                <VisitAmount>
+                                                    {formatCurrency(visit.totalCost.grossAmount, visit.totalCost.currency)}
+                                                </VisitAmount>
+
+                                                <svg
+                                                    className="visit-hide-sm"
+                                                    width="16" height="16"
+                                                    viewBox="0 0 24 24" fill="none"
+                                                    stroke="#cbd5e1" strokeWidth="2"
+                                                >
+                                                    <path d="M9 18l6-6-6-6"/>
+                                                </svg>
+                                            </VisitRow>
+                                        );
+                                    })
+                                )}
+                            </PanelBodyFlush>
+                        </Panel>
+
+                        {/* ── Collapsible sections ───────────────── */}
+
+                        {/* Documents */}
+                        <CollapsibleSection>
+                            <CollapsibleHeader
+                                onClick={() => setIsDocsOpen(v => !v)}
+                                aria-expanded={isDocsOpen}
+                                aria-controls="docs-section"
+                            >
+                                <CollapsibleHeaderLeft>
+                                    <SectionIconWrap>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                        </svg>
+                                    </SectionIconWrap>
+                                    <CollapsibleTitle>Dokumenty</CollapsibleTitle>
+                                </CollapsibleHeaderLeft>
+                                <ChevronIcon $open={isDocsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </ChevronIcon>
+                            </CollapsibleHeader>
+                            <CollapsibleBody $visible={isDocsOpen} $flush id="docs-section">
+                                <VehicleDocuments vehicleId={vehicleId!} />
+                            </CollapsibleBody>
+                        </CollapsibleSection>
+
+                        {/* Photos */}
+                        <CollapsibleSection>
+                            <CollapsibleHeader
+                                onClick={() => setIsPhotosOpen(v => !v)}
+                                aria-expanded={isPhotosOpen}
+                                aria-controls="photos-section"
+                            >
+                                <CollapsibleHeaderLeft>
+                                    <SectionIconWrap $gradient="linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                                            <polyline points="21 15 16 10 5 21"/>
+                                        </svg>
+                                    </SectionIconWrap>
+                                    <CollapsibleTitle>Zdjęcia</CollapsibleTitle>
+                                    {photos.length > 0 && (
+                                        <CollapsibleBadge>{photos.length}</CollapsibleBadge>
+                                    )}
+                                </CollapsibleHeaderLeft>
+                                <ChevronIcon $open={isPhotosOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </ChevronIcon>
+                            </CollapsibleHeader>
+                            <CollapsibleBody $visible={isPhotosOpen} $flush id="photos-section">
+                                <VehiclePhotoGallery vehicleId={vehicleId!} photos={photos} />
+                            </CollapsibleBody>
+                        </CollapsibleSection>
+
+                        {/* Audit trail */}
+                        <CollapsibleSection>
+                            <CollapsibleHeader
+                                onClick={() => setIsAuditOpen(v => !v)}
+                                aria-expanded={isAuditOpen}
+                                aria-controls="audit-section"
+                            >
+                                <CollapsibleHeaderLeft>
+                                    <SectionIconWrap $gradient="linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <polyline points="12 6 12 12 16 14"/>
+                                        </svg>
+                                    </SectionIconWrap>
+                                    <CollapsibleTitle>Historia zmian</CollapsibleTitle>
+                                </CollapsibleHeaderLeft>
+                                <ChevronIcon $open={isAuditOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </ChevronIcon>
+                            </CollapsibleHeader>
+                            <CollapsibleBody $visible={isAuditOpen} id="audit-section">
+                                <VehicleAuditTimeline vehicleId={vehicleId!} />
+                            </CollapsibleBody>
+                        </CollapsibleSection>
+
+                    </MainCol>
+                </TwoColGrid>
+            </PageContent>
+
+            {/* ─── Modals ─────────────────────────────────────── */}
             <EditVehicleModal
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}
