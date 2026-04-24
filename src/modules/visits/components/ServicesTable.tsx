@@ -6,6 +6,10 @@ import type { ServiceLineItem, VisitStatus } from '../types';
 import { useApproveServiceChange, useRejectServiceChange } from '../hooks';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
+const BRAND = '#0ea5e9';
+const BRAND_DARK = '#0284c7';
+const BRAND_DIM = 'rgba(14, 165, 233, 0.10)';
+
 const pendingPulse = keyframes`
     0%   { background-color: rgba(245,158,11,0.04); }
     50%  { background-color: rgba(245,158,11,0.18); }
@@ -18,15 +22,26 @@ const TableContainer = styled.div`
     border-radius: ${st.radius};
     overflow: hidden;
     box-shadow: ${st.shadowSm};
+
+    @media (max-width: 640px) {
+        border-radius: 10px;
+    }
 `;
 
 const TableHeader = styled.div`
-    padding: 20px 24px;
+    padding: 16px 20px;
     background: ${st.bgCard};
     border-bottom: 1px solid ${st.border};
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
+
+    @media (max-width: 640px) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
 `;
 
 const TableHeaderLeft = styled.div``;
@@ -35,6 +50,7 @@ const TableTitle = styled.h3`
     margin: 0 0 2px;
     font-size: ${st.fontMd};
     font-weight: 700;
+    letter-spacing: -0.2px;
     color: ${st.text};
 `;
 
@@ -45,8 +61,8 @@ const TableSubtitle = styled.p`
 `;
 
 const EditButton = styled.button`
-    padding: 8px 16px;
-    background: ${st.accentBlue};
+    padding: 8px 18px;
+    background: ${BRAND};
     color: white;
     border: none;
     border-radius: ${st.radiusFull};
@@ -54,17 +70,22 @@ const EditButton = styled.button`
     font-weight: 600;
     cursor: pointer;
     transition: all ${st.transition};
-    box-shadow: ${st.shadowXs};
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
+    white-space: nowrap;
 
     &:hover:not(:disabled) {
-        background: #2563EB;
-        box-shadow: ${st.shadowSm};
+        background: ${BRAND_DARK};
+        box-shadow: 0 4px 14px rgba(14, 165, 233, 0.36);
         transform: translateY(-1px);
     }
 
     &:disabled {
         opacity: 0.45;
         cursor: not-allowed;
+    }
+
+    @media (max-width: 640px) {
+        width: 100%;
     }
 `;
 
@@ -75,16 +96,19 @@ const Table = styled.table`
 
 const Thead = styled.thead`
     background: ${st.bg};
+    position: sticky;
+    top: 0;
+    z-index: 1;
 `;
 
 const Th = styled.th`
-    padding: 10px 16px;
+    padding: 9px 16px;
     text-align: left;
     font-size: ${st.fontXs};
     font-weight: 700;
     color: ${st.textMuted};
     text-transform: uppercase;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.07em;
     border-bottom: 1px solid ${st.border};
 `;
 
@@ -121,9 +145,9 @@ const ActionMenuBtn = styled.button`
     box-shadow: ${st.shadowXs};
 
     &:hover:not(:disabled) {
-        border-color: ${st.accentBlue};
-        color: ${st.accentBlue};
-        background: ${st.accentBlueDim};
+        border-color: ${BRAND};
+        color: ${BRAND};
+        background: ${BRAND_DIM};
     }
 
     &:disabled {
@@ -184,7 +208,7 @@ const ModalCard = styled.div`
     max-width: 440px;
     background: ${st.bgCard};
     border: 1px solid ${st.border};
-    border-radius: ${st.radius};
+    border-radius: 16px;
     box-shadow: ${st.shadowLg};
     overflow: hidden;
 `;
@@ -234,16 +258,17 @@ const SecondaryBtn = styled.button`
 const PrimaryBtn = styled.button<{ $danger?: boolean }>`
     padding: 7px 14px;
     border-radius: ${st.radiusFull};
-    border: 1px solid ${props => props.$danger ? `${st.accentRed}44` : `${st.accentBlue}44`};
-    background: ${props => props.$danger ? st.accentRedDim : st.accentBlueDim};
-    color: ${props => props.$danger ? st.accentRed : st.accentBlue};
+    border: 1px solid ${props => props.$danger ? `${st.accentRed}44` : 'rgba(14,165,233,0.3)'};
+    background: ${props => props.$danger ? st.accentRedDim : BRAND_DIM};
+    color: ${props => props.$danger ? st.accentRed : BRAND_DARK};
     font-size: ${st.fontSm};
     font-weight: 700;
     cursor: pointer;
     transition: all ${st.transition};
 
     &:hover:not(:disabled) {
-        background: ${props => props.$danger ? '#fee2e2' : '#dbeafe'};
+        background: ${props => props.$danger ? '#fee2e2' : 'rgba(14,165,233,0.18)'};
+        transform: translateY(-1px);
     }
 
     &:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -356,9 +381,15 @@ const TotalRow = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 24px;
+    padding: 14px 20px;
     background: ${st.bg};
     border-top: 1px solid ${st.border};
+
+    @media (max-width: 480px) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
 `;
 
 const TotalLabel = styled.span`
@@ -370,8 +401,9 @@ const TotalLabel = styled.span`
 const TotalValue = styled.span`
     font-size: 22px;
     font-weight: 800;
-    color: ${st.accentBlue};
+    color: ${BRAND_DARK};
     font-feature-settings: 'tnum';
+    font-variant-numeric: tabular-nums;
     letter-spacing: -0.5px;
 `;
 

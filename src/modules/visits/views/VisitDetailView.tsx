@@ -26,6 +26,12 @@ import { AuditTimeline } from '@/common/components/AuditTimeline';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useAutomationConfig } from '@/modules/sms-campaigns/hooks';
 
+// ─── Brand tokens (visit view uses sky-500, not stats blue) ──────────────────
+const BRAND = '#0ea5e9';
+const BRAND_DARK = '#0284c7';
+const BRAND_DIM = 'rgba(14, 165, 233, 0.10)';
+const BRAND_RING = '0 0 0 3px rgba(14, 165, 233, 0.14)';
+
 // ─── Animations ───────────────────────────────────────────────────────────────
 
 const fadeUp = keyframes`
@@ -56,13 +62,17 @@ const ViewContainer = styled.main`
 
 const ContentArea = styled.div`
     flex: 1;
-    padding: 20px 24px 40px;
-    max-width: 1600px;
+    padding: 20px 20px 40px;
+    max-width: 1280px;
     margin: 0 auto;
     width: 100%;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         padding: 24px 32px 48px;
+    }
+
+    @media (max-width: 640px) {
+        padding: 16px 16px 32px;
     }
 `;
 
@@ -71,12 +81,13 @@ const ContentArea = styled.div`
 const MainGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 16px;
     margin-bottom: 20px;
     align-items: start;
 
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
         grid-template-columns: 1fr 320px;
+        gap: 20px;
     }
 
     @media (min-width: ${props => props.theme.breakpoints.xl}) {
@@ -87,17 +98,26 @@ const MainGrid = styled.div`
 const MainColumn = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
     min-width: 0;
 `;
 
 const Sidebar = styled.aside`
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
+
+    @media (min-width: ${props => props.theme.breakpoints.lg}) {
+        position: sticky;
+        top: 80px;
+        max-height: calc(100vh - 100px);
+        overflow-y: auto;
+        scrollbar-width: none;
+        &::-webkit-scrollbar { display: none; }
+    }
 `;
 
-// ─── Section wrapper (docs, audit) ────────────────────────────────────────────
+// ─── Section wrapper (docs, audit, communication) ─────────────────────────────
 
 const Section = styled.div`
     background: ${st.bgCard};
@@ -113,14 +133,14 @@ const SectionHeader = styled.button`
     align-items: center;
     justify-content: space-between;
     padding: 14px 20px;
-    background: ${st.bg};
+    background: ${st.bgCard};
     border: none;
     border-bottom: 1px solid ${st.border};
     cursor: pointer;
     transition: background ${st.transition};
     text-align: left;
 
-    &:hover { background: ${st.bgCardAlt}; }
+    &:hover { background: ${st.bg}; }
 `;
 
 const SectionHeaderLeft = styled.div`
@@ -129,11 +149,11 @@ const SectionHeaderLeft = styled.div`
     gap: 10px;
 `;
 
-const SectionIconWrap = styled.div`
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-    background: ${st.gradientBlue};
+const SectionIconWrap = styled.div<{ $gradient?: string }>`
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: ${p => p.$gradient ?? `linear-gradient(135deg, ${BRAND} 0%, ${BRAND_DARK} 100%)`};
     color: white;
     display: flex;
     align-items: center;
@@ -143,17 +163,18 @@ const SectionIconWrap = styled.div`
 
 const SectionTitle = styled.span`
     font-size: ${st.fontSm};
-    font-weight: 700;
+    font-weight: 600;
+    letter-spacing: -0.1px;
     color: ${st.text};
 `;
 
 const SectionCount = styled.span`
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     color: ${st.textMuted};
     background: ${st.bgCardAlt};
     border: 1px solid ${st.border};
-    padding: 1px 8px;
+    padding: 2px 8px;
     border-radius: ${st.radiusFull};
 `;
 
@@ -176,8 +197,8 @@ const SmsDisabledNotice = styled.div`
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    margin: 16px 20px;
-    padding: 12px 14px;
+    margin: 14px 20px;
+    padding: 11px 14px;
     background: rgba(245, 158, 11, 0.06);
     border: 1px solid rgba(245, 158, 11, 0.22);
     border-radius: ${st.radiusSm};
@@ -209,7 +230,7 @@ const DocsHeaderMain = styled.div`
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     padding: 14px 20px;
     min-width: 0;
 `;
@@ -229,9 +250,9 @@ const StatPill = styled.span<{ $color?: 'blue' | 'amber' }>`
     font-weight: 600;
     padding: 2px 9px;
     border-radius: ${st.radiusFull};
-    background: ${p => p.$color === 'amber' ? 'rgba(245,158,11,0.12)' : st.accentBlueDim};
-    color: ${p => p.$color === 'amber' ? '#d97706' : st.accentBlue};
-    border: 1px solid ${p => p.$color === 'amber' ? 'rgba(245,158,11,0.25)' : 'rgba(59,130,246,0.2)'};
+    background: ${p => p.$color === 'amber' ? 'rgba(245,158,11,0.12)' : BRAND_DIM};
+    color: ${p => p.$color === 'amber' ? '#d97706' : BRAND};
+    border: 1px solid ${p => p.$color === 'amber' ? 'rgba(245,158,11,0.25)' : 'rgba(14,165,233,0.25)'};
 `;
 
 const DocsHeaderRight = styled.div`
@@ -247,7 +268,7 @@ const UploadHeaderLabel = styled.label<{ $uploading?: boolean }>`
     align-items: center;
     gap: 6px;
     padding: 6px 14px;
-    background: ${st.accentBlue};
+    background: ${BRAND};
     color: white;
     border: none;
     border-radius: ${st.radiusFull};
@@ -256,13 +277,13 @@ const UploadHeaderLabel = styled.label<{ $uploading?: boolean }>`
     cursor: ${p => p.$uploading ? 'not-allowed' : 'pointer'};
     opacity: ${p => p.$uploading ? 0.6 : 1};
     transition: all ${st.transition};
-    box-shadow: ${st.shadowXs};
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
     white-space: nowrap;
     user-select: none;
 
     &:hover {
-        background: ${p => p.$uploading ? st.accentBlue : '#2563EB'};
-        box-shadow: ${p => p.$uploading ? st.shadowXs : st.shadowSm};
+        background: ${p => p.$uploading ? BRAND : BRAND_DARK};
+        box-shadow: ${p => p.$uploading ? '0 2px 8px rgba(14,165,233,0.28)' : '0 4px 14px rgba(14,165,233,0.36)'};
         transform: ${p => p.$uploading ? 'none' : 'translateY(-1px)'};
     }
 
@@ -319,7 +340,7 @@ const ErrorMessage = styled.p`
 
 const RetryButton = styled.button`
     padding: 9px 22px;
-    background: ${st.accentBlue};
+    background: ${BRAND};
     color: white;
     border: none;
     border-radius: ${st.radiusFull};
@@ -327,15 +348,15 @@ const RetryButton = styled.button`
     font-weight: 600;
     cursor: pointer;
     transition: all ${st.transition};
-    box-shadow: ${st.shadowSm};
-    &:hover { background: #2563EB; box-shadow: ${st.shadowMd}; }
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
+    &:hover { background: ${BRAND_DARK}; box-shadow: 0 4px 14px rgba(14,165,233,0.36); transform: translateY(-1px); }
 `;
 
 // ─── SMS Reminder Card ────────────────────────────────────────────────────────
 
 const ReminderCard = styled.div`
     background: ${st.bgCard};
-    border: 1px solid rgba(59,130,246,0.25);
+    border: 1px solid rgba(14, 165, 233, 0.25);
     border-radius: ${st.radius};
     overflow: hidden;
     box-shadow: ${st.shadowSm};
@@ -346,15 +367,15 @@ const ReminderCardHeader = styled.div`
     align-items: center;
     gap: 8px;
     padding: 12px 14px 10px;
-    background: ${st.accentBlueDim};
-    border-bottom: 1px solid rgba(59,130,246,0.15);
+    background: ${BRAND_DIM};
+    border-bottom: 1px solid rgba(14, 165, 233, 0.15);
 `;
 
 const ReminderCardIcon = styled.div`
     width: 24px;
     height: 24px;
     border-radius: 6px;
-    background: ${st.accentBlue};
+    background: ${BRAND};
     color: white;
     display: flex;
     align-items: center;
@@ -367,7 +388,7 @@ const ReminderCardTitle = styled.span`
     flex: 1;
     font-size: ${st.fontSm};
     font-weight: 700;
-    color: ${st.accentBlue};
+    color: ${BRAND_DARK};
 `;
 
 const ReminderCardBadge = styled.span`
@@ -375,9 +396,9 @@ const ReminderCardBadge = styled.span`
     font-weight: 700;
     padding: 2px 7px;
     border-radius: ${st.radiusFull};
-    background: rgba(59,130,246,0.15);
-    color: ${st.accentBlue};
-    border: 1px solid rgba(59,130,246,0.3);
+    background: rgba(14, 165, 233, 0.15);
+    color: ${BRAND_DARK};
+    border: 1px solid rgba(14, 165, 233, 0.3);
     text-transform: uppercase;
     letter-spacing: 0.4px;
 `;
@@ -395,6 +416,7 @@ const ReminderDate = styled.div`
     gap: 6px;
     font-size: ${st.fontXs};
     color: ${st.textSecondary};
+    font-variant-numeric: tabular-nums;
     svg { width: 12px; height: 12px; color: ${st.textMuted}; flex-shrink: 0; }
 `;
 
@@ -436,7 +458,7 @@ const ReminderActionBtn = styled.button<{ $danger?: boolean }>`
         background: transparent;
         color: ${st.textSecondary};
         border: 1px solid ${st.border};
-        &:hover { border-color: ${st.accentBlue}; color: ${st.accentBlue}; background: ${st.accentBlueDim}; }
+        &:hover { border-color: ${BRAND}; color: ${BRAND}; background: ${BRAND_DIM}; }
     `}
 
     svg { width: 11px; height: 11px; }
@@ -654,8 +676,8 @@ export const VisitDetailView = () => {
                                 aria-controls="communication-section"
                             >
                                 <SectionHeaderLeft>
-                                    <SectionIconWrap style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)' }}>
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <SectionIconWrap $gradient="linear-gradient(135deg, #10B981 0%, #059669 100%)">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                                             <rect x="2" y="4" width="20" height="16" rx="2" />
                                             <path d="M2 7l10 7 10-7" />
                                         </svg>
@@ -719,7 +741,7 @@ export const VisitDetailView = () => {
                             >
                                 <DocsHeaderMain>
                                     <SectionIconWrap>
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                                             <rect x="3" y="3" width="7" height="7" rx="1" />
                                             <rect x="14" y="3" width="7" height="7" rx="1" />
                                             <rect x="3" y="14" width="7" height="7" rx="1" />
@@ -794,8 +816,8 @@ export const VisitDetailView = () => {
                                 aria-controls="audit-section"
                             >
                                 <SectionHeaderLeft>
-                                    <SectionIconWrap>
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <SectionIconWrap $gradient="linear-gradient(135deg, #64748b 0%, #475569 100%)">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                                             <circle cx="12" cy="12" r="10" />
                                             <polyline points="12 6 12 12 16 14" />
                                         </svg>

@@ -3,6 +3,10 @@ import { formatCurrency } from '@/common/utils';
 import type { VehicleInfo, CustomerInfo } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
+const BRAND = '#0ea5e9';
+const BRAND_DARK = '#0284c7';
+const BRAND_DIM = 'rgba(14, 165, 233, 0.10)';
+
 // ─── Shared ───────────────────────────────────────────────────────────────────
 
 const SidebarCard = styled.div`
@@ -19,7 +23,7 @@ const CardHeader = styled.div`
     justify-content: space-between;
     padding: 13px 16px;
     border-bottom: 1px solid ${st.border};
-    background: ${st.bg};
+    background: ${st.bgCard};
 `;
 
 const CardTitleGroup = styled.div`
@@ -35,7 +39,7 @@ const CardIconWrap = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    background: ${st.gradientBlue};
+    background: linear-gradient(135deg, ${BRAND} 0%, ${BRAND_DARK} 100%);
     color: white;
     flex-shrink: 0;
 `;
@@ -43,7 +47,8 @@ const CardIconWrap = styled.div`
 const CardTitle = styled.h3`
     margin: 0;
     font-size: ${st.fontSm};
-    font-weight: 700;
+    font-weight: 600;
+    letter-spacing: -0.1px;
     color: ${st.text};
 `;
 
@@ -53,8 +58,8 @@ const ViewBtn = styled.button`
     gap: 4px;
     padding: 4px 10px;
     background: transparent;
-    color: ${st.accentBlue};
-    border: 1px solid ${st.accentBlue}44;
+    color: ${BRAND_DARK};
+    border: 1px solid rgba(14, 165, 233, 0.3);
     border-radius: ${st.radiusFull};
     font-size: 11px;
     font-weight: 600;
@@ -63,15 +68,16 @@ const ViewBtn = styled.button`
     white-space: nowrap;
 
     &:hover {
-        background: ${st.accentBlueDim};
-        border-color: ${st.accentBlue};
+        background: ${BRAND_DIM};
+        border-color: ${BRAND};
+        color: ${BRAND};
     }
 
     svg { width: 11px; height: 11px; }
 `;
 
 const CardBody = styled.div`
-    padding: 14px 16px;
+    padding: 12px 16px;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -88,7 +94,7 @@ const Label = styled.span`
     font-weight: 700;
     color: ${st.textMuted};
     text-transform: uppercase;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.08em;
 `;
 
 const Value = styled.span`
@@ -116,7 +122,7 @@ const StatsGrid = styled.div`
     gap: 1px;
     background: ${st.border};
     border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
+    border-radius: 10px;
     overflow: hidden;
 `;
 
@@ -126,6 +132,8 @@ const StatCell = styled.div`
     display: flex;
     flex-direction: column;
     gap: 2px;
+    transition: background ${st.transition};
+    &:hover { background: ${st.bg}; }
 `;
 
 const StatValue = styled.div`
@@ -135,14 +143,16 @@ const StatValue = styled.div`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.3px;
 `;
 
 const StatLabel = styled.div`
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 700;
     color: ${st.textMuted};
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.08em;
 `;
 
 // ─── Vehicle-specific ─────────────────────────────────────────────────────────
@@ -163,7 +173,7 @@ const StatusPill = styled.span<{ $ok: boolean }>`
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    padding: 2px 8px;
+    padding: 3px 9px;
     border-radius: ${st.radiusFull};
     font-size: 11px;
     font-weight: 700;
@@ -172,6 +182,7 @@ const StatusPill = styled.span<{ $ok: boolean }>`
     ${props => props.$ok ? `
         background: ${st.accentGreenDim};
         color: ${st.accentGreen};
+        border: 1px solid rgba(16, 185, 129, 0.2);
     ` : `
         background: ${st.bg};
         color: ${st.textMuted};
@@ -192,7 +203,7 @@ const HandoffLabel = styled.div`
     font-weight: 700;
     color: ${st.accentAmber};
     text-transform: uppercase;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.08em;
 `;
 
 // ─── CustomerInfoCard ─────────────────────────────────────────────────────────

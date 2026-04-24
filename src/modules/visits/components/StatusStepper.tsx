@@ -2,18 +2,25 @@ import styled, { keyframes, css } from 'styled-components';
 import type { VisitStatus } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
+const BRAND = '#0ea5e9';
+const BRAND_DARK = '#0284c7';
+
 const pulseRing = keyframes`
-    0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
-    50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.5); }
+    50% { box-shadow: 0 0 0 8px rgba(14, 165, 233, 0); }
 `;
 
 const StepperContainer = styled.div`
     background: ${st.bgCard};
     border: 1px solid ${st.border};
     border-radius: ${st.radius};
-    padding: 20px 28px;
-    margin-bottom: 20px;
+    padding: 18px 24px;
+    margin-bottom: 14px;
     box-shadow: ${st.shadowSm};
+
+    @media (max-width: 640px) {
+        padding: 14px 16px;
+    }
 `;
 
 const StepsList = styled.div`
@@ -39,7 +46,7 @@ const ProgressLine = styled.div<{ $progress: number }>`
         left: 0;
         height: 100%;
         width: ${props => props.$progress}%;
-        background: ${st.gradientBlue};
+        background: linear-gradient(90deg, ${BRAND} 0%, ${BRAND_DARK} 100%);
         transition: width 0.5s ease;
         border-radius: 2px;
     }
@@ -77,8 +84,9 @@ const StepCircle = styled.div<{ $isActive: boolean; $isCompleted: boolean }>`
         }
         if (props.$isActive) {
             return css`
-                background: ${st.accentBlue};
+                background: ${BRAND};
                 color: white;
+                box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35);
                 animation: ${pulseRing} 2s infinite;
             `;
         }
@@ -93,7 +101,7 @@ const StepCircle = styled.div<{ $isActive: boolean; $isCompleted: boolean }>`
 const StepLabel = styled.span<{ $isActive: boolean; $isCompleted: boolean }>`
     font-size: ${st.fontXs};
     font-weight: ${props => props.$isActive ? 700 : 500};
-    color: ${props => props.$isActive ? st.text : props.$isCompleted ? st.accentGreen : st.textMuted};
+    color: ${props => props.$isActive ? BRAND_DARK : props.$isCompleted ? st.accentGreen : st.textMuted};
     text-align: center;
     white-space: nowrap;
 

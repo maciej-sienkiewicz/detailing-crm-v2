@@ -6,6 +6,11 @@ import type { VisitComment, CommentType } from '../types';
 import { useAddComment, useUpdateComment, useDeleteComment } from '../hooks';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
+const BRAND = '#0ea5e9';
+const BRAND_DARK = '#0284c7';
+const BRAND_DIM = 'rgba(14, 165, 233, 0.10)';
+const BRAND_RING = '0 0 0 3px rgba(14, 165, 233, 0.14)';
+
 /* ─── Container ───────────────────────────────────────────────────────────── */
 
 const Panel = styled.div`
@@ -22,7 +27,7 @@ const PanelHeader = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px 24px;
+    padding: 13px 16px;
     background: ${st.bgCard};
     border-bottom: 1px solid ${st.border};
 `;
@@ -30,15 +35,16 @@ const PanelHeader = styled.div`
 const HeaderLeft = styled.div``;
 
 const PanelTitle = styled.h3`
-    margin: 0 0 2px;
-    font-size: ${st.fontMd};
-    font-weight: 700;
+    margin: 0;
+    font-size: ${st.fontSm};
+    font-weight: 600;
+    letter-spacing: -0.1px;
     color: ${st.text};
 `;
 
 const PanelSubtitle = styled.p`
-    margin: 0;
-    font-size: ${st.fontSm};
+    margin: 2px 0 0;
+    font-size: ${st.fontXs};
     color: ${st.textMuted};
 `;
 
@@ -48,16 +54,17 @@ const CountBadge = styled.span`
     justify-content: center;
     padding: 2px 8px;
     border-radius: ${st.radiusFull};
-    background: ${st.accentBlueDim};
-    color: ${st.accentBlue};
+    background: ${BRAND_DIM};
+    color: ${BRAND_DARK};
     font-size: ${st.fontXs};
     font-weight: 700;
+    border: 1px solid rgba(14, 165, 233, 0.2);
 `;
 
 /* ─── Add-comment form ────────────────────────────────────────────────────── */
 
 const FormArea = styled.div`
-    padding: 16px 24px 20px;
+    padding: 14px 16px 16px;
     background: ${st.bg};
     border-bottom: 1px solid ${st.border};
 `;
@@ -77,21 +84,21 @@ const TypeBtn = styled.button<{ $active: boolean; $kind: CommentType }>`
     transition: all ${st.transition};
     border: 1px solid ${p =>
         p.$active
-            ? (p.$kind === 'INTERNAL' ? `${st.accentAmber}66` : `${st.accentBlue}66`)
+            ? (p.$kind === 'INTERNAL' ? `${st.accentAmber}66` : 'rgba(14,165,233,0.4)')
             : st.border};
     background: ${p =>
         p.$active
-            ? (p.$kind === 'INTERNAL' ? st.accentAmberDim : st.accentBlueDim)
+            ? (p.$kind === 'INTERNAL' ? st.accentAmberDim : BRAND_DIM)
             : st.bgCard};
     color: ${p =>
         p.$active
-            ? (p.$kind === 'INTERNAL' ? st.accentAmber : st.accentBlue)
+            ? (p.$kind === 'INTERNAL' ? st.accentAmber : BRAND_DARK)
             : st.textSecondary};
 
     &:hover {
-        border-color: ${p => p.$kind === 'INTERNAL' ? `${st.accentAmber}66` : `${st.accentBlue}66`};
-        background: ${p => p.$kind === 'INTERNAL' ? st.accentAmberDim : st.accentBlueDim};
-        color: ${p => p.$kind === 'INTERNAL' ? st.accentAmber : st.accentBlue};
+        border-color: ${p => p.$kind === 'INTERNAL' ? `${st.accentAmber}66` : 'rgba(14,165,233,0.4)'};
+        background: ${p => p.$kind === 'INTERNAL' ? st.accentAmberDim : BRAND_DIM};
+        color: ${p => p.$kind === 'INTERNAL' ? st.accentAmber : BRAND_DARK};
     }
 `;
 
@@ -99,8 +106,8 @@ const NoteArea = styled.textarea`
     width: 100%;
     box-sizing: border-box;
     padding: 10px 14px;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
+    border: 1.5px solid ${st.border};
+    border-radius: 12px;
     font-size: ${st.fontSm};
     font-family: inherit;
     line-height: 1.55;
@@ -112,8 +119,8 @@ const NoteArea = styled.textarea`
 
     &:focus {
         outline: none;
-        border-color: ${st.borderFocus};
-        box-shadow: ${st.shadowBlue};
+        border-color: ${BRAND};
+        box-shadow: ${BRAND_RING};
     }
 
     &::placeholder { color: ${st.textMuted}; }
@@ -143,20 +150,20 @@ const GhostBtn = styled.button`
 `;
 
 const PrimaryBtn = styled.button`
-    padding: 7px 14px;
+    padding: 7px 16px;
     border-radius: ${st.radiusFull};
     border: none;
-    background: ${st.accentBlue};
+    background: ${BRAND};
     color: white;
     font-size: ${st.fontSm};
     font-weight: 600;
     cursor: pointer;
     transition: all ${st.transition};
-    box-shadow: ${st.shadowXs};
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
 
     &:hover:not(:disabled) {
-        background: #2563EB;
-        box-shadow: ${st.shadowSm};
+        background: ${BRAND_DARK};
+        box-shadow: 0 4px 14px rgba(14, 165, 233, 0.36);
         transform: translateY(-1px);
     }
 
@@ -172,7 +179,7 @@ const CommentsList = styled.div`
 `;
 
 const CommentItem = styled.div<{ $type: CommentType; $deleted: boolean }>`
-    padding: 14px 24px;
+    padding: 12px 16px;
     border-bottom: 1px solid ${st.border};
     position: relative;
     background: ${p => p.$deleted ? st.bg : st.bgCard};
@@ -193,7 +200,7 @@ const CommentItem = styled.div<{ $type: CommentType; $deleted: boolean }>`
                 ? st.border
                 : p.$type === 'INTERNAL'
                 ? st.accentAmber
-                : st.accentBlue};
+                : BRAND};
     }
 `;
 
@@ -201,15 +208,15 @@ const CommentHead = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 `;
 
 const Avatar = styled.div<{ $type: CommentType }>`
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     border-radius: ${st.radiusFull};
-    background: ${p => p.$type === 'INTERNAL' ? st.accentAmberDim : st.accentBlueDim};
-    color: ${p => p.$type === 'INTERNAL' ? st.accentAmber : st.accentBlue};
+    background: ${p => p.$type === 'INTERNAL' ? st.accentAmberDim : BRAND_DIM};
+    color: ${p => p.$type === 'INTERNAL' ? st.accentAmber : BRAND_DARK};
     font-size: 10px;
     font-weight: 700;
     display: inline-flex;
@@ -232,8 +239,8 @@ const TypeBadge = styled.span<{ $type: CommentType }>`
     border-radius: ${st.radiusFull};
     font-size: ${st.fontXs};
     font-weight: 700;
-    background: ${p => p.$type === 'INTERNAL' ? st.accentAmberDim : st.accentBlueDim};
-    color: ${p => p.$type === 'INTERNAL' ? st.accentAmber : st.accentBlue};
+    background: ${p => p.$type === 'INTERNAL' ? st.accentAmberDim : BRAND_DIM};
+    color: ${p => p.$type === 'INTERNAL' ? st.accentAmber : BRAND_DARK};
 `;
 
 const DateText = styled.span`
@@ -249,7 +256,7 @@ const CommentBody = styled.div<{ $deleted: boolean }>`
     white-space: pre-wrap;
     word-break: break-word;
     text-decoration: ${p => p.$deleted ? 'line-through' : 'none'};
-    padding-left: 36px;
+    padding-left: 34px;
 `;
 
 const DeletedNote = styled.div`
@@ -259,14 +266,14 @@ const DeletedNote = styled.div`
     background: ${st.accentRedDim};
     border-radius: ${st.radiusSm};
     padding: 4px 10px;
-    margin-left: 36px;
+    margin-left: 34px;
     margin-bottom: 6px;
 `;
 
 const EditedHint = styled.div`
     font-size: ${st.fontXs};
     color: ${st.textMuted};
-    padding-left: 36px;
+    padding-left: 34px;
     margin-top: 3px;
 `;
 
@@ -274,7 +281,7 @@ const ActionRow = styled.div`
     display: flex;
     align-items: center;
     gap: 2px;
-    padding-left: 36px;
+    padding-left: 34px;
     margin-top: 6px;
 `;
 
@@ -290,31 +297,31 @@ const InlineBtn = styled.button<{ $danger?: boolean }>`
     transition: all ${st.transition};
 
     &:hover {
-        background: ${p => p.$danger ? st.accentRedDim : st.bg};
-        color: ${p => p.$danger ? st.accentRed : st.textSecondary};
+        background: ${p => p.$danger ? st.accentRedDim : BRAND_DIM};
+        color: ${p => p.$danger ? st.accentRed : BRAND_DARK};
     }
 
     &:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
 
 const InlineEditArea = styled.textarea`
-    width: calc(100% - 36px);
-    margin-left: 36px;
+    width: calc(100% - 34px);
+    margin-left: 34px;
     box-sizing: border-box;
     padding: 8px 12px;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
+    border: 1.5px solid ${st.border};
+    border-radius: 12px;
     font-size: ${st.fontSm};
     font-family: inherit;
     line-height: 1.5;
     min-height: 66px;
     resize: vertical;
-    transition: border-color ${st.transition};
+    transition: border-color ${st.transition}, box-shadow ${st.transition};
 
     &:focus {
         outline: none;
-        border-color: ${st.borderFocus};
-        box-shadow: ${st.shadowBlue};
+        border-color: ${BRAND};
+        box-shadow: ${BRAND_RING};
     }
 `;
 
@@ -325,7 +332,7 @@ const RevToggle = styled.button`
     align-items: center;
     gap: 4px;
     padding: 2px 0;
-    padding-left: 36px;
+    padding-left: 34px;
     margin-top: 6px;
     border: none;
     background: transparent;
@@ -334,12 +341,12 @@ const RevToggle = styled.button`
     cursor: pointer;
     transition: color ${st.transition};
 
-    &:hover { color: ${st.accentBlue}; }
+    &:hover { color: ${BRAND}; }
 `;
 
 const RevBlock = styled.div`
     margin-top: 6px;
-    margin-left: 36px;
+    margin-left: 34px;
     border: 1px solid ${st.border};
     border-radius: ${st.radiusSm};
     overflow: hidden;
@@ -386,7 +393,7 @@ const DiffLabel = styled.div`
 /* ─── Empty / loading ─────────────────────────────────────────────────────── */
 
 const EmptyState = styled.div`
-    padding: 32px 24px;
+    padding: 24px 16px;
     text-align: center;
     font-size: ${st.fontSm};
     color: ${st.textMuted};

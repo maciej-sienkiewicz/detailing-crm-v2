@@ -5,6 +5,10 @@ import styled, { keyframes, css } from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { CommunicationEntry } from '../types';
 
+const BRAND = '#0ea5e9';
+const BRAND_DARK = '#0284c7';
+const BRAND_DIM = 'rgba(14, 165, 233, 0.10)';
+
 // ─── Animations ──────────────────────────────────────────────────────────────
 
 const fadeUp = keyframes`
@@ -59,21 +63,21 @@ const ChannelDot = styled.div<{ $channel: 'EMAIL' | 'SMS'; $failed?: boolean }>`
         p.$failed
             ? 'rgba(239,68,68,0.12)'
             : p.$channel === 'EMAIL'
-                ? st.accentBlueDim
+                ? BRAND_DIM
                 : 'rgba(16,185,129,0.12)'
     };
     border: 1px solid ${p =>
         p.$failed
             ? 'rgba(239,68,68,0.25)'
             : p.$channel === 'EMAIL'
-                ? 'rgba(59,130,246,0.2)'
+                ? 'rgba(14,165,233,0.25)'
                 : 'rgba(16,185,129,0.2)'
     };
     color: ${p =>
         p.$failed
             ? st.accentRed
             : p.$channel === 'EMAIL'
-                ? st.accentBlue
+                ? BRAND
                 : st.accentGreen
     };
     position: relative;
@@ -151,28 +155,28 @@ const StatusBadge = styled.span<{ $status: 'SENT' | 'RECEIVED' | 'FAILED' }>`
         p.$status === 'FAILED'
             ? 'rgba(239,68,68,0.12)'
             : p.$status === 'RECEIVED'
-                ? st.accentBlueDim
+                ? BRAND_DIM
                 : 'rgba(16,185,129,0.12)'
     };
     color: ${p =>
         p.$status === 'FAILED'
             ? st.accentRed
             : p.$status === 'RECEIVED'
-                ? st.accentBlue
+                ? BRAND_DARK
                 : st.accentGreen
     };
     border: 1px solid ${p =>
         p.$status === 'FAILED'
             ? 'rgba(239,68,68,0.25)'
             : p.$status === 'RECEIVED'
-                ? 'rgba(59,130,246,0.2)'
+                ? 'rgba(14,165,233,0.25)'
                 : 'rgba(16,185,129,0.25)'
     };
 `;
 
 const PreviewHint = styled.span`
     font-size: 10px;
-    color: ${st.accentBlue};
+    color: ${BRAND_DARK};
     font-weight: 600;
     letter-spacing: 0.02em;
     opacity: 0.8;
@@ -224,7 +228,7 @@ const Overlay = styled.div`
 
 const ModalSheet = styled.div`
     background: ${st.bgCard};
-    border-radius: ${st.radius};
+    border-radius: 16px;
     box-shadow: ${st.shadowLg};
     width: 100%;
     max-width: 600px;
@@ -264,14 +268,14 @@ const ModalChannelIcon = styled.div<{ $channel: 'EMAIL' | 'SMS'; $failed?: boole
         p.$failed
             ? 'rgba(239,68,68,0.12)'
             : p.$channel === 'EMAIL'
-                ? st.accentBlueDim
+                ? BRAND_DIM
                 : 'rgba(16,185,129,0.12)'
     };
     color: ${p =>
         p.$failed
             ? st.accentRed
             : p.$channel === 'EMAIL'
-                ? st.accentBlue
+                ? BRAND
                 : st.accentGreen
     };
 `;

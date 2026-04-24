@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import type { Visit, VisitStatus } from '../types';
 
+const BRAND = '#0ea5e9';
+const BRAND_DARK = '#0284c7';
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const formatDate = (dateStr: string): string => {
@@ -38,18 +41,18 @@ const HeroHeader = styled.header`
     top: 0;
     z-index: 100;
     overflow: hidden;
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0d1f38 100%);
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 65%, #0c1f35 100%);
     border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 8px 32px rgba(0,0,0,0.16);
 
     &::before {
         content: '';
         position: absolute;
-        top: -90px;
-        right: 80px;
-        width: 380px;
-        height: 380px;
-        background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 65%);
+        top: -80px;
+        right: 60px;
+        width: 340px;
+        height: 340px;
+        background: radial-gradient(circle, rgba(14, 165, 233, 0.09) 0%, transparent 65%);
         pointer-events: none;
     }
 `;
@@ -61,10 +64,17 @@ const HeaderContent = styled.div`
     align-items: center;
     justify-content: space-between;
     gap: 20px;
-    padding: 14px 28px;
+    padding: 14px 20px;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         padding: 16px 32px;
+    }
+
+    @media (max-width: 640px) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 14px 16px;
     }
 `;
 
@@ -94,7 +104,7 @@ const BackBtn = styled.button`
     color: rgba(148, 163, 184, 0.7);
     transition: color 180ms ease;
 
-    &:hover { color: rgba(241, 245, 249, 0.9); }
+    &:hover { color: rgba(14, 165, 233, 0.9); }
     svg { width: 13px; height: 13px; }
 `;
 
@@ -218,25 +228,31 @@ const HeaderRight = styled.div`
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
+
+    @media (max-width: 768px) {
+        gap: 6px;
+    }
 `;
 
 const TitleEditInput = styled.input`
     background: rgba(255, 255, 255, 0.08);
-    border: 1.5px solid rgba(59, 130, 246, 0.5);
-    border-radius: 6px;
+    border: 1.5px solid rgba(14, 165, 233, 0.45);
+    border-radius: 8px;
     color: #f1f5f9;
     font-size: 20px;
     font-weight: 800;
     letter-spacing: -0.3px;
-    padding: 2px 8px;
+    padding: 3px 10px;
     outline: none;
     min-width: 0;
     width: 280px;
     max-width: 100%;
+    transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
 
     &:focus {
-        border-color: rgba(59, 130, 246, 0.8);
+        border-color: rgba(14, 165, 233, 0.8);
         background: rgba(255, 255, 255, 0.12);
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
     }
 `;
 
@@ -305,12 +321,13 @@ const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'dange
                 `;
             case 'danger':
                 return `
-                    background: rgba(239, 68, 68, 0.1);
+                    background: rgba(239, 68, 68, 0.09);
                     color: #FCA5A5;
-                    border-color: rgba(239, 68, 68, 0.25);
+                    border-color: rgba(239, 68, 68, 0.22);
                     &:hover:not(:disabled) {
-                        background: rgba(239, 68, 68, 0.18);
-                        border-color: rgba(239, 68, 68, 0.4);
+                        background: rgba(239, 68, 68, 0.16);
+                        border-color: rgba(239, 68, 68, 0.38);
+                        transform: translateY(-1px);
                     }
                 `;
             default:
@@ -322,6 +339,7 @@ const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'dange
                         background: rgba(255, 255, 255, 0.11);
                         color: rgba(241, 245, 249, 0.9);
                         border-color: rgba(255, 255, 255, 0.18);
+                        transform: translateY(-1px);
                     }
                 `;
         }

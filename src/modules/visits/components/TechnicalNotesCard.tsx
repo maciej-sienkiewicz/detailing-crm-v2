@@ -1,59 +1,69 @@
 import styled from 'styled-components';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
+
+const BRAND = '#0ea5e9';
+const BRAND_DIM = 'rgba(14, 165, 233, 0.10)';
 
 const Card = styled.div`
-    background: white;
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.lg};
-    padding: ${props => props.theme.spacing.lg};
-    box-shadow: ${props => props.theme.shadows.sm};
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    overflow: hidden;
+    box-shadow: ${st.shadowSm};
 `;
 
 const CardHeader = styled.div`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
-    margin-bottom: ${props => props.theme.spacing.md};
-    padding-bottom: ${props => props.theme.spacing.md};
-    border-bottom: 1px solid ${props => props.theme.colors.border};
+    gap: 8px;
+    padding: 13px 16px;
+    border-bottom: 1px solid ${st.border};
+    background: ${st.bg};
 `;
 
-const CardIcon = styled.div`
+const CardIconWrap = styled.div`
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: ${props => props.theme.radii.md};
-    background: ${props => props.theme.colors.primary}15;
-    color: ${props => props.theme.colors.primary};
-
-    svg {
-        width: 20px;
-        height: 20px;
-    }
+    background: linear-gradient(135deg, ${BRAND} 0%, #0284c7 100%);
+    color: white;
+    flex-shrink: 0;
 `;
 
 const CardTitle = styled.h3`
     margin: 0;
-    font-size: ${props => props.theme.fontSizes.lg};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    color: ${props => props.theme.colors.text};
+    font-size: ${st.fontSm};
+    font-weight: 700;
+    color: ${st.text};
+    letter-spacing: -0.1px;
+`;
+
+const CardBody = styled.div`
+    padding: 14px 16px;
 `;
 
 const NotesContent = styled.div`
-    font-size: ${props => props.theme.fontSizes.md};
-    color: ${props => props.theme.colors.text};
+    font-size: ${st.fontSm};
+    color: ${st.text};
     line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-word;
+    padding: 10px 12px;
+    background: ${BRAND_DIM};
+    border: 1px solid rgba(14, 165, 233, 0.15);
+    border-left: 3px solid ${BRAND};
+    border-radius: 8px;
 `;
 
 const EmptyState = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
     font-style: italic;
     text-align: center;
-    padding: ${props => props.theme.spacing.md} 0;
+    padding: 12px 0;
 `;
 
 interface TechnicalNotesCardProps {
@@ -64,29 +74,22 @@ export const TechnicalNotesCard = ({ notes }: TechnicalNotesCardProps) => {
     return (
         <Card>
             <CardHeader>
-                <CardIcon>
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                        />
+                <CardIconWrap aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" />
+                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                     </svg>
-                </CardIcon>
-                <CardTitle>Notatka</CardTitle>
+                </CardIconWrap>
+                <CardTitle>Notatka techniczna</CardTitle>
             </CardHeader>
 
-            {notes ? (
-                <NotesContent>{notes}</NotesContent>
-            ) : (
-                <EmptyState>Brak notatki technicznej</EmptyState>
-            )}
+            <CardBody>
+                {notes ? (
+                    <NotesContent>{notes}</NotesContent>
+                ) : (
+                    <EmptyState>Brak notatki technicznej</EmptyState>
+                )}
+            </CardBody>
         </Card>
     );
 };
