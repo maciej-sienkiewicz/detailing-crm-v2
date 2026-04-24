@@ -41,12 +41,11 @@ const eyePulse = keyframes`
 // ─── Styled components ────────────────────────────────────────────────────────
 
 const HeroHeader = styled.header`
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    position: relative;
     overflow: hidden;
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0c1f35 100%);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 16px;
+    margin-bottom: 22px;
     box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 8px 28px rgba(0,0,0,0.14);
 
     &::before {

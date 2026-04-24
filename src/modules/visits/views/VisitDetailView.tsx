@@ -643,16 +643,16 @@ export const VisitDetailView = () => {
 
     return (
         <ViewContainer>
-            <VisitHeader
-                visit={visit}
-                onCompleteVisit={handleCompleteVisit}
-                onPrintProtocol={handlePrintProtocol}
-                onCancelVisit={handleCancelVisit}
-                onGeneratePost={() => setIsGeneratePostOpen(true)}
-                onTitleUpdate={updateTitle}
-            />
-
             <ContentArea>
+                <VisitHeader
+                    visit={visit}
+                    onCompleteVisit={handleCompleteVisit}
+                    onPrintProtocol={handlePrintProtocol}
+                    onCancelVisit={handleCancelVisit}
+                    onGeneratePost={() => setIsGeneratePostOpen(true)}
+                    onTitleUpdate={updateTitle}
+                />
+
                 <StatusStepper currentStatus={visit.status} />
 
                 <MainGrid>
