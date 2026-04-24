@@ -46,12 +46,23 @@ interface LocationState {
         phone: string;
         email: string;
     };
+    prefillVehicle?: {
+        id: string;
+        brand: string;
+        model: string;
+        yearOfProduction?: number;
+        licensePlate?: string;
+        color?: string;
+        paintType?: string;
+    };
 }
 
 export const WalkInCheckInWrapper = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const prefillCustomer = (location.state as LocationState | null)?.prefillCustomer;
+    const state = location.state as LocationState | null;
+    const prefillCustomer = state?.prefillCustomer;
+    const prefillVehicle  = state?.prefillVehicle;
 
     const { data: colors, isLoading: isLoadingColors } = useQuery({
         queryKey: ['appointmentColors'],
@@ -86,8 +97,8 @@ export const WalkInCheckInWrapper = () => {
         },
         hasFullCustomerData: !!prefillCustomer,
         isNewCustomer: !prefillCustomer,
-        vehicleData: null,
-        isNewVehicle: true,
+        vehicleData: prefillVehicle ?? null,
+        isNewVehicle: !prefillVehicle,
         homeAddress: null,
         company: null,
         services: [],

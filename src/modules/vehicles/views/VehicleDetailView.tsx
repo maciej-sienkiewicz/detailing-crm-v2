@@ -68,11 +68,13 @@ function getOwnerInitials(owner: VehicleOwner): string {
 
 function visitStatusBadge(status: string): { label: string; kind: 'success' | 'info' | 'warn' | 'neutral' | 'error' } {
     switch (status) {
-        case 'completed':   return { label: 'Zakończona',  kind: 'success' };
-        case 'in-progress': return { label: 'W trakcie',   kind: 'info' };
-        case 'scheduled':   return { label: 'Zaplanowana', kind: 'neutral' };
-        case 'cancelled':   return { label: 'Anulowana',   kind: 'error' };
-        default:            return { label: status,        kind: 'neutral' };
+        case 'completed':    return { label: 'Zakończona',  kind: 'success' };
+        case 'in-progress':
+        case 'in_progress':  return { label: 'W trakcie',   kind: 'info' };
+        case 'scheduled':    return { label: 'Zaplanowana', kind: 'neutral' };
+        case 'cancelled':
+        case 'CANCELLED':    return { label: 'Anulowana',   kind: 'error' };
+        default:             return { label: status,        kind: 'neutral' };
     }
 }
 
@@ -187,9 +189,32 @@ export const VehicleDetailView = () => {
                         <SharedButton
                             $variant="primary"
                             $size="sm"
-                            onClick={() => navigate('/checkin/new', {
-                                state: { prefillVehicle: { id: vehicle.id, licensePlate: vehicle.licensePlate } },
-                            })}
+                            onClick={() => {
+                                const singleOwner = vehicle.owners.length === 1 ? vehicle.owners[0] : null;
+                                const nameParts = singleOwner?.customerName.split(' ') ?? [];
+                                navigate('/checkin/new', {
+                                    state: {
+                                        prefillVehicle: {
+                                            id:              vehicle.id,
+                                            brand:           vehicle.brand,
+                                            model:           vehicle.model,
+                                            yearOfProduction: vehicle.yearOfProduction,
+                                            licensePlate:    vehicle.licensePlate,
+                                            color:           vehicle.color ?? undefined,
+                                            paintType:       vehicle.paintType ?? undefined,
+                                        },
+                                        ...(singleOwner ? {
+                                            prefillCustomer: {
+                                                id:        singleOwner.customerId,
+                                                firstName: nameParts[0] ?? '',
+                                                lastName:  nameParts.slice(1).join(' '),
+                                                phone:     '',
+                                                email:     '',
+                                            },
+                                        } : {}),
+                                    },
+                                });
+                            }}
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -229,7 +254,9 @@ export const VehicleDetailView = () => {
                                     </IdentityMeta>
                                 </IdentityRow>
 
-                                <LicensePlateBadge>{vehicle.licensePlate || '—'}</LicensePlateBadge>
+                                {vehicle.licensePlate && (
+                                    <LicensePlateBadge>{vehicle.licensePlate}</LicensePlateBadge>
+                                )}
                             </PanelBody>
                         </Panel>
 
