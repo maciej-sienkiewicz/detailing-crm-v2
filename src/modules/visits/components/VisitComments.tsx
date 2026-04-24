@@ -179,7 +179,10 @@ const CommentsList = styled.div`
 `;
 
 const CommentItem = styled.div<{ $type: CommentType; $deleted: boolean }>`
-    padding: 12px 16px;
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 12px;
+    padding: 14px 16px 14px 20px;
     border-bottom: 1px solid ${st.border};
     position: relative;
     background: ${p => p.$deleted ? st.bg : st.bgCard};
@@ -195,6 +198,7 @@ const CommentItem = styled.div<{ $type: CommentType; $deleted: boolean }>`
         top: 0;
         bottom: 0;
         width: 3px;
+        border-radius: 0 2px 2px 0;
         background: ${p =>
             p.$deleted
                 ? st.border
@@ -204,30 +208,41 @@ const CommentItem = styled.div<{ $type: CommentType; $deleted: boolean }>`
     }
 `;
 
-const CommentHead = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
-`;
-
-const Avatar = styled.div<{ $type: CommentType }>`
-    width: 26px;
-    height: 26px;
-    border-radius: ${st.radiusFull};
-    background: ${p => p.$type === 'INTERNAL' ? st.accentAmberDim : BRAND_DIM};
-    color: ${p => p.$type === 'INTERNAL' ? st.accentAmber : BRAND_DARK};
-    font-size: 10px;
+const NoteAvatar = styled.div<{ $type: CommentType }>`
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: ${p =>
+        p.$type === 'INTERNAL'
+            ? `linear-gradient(135deg, ${st.accentAmber} 0%, #d97706 100%)`
+            : `linear-gradient(135deg, ${BRAND} 0%, #6366f1 100%)`};
+    color: #fff;
+    font-size: 11px;
     font-weight: 700;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    letter-spacing: 0.02em;
+    letter-spacing: -0.3px;
+    margin-top: 1px;
 `;
 
-const AuthorName = styled.span`
-    font-size: ${st.fontSm};
+const NoteContent = styled.div`
+    min-width: 0;
+`;
+
+const NoteHead = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: ${st.textMuted};
+    margin-bottom: 4px;
+`;
+
+const NoteAuthor = styled.span`
+    font-size: 12px;
     font-weight: 600;
     color: ${st.text};
 `;
@@ -249,14 +264,13 @@ const DateText = styled.span`
     margin-left: auto;
 `;
 
-const CommentBody = styled.div<{ $deleted: boolean }>`
-    font-size: ${st.fontSm};
-    line-height: 1.6;
-    color: ${p => p.$deleted ? st.textMuted : st.text};
+const NoteBody = styled.div<{ $deleted: boolean }>`
+    font-size: 13px;
+    line-height: 1.55;
+    color: ${p => p.$deleted ? st.textMuted : '#334155'};
     white-space: pre-wrap;
     word-break: break-word;
     text-decoration: ${p => p.$deleted ? 'line-through' : 'none'};
-    padding-left: 34px;
 `;
 
 const DeletedNote = styled.div`
@@ -266,14 +280,12 @@ const DeletedNote = styled.div`
     background: ${st.accentRedDim};
     border-radius: ${st.radiusSm};
     padding: 4px 10px;
-    margin-left: 34px;
     margin-bottom: 6px;
 `;
 
 const EditedHint = styled.div`
     font-size: ${st.fontXs};
     color: ${st.textMuted};
-    padding-left: 34px;
     margin-top: 3px;
 `;
 
@@ -281,7 +293,6 @@ const ActionRow = styled.div`
     display: flex;
     align-items: center;
     gap: 2px;
-    padding-left: 34px;
     margin-top: 6px;
 `;
 
@@ -305,8 +316,7 @@ const InlineBtn = styled.button<{ $danger?: boolean }>`
 `;
 
 const InlineEditArea = styled.textarea`
-    width: calc(100% - 34px);
-    margin-left: 34px;
+    width: 100%;
     box-sizing: border-box;
     padding: 8px 12px;
     border: 1.5px solid ${st.border};
@@ -332,7 +342,6 @@ const RevToggle = styled.button`
     align-items: center;
     gap: 4px;
     padding: 2px 0;
-    padding-left: 34px;
     margin-top: 6px;
     border: none;
     background: transparent;
@@ -346,7 +355,6 @@ const RevToggle = styled.button`
 
 const RevBlock = styled.div`
     margin-top: 6px;
-    margin-left: 34px;
     border: 1px solid ${st.border};
     border-radius: ${st.radiusSm};
     overflow: hidden;
@@ -553,113 +561,118 @@ export const VisitComments = ({ visitId, comments, isLoading }: VisitCommentsPro
                             $type={comment.type}
                             $deleted={comment.isDeleted}
                         >
-                            <CommentHead>
-                                <Avatar $type={comment.type}>
-                                    {getInitials(comment.createdByName)}
-                                </Avatar>
-                                <AuthorName>{comment.createdByName}</AuthorName>
-                                <TypeBadge $type={comment.type}>
-                                    {comment.type === 'INTERNAL' ? 'Wewnętrzna' : 'Dla klienta'}
-                                </TypeBadge>
-                                <DateText>{formatDate(comment.createdAt)}</DateText>
-                            </CommentHead>
+                            {/* Left column: avatar */}
+                            <NoteAvatar $type={comment.type}>
+                                {getInitials(comment.createdByName)}
+                            </NoteAvatar>
 
-                            {comment.isDeleted && (
-                                <DeletedNote>
-                                    Usunięto przez {comment.deletedByName} · {formatDate(comment.deletedAt!)}
-                                </DeletedNote>
-                            )}
+                            {/* Right column: all content */}
+                            <NoteContent>
+                                <NoteHead>
+                                    <NoteAuthor>{comment.createdByName}</NoteAuthor>
+                                    <TypeBadge $type={comment.type}>
+                                        {comment.type === 'INTERNAL' ? 'Wewnętrzna' : 'Dla klienta'}
+                                    </TypeBadge>
+                                    <DateText>{formatDate(comment.createdAt)}</DateText>
+                                </NoteHead>
 
-                            {editingId === comment.id ? (
-                                <>
-                                    <InlineEditArea
-                                        value={editingContent}
-                                        onChange={e => setEditingContent(e.target.value)}
-                                        disabled={isUpdating}
-                                    />
-                                    <ActionRow>
-                                        <InlineBtn onClick={cancelEdit} disabled={isUpdating}>
-                                            Anuluj
-                                        </InlineBtn>
-                                        <PrimaryBtn
-                                            onClick={() => saveEdit(comment.id)}
-                                            disabled={isUpdating || !editingContent.trim()}
-                                            style={{ padding: '4px 12px', fontSize: st.fontXs }}
-                                        >
-                                            {isUpdating ? 'Zapisywanie…' : 'Zapisz'}
-                                        </PrimaryBtn>
-                                    </ActionRow>
-                                </>
-                            ) : (
-                                <>
-                                    <CommentBody $deleted={comment.isDeleted}>
-                                        {comment.content}
-                                    </CommentBody>
+                                {comment.isDeleted && (
+                                    <DeletedNote>
+                                        Usunięto przez {comment.deletedByName} · {formatDate(comment.deletedAt!)}
+                                    </DeletedNote>
+                                )}
 
-                                    {comment.updatedAt && !comment.isDeleted && (
-                                        <EditedHint>
-                                            Edytowano {formatDate(comment.updatedAt)} · {comment.updatedByName}
-                                        </EditedHint>
-                                    )}
-
-                                    {!comment.isDeleted && (
+                                {editingId === comment.id ? (
+                                    <>
+                                        <InlineEditArea
+                                            value={editingContent}
+                                            onChange={e => setEditingContent(e.target.value)}
+                                            disabled={isUpdating}
+                                        />
                                         <ActionRow>
-                                            <InlineBtn onClick={() => startEdit(comment)}>
-                                                Edytuj
+                                            <InlineBtn onClick={cancelEdit} disabled={isUpdating}>
+                                                Anuluj
                                             </InlineBtn>
-                                            <InlineBtn
-                                                $danger
-                                                onClick={() => handleDelete(comment.id)}
-                                                disabled={isDeleting}
+                                            <PrimaryBtn
+                                                onClick={() => saveEdit(comment.id)}
+                                                disabled={isUpdating || !editingContent.trim()}
+                                                style={{ padding: '4px 12px', fontSize: st.fontXs }}
                                             >
-                                                Usuń
-                                            </InlineBtn>
+                                                {isUpdating ? 'Zapisywanie…' : 'Zapisz'}
+                                            </PrimaryBtn>
                                         </ActionRow>
-                                    )}
-                                </>
-                            )}
+                                    </>
+                                ) : (
+                                    <>
+                                        <NoteBody $deleted={comment.isDeleted}>
+                                            {comment.content}
+                                        </NoteBody>
 
-                            {comment.revisions.length > 0 && (
-                                <>
-                                    <RevToggle onClick={() => toggleRevisions(comment.id)}>
-                                        <svg
-                                            width="8" height="8"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2.5"
-                                        >
-                                            {expandedRevisions.has(comment.id)
-                                                ? <polyline points="18 15 12 9 6 15" />
-                                                : <polyline points="6 9 12 15 18 9" />
-                                            }
-                                        </svg>
-                                        Historia zmian ({comment.revisions.length})
-                                    </RevToggle>
+                                        {comment.updatedAt && !comment.isDeleted && (
+                                            <EditedHint>
+                                                Edytowano {formatDate(comment.updatedAt)} · {comment.updatedByName}
+                                            </EditedHint>
+                                        )}
 
-                                    {expandedRevisions.has(comment.id) && (
-                                        <RevBlock>
-                                            {comment.revisions.map(rev => (
-                                                <RevEntry key={rev.id}>
-                                                    <RevMeta>
-                                                        {rev.changedByName} · {formatDate(rev.changedAt)}
-                                                    </RevMeta>
-                                                    <RevDiff>
-                                                        <DiffCell $old>
-                                                            <DiffLabel>Poprzednia</DiffLabel>
-                                                            {rev.oldContent}
-                                                        </DiffCell>
-                                                        <DiffCell $old={false}>
-                                                            <DiffLabel>Nowa</DiffLabel>
-                                                            {rev.newContent}
-                                                        </DiffCell>
-                                                    </RevDiff>
-                                                </RevEntry>
-                                            ))}
-                                        </RevBlock>
-                                    )}
-                                </>
-                            )}
+                                        {!comment.isDeleted && (
+                                            <ActionRow>
+                                                <InlineBtn onClick={() => startEdit(comment)}>
+                                                    Edytuj
+                                                </InlineBtn>
+                                                <InlineBtn
+                                                    $danger
+                                                    onClick={() => handleDelete(comment.id)}
+                                                    disabled={isDeleting}
+                                                >
+                                                    Usuń
+                                                </InlineBtn>
+                                            </ActionRow>
+                                        )}
+                                    </>
+                                )}
+
+                                {comment.revisions.length > 0 && (
+                                    <>
+                                        <RevToggle onClick={() => toggleRevisions(comment.id)}>
+                                            <svg
+                                                width="8" height="8"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2.5"
+                                            >
+                                                {expandedRevisions.has(comment.id)
+                                                    ? <polyline points="18 15 12 9 6 15" />
+                                                    : <polyline points="6 9 12 15 18 9" />
+                                                }
+                                            </svg>
+                                            Historia zmian ({comment.revisions.length})
+                                        </RevToggle>
+
+                                        {expandedRevisions.has(comment.id) && (
+                                            <RevBlock>
+                                                {comment.revisions.map(rev => (
+                                                    <RevEntry key={rev.id}>
+                                                        <RevMeta>
+                                                            {rev.changedByName} · {formatDate(rev.changedAt)}
+                                                        </RevMeta>
+                                                        <RevDiff>
+                                                            <DiffCell $old>
+                                                                <DiffLabel>Poprzednia</DiffLabel>
+                                                                {rev.oldContent}
+                                                            </DiffCell>
+                                                            <DiffCell $old={false}>
+                                                                <DiffLabel>Nowa</DiffLabel>
+                                                                {rev.newContent}
+                                                            </DiffCell>
+                                                        </RevDiff>
+                                                    </RevEntry>
+                                                ))}
+                                            </RevBlock>
+                                        )}
+                                    </>
+                                )}
+                            </NoteContent>
                         </CommentItem>
                     ))
                 )}
