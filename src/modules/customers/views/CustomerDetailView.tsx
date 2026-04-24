@@ -30,7 +30,7 @@ import {
     Panel, PanelHead, PanelTitle, PanelBody, PanelBodyFlush, PanelCountBadge, PanelLinkBtn,
     IdentityRow, Avatar, IdentityMeta, IdentityName, IdentityId,
     ContactList, ContactRow,
-    VehicleItem, VehicleSwatch, VehicleInfo, VehicleName, VehicleSub,
+    VehicleItem, VehicleInfo, VehicleName, VehicleSub,
     SummaryStrip, SumCell, SumCellActive, KpiEyebrow, KpiValue, KpiDelta,
     ChartGrid, ChartBars, ChartBarCol, ChartBarWrap, ChartBar, ChartBarLabel,
     UpcomingItem, UpcomingDateBox, UpcomingDateNum, UpcomingInfo, UpcomingTitle, UpcomingSub,
@@ -246,7 +246,17 @@ export const CustomerDetailView = () => {
                         <SharedButton
                             $variant="primary"
                             $size="sm"
-                            onClick={() => navigate('/checkin/new')}
+                            onClick={() => navigate('/checkin/new', {
+                                state: {
+                                    prefillCustomer: {
+                                        id:        customer.id,
+                                        firstName: customer.firstName ?? '',
+                                        lastName:  customer.lastName  ?? '',
+                                        phone:     customer.contact.phone ?? '',
+                                        email:     customer.contact.email ?? '',
+                                    },
+                                },
+                            })}
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -335,13 +345,11 @@ export const CustomerDetailView = () => {
                                         <NoteText>Brak przypisanych pojazdów.</NoteText>
                                     </PanelBody>
                                 ) : (
-                                    vehicles.map((vehicle: Vehicle, idx: number) => (
+                                    vehicles.map((vehicle: Vehicle) => (
                                         <VehicleItem
                                             key={vehicle.id}
-                                            $active={idx === 0}
                                             onClick={() => navigate(`/vehicles/${vehicle.id}`)}
                                         >
-                                            <VehicleSwatch $color={vehicle.color || undefined} />
                                             <VehicleInfo>
                                                 <VehicleName>{vehicle.make} {vehicle.model}</VehicleName>
                                                 <VehicleSub>
@@ -349,9 +357,6 @@ export const CustomerDetailView = () => {
                                                     {vehicle.year ? ` · ${vehicle.year}` : ''}
                                                 </VehicleSub>
                                             </VehicleInfo>
-                                            {idx === 0 && (
-                                                <StatusBadge $kind="info">aktualna</StatusBadge>
-                                            )}
                                         </VehicleItem>
                                     ))
                                 )}
@@ -574,7 +579,7 @@ export const CustomerDetailView = () => {
                                             <VisitRow
                                                 key={visit.id}
                                                 $active={visit.status === 'in-progress'}
-                                                onClick={() => navigate(`/appointments/${visit.id}`)}
+                                                onClick={() => navigate(`/visits/${visit.id}`)}
                                             >
                                                 <VisitDateCol>
                                                     <VisitDateMain>

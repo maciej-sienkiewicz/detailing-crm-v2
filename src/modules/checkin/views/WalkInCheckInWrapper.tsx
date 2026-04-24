@@ -1,5 +1,5 @@
 // src/modules/checkin/views/WalkInCheckInWrapper.tsx
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import { CheckInWizardView } from './CheckInWizardView';
@@ -38,8 +38,20 @@ const LoadingText = styled.p`
     color: ${props => props.theme.colors.text};
 `;
 
+interface LocationState {
+    prefillCustomer?: {
+        id: string;
+        firstName: string;
+        lastName: string;
+        phone: string;
+        email: string;
+    };
+}
+
 export const WalkInCheckInWrapper = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const prefillCustomer = (location.state as LocationState | null)?.prefillCustomer;
 
     const { data: colors, isLoading: isLoadingColors } = useQuery({
         queryKey: ['appointmentColors'],
@@ -65,15 +77,15 @@ export const WalkInCheckInWrapper = () => {
 
     const initialData = {
         title: '',
-        customerData: {
+        customerData: prefillCustomer ?? {
             id: '',
             firstName: '',
             lastName: '',
             phone: '',
             email: '',
         },
-        hasFullCustomerData: false,
-        isNewCustomer: true,
+        hasFullCustomerData: !!prefillCustomer,
+        isNewCustomer: !prefillCustomer,
         vehicleData: null,
         isNewVehicle: true,
         homeAddress: null,
