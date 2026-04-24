@@ -5,7 +5,7 @@ import { useVisitDetail, useVisitDocuments, useVisitPhotos } from '../hooks';
 import { useUpdateVisit, useUpdateVisitTitle } from '../hooks';
 import { useUploadDocument, useUploadPhoto, useDeleteDocument, useDeletePhoto } from '../hooks';
 import { useVisitComments, useVisitCommunication } from '../hooks';
-import { useUpdateServiceStatus, useSaveServicesChanges } from '../hooks';
+import { useUpdateServiceStatus } from '../hooks';
 import { VisitHeader } from '../components/VisitHeader';
 import { StatusStepper } from '../components/StatusStepper';
 import { VehicleInfoCard, CustomerInfoCard } from '../components/InfoCards';
@@ -14,7 +14,6 @@ import { ServicesTable } from '../components/ServicesTable';
 import { DocumentGallery } from '../components/DocumentGallery';
 import { VisitComments } from '../components/VisitComments';
 import { VisitCommunicationHistory } from '../components/VisitCommunicationHistory';
-import { EditServicesModal } from '../components/EditServicesModal';
 import { InProgressToReadyWizard, ReadyToCompletedWizard } from '../components/transitions/TransitionWizards';
 import { SmsReminderModal } from '../components/SmsReminderModal';
 import { useSmsReminder, type SmsReminderResponse } from '../hooks/useSmsReminder';
@@ -161,6 +160,14 @@ const SectionIconWrap = styled.div<{ $gradient?: string }>`
     flex-shrink: 0;
 `;
 
+const SectionIconPlain = styled.span`
+    display: inline-flex;
+    align-items: center;
+    color: ${st.textMuted};
+    flex-shrink: 0;
+    svg { width: 16px; height: 16px; }
+`;
+
 const SectionTitle = styled.span`
     font-size: ${st.fontSm};
     font-weight: 600;
@@ -242,7 +249,7 @@ const DocsHeaderStats = styled.div`
     flex-shrink: 0;
 `;
 
-const StatPill = styled.span<{ $color?: 'blue' | 'amber' }>`
+const StatPill = styled.span`
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -250,9 +257,9 @@ const StatPill = styled.span<{ $color?: 'blue' | 'amber' }>`
     font-weight: 600;
     padding: 2px 9px;
     border-radius: ${st.radiusFull};
-    background: ${p => p.$color === 'amber' ? 'rgba(245,158,11,0.12)' : BRAND_DIM};
-    color: ${p => p.$color === 'amber' ? '#d97706' : BRAND};
-    border: 1px solid ${p => p.$color === 'amber' ? 'rgba(245,158,11,0.25)' : 'rgba(14,165,233,0.25)'};
+    background: ${st.bg};
+    color: ${st.textMuted};
+    border: 1px solid ${st.border};
 `;
 
 const DocsHeaderRight = styled.div`
@@ -472,7 +479,6 @@ export const VisitDetailView = () => {
 
     const [isTransitionWizardOpen, setIsTransitionWizardOpen] = useState(false);
     const [transitionType, setTransitionType] = useState<'in_progress_to_ready' | 'ready_to_completed' | null>(null);
-    const [isEditServicesModalOpen, setIsEditServicesModalOpen] = useState(false);
     const [isGeneratePostOpen, setIsGeneratePostOpen] = useState(false);
     const [isSmsReminderOpen, setIsSmsReminderOpen] = useState(false);
     const [smsReminderForEdit, setSmsReminderForEdit] = useState<SmsReminderResponse | null>(null);
@@ -494,7 +500,6 @@ export const VisitDetailView = () => {
     const { comments, isLoading: isLoadingComments } = useVisitComments(visitId!);
     const { entries: communicationEntries, isLoading: isLoadingCommunication } = useVisitCommunication(visitId!);
     const { updateServiceStatus } = useUpdateServiceStatus(visitId!);
-    const { saveServicesChanges, isSaving } = useSaveServicesChanges(visitId!);
     const { showSuccess, showWarning, showInfo } = useToast();
     const { pendingReminder } = useSmsReminder(visitId!);
     const { config: smsConfig } = useAutomationConfig();
@@ -616,14 +621,6 @@ export const VisitDetailView = () => {
     const handleDeleteDocument = (documentId: string) => { deleteDocument(documentId); };
     const handleDeletePhoto = (photoId: string) => { deletePhoto(photoId); };
 
-    const handleEditServicesClick = () => { setIsEditServicesModalOpen(true); };
-
-    const handleSaveServicesChanges = (payload: import('../types').ServicesChangesPayload) => {
-        saveServicesChanges(payload, {
-            onSuccess: () => { setIsEditServicesModalOpen(false); },
-        });
-    };
-
     const handleUpdateServiceStatus = (serviceLineItemId: string, status: ServiceStatus) => {
         updateServiceStatus({ serviceLineItemId, payload: { status } });
     };
@@ -664,7 +661,6 @@ export const VisitDetailView = () => {
                             services={visit.services}
                             visitStatus={visit.status}
                             visitId={visitId!}
-                            onEditClick={handleEditServicesClick}
                             highlightPending={highlightPendingServices}
                         />
 
@@ -676,32 +672,18 @@ export const VisitDetailView = () => {
                                 aria-controls="communication-section"
                             >
                                 <SectionHeaderLeft>
-                                    <SectionIconWrap $gradient="linear-gradient(135deg, #10B981 0%, #059669 100%)">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                                    <SectionIconPlain>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                                             <rect x="2" y="4" width="20" height="16" rx="2" />
                                             <path d="M2 7l10 7 10-7" />
                                         </svg>
-                                    </SectionIconWrap>
+                                    </SectionIconPlain>
                                     <SectionTitle>Komunikacja z klientem</SectionTitle>
                                     {communicationEntries.length > 0 && (
                                         <SectionCount>{communicationEntries.length}</SectionCount>
                                     )}
                                     {communicationEntries.some(e => e.status === 'FAILED') && (
-                                        <span style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: 4,
-                                            fontSize: 11,
-                                            fontWeight: 700,
-                                            padding: '1px 8px',
-                                            borderRadius: 9999,
-                                            background: 'rgba(239,68,68,0.12)',
-                                            color: '#EF4444',
-                                            border: '1px solid rgba(239,68,68,0.25)',
-                                        }}>
-                                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                            Błąd wysyłki
-                                        </span>
+                                        <SectionCount title="Błąd wysyłki">⚠ Błąd</SectionCount>
                                     )}
                                 </SectionHeaderLeft>
                                 <ChevronIcon $open={isCommunicationOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -740,18 +722,18 @@ export const VisitDetailView = () => {
                                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setIsDocsOpen(v => !v); }}
                             >
                                 <DocsHeaderMain>
-                                    <SectionIconWrap>
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                                    <SectionIconPlain>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                                             <rect x="3" y="3" width="7" height="7" rx="1" />
                                             <rect x="14" y="3" width="7" height="7" rx="1" />
                                             <rect x="3" y="14" width="7" height="7" rx="1" />
                                             <rect x="14" y="14" width="7" height="7" rx="1" />
                                         </svg>
-                                    </SectionIconWrap>
+                                    </SectionIconPlain>
                                     <SectionTitle>Dokumentacja</SectionTitle>
                                     <DocsHeaderStats>
                                         {photoCount > 0 && (
-                                            <StatPill $color="blue">
+                                            <StatPill>
                                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                                     <rect x="3" y="3" width="18" height="18" rx="2" />
                                                     <circle cx="8.5" cy="8.5" r="1.5" />
@@ -761,7 +743,7 @@ export const VisitDetailView = () => {
                                             </StatPill>
                                         )}
                                         {pdfCount > 0 && (
-                                            <StatPill $color="amber">
+                                            <StatPill>
                                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                                                     <polyline points="14 2 14 8 20 8"/>
@@ -816,12 +798,12 @@ export const VisitDetailView = () => {
                                 aria-controls="audit-section"
                             >
                                 <SectionHeaderLeft>
-                                    <SectionIconWrap $gradient="linear-gradient(135deg, #64748b 0%, #475569 100%)">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                                    <SectionIconPlain>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                                             <circle cx="12" cy="12" r="10" />
                                             <polyline points="12 6 12 12 16 14" />
                                         </svg>
-                                    </SectionIconWrap>
+                                    </SectionIconPlain>
                                     <SectionTitle>Historia zmian</SectionTitle>
                                 </SectionHeaderLeft>
                                 <ChevronIcon $open={isAuditOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -916,15 +898,6 @@ export const VisitDetailView = () => {
                     onClose={() => { setIsTransitionWizardOpen(false); setTransitionType(null); }}
                 />
             )}
-
-            <EditServicesModal
-                isOpen={isEditServicesModalOpen}
-                services={visit.services}
-                onClose={() => setIsEditServicesModalOpen(false)}
-                onUpdateServiceStatus={handleUpdateServiceStatus}
-                onSaveChanges={handleSaveServicesChanges}
-                isSavingChanges={isSaving}
-            />
 
             {isGeneratePostOpen && (
                 <GeneratePostModal

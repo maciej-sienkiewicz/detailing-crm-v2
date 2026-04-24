@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import type { Visit, VisitStatus } from '../types';
 
 const BRAND = '#0ea5e9';
@@ -33,6 +33,22 @@ const COMPLETE_LABEL: Partial<Record<VisitStatus, string>> = {
     IN_PROGRESS:      'Oznacz jako gotowe',
     READY_FOR_PICKUP: 'Wydaj pojazd',
 };
+
+// ─── Eyebrow dot config ───────────────────────────────────────────────────────
+
+const DOT_CONFIG: Record<VisitStatus, { color: string; glow: string; animate: boolean; label: string }> = {
+    IN_PROGRESS:      { color: '#10b981', glow: 'rgba(16,185,129,0.28)', animate: true,  label: 'W realizacji'    },
+    READY_FOR_PICKUP: { color: '#0ea5e9', glow: 'rgba(14,165,233,0.28)', animate: true,  label: 'Do odbioru'      },
+    DRAFT:            { color: '#f59e0b', glow: 'rgba(245,158,11,0.22)', animate: true,  label: 'Szkic'           },
+    COMPLETED:        { color: '#10b981', glow: 'transparent',           animate: false, label: 'Zakończona'      },
+    REJECTED:         { color: '#94a3b8', glow: 'transparent',           animate: false, label: 'Odrzucona'       },
+    ARCHIVED:         { color: '#64748b', glow: 'transparent',           animate: false, label: 'Zarchiwizowana'  },
+};
+
+const eyePulse = keyframes`
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.45; }
+`;
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -123,6 +139,28 @@ const BreadcrumbCurrent = styled.span`
     max-width: 200px;
 `;
 
+const EyebrowRow = styled.div`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #7dd3fc;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+`;
+
+const PulseDot = styled.div<{ $color: string; $glow: string; $animate: boolean }>`
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: ${p => p.$color};
+    box-shadow: 0 0 0 4px ${p => p.$glow};
+    flex-shrink: 0;
+    ${p => p.$animate && `animation: ${eyePulse} 2s ease-in-out infinite;`}
+`;
+
 const TitleRow = styled.div`
     display: flex;
     align-items: center;
@@ -132,11 +170,12 @@ const TitleRow = styled.div`
 
 const VisitNumber = styled.h1`
     margin: 0;
-    font-size: 20px;
-    font-weight: 800;
+    font-size: 24px;
+    font-weight: 700;
     color: #f1f5f9;
-    letter-spacing: -0.3px;
+    letter-spacing: -0.4px;
     white-space: nowrap;
+    line-height: 1.15;
 `;
 
 const LicensePlateBadge = styled.div`
@@ -405,6 +444,7 @@ export const VisitHeader = ({
 
     const isTerminal = visit.status === 'COMPLETED' || visit.status === 'REJECTED' || visit.status === 'ARCHIVED';
     const statusCfg = STATUS_CONFIG[visit.status];
+    const dotCfg = DOT_CONFIG[visit.status];
     const completeLabel = COMPLETE_LABEL[visit.status] ?? 'Zakończ wizytę';
     const customerName = `${visit.customer.firstName} ${visit.customer.lastName}`.trim();
     const vehicleLabel = [visit.vehicle.brand, visit.vehicle.model, visit.vehicle.yearOfProduction && `(${visit.vehicle.yearOfProduction})`]
@@ -425,6 +465,11 @@ export const VisitHeader = ({
                         <BreadcrumbSep>/</BreadcrumbSep>
                         <BreadcrumbCurrent>{visit.visitNumber}</BreadcrumbCurrent>
                     </BreadcrumbRow>
+
+                    <EyebrowRow>
+                        <PulseDot $color={dotCfg.color} $glow={dotCfg.glow} $animate={dotCfg.animate} />
+                        {dotCfg.label}
+                    </EyebrowRow>
 
                     <TitleRow>
                         {isEditingTitle ? (
