@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import type { Visit, VisitStatus } from '../types';
 
 const BRAND = '#0ea5e9';
@@ -158,7 +158,7 @@ const PulseDot = styled.div<{ $color: string; $glow: string; $animate: boolean }
     background: ${p => p.$color};
     box-shadow: 0 0 0 4px ${p => p.$glow};
     flex-shrink: 0;
-    ${p => p.$animate && `animation: ${eyePulse} 2s ease-in-out infinite;`}
+    ${p => p.$animate && css`animation: ${eyePulse} 2s ease-in-out infinite;`}
 `;
 
 const TitleRow = styled.div`
