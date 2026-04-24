@@ -3,9 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import styled, { keyframes, css } from 'styled-components';
 import type { Visit, VisitStatus } from '../types';
 
-const BRAND = '#0ea5e9';
-const BRAND_DARK = '#0284c7';
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const formatDate = (dateStr: string): string => {
@@ -20,21 +17,12 @@ const formatDate = (dateStr: string): string => {
     }
 };
 
-const STATUS_CONFIG: Record<VisitStatus, { label: string; bg: string; color: string; border: string }> = {
-    DRAFT:            { label: 'Szkic',         bg: 'rgba(245,158,11,0.18)',  color: '#FCD34D', border: 'rgba(245,158,11,0.3)'  },
-    IN_PROGRESS:      { label: 'W realizacji',  bg: 'rgba(59,130,246,0.18)', color: '#93C5FD', border: 'rgba(59,130,246,0.3)'  },
-    READY_FOR_PICKUP: { label: 'Do odbioru',    bg: 'rgba(16,185,129,0.18)', color: '#6EE7B7', border: 'rgba(16,185,129,0.3)'  },
-    COMPLETED:        { label: 'Zakończona',    bg: 'rgba(16,185,129,0.13)', color: '#6EE7B7', border: 'rgba(16,185,129,0.22)' },
-    REJECTED:         { label: 'Odrzucona',     bg: 'rgba(239,68,68,0.18)',  color: '#FCA5A5', border: 'rgba(239,68,68,0.3)'   },
-    ARCHIVED:         { label: 'Zarchiwizowana',bg: 'rgba(148,163,184,0.13)',color: '#94A3B8', border: 'rgba(148,163,184,0.22)'},
-};
+// ─── Status & dot config ──────────────────────────────────────────────────────
 
 const COMPLETE_LABEL: Partial<Record<VisitStatus, string>> = {
     IN_PROGRESS:      'Oznacz jako gotowe',
     READY_FOR_PICKUP: 'Wydaj pojazd',
 };
-
-// ─── Eyebrow dot config ───────────────────────────────────────────────────────
 
 const DOT_CONFIG: Record<VisitStatus, { color: string; glow: string; animate: boolean; label: string }> = {
     IN_PROGRESS:      { color: '#10b981', glow: 'rgba(16,185,129,0.28)', animate: true,  label: 'W realizacji'    },
@@ -57,18 +45,19 @@ const HeroHeader = styled.header`
     top: 0;
     z-index: 100;
     overflow: hidden;
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 65%, #0c1f35 100%);
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0c1f35 100%);
     border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-    box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 8px 32px rgba(0,0,0,0.16);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 8px 28px rgba(0,0,0,0.14);
 
     &::before {
         content: '';
         position: absolute;
-        top: -80px;
-        right: 60px;
-        width: 340px;
-        height: 340px;
-        background: radial-gradient(circle, rgba(14, 165, 233, 0.09) 0%, transparent 65%);
+        top: -100px;
+        right: -60px;
+        width: 320px;
+        height: 320px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(14,165,233,0.35) 0%, transparent 60%);
         pointer-events: none;
     }
 `;
@@ -77,34 +66,37 @@ const HeaderContent = styled.div`
     position: relative;
     z-index: 1;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: 20px;
-    padding: 14px 20px;
+    gap: 24px;
+    padding: 22px 28px 18px;
 
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: 16px 32px;
+    @media (max-width: 900px) {
+        padding: 18px 20px 14px;
     }
 
     @media (max-width: 640px) {
         flex-direction: column;
         align-items: flex-start;
-        gap: 12px;
-        padding: 14px 16px;
+        gap: 14px;
+        padding: 16px 16px 14px;
     }
 `;
 
 const HeaderLeft = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 0;
     min-width: 0;
 `;
+
+/* ── Breadcrumb ── */
 
 const BreadcrumbRow = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
+    margin-bottom: 10px;
 `;
 
 const BackBtn = styled.button`
@@ -120,7 +112,7 @@ const BackBtn = styled.button`
     color: rgba(148, 163, 184, 0.7);
     transition: color 180ms ease;
 
-    &:hover { color: rgba(14, 165, 233, 0.9); }
+    &:hover { color: rgba(241, 245, 249, 0.85); }
     svg { width: 13px; height: 13px; }
 `;
 
@@ -136,8 +128,10 @@ const BreadcrumbCurrent = styled.span`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 200px;
+    max-width: 220px;
 `;
+
+/* ── Eyebrow ── */
 
 const EyebrowRow = styled.div`
     display: inline-flex;
@@ -148,7 +142,7 @@ const EyebrowRow = styled.div`
     color: #7dd3fc;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    margin-top: 4px;
+    margin-bottom: 10px;
 `;
 
 const PulseDot = styled.div<{ $color: string; $glow: string; $animate: boolean }>`
@@ -161,116 +155,30 @@ const PulseDot = styled.div<{ $color: string; $glow: string; $animate: boolean }
     ${p => p.$animate && css`animation: ${eyePulse} 2s ease-in-out infinite;`}
 `;
 
+/* ── Title ── */
+
 const TitleRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-`;
-
-const VisitNumber = styled.h1`
-    margin: 0;
-    font-size: 24px;
-    font-weight: 700;
-    color: #f1f5f9;
-    letter-spacing: -0.4px;
-    white-space: nowrap;
-    line-height: 1.15;
-`;
-
-const LicensePlateBadge = styled.div`
-    display: inline-flex;
-    align-items: center;
-    flex-shrink: 0;
-    padding: 5px 12px 5px 20px;
-    background: linear-gradient(180deg, #ffffff 0%, #efefef 100%);
-    border: 2px solid #1a1a1a;
-    border-radius: 5px;
-    font-family: 'Courier New', monospace;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    color: #000;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    position: relative;
-    text-transform: uppercase;
-
-    &::before {
-        content: '';
-        position: absolute;
-        left: 0; top: 0; bottom: 0;
-        width: 16px;
-        background: linear-gradient(180deg, #003399 0%, #002266 100%);
-        border-right: 1px solid #111;
-        border-radius: 3px 0 0 3px;
-    }
-
-    &::after {
-        content: 'PL';
-        position: absolute;
-        left: 3px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 7px;
-        font-weight: 800;
-        color: #fff;
-        letter-spacing: 0.2px;
-    }
-`;
-
-const VehicleLabel = styled.span`
-    font-size: 15px;
-    font-weight: 500;
-    color: rgba(241, 245, 249, 0.65);
-    white-space: nowrap;
-`;
-
-const MetaRow = styled.div`
     display: flex;
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
+    margin-bottom: 10px;
 `;
 
-const MetaItem = styled.span`
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 12px;
-    font-weight: 500;
-    color: rgba(148, 163, 184, 0.75);
-
-    svg { width: 12px; height: 12px; opacity: 0.6; }
-`;
-
-const MetaDot = styled.span`
-    color: rgba(148, 163, 184, 0.25);
-    user-select: none;
-`;
-
-const StatusBadge = styled.div<{ $bg: string; $color: string; $border: string }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 10px;
-    border-radius: 9999px;
-    font-size: 11px;
+const VisitTitle = styled.h1`
+    margin: 0;
+    font-size: 26px;
     font-weight: 700;
-    letter-spacing: 0.04em;
-    background: ${props => props.$bg};
-    color: ${props => props.$color};
-    border: 1px solid ${props => props.$border};
+    letter-spacing: -0.4px;
+    line-height: 1.15;
+    color: #fff;
+    white-space: nowrap;
 `;
 
-const HeaderRight = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-
-    @media (max-width: 768px) {
-        gap: 6px;
-    }
+const TitleMutedSep = styled.span`
+    color: #64748b;
+    font-weight: 400;
+    margin: 0 2px;
 `;
 
 const TitleEditInput = styled.input`
@@ -278,13 +186,13 @@ const TitleEditInput = styled.input`
     border: 1.5px solid rgba(14, 165, 233, 0.45);
     border-radius: 8px;
     color: #f1f5f9;
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: -0.3px;
-    padding: 3px 10px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    padding: 4px 12px;
     outline: none;
     min-width: 0;
-    width: 280px;
+    width: 300px;
     max-width: 100%;
     transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
 
@@ -313,7 +221,7 @@ const TitleIconBtn = styled.button`
 `;
 
 const PencilBtn = styled(TitleIconBtn)`
-    color: rgba(148, 163, 184, 0.5);
+    color: rgba(148, 163, 184, 0.45);
     &:hover { color: rgba(241, 245, 249, 0.8); background: rgba(255,255,255,0.08); }
 `;
 
@@ -331,26 +239,80 @@ const CancelEditBtn = styled(TitleIconBtn)`
     &:hover { color: rgba(241, 245, 249, 0.8); background: rgba(255,255,255,0.08); }
 `;
 
-const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'danger' }>`
+/* ── Meta row ── */
+
+const MetaRow = styled.div`
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 18px;
+    font-size: 13px;
+    color: #94a3b8;
+`;
+
+const MetaItem = styled.span`
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 18px;
+
+    svg { width: 14px; height: 14px; opacity: 0.7; flex-shrink: 0; }
+`;
+
+const WizPlate = styled.span`
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #f1f5f9;
+    font-family: 'Courier New', 'Courier', monospace;
+    letter-spacing: 0.12em;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+`;
+
+/* ── Right actions ── */
+
+const HeaderRight = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    padding-top: 4px;
+
+    @media (max-width: 640px) {
+        width: 100%;
+        flex-wrap: wrap;
+        padding-top: 0;
+    }
+`;
+
+const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger' }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 18px;
     border-radius: 9999px;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all 180ms ease;
     white-space: nowrap;
-    border: 1px solid transparent;
 
-    ${props => {
-        switch (props.$variant) {
-            case 'primary':
-                return `
+    svg { width: 15px; height: 15px; }
+
+    &:disabled {
+        opacity: 0.32;
+        cursor: not-allowed;
+    }
+
+    ${p => {
+        switch (p.$variant) {
+            case 'complete':
+                return css`
                     background: #10B981;
-                    color: white;
-                    border-color: #10B981;
+                    color: #fff;
+                    border: 1px solid #10B981;
                     box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
                     &:hover:not(:disabled) {
                         background: #059669;
@@ -359,37 +321,30 @@ const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'dange
                     }
                 `;
             case 'danger':
-                return `
-                    background: rgba(239, 68, 68, 0.09);
-                    color: #FCA5A5;
-                    border-color: rgba(239, 68, 68, 0.22);
+                return css`
+                    background: transparent;
+                    color: #fca5a5;
+                    border: 1px solid rgba(239, 68, 68, 0.22);
                     &:hover:not(:disabled) {
-                        background: rgba(239, 68, 68, 0.16);
-                        border-color: rgba(239, 68, 68, 0.38);
+                        background: rgba(239, 68, 68, 0.1);
+                        border-color: rgba(239, 68, 68, 0.4);
+                        color: #fca5a5;
                         transform: translateY(-1px);
                     }
                 `;
-            default:
-                return `
-                    background: rgba(255, 255, 255, 0.06);
-                    color: rgba(241, 245, 249, 0.65);
-                    border-color: rgba(255, 255, 255, 0.1);
+            default: // ghost = on-dark
+                return css`
+                    background: rgba(255, 255, 255, 0.08);
+                    color: #f1f5f9;
+                    border: 1px solid rgba(255, 255, 255, 0.14);
+                    backdrop-filter: blur(4px);
                     &:hover:not(:disabled) {
-                        background: rgba(255, 255, 255, 0.11);
-                        color: rgba(241, 245, 249, 0.9);
-                        border-color: rgba(255, 255, 255, 0.18);
+                        background: rgba(255, 255, 255, 0.16);
                         transform: translateY(-1px);
                     }
                 `;
         }
     }}
-
-    &:disabled {
-        opacity: 0.32;
-        cursor: not-allowed;
-    }
-
-    svg { width: 15px; height: 15px; }
 `;
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -422,10 +377,7 @@ export const VisitHeader = ({
         if (isEditingTitle) titleInputRef.current?.focus();
     }, [isEditingTitle]);
 
-    const startEditTitle = () => {
-        setDraftTitle(visit.title ?? '');
-        setIsEditingTitle(true);
-    };
+    const startEditTitle = () => { setDraftTitle(visit.title ?? ''); setIsEditingTitle(true); };
 
     const saveTitle = async () => {
         if (!onTitleUpdate || isSavingTitle) return;
@@ -438,12 +390,9 @@ export const VisitHeader = ({
         }
     };
 
-    const cancelEditTitle = () => {
-        setIsEditingTitle(false);
-    };
+    const cancelEditTitle = () => setIsEditingTitle(false);
 
     const isTerminal = visit.status === 'COMPLETED' || visit.status === 'REJECTED' || visit.status === 'ARCHIVED';
-    const statusCfg = STATUS_CONFIG[visit.status];
     const dotCfg = DOT_CONFIG[visit.status];
     const completeLabel = COMPLETE_LABEL[visit.status] ?? 'Zakończ wizytę';
     const customerName = `${visit.customer.firstName} ${visit.customer.lastName}`.trim();
@@ -455,6 +404,7 @@ export const VisitHeader = ({
         <HeroHeader>
             <HeaderContent>
                 <HeaderLeft>
+                    {/* Breadcrumb */}
                     <BreadcrumbRow>
                         <BackBtn onClick={() => navigate(-1)} aria-label="Wróć do listy wizyt">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -462,15 +412,17 @@ export const VisitHeader = ({
                             </svg>
                             Wizyty
                         </BackBtn>
-                        <BreadcrumbSep>/</BreadcrumbSep>
+                        <BreadcrumbSep>›</BreadcrumbSep>
                         <BreadcrumbCurrent>{visit.visitNumber}</BreadcrumbCurrent>
                     </BreadcrumbRow>
 
+                    {/* Eyebrow */}
                     <EyebrowRow>
                         <PulseDot $color={dotCfg.color} $glow={dotCfg.glow} $animate={dotCfg.animate} />
                         {dotCfg.label}
                     </EyebrowRow>
 
+                    {/* Title + vehicle inline */}
                     <TitleRow>
                         {isEditingTitle ? (
                             <>
@@ -498,7 +450,12 @@ export const VisitHeader = ({
                             </>
                         ) : (
                             <>
-                                <VisitNumber>{visit.title}</VisitNumber>
+                                <VisitTitle>
+                                    {visit.title}
+                                    {vehicleLabel && (
+                                        <> <TitleMutedSep>·</TitleMutedSep> {vehicleLabel}</>
+                                    )}
+                                </VisitTitle>
                                 {onTitleUpdate && (
                                     <PencilBtn onClick={startEditTitle} title="Edytuj tytuł wizyty">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -509,12 +466,9 @@ export const VisitHeader = ({
                                 )}
                             </>
                         )}
-                        {!isEditingTitle && visit.vehicle.licensePlate && (
-                            <LicensePlateBadge>{visit.vehicle.licensePlate}</LicensePlateBadge>
-                        )}
-                        {!isEditingTitle && vehicleLabel && <VehicleLabel>{vehicleLabel}</VehicleLabel>}
                     </TitleRow>
 
+                    {/* Meta: customer · date · plate */}
                     <MetaRow>
                         {customerName && (
                             <MetaItem>
@@ -525,7 +479,6 @@ export const VisitHeader = ({
                                 {customerName}
                             </MetaItem>
                         )}
-                        <MetaDot>·</MetaDot>
                         <MetaItem>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -535,22 +488,22 @@ export const VisitHeader = ({
                             </svg>
                             {formatDate(visit.scheduledDate)}
                         </MetaItem>
-                        <MetaDot>·</MetaDot>
-                        <StatusBadge $bg={statusCfg.bg} $color={statusCfg.color} $border={statusCfg.border}>
-                            {statusCfg.label}
-                        </StatusBadge>
+                        {visit.vehicle.licensePlate && (
+                            <WizPlate>{visit.vehicle.licensePlate}</WizPlate>
+                        )}
                     </MetaRow>
                 </HeaderLeft>
 
+                {/* Actions */}
                 <HeaderRight>
-                    <ActionButton $variant="secondary" onClick={onGeneratePost} title="Generuj post Instagram">
+                    <ActionButton $variant="ghost" onClick={onGeneratePost} title="Generuj post Instagram">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5" />
                         </svg>
                         Generuj post
                     </ActionButton>
 
-                    <ActionButton $variant="secondary" onClick={onPrintProtocol} title="Drukuj protokół">
+                    <ActionButton $variant="ghost" onClick={onPrintProtocol} title="Drukuj protokół">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <polyline points="6 9 6 2 18 2 18 9" />
                             <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" />
@@ -560,7 +513,7 @@ export const VisitHeader = ({
                     </ActionButton>
 
                     <ActionButton
-                        $variant="primary"
+                        $variant="complete"
                         onClick={onCompleteVisit}
                         disabled={isTerminal}
                     >
