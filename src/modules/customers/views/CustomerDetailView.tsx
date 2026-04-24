@@ -205,21 +205,6 @@ export const CustomerDetailView = () => {
                 {/* ─── Page header ───────────────────────────────── */}
                 <PageHeader>
                     <HeaderLeft>
-                        <HeaderMetaRow>
-                            {loyaltyTier && loyaltyTier !== 'bronze' && (
-                                <TierBadge $tier={loyaltyTier}>
-                                    {loyaltyTier.charAt(0).toUpperCase() + loyaltyTier.slice(1)}
-                                </TierBadge>
-                            )}
-                            <MetaText>
-                                Klient od {formatDate(customer.createdAt)}
-                                {' · '}
-                                {customer.totalVisits} wizyt
-                                {' · '}
-                                {formatCurrency(lifetimeValue.grossAmount, lifetimeValue.currency)}
-                            </MetaText>
-                        </HeaderMetaRow>
-                        <PageTitle>{fullName}</PageTitle>
                     </HeaderLeft>
 
                     <HeaderActions>
