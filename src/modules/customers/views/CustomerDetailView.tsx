@@ -1,496 +1,170 @@
 // src/modules/customers/views/CustomerDetailView.tsx
 
-import { useState, useEffect, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import styled, { keyframes } from 'styled-components';
+import { useState, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import styled from 'styled-components';
 import { useCustomerDetail } from '../hooks/useCustomerDetail';
 import { useCustomerVehicles } from '../hooks/useCustomerVehicles';
 import { useCustomerVisits } from '../hooks/useCustomerVisits';
 import { useCustomerReservations } from '../hooks/useCustomerReservations';
 import { useUpdateConsent } from '../hooks/useUpdateConsent';
-import { CustomerHeader } from '../components/CustomerHeader';
-import { CustomerVisitHistory } from '../components/CustomerVisitHistory';
+import { CustomerNotes } from '../components/CustomerNotes';
 import { DocumentsManager } from '../components/DocumentsManager';
 import { ConsentManager } from '../components/ConsentManager';
-import { CustomerNotes } from '../components/CustomerNotes';
+import { AuditTimeline } from '@/common/components/AuditTimeline';
 import { EditCustomerModal } from '../components/EditCustomerModal';
 import { EditCompanyModal } from '../components/EditCompanyModal';
-import { AuditTimeline } from '@/common/components/AuditTimeline';
+import { SharedButton } from '@/common/styles/sharedButtonStyles';
+import { formatCurrency } from '../utils/customerMappers';
+import { formatDate } from '@/common/utils';
 import { t } from '@/common/i18n';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { Vehicle, CommunicationLog } from '../types';
-
-// ─── Animations ───────────────────────────────────────────────────────────────
-
-const fadeIn = keyframes`
-    from { opacity: 0; }
-    to   { opacity: 1; }
-`;
-
-const fadeUp = keyframes`
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
-`;
-
-const spin = keyframes`
-    to { transform: rotate(360deg); }
-`;
-
-// ─── Layout ───────────────────────────────────────────────────────────────────
-
-const ViewContainer = styled.main`
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    background: ${st.bg};
-    animation: ${fadeIn} 0.3s ease both;
-`;
-
-const ContentArea = styled.div`
-    flex: 1;
-    padding: 20px 24px 40px;
-    max-width: 1600px;
-    margin: 0 auto;
-    width: 100%;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: 24px 32px 48px;
-    }
-`;
-
-// ─── Main grid ────────────────────────────────────────────────────────────────
-
-const MainGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-    align-items: start;
-
-    @media (min-width: ${props => props.theme.breakpoints.lg}) {
-        grid-template-columns: 1fr 300px;
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.xl}) {
-        grid-template-columns: 1fr 320px;
-    }
-`;
-
-const MainColumn = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    min-width: 0;
-`;
-
-const SidebarColumn = styled.aside`
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-`;
-
-// ─── Collapsible section ──────────────────────────────────────────────────────
-
-const Section = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    overflow: hidden;
-    box-shadow: ${st.shadowSm};
-`;
-
-const SectionHeader = styled.button`
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 20px;
-    background: ${st.bg};
-    border: none;
-    border-bottom: 1px solid ${st.border};
-    cursor: pointer;
-    transition: background ${st.transition};
-    text-align: left;
-
-    &:hover { background: ${st.bgCardAlt}; }
-`;
-
-const SectionHeaderLeft = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-`;
-
-const SectionIconWrap = styled.div<{ $gradient?: string }>`
-    width: 30px;
-    height: 30px;
-    border-radius: ${st.radiusSm};
-    background: ${props => props.$gradient || st.gradientBlue};
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-`;
-
-const SectionTitle = styled.span`
-    font-size: ${st.fontSm};
-    font-weight: 700;
-    color: ${st.text};
-`;
-
-const SectionCount = styled.span`
-    font-size: 11px;
-    font-weight: 600;
-    color: ${st.textMuted};
-    background: ${st.bgCardAlt};
-    border: 1px solid ${st.border};
-    padding: 1px 8px;
-    border-radius: ${st.radiusFull};
-`;
-
-const ChevronIcon = styled.svg<{ $open: boolean }>`
-    width: 16px;
-    height: 16px;
-    color: ${st.textMuted};
-    transition: transform 250ms ease;
-    transform: ${props => props.$open ? 'rotate(180deg)' : 'rotate(0deg)'};
-    flex-shrink: 0;
-`;
-
-const SectionBody = styled.div<{ $visible: boolean; $flush?: boolean }>`
-    display: ${props => props.$visible ? 'block' : 'none'};
-    padding: ${props => props.$flush ? '0' : '20px'};
-    animation: ${fadeUp} 0.2s ease;
-`;
-
-// ─── Sidebar cards ────────────────────────────────────────────────────────────
-
-const SidebarCard = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    overflow: hidden;
-    box-shadow: ${st.shadowSm};
-`;
-
-const SidebarCardHeader = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 11px 16px;
-    border-bottom: 1px solid ${st.border};
-    background: ${st.bg};
-`;
-
-const SidebarCardTitle = styled.h4`
-    margin: 0;
-    font-size: ${st.fontSm};
-    font-weight: 700;
-    color: ${st.text};
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    svg {
-        width: 14px;
-        height: 14px;
-        color: ${st.accentBlue};
-        flex-shrink: 0;
-    }
-`;
-
-const SidebarCardBadge = styled.span`
-    font-size: 11px;
-    font-weight: 600;
-    color: ${st.textMuted};
-    background: ${st.bgCardAlt};
-    border: 1px solid ${st.border};
-    padding: 1px 7px;
-    border-radius: ${st.radiusFull};
-`;
-
-// ─── Info rows ────────────────────────────────────────────────────────────────
-
-const InfoRow = styled.div<{ $noBorder?: boolean }>`
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 8px 16px;
-    border-bottom: ${props => props.$noBorder ? 'none' : `1px solid ${st.border}`};
-
-    &:last-child { border-bottom: none; }
-`;
-
-const InfoLabel = styled.span`
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: ${st.textMuted};
-    flex-shrink: 0;
-`;
-
-const InfoValue = styled.span`
-    font-size: ${st.fontSm};
-    font-weight: 500;
-    color: ${st.text};
-    text-align: right;
-    word-break: break-word;
-`;
-
-// ─── Vehicles list ────────────────────────────────────────────────────────────
-
-const VehiclesList = styled.div`
-    display: flex;
-    flex-direction: column;
-`;
-
-const VehicleLink = styled(Link)`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 16px;
-    text-decoration: none;
-    transition: background ${st.transition};
-    border-bottom: 1px solid ${st.border};
-
-    &:last-child { border-bottom: none; }
-    &:hover { background: ${st.bgCardAlt}; }
-`;
-
-const VehicleIcon = styled.div`
-    width: 32px;
-    height: 32px;
-    border-radius: ${st.radiusSm};
-    background: ${st.bgCardAlt};
-    border: 1px solid ${st.border};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: ${st.textMuted};
-
-    svg { width: 16px; height: 16px; }
-`;
-
-const VehicleInfo = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
-
-const VehicleName = styled.div`
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    color: ${st.text};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-`;
-
-const VehiclePlate = styled.div`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    font-family: 'Courier New', monospace;
-    letter-spacing: 0.05em;
-`;
-
-const VehicleArrow = styled.div`
-    color: ${st.textMuted};
-    flex-shrink: 0;
-    svg { width: 13px; height: 13px; }
-`;
-
-const EmptySlot = styled.div`
-    padding: 14px 16px;
-    font-size: ${st.fontSm};
-    color: ${st.textMuted};
-    text-align: center;
-`;
-
-// ─── Communication list ───────────────────────────────────────────────────────
-
-const CommList = styled.div`
-    display: flex;
-    flex-direction: column;
-`;
-
-const CommItem = styled.div`
-    padding: 14px 20px;
-    border-bottom: 1px solid ${st.border};
-
-    &:last-child { border-bottom: none; }
-`;
-
-const CommHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 4px;
-    gap: 12px;
-`;
-
-const CommSubject = styled.span`
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    color: ${st.text};
-`;
-
-const CommDate = styled.time`
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    white-space: nowrap;
-    flex-shrink: 0;
-`;
-
-const CommSummary = styled.p`
-    margin: 0 0 8px;
-    font-size: ${st.fontSm};
-    color: ${st.textSecondary};
-    line-height: 1.5;
-`;
-
-const CommBadges = styled.div`
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-`;
-
-const CommBadge = styled.span<{ $variant?: string }>`
-    display: inline-flex;
-    padding: 2px 8px;
-    border-radius: ${st.radiusFull};
-    font-size: 11px;
-    font-weight: 600;
-
-    ${props => {
-        const variants: Record<string, string> = {
-            email:    `background: ${st.accentBlueDim}; color: ${st.accentBlue};`,
-            sms:      `background: ${st.accentAmberDim}; color: ${st.accentAmber};`,
-            phone:    `background: ${st.accentGreenDim}; color: ${st.accentGreen};`,
-            meeting:  'background: rgba(139,92,246,0.12); color: #7c3aed;',
-            inbound:  `background: ${st.accentBlueDim}; color: ${st.accentBlue};`,
-            outbound: `background: ${st.accentGreenDim}; color: ${st.accentGreen};`,
-        };
-        return variants[props.$variant || ''] || `background: ${st.bgCardAlt}; color: ${st.textMuted};`;
-    }}
-`;
-
-const CommEmpty = styled.div`
-    padding: 32px 20px;
-    text-align: center;
-    color: ${st.textMuted};
-    font-size: ${st.fontSm};
-`;
-
-// ─── Loading / Error ──────────────────────────────────────────────────────────
-
-const LoadingContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 400px;
-    gap: 16px;
-`;
-
-const Spinner = styled.div`
-    width: 38px;
-    height: 38px;
-    border: 3px solid ${st.border};
-    border-top-color: ${st.accentBlue};
-    border-radius: 50%;
-    animation: ${spin} 0.7s linear infinite;
-`;
-
-const LoadingText = styled.p`
-    margin: 0;
-    color: ${st.textMuted};
-    font-size: ${st.fontSm};
-`;
-
-const ErrorContainer = styled.div`
-    padding: 48px 32px;
-    text-align: center;
-`;
-
-const ErrorTitle = styled.h2`
-    margin: 0 0 8px;
-    font-size: 20px;
-    font-weight: 700;
-    color: ${st.accentRed};
-`;
-
-const ErrorMessage = styled.p`
-    margin: 0 0 20px;
-    color: ${st.textSecondary};
-    font-size: ${st.fontSm};
-`;
-
-const RetryButton = styled.button`
-    padding: 9px 22px;
-    background: ${st.accentBlue};
-    color: white;
-    border: none;
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
-    box-shadow: ${st.shadowSm};
-    &:hover { background: #2563EB; box-shadow: ${st.shadowMd}; }
-`;
+import type { Vehicle, Visit, Reservation, MarketingConsent, CommunicationLog } from '../types';
+
+import {
+    ViewContainer, PageContent,
+    BreadcrumbNav, BreadcrumbLink, BreadcrumbSep, BreadcrumbCurrent,
+    PageHeader, HeaderLeft, HeaderMetaRow, PageTitle, MetaText, HeaderActions,
+    TierBadge,
+    TwoColGrid, LeftRail, MainCol,
+    Panel, PanelHead, PanelTitle, PanelBody, PanelBodyFlush, PanelCountBadge, PanelLinkBtn,
+    IdentityRow, Avatar, IdentityMeta, IdentityName, IdentityId,
+    ContactList, ContactRow,
+    VehicleItem, VehicleSwatch, VehicleInfo, VehicleName, VehicleSub,
+    SummaryStrip, SumCell, SumCellActive, KpiEyebrow, KpiValue, KpiDelta,
+    ChartGrid, ChartBars, ChartBarCol, ChartBarWrap, ChartBar, ChartBarLabel,
+    UpcomingItem, UpcomingDateBox, UpcomingDateNum, UpcomingInfo, UpcomingTitle, UpcomingSub,
+    VisitRow, VisitDateCol, VisitDateMain, VisitDateSub, VisitInfo, VisitTitle, VisitSub, VisitAmount,
+    StatusBadge,
+    PrefRow, PrefKey, PrefVal,
+    NoteText,
+    CollapsibleSection, CollapsibleHeader, CollapsibleHeaderLeft,
+    SectionIconWrap, CollapsibleTitle, CollapsibleBadge, ChevronIcon, CollapsibleBody,
+    CenteredBox, SpinnerEl, LoadingText, ErrorTitle, ErrorMsg,
+} from './CustomerDetailView.styles';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const commTypeLabels: Record<string, string> = {
-    email: 'E-mail', sms: 'SMS', phone: 'Telefon', meeting: 'Spotkanie',
-};
+const MONTH_LABELS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
 
-const commDirectionLabels: Record<string, string> = {
-    inbound: 'Przychodzący', outbound: 'Wychodzący',
-};
-
-function formatAddress(address: { street: string; postalCode: string; city: string } | null): string {
-    if (!address) return '—';
-    return `${address.street}, ${address.postalCode} ${address.city}`;
+function getInitials(firstName: string | null, lastName: string | null): string {
+    const f = firstName?.[0] ?? '';
+    const l = lastName?.[0] ?? '';
+    return (f + l).toUpperCase() || '?';
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+function formatShortDate(dateStr: string): { day: string; month: string; time: string } {
+    const d = new Date(dateStr);
+    return {
+        day:   d.getDate().toString().padStart(2, '0'),
+        month: MONTH_LABELS[d.getMonth()].toUpperCase(),
+        time:  d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
+    };
+}
+
+function visitStatusBadge(status: Visit['status']): { label: string; kind: 'success' | 'info' | 'warn' | 'neutral' | 'error' } {
+    switch (status) {
+        case 'completed':   return { label: 'Zakończona',  kind: 'success' };
+        case 'in-progress': return { label: 'W trakcie',   kind: 'info' };
+        case 'scheduled':   return { label: 'Zaplanowana', kind: 'neutral' };
+        case 'cancelled':   return { label: 'Anulowana',   kind: 'error' };
+        default:            return { label: status,        kind: 'neutral' };
+    }
+}
+
+function reservationStatusBadge(status: Reservation['status']): { label: string; kind: 'success' | 'info' | 'warn' | 'neutral' | 'error' } {
+    switch (status) {
+        case 'CREATED':   return { label: 'Rezerwacja', kind: 'neutral' };
+        case 'CONVERTED': return { label: 'Aktywna',    kind: 'info' };
+        case 'CANCELLED': return { label: 'Anulowana',  kind: 'error' };
+        case 'ABANDONED': return { label: 'Porzucona',  kind: 'warn' };
+        default:          return { label: status,        kind: 'neutral' };
+    }
+}
+
+function deriveContactPreference(consents: MarketingConsent[]): string {
+    const granted = consents.filter(c => c.granted).map(c => c.type);
+    if (granted.length === 0) return 'Brak zgód';
+    const labels: Record<string, string> = { email: 'E-mail', sms: 'SMS', phone: 'Telefon', postal: 'Poczta' };
+    return granted.map(t => labels[t] ?? t).join(', ');
+}
+
+// ─── Compute monthly revenue buckets from visits (12 trailing months) ────────
+
+function buildMonthlyRevenue(visits: Visit[]): number[] {
+    const buckets = Array(12).fill(0) as number[];
+    const now = new Date();
+    visits.forEach(v => {
+        const d = new Date(v.date);
+        const monthsAgo =
+            (now.getFullYear() - d.getFullYear()) * 12 +
+            now.getMonth() - d.getMonth();
+        if (monthsAgo >= 0 && monthsAgo < 12) {
+            buckets[11 - monthsAgo] += v.totalCost.grossAmount;
+        }
+    });
+    return buckets;
+}
+
+function buildMonthLabels(): string[] {
+    const now = new Date();
+    return Array.from({ length: 12 }, (_, i) => {
+        const m = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
+        return MONTH_LABELS[m.getMonth()];
+    });
+}
+
+// ─── Main view ────────────────────────────────────────────────────────────────
 
 export const CustomerDetailView = () => {
     const { customerId } = useParams<{ customerId: string }>();
+    const navigate = useNavigate();
 
-    const [isEditModalOpen, setIsEditModalOpen]               = useState(false);
+    const [isEditModalOpen,        setIsEditModalOpen]        = useState(false);
     const [isEditCompanyModalOpen, setIsEditCompanyModalOpen] = useState(false);
-    const [isDocsOpen, setIsDocsOpen]                         = useState(true);
-    const [isCommOpen, setIsCommOpen]                         = useState(false);
-    const [isAuditOpen, setIsAuditOpen]                       = useState(false);
-    const [visitsPage]                                         = useState(1);
-    const visitsLimit = 50;
+    const [isDocsOpen,             setIsDocsOpen]             = useState(false);
+    const [isCommOpen,             setIsCommOpen]             = useState(false);
+    const [isAuditOpen,            setIsAuditOpen]            = useState(false);
 
-    const { customerDetail, isLoading, isError, refetch } = useCustomerDetail(customerId!);
-    const { vehicles, isLoading: isVehiclesLoading }      = useCustomerVehicles(customerId!);
-    const { visits: rawVisits, communications }            = useCustomerVisits(customerId!, visitsPage, visitsLimit);
-    const { reservations }                                 = useCustomerReservations(customerId!);
-    const { updateConsent, isUpdating: isConsentUpdating } = useUpdateConsent({ customerId: customerId! });
+    const { customerDetail, isLoading, isError, refetch }   = useCustomerDetail(customerId!);
+    const { vehicles, isLoading: vehiclesLoading }           = useCustomerVehicles(customerId!);
+    const { visits: rawVisits, communications }              = useCustomerVisits(customerId!, 1, 50);
+    const { reservations }                                   = useCustomerReservations(customerId!);
+    const { updateConsent, isUpdating: consentUpdating }     = useUpdateConsent({ customerId: customerId! });
 
     const visits = useMemo(() => rawVisits.map(v => ({
         ...v,
         licensePlate: v.licensePlate || vehicles.find(vh => vh.id === v.vehicleId)?.licensePlate,
     })), [rawVisits, vehicles]);
 
-    useEffect(() => { /* page reset handled by page state */ }, [customerId]);
+    const monthlyRevenue = useMemo(() => buildMonthlyRevenue(visits), [visits]);
+    const monthLabels    = useMemo(() => buildMonthLabels(), []);
+    const revenueMax     = useMemo(() => Math.max(...monthlyRevenue, 1), [monthlyRevenue]);
+
+    const activeVisit = useMemo(
+        () => visits.find(v => v.status === 'in-progress'),
+        [visits],
+    );
+
+    const upcomingReservations = useMemo(
+        () => [...reservations]
+            .filter(r => r.status === 'CREATED' || r.status === 'CONVERTED')
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+            .slice(0, 3),
+        [reservations],
+    );
+
+    // ── Loading ──────────────────────────────────────────────────────────────
 
     if (isLoading) {
         return (
             <ViewContainer>
-                <ContentArea>
-                    <LoadingContainer>
-                        <Spinner />
+                <PageContent>
+                    <CenteredBox>
+                        <SpinnerEl />
                         <LoadingText>Ładowanie danych klienta...</LoadingText>
-                    </LoadingContainer>
-                </ContentArea>
+                    </CenteredBox>
+                </PageContent>
             </ViewContainer>
         );
     }
@@ -498,120 +172,148 @@ export const CustomerDetailView = () => {
     if (isError || !customerDetail) {
         return (
             <ViewContainer>
-                <ContentArea>
-                    <ErrorContainer>
+                <PageContent>
+                    <CenteredBox>
                         <ErrorTitle>{t.common.error}</ErrorTitle>
-                        <ErrorMessage>{t.customers.error.detailLoadFailed}</ErrorMessage>
-                        <RetryButton onClick={() => refetch()}>{t.common.retry}</RetryButton>
-                    </ErrorContainer>
-                </ContentArea>
+                        <ErrorMsg>{t.customers.error.detailLoadFailed}</ErrorMsg>
+                        <SharedButton $variant="primary" onClick={() => refetch()}>
+                            {t.common.retry}
+                        </SharedButton>
+                    </CenteredBox>
+                </PageContent>
             </ViewContainer>
         );
     }
 
-    const { customer, marketingConsents } = customerDetail;
+    const { customer, marketingConsents, loyaltyTier, lifetimeValue } = customerDetail;
+    const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || 'Nieznany klient';
+    const initials = getInitials(customer.firstName, customer.lastName);
+
+    const recentVisits = visits.slice(0, 5);
 
     return (
         <ViewContainer>
-            {/* ─── Hero header (z stats strip) ────────── */}
-            <CustomerHeader
-                data={customerDetail}
-                onEditCustomer={() => setIsEditModalOpen(true)}
-                onEditCompany={() => setIsEditCompanyModalOpen(true)}
-            />
+            <PageContent>
 
-            <ContentArea>
-                <MainGrid>
-                    {/* ─── Left: historia + sekcje ────────── */}
-                    <MainColumn>
-                        <CustomerVisitHistory visits={visits} reservations={reservations} />
+                {/* ─── Breadcrumb ────────────────────────────────── */}
+                <BreadcrumbNav aria-label="Nawigacja">
+                    <BreadcrumbLink to="/customers">Klienci</BreadcrumbLink>
+                    <BreadcrumbSep>›</BreadcrumbSep>
+                    <BreadcrumbCurrent>{fullName}</BreadcrumbCurrent>
+                </BreadcrumbNav>
 
-                        {/* Dokumenty */}
-                        <Section>
-                            <SectionHeader
-                                onClick={() => setIsDocsOpen(v => !v)}
-                                aria-expanded={isDocsOpen}
-                                aria-controls="docs-section"
-                            >
-                                <SectionHeaderLeft>
-                                    <SectionIconWrap>
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                            <polyline points="14 2 14 8 20 8"/>
-                                        </svg>
-                                    </SectionIconWrap>
-                                    <SectionTitle>Dokumenty</SectionTitle>
-                                </SectionHeaderLeft>
-                                <ChevronIcon $open={isDocsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="6 9 12 15 18 9" />
-                                </ChevronIcon>
-                            </SectionHeader>
-                            <SectionBody $visible={isDocsOpen} $flush id="docs-section">
-                                <DocumentsManager customerId={customerId!} />
-                            </SectionBody>
-                        </Section>
+                {/* ─── Page header ───────────────────────────────── */}
+                <PageHeader>
+                    <HeaderLeft>
+                        <HeaderMetaRow>
+                            {loyaltyTier && loyaltyTier !== 'bronze' && (
+                                <TierBadge $tier={loyaltyTier}>
+                                    {loyaltyTier.charAt(0).toUpperCase() + loyaltyTier.slice(1)}
+                                </TierBadge>
+                            )}
+                            <MetaText>
+                                Klient od {formatDate(customer.createdAt)}
+                                {' · '}
+                                {customer.totalVisits} wizyt
+                                {' · '}
+                                {formatCurrency(lifetimeValue.grossAmount, lifetimeValue.currency)}
+                            </MetaText>
+                        </HeaderMetaRow>
+                        <PageTitle>{fullName}</PageTitle>
+                    </HeaderLeft>
 
-                        {/* Komunikacja */}
-                        <Section>
-                            <SectionHeader
-                                onClick={() => setIsCommOpen(v => !v)}
-                                aria-expanded={isCommOpen}
-                                aria-controls="comm-section"
-                            >
-                                <SectionHeaderLeft>
-                                    <SectionIconWrap $gradient="linear-gradient(135deg, #10B981 0%, #059669 100%)">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <rect x="2" y="4" width="20" height="16" rx="2" />
-                                            <path d="M2 7l10 7 10-7" />
-                                        </svg>
-                                    </SectionIconWrap>
-                                    <SectionTitle>Komunikacja</SectionTitle>
-                                    {communications.length > 0 && (
-                                        <SectionCount>{communications.length}</SectionCount>
+                    <HeaderActions>
+                        <SharedButton
+                            $variant="secondary"
+                            $size="sm"
+                            onClick={() => setIsEditModalOpen(true)}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                            Edytuj dane
+                        </SharedButton>
+                        <SharedButton
+                            $variant="secondary"
+                            $size="sm"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            SMS
+                        </SharedButton>
+                        <SharedButton
+                            $variant="primary"
+                            $size="sm"
+                            onClick={() => navigate('/checkin/new')}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                                <line x1="12" y1="14" x2="12" y2="18"/>
+                                <line x1="10" y1="16" x2="14" y2="16"/>
+                            </svg>
+                            Nowa wizyta
+                        </SharedButton>
+                    </HeaderActions>
+                </PageHeader>
+
+                {/* ─── Two-column layout ─────────────────────────── */}
+                <TwoColGrid>
+
+                    {/* ── LEFT RAIL ────────────────────────────────── */}
+                    <LeftRail>
+
+                        {/* Identity card */}
+                        <Panel>
+                            <PanelBody>
+                                <IdentityRow>
+                                    <Avatar aria-hidden="true">{initials}</Avatar>
+                                    <IdentityMeta>
+                                        <IdentityName>{fullName}</IdentityName>
+                                        <IdentityId>ID: {customer.id.slice(0, 8).toUpperCase()}</IdentityId>
+                                    </IdentityMeta>
+                                </IdentityRow>
+
+                                <ContactList>
+                                    {customer.contact.phone && (
+                                        <ContactRow href={`tel:${customer.contact.phone}`}>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.93a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 3h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 18"/>
+                                            </svg>
+                                            {customer.contact.phone}
+                                        </ContactRow>
                                     )}
-                                </SectionHeaderLeft>
-                                <ChevronIcon $open={isCommOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="6 9 12 15 18 9" />
-                                </ChevronIcon>
-                            </SectionHeader>
-                            <SectionBody $visible={isCommOpen} $flush id="comm-section">
-                                <CommunicationList communications={communications} />
-                            </SectionBody>
-                        </Section>
+                                    {customer.contact.email && (
+                                        <ContactRow href={`mailto:${customer.contact.email}`}>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                                                <path d="M2 7l10 7 10-7"/>
+                                            </svg>
+                                            {customer.contact.email}
+                                        </ContactRow>
+                                    )}
+                                    {customer.homeAddress && (
+                                        <ContactRow as="div">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                                <circle cx="12" cy="10" r="3"/>
+                                            </svg>
+                                            {customer.homeAddress.city}
+                                            {customer.homeAddress.street ? ` · ${customer.homeAddress.street}` : ''}
+                                        </ContactRow>
+                                    )}
+                                </ContactList>
+                            </PanelBody>
+                        </Panel>
 
-                        {/* Historia zmian */}
-                        <Section>
-                            <SectionHeader
-                                onClick={() => setIsAuditOpen(v => !v)}
-                                aria-expanded={isAuditOpen}
-                                aria-controls="audit-section"
-                            >
-                                <SectionHeaderLeft>
-                                    <SectionIconWrap $gradient="linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <circle cx="12" cy="12" r="10" />
-                                            <polyline points="12 6 12 12 16 14" />
-                                        </svg>
-                                    </SectionIconWrap>
-                                    <SectionTitle>Historia zmian</SectionTitle>
-                                </SectionHeaderLeft>
-                                <ChevronIcon $open={isAuditOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="6 9 12 15 18 9" />
-                                </ChevronIcon>
-                            </SectionHeader>
-                            <SectionBody $visible={isAuditOpen} id="audit-section">
-                                <AuditTimeline module="CUSTOMER" entityId={customerId!} />
-                            </SectionBody>
-                        </Section>
-                    </MainColumn>
-
-                    {/* ─── Right sidebar ──────────────────── */}
-                    <SidebarColumn>
-                        {/* Pojazdy */}
-                        <SidebarCard>
-                            <SidebarCardHeader>
-                                <SidebarCardTitle>
-                                    {/* Elegant car/sedan icon */}
+                        {/* Vehicles */}
+                        <Panel>
+                            <PanelHead>
+                                <PanelTitle>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
                                         <path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.4L19 11"/>
                                         <rect x="2" y="11" width="20" height="6" rx="1"/>
@@ -620,92 +322,436 @@ export const CustomerDetailView = () => {
                                         <path d="M5 11h14"/>
                                     </svg>
                                     Pojazdy
-                                </SidebarCardTitle>
-                                <SidebarCardBadge>{vehicles.length}</SidebarCardBadge>
-                            </SidebarCardHeader>
-                            <VehiclesList>
-                                {isVehiclesLoading ? (
-                                    <EmptySlot>Ładowanie...</EmptySlot>
+                                </PanelTitle>
+                                <PanelCountBadge>{vehicles.length}</PanelCountBadge>
+                            </PanelHead>
+                            <PanelBodyFlush>
+                                {vehiclesLoading ? (
+                                    <PanelBody>
+                                        <LoadingText>Ładowanie...</LoadingText>
+                                    </PanelBody>
                                 ) : vehicles.length === 0 ? (
-                                    <EmptySlot>Brak przypisanych pojazdów</EmptySlot>
+                                    <PanelBody>
+                                        <NoteText>Brak przypisanych pojazdów.</NoteText>
+                                    </PanelBody>
                                 ) : (
-                                    vehicles.map((vehicle: Vehicle) => (
-                                        <VehicleLink key={vehicle.id} to={`/vehicles/${vehicle.id}`}>
-                                            <VehicleIcon>
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                                                    <path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.4L19 11"/>
-                                                    <rect x="2" y="11" width="20" height="6" rx="1"/>
-                                                    <circle cx="7" cy="17" r="2"/>
-                                                    <circle cx="17" cy="17" r="2"/>
-                                                    <path d="M5 11h14"/>
-                                                </svg>
-                                            </VehicleIcon>
+                                    vehicles.map((vehicle: Vehicle, idx: number) => (
+                                        <VehicleItem
+                                            key={vehicle.id}
+                                            $active={idx === 0}
+                                            onClick={() => navigate(`/vehicles/${vehicle.id}`)}
+                                        >
+                                            <VehicleSwatch $color={vehicle.color || undefined} />
                                             <VehicleInfo>
                                                 <VehicleName>{vehicle.make} {vehicle.model}</VehicleName>
-                                                <VehiclePlate>
-                                                    {[vehicle.licensePlate, vehicle.year].filter(Boolean).join(' · ')}
-                                                </VehiclePlate>
+                                                <VehicleSub>
+                                                    {vehicle.licensePlate}
+                                                    {vehicle.year ? ` · ${vehicle.year}` : ''}
+                                                </VehicleSub>
                                             </VehicleInfo>
-                                            <VehicleArrow>
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M9 18l6-6-6-6" />
-                                                </svg>
-                                            </VehicleArrow>
-                                        </VehicleLink>
+                                            {idx === 0 && (
+                                                <StatusBadge $kind="info">aktualna</StatusBadge>
+                                            )}
+                                        </VehicleItem>
                                     ))
                                 )}
-                            </VehiclesList>
-                        </SidebarCard>
+                            </PanelBodyFlush>
+                        </Panel>
 
-                        {/* Firma — tylko dane do faktur (nazwa jest w headerze) */}
+                        {/* Preferences */}
+                        <Panel>
+                            <PanelHead>
+                                <PanelTitle>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                    </svg>
+                                    Preferencje
+                                </PanelTitle>
+                            </PanelHead>
+                            <PanelBody>
+                                <PrefRow>
+                                    <PrefKey>Kontakt</PrefKey>
+                                    <PrefVal>{deriveContactPreference(marketingConsents)}</PrefVal>
+                                </PrefRow>
+                                {customer.homeAddress && (
+                                    <PrefRow>
+                                        <PrefKey>Miasto</PrefKey>
+                                        <PrefVal>{customer.homeAddress.city}</PrefVal>
+                                    </PrefRow>
+                                )}
+                                <PrefRow>
+                                    <PrefKey>Typ klienta</PrefKey>
+                                    <PrefVal>{customer.company ? 'Firma' : 'Osoba prywatna'}</PrefVal>
+                                </PrefRow>
+                                <PrefRow>
+                                    <PrefKey>Marketing</PrefKey>
+                                    <PrefVal $positive={marketingConsents.some(c => c.granted)}>
+                                        {marketingConsents.some(c => c.granted) ? 'Zgoda' : 'Brak zgody'}
+                                    </PrefVal>
+                                </PrefRow>
+                            </PanelBody>
+                        </Panel>
+
+                        {/* Notes */}
+                        <CustomerNotes customerId={customerId!} />
+
+                    </LeftRail>
+
+                    {/* ── MAIN COLUMN ──────────────────────────────── */}
+                    <MainCol>
+
+                        {/* KPI summary strip */}
+                        <SummaryStrip>
+                            <SumCell>
+                                <KpiEyebrow>Łączny przychód</KpiEyebrow>
+                                <KpiValue>
+                                    {formatCurrency(lifetimeValue.grossAmount, lifetimeValue.currency)}
+                                </KpiValue>
+                                <KpiDelta>
+                                    {customer.totalVisits} wizyt łącznie
+                                </KpiDelta>
+                            </SumCell>
+
+                            <SumCell>
+                                <KpiEyebrow>Wizyty</KpiEyebrow>
+                                <KpiValue>{customer.totalVisits}</KpiValue>
+                                <KpiDelta>
+                                    śr. {customer.totalVisits > 0
+                                        ? formatCurrency(
+                                              lifetimeValue.grossAmount / customer.totalVisits,
+                                              lifetimeValue.currency,
+                                          )
+                                        : '—'} / wizyta
+                                </KpiDelta>
+                            </SumCell>
+
+                            <SumCell>
+                                <KpiEyebrow>Ostatnia wizyta</KpiEyebrow>
+                                <KpiValue>
+                                    {customer.lastVisitDate
+                                        ? formatDate(customer.lastVisitDate)
+                                        : '—'}
+                                </KpiValue>
+                                <KpiDelta>
+                                    {customer.lastVisitDate
+                                        ? `${Math.floor((Date.now() - new Date(customer.lastVisitDate).getTime()) / 86400000)} dni temu`
+                                        : 'Brak wizyt'}
+                                </KpiDelta>
+                            </SumCell>
+
+                            {activeVisit ? (
+                                <SumCellActive>
+                                    <KpiEyebrow $light>Aktywna wizyta</KpiEyebrow>
+                                    <KpiValue $light>#{activeVisit.id.slice(0, 6).toUpperCase()}</KpiValue>
+                                    <KpiDelta $light>W trakcie · {activeVisit.vehicleName}</KpiDelta>
+                                </SumCellActive>
+                            ) : (
+                                <SumCell>
+                                    <KpiEyebrow>Pojazdy</KpiEyebrow>
+                                    <KpiValue>{customer.vehicleCount}</KpiValue>
+                                    <KpiDelta>zarejestrowanych</KpiDelta>
+                                </SumCell>
+                            )}
+                        </SummaryStrip>
+
+                        {/* Revenue chart + Upcoming visits */}
+                        <ChartGrid>
+
+                            {/* Revenue chart */}
+                            <Panel>
+                                <PanelHead>
+                                    <PanelTitle>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <line x1="18" y1="20" x2="18" y2="10"/>
+                                            <line x1="12" y1="20" x2="12" y2="4"/>
+                                            <line x1="6" y1="20" x2="6" y2="14"/>
+                                        </svg>
+                                        Przychód · 12 miesięcy
+                                    </PanelTitle>
+                                    <span style={{ fontSize: 12, color: '#64748b' }}>
+                                        Suma: <strong style={{ color: '#0f172a' }}>
+                                            {formatCurrency(
+                                                monthlyRevenue.reduce((a, b) => a + b, 0),
+                                                lifetimeValue.currency,
+                                            )}
+                                        </strong>
+                                    </span>
+                                </PanelHead>
+                                <PanelBody>
+                                    <ChartBars>
+                                        {monthlyRevenue.map((val, i) => (
+                                            <ChartBarCol key={i}>
+                                                <ChartBarWrap>
+                                                    <ChartBar
+                                                        $h={Math.max(3, Math.round((val / revenueMax) * 100))}
+                                                        $active={i === 11}
+                                                        title={formatCurrency(val, lifetimeValue.currency)}
+                                                    />
+                                                </ChartBarWrap>
+                                                <ChartBarLabel>{monthLabels[i]}</ChartBarLabel>
+                                            </ChartBarCol>
+                                        ))}
+                                    </ChartBars>
+                                </PanelBody>
+                            </Panel>
+
+                            {/* Upcoming reservations */}
+                            <Panel>
+                                <PanelHead>
+                                    <PanelTitle>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                            <line x1="16" y1="2" x2="16" y2="6"/>
+                                            <line x1="8" y1="2" x2="8" y2="6"/>
+                                            <line x1="3" y1="10" x2="21" y2="10"/>
+                                        </svg>
+                                        Nadchodzące
+                                    </PanelTitle>
+                                </PanelHead>
+                                <PanelBodyFlush>
+                                    {upcomingReservations.length === 0 ? (
+                                        <PanelBody>
+                                            <NoteText>Brak zaplanowanych wizyt.</NoteText>
+                                        </PanelBody>
+                                    ) : (
+                                        upcomingReservations.map((r: Reservation) => {
+                                            const { day, month } = formatShortDate(r.date);
+                                            const { label, kind } = reservationStatusBadge(r.status);
+                                            return (
+                                                <UpcomingItem key={r.id}>
+                                                    <UpcomingDateBox>
+                                                        <UpcomingDateNum>{day}</UpcomingDateNum>
+                                                        {month}
+                                                    </UpcomingDateBox>
+                                                    <UpcomingInfo>
+                                                        <UpcomingTitle>{r.vehicleName}</UpcomingTitle>
+                                                        <UpcomingSub>
+                                                            {r.licensePlate ?? '—'}
+                                                            {' · '}
+                                                            {formatCurrency(r.totalCost.grossAmount, r.totalCost.currency)}
+                                                        </UpcomingSub>
+                                                    </UpcomingInfo>
+                                                    <StatusBadge $kind={kind}>{label}</StatusBadge>
+                                                </UpcomingItem>
+                                            );
+                                        })
+                                    )}
+                                </PanelBodyFlush>
+                            </Panel>
+
+                        </ChartGrid>
+
+                        {/* Recent visits */}
+                        <Panel>
+                            <PanelHead>
+                                <PanelTitle>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M3 3h18v18H3z" fill="none"/>
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <polyline points="12 6 12 12 16 14"/>
+                                    </svg>
+                                    Ostatnie wizyty
+                                </PanelTitle>
+                                {visits.length > 5 && (
+                                    <PanelLinkBtn to={`/customers/${customerId}`}>
+                                        Wszystkie {visits.length}
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M9 18l6-6-6-6"/>
+                                        </svg>
+                                    </PanelLinkBtn>
+                                )}
+                            </PanelHead>
+                            <PanelBodyFlush>
+                                {recentVisits.length === 0 ? (
+                                    <PanelBody>
+                                        <NoteText>Brak historii wizyt.</NoteText>
+                                    </PanelBody>
+                                ) : (
+                                    recentVisits.map((visit: Visit & { licensePlate?: string }) => {
+                                        const d = new Date(visit.date);
+                                        const { label, kind } = visitStatusBadge(visit.status);
+                                        return (
+                                            <VisitRow
+                                                key={visit.id}
+                                                $active={visit.status === 'in-progress'}
+                                                onClick={() => navigate(`/appointments/${visit.id}`)}
+                                            >
+                                                <VisitDateCol>
+                                                    <VisitDateMain>
+                                                        {d.getDate().toString().padStart(2, '0')}.{(d.getMonth() + 1).toString().padStart(2, '0')}
+                                                    </VisitDateMain>
+                                                    <VisitDateSub>
+                                                        {d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
+                                                    </VisitDateSub>
+                                                </VisitDateCol>
+
+                                                <VisitInfo>
+                                                    <VisitTitle>{visit.description || visit.type || 'Wizyta'}</VisitTitle>
+                                                    <VisitSub>
+                                                        {visit.vehicleName}
+                                                        {visit.technician ? ` · ${visit.technician}` : ''}
+                                                    </VisitSub>
+                                                </VisitInfo>
+
+                                                <StatusBadge $kind={kind} className="visit-hide-sm">{label}</StatusBadge>
+
+                                                <VisitAmount>
+                                                    {formatCurrency(visit.totalCost.grossAmount, visit.totalCost.currency)}
+                                                </VisitAmount>
+
+                                                <svg
+                                                    className="visit-hide-sm"
+                                                    width="16" height="16"
+                                                    viewBox="0 0 24 24" fill="none"
+                                                    stroke="#cbd5e1" strokeWidth="2"
+                                                >
+                                                    <path d="M9 18l6-6-6-6"/>
+                                                </svg>
+                                            </VisitRow>
+                                        );
+                                    })
+                                )}
+                            </PanelBodyFlush>
+                        </Panel>
+
+                        {/* ── Collapsible sections ───────────────── */}
+
+                        {/* Documents */}
+                        <CollapsibleSection>
+                            <CollapsibleHeader
+                                onClick={() => setIsDocsOpen(v => !v)}
+                                aria-expanded={isDocsOpen}
+                                aria-controls="docs-section"
+                            >
+                                <CollapsibleHeaderLeft>
+                                    <SectionIconWrap>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                        </svg>
+                                    </SectionIconWrap>
+                                    <CollapsibleTitle>Dokumenty</CollapsibleTitle>
+                                </CollapsibleHeaderLeft>
+                                <ChevronIcon $open={isDocsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </ChevronIcon>
+                            </CollapsibleHeader>
+                            <CollapsibleBody $visible={isDocsOpen} $flush id="docs-section">
+                                <DocumentsManager customerId={customerId!} />
+                            </CollapsibleBody>
+                        </CollapsibleSection>
+
+                        {/* Communication */}
+                        <CollapsibleSection>
+                            <CollapsibleHeader
+                                onClick={() => setIsCommOpen(v => !v)}
+                                aria-expanded={isCommOpen}
+                                aria-controls="comm-section"
+                            >
+                                <CollapsibleHeaderLeft>
+                                    <SectionIconWrap $gradient="linear-gradient(135deg, #10B981 0%, #059669 100%)">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <rect x="2" y="4" width="20" height="16" rx="2"/>
+                                            <path d="M2 7l10 7 10-7"/>
+                                        </svg>
+                                    </SectionIconWrap>
+                                    <CollapsibleTitle>Komunikacja</CollapsibleTitle>
+                                    {communications.length > 0 && (
+                                        <CollapsibleBadge>{communications.length}</CollapsibleBadge>
+                                    )}
+                                </CollapsibleHeaderLeft>
+                                <ChevronIcon $open={isCommOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </ChevronIcon>
+                            </CollapsibleHeader>
+                            <CollapsibleBody $visible={isCommOpen} $flush id="comm-section">
+                                <CommunicationList communications={communications} />
+                            </CollapsibleBody>
+                        </CollapsibleSection>
+
+                        {/* Consents */}
+                        {marketingConsents.length > 0 && (
+                            <ConsentManager
+                                consents={marketingConsents}
+                                onConsentToggle={(id, granted) => updateConsent({ consentId: id, granted })}
+                                isUpdating={consentUpdating}
+                            />
+                        )}
+
+                        {/* Audit trail */}
+                        <CollapsibleSection>
+                            <CollapsibleHeader
+                                onClick={() => setIsAuditOpen(v => !v)}
+                                aria-expanded={isAuditOpen}
+                                aria-controls="audit-section"
+                            >
+                                <CollapsibleHeaderLeft>
+                                    <SectionIconWrap $gradient="linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <polyline points="12 6 12 12 16 14"/>
+                                        </svg>
+                                    </SectionIconWrap>
+                                    <CollapsibleTitle>Historia zmian</CollapsibleTitle>
+                                </CollapsibleHeaderLeft>
+                                <ChevronIcon $open={isAuditOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </ChevronIcon>
+                            </CollapsibleHeader>
+                            <CollapsibleBody $visible={isAuditOpen} id="audit-section">
+                                <AuditTimeline module="CUSTOMER" entityId={customerId!} />
+                            </CollapsibleBody>
+                        </CollapsibleSection>
+
+                        {/* Company invoice data */}
                         {customer.company && (
-                            <SidebarCard>
-                                <SidebarCardHeader>
-                                    <SidebarCardTitle>
+                            <Panel>
+                                <PanelHead>
+                                    <PanelTitle>
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                                             <polyline points="9,22 9,12 15,12 15,22"/>
                                         </svg>
                                         Dane do faktury
-                                    </SidebarCardTitle>
-                                </SidebarCardHeader>
-                                {customer.company.nip && (
-                                    <InfoRow>
-                                        <InfoLabel>NIP</InfoLabel>
-                                        <InfoValue>{customer.company.nip}</InfoValue>
-                                    </InfoRow>
-                                )}
-                                {customer.company.regon && (
-                                    <InfoRow>
-                                        <InfoLabel>REGON</InfoLabel>
-                                        <InfoValue>{customer.company.regon}</InfoValue>
-                                    </InfoRow>
-                                )}
-                                {customer.company.address && (
-                                    <InfoRow $noBorder>
-                                        <InfoLabel>Adres</InfoLabel>
-                                        <InfoValue>{formatAddress(customer.company.address)}</InfoValue>
-                                    </InfoRow>
-                                )}
-                            </SidebarCard>
+                                    </PanelTitle>
+                                    <SharedButton
+                                        $variant="ghost"
+                                        $size="sm"
+                                        onClick={() => setIsEditCompanyModalOpen(true)}
+                                    >
+                                        Edytuj
+                                    </SharedButton>
+                                </PanelHead>
+                                <PanelBody>
+                                    {customer.company.nip && (
+                                        <PrefRow>
+                                            <PrefKey>NIP</PrefKey>
+                                            <PrefVal>{customer.company.nip}</PrefVal>
+                                        </PrefRow>
+                                    )}
+                                    {customer.company.regon && (
+                                        <PrefRow>
+                                            <PrefKey>REGON</PrefKey>
+                                            <PrefVal>{customer.company.regon}</PrefVal>
+                                        </PrefRow>
+                                    )}
+                                    {customer.company.address && (
+                                        <PrefRow>
+                                            <PrefKey>Adres</PrefKey>
+                                            <PrefVal>
+                                                {customer.company.address.street}, {customer.company.address.postalCode} {customer.company.address.city}
+                                            </PrefVal>
+                                        </PrefRow>
+                                    )}
+                                </PanelBody>
+                            </Panel>
                         )}
 
-                        {/* Zgody marketingowe */}
-                        {marketingConsents && marketingConsents.length > 0 && (
-                            <ConsentManager
-                                consents={marketingConsents}
-                                onConsentToggle={(id, granted) => updateConsent({ consentId: id, granted })}
-                                isUpdating={isConsentUpdating}
-                            />
-                        )}
+                    </MainCol>
+                </TwoColGrid>
+            </PageContent>
 
-                        {/* Notatki */}
-                        <CustomerNotes customerId={customerId!} />
-                    </SidebarColumn>
-                </MainGrid>
-            </ContentArea>
-
-            {/* ─── Modals ──────────────────────────────────── */}
+            {/* ─── Modals ─────────────────────────────────────── */}
             <EditCustomerModal
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}
@@ -721,41 +767,95 @@ export const CustomerDetailView = () => {
     );
 };
 
-// ─── Communication List ───────────────────────────────────────────────────────
+// ─── Communication list (inline sub-component) ────────────────────────────────
+
+const CommList = styled.div``;
+const CommItem = styled.div`
+    padding: 13px 20px;
+    border-bottom: 1px solid ${st.border};
+    &:last-child { border-bottom: none; }
+`;
+const CommHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 4px;
+`;
+const CommSubject = styled.span`
+    font-size: 13px;
+    font-weight: 600;
+    color: ${st.text};
+`;
+const CommDate = styled.time`
+    font-size: 11px;
+    color: ${st.textMuted};
+    white-space: nowrap;
+    flex-shrink: 0;
+`;
+const CommSummary = styled.p`
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: ${st.textSecondary};
+    line-height: 1.5;
+`;
+const CommBadges = styled.div`
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+`;
+const CommBadge = styled.span<{ $v?: string }>`
+    display: inline-flex;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 600;
+    ${p => {
+        const map: Record<string, string> = {
+            email:    `background: ${st.accentBlueDim}; color: ${st.accentBlue};`,
+            sms:      `background: ${st.accentAmberDim}; color: ${st.accentAmber};`,
+            phone:    `background: ${st.accentGreenDim}; color: ${st.accentGreen};`,
+            inbound:  `background: ${st.accentBlueDim}; color: ${st.accentBlue};`,
+            outbound: `background: ${st.accentGreenDim}; color: ${st.accentGreen};`,
+        };
+        return map[p.$v ?? ''] ?? `background: ${st.bgCardAlt}; color: ${st.textMuted};`;
+    }}
+`;
+const CommEmpty = styled.div`
+    padding: 28px 20px;
+    text-align: center;
+    font-size: 13px;
+    color: ${st.textMuted};
+`;
+
+const TYPE_LABELS:      Record<string, string> = { email: 'E-mail', sms: 'SMS', phone: 'Telefon', meeting: 'Spotkanie' };
+const DIR_LABELS:       Record<string, string> = { inbound: 'Przychodzący', outbound: 'Wychodzący' };
 
 function CommunicationList({ communications }: { communications: CommunicationLog[] }) {
-    if (communications.length === 0) {
-        return <CommEmpty>Brak historii komunikacji z klientem.</CommEmpty>;
-    }
-
-    const sorted = [...communications].sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    if (communications.length === 0) return <CommEmpty>Brak historii komunikacji z klientem.</CommEmpty>;
 
     return (
         <CommList>
-            {sorted.map(comm => (
-                <CommItem key={comm.id}>
-                    <CommHeader>
-                        <CommSubject>{comm.subject}</CommSubject>
-                        <CommDate>
-                            {new Date(comm.date).toLocaleDateString('pl-PL', {
-                                day: '2-digit', month: '2-digit', year: 'numeric',
-                                hour: '2-digit', minute: '2-digit',
-                            })}
-                        </CommDate>
-                    </CommHeader>
-                    <CommSummary>{comm.summary}</CommSummary>
-                    <CommBadges>
-                        <CommBadge $variant={comm.type}>
-                            {commTypeLabels[comm.type] || comm.type}
-                        </CommBadge>
-                        <CommBadge $variant={comm.direction}>
-                            {commDirectionLabels[comm.direction] || comm.direction}
-                        </CommBadge>
-                    </CommBadges>
-                </CommItem>
-            ))}
+            {[...communications]
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                .map(comm => (
+                    <CommItem key={comm.id}>
+                        <CommHeader>
+                            <CommSubject>{comm.subject}</CommSubject>
+                            <CommDate>
+                                {new Date(comm.date).toLocaleDateString('pl-PL', {
+                                    day: '2-digit', month: '2-digit', year: 'numeric',
+                                    hour: '2-digit', minute: '2-digit',
+                                })}
+                            </CommDate>
+                        </CommHeader>
+                        <CommSummary>{comm.summary}</CommSummary>
+                        <CommBadges>
+                            <CommBadge $v={comm.type}>{TYPE_LABELS[comm.type] ?? comm.type}</CommBadge>
+                            <CommBadge $v={comm.direction}>{DIR_LABELS[comm.direction] ?? comm.direction}</CommBadge>
+                        </CommBadges>
+                    </CommItem>
+                ))}
         </CommList>
     );
 }
