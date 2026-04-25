@@ -1,9 +1,9 @@
 // src/modules/visits/components/ServiceInlineRow.tsx
 //
 // A single "new service" row rendered inline inside the ServicesTable.
-// Handles name autocomplete (catalog lookup) + price display.
+// Handles name autocomplete (catalog lookup) + bidirectional netto/brutto entry.
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import { useDebounce } from '@/common/hooks';
@@ -103,14 +103,14 @@ const PriceHint = styled.span`
     flex-shrink: 0;
 `;
 
-const PriceCell = styled.span`
+const VatCell = styled.span`
     font-size: 13px;
     font-variant-numeric: tabular-nums;
-    color: ${st.text};
+    color: ${st.textMuted};
 `;
 
-const NetInput = styled.input`
-    width: 80px;
+const PriceInput = styled.input`
+    width: 90px;
     padding: 7px 8px;
     border: 1.5px solid ${st.border};
     border-radius: 9px;
@@ -127,7 +127,11 @@ const NetInput = styled.input`
         border-color: ${BRAND};
         box-shadow: ${BRAND_RING};
     }
-    &:read-only { opacity: 0.55; cursor: default; }
+    &:read-only {
+        opacity: 0.55;
+        cursor: default;
+        background: ${st.bg};
+    }
 `;
 
 const RemoveBtn = styled.button`
@@ -152,6 +156,18 @@ const RemoveBtn = styled.button`
     svg { width: 12px; height: 12px; }
 `;
 
+/* ─── Helpers ─────────────────────────────────────────────────────────────── */
+
+function pln(cents: number): number { return cents / 100; }
+function cents(pln: number): number { return Math.round(pln * 100); }
+function grossFromNet(netPln: number, vatRate: number): number { return netPln * (1 + vatRate / 100); }
+function netFromGross(grossPln: number, vatRate: number): number { return grossPln / (1 + vatRate / 100); }
+function fmtPrice(val: number): string { return val.toFixed(2); }
+function parsePln(raw: string): number | null {
+    const v = parseFloat(raw.replace(',', '.'));
+    return isNaN(v) || v < 0 ? null : v;
+}
+
 /* ─── Component ───────────────────────────────────────────────────────────── */
 
 interface Props {
@@ -166,6 +182,31 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom }: Props
     const [open, setOpen] = useState(false);
     const debouncedQuery = useDebounce(query, 250);
     const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Local display strings — typed freely, never re-derived from parent on
+    // every keystroke. Parent basePriceNet is updated immediately on each valid
+    // change so "Zaakceptuj" always sees the current value.
+    const [netStr, setNetStr] = useState(() =>
+        row.basePriceNet > 0 ? fmtPrice(pln(row.basePriceNet)) : ''
+    );
+    const [grossStr, setGrossStr] = useState(() =>
+        row.basePriceNet > 0 ? fmtPrice(grossFromNet(pln(row.basePriceNet), row.vatRate)) : ''
+    );
+
+    // Sync display when basePriceNet is updated externally (catalog selection,
+    // QuickServiceModal result coming in via parent→prop change).
+    const lastSyncedPrice = useRef(row.basePriceNet);
+    useEffect(() => {
+        if (lastSyncedPrice.current === row.basePriceNet) return;
+        lastSyncedPrice.current = row.basePriceNet;
+        if (row.basePriceNet > 0) {
+            setNetStr(fmtPrice(pln(row.basePriceNet)));
+            setGrossStr(fmtPrice(grossFromNet(pln(row.basePriceNet), row.vatRate)));
+        } else {
+            setNetStr('');
+            setGrossStr('');
+        }
+    }, [row.basePriceNet, row.vatRate]);
 
     const { data } = useQuery({
         queryKey: ['svc-inline-search', debouncedQuery],
@@ -185,6 +226,15 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom }: Props
     const handleSelect = (svc: Service) => {
         setQuery(svc.name);
         setOpen(false);
+        if (!svc.requireManualPrice) {
+            const net = pln(svc.basePriceNet);
+            setNetStr(fmtPrice(net));
+            setGrossStr(fmtPrice(grossFromNet(net, Number(svc.vatRate))));
+        } else {
+            // Requires manual price — clear so the user must fill it in
+            setNetStr('');
+            setGrossStr('');
+        }
         onUpdate({
             serviceId: svc.id,
             serviceName: svc.name,
@@ -197,19 +247,56 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom }: Props
     const handleBlur = () => {
         closeTimer.current = setTimeout(() => setOpen(false), 160);
     };
-
     const handleMouseDown = () => {
         if (closeTimer.current) clearTimeout(closeTimer.current);
     };
 
-    const grossPln = (row.basePriceNet / 100) * (1 + row.vatRate / 100);
+    // ── Net input handlers ──────────────────────────────────────────────────
 
-    const handleNetChange = (raw: string) => {
-        const val = parseFloat(raw.replace(',', '.'));
-        if (!isNaN(val) && val >= 0) {
-            onUpdate({ basePriceNet: Math.round(val * 100) });
+    const handleNetChange = (str: string) => {
+        setNetStr(str);
+        if (!str.trim()) {
+            setGrossStr('');
+            onUpdate({ basePriceNet: 0 });
+            return;
+        }
+        const val = parsePln(str);
+        if (val !== null) {
+            setGrossStr(fmtPrice(grossFromNet(val, row.vatRate)));
+            onUpdate({ basePriceNet: cents(val) });
+        }
+        // Partial input (e.g. "1.") — keep last valid parent state, don't jump display
+    };
+
+    const formatNet = () => {
+        const val = parsePln(netStr);
+        if (val !== null) setNetStr(fmtPrice(val));
+    };
+
+    // ── Gross input handlers ────────────────────────────────────────────────
+
+    const handleGrossChange = (str: string) => {
+        setGrossStr(str);
+        if (!str.trim()) {
+            setNetStr('');
+            onUpdate({ basePriceNet: 0 });
+            return;
+        }
+        const val = parsePln(str);
+        if (val !== null) {
+            const netVal = netFromGross(val, row.vatRate);
+            setNetStr(fmtPrice(netVal));
+            onUpdate({ basePriceNet: cents(netVal) });
         }
     };
+
+    const formatGross = () => {
+        const val = parsePln(grossStr);
+        if (val !== null) setGrossStr(fmtPrice(val));
+    };
+
+    // Price fields are editable unless it's a catalog service with a fixed price
+    const priceReadOnly = row.serviceId !== null && !row.requireManualPrice;
 
     return (
         <tr style={{ background: 'rgba(14, 165, 233, 0.04)', borderBottom: `1px solid ${st.border}` }}>
@@ -249,24 +336,35 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom }: Props
 
             {/* Cena netto */}
             <Cell>
-                <NetInput
+                <PriceInput
                     type="text"
                     inputMode="decimal"
-                    value={row.requireManualPrice && row.serviceId !== null ? '' : (row.basePriceNet / 100).toFixed(2)}
-                    readOnly={!row.requireManualPrice && row.serviceId !== null}
+                    value={netStr}
+                    readOnly={priceReadOnly}
                     placeholder="0.00"
                     onChange={e => handleNetChange(e.target.value)}
+                    onBlur={formatNet}
+                    onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                 />
             </Cell>
 
             {/* VAT */}
             <Cell>
-                <PriceCell>{row.vatRate}%</PriceCell>
+                <VatCell>{row.vatRate}%</VatCell>
             </Cell>
 
             {/* Cena brutto */}
             <Cell>
-                <PriceCell>{formatCurrency(grossPln)}</PriceCell>
+                <PriceInput
+                    type="text"
+                    inputMode="decimal"
+                    value={grossStr}
+                    readOnly={priceReadOnly}
+                    placeholder="0.00"
+                    onChange={e => handleGrossChange(e.target.value)}
+                    onBlur={formatGross}
+                    onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                />
             </Cell>
 
             {/* Akcje */}
