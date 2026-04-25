@@ -148,7 +148,8 @@ export const VisitAccent = styled.div<{ $status: string }>`
         const s = props.$status;
         if (s === 'scheduled' || s === 'CREATED' || s === 'created') return '#f59e0b';
         if (s === 'in-progress' || s === 'in_progress') return 'var(--brand-primary)';
-        if (s === 'completed' || s === 'CONVERTED') return '#10b981';
+        if (s === 'ready-for-pickup' || s === 'ready_for_pickup') return '#10b981';
+        if (s === 'completed' || s === 'CONVERTED') return '#6366f1';
         if (s === 'cancelled' || s === 'CANCELLED' || s === 'ABANDONED') return '#ef4444';
         return '#94a3b8';
     }};
@@ -276,6 +277,7 @@ export const VisitStatusBadge = styled.span<{ $status: string }>`
         const s = props.$status;
         if (s === 'completed' || s === 'CONVERTED') return 'background: #dcfce7; color: #166534;';
         if (s === 'in-progress' || s === 'in_progress') return 'background: #dbeafe; color: #1e40af;';
+        if (s === 'ready-for-pickup' || s === 'ready_for_pickup') return 'background: #d1fae5; color: #065f46;';
         if (s === 'scheduled' || s === 'CREATED' || s === 'created') return 'background: #fef3c7; color: #92400e;';
         if (s === 'cancelled' || s === 'CANCELLED' || s === 'ABANDONED') return 'background: #fee2e2; color: #991b1b;';
         return 'background: #f3f4f6; color: #6b7280;';

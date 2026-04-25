@@ -65,9 +65,10 @@ function formatShortDate(dateStr: string): { day: string; month: string; time: s
 function visitStatusBadge(status: Visit['status']): { label: string; kind: 'success' | 'info' | 'warn' | 'neutral' | 'error' } {
     switch (status) {
         case 'completed':   return { label: 'Zakończona',  kind: 'success' };
-        case 'in-progress': return { label: 'W trakcie',   kind: 'info' };
-        case 'scheduled':   return { label: 'Zaplanowana', kind: 'neutral' };
-        case 'cancelled':   return { label: 'Anulowana',   kind: 'error' };
+        case 'in-progress':       return { label: 'W trakcie',          kind: 'info' };
+        case 'ready-for-pickup':  return { label: 'Gotowa do odbioru', kind: 'warn' };
+        case 'scheduled':         return { label: 'Zaplanowana',       kind: 'neutral' };
+        case 'cancelled':         return { label: 'Anulowana',         kind: 'error' };
         default:            return { label: status,        kind: 'neutral' };
     }
 }

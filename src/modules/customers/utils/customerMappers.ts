@@ -148,12 +148,15 @@ export const mapBackendVisitToVisit = (backendVisit: BackendVisit): Visit => {
             case 'in-progress':
             case 'in_progress':
                 return 'in-progress' as const;
+            case 'ready_for_pickup':
+            case 'ready-for-pickup':
+                return 'ready-for-pickup' as const;
             case 'scheduled':
                 return 'scheduled' as const;
             case 'cancelled':
                 return 'cancelled' as const;
             default:
-                return 'scheduled' as const; // fallback
+                return 'scheduled' as const;
         }
     })();
 
