@@ -1,4 +1,4 @@
-// src/modules/visits/components/VisitCommunicationHistory.tsx
+// src/modules/customers/components/CustomerCommunicationList.tsx
 
 import { useState } from 'react';
 import styled from 'styled-components';
@@ -11,12 +11,12 @@ import {
     AlertIcon,
     formatCommDate,
 } from '@/common/components/CommunicationPreviewModal';
-import type { CommunicationEntry } from '../types';
+import type { CommunicationEntry } from '@/common/types/communication';
 
 const BRAND     = '#0ea5e9';
 const BRAND_DIM = 'rgba(14, 165, 233, 0.10)';
 
-// ─── Timeline List ────────────────────────────────────────────────────────────
+// ─── Timeline ────────────────────────────────────────────────────────────────
 
 const TimelineList = styled.ul`
     list-style: none;
@@ -177,17 +177,16 @@ const PreviewHint = styled.span`
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 const EmptyState = styled.div`
-    padding: 28px 20px;
+    padding: 32px 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    color: ${st.textMuted};
 `;
 
-const EmptyIcon = styled.div`
-    width: 36px;
-    height: 36px;
+const EmptyIconWrap = styled.div`
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: ${st.bgCardAlt};
     border: 1px solid ${st.border};
@@ -205,23 +204,23 @@ const EmptyText = styled.p`
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-interface VisitCommunicationHistoryProps {
+interface Props {
     entries: CommunicationEntry[];
     isLoading?: boolean;
 }
 
-export const VisitCommunicationHistory = ({ entries, isLoading }: VisitCommunicationHistoryProps) => {
+export const CustomerCommunicationList = ({ entries, isLoading }: Props) => {
     const [selected, setSelected] = useState<CommunicationEntry | null>(null);
 
     if (isLoading) {
         return (
             <EmptyState>
-                <EmptyIcon>
+                <EmptyIconWrap>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={st.textMuted} strokeWidth="2">
                         <circle cx="12" cy="12" r="10" />
                         <polyline points="12 6 12 12 16 14" />
                     </svg>
-                </EmptyIcon>
+                </EmptyIconWrap>
                 <EmptyText>Ładowanie historii komunikacji...</EmptyText>
             </EmptyState>
         );
@@ -230,13 +229,13 @@ export const VisitCommunicationHistory = ({ entries, isLoading }: VisitCommunica
     if (entries.length === 0) {
         return (
             <EmptyState>
-                <EmptyIcon>
+                <EmptyIconWrap>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={st.textMuted} strokeWidth="2">
                         <rect x="2" y="4" width="20" height="16" rx="2" />
                         <path d="M2 7l10 7 10-7" />
                     </svg>
-                </EmptyIcon>
-                <EmptyText>Brak wysłanej komunikacji dla tej wizyty</EmptyText>
+                </EmptyIconWrap>
+                <EmptyText>Brak historii komunikacji z klientem.</EmptyText>
             </EmptyState>
         );
     }
@@ -244,46 +243,48 @@ export const VisitCommunicationHistory = ({ entries, isLoading }: VisitCommunica
     return (
         <>
             <TimelineList>
-                {entries.map((entry, idx) => {
-                    const isFailed = entry.status === 'FAILED';
-                    const isLast = idx === entries.length - 1;
-                    return (
-                        <TimelineItem key={entry.id} $last={isLast}>
-                            <ChannelDot $channel={entry.channel} $failed={isFailed}>
-                                {entry.channel === 'EMAIL'
-                                    ? <EmailIcon size={14} />
-                                    : <SmsIcon size={14} />
-                                }
-                            </ChannelDot>
-                            <EntryCard
-                                onClick={() => setSelected(entry)}
-                                aria-label={`Podgląd: ${entry.messageTypeLabel}`}
-                            >
-                                <EntryMain>
-                                    <EntryLabel>{entry.messageTypeLabel}</EntryLabel>
-                                    <EntryMeta>
-                                        <span>{entry.channel === 'EMAIL' ? 'E-mail' : 'SMS'}</span>
-                                        <span>·</span>
-                                        <span>{entry.recipientAddress}</span>
-                                        <span>·</span>
-                                        <span>{formatCommDate(entry.sentAt)}</span>
-                                    </EntryMeta>
-                                </EntryMain>
-                                <EntryRight>
-                                    <StatusBadge $status={entry.status}>
-                                        {entry.status === 'SENT'
-                                            ? <><CheckIcon /> Wysłano</>
-                                            : entry.status === 'RECEIVED'
-                                                ? <><CheckIcon /> Otrzymano</>
-                                                : <><AlertIcon /> Błąd</>
-                                        }
-                                    </StatusBadge>
-                                    <PreviewHint>Podgląd →</PreviewHint>
-                                </EntryRight>
-                            </EntryCard>
-                        </TimelineItem>
-                    );
-                })}
+                {[...entries]
+                    .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime())
+                    .map((entry, idx, arr) => {
+                        const isFailed = entry.status === 'FAILED';
+                        const isLast = idx === arr.length - 1;
+                        return (
+                            <TimelineItem key={entry.id} $last={isLast}>
+                                <ChannelDot $channel={entry.channel} $failed={isFailed}>
+                                    {entry.channel === 'EMAIL'
+                                        ? <EmailIcon size={14} />
+                                        : <SmsIcon size={14} />
+                                    }
+                                </ChannelDot>
+                                <EntryCard
+                                    onClick={() => setSelected(entry)}
+                                    aria-label={`Podgląd: ${entry.messageTypeLabel}`}
+                                >
+                                    <EntryMain>
+                                        <EntryLabel>{entry.messageTypeLabel}</EntryLabel>
+                                        <EntryMeta>
+                                            <span>{entry.channel === 'EMAIL' ? 'E-mail' : 'SMS'}</span>
+                                            <span>·</span>
+                                            <span>{entry.recipientAddress}</span>
+                                            <span>·</span>
+                                            <span>{formatCommDate(entry.sentAt)}</span>
+                                        </EntryMeta>
+                                    </EntryMain>
+                                    <EntryRight>
+                                        <StatusBadge $status={entry.status}>
+                                            {entry.status === 'SENT'
+                                                ? <><CheckIcon /> Wysłano</>
+                                                : entry.status === 'RECEIVED'
+                                                    ? <><CheckIcon /> Otrzymano</>
+                                                    : <><AlertIcon /> Błąd</>
+                                            }
+                                        </StatusBadge>
+                                        <PreviewHint>Podgląd →</PreviewHint>
+                                    </EntryRight>
+                                </EntryCard>
+                            </TimelineItem>
+                        );
+                    })}
             </TimelineList>
 
             {selected && (

@@ -10,6 +10,7 @@ import { useCustomerReservations } from '../hooks/useCustomerReservations';
 import { useCustomerCommunication } from '../hooks/useCustomerCommunication';
 import { useUpdateConsent } from '../hooks/useUpdateConsent';
 import { CustomerNotes } from '../components/CustomerNotes';
+import { CustomerCommunicationList } from '../components/CustomerCommunicationList';
 import { DocumentsManager } from '../components/DocumentsManager';
 import { ConsentManager } from '../components/ConsentManager';
 import { AuditTimeline } from '@/common/components/AuditTimeline';
@@ -20,7 +21,7 @@ import { formatCurrency } from '../utils/customerMappers';
 import { formatDate } from '@/common/utils';
 import { t } from '@/common/i18n';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { Vehicle, Visit, Reservation, MarketingConsent, CommunicationLog, CustomerCommunicationEntry } from '../types';
+import type { Vehicle, Visit, Reservation, MarketingConsent } from '../types';
 
 import {
     ViewContainer, PageContent,
@@ -130,7 +131,7 @@ export const CustomerDetailView = () => {
 
     const { customerDetail, isLoading, isError, refetch }   = useCustomerDetail(customerId!);
     const { vehicles, isLoading: vehiclesLoading }           = useCustomerVehicles(customerId!);
-    const { visits: rawVisits, communications }              = useCustomerVisits(customerId!, 1, 50);
+    const { visits: rawVisits }                              = useCustomerVisits(customerId!, 1, 50);
     const { reservations }                                   = useCustomerReservations(customerId!);
     const { entries: commEntries }                           = useCustomerCommunication(customerId!);
     const { updateConsent, isUpdating: consentUpdating }     = useUpdateConsent({ customerId: customerId! });
@@ -625,7 +626,7 @@ export const CustomerDetailView = () => {
                                 </ChevronIcon>
                             </CollapsibleHeader>
                             <CollapsibleBody $visible={isCommOpen} $flush id="comm-section">
-                                <CommunicationList entries={commEntries} />
+                                <CustomerCommunicationList entries={commEntries} />
                             </CollapsibleBody>
                         </CollapsibleSection>
 
@@ -726,107 +727,3 @@ export const CustomerDetailView = () => {
         </ViewContainer>
     );
 };
-
-// ─── Communication list (inline sub-component) ────────────────────────────────
-
-const CommList = styled.div``;
-const CommItem = styled.div`
-    padding: 13px 20px;
-    border-bottom: 1px solid ${st.border};
-    &:last-child { border-bottom: none; }
-`;
-const CommHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 4px;
-`;
-const CommSubject = styled.span`
-    font-size: 13px;
-    font-weight: 600;
-    color: ${st.text};
-`;
-const CommDate = styled.time`
-    font-size: 11px;
-    color: ${st.textMuted};
-    white-space: nowrap;
-    flex-shrink: 0;
-`;
-const CommSummary = styled.p`
-    margin: 0 0 8px;
-    font-size: 13px;
-    color: ${st.textSecondary};
-    line-height: 1.5;
-`;
-const CommBadges = styled.div`
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-`;
-const CommBadge = styled.span<{ $v?: string }>`
-    display: inline-flex;
-    padding: 2px 8px;
-    border-radius: 9999px;
-    font-size: 11px;
-    font-weight: 600;
-    ${p => {
-        const map: Record<string, string> = {
-            email:    `background: ${st.accentBlueDim}; color: ${st.accentBlue};`,
-            sms:      `background: ${st.accentAmberDim}; color: ${st.accentAmber};`,
-            phone:    `background: ${st.accentGreenDim}; color: ${st.accentGreen};`,
-            inbound:  `background: ${st.accentBlueDim}; color: ${st.accentBlue};`,
-            outbound: `background: ${st.accentGreenDim}; color: ${st.accentGreen};`,
-            sent:     `background: #dcfce7; color: #166534;`,
-            failed:   `background: #fee2e2; color: #991b1b;`,
-        };
-        return map[p.$v ?? ''] ?? `background: ${st.bgCardAlt}; color: ${st.textMuted};`;
-    }}
-`;
-const CommEmpty = styled.div`
-    padding: 28px 20px;
-    text-align: center;
-    font-size: 13px;
-    color: ${st.textMuted};
-`;
-
-function CommunicationList({ entries }: { entries: CustomerCommunicationEntry[] }) {
-    if (entries.length === 0) return <CommEmpty>Brak historii komunikacji z klientem.</CommEmpty>;
-
-    return (
-        <CommList>
-            {[...entries]
-                .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime())
-                .map(entry => (
-                    <CommItem key={entry.id}>
-                        <CommHeader>
-                            <CommSubject>{entry.messageTypeLabel}</CommSubject>
-                            <CommDate>
-                                {new Date(entry.sentAt).toLocaleString('pl-PL', {
-                                    day: '2-digit', month: '2-digit', year: 'numeric',
-                                    hour: '2-digit', minute: '2-digit',
-                                })}
-                            </CommDate>
-                        </CommHeader>
-                        {entry.subject && (
-                            <CommSummary style={{ fontStyle: 'italic' }}>{entry.subject}</CommSummary>
-                        )}
-                        <CommSummary>{entry.recipientAddress}</CommSummary>
-                        <CommBadges>
-                            <CommBadge $v={entry.channel.toLowerCase()}>
-                                {entry.channel === 'EMAIL' ? 'E-mail' : 'SMS'}
-                            </CommBadge>
-                            <CommBadge $v={entry.status === 'SENT' ? 'sent' : 'failed'}>
-                                {entry.status === 'SENT' ? 'Wysłano' : 'Błąd'}
-                            </CommBadge>
-                        </CommBadges>
-                        {entry.status === 'FAILED' && entry.errorMessage && (
-                            <CommSummary style={{ color: '#ef4444', marginTop: 4, fontSize: 12 }}>
-                                {entry.errorMessage}
-                            </CommSummary>
-                        )}
-                    </CommItem>
-                ))}
-        </CommList>
-    );
-}
