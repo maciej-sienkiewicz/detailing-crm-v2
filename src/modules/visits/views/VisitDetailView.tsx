@@ -76,43 +76,50 @@ const ContentArea = styled.div`
 `;
 
 // ─── Main grid ────────────────────────────────────────────────────────────────
+// Flex (not grid) so col-1 expand/collapse never shifts col-2.
 
 const MainGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 16px;
     margin-bottom: 20px;
-    align-items: start;
 
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
-        grid-template-columns: 1fr 320px;
+        flex-direction: row;
         gap: 20px;
-    }
-
-    @media (min-width: ${props => props.theme.breakpoints.xl}) {
-        grid-template-columns: 1fr 340px;
     }
 `;
 
 const MainColumn = styled.div`
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 14px;
-    min-width: 0;
 `;
 
 const Sidebar = styled.aside`
+    width: 100%;
     display: flex;
     flex-direction: column;
     gap: 12px;
 
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
+        width: 320px;
+        flex-shrink: 0;
         position: sticky;
         top: 80px;
         max-height: calc(100vh - 100px);
         overflow-y: auto;
         scrollbar-width: none;
         &::-webkit-scrollbar { display: none; }
+        /* Prevent flex compression when VisitComments grows */
+        > * { flex-shrink: 0; }
+    }
+
+    @media (min-width: ${props => props.theme.breakpoints.xl}) {
+        width: 340px;
     }
 `;
 
@@ -363,7 +370,7 @@ const RetryButton = styled.button`
 
 const ReminderCard = styled.div`
     background: ${st.bgCard};
-    border: 1px solid rgba(14, 165, 233, 0.25);
+    border: 1px solid ${st.border};
     border-radius: ${st.radius};
     overflow: hidden;
     box-shadow: ${st.shadowSm};
@@ -374,28 +381,24 @@ const ReminderCardHeader = styled.div`
     align-items: center;
     gap: 8px;
     padding: 12px 14px 10px;
-    background: ${BRAND_DIM};
-    border-bottom: 1px solid rgba(14, 165, 233, 0.15);
+    background: ${st.bgCard};
+    border-bottom: 1px solid ${st.border};
 `;
 
 const ReminderCardIcon = styled.div`
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    background: ${BRAND};
-    color: white;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    color: ${st.textMuted};
     flex-shrink: 0;
-    svg { width: 12px; height: 12px; }
+    svg { width: 15px; height: 15px; }
 `;
 
 const ReminderCardTitle = styled.span`
     flex: 1;
     font-size: ${st.fontSm};
-    font-weight: 700;
-    color: ${BRAND_DARK};
+    font-weight: 600;
+    color: ${st.text};
 `;
 
 const ReminderCardBadge = styled.span`
@@ -403,9 +406,9 @@ const ReminderCardBadge = styled.span`
     font-weight: 700;
     padding: 2px 7px;
     border-radius: ${st.radiusFull};
-    background: rgba(14, 165, 233, 0.15);
-    color: ${BRAND_DARK};
-    border: 1px solid rgba(14, 165, 233, 0.3);
+    background: ${st.bgCardAlt};
+    color: ${st.textMuted};
+    border: 1px solid ${st.border};
     text-transform: uppercase;
     letter-spacing: 0.4px;
 `;

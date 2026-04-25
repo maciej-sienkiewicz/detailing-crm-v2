@@ -54,11 +54,11 @@ const CountBadge = styled.span`
     justify-content: center;
     padding: 2px 8px;
     border-radius: ${st.radiusFull};
-    background: ${BRAND_DIM};
-    color: ${BRAND_DARK};
+    background: ${st.bgCardAlt};
+    color: ${st.textMuted};
     font-size: ${st.fontXs};
     font-weight: 700;
-    border: 1px solid rgba(14, 165, 233, 0.2);
+    border: 1px solid ${st.border};
 `;
 
 /* ─── Add-comment form ────────────────────────────────────────────────────── */

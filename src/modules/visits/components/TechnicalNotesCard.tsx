@@ -1,8 +1,6 @@
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
-const BRAND = '#0ea5e9';
-const BRAND_DIM = 'rgba(14, 165, 233, 0.10)';
 
 const Card = styled.div`
     background: ${st.bgCard};
@@ -18,18 +16,14 @@ const CardHeader = styled.div`
     gap: 8px;
     padding: 13px 16px;
     border-bottom: 1px solid ${st.border};
-    background: ${st.bg};
+    background: ${st.bgCard};
 `;
 
 const CardIconWrap = styled.div`
-    width: 28px;
-    height: 28px;
-    border-radius: 7px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, ${BRAND} 0%, #0284c7 100%);
-    color: white;
+    color: ${st.textMuted};
     flex-shrink: 0;
 `;
 
@@ -52,9 +46,8 @@ const NotesContent = styled.div`
     white-space: pre-wrap;
     word-break: break-word;
     padding: 10px 12px;
-    background: ${BRAND_DIM};
-    border: 1px solid rgba(14, 165, 233, 0.15);
-    border-left: 3px solid ${BRAND};
+    background: ${st.bg};
+    border: 1px solid ${st.border};
     border-radius: 8px;
 `;
 

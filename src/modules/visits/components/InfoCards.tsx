@@ -4,8 +4,6 @@ import type { VehicleInfo, CustomerInfo } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
 const BRAND = '#0ea5e9';
-const BRAND_DARK = '#0284c7';
-const BRAND_DIM = 'rgba(14, 165, 233, 0.10)';
 
 // ─── Shared card shell ────────────────────────────────────────────────────────
 
@@ -33,14 +31,10 @@ const CardTitleGroup = styled.div`
 `;
 
 const CardIconWrap = styled.div`
-    width: 26px;
-    height: 26px;
-    border-radius: 7px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, ${BRAND} 0%, ${BRAND_DARK} 100%);
-    color: white;
+    color: ${st.textMuted};
     flex-shrink: 0;
 `;
 
@@ -58,8 +52,8 @@ const ViewBtn = styled.button`
     gap: 4px;
     padding: 4px 10px;
     background: transparent;
-    color: ${BRAND_DARK};
-    border: 1px solid rgba(14, 165, 233, 0.3);
+    color: ${st.textSecondary};
+    border: 1px solid ${st.border};
     border-radius: ${st.radiusFull};
     font-size: 11px;
     font-weight: 600;
@@ -68,10 +62,8 @@ const ViewBtn = styled.button`
     white-space: nowrap;
 
     &:hover {
-        background: ${BRAND_DIM};
-        border-color: ${BRAND};
-        color: ${BRAND};
-        transform: translateY(-1px);
+        border-color: ${st.borderHover};
+        color: ${st.text};
     }
 
     svg { width: 11px; height: 11px; }
