@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { customerDetailApi } from '../api/customerDetailApi';
-import type { CustomerCommunicationEntry } from '../types';
+import type { CommunicationEntry } from '@/common/types/communication';
 
 export const useCustomerCommunication = (customerId: string): {
-    entries: CustomerCommunicationEntry[];
+    entries: CommunicationEntry[];
     isLoading: boolean;
     isError: boolean;
 } => {

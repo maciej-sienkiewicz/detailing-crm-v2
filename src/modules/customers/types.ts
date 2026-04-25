@@ -1,3 +1,5 @@
+import type { CommunicationEntry as SharedCommunicationEntry } from '@/common/types/communication';
+
 export interface CompanyDetails {
     id: string;
     name: string;
@@ -188,23 +190,11 @@ export interface CommunicationLog {
     performedBy: string;
 }
 
-export interface CustomerCommunicationEntry {
-    id: string;
-    visitId: string | null;
-    channel: 'EMAIL' | 'SMS';
-    messageType: string;
-    messageTypeLabel: string;
-    recipientAddress: string;
-    subject: string | null;
-    bodyContent: string;
-    status: 'SENT' | 'FAILED';
-    errorMessage: string | null;
-    sentAt: string;
-}
+export type { CommunicationEntry } from '@/common/types/communication';
 
 export interface CustomerCommunicationResponse {
     customerId: string;
-    entries: CustomerCommunicationEntry[];
+    entries: SharedCommunicationEntry[];
 }
 
 export interface CustomerDetailData {
