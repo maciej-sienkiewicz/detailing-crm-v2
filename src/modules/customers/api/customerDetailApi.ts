@@ -471,20 +471,25 @@ export const customerDetailApi = {
             return { reservations: mockReservations };
         }
 
-        const [createdResponse, abandonedResponse] = await Promise.all([
-            apiClient.get<BackendAppointmentsListResponse>(`/v1/appointments`, {
-                params: { customerId, status: 'CREATED', limit: '100' },
-            }),
-            apiClient.get<BackendAppointmentsListResponse>(`/v1/appointments`, {
-                params: { customerId, status: 'CANCELLED', limit: '100' },
-            }),
-        ]);
+        const now = new Date();
+        const startDate = new Date(now);
+        startDate.setFullYear(startDate.getFullYear() - 3);
+        const endDate = new Date(now);
+        endDate.setFullYear(endDate.getFullYear() + 1);
 
-        const allAppointments = [
-            ...(createdResponse.data.appointments || []),
-            ...(abandonedResponse.data.appointments || []),
-        ];
+        const response = await apiClient.get<{ appointments: BackendAppointment[]; visits: unknown[] }>(
+            '/v1/calendar/events',
+            {
+                params: {
+                    customerId,
+                    appointmentStatuses: 'ABANDONED,CREATED',
+                    visitStatuses: 'READY_FOR_PICKUP,IN_PROGRESS,COMPLETED',
+                    startDate: startDate.toISOString(),
+                    endDate: endDate.toISOString(),
+                },
+            }
+        );
 
-        return mapBackendReservationsResponse(allAppointments);
+        return mapBackendReservationsResponse(response.data.appointments || []);
     },
 };

@@ -154,7 +154,7 @@ export interface Visit {
         grossAmount: number;
         currency: string;
     };
-    status: 'completed' | 'in-progress' | 'scheduled' | 'cancelled';
+    status: 'completed' | 'in-progress' | 'ready-for-pickup' | 'scheduled' | 'cancelled';
     createdBy: string;
     notes: string;
 }
