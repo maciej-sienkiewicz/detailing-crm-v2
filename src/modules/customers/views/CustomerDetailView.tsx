@@ -7,6 +7,7 @@ import { useCustomerDetail } from '../hooks/useCustomerDetail';
 import { useCustomerVehicles } from '../hooks/useCustomerVehicles';
 import { useCustomerVisits } from '../hooks/useCustomerVisits';
 import { useCustomerReservations } from '../hooks/useCustomerReservations';
+import { useCustomerCommunication } from '../hooks/useCustomerCommunication';
 import { useUpdateConsent } from '../hooks/useUpdateConsent';
 import { CustomerNotes } from '../components/CustomerNotes';
 import { DocumentsManager } from '../components/DocumentsManager';
@@ -19,7 +20,7 @@ import { formatCurrency } from '../utils/customerMappers';
 import { formatDate } from '@/common/utils';
 import { t } from '@/common/i18n';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { Vehicle, Visit, Reservation, MarketingConsent, CommunicationLog } from '../types';
+import type { Vehicle, Visit, Reservation, MarketingConsent, CommunicationLog, CustomerCommunicationEntry } from '../types';
 
 import {
     ViewContainer, PageContent,
@@ -131,6 +132,7 @@ export const CustomerDetailView = () => {
     const { vehicles, isLoading: vehiclesLoading }           = useCustomerVehicles(customerId!);
     const { visits: rawVisits, communications }              = useCustomerVisits(customerId!, 1, 50);
     const { reservations }                                   = useCustomerReservations(customerId!);
+    const { entries: commEntries }                           = useCustomerCommunication(customerId!);
     const { updateConsent, isUpdating: consentUpdating }     = useUpdateConsent({ customerId: customerId! });
 
     const visits = useMemo(() => rawVisits.map(v => ({
@@ -647,8 +649,8 @@ export const CustomerDetailView = () => {
                                         </svg>
                                     </SectionIconWrap>
                                     <CollapsibleTitle>Komunikacja</CollapsibleTitle>
-                                    {communications.length > 0 && (
-                                        <CollapsibleBadge>{communications.length}</CollapsibleBadge>
+                                    {commEntries.length > 0 && (
+                                        <CollapsibleBadge>{commEntries.length}</CollapsibleBadge>
                                     )}
                                 </CollapsibleHeaderLeft>
                                 <ChevronIcon $open={isCommOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -656,7 +658,7 @@ export const CustomerDetailView = () => {
                                 </ChevronIcon>
                             </CollapsibleHeader>
                             <CollapsibleBody $visible={isCommOpen} $flush id="comm-section">
-                                <CommunicationList communications={communications} />
+                                <CommunicationList entries={commEntries} />
                             </CollapsibleBody>
                         </CollapsibleSection>
 
@@ -808,6 +810,8 @@ const CommBadge = styled.span<{ $v?: string }>`
             phone:    `background: ${st.accentGreenDim}; color: ${st.accentGreen};`,
             inbound:  `background: ${st.accentBlueDim}; color: ${st.accentBlue};`,
             outbound: `background: ${st.accentGreenDim}; color: ${st.accentGreen};`,
+            sent:     `background: #dcfce7; color: #166534;`,
+            failed:   `background: #fee2e2; color: #991b1b;`,
         };
         return map[p.$v ?? ''] ?? `background: ${st.bgCardAlt}; color: ${st.textMuted};`;
     }}
@@ -819,32 +823,41 @@ const CommEmpty = styled.div`
     color: ${st.textMuted};
 `;
 
-const TYPE_LABELS:      Record<string, string> = { email: 'E-mail', sms: 'SMS', phone: 'Telefon', meeting: 'Spotkanie' };
-const DIR_LABELS:       Record<string, string> = { inbound: 'Przychodzący', outbound: 'Wychodzący' };
-
-function CommunicationList({ communications }: { communications: CommunicationLog[] }) {
-    if (communications.length === 0) return <CommEmpty>Brak historii komunikacji z klientem.</CommEmpty>;
+function CommunicationList({ entries }: { entries: CustomerCommunicationEntry[] }) {
+    if (entries.length === 0) return <CommEmpty>Brak historii komunikacji z klientem.</CommEmpty>;
 
     return (
         <CommList>
-            {[...communications]
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                .map(comm => (
-                    <CommItem key={comm.id}>
+            {[...entries]
+                .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime())
+                .map(entry => (
+                    <CommItem key={entry.id}>
                         <CommHeader>
-                            <CommSubject>{comm.subject}</CommSubject>
+                            <CommSubject>{entry.messageTypeLabel}</CommSubject>
                             <CommDate>
-                                {new Date(comm.date).toLocaleDateString('pl-PL', {
+                                {new Date(entry.sentAt).toLocaleString('pl-PL', {
                                     day: '2-digit', month: '2-digit', year: 'numeric',
                                     hour: '2-digit', minute: '2-digit',
                                 })}
                             </CommDate>
                         </CommHeader>
-                        <CommSummary>{comm.summary}</CommSummary>
+                        {entry.subject && (
+                            <CommSummary style={{ fontStyle: 'italic' }}>{entry.subject}</CommSummary>
+                        )}
+                        <CommSummary>{entry.recipientAddress}</CommSummary>
                         <CommBadges>
-                            <CommBadge $v={comm.type}>{TYPE_LABELS[comm.type] ?? comm.type}</CommBadge>
-                            <CommBadge $v={comm.direction}>{DIR_LABELS[comm.direction] ?? comm.direction}</CommBadge>
+                            <CommBadge $v={entry.channel.toLowerCase()}>
+                                {entry.channel === 'EMAIL' ? 'E-mail' : 'SMS'}
+                            </CommBadge>
+                            <CommBadge $v={entry.status === 'SENT' ? 'sent' : 'failed'}>
+                                {entry.status === 'SENT' ? 'Wysłano' : 'Błąd'}
+                            </CommBadge>
                         </CommBadges>
+                        {entry.status === 'FAILED' && entry.errorMessage && (
+                            <CommSummary style={{ color: '#ef4444', marginTop: 4, fontSize: 12 }}>
+                                {entry.errorMessage}
+                            </CommSummary>
+                        )}
                     </CommItem>
                 ))}
         </CommList>

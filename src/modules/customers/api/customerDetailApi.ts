@@ -13,6 +13,7 @@ import type {
     CommunicationLog,
     Reservation,
     CustomerReservationsResponse,
+    CustomerCommunicationResponse,
 } from '../types';
 import { mapBackendVehiclesResponse, mapBackendVisitsResponse, mapBackendReservationsResponse } from '../utils/customerMappers';
 
@@ -491,5 +492,12 @@ export const customerDetailApi = {
         );
 
         return mapBackendReservationsResponse(response.data.appointments || []);
+    },
+
+    getCustomerCommunication: async (customerId: string): Promise<CustomerCommunicationResponse> => {
+        const response = await apiClient.get<CustomerCommunicationResponse>(
+            `${CUSTOMERS_BASE_PATH}/${customerId}/communication`
+        );
+        return response.data;
     },
 };
