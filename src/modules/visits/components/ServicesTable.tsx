@@ -105,17 +105,17 @@ const DeleteRowBtn = styled.button`
     align-items: center;
     gap: 4px;
     padding: 4px 9px;
-    border: 1px solid rgba(239, 68, 68, 0.28);
+    border: 1px solid ${st.border};
     border-radius: ${st.radiusFull};
-    background: rgba(239, 68, 68, 0.06);
-    color: #ef4444;
+    background: transparent;
+    color: ${st.textMuted};
     font-size: ${st.fontXs};
     font-weight: 600;
     cursor: pointer;
-    transition: background 150ms, border-color 150ms;
+    transition: background 150ms, border-color 150ms, color 150ms;
     white-space: nowrap;
 
-    &:hover { background: rgba(239, 68, 68, 0.13); border-color: rgba(239, 68, 68, 0.5); }
+    &:hover { background: ${st.bg}; border-color: ${st.borderHover}; color: ${st.textSecondary}; }
     svg { width: 11px; height: 11px; }
 `;
 

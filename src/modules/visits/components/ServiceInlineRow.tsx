@@ -139,19 +139,20 @@ const RemoveBtn = styled.button`
     align-items: center;
     gap: 4px;
     padding: 4px 10px;
-    border: 1px solid rgba(239, 68, 68, 0.28);
+    border: 1px solid ${st.border};
     border-radius: 9999px;
-    background: rgba(239, 68, 68, 0.06);
-    color: #ef4444;
+    background: transparent;
+    color: ${st.textMuted};
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 150ms, border-color 150ms;
+    transition: background 150ms, border-color 150ms, color 150ms;
     white-space: nowrap;
 
     &:hover {
-        background: rgba(239, 68, 68, 0.13);
-        border-color: rgba(239, 68, 68, 0.5);
+        background: ${st.bg};
+        border-color: ${st.borderHover};
+        color: ${st.textSecondary};
     }
     svg { width: 12px; height: 12px; }
 `;
