@@ -108,14 +108,6 @@ const Sidebar = styled.aside`
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
         width: 320px;
         flex-shrink: 0;
-        position: sticky;
-        top: 80px;
-        max-height: calc(100vh - 100px);
-        overflow-y: auto;
-        scrollbar-width: none;
-        &::-webkit-scrollbar { display: none; }
-        /* Prevent flex compression when VisitComments grows */
-        > * { flex-shrink: 0; }
     }
 
     @media (min-width: ${props => props.theme.breakpoints.xl}) {
