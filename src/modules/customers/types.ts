@@ -188,6 +188,25 @@ export interface CommunicationLog {
     performedBy: string;
 }
 
+export interface CustomerCommunicationEntry {
+    id: string;
+    visitId: string | null;
+    channel: 'EMAIL' | 'SMS';
+    messageType: string;
+    messageTypeLabel: string;
+    recipientAddress: string;
+    subject: string | null;
+    bodyContent: string;
+    status: 'SENT' | 'FAILED';
+    errorMessage: string | null;
+    sentAt: string;
+}
+
+export interface CustomerCommunicationResponse {
+    customerId: string;
+    entries: CustomerCommunicationEntry[];
+}
+
 export interface CustomerDetailData {
     customer: Customer;
     marketingConsents: MarketingConsent[];
