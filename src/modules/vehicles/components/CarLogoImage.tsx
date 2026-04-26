@@ -2,8 +2,6 @@ import { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { getCarLogoUrl } from '../services/carLogos';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type Size = 'sm' | 'md' | 'lg';
 
 interface CarLogoImageProps {
@@ -12,40 +10,36 @@ interface CarLogoImageProps {
     className?: string;
 }
 
-// ─── Sizes ────────────────────────────────────────────────────────────────────
-
 const SIZE_PX: Record<Size, number> = { sm: 24, md: 36, lg: 52 };
-
-// ─── Styled components ────────────────────────────────────────────────────────
 
 const shimmer = keyframes`
     0%   { background-position: -200% 0; }
     100% { background-position:  200% 0; }
 `;
 
-const Wrapper = styled.div<{ $size: number }>`
+// Skeleton i obraz są układane jeden na drugi – obraz zawsze jest w layoucie
+// (opacity zamiast display:none), żeby przeglądarka go faktycznie załadowała.
+const Stack = styled.div<{ $size: number }>`
+    position: relative;
     width: ${p => p.$size}px;
     height: ${p => p.$size}px;
-    border-radius: 50%;
     flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    background: transparent;
 `;
 
-const Skeleton = styled.div<{ $size: number }>`
-    width: ${p => p.$size}px;
-    height: ${p => p.$size}px;
+const Skeleton = styled.div<{ $size: number; $visible: boolean }>`
+    position: absolute;
+    inset: 0;
     border-radius: 50%;
     background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
     background-size: 200% 100%;
     animation: ${shimmer} 1.2s infinite linear;
-    flex-shrink: 0;
+    opacity: ${p => p.$visible ? 1 : 0};
+    pointer-events: none;
+    transition: opacity 0.15s;
 `;
 
-const Img = styled.img<{ $size: number }>`
+const Img = styled.img<{ $size: number; $visible: boolean }>`
+    display: block;
     width: ${p => p.$size}px;
     height: ${p => p.$size}px;
     object-fit: contain;
@@ -53,9 +47,9 @@ const Img = styled.img<{ $size: number }>`
     padding: 3px;
     background: #fff;
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+    opacity: ${p => p.$visible ? 1 : 0};
+    transition: opacity 0.15s;
 `;
-
-// ─── Fallback icon (generic car SVG) ─────────────────────────────────────────
 
 const FallbackBubble = styled.div<{ $size: number }>`
     width: ${p => p.$size}px;
@@ -84,33 +78,33 @@ const CarFallbackIcon = ({ size }: { size: number }) => (
     </FallbackBubble>
 );
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
-type State = 'loading' | 'loaded' | 'error';
+type ImgState = 'loading' | 'loaded' | 'error';
 
 export const CarLogoImage = ({ brand, size = 'md', className }: CarLogoImageProps) => {
     const logoUrl = getCarLogoUrl(brand);
     const px = SIZE_PX[size];
 
-    const [imgState, setImgState] = useState<State>(logoUrl ? 'loading' : 'error');
+    const [imgState, setImgState] = useState<ImgState>(logoUrl ? 'loading' : 'error');
 
     if (!logoUrl || imgState === 'error') {
         return <CarFallbackIcon size={px} />;
     }
 
     return (
-        <Wrapper $size={px} className={className}>
-            {imgState === 'loading' && <Skeleton $size={px} />}
+        <Stack $size={px} className={className}>
+            <Skeleton $size={px} $visible={imgState === 'loading'} />
             <Img
                 $size={px}
+                $visible={imgState === 'loaded'}
                 src={logoUrl}
                 alt={brand ?? ''}
-                loading="lazy"
                 decoding="async"
-                style={{ display: imgState === 'loaded' ? 'block' : 'none' }}
                 onLoad={() => setImgState('loaded')}
-                onError={() => setImgState('error')}
+                onError={() => {
+                    console.warn(`[CarLogo] failed to load logo for brand "${brand}": ${logoUrl}`);
+                    setImgState('error');
+                }}
             />
-        </Wrapper>
+        </Stack>
     );
 };
