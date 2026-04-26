@@ -1,67 +1,86 @@
-import { useEffect, useRef, useState } from 'react';
 import type { CalendarEvent, AppointmentEventData, VisitEventData } from '../../types';
 import { CalendarToolbar } from '../shared/CalendarToolbar';
 import { StatsStrip } from './StatsStrip';
 import { EventCard } from './EventCard';
 import {
-    Root, AllDayStrip, AllDayChip,
-    TimelineScroll, TimelineGrid,
-    TimeCol, HourLabel,
-    EventsArea, HourLine, NowLine,
+    Root, Board, KanbanCol, ColHeader, ColDot, ColTitle, ColCount,
+    CardList, EmptyCol,
 } from './styles';
-import {
-    HOUR_HEIGHT, HOUR_LABELS, TIMELINE_PX,
-    DAY_START_H, MINS_TO_PX,
-    layoutTimedEvents, computeDayStats, nowTopPx, isWithinTimeline, nowMinutes,
-} from './layout';
+import { computeDayStats } from './layout';
 import type { DayTimelineViewProps } from './types';
 
-// Scroll target: 1 hour before current time, or 7:00 if today is not current day
-function initialScrollPx(isToday: boolean): number {
-    if (isToday) {
-        const target = nowMinutes() - 60;
-        return Math.max(0, (target - DAY_START_H * 60) * MINS_TO_PX);
-    }
-    // Default: show 7:00
-    return (7 - DAY_START_H) * HOUR_HEIGHT;
+// ─── Status column definitions ────────────────────────────────────────────────
+
+interface ColumnDef {
+    id: string;
+    label: string;
+    color: string;
+    match: (type: string, status: string | undefined) => boolean;
 }
+
+const COLUMNS: ColumnDef[] = [
+    {
+        id: 'reservation',
+        label: 'Rezerwacja',
+        color: '#6366f1',
+        match: (type) => type === 'APPOINTMENT',
+    },
+    {
+        id: 'in_progress',
+        label: 'W trakcie realizacji',
+        color: '#f59e0b',
+        match: (type, status) => type === 'VISIT' && status === 'IN_PROGRESS',
+    },
+    {
+        id: 'ready',
+        label: 'Gotowe do odbioru',
+        color: '#10b981',
+        match: (type, status) => type === 'VISIT' && status === 'READY_FOR_PICKUP',
+    },
+    {
+        id: 'completed',
+        label: 'Oddane',
+        color: '#64748b',
+        match: (type, status) =>
+            type === 'VISIT' && (status === 'COMPLETED' || status === 'ARCHIVED' || status === 'REJECTED'),
+    },
+];
+
+// ─── Event grouping ───────────────────────────────────────────────────────────
+
+function groupByStatus(events: CalendarEvent[]): Map<string, CalendarEvent[]> {
+    const map = new Map<string, CalendarEvent[]>(COLUMNS.map(c => [c.id, []]));
+
+    for (const ev of events) {
+        const props  = ev.extendedProps as { type: string; status?: string };
+        const col    = COLUMNS.find(c => c.match(props.type, props.status));
+        if (col) map.get(col.id)!.push(ev);
+    }
+
+    // Sort each column by start time
+    for (const [, list] of map) {
+        list.sort((a, b) =>
+            new Date(a.start as string).getTime() - new Date(b.start as string).getTime()
+        );
+    }
+
+    return map;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export const DayTimelineView = ({
     events,
-    dayStart,
     calendarTitle,
     currentView,
-    isToday,
     onEventClick,
     onPrev,
     onNext,
     onToday,
     onViewChange,
 }: DayTimelineViewProps) => {
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const [nowPx, setNowPx] = useState(() => nowTopPx());
-
-    // Scroll to sensible initial position once
-    useEffect(() => {
-        const el = scrollRef.current;
-        if (!el) return;
-        el.scrollTop = initialScrollPx(isToday);
-    // Only run when the day changes (dayStart) or on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dayStart]);
-
-    // Keep now-indicator in sync; refresh every minute
-    useEffect(() => {
-        const tick = () => setNowPx(nowTopPx());
-        const id = window.setInterval(tick, 60_000);
-        return () => window.clearInterval(id);
-    }, []);
-
-    const allDayEvents  = events.filter(ev => ev.allDay);
-    const timedEvents   = events.filter(ev => !ev.allDay);
-    const placed        = layoutTimedEvents(timedEvents);
-    const stats         = computeDayStats(events);
-    const showNow       = isToday && isWithinTimeline(nowMinutes());
+    const stats  = computeDayStats(events);
+    const byCol  = groupByStatus(events);
 
     const handleCardClick = (e: React.MouseEvent, eventData: AppointmentEventData | VisitEventData) => {
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -95,65 +114,39 @@ export const DayTimelineView = ({
 
             <StatsStrip stats={stats} />
 
-            {allDayEvents.length > 0 && (
-                <AllDayStrip>
-                    {allDayEvents.map(ev => (
-                        <AllDayChip
-                            key={ev.id}
-                            $color={ev.backgroundColor as string}
-                            onClick={(e) => {
-                                const props = ev.extendedProps as AppointmentEventData | VisitEventData;
-                                handleCardClick(e, props);
-                            }}
-                        >
-                            {ev.title}
-                        </AllDayChip>
-                    ))}
-                </AllDayStrip>
-            )}
+            <Board>
+                {COLUMNS.map(col => {
+                    const colEvents = byCol.get(col.id) ?? [];
+                    return (
+                        <KanbanCol key={col.id}>
+                            <ColHeader $color={col.color}>
+                                <ColDot $color={col.color} />
+                                <ColTitle>{col.label}</ColTitle>
+                                <ColCount $color={col.color} $active={colEvents.length > 0}>
+                                    {colEvents.length}
+                                </ColCount>
+                            </ColHeader>
 
-            <TimelineScroll ref={scrollRef}>
-                <TimelineGrid $totalPx={TIMELINE_PX}>
-                    {/* Hour labels & horizontal lines */}
-                    <TimeCol>
-                        {HOUR_LABELS.map((label, i) => (
-                            <HourLabel key={label} $topPx={i * HOUR_HEIGHT}>
-                                {label}
-                            </HourLabel>
-                        ))}
-                    </TimeCol>
-
-                    <EventsArea>
-                        {/* Hour lines */}
-                        {HOUR_LABELS.map((label, i) => (
-                            <HourLine key={label} $topPx={i * HOUR_HEIGHT} />
-                        ))}
-                        {/* Half-hour lines */}
-                        {HOUR_LABELS.slice(0, -1).map((label, i) => (
-                            <HourLine
-                                key={`h-${label}`}
-                                $topPx={i * HOUR_HEIGHT + HOUR_HEIGHT / 2}
-                                $isHalf
-                            />
-                        ))}
-
-                        {/* Now indicator */}
-                        {showNow && <NowLine $topPx={nowPx} />}
-
-                        {/* Timed event cards */}
-                        {placed.map((p, idx) => (
-                            <EventCard
-                                key={`${p.event.id}-${idx}`}
-                                placed={p}
-                                onClick={(e) => {
-                                    const props = p.event.extendedProps as AppointmentEventData | VisitEventData;
-                                    handleCardClick(e, props);
-                                }}
-                            />
-                        ))}
-                    </EventsArea>
-                </TimelineGrid>
-            </TimelineScroll>
+                            <CardList>
+                                {colEvents.length === 0 ? (
+                                    <EmptyCol>—</EmptyCol>
+                                ) : (
+                                    colEvents.map(ev => (
+                                        <EventCard
+                                            key={ev.id}
+                                            event={ev}
+                                            onClick={(e) => {
+                                                const props = ev.extendedProps as AppointmentEventData | VisitEventData;
+                                                handleCardClick(e, props);
+                                            }}
+                                        />
+                                    ))
+                                )}
+                            </CardList>
+                        </KanbanCol>
+                    );
+                })}
+            </Board>
         </Root>
     );
 };
