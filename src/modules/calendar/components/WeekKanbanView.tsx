@@ -42,18 +42,54 @@ function buildWeekDays(weekStartIso: string): DaySlot[] {
     });
 }
 
-function groupEventsByDay(events: CalendarEvent[], days: DaySlot[]): Map<string, CalendarEvent[]> {
-    const map = new Map<string, CalendarEvent[]>(days.map(d => [d.key, []]));
+interface EventSlot {
+    event: CalendarEvent;
+    dayIndex: number;  // 1-based: which day of the multi-day span this card represents
+    totalDays: number; // total days the event spans
+}
+
+function groupEventsByDay(events: CalendarEvent[], days: DaySlot[]): Map<string, EventSlot[]> {
+    const map = new Map<string, EventSlot[]>(days.map(d => [d.key, []]));
+    const dayKeys = days.map(d => d.key);
+
     for (const ev of events) {
-        const key = toDateKey(toLocalDate(ev.start as string));
-        if (map.has(key)) {
-            map.get(key)!.push(ev);
+        const start = toLocalDate(ev.start as string);
+        // Determine end: FullCalendar's allDay end is exclusive (next midnight),
+        // for timed events use end or fallback to start
+        const rawEnd = ev.end ? toLocalDate(ev.end as string) : start;
+
+        // Build the list of calendar days this event occupies within this week
+        const spanStart = new Date(start);
+        spanStart.setHours(0, 0, 0, 0);
+        const spanEnd = new Date(rawEnd);
+        // For timed events ending exactly at midnight treat it as ending previous day
+        if (!ev.allDay && spanEnd.getHours() === 0 && spanEnd.getMinutes() === 0) {
+            spanEnd.setDate(spanEnd.getDate() - 1);
         }
+        spanEnd.setHours(0, 0, 0, 0);
+
+        // Collect all days this event covers
+        const coveredKeys: string[] = [];
+        const cursor = new Date(spanStart);
+        while (cursor <= spanEnd) {
+            coveredKeys.push(toDateKey(cursor));
+            cursor.setDate(cursor.getDate() + 1);
+        }
+
+        const totalDays = coveredKeys.length;
+
+        coveredKeys.forEach((key, idx) => {
+            if (map.has(key) && dayKeys.includes(key)) {
+                map.get(key)!.push({ event: ev, dayIndex: idx + 1, totalDays });
+            }
+        });
     }
-    // Sort each day's events by start time
-    for (const [, dayEvents] of map) {
-        dayEvents.sort((a, b) =>
-            toLocalDate(a.start as string).getTime() - toLocalDate(b.start as string).getTime()
+
+    // Sort each day's slots by start time
+    for (const [, slots] of map) {
+        slots.sort((a, b) =>
+            toLocalDate(a.event.start as string).getTime() -
+            toLocalDate(b.event.start as string).getTime()
         );
     }
     return map;
@@ -397,22 +433,37 @@ const CardStatusBadge = styled.span<{ $color: string }>`
     text-transform: uppercase;
 `;
 
+const ContinuationBadge = styled.div<{ $color: string }>`
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    color: ${p => p.$color};
+    margin-bottom: 4px;
+    opacity: 0.8;
+`;
+
 // ─── Event Card Component ─────────────────────────────────────────────────────
 
 interface EventCardProps {
-    event: CalendarEvent;
+    slot: EventSlot;
     onClick: (e: React.MouseEvent) => void;
 }
 
-const EventCard = ({ event, onClick }: EventCardProps) => {
+const EventCard = ({ slot, onClick }: EventCardProps) => {
+    const { event, dayIndex, totalDays } = slot;
     const props  = event.extendedProps as AppointmentEventData | VisitEventData;
     const status = props.status as string | undefined;
     const isAllDay     = event.allDay ?? false;
     const deemphasised = isDeemphasised(status);
     const crossedOut   = isCrossedOut(status);
+    const isMultiDay   = totalDays > 1;
+    const accentColor  = event.backgroundColor as string;
 
-    const startTime = isAllDay ? '' : formatTime(event.start as string);
-    const endTime   = isAllDay ? '' : formatTime(event.end as string | undefined);
+    // Show time only on the first day; continuation days show a ▶ indicator
+    const startTime = (isAllDay || dayIndex > 1) ? '' : formatTime(event.start as string);
+    const endTime   = (isAllDay || dayIndex > 1) ? '' : formatTime(event.end as string | undefined);
     const timeLabel = startTime ? (endTime ? `${startTime} – ${endTime}` : startTime) : '';
 
     const serviceLabel = props.type === 'APPOINTMENT'
@@ -422,16 +473,43 @@ const EventCard = ({ event, onClick }: EventCardProps) => {
             : '';
 
     const statusMeta = status ? STATUS_META[status] : undefined;
-    const showBadge  = !!statusMeta && status !== 'IN_PROGRESS'; // IN_PROGRESS communicated by color
+    const showBadge  = !!statusMeta && status !== 'IN_PROGRESS';
 
     return (
         <Card
-            $accentColor={event.backgroundColor as string}
+            $accentColor={accentColor}
             $deemphasised={deemphasised}
             $isAllDay={isAllDay}
             onClick={onClick}
             title={event.title}
         >
+            {isMultiDay && (
+                <ContinuationBadge $color={accentColor}>
+                    {dayIndex === 1 ? (
+                        <>
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                            start · {totalDays} dni
+                        </>
+                    ) : dayIndex === totalDays ? (
+                        <>
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/>
+                            </svg>
+                            koniec · dzień {dayIndex}/{totalDays}
+                        </>
+                    ) : (
+                        <>
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                            dzień {dayIndex}/{totalDays}
+                        </>
+                    )}
+                </ContinuationBadge>
+            )}
+
             {timeLabel && <CardTime>{timeLabel}</CardTime>}
 
             <CardTitle $crossedOut={crossedOut}>
@@ -479,7 +557,8 @@ export const WeekKanbanView = ({
     const days    = buildWeekDays(weekStart);
     const byDay   = groupEventsByDay(events, days);
 
-    const handleCardClick = (event: CalendarEvent, e: React.MouseEvent) => {
+    const handleCardClick = (slot: EventSlot, e: React.MouseEvent) => {
+        const { event } = slot;
         const props = event.extendedProps as AppointmentEventData | VisitEventData;
         const rect  = (e.currentTarget as HTMLElement).getBoundingClientRect();
         const popoverWidth = 380;
@@ -555,11 +634,11 @@ export const WeekKanbanView = ({
                                     {dayEvents.length === 0 ? (
                                         <EmptySlot>—</EmptySlot>
                                     ) : (
-                                        dayEvents.map(event => (
+                                        dayEvents.map(slot => (
                                             <EventCard
-                                                key={event.id}
-                                                event={event}
-                                                onClick={(e) => handleCardClick(event, e)}
+                                                key={`${slot.event.id}-${slot.dayIndex}`}
+                                                slot={slot}
+                                                onClick={(e) => handleCardClick(slot, e)}
                                             />
                                         ))
                                     )}
