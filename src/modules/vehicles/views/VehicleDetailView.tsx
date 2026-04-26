@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useVehicleDetail } from '../hooks/useVehicleDetail';
-import { useVehicleVisits } from '../hooks/useVehicleVisits';
+import { useVehicleHistory } from '../hooks/useVehicleHistory';
+import type { VehicleHistoryEvent } from '../hooks/useVehicleHistory';
 import { VehicleDocuments } from '../components/VehicleDocuments';
 import { VehiclePhotoGallery } from '../components/VehiclePhotoGallery';
 import { VehicleNotes } from '../components/VehicleNotes';
@@ -13,7 +14,7 @@ import { EditOwnersModal } from '../components/EditOwnersModal';
 import { SharedButton } from '@/common/styles/sharedButtonStyles';
 import { formatCurrency, formatDate } from '@/common/utils';
 import { t } from '@/common/i18n';
-import type { VehicleOwner, VehicleVisit } from '../types';
+import type { VehicleOwner } from '../types';
 
 import { CarLogoImage } from '../components/CarLogoImage';
 import {
@@ -69,13 +70,16 @@ function getOwnerInitials(owner: VehicleOwner): string {
 
 function visitStatusBadge(status: string): { label: string; kind: 'success' | 'info' | 'warn' | 'neutral' | 'error' } {
     switch (status) {
-        case 'completed':    return { label: 'Zakończona',  kind: 'success' };
-        case 'in-progress':
-        case 'in_progress':  return { label: 'W trakcie',   kind: 'info' };
-        case 'scheduled':    return { label: 'Zaplanowana', kind: 'neutral' };
-        case 'cancelled':
-        case 'CANCELLED':    return { label: 'Anulowana',   kind: 'error' };
-        default:             return { label: status,        kind: 'neutral' };
+        case 'COMPLETED':
+        case 'completed':         return { label: 'Zakończona',       kind: 'success' };
+        case 'IN_PROGRESS':
+        case 'in_progress':       return { label: 'W trakcie',        kind: 'info' };
+        case 'READY_FOR_PICKUP':  return { label: 'Gotowa do odbioru', kind: 'warn' };
+        case 'CREATED':           return { label: 'Rezerwacja',        kind: 'neutral' };
+        case 'ABANDONED':         return { label: 'Porzucona',         kind: 'error' };
+        case 'CANCELLED':
+        case 'cancelled':         return { label: 'Anulowana',         kind: 'error' };
+        default:                  return { label: status,              kind: 'neutral' };
     }
 }
 
@@ -92,7 +96,7 @@ export const VehicleDetailView = () => {
     const [isEditOwnersModalOpen, setIsEditOwnersModalOpen] = useState(false);
 
     const { vehicleDetail, isLoading, isError, refetch } = useVehicleDetail(vehicleId!);
-    const { visits } = useVehicleVisits(vehicleId!);
+    const { events: historyEvents } = useVehicleHistory(vehicleId!);
 
     // ── Loading ──────────────────────────────────────────────────────────────
 
@@ -134,7 +138,7 @@ export const VehicleDetailView = () => {
     const lastVisit    = vehicle.stats?.lastVisitDate ?? null;
     const avgCost      = vehicle.stats?.averageVisitCost ?? { grossAmount: 0, currency: 'PLN' };
 
-    const recentVisits = visits.slice(0, 6);
+    const recentVisits = historyEvents.slice(0, 6);
 
     return (
         <ViewContainer>
@@ -414,9 +418,9 @@ export const VehicleDetailView = () => {
                                     </svg>
                                     Historia wizyt
                                 </PanelTitle>
-                                {visits.length > 6 && (
+                                {historyEvents.length > 6 && (
                                     <span style={{ fontSize: 12, color: '#64748b' }}>
-                                        Łącznie: <strong style={{ color: '#0f172a' }}>{visits.length}</strong>
+                                        Łącznie: <strong style={{ color: '#0f172a' }}>{historyEvents.length}</strong>
                                     </span>
                                 )}
                             </PanelHead>
@@ -426,14 +430,17 @@ export const VehicleDetailView = () => {
                                         <NoteText>Brak historii wizyt dla tego pojazdu.</NoteText>
                                     </PanelBody>
                                 ) : (
-                                    recentVisits.map((visit: VehicleVisit) => {
-                                        const d = new Date(visit.date);
-                                        const { label, kind } = visitStatusBadge(visit.status);
+                                    recentVisits.map((event: VehicleHistoryEvent) => {
+                                        const d = new Date(event.date);
+                                        const { label, kind } = visitStatusBadge(event.status);
                                         return (
                                             <VisitRow
-                                                key={visit.id}
-                                                $active={visit.status === 'in-progress'}
-                                                onClick={() => navigate(`/visits/${visit.id}`)}
+                                                key={event.id}
+                                                $active={event.status === 'IN_PROGRESS'}
+                                                onClick={() => event.type === 'VISIT'
+                                                    ? navigate(`/visits/${event.id}`)
+                                                    : undefined
+                                                }
                                             >
                                                 <VisitDateCol>
                                                     <VisitDateMain>
@@ -445,17 +452,14 @@ export const VehicleDetailView = () => {
                                                 </VisitDateCol>
 
                                                 <VisitInfo>
-                                                    <VisitTitle>{visit.description || 'Wizyta'}</VisitTitle>
-                                                    <VisitSub>
-                                                        {visit.customerName}
-                                                        {visit.createdBy ? ` · ${visit.createdBy}` : ''}
-                                                    </VisitSub>
+                                                    <VisitTitle>{event.title}</VisitTitle>
+                                                    <VisitSub>{event.customerName}</VisitSub>
                                                 </VisitInfo>
 
                                                 <StatusBadge $kind={kind} className="visit-hide-sm">{label}</StatusBadge>
 
                                                 <VisitAmount>
-                                                    {formatCurrency(visit.totalCost.grossAmount, visit.totalCost.currency)}
+                                                    {formatCurrency(event.grossAmount, event.currency)}
                                                 </VisitAmount>
 
                                                 <svg

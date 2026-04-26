@@ -23,6 +23,7 @@ import type {
     CreateVehicleNotePayload,
     UpdateVehicleNotePayload,
 } from '../types';
+import type { CalendarEventsResponse } from '@/modules/calendar/types';
 
 const BASE_PATH = '/v1/vehicles';
 const USE_MOCKS = false;
@@ -631,6 +632,25 @@ export const vehicleApi = {
             `${BASE_PATH}/${vehicleId}/appointments`,
             { params: { page, limit } }
         );
+        return response.data;
+    },
+
+    getCalendarEvents: async (vehicleId: string): Promise<CalendarEventsResponse> => {
+        const now = new Date();
+        const startDate = new Date(now);
+        startDate.setFullYear(startDate.getFullYear() - 5);
+        const endDate = new Date(now);
+        endDate.setFullYear(endDate.getFullYear() + 2);
+
+        const response = await apiClient.get<CalendarEventsResponse>('/v1/calendar/events', {
+            params: {
+                vehicleId,
+                appointmentStatuses: 'ABANDONED,CREATED',
+                visitStatuses: 'READY_FOR_PICKUP,IN_PROGRESS,COMPLETED',
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString(),
+            },
+        });
         return response.data;
     },
 };
