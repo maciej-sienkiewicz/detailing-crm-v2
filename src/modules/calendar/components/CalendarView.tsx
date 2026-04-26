@@ -19,6 +19,7 @@ import { QuickEventModal, type QuickEventFormData, type QuickEventModalRef } fro
 import { EventSummaryPopover } from './EventSummaryPopover';
 import { CalendarFilterDropdown } from './CalendarFilterDropdown';
 import { CalendarStatusBar } from './CalendarStatusBar';
+import { WeekKanbanView } from './WeekKanbanView';
 import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData } from '../types';
 import type { Operation } from '@/modules/operations/types';
 import '../calendar.css';
@@ -1100,6 +1101,35 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     onClose={() => setIsFilterOpen(false)}
                 />
 
+                {/* ── Kanban week view – replaces FullCalendar's timeGridWeek ── */}
+                {currentView === 'timeGridWeek' && dateRange && (
+                    <WeekKanbanView
+                        events={events}
+                        weekStart={dateRange.start}
+                        calendarTitle={calendarTitle}
+                        currentView={currentView}
+                        onEventClick={(eventData, position) => {
+                            setPopoverEvent(eventData);
+                            setPopoverPosition(position);
+                            setPopoverOpen(true);
+                        }}
+                        onDayAddClick={(date) => {
+                            setSelectedEventData({ start: date, end: date, allDay: true });
+                            setQuickModalOpen(true);
+                        }}
+                        onPrev={() => calendarRef.current?.getApi().prev()}
+                        onNext={() => calendarRef.current?.getApi().next()}
+                        onToday={() => calendarRef.current?.getApi().today()}
+                        onViewChange={(view) => calendarRef.current?.getApi().changeView(view)}
+                    />
+                )}
+
+                {/* FullCalendar – always mounted so its API & state machine stay active.
+                    Hidden when kanban is active (height:0 keeps JS running). */}
+                <div style={currentView === 'timeGridWeek'
+                    ? { height: 0, overflow: 'hidden', pointerEvents: 'none' }
+                    : { height: '100%' }
+                }>
                 <FullCalendar
                 ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -1253,6 +1283,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 height="100%"
                 expandRows={true}
             />
+                </div>
             </CalendarWrapper>
 
             <QuickEventModal
