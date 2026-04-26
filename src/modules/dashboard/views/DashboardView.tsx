@@ -317,7 +317,6 @@ export const DashboardView = () => {
     callActivity,
     instagramPhotos,
     googleReviews,
-    tasks,
     isError,
     refetch,
   } = useDashboard();
@@ -378,7 +377,7 @@ export const DashboardView = () => {
 
       <TwoColGrid>
         <UpcomingVisitsPanel />
-        <TasksPanel tasks={tasks} />
+        <TasksPanel />
       </TwoColGrid>
 
       <CompetitorStoriesSection />

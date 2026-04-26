@@ -5,3 +5,4 @@ export { SocialMediaPlaceholder } from './SocialMediaPlaceholder';
 export { GoogleReviewsSection } from './GoogleReviewsSection';
 export { UpcomingVisitsPanel } from './UpcomingVisitsPanel';
 export { TasksPanel } from './TasksPanel';
+export { TaskModal } from './TaskModal';

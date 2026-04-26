@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { ArrowRight, Check } from 'lucide-react';
-import type { DashboardTask } from '../types';
+import { Check, Pencil, Trash2, Plus, ClipboardList } from 'lucide-react';
+import { useTasks } from '../hooks/useTasks';
+import { TaskModal } from './TaskModal';
+import type { DashboardTask, CreateTaskPayload } from '../types';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -29,22 +31,27 @@ const PanelTitle = styled.h3`
   color: ${p => p.theme.colors.text};
 `;
 
-const PanelLink = styled.button`
-  font-size: 12px;
-  font-weight: 500;
-  color: #0284c7;
-  background: none;
-  border: none;
-  cursor: pointer;
+const AddButton = styled.button`
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 0;
+  gap: 5px;
+  padding: 6px 12px;
+  background: #0ea5e9;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
   font-family: inherit;
-  transition: opacity 150ms ease;
+  cursor: pointer;
+  transition: background 150ms ease, transform 150ms ease;
 
-  &:hover { opacity: 0.75; }
-  svg { width: 14px; height: 14px; stroke-width: 2; }
+  &:hover {
+    background: #0284c7;
+    transform: translateY(-1px);
+  }
+
+  svg { width: 13px; height: 13px; stroke-width: 2.5; }
 `;
 
 const TaskList = styled.div`
@@ -57,8 +64,10 @@ const TaskItem = styled.div`
   padding: 10px 22px;
   align-items: flex-start;
   transition: background 140ms ease;
+  position: relative;
 
   &:hover { background: #f8fafc; }
+  &:hover .task-actions { opacity: 1; }
 `;
 
 const Checkbox = styled.button<{ $done: boolean }>`
@@ -85,7 +94,10 @@ const Checkbox = styled.button<{ $done: boolean }>`
   svg { width: 11px; height: 11px; stroke-width: 3; }
 `;
 
-const TaskContent = styled.div``;
+const TaskContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
 
 const TaskTitle = styled.div<{ $done: boolean }>`
   font-size: 13px;
@@ -101,49 +113,183 @@ const TaskMeta = styled.div`
   color: ${p => p.theme.colors.textMuted};
 `;
 
+const TaskActions = styled.div`
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 140ms ease;
+  flex-shrink: 0;
+`;
+
+const ActionBtn = styled.button<{ $danger?: boolean }>`
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: ${p => p.$danger ? '#ef4444' : '#64748b'};
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 120ms ease, color 120ms ease;
+
+  &:hover {
+    background: ${p => p.$danger ? '#fee2e2' : '#f1f5f9'};
+    color: ${p => p.$danger ? '#dc2626' : '#0f172a'};
+  }
+
+  svg { width: 13px; height: 13px; stroke-width: 2; }
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 36px 24px;
+  color: ${p => p.theme.colors.textMuted};
+  text-align: center;
+`;
+
+const EmptyIcon = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  svg { width: 20px; height: 20px; }
+`;
+
+const EmptyText = styled.p`
+  font-size: 13px;
+  margin: 0;
+  color: #94a3b8;
+`;
+
+const SkeletonItem = styled.div`
+  display: flex;
+  gap: 12px;
+  padding: 10px 22px;
+  align-items: center;
+`;
+
+const Skeleton = styled.div<{ $w: string; $h?: string }>`
+  width: ${p => p.$w};
+  height: ${p => p.$h ?? '12px'};
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+`;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-interface TasksPanelProps {
-  tasks: DashboardTask[];
-}
+export const TasksPanel = () => {
+  const { tasks, isLoading, createTask, updateTask, deleteTask, isDeleting } = useTasks();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<DashboardTask | null>(null);
 
-export const TasksPanel = ({ tasks }: TasksPanelProps) => {
-  const [doneIds, setDoneIds] = useState<Set<string>>(
-    () => new Set(tasks.filter(t => t.done).map(t => t.id))
-  );
+  const openCreate = () => {
+    setEditingTask(null);
+    setModalOpen(true);
+  };
 
-  const toggle = (id: string) =>
-    setDoneIds(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+  const openEdit = (task: DashboardTask) => {
+    setEditingTask(task);
+    setModalOpen(true);
+  };
+
+  const handleSave = async (payload: CreateTaskPayload) => {
+    if (editingTask) {
+      await updateTask(editingTask.id, payload);
+    } else {
+      await createTask(payload);
+    }
+  };
+
+  const handleToggle = (task: DashboardTask) => {
+    updateTask(task.id, { done: !task.done });
+  };
 
   return (
-    <Panel>
-      <PanelHead>
-        <PanelTitle>Do zrobienia</PanelTitle>
-        <PanelLink>
-          Wszystkie <ArrowRight />
-        </PanelLink>
-      </PanelHead>
+    <>
+      <Panel>
+        <PanelHead>
+          <PanelTitle>Do zrobienia</PanelTitle>
+          <AddButton onClick={openCreate}>
+            <Plus />
+            Dodaj
+          </AddButton>
+        </PanelHead>
 
-      <TaskList>
-        {tasks.map(task => {
-          const done = doneIds.has(task.id);
-          return (
-            <TaskItem key={task.id}>
-              <Checkbox $done={done} onClick={() => toggle(task.id)} data-done={done}>
-                {done && <Check />}
-              </Checkbox>
-              <TaskContent>
-                <TaskTitle $done={done}>{task.title}</TaskTitle>
-                <TaskMeta>{task.meta}</TaskMeta>
-              </TaskContent>
-            </TaskItem>
-          );
-        })}
-      </TaskList>
-    </Panel>
+        {isLoading ? (
+          <TaskList>
+            {[80, 60, 70].map(w => (
+              <SkeletonItem key={w}>
+                <Skeleton $w="18px" $h="18px" />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <Skeleton $w={`${w}%`} />
+                  <Skeleton $w="40%" />
+                </div>
+              </SkeletonItem>
+            ))}
+          </TaskList>
+        ) : tasks.length === 0 ? (
+          <EmptyState>
+            <EmptyIcon><ClipboardList /></EmptyIcon>
+            <EmptyText>Brak zadań. Dodaj pierwsze!</EmptyText>
+          </EmptyState>
+        ) : (
+          <TaskList>
+            {tasks.map(task => (
+              <TaskItem key={task.id}>
+                <Checkbox
+                  $done={task.done}
+                  onClick={() => handleToggle(task)}
+                  data-done={task.done}
+                  title={task.done ? 'Oznacz jako niewykonane' : 'Oznacz jako wykonane'}
+                >
+                  {task.done && <Check />}
+                </Checkbox>
+                <TaskContent>
+                  <TaskTitle $done={task.done}>{task.title}</TaskTitle>
+                  {task.meta && <TaskMeta>{task.meta}</TaskMeta>}
+                </TaskContent>
+                <TaskActions className="task-actions">
+                  <ActionBtn onClick={() => openEdit(task)} title="Edytuj">
+                    <Pencil />
+                  </ActionBtn>
+                  <ActionBtn
+                    $danger
+                    onClick={() => deleteTask(task.id)}
+                    disabled={isDeleting}
+                    title="Usuń"
+                  >
+                    <Trash2 />
+                  </ActionBtn>
+                </TaskActions>
+              </TaskItem>
+            ))}
+          </TaskList>
+        )}
+      </Panel>
+
+      <TaskModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSave={handleSave}
+        editingTask={editingTask}
+      />
+    </>
   );
 };

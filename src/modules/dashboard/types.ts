@@ -159,6 +159,18 @@ export interface DashboardTask {
   title: string;
   meta: string;
   done: boolean;
+  createdAt?: string;
+}
+
+export interface CreateTaskPayload {
+  title: string;
+  meta?: string;
+}
+
+export interface UpdateTaskPayload {
+  title?: string;
+  meta?: string;
+  done?: boolean;
 }
 
 /**
