@@ -5,6 +5,7 @@ import type { VehicleListItem } from '../types';
 import { formatCurrency, formatDate } from '@/common/utils';
 import { t } from '@/common/i18n';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { CarLogoImage } from './CarLogoImage';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -97,23 +98,6 @@ const VehicleMainCell = styled.div`
     display: flex;
     align-items: center;
     gap: 12px;
-`;
-
-const CarBubble = styled.div`
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #10b981, #0ea5e9);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-
-    svg {
-        width: 17px;
-        height: 17px;
-    }
 `;
 
 const VehicleBlock = styled.div`
@@ -315,14 +299,6 @@ const DropdownItem = styled.button<{ $danger?: boolean }>`
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
-const CarIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-        <path d="M19 17H5a2 2 0 0 1-2-2V9l2-4h10l4 4v4a2 2 0 0 1-2 2Z" />
-        <circle cx="7.5" cy="17" r="1.5" />
-        <circle cx="16.5" cy="17" r="1.5" />
-    </svg>
-);
-
 const DotsIcon = () => (
     <svg viewBox="0 0 24 24" fill="currentColor">
         <circle cx="12" cy="5"  r="1.5" />
@@ -410,9 +386,7 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
 
                                 <Td>
                                     <VehicleMainCell>
-                                        <CarBubble>
-                                            <CarIcon />
-                                        </CarBubble>
+                                        <CarLogoImage brand={vehicle.brand} size="md" />
                                         <VehicleBlock>
                                             <VehicleNamePrimary>
                                                 {vehicle.brand} {vehicle.model}

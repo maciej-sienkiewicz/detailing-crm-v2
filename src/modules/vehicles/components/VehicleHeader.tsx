@@ -6,6 +6,7 @@ import type { Vehicle } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { formatCurrency } from '@/common/utils';
 import { t } from '@/common/i18n';
+import { CarLogoImage } from './CarLogoImage';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -111,6 +112,14 @@ const TitleRow = styled.div`
     align-items: center;
     gap: 11px;
     flex-wrap: wrap;
+`;
+
+const HeaderLogoWrapper = styled.div`
+    img {
+        background: rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15) !important;
+        filter: brightness(1.1);
+    }
 `;
 
 const LicensePlateBadge = styled.div`
@@ -327,6 +336,9 @@ export const VehicleHeader = ({ vehicle, onEditVehicle, onEditOwners }: VehicleH
                     </BreadcrumbRow>
 
                     <TitleRow>
+                        <HeaderLogoWrapper>
+                            <CarLogoImage brand={vehicle.brand} size="lg" />
+                        </HeaderLogoWrapper>
                         <LicensePlateBadge>{vehicle.licensePlate || '—'}</LicensePlateBadge>
                         <VehicleTitle>{vehicleName}{yearSuffix}</VehicleTitle>
                         <StatusBadge $status={vehicle.status}>

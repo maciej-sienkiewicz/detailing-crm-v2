@@ -2,6 +2,7 @@ import styled from 'styled-components';
 import type { VehicleListItem } from '../types';
 import { formatCurrency, formatDate } from '@/common/utils';
 import { t } from '@/common/i18n';
+import { CarLogoImage } from './CarLogoImage';
 
 const Card = styled.article`
     background: ${props => props.theme.colors.surface};
@@ -102,11 +103,14 @@ interface VehicleCardProps {
 export const VehicleCard = ({ vehicle, onCardClick }: VehicleCardProps) => (
     <Card onClick={() => onCardClick?.(vehicle.id)}>
         <CardHeader>
-            <div>
-                <LicensePlate>{vehicle.licensePlate}</LicensePlate>
-                <VehicleName>
-                    {vehicle.brand} {vehicle.model} ({vehicle.yearOfProduction})
-                </VehicleName>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <CarLogoImage brand={vehicle.brand} size="md" />
+                <div>
+                    <LicensePlate>{vehicle.licensePlate}</LicensePlate>
+                    <VehicleName>
+                        {vehicle.brand} {vehicle.model} ({vehicle.yearOfProduction})
+                    </VehicleName>
+                </div>
             </div>
             <VisitBadge>{vehicle.stats.totalVisits}</VisitBadge>
         </CardHeader>
