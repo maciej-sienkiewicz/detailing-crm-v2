@@ -15,6 +15,7 @@ import { formatCurrency, formatDate } from '@/common/utils';
 import { t } from '@/common/i18n';
 import type { VehicleOwner, VehicleVisit } from '../types';
 
+import { CarLogoImage } from '../components/CarLogoImage';
 import {
     ViewContainer, PageContent,
     BreadcrumbNav, BreadcrumbLink, BreadcrumbSep, BreadcrumbCurrent,
@@ -22,7 +23,7 @@ import {
     VehicleStatusBadge, StatusDot,
     TwoColGrid, LeftRail, MainCol,
     Panel, PanelHead, PanelTitle, PanelBody, PanelBodyFlush, PanelCountBadge, PanelAction,
-    IdentityRow, VehicleIconWrap, IdentityMeta, IdentityName, IdentityId, LicensePlateBadge,
+    IdentityRow, IdentityMeta, IdentityName, IdentityId, LicensePlateBadge,
     OwnerItem, OwnerAvatar, OwnerInfo, OwnerName, OwnerRole,
     SummaryStrip, SumCell, KpiEyebrow, KpiValue, KpiDelta,
     VisitRow, VisitDateCol, VisitDateMain, VisitDateSub, VisitInfo, VisitTitle, VisitSub, VisitAmount,
@@ -239,15 +240,7 @@ export const VehicleDetailView = () => {
                         <Panel>
                             <PanelBody>
                                 <IdentityRow>
-                                    <VehicleIconWrap aria-hidden="true">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                            <path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.4L19 11"/>
-                                            <rect x="2" y="11" width="20" height="6" rx="1"/>
-                                            <circle cx="7" cy="17" r="2"/>
-                                            <circle cx="17" cy="17" r="2"/>
-                                            <path d="M5 11h14"/>
-                                        </svg>
-                                    </VehicleIconWrap>
+                                    <CarLogoImage brand={vehicle.brand} size="lg" />
                                     <IdentityMeta>
                                         <IdentityName>{vehicleName}{yearSuffix}</IdentityName>
                                         <IdentityId>ID: {vehicle.id.slice(0, 8).toUpperCase()}</IdentityId>
