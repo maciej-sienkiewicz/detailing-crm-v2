@@ -20,6 +20,7 @@ import { EventSummaryPopover } from './EventSummaryPopover';
 import { CalendarFilterDropdown } from './CalendarFilterDropdown';
 import { CalendarStatusBar } from './CalendarStatusBar';
 import { WeekKanbanView } from './WeekKanbanView';
+import { DayTimelineView } from './DayTimeline';
 import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData } from '../types';
 import type { Operation } from '@/modules/operations/types';
 import '../calendar.css';
@@ -1124,9 +1125,37 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     />
                 )}
 
+                {/* ── Day timeline view – replaces FullCalendar's timeGridDay ── */}
+                {currentView === 'timeGridDay' && dateRange && (
+                    <DayTimelineView
+                        events={events}
+                        dayStart={dateRange.start}
+                        calendarTitle={calendarTitle}
+                        currentView={currentView}
+                        isToday={(() => {
+                            const today = new Date();
+                            const day   = new Date(dateRange.start);
+                            return (
+                                today.getFullYear() === day.getFullYear() &&
+                                today.getMonth()    === day.getMonth()    &&
+                                today.getDate()     === day.getDate()
+                            );
+                        })()}
+                        onEventClick={(eventData, position) => {
+                            setPopoverEvent(eventData);
+                            setPopoverPosition(position);
+                            setPopoverOpen(true);
+                        }}
+                        onPrev={() => calendarRef.current?.getApi().prev()}
+                        onNext={() => calendarRef.current?.getApi().next()}
+                        onToday={() => calendarRef.current?.getApi().today()}
+                        onViewChange={(view) => calendarRef.current?.getApi().changeView(view)}
+                    />
+                )}
+
                 {/* FullCalendar – always mounted so its API & state machine stay active.
-                    Hidden when kanban is active (height:0 keeps JS running). */}
-                <div style={currentView === 'timeGridWeek'
+                    Hidden when custom views are active (height:0 keeps JS running). */}
+                <div style={currentView === 'timeGridWeek' || currentView === 'timeGridDay'
                     ? { height: 0, overflow: 'hidden', pointerEvents: 'none' }
                     : { height: '100%' }
                 }>
