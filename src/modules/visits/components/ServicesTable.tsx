@@ -661,12 +661,14 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const cancelEditPrice = () => setEditingId(null);
 
     const handleEditNetChange = (val: string, vatRate: number) => {
+        if (val && !/^[0-9]*[,.]?[0-9]{0,2}$/.test(val)) return;
         setEditNetStr(val);
         const n = eParse(val);
         if (n !== null) setEditGrossStr(eFmt(eGrossFromNet(n, vatRate)));
     };
 
     const handleEditGrossChange = (val: string, vatRate: number) => {
+        if (val && !/^[0-9]*[,.]?[0-9]{0,2}$/.test(val)) return;
         setEditGrossStr(val);
         const g = eParse(val);
         if (g !== null) setEditNetStr(eFmt(eNetFromGross(g, vatRate)));

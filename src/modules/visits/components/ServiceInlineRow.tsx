@@ -196,8 +196,16 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom }: Props
 
     // Sync display when basePriceNet is updated externally (catalog selection,
     // QuickServiceModal result coming in via parent→prop change).
+    // selfUpdateRef prevents the effect from overwriting the field while the
+    // user is actively typing (which would reset the cursor to the end).
     const lastSyncedPrice = useRef(row.basePriceNet);
+    const selfUpdateRef = useRef(false);
     useEffect(() => {
+        if (selfUpdateRef.current) {
+            selfUpdateRef.current = false;
+            lastSyncedPrice.current = row.basePriceNet;
+            return;
+        }
         if (lastSyncedPrice.current === row.basePriceNet) return;
         lastSyncedPrice.current = row.basePriceNet;
         if (row.basePriceNet > 0) {
@@ -255,6 +263,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom }: Props
     // ── Net input handlers ──────────────────────────────────────────────────
 
     const handleNetChange = (str: string) => {
+        if (str && !/^[0-9]*[,.]?[0-9]{0,2}$/.test(str)) return;
         setNetStr(str);
         if (!str.trim()) {
             setGrossStr('');
@@ -264,9 +273,9 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom }: Props
         const val = parsePln(str);
         if (val !== null) {
             setGrossStr(fmtPrice(grossFromNet(val, row.vatRate)));
+            selfUpdateRef.current = true;
             onUpdate({ basePriceNet: cents(val) });
         }
-        // Partial input (e.g. "1.") — keep last valid parent state, don't jump display
     };
 
     const formatNet = () => {
@@ -277,6 +286,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom }: Props
     // ── Gross input handlers ────────────────────────────────────────────────
 
     const handleGrossChange = (str: string) => {
+        if (str && !/^[0-9]*[,.]?[0-9]{0,2}$/.test(str)) return;
         setGrossStr(str);
         if (!str.trim()) {
             setNetStr('');
@@ -287,6 +297,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom }: Props
         if (val !== null) {
             const netVal = netFromGross(val, row.vatRate);
             setNetStr(fmtPrice(netVal));
+            selfUpdateRef.current = true;
             onUpdate({ basePriceNet: cents(netVal) });
         }
     };
