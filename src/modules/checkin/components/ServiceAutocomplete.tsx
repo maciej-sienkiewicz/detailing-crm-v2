@@ -203,6 +203,7 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
                             {onAddNew && searchQuery.trim().length > 0 && (
                                 <AddNewButton onClick={() => {
                                     onAddNew(searchQuery);
+                                    setSearchQuery('');
                                     setIsOpen(false);
                                     inputRef.current?.blur();
                                 }}>
