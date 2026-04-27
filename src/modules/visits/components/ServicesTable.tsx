@@ -119,6 +119,88 @@ const DeleteRowBtn = styled.button`
     svg { width: 11px; height: 11px; }
 `;
 
+const EditPriceBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 9px;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusFull};
+    background: transparent;
+    color: ${st.textMuted};
+    font-size: ${st.fontXs};
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 150ms, border-color 150ms, color 150ms;
+    white-space: nowrap;
+
+    &:hover { background: ${BRAND_DIM}; border-color: ${BRAND}; color: ${BRAND_DARK}; }
+    svg { width: 11px; height: 11px; }
+`;
+
+const PriceEditInput = styled.input`
+    width: 80px;
+    padding: 4px 7px;
+    border: 1.5px solid ${BRAND};
+    border-radius: 7px;
+    font-size: 13px;
+    font-family: inherit;
+    color: ${st.text};
+    background: ${st.bgCard};
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    font-feature-settings: 'tnum';
+    text-align: right;
+`;
+
+const EditConfirmBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 50%;
+    background: #22c55e;
+    color: white;
+    cursor: pointer;
+    transition: background 150ms;
+    flex-shrink: 0;
+
+    &:hover { background: #16a34a; }
+    svg { width: 13px; height: 13px; }
+`;
+
+const EditCancelBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: 1px solid ${st.border};
+    border-radius: 50%;
+    background: transparent;
+    color: ${st.textMuted};
+    cursor: pointer;
+    transition: background 150ms, border-color 150ms;
+    flex-shrink: 0;
+
+    &:hover { background: ${st.bg}; border-color: ${st.borderHover}; }
+    svg { width: 11px; height: 11px; }
+`;
+
+const EditedPriceWrap = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+`;
+
+const EditedBadge = styled.span`
+    font-size: 10px;
+    color: ${BRAND_DARK};
+    font-weight: 600;
+`;
+
 const Table = styled.table`
     width: 100%;
     border-collapse: collapse;
@@ -548,6 +630,48 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const [quickServicePrefill, setQuickServicePrefill] = useState('');
     const [quickServiceDraftId, setQuickServiceDraftId] = useState<string | null>(null);
 
+    /* ── Price editing state ── */
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editNetStr, setEditNetStr] = useState('');
+    const [editGrossStr, setEditGrossStr] = useState('');
+    const [editedPrices, setEditedPrices] = useState<Record<string, number>>({}); // id → basePriceNet (cents)
+
+    const epln = (c: number) => c / 100;
+    const eCents = (v: number) => Math.round(v * 100);
+    const eGrossFromNet = (net: number, vat: number) => net * (1 + vat / 100);
+    const eNetFromGross = (gross: number, vat: number) => gross / (1 + vat / 100);
+    const eFmt = (v: number) => v.toFixed(2);
+    const eParse = (raw: string) => { const v = parseFloat(raw.replace(',', '.')); return isNaN(v) || v < 0 ? null : v; };
+
+    const startEditPrice = (service: ServiceLineItem) => {
+        const pricing = calculateServicePrice(service);
+        const netCents = editedPrices[service.id] ?? pricing.finalPriceNet;
+        const netPln = epln(netCents);
+        setEditingId(service.id);
+        setEditNetStr(eFmt(netPln));
+        setEditGrossStr(eFmt(eGrossFromNet(netPln, service.vatRate)));
+    };
+
+    const confirmEditPrice = (serviceId: string) => {
+        const net = eParse(editNetStr);
+        if (net !== null) setEditedPrices(prev => ({ ...prev, [serviceId]: eCents(net) }));
+        setEditingId(null);
+    };
+
+    const cancelEditPrice = () => setEditingId(null);
+
+    const handleEditNetChange = (val: string, vatRate: number) => {
+        setEditNetStr(val);
+        const n = eParse(val);
+        if (n !== null) setEditGrossStr(eFmt(eGrossFromNet(n, vatRate)));
+    };
+
+    const handleEditGrossChange = (val: string, vatRate: number) => {
+        setEditGrossStr(val);
+        const g = eParse(val);
+        if (g !== null) setEditNetStr(eFmt(eNetFromGross(g, vatRate)));
+    };
+
     const addNewRow = () => {
         const draftId = `draft-${Date.now()}`;
         setNewRows(prev => [...prev, {
@@ -596,11 +720,13 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         setQuickServiceDraftId(null);
     };
 
-    const hasChanges = newRows.some(r => r.serviceName.trim()) || deletedIds.size > 0;
+    const hasChanges = newRows.some(r => r.serviceName.trim()) || deletedIds.size > 0 || Object.keys(editedPrices).length > 0;
 
     const discardDraft = () => {
         setNewRows([]);
         setDeletedIds(new Set());
+        setEditedPrices({});
+        setEditingId(null);
     };
 
     const acceptDraft = () => {
@@ -615,11 +741,14 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 adjustment: { type: 'FIXED_NET', value: 0 },
                 note: '',
             })),
-            updated: [],
+            updated: Object.entries(editedPrices).map(([serviceLineItemId, basePriceNet]) => ({
+                serviceLineItemId,
+                basePriceNet,
+            })),
             deleted: Array.from(deletedIds).map(id => ({ serviceLineItemId: id })),
         };
         saveServicesChanges(payload, {
-            onSuccess: () => { setNewRows([]); setDeletedIds(new Set()); },
+            onSuccess: () => { setNewRows([]); setDeletedIds(new Set()); setEditedPrices({}); },
         });
     };
 
@@ -648,6 +777,13 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             if (isEditPending) {
                 const net = service.previousPriceNet as number;
                 const gross = service.previousPriceGross as number;
+                totalFinalNet += net;
+                totalFinalGross += gross;
+                totalVat += Math.max(gross - net, 0);
+                totalOriginalGross += gross;
+            } else if (editedPrices[service.id] !== undefined) {
+                const net = editedPrices[service.id];
+                const gross = Math.round(net * (1 + service.vatRate / 100));
                 totalFinalNet += net;
                 totalFinalGross += gross;
                 totalVat += Math.max(gross - net, 0);
@@ -729,6 +865,9 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                         const isMarkedForDelete = deletedIds.has(service.id);
                         const isPendingRow = service.hasPendingChange ?? (service.status === 'PENDING');
                         const canDelete = canEdit && !isPendingRow && !isMarkedForDelete;
+                        const isEditing = editingId === service.id;
+                        const canEditPrice = canEdit && !isPendingRow && !isMarkedForDelete && !isEditing;
+                        const hasEditedPrice = editedPrices[service.id] !== undefined;
 
                         return (
                             <Tr
@@ -786,6 +925,25 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                                 );
                                             }
 
+                                            if (isEditing) {
+                                                return (
+                                                    <PriceEditInput
+                                                        value={editNetStr}
+                                                        onChange={e => handleEditNetChange(e.target.value, service.vatRate)}
+                                                        onKeyDown={e => { if (e.key === 'Enter') confirmEditPrice(service.id); if (e.key === 'Escape') cancelEditPrice(); }}
+                                                        autoFocus
+                                                        placeholder="0.00"
+                                                    />
+                                                );
+                                            }
+                                            if (hasEditedPrice) {
+                                                return (
+                                                    <EditedPriceWrap>
+                                                        <PriceValue>{formatCurrency(editedPrices[service.id] / 100)}</PriceValue>
+                                                        <EditedBadge>Zmieniona</EditedBadge>
+                                                    </EditedPriceWrap>
+                                                );
+                                            }
                                             return (
                                                 <>
                                                     {showDiscount && (
@@ -834,6 +992,25 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                                 );
                                             }
 
+                                            if (isEditing) {
+                                                return (
+                                                    <PriceEditInput
+                                                        value={editGrossStr}
+                                                        onChange={e => handleEditGrossChange(e.target.value, service.vatRate)}
+                                                        onKeyDown={e => { if (e.key === 'Enter') confirmEditPrice(service.id); if (e.key === 'Escape') cancelEditPrice(); }}
+                                                        placeholder="0.00"
+                                                    />
+                                                );
+                                            }
+                                            if (hasEditedPrice) {
+                                                const editedGross = Math.round(editedPrices[service.id] * (1 + service.vatRate / 100));
+                                                return (
+                                                    <EditedPriceWrap>
+                                                        <PriceValue>{formatCurrency(editedGross / 100)}</PriceValue>
+                                                        <EditedBadge>Zmieniona</EditedBadge>
+                                                    </EditedPriceWrap>
+                                                );
+                                            }
                                             return (
                                                 <>
                                                     {showDiscount && (
@@ -852,7 +1029,21 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                 {showActionsCol && (
                                     <ActionsCell>
                                         <RowActions>
-                                            {isPendingRow && (
+                                            {isEditing && (
+                                                <>
+                                                    <EditConfirmBtn onClick={() => confirmEditPrice(service.id)} title="Zatwierdź">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                                            <polyline points="20 6 9 17 4 12" />
+                                                        </svg>
+                                                    </EditConfirmBtn>
+                                                    <EditCancelBtn onClick={cancelEditPrice} title="Anuluj">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                                                        </svg>
+                                                    </EditCancelBtn>
+                                                </>
+                                            )}
+                                            {isPendingRow && !isEditing && (
                                                 <ActionMenuWrapper>
                                                     <ActionMenuBtn
                                                         onClick={() => setOpenMenuId(openMenuId === service.id ? null : service.id)}
@@ -872,6 +1063,15 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                                         </ContextMenu>
                                                     )}
                                                 </ActionMenuWrapper>
+                                            )}
+                                            {canEditPrice && (
+                                                <EditPriceBtn onClick={() => startEditPrice(service)}>
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                    </svg>
+                                                    Edytuj cenę
+                                                </EditPriceBtn>
                                             )}
                                             {canDelete && (
                                                 <DeleteRowBtn onClick={() => toggleDelete(service.id)}>
