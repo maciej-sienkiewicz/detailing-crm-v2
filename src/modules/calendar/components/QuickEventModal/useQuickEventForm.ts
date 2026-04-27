@@ -189,8 +189,11 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
     }, [selectedServiceIds.length, errors.services]);
 
     useEffect(() => {
-        if (errors.customer) {
-            setErrors(prev => { const { customer: _, ...rest } = prev; return rest; });
+        if (errors.customer || errors.customerFirstName || errors.customerLastName || errors.customerPhone || errors.customerEmail) {
+            setErrors(prev => {
+                const { customer: _, customerFirstName: __, customerLastName: ___, customerPhone: ____, customerEmail: _____, ...rest } = prev;
+                return rest;
+            });
         }
     }, [customerFirstName, customerLastName, customerPhone, customerEmail]);
 
@@ -410,32 +413,46 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
             }
             setFocusedField(null);
             setShowCustomerDropdown(false);
+            if (!selectedCustomer) {
+                handleAddNewCustomerDirectly({ silent: true });
+            } else if (customerEditMode) {
+                handleConfirmEdit({ silent: true });
+            }
         }, 300);
     };
 
-    const validateCustomerFields = (fn: string, ln: string, ph: string, em: string): string | null => {
-        if (fn.length < 2) return 'Imię klienta jest wymagane (minimum 2 znaki)';
-        if (ln.length < 2) return 'Nazwisko klienta jest wymagane (minimum 2 znaki)';
-        if (!ph && !em) return 'Podaj co najmniej numer telefonu lub adres email klienta';
-        return null;
+    const getCustomerFieldErrors = (fn: string, ln: string, ph: string, em: string): Record<string, string> => {
+        const errs: Record<string, string> = {};
+        if (fn.length < 2) errs.customerFirstName = 'Wymagane';
+        if (ln.length < 2) errs.customerLastName = 'Wymagane';
+        if (!ph && !em) {
+            errs.customerPhone = 'Podaj telefon lub email';
+            errs.customerEmail = 'Podaj telefon lub email';
+        }
+        return errs;
     };
 
-    const handleAddNewCustomerDirectly = (): boolean => {
+    const handleAddNewCustomerDirectly = (options?: { silent?: boolean }): boolean => {
         const fn = customerFirstName.trim();
         const ln = customerLastName.trim();
         const ph = customerPhone.trim();
         const em = customerEmail.trim();
         if (!fn && !ln && !ph && !em) return false;
-        const error = validateCustomerFields(fn, ln, ph, em);
-        if (error) {
-            setErrors(prev => ({ ...prev, customer: error }));
-            showError('Dane klienta', error);
-            if (fn.length < 2) customerInputRef.current?.focus();
-            else if (ln.length < 2) customerLastNameInputRef.current?.focus();
-            else customerPhoneInputRef.current?.focus();
+        const fieldErrors = getCustomerFieldErrors(fn, ln, ph, em);
+        if (Object.keys(fieldErrors).length > 0) {
+            setErrors(prev => ({ ...prev, ...fieldErrors }));
+            if (!options?.silent) {
+                showError('Dane klienta', Object.values(fieldErrors)[0]);
+                if (fieldErrors.customerFirstName) customerInputRef.current?.focus();
+                else if (fieldErrors.customerLastName) customerLastNameInputRef.current?.focus();
+                else customerPhoneInputRef.current?.focus();
+            }
             return false;
         }
-        setErrors(prev => { const { customer: _, ...rest } = prev; return rest; });
+        setErrors(prev => {
+            const { customer: _, customerFirstName: __, customerLastName: ___, customerPhone: ____, customerEmail: _____, ...rest } = prev;
+            return rest;
+        });
         setSelectedCustomer({ id: '', firstName: fn, lastName: ln, phone: ph, email: em, isNew: true });
         setSelectedCustomerId(undefined);
         setSelectedVehicle(null);
@@ -453,23 +470,28 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
         setShowCustomerDropdown(false);
     };
 
-    const handleConfirmEdit = () => {
+    const handleConfirmEdit = (options?: { silent?: boolean }) => {
         if (!selectedCustomer) return;
         const fn = customerFirstName.trim();
         const ln = customerLastName.trim();
         const ph = customerPhone.trim();
         const em = customerEmail.trim();
         if (selectedCustomer.isNew) {
-            const error = validateCustomerFields(fn, ln, ph, em);
-            if (error) {
-                setErrors(prev => ({ ...prev, customer: error }));
-                showError('Dane klienta', error);
-                if (fn.length < 2) customerInputRef.current?.focus();
-                else if (ln.length < 2) customerLastNameInputRef.current?.focus();
-                else customerPhoneInputRef.current?.focus();
+            const fieldErrors = getCustomerFieldErrors(fn, ln, ph, em);
+            if (Object.keys(fieldErrors).length > 0) {
+                setErrors(prev => ({ ...prev, ...fieldErrors }));
+                if (!options?.silent) {
+                    showError('Dane klienta', Object.values(fieldErrors)[0]);
+                    if (fieldErrors.customerFirstName) customerInputRef.current?.focus();
+                    else if (fieldErrors.customerLastName) customerLastNameInputRef.current?.focus();
+                    else customerPhoneInputRef.current?.focus();
+                }
                 return;
             }
-            setErrors(prev => { const { customer: _, ...rest } = prev; return rest; });
+            setErrors(prev => {
+                const { customer: _, customerFirstName: __, customerLastName: ___, customerPhone: ____, customerEmail: _____, ...rest } = prev;
+                return rest;
+            });
         }
         const changed = fn !== (selectedCustomer.firstName ?? '')
             || ln !== (selectedCustomer.lastName ?? '')

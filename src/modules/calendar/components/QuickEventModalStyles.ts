@@ -862,27 +862,30 @@ export const VehicleSelectButton = styled.button<{ $dropdownOpen?: boolean }>`
     &:focus { outline: none; }
 `;
 
-export const CustomerFieldGroup = styled.div<{ $borderRight?: boolean }>`
+export const CustomerFieldGroup = styled.div<{ $borderRight?: boolean; $hasError?: boolean }>`
     padding: 8px 14px;
     border-right: ${p => p.$borderRight ? '1px solid #f1f5f9' : 'none'};
     display: flex;
     flex-direction: column;
     gap: 2px;
+    background: ${p => p.$hasError ? '#fef2f2' : 'transparent'};
+    transition: background 150ms ease;
 `;
 
-export const CustomerFieldLabel = styled.label`
+export const CustomerFieldLabel = styled.label<{ $hasError?: boolean }>`
     font-size: 10px;
     font-weight: 700;
-    color: #94a3b8;
+    color: ${p => p.$hasError ? '#ef4444' : '#94a3b8'};
     text-transform: uppercase;
     letter-spacing: 0.07em;
     pointer-events: none;
+    transition: color 150ms ease;
 `;
 
-export const CustomerFieldInput = styled.input`
+export const CustomerFieldInput = styled.input<{ $hasError?: boolean }>`
     width: 100%;
     font-size: 14px;
-    color: #0f172a;
+    color: ${p => p.$hasError ? '#ef4444' : '#0f172a'};
     background: transparent;
     border: none;
     outline: none;
@@ -890,7 +893,8 @@ export const CustomerFieldInput = styled.input`
     padding: 0;
     line-height: 1.4;
 
-    &::placeholder { color: #c8d4e0; }
+    &::placeholder { color: ${p => p.$hasError ? '#fca5a5' : '#c8d4e0'}; }
+    transition: color 150ms ease;
 `;
 
 export const CustomerHint = styled.div`

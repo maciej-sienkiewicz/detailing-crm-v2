@@ -199,59 +199,63 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             </S.CustomerHint>
                                             <S.CustomerInputBlock $focused={form.focusedField === 'customer'}>
                                                 <S.CustomerInputRow>
-                                                    <S.CustomerFieldGroup $borderRight>
-                                                        <S.CustomerFieldLabel>Imię</S.CustomerFieldLabel>
+                                                    <S.CustomerFieldGroup $borderRight $hasError={!!form.errors.customerFirstName}>
+                                                        <S.CustomerFieldLabel $hasError={!!form.errors.customerFirstName}>Imię</S.CustomerFieldLabel>
                                                         <S.CustomerFieldInput
                                                             ref={form.customerInputRef}
                                                             type="text"
                                                             placeholder="Jan"
                                                             value={form.customerFirstName}
                                                             onChange={(e) => form.setCustomerFirstName(e.target.value)}
-                                                            onFocus={() => form.setFocusedField('customer')}
-                                                            onBlur={() => form.setFocusedField(null)}
+                                                            onFocus={form.handleCustomerFieldFocus}
+                                                            onBlur={form.handleCustomerFieldBlur}
                                                             autoComplete="new-password"
                                                             autoFocus
+                                                            $hasError={!!form.errors.customerFirstName}
                                                         />
                                                     </S.CustomerFieldGroup>
-                                                    <S.CustomerFieldGroup>
-                                                        <S.CustomerFieldLabel>Nazwisko</S.CustomerFieldLabel>
+                                                    <S.CustomerFieldGroup $hasError={!!form.errors.customerLastName}>
+                                                        <S.CustomerFieldLabel $hasError={!!form.errors.customerLastName}>Nazwisko</S.CustomerFieldLabel>
                                                         <S.CustomerFieldInput
                                                             ref={form.customerLastNameInputRef}
                                                             type="text"
                                                             placeholder="Kowalski"
                                                             value={form.customerLastName}
                                                             onChange={(e) => form.setCustomerLastName(e.target.value)}
-                                                            onFocus={() => form.setFocusedField('customer')}
-                                                            onBlur={() => form.setFocusedField(null)}
+                                                            onFocus={form.handleCustomerFieldFocus}
+                                                            onBlur={form.handleCustomerFieldBlur}
                                                             autoComplete="new-password"
+                                                            $hasError={!!form.errors.customerLastName}
                                                         />
                                                     </S.CustomerFieldGroup>
                                                 </S.CustomerInputRow>
                                                 <S.CustomerInputRow>
-                                                    <S.CustomerFieldGroup $borderRight>
-                                                        <S.CustomerFieldLabel>Telefon</S.CustomerFieldLabel>
+                                                    <S.CustomerFieldGroup $borderRight $hasError={!!form.errors.customerPhone}>
+                                                        <S.CustomerFieldLabel $hasError={!!form.errors.customerPhone}>Telefon</S.CustomerFieldLabel>
                                                         <S.CustomerFieldInput
                                                             ref={form.customerPhoneInputRef}
                                                             type="tel"
                                                             placeholder="+48 123 456 789"
                                                             value={form.customerPhone}
                                                             onChange={(e) => form.setCustomerPhone(e.target.value)}
-                                                            onFocus={() => form.setFocusedField('customer')}
-                                                            onBlur={() => form.setFocusedField(null)}
+                                                            onFocus={form.handleCustomerFieldFocus}
+                                                            onBlur={form.handleCustomerFieldBlur}
                                                             autoComplete="new-password"
+                                                            $hasError={!!form.errors.customerPhone}
                                                         />
                                                     </S.CustomerFieldGroup>
-                                                    <S.CustomerFieldGroup>
-                                                        <S.CustomerFieldLabel>E-mail</S.CustomerFieldLabel>
+                                                    <S.CustomerFieldGroup $hasError={!!form.errors.customerEmail}>
+                                                        <S.CustomerFieldLabel $hasError={!!form.errors.customerEmail}>E-mail</S.CustomerFieldLabel>
                                                         <S.CustomerFieldInput
                                                             ref={form.customerEmailInputRef}
                                                             type="email"
                                                             placeholder="jan@example.com"
                                                             value={form.customerEmail}
                                                             onChange={(e) => form.setCustomerEmail(e.target.value)}
-                                                            onFocus={() => form.setFocusedField('customer')}
-                                                            onBlur={() => form.setFocusedField(null)}
+                                                            onFocus={form.handleCustomerFieldFocus}
+                                                            onBlur={form.handleCustomerFieldBlur}
                                                             autoComplete="new-password"
+                                                            $hasError={!!form.errors.customerEmail}
                                                         />
                                                     </S.CustomerFieldGroup>
                                                 </S.CustomerInputRow>
@@ -322,12 +326,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             <S.DropdownContainer>
                                                 <S.CustomerInputBlock
                                                     $focused={form.focusedField === 'customer'}
-                                                    $hasError={!!form.errors.customer}
+                                                    $hasError={!!(form.errors.customer || form.errors.customerFirstName || form.errors.customerLastName || form.errors.customerPhone || form.errors.customerEmail)}
                                                     $dropdownOpen={form.showCustomerDropdown}
                                                 >
                                                     <S.CustomerInputRow>
-                                                        <S.CustomerFieldGroup $borderRight>
-                                                            <S.CustomerFieldLabel>Imię</S.CustomerFieldLabel>
+                                                        <S.CustomerFieldGroup $borderRight $hasError={!!form.errors.customerFirstName}>
+                                                            <S.CustomerFieldLabel $hasError={!!form.errors.customerFirstName}>Imię</S.CustomerFieldLabel>
                                                             <S.CustomerFieldInput
                                                                 ref={form.customerInputRef}
                                                                 type="text"
@@ -340,10 +344,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                 onFocus={form.handleCustomerFieldFocus}
                                                                 onBlur={form.handleCustomerFieldBlur}
                                                                 autoComplete="new-password"
+                                                                $hasError={!!form.errors.customerFirstName}
                                                             />
                                                         </S.CustomerFieldGroup>
-                                                        <S.CustomerFieldGroup>
-                                                            <S.CustomerFieldLabel>Nazwisko</S.CustomerFieldLabel>
+                                                        <S.CustomerFieldGroup $hasError={!!form.errors.customerLastName}>
+                                                            <S.CustomerFieldLabel $hasError={!!form.errors.customerLastName}>Nazwisko</S.CustomerFieldLabel>
                                                             <S.CustomerFieldInput
                                                                 ref={form.customerLastNameInputRef}
                                                                 type="text"
@@ -356,12 +361,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                 onFocus={form.handleCustomerFieldFocus}
                                                                 onBlur={form.handleCustomerFieldBlur}
                                                                 autoComplete="new-password"
+                                                                $hasError={!!form.errors.customerLastName}
                                                             />
                                                         </S.CustomerFieldGroup>
                                                     </S.CustomerInputRow>
                                                     <S.CustomerInputRow>
-                                                        <S.CustomerFieldGroup $borderRight>
-                                                            <S.CustomerFieldLabel>Telefon</S.CustomerFieldLabel>
+                                                        <S.CustomerFieldGroup $borderRight $hasError={!!form.errors.customerPhone}>
+                                                            <S.CustomerFieldLabel $hasError={!!form.errors.customerPhone}>Telefon</S.CustomerFieldLabel>
                                                             <S.CustomerFieldInput
                                                                 ref={form.customerPhoneInputRef}
                                                                 type="tel"
@@ -374,10 +380,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                 onFocus={form.handleCustomerFieldFocus}
                                                                 onBlur={form.handleCustomerFieldBlur}
                                                                 autoComplete="new-password"
+                                                                $hasError={!!form.errors.customerPhone}
                                                             />
                                                         </S.CustomerFieldGroup>
-                                                        <S.CustomerFieldGroup>
-                                                            <S.CustomerFieldLabel>E-mail</S.CustomerFieldLabel>
+                                                        <S.CustomerFieldGroup $hasError={!!form.errors.customerEmail}>
+                                                            <S.CustomerFieldLabel $hasError={!!form.errors.customerEmail}>E-mail</S.CustomerFieldLabel>
                                                             <S.CustomerFieldInput
                                                                 ref={form.customerEmailInputRef}
                                                                 type="email"
@@ -390,6 +397,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                 onFocus={form.handleCustomerFieldFocus}
                                                                 onBlur={form.handleCustomerFieldBlur}
                                                                 autoComplete="new-password"
+                                                                $hasError={!!form.errors.customerEmail}
                                                             />
                                                         </S.CustomerFieldGroup>
                                                     </S.CustomerInputRow>
