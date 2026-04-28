@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Modal } from '@/common/components/Modal';
 import { Button, ButtonGroup } from '@/common/components/Button';
 import { ErrorMessage } from '@/common/components/Form';
 import { useCreateProtocolTemplate, useDeleteProtocolTemplate, useCreateProtocolRule } from '@/modules/protocols/api/useProtocols';
 import { consentsApi } from '@/modules/consents/api/consentsApi';
-import type { ProtocolStage } from '@/modules/protocols/types';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -24,12 +23,13 @@ const formatSize = (bytes: number) => {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 };
 
-// ─── Shared layout atoms ─────────────────────────────────────────────────────
+// ─── Styled components ────────────────────────────────────────────────────────
 
-const Wrap = styled.div`
+const Wrap = styled.form`
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 18px;
+    margin-top: 4px;
 `;
 
 const Field = styled.div`
@@ -42,12 +42,6 @@ const FieldLabel = styled.label`
     font-size: 13px;
     font-weight: 600;
     color: #334155;
-`;
-
-const Hint = styled.div`
-    font-size: 11px;
-    color: #94a3b8;
-    margin-top: 2px;
 `;
 
 const InputEl = styled.input`
@@ -64,13 +58,6 @@ const InputEl = styled.input`
     width: 100%;
     &:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14,165,233,0.14); }
     &::placeholder { color: #94a3b8; }
-`;
-
-const SlugInput = styled(InputEl)`
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 12px;
-    letter-spacing: -0.3px;
-    color: #0284c7;
 `;
 
 const TextareaEl = styled.textarea`
@@ -90,16 +77,14 @@ const TextareaEl = styled.textarea`
     &::placeholder { color: #94a3b8; }
 `;
 
-const HiddenFileInput = styled.input`
-    display: none;
-`;
+const HiddenFileInput = styled.input`display: none;`;
 
-const UploadArea = styled.div<{ $hasFile: boolean }>`
-    border: 2px dashed ${p => p.$hasFile ? '#0ea5e9' : '#cbd5e1'};
+const UploadArea = styled.div`
+    border: 2px dashed #cbd5e1;
     border-radius: 10px;
     padding: 24px 16px;
     text-align: center;
-    background: ${p => p.$hasFile ? 'rgba(14,165,233,0.04)' : '#f8fafc'};
+    background: #f8fafc;
     cursor: pointer;
     transition: all 180ms;
     &:hover { border-color: #0ea5e9; background: rgba(14,165,233,0.04); }
@@ -141,62 +126,21 @@ const FilePillIcon = styled.div`
     svg { width: 18px; height: 18px; }
 `;
 
-const FilePillInfo = styled.div`
-    flex: 1; min-width: 0;
-`;
+const FilePillInfo = styled.div`flex: 1; min-width: 0;`;
 
 const FilePillName = styled.div`
     font-size: 13px; font-weight: 500; color: #0f172a;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 `;
 
-const FilePillSize = styled.div`
-    font-size: 11px; color: #64748b; margin-top: 2px;
-`;
+const FilePillSize = styled.div`font-size: 11px; color: #64748b; margin-top: 2px;`;
 
 const RemoveFileBtn = styled.button`
     padding: 5px; background: transparent; border: none;
     color: #94a3b8; cursor: pointer; border-radius: 6px;
-    display: flex; align-items: center;
-    transition: all 150ms;
+    display: flex; align-items: center; transition: all 150ms;
     &:hover { background: rgba(220,38,38,0.08); color: #dc2626; }
     svg { width: 15px; height: 15px; }
-`;
-
-const StageRow = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-`;
-
-const StageCard = styled.button<{ $selected: boolean }>`
-    display: flex; align-items: center; gap: 10px;
-    padding: 12px 14px;
-    border-radius: 10px;
-    border: 1.5px solid ${p => p.$selected ? '#0ea5e9' : '#e2e8f0'};
-    background: ${p => p.$selected ? 'rgba(14,165,233,0.06)' : 'white'};
-    cursor: pointer; transition: all 180ms; text-align: left; font-family: inherit;
-    &:hover { border-color: #0ea5e9; background: rgba(14,165,233,0.04); }
-`;
-
-const StageIconWrap = styled.div<{ $stage: ProtocolStage }>`
-    width: 30px; height: 30px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    background: ${p => p.$stage === 'CHECK_IN' ? 'rgba(16,185,129,0.12)' : 'rgba(99,102,241,0.12)'};
-    color: ${p => p.$stage === 'CHECK_IN' ? '#059669' : '#6366f1'};
-    svg { width: 15px; height: 15px; }
-`;
-
-const StageText = styled.div`
-    flex: 1; min-width: 0;
-`;
-
-const StageName = styled.div`
-    font-size: 13px; font-weight: 600; color: #0f172a;
-`;
-
-const StageDesc = styled.div`
-    font-size: 11px; color: #64748b; margin-top: 2px;
 `;
 
 const ToggleRow = styled.label`
@@ -208,12 +152,8 @@ const ToggleRow = styled.label`
 `;
 
 const ToggleText = styled.div``;
-const ToggleLabel = styled.div`
-    font-size: 13px; font-weight: 600; color: #0f172a;
-`;
-const ToggleDesc = styled.div`
-    font-size: 11px; color: #64748b; margin-top: 2px;
-`;
+const ToggleLabel = styled.div`font-size: 13px; font-weight: 600; color: #0f172a;`;
+const ToggleDesc  = styled.div`font-size: 11px; color: #64748b; margin-top: 2px;`;
 
 const ToggleBtn = styled.button<{ $on: boolean }>`
     position: relative; width: 36px; height: 20px; border-radius: 9999px;
@@ -228,46 +168,14 @@ const ToggleBtn = styled.button<{ $on: boolean }>`
     }
 `;
 
-const StepIndicator = styled.div`
-    display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
-`;
-
-const StepDot = styled.div<{ $active: boolean; $done: boolean }>`
-    width: 22px; height: 22px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10px; font-weight: 700;
-    background: ${p => p.$done ? '#0ea5e9' : p.$active ? '#0f172a' : '#e2e8f0'};
-    color: ${p => p.$done || p.$active ? 'white' : '#94a3b8'};
-    transition: all 200ms;
-    flex-shrink: 0;
-`;
-
-const StepLine = styled.div`
-    flex: 1; height: 1px; background: #e2e8f0;
-`;
-
-const StepName = styled.div`
-    font-size: 11px; color: #64748b;
-`;
-
-const SectionDivider = styled.div`
-    font-size: 11px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.08em; color: #94a3b8;
-    padding-bottom: 6px; border-bottom: 1px solid #f1f5f9;
-`;
-
 const InfoBox = styled.div`
     display: flex; gap: 10px; align-items: flex-start;
     padding: 12px 14px;
-    background: rgba(14,165,233,0.06);
-    border: 1px solid rgba(14,165,233,0.18);
+    background: rgba(99,102,241,0.06);
+    border: 1px solid rgba(99,102,241,0.18);
     border-radius: 10px;
-    font-size: 12px; color: #0369a1; line-height: 1.55;
+    font-size: 12px; color: #4338ca; line-height: 1.55;
     svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; }
-`;
-
-const NavActions = styled.div`
-    display: flex; justify-content: space-between; align-items: center;
 `;
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -292,31 +200,13 @@ const XIcon = () => (
     </svg>
 );
 
-const ArrowDownIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" />
-    </svg>
-);
-
-const ArrowUpIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" />
-    </svg>
-);
-
 const InfoIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
     </svg>
 );
 
-const CheckIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="20 6 9 17 4 12" />
-    </svg>
-);
-
-// ─── Props ────────────────────────────────────────────────────────────────────
+// ─── Props / component ────────────────────────────────────────────────────────
 
 interface AddConsentDocumentModalProps {
     isOpen: boolean;
@@ -324,113 +214,69 @@ interface AddConsentDocumentModalProps {
     onSuccess?: () => void;
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
-
 export function AddConsentDocumentModal({ isOpen, onClose, onSuccess }: AddConsentDocumentModalProps) {
-    // Step state
-    const [step, setStep] = useState<1 | 2>(1);
-
-    // Step 1 state
-    const [file, setFile] = useState<File | undefined>();
-    const [name, setName] = useState('');
+    const [file, setFile]               = useState<File | undefined>();
+    const [name, setName]               = useState('');
     const [description, setDescription] = useState('');
-
-    // Step 2 state — slug auto-derives from name but is editable
-    const [slug, setSlug] = useState('');
-    const [slugEdited, setSlugEdited] = useState(false);
-    const [stage, setStage] = useState<ProtocolStage>('CHECK_IN');
-    const [isMandatory, setIsMandatory] = useState(true);
     const [requiresResign, setRequiresResign] = useState(false);
-
-    // Shared error/loading
-    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [errors, setErrors]           = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     const createTemplate = useCreateProtocolTemplate();
     const deleteTemplate = useDeleteProtocolTemplate();
-    const createRule = useCreateProtocolRule();
-
-    // Keep slug in sync with name unless user edited it manually
-    useEffect(() => {
-        if (!slugEdited) {
-            setSlug(toSlug(name));
-        }
-    }, [name, slugEdited]);
+    const createRule     = useCreateProtocolRule();
 
     const reset = () => {
-        setStep(1);
-        setFile(undefined);
-        setName(''); setDescription('');
-        setSlug(''); setSlugEdited(false);
-        setStage('CHECK_IN');
-        setIsMandatory(true); setRequiresResign(false);
-        setErrors({});
-        setIsSubmitting(false);
+        setFile(undefined); setName(''); setDescription('');
+        setRequiresResign(false); setErrors({}); setIsSubmitting(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const handleClose = () => { reset(); onClose(); };
 
-    // ── File helpers ──────────────────────────────────────────────────────────
-
     const applyFile = (f: File) => {
         if (f.type !== 'application/pdf') {
-            setErrors(e => ({ ...e, file: 'Tylko pliki PDF są dozwolone' }));
-            return;
+            setErrors(e => ({ ...e, file: 'Tylko pliki PDF są dozwolone' })); return;
         }
         if (f.size > 10 * 1024 * 1024) {
-            setErrors(e => ({ ...e, file: 'Plik jest za duży (max 10 MB)' }));
-            return;
+            setErrors(e => ({ ...e, file: 'Plik jest za duży (max 10 MB)' })); return;
         }
         setFile(f);
         setErrors(e => { const { file: _, ...rest } = e; return rest; });
     };
 
-    // ── Step 1 submit ─────────────────────────────────────────────────────────
-
-    const handleStep1Next = () => {
-        const errs: Record<string, string> = {};
-        if (!file) errs.file = 'Plik PDF jest wymagany';
-        if (!name.trim() || name.trim().length < 3) errs.name = 'Nazwa musi mieć co najmniej 3 znaki';
-        if (Object.keys(errs).length) { setErrors(errs); return; }
-        setErrors({});
-        setStep(2);
-    };
-
-    // ── Step 2 submit (4 API calls) ───────────────────────────────────────────
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         const errs: Record<string, string> = {};
-        if (!slug || !/^[a-z0-9-]{2,50}$/.test(slug)) {
-            errs.slug = 'Identyfikator: 2–50 znaków, tylko litery a–z, cyfry i myślniki';
-        }
+        if (!file) errs.file = 'Plik PDF jest wymagany';
+        if (!name.trim() || name.trim().length < 3) errs.name = 'Nazwa musi mieć co najmniej 3 znaki';
         if (Object.keys(errs).length) { setErrors(errs); return; }
 
         setIsSubmitting(true);
         setErrors({});
 
+        const slug = toSlug(name.trim());
         let createdTemplateId: string | undefined;
 
         try {
-            // KROK A: stwórz protokół-szablon (PDF formularz per wizyta)
+            // A: protokół-szablon (PDF formularz per wizyta)
             const protocol = await createTemplate.mutateAsync({
                 data: { name: name.trim(), description: description.trim() || undefined },
                 file,
             });
             createdTemplateId = protocol.id;
 
-            // KROK B: stwórz definicję zgody
+            // B: definicja zgody
             const definition = await consentsApi.createConsentDefinition({
                 slug,
                 name: name.trim(),
                 description: description.trim() || undefined,
             });
 
-            // KROK C: prześlij wersję dokumentu zgody (ten sam plik)
+            // C: wersja dokumentu zgody (ten sam plik)
             const uploadResp = await consentsApi.uploadConsentTemplate({
                 definitionId: definition.definitionId,
                 requiresResign,
@@ -438,13 +284,13 @@ export function AddConsentDocumentModal({ isOpen, onClose, onSuccess }: AddConse
             });
             await consentsApi.uploadFileToS3(uploadResp.uploadUrl, file!);
 
-            // KROK D: połącz regułą
+            // D: reguła łącząca
             await createRule.mutateAsync({
                 protocolTemplateId: protocol.id,
                 triggerType: 'CUSTOMER_CONSENT_REQUIRED',
-                stage,
+                stage: 'CHECK_IN',
                 consentDefinitionId: definition.definitionId,
-                isMandatory,
+                isMandatory: false,
                 displayOrder: 999,
             });
 
@@ -452,198 +298,109 @@ export function AddConsentDocumentModal({ isOpen, onClose, onSuccess }: AddConse
             onSuccess?.();
             onClose();
         } catch (err) {
-            // Best-effort cleanup: remove orphaned protocol template
             if (createdTemplateId) {
                 try { await deleteTemplate.mutateAsync(createdTemplateId); } catch { /* best-effort */ }
             }
-            const msg = err instanceof Error ? err.message : 'Wystąpił błąd podczas zapisywania';
-            setErrors({ submit: msg });
+            setErrors({ submit: err instanceof Error ? err.message : 'Wystąpił błąd podczas zapisywania' });
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // ─────────────────────────────────────────────────────────────────────────
-
     return (
         <Modal isOpen={isOpen} onClose={handleClose} title="Dodaj zgodę marketingową">
+            <Wrap onSubmit={handleSubmit}>
+                <InfoBox>
+                    <InfoIcon />
+                    <div>
+                        Zgoda jest zbierana <strong>jednorazowo</strong> per klient przy przyjęciu pojazdu
+                        i pamiętana między wizytami. Przy kolejnych wizytach nie jest wyświetlana ponownie,
+                        jeśli klient już podpisał aktywną wersję.
+                    </div>
+                </InfoBox>
 
-            {/* Step indicator */}
-            <StepIndicator>
-                <StepDot $active={step === 1} $done={step > 1}>
-                    {step > 1 ? <CheckIcon /> : '1'}
-                </StepDot>
-                <StepName style={{ color: step === 1 ? '#0f172a' : '#94a3b8', fontWeight: step === 1 ? 600 : 400 }}>Dokument</StepName>
-                <StepLine />
-                <StepDot $active={step === 2} $done={false}>2</StepDot>
-                <StepName style={{ color: step === 2 ? '#0f172a' : '#94a3b8', fontWeight: step === 2 ? 600 : 400 }}>Konfiguracja</StepName>
-            </StepIndicator>
+                {/* PDF */}
+                <Field>
+                    <FieldLabel>Plik PDF *</FieldLabel>
+                    <HiddenFileInput
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf,application/pdf"
+                        onChange={e => { const f = e.target.files?.[0]; if (f) applyFile(f); }}
+                    />
+                    {file ? (
+                        <FilePill>
+                            <FilePillIcon><FilePdfIcon /></FilePillIcon>
+                            <FilePillInfo>
+                                <FilePillName>{file.name}</FilePillName>
+                                <FilePillSize>{formatSize(file.size)}</FilePillSize>
+                            </FilePillInfo>
+                            <RemoveFileBtn type="button" onClick={() => {
+                                setFile(undefined);
+                                if (fileInputRef.current) fileInputRef.current.value = '';
+                            }}>
+                                <XIcon />
+                            </RemoveFileBtn>
+                        </FilePill>
+                    ) : (
+                        <UploadArea
+                            onClick={() => fileInputRef.current?.click()}
+                            onDragOver={e => e.preventDefault()}
+                            onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) applyFile(f); }}
+                        >
+                            <UploadIconWrap><UploadCloudIcon /></UploadIconWrap>
+                            <UploadTitle>Kliknij lub przeciągnij plik PDF</UploadTitle>
+                            <UploadSubtitle>Maksymalny rozmiar: 10 MB</UploadSubtitle>
+                        </UploadArea>
+                    )}
+                    {errors.file && <ErrorMessage>{errors.file}</ErrorMessage>}
+                </Field>
 
-            {/* ── STEP 1 ────────────────────────────────────────────────────── */}
-            {step === 1 && (
-                <Wrap style={{ marginTop: 12 }}>
-                    <InfoBox>
-                        <InfoIcon />
-                        <div>
-                            Zgoda marketingowa jest zbierana <strong>jednorazowo</strong> per klient i pamiętana
-                            między wizytami. Przy kolejnej wizycie system nie wyświetli jej ponownie, jeśli klient
-                            już podpisał aktywną wersję.
-                        </div>
-                    </InfoBox>
+                {/* Name */}
+                <Field>
+                    <FieldLabel>Nazwa dokumentu *</FieldLabel>
+                    <InputEl
+                        type="text"
+                        placeholder="np. Zgoda na treści marketingowe"
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                    />
+                    {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
+                </Field>
 
-                    {/* File */}
-                    <Field>
-                        <FieldLabel>Plik PDF *</FieldLabel>
-                        <HiddenFileInput
-                            ref={fileInputRef}
-                            type="file"
-                            accept=".pdf,application/pdf"
-                            onChange={e => { const f = e.target.files?.[0]; if (f) applyFile(f); }}
-                        />
-                        {file ? (
-                            <FilePill>
-                                <FilePillIcon><FilePdfIcon /></FilePillIcon>
-                                <FilePillInfo>
-                                    <FilePillName>{file.name}</FilePillName>
-                                    <FilePillSize>{formatSize(file.size)}</FilePillSize>
-                                </FilePillInfo>
-                                <RemoveFileBtn
-                                    type="button"
-                                    onClick={() => { setFile(undefined); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                                >
-                                    <XIcon />
-                                </RemoveFileBtn>
-                            </FilePill>
-                        ) : (
-                            <UploadArea
-                                $hasFile={false}
-                                onClick={() => fileInputRef.current?.click()}
-                                onDragOver={e => e.preventDefault()}
-                                onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) applyFile(f); }}
-                            >
-                                <UploadIconWrap><UploadCloudIcon /></UploadIconWrap>
-                                <UploadTitle>Kliknij lub przeciągnij plik PDF</UploadTitle>
-                                <UploadSubtitle>Maksymalny rozmiar: 10 MB</UploadSubtitle>
-                            </UploadArea>
-                        )}
-                        {errors.file && <ErrorMessage>{errors.file}</ErrorMessage>}
-                    </Field>
+                {/* Description */}
+                <Field>
+                    <FieldLabel>Opis <span style={{ fontWeight: 400, color: '#94a3b8' }}>(opcjonalnie)</span></FieldLabel>
+                    <TextareaEl
+                        placeholder="Krótki opis zakresu zgody…"
+                        value={description}
+                        onChange={e => setDescription(e.target.value)}
+                        rows={2}
+                    />
+                </Field>
 
-                    {/* Name */}
-                    <Field>
-                        <FieldLabel>Nazwa dokumentu *</FieldLabel>
-                        <InputEl
-                            type="text"
-                            placeholder="np. Zgoda na treści marketingowe"
-                            value={name}
-                            onChange={e => setName(e.target.value)}
-                        />
-                        {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
-                    </Field>
+                {/* requiresResign */}
+                <ToggleRow>
+                    <ToggleText>
+                        <ToggleLabel>Wymaga ponownego podpisu</ToggleLabel>
+                        <ToggleDesc>Klienci, którzy już podpisali starszą wersję, muszą podpisać ponownie</ToggleDesc>
+                    </ToggleText>
+                    <ToggleBtn
+                        type="button" $on={requiresResign}
+                        onClick={() => setRequiresResign(v => !v)}
+                        role="switch" aria-checked={requiresResign}
+                    />
+                </ToggleRow>
 
-                    {/* Description */}
-                    <Field>
-                        <FieldLabel>Opis <span style={{ fontWeight: 400, color: '#94a3b8' }}>(opcjonalnie)</span></FieldLabel>
-                        <TextareaEl
-                            placeholder="Krótki opis zakresu zgody…"
-                            value={description}
-                            onChange={e => setDescription(e.target.value)}
-                            rows={2}
-                        />
-                    </Field>
+                {errors.submit && <ErrorMessage>{errors.submit}</ErrorMessage>}
 
-                    <ButtonGroup style={{ justifyContent: 'flex-end' }}>
-                        <Button type="button" $variant="secondary" onClick={handleClose}>Anuluj</Button>
-                        <Button type="button" $variant="primary" onClick={handleStep1Next}>
-                            Dalej →
-                        </Button>
-                    </ButtonGroup>
-                </Wrap>
-            )}
-
-            {/* ── STEP 2 ────────────────────────────────────────────────────── */}
-            {step === 2 && (
-                <form onSubmit={handleSubmit}>
-                    <Wrap style={{ marginTop: 12 }}>
-                        <SectionDivider>Identyfikator</SectionDivider>
-
-                        <Field>
-                            <FieldLabel>Slug zgody *</FieldLabel>
-                            <SlugInput
-                                type="text"
-                                value={slug}
-                                onChange={e => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setSlugEdited(true); }}
-                                placeholder="np. marketing"
-                                spellCheck={false}
-                            />
-                            <Hint>
-                                Unikalny identyfikator używany przez system, np. <code style={{ fontFamily: 'monospace', background: '#f1f5f9', padding: '1px 5px', borderRadius: 4 }}>marketing</code>.
-                                Tylko małe litery, cyfry i myślniki.
-                            </Hint>
-                            {errors.slug && <ErrorMessage>{errors.slug}</ErrorMessage>}
-                        </Field>
-
-                        <SectionDivider>Etap</SectionDivider>
-
-                        <Field>
-                            <FieldLabel>Zbieraj zgodę przy *</FieldLabel>
-                            <StageRow>
-                                <StageCard type="button" $selected={stage === 'CHECK_IN'} onClick={() => setStage('CHECK_IN')}>
-                                    <StageIconWrap $stage="CHECK_IN"><ArrowDownIcon /></StageIconWrap>
-                                    <StageText>
-                                        <StageName>Przyjęciu pojazdu</StageName>
-                                        <StageDesc>Przy check-in</StageDesc>
-                                    </StageText>
-                                </StageCard>
-                                <StageCard type="button" $selected={stage === 'CHECK_OUT'} onClick={() => setStage('CHECK_OUT')}>
-                                    <StageIconWrap $stage="CHECK_OUT"><ArrowUpIcon /></StageIconWrap>
-                                    <StageText>
-                                        <StageName>Wydaniu pojazdu</StageName>
-                                        <StageDesc>Przy check-out</StageDesc>
-                                    </StageText>
-                                </StageCard>
-                            </StageRow>
-                        </Field>
-
-                        <SectionDivider>Opcje</SectionDivider>
-
-                        <ToggleRow>
-                            <ToggleText>
-                                <ToggleLabel>Obowiązkowa</ToggleLabel>
-                                <ToggleDesc>Wizyta nie może być zakończona bez podpisu zgody</ToggleDesc>
-                            </ToggleText>
-                            <ToggleBtn
-                                type="button" $on={isMandatory}
-                                onClick={() => setIsMandatory(v => !v)}
-                                role="switch" aria-checked={isMandatory}
-                            />
-                        </ToggleRow>
-
-                        <ToggleRow>
-                            <ToggleText>
-                                <ToggleLabel>Wymaga ponownego podpisu</ToggleLabel>
-                                <ToggleDesc>Klienci, którzy już podpisali starszą wersję, muszą podpisać ponownie</ToggleDesc>
-                            </ToggleText>
-                            <ToggleBtn
-                                type="button" $on={requiresResign}
-                                onClick={() => setRequiresResign(v => !v)}
-                                role="switch" aria-checked={requiresResign}
-                            />
-                        </ToggleRow>
-
-                        {errors.submit && <ErrorMessage>{errors.submit}</ErrorMessage>}
-
-                        <NavActions>
-                            <Button type="button" $variant="secondary" onClick={() => { setErrors({}); setStep(1); }}>
-                                ← Wstecz
-                            </Button>
-                            <Button type="submit" $variant="primary" disabled={isSubmitting}>
-                                {isSubmitting ? 'Tworzenie…' : 'Utwórz zgodę'}
-                            </Button>
-                        </NavActions>
-                    </Wrap>
-                </form>
-            )}
+                <ButtonGroup>
+                    <Button type="button" $variant="secondary" onClick={handleClose}>Anuluj</Button>
+                    <Button type="submit" $variant="primary" disabled={isSubmitting}>
+                        {isSubmitting ? 'Tworzenie…' : 'Utwórz zgodę'}
+                    </Button>
+                </ButtonGroup>
+            </Wrap>
         </Modal>
     );
 }
