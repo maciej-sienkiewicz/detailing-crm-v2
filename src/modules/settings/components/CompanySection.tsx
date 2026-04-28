@@ -285,6 +285,21 @@ const CheckIcon = () => <Svg d="M20 6 9 17l-5-5" size={14} />;
 const UploadIcon = () => <Svg d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" size={13} />;
 const TrashIcon = () => <Svg d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" size={13} />;
 
+// ─── Internal form state (all strings — no nulls reach the inputs) ────────────
+
+interface CompanyForm {
+    name: string;
+    taxId: string;
+    regon: string;
+    street: string;
+    postalCode: string;
+    city: string;
+    phone: string;
+    email: string;
+    website: string;
+    bankAccount: string;
+}
+
 // ─── Validation ───────────────────────────────────────────────────────────────
 
 interface FormErrors {
@@ -296,22 +311,22 @@ interface FormErrors {
     phone?: string;
 }
 
-function validate(form: UpdateCompanySettingsRequest): FormErrors {
+function validate(form: CompanyForm): FormErrors {
     const errors: FormErrors = {};
 
     if (!form.name.trim()) errors.name = 'Nazwa firmy jest wymagana.';
 
-    const taxIdRaw = form.taxId.replace(/[\s-]/g, '');
+    const taxIdRaw = (form.taxId ?? '').replace(/[\s-]/g, '');
     if (!/^\d{10}$/.test(taxIdRaw)) errors.taxId = 'NIP musi zawierać dokładnie 10 cyfr.';
 
-    const regonRaw = form.regon.replace(/\s/g, '');
+    const regonRaw = (form.regon ?? '').replace(/\s/g, '');
     if (!/^\d{9}(\d{5})?$/.test(regonRaw)) errors.regon = 'REGON musi mieć 9 lub 14 cyfr.';
 
-    if (!/^\d{2}-\d{3}$/.test(form.postalCode.trim())) errors.postalCode = 'Format: XX-XXX';
+    if (!/^\d{2}-\d{3}$/.test((form.postalCode ?? '').trim())) errors.postalCode = 'Format: XX-XXX';
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errors.email = 'Nieprawidłowy adres e-mail.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((form.email ?? '').trim())) errors.email = 'Nieprawidłowy adres e-mail.';
 
-    if (!form.phone.trim()) errors.phone = 'Telefon jest wymagany.';
+    if (!(form.phone ?? '').trim()) errors.phone = 'Telefon jest wymagany.';
 
     return errors;
 }
@@ -326,28 +341,28 @@ export function CompanySection() {
     const { showSuccess, showError } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const [form, setForm] = useState<UpdateCompanySettingsRequest | null>(null);
+    const [form, setForm] = useState<CompanyForm | null>(null);
     const [errors, setErrors] = useState<FormErrors>({});
     const [dirty, setDirty] = useState(false);
 
     useEffect(() => {
         if (company && !form) {
             setForm({
-                name: company.name,
-                taxId: company.taxId,
-                regon: company.regon,
-                street: company.street,
-                postalCode: company.postalCode,
-                city: company.city,
-                phone: company.phone,
-                email: company.email,
-                website: company.website,
-                bankAccount: company.bankAccount,
+                name: company.name ?? '',
+                taxId: company.taxId ?? '',
+                regon: company.regon ?? '',
+                street: company.street ?? '',
+                postalCode: company.postalCode ?? '',
+                city: company.city ?? '',
+                phone: company.phone ?? '',
+                email: company.email ?? '',
+                website: company.website ?? '',
+                bankAccount: company.bankAccount ?? '',
             });
         }
     }, [company, form]);
 
-    const set = (field: keyof UpdateCompanySettingsRequest, value: string) => {
+    const set = (field: keyof CompanyForm, value: string) => {
         setForm(prev => prev ? { ...prev, [field]: value } : prev);
         setErrors(prev => ({ ...prev, [field]: undefined }));
         setDirty(true);
@@ -360,8 +375,20 @@ export function CompanySection() {
             setErrors(errs);
             return;
         }
+        const payload: UpdateCompanySettingsRequest = {
+            name: form.name.trim(),
+            taxId: form.taxId.trim(),
+            regon: form.regon.trim(),
+            street: form.street.trim(),
+            postalCode: form.postalCode.trim(),
+            city: form.city.trim(),
+            phone: form.phone.trim(),
+            email: form.email.trim(),
+            website: form.website.trim() || null,
+            bankAccount: form.bankAccount.trim() || null,
+        };
         try {
-            await updateMutation.mutateAsync(form);
+            await updateMutation.mutateAsync(payload);
             setDirty(false);
             showSuccess('Zapisano', 'Dane firmy zostały zaktualizowane.');
         } catch {
