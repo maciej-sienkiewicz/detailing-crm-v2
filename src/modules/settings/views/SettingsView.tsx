@@ -1,0 +1,299 @@
+import { useState } from 'react';
+import styled from 'styled-components';
+import { DocumentsSection } from '../components/DocumentsSection';
+
+// ─── Nav definition ──────────────────────────────────────────────────────────
+
+type SectionId =
+    | 'company' | 'services' | 'team' | 'opening'
+    | 'templates' | 'reminders' | 'documents'
+    | 'plan' | 'credits' | 'invoices' | 'security'
+    | 'integrations' | 'api';
+
+interface NavItem {
+    id: SectionId;
+    label: string;
+    icon: React.ReactNode;
+    badge?: string;
+}
+
+interface NavGroup {
+    group: string;
+    items: NavItem[];
+}
+
+// SVG icon helpers
+const Icon = ({ d, size = 15 }: { d: string; size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+        <path d={d} />
+    </svg>
+);
+
+const BuildingIcon   = () => <Icon d="M3 21h18M9 21V5l7-2v18M3 7l6-2" />;
+const ListChecksIcon = () => <Icon d="M3 5h6M3 10h6M3 15h6M13 5l2 2 4-4M13 10l2 2 4-4M13 15l2 2 4-4" />;
+const UsersIcon      = () => <Icon d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3M8 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3M2 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M18 21v-2a4 4 0 0 0-3-3.87" />;
+const ClockIcon      = () => <Icon d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 5v5l3 3" />;
+const MessageIcon    = () => <Icon d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />;
+const BellIcon       = () => <Icon d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" />;
+const FileSignIcon   = () => <Icon d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7zM14 2v5h5M9 18c.8-.8 1-1.5.8-2.3-.3-1-1.2-1.7-1-2.7.2-.8.9-1.5 1.2-2" />;
+const CrownIcon      = () => <Icon d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z" />;
+const WalletIcon     = () => <Icon d="M20 12V8a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4M20 12h-6a2 2 0 0 0 0 4h6" />;
+const ReceiptIcon    = () => <Icon d="M4 2h16v20l-2-1-2 1-2-1-2 1-2-1-2 1-2-1V2zM8 10h8M8 14h4" />;
+const ShieldIcon     = () => <Icon d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />;
+const PlugIcon       = () => <Icon d="M7 16.9A7 7 0 1 1 16.9 7M7 16.9l9-9M9 9l6 6" />;
+const TerminalIcon   = () => <Icon d="M4 17l6-6-6-6M12 19h8" />;
+
+const NAV_GROUPS: NavGroup[] = [
+    {
+        group: 'Studio',
+        items: [
+            { id: 'company',  label: 'Dane firmy',      icon: <BuildingIcon /> },
+            { id: 'services', label: 'Cennik usług',     icon: <ListChecksIcon />, badge: '47' },
+            { id: 'team',     label: 'Pracownicy',       icon: <UsersIcon />, badge: '4' },
+            { id: 'opening',  label: 'Godziny pracy',    icon: <ClockIcon /> },
+        ],
+    },
+    {
+        group: 'Komunikacja',
+        items: [
+            { id: 'templates',  label: 'Szablony wiadomości',       icon: <MessageIcon /> },
+            { id: 'reminders',  label: 'Automatyczne przypomnienia', icon: <BellIcon /> },
+            { id: 'documents',  label: 'Dokumenty i podpisy',        icon: <FileSignIcon /> },
+        ],
+    },
+    {
+        group: 'Konto i rozliczenia',
+        items: [
+            { id: 'plan',     label: 'Abonament',             icon: <CrownIcon /> },
+            { id: 'credits',  label: 'Kredyty SMS i AI',       icon: <WalletIcon /> },
+            { id: 'invoices', label: 'Faktury i płatności',    icon: <ReceiptIcon /> },
+            { id: 'security', label: 'Bezpieczeństwo',         icon: <ShieldIcon /> },
+        ],
+    },
+    {
+        group: 'Integracje',
+        items: [
+            { id: 'integrations', label: 'Połączenia',     icon: <PlugIcon /> },
+            { id: 'api',          label: 'API i webhooks',  icon: <TerminalIcon /> },
+        ],
+    },
+];
+
+// ─── Styled components ───────────────────────────────────────────────────────
+
+const Page = styled.div`
+    padding: 22px 28px 40px;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+`;
+
+const PageHead = styled.header`
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 22px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+`;
+
+const PageTitle = styled.h1`
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin: 6px 0 4px;
+    line-height: 1.1;
+    color: ${props => props.theme.colors.text};
+`;
+
+const PageSub = styled.p`
+    font-size: 13px;
+    color: #475569;
+    margin: 0;
+`;
+
+const Crumb = styled.div`
+    font-size: 12px;
+    color: #94a3b8;
+    margin-bottom: 2px;
+
+    a { color: #64748b; text-decoration: none; &:hover { color: #0f172a; } }
+    .sep { margin: 0 4px; }
+    .cur { color: #0f172a; font-weight: 500; }
+`;
+
+const GridMain = styled.div`
+    display: grid;
+    grid-template-columns: 232px 1fr;
+    gap: 22px;
+    align-items: flex-start;
+`;
+
+const Nav = styled.nav`
+    position: sticky;
+    top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+`;
+
+const NavGroupEl = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+`;
+
+const NavTitle = styled.div`
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0 12px 6px;
+`;
+
+const NavItemBtn = styled.button<{ $active: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 9px;
+    border: none;
+    background: ${props => props.$active ? '#fff' : 'transparent'};
+    font-family: ${props => props.theme.fonts?.sans ?? 'Inter, system-ui, sans-serif'};
+    font-size: 13px;
+    font-weight: ${props => props.$active ? 600 : 500};
+    color: ${props => props.$active ? '#0ea5e9' : '#334155'};
+    cursor: pointer;
+    transition: all 180ms;
+    text-align: left;
+    width: 100%;
+    box-shadow: ${props => props.$active ? '0 1px 3px rgba(15,23,42,0.06)' : 'none'};
+
+    &:hover {
+        background: #fff;
+        color: #0f172a;
+    }
+
+    svg { flex-shrink: 0; }
+    span { flex: 1; }
+`;
+
+const NavBadge = styled.span<{ $active: boolean }>`
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 9999px;
+    background: ${props => props.$active ? 'rgba(14,165,233,0.14)' : '#f1f5f9'};
+    color: ${props => props.$active ? '#0284c7' : '#64748b'};
+`;
+
+const Content = styled.main`
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+`;
+
+// ─── Coming-soon placeholder ─────────────────────────────────────────────────
+
+const ComingSoonWrap = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 360px;
+    background: white;
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.lg};
+    text-align: center;
+    gap: 12px;
+    padding: 40px;
+`;
+
+const ComingSoonTitle = styled.h3`
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: ${props => props.theme.colors.text};
+`;
+
+const ComingSoonDesc = styled.p`
+    margin: 0;
+    font-size: 14px;
+    color: #64748b;
+    max-width: 360px;
+    line-height: 1.6;
+`;
+
+const ConstructionIcon = () => (
+    <svg width={36} height={36} viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 3h16v2H4zM4 8l8 13 8-13H4z" />
+    </svg>
+);
+
+function ComingSoonSection({ label }: { label: string }) {
+    return (
+        <ComingSoonWrap>
+            <ConstructionIcon />
+            <ComingSoonTitle>W przygotowaniu</ComingSoonTitle>
+            <ComingSoonDesc>Sekcja „{label}" zostanie udostępniona w jednej z kolejnych aktualizacji.</ComingSoonDesc>
+        </ComingSoonWrap>
+    );
+}
+
+// ─── Main view ───────────────────────────────────────────────────────────────
+
+export function SettingsView() {
+    const [section, setSection] = useState<SectionId>('documents');
+
+    const activeLabel = NAV_GROUPS.flatMap(g => g.items).find(i => i.id === section)?.label ?? '';
+
+    let content: React.ReactNode;
+    if (section === 'documents') {
+        content = <DocumentsSection />;
+    } else {
+        content = <ComingSoonSection label={activeLabel} />;
+    }
+
+    return (
+        <Page>
+            <PageHead>
+                <div>
+                    <Crumb>
+                        <a href="#">AutoCRM</a>
+                        <span className="sep">›</span>
+                        <span className="cur">Ustawienia</span>
+                    </Crumb>
+                    <PageTitle>Ustawienia</PageTitle>
+                    <PageSub>Konfiguracja studia, automatyzacji i konta.</PageSub>
+                </div>
+            </PageHead>
+
+            <GridMain>
+                <Nav>
+                    {NAV_GROUPS.map(g => (
+                        <NavGroupEl key={g.group}>
+                            <NavTitle>{g.group}</NavTitle>
+                            {g.items.map(it => (
+                                <NavItemBtn
+                                    key={it.id}
+                                    $active={section === it.id}
+                                    onClick={() => setSection(it.id)}
+                                >
+                                    {it.icon}
+                                    <span>{it.label}</span>
+                                    {it.badge && (
+                                        <NavBadge $active={section === it.id}>{it.badge}</NavBadge>
+                                    )}
+                                </NavItemBtn>
+                            ))}
+                        </NavGroupEl>
+                    ))}
+                </Nav>
+
+                <Content>{content}</Content>
+            </GridMain>
+        </Page>
+    );
+}

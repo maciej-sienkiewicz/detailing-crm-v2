@@ -27,6 +27,7 @@ import { SmsCampaignsView } from "@/modules/sms-campaigns";
 import { GalleryView } from "@/modules/gallery/views/GalleryView";
 import { ComingSoonView } from "@/common/components/ComingSoonView";
 import { EmployeeListView, EmployeeDetailView } from '@/modules/employees';
+import { SettingsView } from '@/modules/settings';
 
 export const router = createBrowserRouter([
     {
@@ -294,7 +295,7 @@ export const router = createBrowserRouter([
         path: '/settings',
         element: (
             <ProtectedRoute>
-                <Layout><ComingSoonView pageName="Ustawienia" /></Layout>
+                <Layout><SettingsView /></Layout>
             </ProtectedRoute>
         ),
     },
