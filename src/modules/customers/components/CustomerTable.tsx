@@ -180,10 +180,12 @@ const Revenue = styled.div`
     font-variant-numeric: tabular-nums;
 `;
 
-const VisitCount = styled.div`
-    font-size: 11px;
-    color: ${st.textMuted};
+const VisitCount = styled.div<{ $large?: boolean }>`
+    font-size: ${p => p.$large ? '13px' : '11px'};
+    font-weight: ${p => p.$large ? '700' : '400'};
+    color: ${p => p.$large ? st.text : st.textMuted};
     font-variant-numeric: tabular-nums;
+    letter-spacing: ${p => p.$large ? '-0.3px' : 'normal'};
 `;
 
 // ─── Actions icon button ──────────────────────────────────────────────────────
@@ -255,12 +257,22 @@ export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort
                         <Th>{t.customers.table.contact}</Th>
                         <Th>{t.customers.table.vehicles}</Th>
                         <ThSortable
+                            $active={sortBy === 'totalVisits'}
+                            onClick={() => onSort?.('totalVisits')}
+                            title="Sortuj po liczbie wizyt"
+                        >
+                            <span>
+                                Wizyty
+                                {sortBy === 'totalVisits' && <SortIcon direction={sortDirection} />}
+                            </span>
+                        </ThSortable>
+                        <ThSortable
                             $active={sortBy === 'totalRevenue'}
                             onClick={() => onSort?.('totalRevenue')}
                             title="Sortuj po przychodach"
                         >
                             <span>
-                                Wizyty · Przychód
+                                Przychód
                                 {sortBy === 'totalRevenue' && <SortIcon direction={sortDirection} />}
                             </span>
                         </ThSortable>
@@ -309,13 +321,22 @@ export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort
                                 </Td>
 
                                 <Td>
+                                    <VisitCount $large>{customer.totalVisits}</VisitCount>
+                                    <CellSub>
+                                        {customer.totalVisits === 1 ? 'wizyta'
+                                            : customer.totalVisits >= 2 && customer.totalVisits <= 4 ? 'wizyty'
+                                            : 'wizyt'}
+                                    </CellSub>
+                                </Td>
+
+                                <Td>
                                     <Revenue>
                                         {formatCurrency(
                                             customer.totalRevenue.grossAmount,
                                             customer.totalRevenue.currency
                                         )}
                                     </Revenue>
-                                    <VisitCount>{customer.totalVisits} wizyt</VisitCount>
+                                    <CellSub>brutto</CellSub>
                                 </Td>
 
                                 <TdActions onClick={e => e.stopPropagation()}>
