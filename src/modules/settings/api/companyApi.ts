@@ -10,10 +10,8 @@ const BASE_PATH = '/v1/settings/company';
 const MOCK_DATA: CompanySettings = {
     id: '1',
     name: 'Detail Pro Studio Sp. z o.o.',
-    legalForm: 'LIMITED_LIABILITY_COMPANY',
     taxId: '525-123-45-67',
     regon: '142836501',
-    krs: '0000543210',
     street: 'ul. Puławska 145',
     postalCode: '02-715',
     city: 'Warszawa',

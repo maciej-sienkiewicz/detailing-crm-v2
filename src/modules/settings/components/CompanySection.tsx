@@ -7,7 +7,7 @@ import {
     useUploadCompanyLogo,
     useDeleteCompanyLogo,
 } from '../hooks/useCompany';
-import type { LegalForm, UpdateCompanySettingsRequest } from '../types';
+import type { UpdateCompanySettingsRequest } from '../types';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -261,18 +261,15 @@ const Spinner = styled.div`
     @keyframes spin { to { transform: rotate(360deg); } }
 `;
 
-const DirtyBanner = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 18px;
-    background: rgba(14,165,233,0.06);
-    border: 1px solid rgba(14,165,233,0.2);
-    border-radius: 10px;
-    font-size: 12px;
-    color: #0369a1;
-    flex-wrap: wrap;
+const DirtyDot = styled.span`
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #f59e0b;
+    margin-left: 8px;
+    vertical-align: middle;
+    flex-shrink: 0;
 `;
 
 // ─── Icon helpers ─────────────────────────────────────────────────────────────
@@ -287,17 +284,6 @@ const Svg = ({ d, size = 14 }: { d: string; size?: number }) => (
 const CheckIcon = () => <Svg d="M20 6 9 17l-5-5" size={14} />;
 const UploadIcon = () => <Svg d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" size={13} />;
 const TrashIcon = () => <Svg d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" size={13} />;
-
-// ─── Legal form options ───────────────────────────────────────────────────────
-
-const LEGAL_FORMS: { value: LegalForm; label: string }[] = [
-    { value: 'SOLE_PROPRIETORSHIP',    label: 'Jednoosobowa działalność gospodarcza' },
-    { value: 'CIVIL_PARTNERSHIP',      label: 'Spółka cywilna' },
-    { value: 'GENERAL_PARTNERSHIP',    label: 'Spółka jawna' },
-    { value: 'LIMITED_PARTNERSHIP',    label: 'Spółka komandytowa' },
-    { value: 'LIMITED_LIABILITY_COMPANY', label: 'Spółka z ograniczoną odpowiedzialnością' },
-    { value: 'JOINT_STOCK_COMPANY',    label: 'Spółka akcyjna' },
-];
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
@@ -348,10 +334,8 @@ export function CompanySection() {
         if (company && !form) {
             setForm({
                 name: company.name,
-                legalForm: company.legalForm,
                 taxId: company.taxId,
                 regon: company.regon,
-                krs: company.krs,
                 street: company.street,
                 postalCode: company.postalCode,
                 city: company.city,
@@ -437,7 +421,10 @@ export function CompanySection() {
             <SectionHead>
                 <HeadLeft>
                     <EyeLabel>Studio</EyeLabel>
-                    <SectionTitle>Dane firmy</SectionTitle>
+                    <SectionTitle>
+                        Dane firmy
+                        {dirty && <DirtyDot title="Masz niezapisane zmiany" />}
+                    </SectionTitle>
                     <SectionDesc>
                         Te dane pojawiają się na fakturach, w stopkach e-maili i na podpisywanych dokumentach.
                     </SectionDesc>
@@ -447,16 +434,6 @@ export function CompanySection() {
                     {isSaving ? 'Zapisywanie…' : 'Zapisz zmiany'}
                 </BtnPrimary>
             </SectionHead>
-
-            {dirty && (
-                <DirtyBanner>
-                    <span>Masz niezapisane zmiany.</span>
-                    <BtnPrimary onClick={handleSave} disabled={isSaving}>
-                        <CheckIcon />
-                        {isSaving ? 'Zapisywanie…' : 'Zapisz teraz'}
-                    </BtnPrimary>
-                </DirtyBanner>
-            )}
 
             <Panel>
                 {/* Logo */}
@@ -498,7 +475,7 @@ export function CompanySection() {
 
                 {/* Form grid */}
                 <Grid>
-                    <Field $span={6}>
+                    <Field $span={12}>
                         <Label>Nazwa firmy</Label>
                         <Input
                             value={form.name}
@@ -510,18 +487,6 @@ export function CompanySection() {
                     </Field>
 
                     <Field $span={6}>
-                        <Label>Forma prawna</Label>
-                        <Select
-                            value={form.legalForm}
-                            onChange={e => set('legalForm', e.target.value)}
-                        >
-                            {LEGAL_FORMS.map(lf => (
-                                <option key={lf.value} value={lf.value}>{lf.label}</option>
-                            ))}
-                        </Select>
-                    </Field>
-
-                    <Field $span={4}>
                         <Label>NIP</Label>
                         <Input
                             value={form.taxId}
@@ -533,7 +498,7 @@ export function CompanySection() {
                         {errors.taxId ? <ErrorMsg>{errors.taxId}</ErrorMsg> : null}
                     </Field>
 
-                    <Field $span={4}>
+                    <Field $span={6}>
                         <Label>REGON</Label>
                         <Input
                             value={form.regon}
@@ -543,16 +508,6 @@ export function CompanySection() {
                             placeholder="000000000"
                         />
                         {errors.regon ? <ErrorMsg>{errors.regon}</ErrorMsg> : null}
-                    </Field>
-
-                    <Field $span={4}>
-                        <Label>KRS <span style={{ fontWeight: 400, color: '#94a3b8' }}>(opcjonalnie)</span></Label>
-                        <Input
-                            value={form.krs ?? ''}
-                            onChange={e => set('krs', e.target.value)}
-                            $mono
-                            placeholder="0000000000"
-                        />
                     </Field>
 
                     <Field $span={8}>
