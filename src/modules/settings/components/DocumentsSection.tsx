@@ -7,8 +7,11 @@ import {
     useDeleteProtocolTemplate,
     useUpdateProtocolTemplate,
 } from '@/modules/protocols/api/useProtocols';
+import { useConsentDefinitions } from '@/modules/consents/hooks/useConsents';
 import type { ProtocolRule, ProtocolStage, ProtocolTemplate } from '@/modules/protocols/types';
+import type { ConsentDefinition } from '@/modules/consents/types';
 import { AddDocumentModal } from './AddDocumentModal';
+import { AddConsentDocumentModal } from './AddConsentDocumentModal';
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
 
@@ -611,21 +614,211 @@ function StageSection({ stage, rules, templatesMap, onAdd, onRefresh }: StageSec
     );
 }
 
+// ─── Consent-section styled extras ───────────────────────────────────────────
+
+const ConsentPanel = styled(Panel)`
+    border-top: 3px solid #6366f1;
+`;
+
+const ConsentPanelHead = styled(PanelHead)`
+    background: linear-gradient(135deg, rgba(99,102,241,0.04) 0%, transparent 100%);
+`;
+
+const ConsentIconWrap = styled.div`
+    width: 30px; height: 30px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    background: rgba(99,102,241,0.12);
+    color: #6366f1;
+    svg { width: 15px; height: 15px; }
+`;
+
+const ConsentAddBtn = styled(AddBtn)`
+    color: #6366f1;
+    border-color: #6366f1;
+    &:hover { background: rgba(99,102,241,0.06); }
+`;
+
+const StageMiniPill = styled.span<{ $stage: ProtocolStage }>`
+    display: inline-flex; align-items: center; padding: 2px 7px;
+    border-radius: 9999px; font-size: 10px; font-weight: 600;
+    background: ${p => p.$stage === 'CHECK_IN' ? 'rgba(16,185,129,0.1)' : 'rgba(99,102,241,0.1)'};
+    color: ${p => p.$stage === 'CHECK_IN' ? '#059669' : '#6366f1'};
+`;
+
+const SlugPill = styled.span`
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px; font-weight: 600;
+    padding: 2px 7px; border-radius: 9999px;
+    background: #f1f5f9; color: #64748b;
+    letter-spacing: -0.2px;
+`;
+
+const InfoChip = styled.div`
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; color: #64748b;
+    padding: 8px 14px;
+    background: rgba(99,102,241,0.04);
+    border-top: 1px solid #f1f5f9;
+    svg { width: 13px; height: 13px; color: #6366f1; }
+`;
+
+// ─── ShieldIcon ───────────────────────────────────────────────────────────────
+
+const ShieldIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+);
+
+const InfoIconSm = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+);
+
+// ─── ConsentSection ───────────────────────────────────────────────────────────
+
+interface ConsentSectionProps {
+    rules: ProtocolRule[];
+    templatesMap: Map<string, ProtocolTemplate>;
+    definitionsMap: Map<string, ConsentDefinition>;
+    onAdd: () => void;
+    onRefresh: () => void;
+}
+
+function ConsentSection({ rules, templatesMap, definitionsMap, onAdd, onRefresh }: ConsentSectionProps) {
+    const deleteRule = useDeleteProtocolRule();
+    const deleteTemplate = useDeleteProtocolTemplate();
+    const [editingTemplate, setEditingTemplate] = useState<ProtocolTemplate | null>(null);
+
+    const handleDelete = async (rule: ProtocolRule) => {
+        const tpl = rule.protocolTemplate ?? templatesMap.get(rule.protocolTemplateId);
+        const name = tpl?.name ?? 'ten dokument';
+        if (!confirm(`Usunąć zgodę „${name}"?\n\nHistoria podpisów klientów zostanie zachowana, ale dokument nie będzie już dołączany do nowych wizyt.`)) return;
+        try {
+            await deleteRule.mutateAsync(rule.id);
+            if (tpl) { try { await deleteTemplate.mutateAsync(tpl.id); } catch { /* ok */ } }
+            onRefresh();
+        } catch { onRefresh(); }
+    };
+
+    return (
+        <ConsentPanel>
+            <ConsentPanelHead>
+                <PanelTitle>
+                    <ConsentIconWrap><ShieldIcon /></ConsentIconWrap>
+                    Zgody marketingowe
+                    <Count>{rules.length}</Count>
+                </PanelTitle>
+                <ConsentAddBtn onClick={onAdd}>
+                    <PlusIcon />
+                    Dodaj zgodę
+                </ConsentAddBtn>
+            </ConsentPanelHead>
+
+            <RuleList>
+                {rules.length === 0 ? (
+                    <EmptyBox>
+                        <EmptyFileIcon />
+                        <EmptyTitle>Brak zgód</EmptyTitle>
+                        <EmptyDesc>Zgody zbierane jednorazowo — klient podpisuje tylko raz i system pamięta to między wizytami.</EmptyDesc>
+                    </EmptyBox>
+                ) : (
+                    rules
+                        .sort((a, b) => a.displayOrder - b.displayOrder)
+                        .map(rule => {
+                            const tpl = rule.protocolTemplate ?? templatesMap.get(rule.protocolTemplateId);
+                            const def = rule.consentDefinitionId ? definitionsMap.get(rule.consentDefinitionId) : undefined;
+                            return (
+                                <RuleItem key={rule.id}>
+                                    <FileIconWrap style={{ background: 'rgba(99,102,241,0.08)', color: '#6366f1' }}>
+                                        <ShieldIcon />
+                                    </FileIconWrap>
+                                    <RuleInfo>
+                                        <RuleName>{tpl?.name ?? '—'}</RuleName>
+                                        <RuleMeta>
+                                            <StageMiniPill $stage={rule.stage}>
+                                                {rule.stage === 'CHECK_IN' ? 'Przyjęcie' : 'Wydanie'}
+                                            </StageMiniPill>
+                                            <MetaDot>·</MetaDot>
+                                            <PillBadge $variant={rule.isMandatory ? 'mandatory' : 'optional'}>
+                                                {rule.isMandatory ? 'Obowiązkowa' : 'Opcjonalna'}
+                                            </PillBadge>
+                                            {def && (
+                                                <>
+                                                    <MetaDot>·</MetaDot>
+                                                    <SlugPill>{def.slug}</SlugPill>
+                                                </>
+                                            )}
+                                        </RuleMeta>
+                                    </RuleInfo>
+                                    <RuleActions>
+                                        {tpl?.templateUrl && (
+                                            <IconBtn
+                                                as="a"
+                                                href={tpl.templateUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                title="Podgląd PDF"
+                                            >
+                                                <EyeIcon />
+                                            </IconBtn>
+                                        )}
+                                        {tpl && (
+                                            <IconBtn title="Edytuj" onClick={() => setEditingTemplate(tpl)}>
+                                                <PencilIcon />
+                                            </IconBtn>
+                                        )}
+                                        <IconBtn className="danger" title="Usuń" onClick={() => handleDelete(rule)}>
+                                            <TrashIcon />
+                                        </IconBtn>
+                                    </RuleActions>
+                                </RuleItem>
+                            );
+                        })
+                )}
+            </RuleList>
+
+            <InfoChip>
+                <InfoIconSm />
+                Zgoda jest zbierana jednorazowo per klient i nie jest wymagana przy kolejnych wizytach, jeśli jest już aktywna.
+            </InfoChip>
+
+            {editingTemplate && (
+                <EditTemplateModal
+                    template={editingTemplate}
+                    onClose={() => setEditingTemplate(null)}
+                    onSuccess={onRefresh}
+                />
+            )}
+        </ConsentPanel>
+    );
+}
+
 // ─── DocumentsSection ─────────────────────────────────────────────────────────
 
 export function DocumentsSection() {
     const [addStage, setAddStage] = useState<ProtocolStage>('CHECK_IN');
     const [modalOpen, setModalOpen] = useState(false);
+    const [consentModalOpen, setConsentModalOpen] = useState(false);
 
     const { data: templates = [], isLoading: loadingTemplates, refetch: refetchTemplates } = useProtocolTemplates();
     const { data: rules = [], isLoading: loadingRules, refetch: refetchRules } = useProtocolRules();
+    const { definitions: definitionItems, isLoading: loadingDefinitions, refetch: refetchDefinitions } = useConsentDefinitions();
 
-    const isLoading = loadingTemplates || loadingRules;
+    const isLoading = loadingTemplates || loadingRules || loadingDefinitions;
 
     const templatesMap = new Map<string, ProtocolTemplate>(templates.map(t => [t.id, t]));
+    const definitionsMap = new Map<string, ConsentDefinition>(
+        definitionItems.map(d => [d.definition.id, d.definition])
+    );
 
-    const checkInRules  = rules.filter(r => r.stage === 'CHECK_IN');
-    const checkOutRules = rules.filter(r => r.stage === 'CHECK_OUT');
+    // Separate regular rules from consent rules
+    const regularRules = rules.filter(r => r.triggerType !== 'CUSTOMER_CONSENT_REQUIRED');
+    const consentRules  = rules.filter(r => r.triggerType === 'CUSTOMER_CONSENT_REQUIRED');
+
+    const checkInRules  = regularRules.filter(r => r.stage === 'CHECK_IN');
+    const checkOutRules = regularRules.filter(r => r.stage === 'CHECK_OUT');
 
     const handleAdd = (stage: ProtocolStage) => {
         setAddStage(stage);
@@ -635,6 +828,7 @@ export function DocumentsSection() {
     const handleRefresh = () => {
         refetchTemplates();
         refetchRules();
+        refetchDefinitions();
     };
 
     return (
@@ -644,9 +838,9 @@ export function DocumentsSection() {
                     <EyeLabel>Komunikacja</EyeLabel>
                     <SectionTitle>Dokumenty i podpisy</SectionTitle>
                     <SectionDesc>
-                        Wzory dokumentów PDF podpisywanych przez klienta. Przypisz każdy dokument
-                        do etapu przyjęcia lub wydania pojazdu — system automatycznie dołączy je
-                        do odpowiedniego kroku w procesie obsługi wizyty.
+                        Wzory dokumentów PDF podpisywanych przez klienta. Protokoły są generowane
+                        przy każdej wizycie; zgody marketingowe są zbierane jednorazowo per klient
+                        i pamiętane między wizytami.
                     </SectionDesc>
                 </HeadLeft>
             </SectionHead>
@@ -654,28 +848,44 @@ export function DocumentsSection() {
             {isLoading ? (
                 <Spinner />
             ) : (
-                <StagesGrid>
-                    <StageSection
-                        stage="CHECK_IN"
-                        rules={checkInRules}
+                <>
+                    <StagesGrid>
+                        <StageSection
+                            stage="CHECK_IN"
+                            rules={checkInRules}
+                            templatesMap={templatesMap}
+                            onAdd={() => handleAdd('CHECK_IN')}
+                            onRefresh={handleRefresh}
+                        />
+                        <StageSection
+                            stage="CHECK_OUT"
+                            rules={checkOutRules}
+                            templatesMap={templatesMap}
+                            onAdd={() => handleAdd('CHECK_OUT')}
+                            onRefresh={handleRefresh}
+                        />
+                    </StagesGrid>
+
+                    <ConsentSection
+                        rules={consentRules}
                         templatesMap={templatesMap}
-                        onAdd={() => handleAdd('CHECK_IN')}
+                        definitionsMap={definitionsMap}
+                        onAdd={() => setConsentModalOpen(true)}
                         onRefresh={handleRefresh}
                     />
-                    <StageSection
-                        stage="CHECK_OUT"
-                        rules={checkOutRules}
-                        templatesMap={templatesMap}
-                        onAdd={() => handleAdd('CHECK_OUT')}
-                        onRefresh={handleRefresh}
-                    />
-                </StagesGrid>
+                </>
             )}
 
             <AddDocumentModal
                 isOpen={modalOpen}
                 onClose={() => setModalOpen(false)}
                 initialStage={addStage}
+                onSuccess={handleRefresh}
+            />
+
+            <AddConsentDocumentModal
+                isOpen={consentModalOpen}
+                onClose={() => setConsentModalOpen(false)}
                 onSuccess={handleRefresh}
             />
         </>

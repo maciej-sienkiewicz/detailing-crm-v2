@@ -1,5 +1,5 @@
 export type ProtocolStage = 'CHECK_IN' | 'CHECK_OUT';
-export type ProtocolTriggerType = 'GLOBAL_ALWAYS' | 'SERVICE_SPECIFIC';
+export type ProtocolTriggerType = 'GLOBAL_ALWAYS' | 'SERVICE_SPECIFIC' | 'CUSTOMER_CONSENT_REQUIRED';
 
 export interface ProtocolTemplate {
   id: string;
@@ -19,6 +19,7 @@ export interface ProtocolRule {
   stage: ProtocolStage;
   serviceIds: string[]; // List of service IDs (only if triggerType is SERVICE_SPECIFIC)
   serviceNames: string[]; // Populated in responses with service names
+  consentDefinitionId?: string; // Only for CUSTOMER_CONSENT_REQUIRED rules
   isMandatory: boolean;
   displayOrder: number;
   createdAt: string;
@@ -58,6 +59,7 @@ export interface CreateProtocolRuleDto {
   triggerType: ProtocolTriggerType;
   stage: ProtocolStage;
   serviceIds?: string[]; // List of service IDs (only if triggerType is SERVICE_SPECIFIC)
+  consentDefinitionId?: string; // Only for CUSTOMER_CONSENT_REQUIRED rules
   isMandatory: boolean;
   displayOrder?: number;
 }
