@@ -506,6 +506,14 @@ const mockGetCustomers = async (filters: CustomerFilters): Promise<CustomerListR
         filteredCustomers = filteredCustomers.filter(c => c.totalRevenue.grossAmount <= filters.maxRevenue!);
     }
 
+    if (filters.minVisits != null) {
+        filteredCustomers = filteredCustomers.filter(c => c.totalVisits >= filters.minVisits!);
+    }
+
+    if (filters.maxVisits != null) {
+        filteredCustomers = filteredCustomers.filter(c => c.totalVisits <= filters.maxVisits!);
+    }
+
     const sortedCustomers = sortCustomers(
         filteredCustomers,
         filters.sortBy,
@@ -652,6 +660,8 @@ export const customerApi = {
         if (filters.vehicleModel) params.append('vehicleModel', filters.vehicleModel);
         if (filters.minRevenue != null) params.append('minRevenue', filters.minRevenue.toString());
         if (filters.maxRevenue != null) params.append('maxRevenue', filters.maxRevenue.toString());
+        if (filters.minVisits != null) params.append('minVisits', filters.minVisits.toString());
+        if (filters.maxVisits != null) params.append('maxVisits', filters.maxVisits.toString());
 
         const response = await apiClient.get<CustomerListResponse>(
             `${CUSTOMERS_BASE_PATH}?${params.toString()}`

@@ -280,6 +280,8 @@ const countActiveFilters = (f: CustomerAdvancedFilters): number => {
     if (f.vehicleModel) n++;
     if (f.minRevenue) n++;
     if (f.maxRevenue) n++;
+    if (f.minVisits) n++;
+    if (f.maxVisits) n++;
     return n;
 };
 

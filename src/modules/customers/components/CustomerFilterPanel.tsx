@@ -606,6 +606,8 @@ export const CustomerFilterPanel = ({
     const [vehicleModel, setVehicleModel] = useState<string>(initialFilters.vehicleModel ?? '');
     const [minRevenue, setMinRevenue] = useState<string>(initialFilters.minRevenue?.toString() ?? '');
     const [maxRevenue, setMaxRevenue] = useState<string>(initialFilters.maxRevenue?.toString() ?? '');
+    const [minVisits, setMinVisits] = useState<string>(initialFilters.minVisits?.toString() ?? '');
+    const [maxVisits, setMaxVisits] = useState<string>(initialFilters.maxVisits?.toString() ?? '');
 
     useEffect(() => {
         if (isOpen) {
@@ -617,6 +619,8 @@ export const CustomerFilterPanel = ({
             setVehicleModel(initialFilters.vehicleModel ?? '');
             setMinRevenue(initialFilters.minRevenue?.toString() ?? '');
             setMaxRevenue(initialFilters.maxRevenue?.toString() ?? '');
+            setMinVisits(initialFilters.minVisits?.toString() ?? '');
+            setMaxVisits(initialFilters.maxVisits?.toString() ?? '');
         }
     }, [isOpen, initialFilters]);
 
@@ -634,6 +638,8 @@ export const CustomerFilterPanel = ({
         setVehicleModel('');
         setMinRevenue('');
         setMaxRevenue('');
+        setMinVisits('');
+        setMaxVisits('');
     };
 
     const handleApply = () => {
@@ -646,6 +652,8 @@ export const CustomerFilterPanel = ({
             vehicleModel: vehicleModel.trim() || null,
             minRevenue: minRevenue ? parseFloat(minRevenue) : null,
             maxRevenue: maxRevenue ? parseFloat(maxRevenue) : null,
+            minVisits: minVisits ? parseInt(minVisits, 10) : null,
+            maxVisits: maxVisits ? parseInt(maxVisits, 10) : null,
         });
         onClose();
     };
@@ -745,6 +753,28 @@ export const CustomerFilterPanel = ({
                                 placeholder="Do"
                                 value={maxRevenue}
                                 onChange={e => setMaxRevenue(e.target.value)}
+                            />
+                        </RevenueRow>
+                    </FilterSection>
+
+                    {/* Liczba wizyt */}
+                    <FilterSection>
+                        <SectionLabel>Liczba wizyt</SectionLabel>
+                        <RevenueRow>
+                            <RevenueInput
+                                type="number"
+                                min={0}
+                                placeholder="Od"
+                                value={minVisits}
+                                onChange={e => setMinVisits(e.target.value)}
+                            />
+                            <RevenueSeparator>–</RevenueSeparator>
+                            <RevenueInput
+                                type="number"
+                                min={0}
+                                placeholder="Do"
+                                value={maxVisits}
+                                onChange={e => setMaxVisits(e.target.value)}
                             />
                         </RevenueRow>
                     </FilterSection>

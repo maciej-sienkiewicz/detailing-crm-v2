@@ -96,6 +96,8 @@ export interface CustomerAdvancedFilters {
     vehicleModel?: string | null;
     minRevenue?: number | null;
     maxRevenue?: number | null;
+    minVisits?: number | null;
+    maxVisits?: number | null;
 }
 
 export interface CustomerFilters extends CustomerAdvancedFilters {
