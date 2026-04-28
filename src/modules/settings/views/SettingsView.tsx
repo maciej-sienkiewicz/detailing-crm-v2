@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import styled from 'styled-components';
+import { CompanySection } from '../components/CompanySection';
 import { DocumentsSection } from '../components/DocumentsSection';
 
 // ─── Nav definition ──────────────────────────────────────────────────────────
@@ -245,12 +246,14 @@ function ComingSoonSection({ label }: { label: string }) {
 // ─── Main view ───────────────────────────────────────────────────────────────
 
 export function SettingsView() {
-    const [section, setSection] = useState<SectionId>('documents');
+    const [section, setSection] = useState<SectionId>('company');
 
     const activeLabel = NAV_GROUPS.flatMap(g => g.items).find(i => i.id === section)?.label ?? '';
 
     let content: React.ReactNode;
-    if (section === 'documents') {
+    if (section === 'company') {
+        content = <CompanySection />;
+    } else if (section === 'documents') {
         content = <DocumentsSection />;
     } else {
         content = <ComingSoonSection label={activeLabel} />;
