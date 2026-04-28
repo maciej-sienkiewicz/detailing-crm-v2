@@ -320,6 +320,45 @@ const DaysSuffix = styled.span`
     flex-shrink: 0;
 `;
 
+// ─── Revenue range ────────────────────────────────────────────────────────────
+
+const RevenueRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
+const RevenueInput = styled.input`
+    flex: 1;
+    min-width: 0;
+    padding: 6px 10px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    color: ${st.text};
+    background: ${st.bgCard};
+    transition: border-color 150ms ease;
+
+    &:focus {
+        outline: none;
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    }
+
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button { -webkit-appearance: none; }
+    -moz-appearance: textfield;
+
+    &::placeholder { color: #94a3b8; }
+`;
+
+const RevenueSeparator = styled.span`
+    font-size: 12px;
+    color: ${st.textMuted};
+    flex-shrink: 0;
+`;
+
 // ─── Vehicle selectors wrapper ────────────────────────────────────────────────
 
 const VehicleRow = styled.div`
@@ -565,6 +604,8 @@ export const CustomerFilterPanel = ({
     );
     const [vehicleBrand, setVehicleBrand] = useState<string>(initialFilters.vehicleBrand ?? '');
     const [vehicleModel, setVehicleModel] = useState<string>(initialFilters.vehicleModel ?? '');
+    const [minRevenue, setMinRevenue] = useState<string>(initialFilters.minRevenue?.toString() ?? '');
+    const [maxRevenue, setMaxRevenue] = useState<string>(initialFilters.maxRevenue?.toString() ?? '');
 
     useEffect(() => {
         if (isOpen) {
@@ -574,6 +615,8 @@ export const CustomerFilterPanel = ({
             setNotVisitedSinceDays(initialFilters.notVisitedSinceDays?.toString() ?? '');
             setVehicleBrand(initialFilters.vehicleBrand ?? '');
             setVehicleModel(initialFilters.vehicleModel ?? '');
+            setMinRevenue(initialFilters.minRevenue?.toString() ?? '');
+            setMaxRevenue(initialFilters.maxRevenue?.toString() ?? '');
         }
     }, [isOpen, initialFilters]);
 
@@ -589,6 +632,8 @@ export const CustomerFilterPanel = ({
         setNotVisitedSinceDays('');
         setVehicleBrand('');
         setVehicleModel('');
+        setMinRevenue('');
+        setMaxRevenue('');
     };
 
     const handleApply = () => {
@@ -599,6 +644,8 @@ export const CustomerFilterPanel = ({
             notVisitedSinceDays: notVisitedSinceDays ? parseInt(notVisitedSinceDays, 10) : null,
             vehicleBrand: vehicleBrand.trim() || null,
             vehicleModel: vehicleModel.trim() || null,
+            minRevenue: minRevenue ? parseFloat(minRevenue) : null,
+            maxRevenue: maxRevenue ? parseFloat(maxRevenue) : null,
         });
         onClose();
     };
@@ -678,6 +725,28 @@ export const CustomerFilterPanel = ({
                                 <DaysSuffix>dni</DaysSuffix>
                             </InputRow>
                         </ActivityRow>
+                    </FilterSection>
+
+                    {/* Przychód */}
+                    <FilterSection>
+                        <SectionLabel>Przychód brutto (PLN)</SectionLabel>
+                        <RevenueRow>
+                            <RevenueInput
+                                type="number"
+                                min={0}
+                                placeholder="Od"
+                                value={minRevenue}
+                                onChange={e => setMinRevenue(e.target.value)}
+                            />
+                            <RevenueSeparator>–</RevenueSeparator>
+                            <RevenueInput
+                                type="number"
+                                min={0}
+                                placeholder="Do"
+                                value={maxRevenue}
+                                onChange={e => setMaxRevenue(e.target.value)}
+                            />
+                        </RevenueRow>
                     </FilterSection>
 
                     {/* Pojazd */}

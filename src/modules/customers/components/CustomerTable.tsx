@@ -1,6 +1,6 @@
 import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import type { Customer } from '../types';
+import type { Customer, CustomerSortField, SortDirection } from '../types';
 import { formatPhoneNumber, formatCurrency } from '../utils/customerMappers';
 import { t } from '@/common/i18n';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -38,6 +38,22 @@ const Th = styled.th`
     white-space: nowrap;
     background: ${st.bg};
     border-bottom: 1px solid ${st.border};
+`;
+
+const ThSortable = styled(Th)<{ $active: boolean }>`
+    cursor: pointer;
+    user-select: none;
+    color: ${p => p.$active ? st.accentBlue : st.textMuted};
+
+    &:hover {
+        color: ${st.text};
+    }
+
+    & > span {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
 `;
 
 const ThAva = styled(Th)`
@@ -204,15 +220,29 @@ const vehicleLabel = (n: number) => {
     return `${n} pojazdów`;
 };
 
+// ─── Sort icon ────────────────────────────────────────────────────────────────
+
+const SortIcon = ({ direction }: { direction: SortDirection }) => (
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+        {direction === 'asc'
+            ? <path d="M5 2 L9 8 L1 8 Z" />
+            : <path d="M5 8 L9 2 L1 2 Z" />
+        }
+    </svg>
+);
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface CustomerTableProps {
     customers: Customer[];
+    sortBy?: CustomerSortField;
+    sortDirection?: SortDirection;
+    onSort?: (field: CustomerSortField) => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const CustomerTable = ({ customers }: CustomerTableProps) => {
+export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort }: CustomerTableProps) => {
     const navigate = useNavigate();
 
     return (
@@ -224,7 +254,16 @@ export const CustomerTable = ({ customers }: CustomerTableProps) => {
                         <Th>{t.customers.table.customer}</Th>
                         <Th>{t.customers.table.contact}</Th>
                         <Th>{t.customers.table.vehicles}</Th>
-                        <Th>Wizyty · Przychód</Th>
+                        <ThSortable
+                            $active={sortBy === 'totalRevenue'}
+                            onClick={() => onSort?.('totalRevenue')}
+                            title="Sortuj po przychodach"
+                        >
+                            <span>
+                                Wizyty · Przychód
+                                {sortBy === 'totalRevenue' && <SortIcon direction={sortDirection} />}
+                            </span>
+                        </ThSortable>
                         <ThActions />
                     </tr>
                 </thead>

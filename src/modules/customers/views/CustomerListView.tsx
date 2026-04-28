@@ -13,7 +13,7 @@ import { CustomerFilterPanel } from '../components/CustomerFilterPanel';
 import { EmptyState } from '../components/EmptyState';
 import { t, interpolate } from '@/common/i18n';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { CustomerAdvancedFilters } from '../types';
+import type { CustomerAdvancedFilters, CustomerSortField, SortDirection } from '../types';
 
 const ViewContainer = styled.main`
     display: flex;
@@ -278,6 +278,8 @@ const countActiveFilters = (f: CustomerAdvancedFilters): number => {
     if (f.notVisitedSinceDays) n++;
     if (f.vehicleBrand) n++;
     if (f.vehicleModel) n++;
+    if (f.minRevenue) n++;
+    if (f.maxRevenue) n++;
     return n;
 };
 
@@ -286,22 +288,34 @@ export const CustomerListView = () => {
     const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
     const [appliedFilters, setAppliedFilters] = useState<CustomerAdvancedFilters>(EMPTY_ADVANCED_FILTERS);
     const [activeTab, setActiveTab] = useState<CustomerTab>('all');
+    const [sortBy, setSortBy] = useState<CustomerSortField>('lastName');
+    const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
     const { searchInput, debouncedSearch, handleSearchChange } = useCustomerSearch();
     const { page, limit, goToPage, resetPagination } = useCustomerPagination();
     const isDesktop = useBreakpoint('lg');
 
     const activeFilterCount = countActiveFilters(appliedFilters);
 
+    const handleSort = useCallback((field: CustomerSortField) => {
+        if (field === sortBy) {
+            setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(field);
+            setSortDirection('asc');
+        }
+        resetPagination();
+    }, [sortBy, resetPagination]);
+
     const filters = useMemo(
         () => ({
             search: debouncedSearch,
             page,
             limit,
-            sortBy: 'lastName' as const,
-            sortDirection: 'asc' as const,
+            sortBy,
+            sortDirection,
             ...appliedFilters,
         }),
-        [debouncedSearch, page, limit, appliedFilters]
+        [debouncedSearch, page, limit, sortBy, sortDirection, appliedFilters]
     );
 
     const { customers, pagination, isLoading, isError, refetch } = useCustomers(filters);
@@ -349,7 +363,12 @@ export const CustomerListView = () => {
         return (
             <DataContainer>
                 {isDesktop ? (
-                    <CustomerTable customers={customers} />
+                    <CustomerTable
+                        customers={customers}
+                        sortBy={sortBy}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                    />
                 ) : (
                     <CustomerGrid customers={customers} />
                 )}
