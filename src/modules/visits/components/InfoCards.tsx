@@ -543,13 +543,6 @@ export const VehicleInfoCard = ({
                     </StatusPill>
                 </KvRow>
 
-                {vehicle.color && (
-                    <KvRow>
-                        <KvLabel>Kolor</KvLabel>
-                        <KvValue>{vehicle.color}</KvValue>
-                    </KvRow>
-                )}
-
                 {vehicleHandoff?.isHandedOffByOtherPerson && (
                     <HandoffBanner>
                         <HandoffLabel>
