@@ -5,7 +5,7 @@ import type {
     UploadLogoResponse,
 } from '../types';
 
-const BASE_PATH = '/v1/settings/company';
+const BASE_PATH = '/v1/company';
 
 const MOCK_DATA: CompanySettings = {
     id: '1',
