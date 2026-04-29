@@ -1,21 +1,20 @@
 /**
- * Card component for displaying a consent definition with its templates.
+ * Card component for displaying a consent definition with its versions.
  */
 
 import { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Button } from '@/common/components/Button/Button';
 import { t } from '@/common/i18n';
-import { ConsentDefinitionWithTemplate } from '../types';
+import type { ConsentResponse } from '../types';
 import { UploadTemplateModal } from './UploadTemplateModal';
 import { useDeleteDefinition } from '../hooks/useConsents';
 
 interface ConsentDefinitionCardProps {
-    definitionWithTemplate: ConsentDefinitionWithTemplate;
+    consent: ConsentResponse;
 }
 
-export const ConsentDefinitionCard = ({ definitionWithTemplate }: ConsentDefinitionCardProps) => {
-    const { definition, activeTemplate, allTemplates } = definitionWithTemplate;
+export const ConsentDefinitionCard = ({ consent }: ConsentDefinitionCardProps) => {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [showAllVersions, setShowAllVersions] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
@@ -30,23 +29,27 @@ export const ConsentDefinitionCard = ({ definitionWithTemplate }: ConsentDefinit
         });
     };
 
-    const displayedTemplates = showAllVersions ? allTemplates : activeTemplate ? [activeTemplate] : [];
+    const displayedVersions = showAllVersions
+        ? consent.versions
+        : consent.currentVersion
+            ? [consent.currentVersion]
+            : [];
 
     return (
         <>
             <Card>
                 <CardHeader>
                     <DefinitionInfo>
-                        <DefinitionName>{definition.name}</DefinitionName>
+                        <DefinitionName>{consent.name}</DefinitionName>
                         <DefinitionMeta>
                             <MetaItem>
                                 <MetaLabel>{t.consents.definition.slug}:</MetaLabel>
-                                <MetaValue>{definition.slug}</MetaValue>
+                                <MetaValue>{consent.slug}</MetaValue>
                             </MetaItem>
-                            {definition.description && (
+                            {consent.description && (
                                 <MetaItem>
                                     <MetaLabel>{t.consents.definition.description}:</MetaLabel>
-                                    <MetaValue>{definition.description}</MetaValue>
+                                    <MetaValue>{consent.description}</MetaValue>
                                 </MetaItem>
                             )}
                         </DefinitionMeta>
@@ -78,54 +81,63 @@ export const ConsentDefinitionCard = ({ definitionWithTemplate }: ConsentDefinit
                 <TemplatesSection>
                     <TemplatesHeader>
                         <TemplatesTitle>
-                            {activeTemplate
+                            {consent.currentVersion
                                 ? t.consents.definition.activeVersion
                                 : t.consents.definition.noActiveVersion}
                         </TemplatesTitle>
-                        {allTemplates.length > 1 && (
+                        {consent.versions.length > 1 && (
                             <ToggleButton onClick={() => setShowAllVersions(!showAllVersions)}>
                                 {showAllVersions
                                     ? `Ukryj starsze wersje`
-                                    : `${t.consents.definition.allVersions} (${allTemplates.length})`}
+                                    : `${t.consents.definition.allVersions} (${consent.versions.length})`}
                             </ToggleButton>
                         )}
                     </TemplatesHeader>
 
-                    {displayedTemplates.length === 0 ? (
+                    {displayedVersions.length === 0 ? (
                         <EmptyState>
                             <EmptyIcon>📄</EmptyIcon>
                             <EmptyText>Brak aktywnego szablonu. Wgraj pierwszą wersję.</EmptyText>
                         </EmptyState>
                     ) : (
                         <TemplatesList>
-                            {displayedTemplates.map((template) => (
-                                <TemplateItem key={template.id} $isActive={template.isActive}>
+                            {displayedVersions.map((version) => (
+                                <TemplateItem key={version.versionId} $isActive={version.isActive}>
                                     <TemplateInfo>
                                         <TemplateVersion>
-                                            {t.consents.template.version} {template.version}
-                                            {template.isActive && (
+                                            {t.consents.template.version} {version.version}
+                                            {version.isActive && (
                                                 <ActiveBadge>{t.consents.template.active}</ActiveBadge>
                                             )}
                                         </TemplateVersion>
                                         <TemplateMeta>
                                             <TemplateMetaItem>
                                                 <MetaLabel>{t.consents.template.createdAt}:</MetaLabel>
-                                                <MetaValue>{formatDate(template.createdAt)}</MetaValue>
+                                                <MetaValue>{formatDate(version.createdAt)}</MetaValue>
                                             </TemplateMetaItem>
                                             <TemplateMetaItem>
                                                 <MetaLabel>
                                                     {t.consents.template.requiresResign}:
                                                 </MetaLabel>
                                                 <MetaValue>
-                                                    {template.requiresResign ? t.common.yes : t.common.no}
+                                                    {version.requiresResign ? t.common.yes : t.common.no}
                                                 </MetaValue>
                                             </TemplateMetaItem>
                                         </TemplateMeta>
                                     </TemplateInfo>
                                     <TemplateActions>
-                                        {template.downloadUrl && (
+                                        {version.pdfUrl && !version.isActive && (
                                             <ViewPdfButton
-                                                href={template.downloadUrl}
+                                                href={version.pdfUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                {t.consents.viewPdf}
+                                            </ViewPdfButton>
+                                        )}
+                                        {version.isActive && version.pdfUrl && (
+                                            <ViewPdfButton
+                                                href={version.pdfUrl}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                             >
@@ -143,8 +155,8 @@ export const ConsentDefinitionCard = ({ definitionWithTemplate }: ConsentDefinit
             <UploadTemplateModal
                 isOpen={isUploadModalOpen}
                 onClose={() => setIsUploadModalOpen(false)}
-                definitionId={definition.id}
-                definitionName={definition.name}
+                definitionId={consent.id}
+                definitionName={consent.name}
             />
 
             {confirmDelete && (
@@ -153,7 +165,7 @@ export const ConsentDefinitionCard = ({ definitionWithTemplate }: ConsentDefinit
                         <ConfirmTitle>Usuń definicję zgody</ConfirmTitle>
                         <ConfirmDesc>
                             Czy na pewno chcesz usunąć{' '}
-                            <strong>„{definition.name}"</strong>?{' '}
+                            <strong>„{consent.name}"</strong>?{' '}
                             Istniejące podpisane zgody klientów zostaną zachowane jako wpisy
                             historyczne, ale definicja przestanie być aktywna.
                         </ConfirmDesc>
@@ -169,7 +181,7 @@ export const ConsentDefinitionCard = ({ definitionWithTemplate }: ConsentDefinit
                             <Button
                                 $variant="danger"
                                 $size="sm"
-                                onClick={() => deleteDefinition(definition.id, {
+                                onClick={() => deleteDefinition(consent.id, {
                                     onSuccess: () => setConfirmDelete(false),
                                 })}
                                 disabled={isDeleting}

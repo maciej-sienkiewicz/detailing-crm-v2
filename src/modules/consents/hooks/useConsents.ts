@@ -1,34 +1,28 @@
 /**
  * Hooks for consent management using TanStack Query.
- * Provides queries and mutations for both admin and customer operations.
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { consentsApi } from '../api/consentsApi';
 import type {
-    CreateConsentDefinitionRequest,
-    UploadTemplateRequest,
-    SignConsentRequest,
+    CreateConsentRequest,
+    AddVersionRequest,
 } from '../types';
 
 // Query keys
 export const CONSENT_QUERY_KEYS = {
     definitions: ['consents', 'definitions'] as const,
     definition: (id: string) => ['consents', 'definition', id] as const,
-    templates: (definitionId: string) => ['consents', 'templates', definitionId] as const,
     customerConsents: (customerId: string) => ['consents', 'customer', customerId] as const,
 };
 
 // ===== Admin Queries =====
 
-/**
- * Hook to fetch all consent definitions with their active templates
- */
 export const useConsentDefinitions = () => {
     const query = useQuery({
         queryKey: CONSENT_QUERY_KEYS.definitions,
         queryFn: consentsApi.getConsentDefinitions,
-        staleTime: 5 * 60 * 1000, // 5 minutes
+        staleTime: 5 * 60 * 1000,
     });
 
     return {
@@ -40,38 +34,16 @@ export const useConsentDefinitions = () => {
     };
 };
 
-/**
- * Hook to fetch a single consent definition
- */
-export const useConsentDefinition = (definitionId: string) => {
+export const useConsentDefinition = (id: string) => {
     const query = useQuery({
-        queryKey: CONSENT_QUERY_KEYS.definition(definitionId),
-        queryFn: () => consentsApi.getConsentDefinition(definitionId),
-        enabled: !!definitionId,
+        queryKey: CONSENT_QUERY_KEYS.definition(id),
+        queryFn: () => consentsApi.getConsentDefinition(id),
+        enabled: !!id,
         staleTime: 5 * 60 * 1000,
     });
 
     return {
         definition: query.data ?? null,
-        isLoading: query.isLoading,
-        isError: query.isError,
-        error: query.error,
-    };
-};
-
-/**
- * Hook to fetch all templates for a definition
- */
-export const useConsentTemplates = (definitionId: string) => {
-    const query = useQuery({
-        queryKey: CONSENT_QUERY_KEYS.templates(definitionId),
-        queryFn: () => consentsApi.getConsentTemplates(definitionId),
-        enabled: !!definitionId,
-        staleTime: 5 * 60 * 1000,
-    });
-
-    return {
-        templates: query.data ?? [],
         isLoading: query.isLoading,
         isError: query.isError,
         error: query.error,
@@ -85,19 +57,14 @@ interface UseCreateDefinitionOptions {
     onError?: (error: Error) => void;
 }
 
-/**
- * Hook to create a new consent definition
- */
 export const useCreateDefinition = (options?: UseCreateDefinitionOptions) => {
     const queryClient = useQueryClient();
 
     const mutation = useMutation({
-        mutationFn: (request: CreateConsentDefinitionRequest) =>
+        mutationFn: (request: CreateConsentRequest) =>
             consentsApi.createConsentDefinition(request),
         onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: CONSENT_QUERY_KEYS.definitions,
-            });
+            queryClient.invalidateQueries({ queryKey: CONSENT_QUERY_KEYS.definitions });
             options?.onSuccess?.();
         },
         onError: (error: Error) => {
@@ -117,15 +84,11 @@ interface UseDeleteDefinitionOptions {
     onError?: (error: Error) => void;
 }
 
-/**
- * Hook to delete a consent definition.
- * Existing customer records are kept as historical data.
- */
 export const useDeleteDefinition = (options?: UseDeleteDefinitionOptions) => {
     const queryClient = useQueryClient();
 
     const mutation = useMutation({
-        mutationFn: (definitionId: string) => consentsApi.deleteConsentDefinition(definitionId),
+        mutationFn: (id: string) => consentsApi.deleteConsentDefinition(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: CONSENT_QUERY_KEYS.definitions });
             options?.onSuccess?.();
@@ -142,42 +105,36 @@ export const useDeleteDefinition = (options?: UseDeleteDefinitionOptions) => {
     };
 };
 
-interface UseUploadTemplateOptions {
+interface UseAddVersionOptions {
     onSuccess?: () => void;
     onError?: (error: Error) => void;
 }
 
 /**
- * Hook to upload a new consent template
- * This handles both getting the presigned URL and uploading to S3
+ * Adds a new PDF version to a consent definition.
+ * Workflow: POST /{id}/versions → get presigned pdfUrl → upload file to S3.
  */
-export const useUploadTemplate = (options?: UseUploadTemplateOptions) => {
+export const useAddVersion = (options?: UseAddVersionOptions) => {
     const queryClient = useQueryClient();
 
     const mutation = useMutation({
         mutationFn: async ({
+            definitionId,
             request,
             file,
         }: {
-            request: UploadTemplateRequest;
+            definitionId: string;
+            request: AddVersionRequest;
             file: File;
         }) => {
-            // Step 1: Get presigned URL
-            const uploadResponse = await consentsApi.uploadConsentTemplate(request);
-
-            // Step 2: Upload file to S3
-            await consentsApi.uploadFileToS3(uploadResponse.uploadUrl, file);
-
-            return uploadResponse;
+            const versionResponse = await consentsApi.addConsentVersion(definitionId, request);
+            if (versionResponse.pdfUrl) {
+                await consentsApi.uploadFileToS3(versionResponse.pdfUrl, file);
+            }
+            return versionResponse;
         },
-        onSuccess: (data) => {
-            // Invalidate relevant queries
-            queryClient.invalidateQueries({
-                queryKey: CONSENT_QUERY_KEYS.definitions,
-            });
-            queryClient.invalidateQueries({
-                queryKey: CONSENT_QUERY_KEYS.templates(data.templateId),
-            });
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: CONSENT_QUERY_KEYS.definitions });
             options?.onSuccess?.();
         },
         onError: (error: Error) => {
@@ -186,64 +143,25 @@ export const useUploadTemplate = (options?: UseUploadTemplateOptions) => {
     });
 
     return {
-        uploadTemplate: mutation.mutate,
+        addVersion: mutation.mutate,
         isUploading: mutation.isPending,
         error: mutation.error,
-        uploadedTemplate: mutation.data,
-    };
-};
-
-interface UseSetTemplateActiveOptions {
-    definitionId: string;
-    onSuccess?: () => void;
-    onError?: (error: Error) => void;
-}
-
-/**
- * Hook to set a template as active
- */
-export const useSetTemplateActive = (options: UseSetTemplateActiveOptions) => {
-    const queryClient = useQueryClient();
-
-    const mutation = useMutation({
-        mutationFn: (templateId: string) =>
-            consentsApi.setTemplateActive(templateId, options.definitionId),
-        onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: CONSENT_QUERY_KEYS.definitions,
-            });
-            queryClient.invalidateQueries({
-                queryKey: CONSENT_QUERY_KEYS.templates(options.definitionId),
-            });
-            options?.onSuccess?.();
-        },
-        onError: (error: Error) => {
-            options?.onError?.(error);
-        },
-    });
-
-    return {
-        setActive: mutation.mutate,
-        isUpdating: mutation.isPending,
-        error: mutation.error,
+        uploadedVersion: mutation.data,
     };
 };
 
 // ===== Customer Queries =====
 
-/**
- * Hook to fetch customer consents with their statuses
- */
 export const useCustomerConsents = (customerId: string) => {
     const query = useQuery({
         queryKey: CONSENT_QUERY_KEYS.customerConsents(customerId),
-        queryFn: () => consentsApi.getCustomerConsents(customerId),
+        queryFn: () => consentsApi.getCustomerConsentStatus(customerId),
         enabled: !!customerId,
-        staleTime: 60 * 1000, // 1 minute
+        staleTime: 60 * 1000,
     });
 
     return {
-        consents: query.data ?? [],
+        consentStatus: query.data ?? null,
         isLoading: query.isLoading,
         isError: query.isError,
         error: query.error,
@@ -259,17 +177,19 @@ interface UseSignConsentOptions {
     onError?: (error: Error) => void;
 }
 
-/**
- * Hook to sign a consent for a customer
- */
 export const useSignConsent = (options: UseSignConsentOptions) => {
     const queryClient = useQueryClient();
 
     const mutation = useMutation({
-        mutationFn: (request: Omit<SignConsentRequest, 'customerId'>) =>
-            consentsApi.signConsent({
-                ...request,
-                customerId: options.customerId,
+        mutationFn: ({
+            templateId,
+            requestAttachmentUpload,
+        }: {
+            templateId: string;
+            requestAttachmentUpload?: boolean;
+        }) =>
+            consentsApi.signCustomerConsent(options.customerId, templateId, {
+                requestAttachmentUpload,
             }),
         onSuccess: () => {
             queryClient.invalidateQueries({
@@ -285,6 +205,36 @@ export const useSignConsent = (options: UseSignConsentOptions) => {
     return {
         signConsent: mutation.mutate,
         isSigning: mutation.isPending,
+        error: mutation.error,
+    };
+};
+
+interface UseRevokeConsentOptions {
+    customerId: string;
+    onSuccess?: () => void;
+    onError?: (error: Error) => void;
+}
+
+export const useRevokeConsent = (options: UseRevokeConsentOptions) => {
+    const queryClient = useQueryClient();
+
+    const mutation = useMutation({
+        mutationFn: (consentId: string) =>
+            consentsApi.revokeCustomerConsent(options.customerId, consentId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: CONSENT_QUERY_KEYS.customerConsents(options.customerId),
+            });
+            options?.onSuccess?.();
+        },
+        onError: (error: Error) => {
+            options?.onError?.(error);
+        },
+    });
+
+    return {
+        revokeConsent: mutation.mutate,
+        isRevoking: mutation.isPending,
         error: mutation.error,
     };
 };

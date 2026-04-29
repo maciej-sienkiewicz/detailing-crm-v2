@@ -7,24 +7,29 @@ export { ConsentSettingsView } from './components/ConsentSettingsView';
 
 // Types
 export type {
-    ConsentDefinition,
-    ConsentTemplate,
-    ConsentDefinitionWithTemplate,
+    ConsentResponse,
+    ConsentVersionResponse,
     ConsentStatus,
-    CustomerConsent,
-    CustomerConsentDetails,
+    ConsentStatusItem,
+    ConsentStatusResponse,
+    CreateConsentRequest,
+    AddVersionRequest,
+    SignConsentRequest,
+    SignConsentResponse,
+    ProtocolStage,
 } from './types';
+export { ConsentStatus as ConsentStatusEnum } from './types';
 
 // Hooks
 export {
     useConsentDefinitions,
     useConsentDefinition,
-    useConsentTemplates,
     useCreateDefinition,
-    useUploadTemplate,
-    useSetTemplateActive,
+    useDeleteDefinition,
+    useAddVersion,
     useCustomerConsents,
     useSignConsent,
+    useRevokeConsent,
 } from './hooks/useConsents';
 
 // API

@@ -80,10 +80,10 @@ export const ConsentSettingsView = () => {
                         </EmptyState>
                     ) : (
                         <DefinitionsGrid>
-                            {definitions.map((definitionWithTemplate) => (
+                            {definitions.map((consent) => (
                                 <ConsentDefinitionCard
-                                    key={definitionWithTemplate.definition.id}
-                                    definitionWithTemplate={definitionWithTemplate}
+                                    key={consent.id}
+                                    consent={consent}
                                 />
                             ))}
                         </DefinitionsGrid>

@@ -506,7 +506,7 @@ export const customerDetailApi = {
 
     getCustomerConsentsStatus: async (customerId: string): Promise<CustomerConsentsStatusResponse> => {
         const response = await apiClient.get<CustomerConsentsStatusResponse>(
-            `${CUSTOMERS_BASE_PATH}/${customerId}/consents/status`
+            `${CUSTOMERS_BASE_PATH}/${customerId}/consents`
         );
         return response.data;
     },

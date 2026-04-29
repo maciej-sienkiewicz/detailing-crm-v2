@@ -1,86 +1,87 @@
 /**
  * API client for consent management operations.
- * Handles both admin (definitions/templates) and customer (signing) operations.
+ * Admin operations: /api/v1/consents
+ * Customer operations: /api/v1/customers/{customerId}/consents
  */
 
 import { apiClient } from '@/core/apiClient';
 import type {
-    ConsentDefinition,
-    ConsentTemplate,
-    ConsentDefinitionWithTemplate,
-    CreateConsentDefinitionRequest,
-    CreateConsentDefinitionResponse,
-    UploadTemplateRequest,
-    UploadTemplateResponse,
-    CustomerConsentDetails,
+    ConsentResponse,
+    ConsentVersionResponse,
+    CreateConsentRequest,
+    AddVersionRequest,
+    ConsentStatusResponse,
     SignConsentRequest,
     SignConsentResponse,
 } from '../types';
 
-const ADMIN_BASE_PATH = '/v1/admin/consents';
-const CUSTOMER_BASE_PATH = '/v1/customer/consents';
+const BASE_PATH = '/v1/consents';
 
 // ===== Admin Operations =====
 
 /**
- * Get all consent definitions with their active templates
+ * List all active consent definitions with their current version info.
  */
-export const getConsentDefinitions = async (): Promise<ConsentDefinitionWithTemplate[]> => {
-    const response = await apiClient.get<ConsentDefinitionWithTemplate[]>(
-        `${ADMIN_BASE_PATH}/definitions`
-    );
+export const getConsentDefinitions = async (): Promise<ConsentResponse[]> => {
+    const response = await apiClient.get<ConsentResponse[]>(BASE_PATH);
     return response.data;
 };
 
 /**
- * Get a single consent definition by ID
+ * Get a single consent definition by ID.
  */
-export const getConsentDefinition = async (definitionId: string): Promise<ConsentDefinition> => {
-    const response = await apiClient.get<ConsentDefinition>(
-        `${ADMIN_BASE_PATH}/definitions/${definitionId}`
-    );
+export const getConsentDefinition = async (id: string): Promise<ConsentResponse> => {
+    const response = await apiClient.get<ConsentResponse>(`${BASE_PATH}/${id}`);
     return response.data;
 };
 
 /**
- * Create a new consent definition
+ * Create a new consent definition.
+ * Slug is auto-generated from the name by the backend.
  */
 export const createConsentDefinition = async (
-    request: CreateConsentDefinitionRequest
-): Promise<CreateConsentDefinitionResponse> => {
-    const response = await apiClient.post<CreateConsentDefinitionResponse>(
-        `${ADMIN_BASE_PATH}/definitions`,
+    request: CreateConsentRequest
+): Promise<ConsentResponse> => {
+    const response = await apiClient.post<ConsentResponse>(BASE_PATH, request);
+    return response.data;
+};
+
+/**
+ * Update consent display configuration (name, stage, mandatory, order).
+ */
+export const updateConsentDefinition = async (
+    id: string,
+    request: Partial<CreateConsentRequest>
+): Promise<ConsentResponse> => {
+    const response = await apiClient.patch<ConsentResponse>(`${BASE_PATH}/${id}`, request);
+    return response.data;
+};
+
+/**
+ * Deactivate a consent definition.
+ * Existing customer signatures are preserved in the audit trail.
+ */
+export const deleteConsentDefinition = async (id: string): Promise<void> => {
+    await apiClient.delete(`${BASE_PATH}/${id}`);
+};
+
+/**
+ * Publish a new PDF version for an existing consent.
+ * Returns a ConsentVersionResponse with pdfUrl as a presigned S3 upload URL.
+ */
+export const addConsentVersion = async (
+    definitionId: string,
+    request: AddVersionRequest
+): Promise<ConsentVersionResponse> => {
+    const response = await apiClient.post<ConsentVersionResponse>(
+        `${BASE_PATH}/${definitionId}/versions`,
         request
     );
     return response.data;
 };
 
 /**
- * Get all templates for a consent definition
- */
-export const getConsentTemplates = async (definitionId: string): Promise<ConsentTemplate[]> => {
-    const response = await apiClient.get<ConsentTemplate[]>(
-        `${ADMIN_BASE_PATH}/definitions/${definitionId}/templates`
-    );
-    return response.data;
-};
-
-/**
- * Upload a new consent template version.
- * Returns presigned S3 URL for file upload.
- */
-export const uploadConsentTemplate = async (
-    request: UploadTemplateRequest
-): Promise<UploadTemplateResponse> => {
-    const response = await apiClient.post<UploadTemplateResponse>(
-        `${ADMIN_BASE_PATH}/templates`,
-        request
-    );
-    return response.data;
-};
-
-/**
- * Upload PDF file to S3 using presigned URL
+ * Upload PDF file to S3 using presigned URL.
  */
 export const uploadFileToS3 = async (
     uploadUrl: string,
@@ -94,76 +95,43 @@ export const uploadFileToS3 = async (
             'Content-Type': 'application/pdf',
         },
     });
-
-    // Note: If we need progress tracking, we'd need to use XMLHttpRequest or axios
-    // For now, using native fetch for simplicity
-};
-
-/**
- * Delete a consent definition and all its templates.
- * Existing customer consent records are preserved as historical data
- * (isDefinitionActive: false in the status endpoint).
- */
-export const deleteConsentDefinition = async (definitionId: string): Promise<void> => {
-    await apiClient.delete(`${ADMIN_BASE_PATH}/definitions/${definitionId}`);
-};
-
-/**
- * Set a template as active (and deactivate others)
- */
-export const setTemplateActive = async (
-    templateId: string,
-    definitionId: string
-): Promise<void> => {
-    await apiClient.patch(
-        `${ADMIN_BASE_PATH}/definitions/${definitionId}/templates/${templateId}/activate`
-    );
-};
-
-/**
- * Get download URL for a consent template PDF
- */
-export const getTemplateDownloadUrl = async (templateId: string): Promise<string> => {
-    const response = await apiClient.get<{ downloadUrl: string }>(
-        `${ADMIN_BASE_PATH}/templates/${templateId}/download-url`
-    );
-    return response.data.downloadUrl;
 };
 
 // ===== Customer Operations =====
 
 /**
- * Get all consents for a customer with their current status
+ * Get all consent statuses for a customer.
  */
-export const getCustomerConsents = async (customerId: string): Promise<CustomerConsentDetails[]> => {
-    const response = await apiClient.get<CustomerConsentDetails[]>(
-        `${CUSTOMER_BASE_PATH}/${customerId}`
+export const getCustomerConsentStatus = async (customerId: string): Promise<ConsentStatusResponse> => {
+    const response = await apiClient.get<ConsentStatusResponse>(
+        `/v1/customers/${customerId}/consents`
     );
     return response.data;
 };
 
 /**
- * Sign a consent for a customer
+ * Record a customer signature on a specific consent template version.
  */
-export const signConsent = async (request: SignConsentRequest): Promise<SignConsentResponse> => {
+export const signCustomerConsent = async (
+    customerId: string,
+    templateId: string,
+    request: SignConsentRequest = {}
+): Promise<SignConsentResponse> => {
     const response = await apiClient.post<SignConsentResponse>(
-        `${CUSTOMER_BASE_PATH}/${request.customerId}/sign`,
-        {
-            templateId: request.templateId,
-            signatureData: request.signatureData,
-        }
+        `/v1/customers/${customerId}/consents/${templateId}/sign`,
+        request
     );
     return response.data;
 };
 
 /**
- * Get PDF URL for customer to view before signing
+ * Revoke a previously recorded consent.
  */
-export const getConsentPdfUrl = async (templateId: string): Promise<string> => {
-    const response = await apiClient.get<{ pdfUrl: string }>(
-        `${CUSTOMER_BASE_PATH}/templates/${templateId}/pdf-url`
-    );
-    return response.data.pdfUrl;
+export const revokeCustomerConsent = async (
+    customerId: string,
+    consentId: string
+): Promise<void> => {
+    await apiClient.delete(`/v1/customers/${customerId}/consents/${consentId}`);
 };
 
 export const consentsApi = {
@@ -171,15 +139,13 @@ export const consentsApi = {
     getConsentDefinitions,
     getConsentDefinition,
     createConsentDefinition,
+    updateConsentDefinition,
     deleteConsentDefinition,
-    getConsentTemplates,
-    uploadConsentTemplate,
+    addConsentVersion,
     uploadFileToS3,
-    setTemplateActive,
-    getTemplateDownloadUrl,
 
     // Customer operations
-    getCustomerConsents,
-    signConsent,
-    getConsentPdfUrl,
+    getCustomerConsentStatus,
+    signCustomerConsent,
+    revokeCustomerConsent,
 };

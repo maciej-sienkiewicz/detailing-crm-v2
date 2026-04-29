@@ -292,16 +292,19 @@ export interface CustomerConsentStatusItem {
     definitionName: string;
     /** False when the admin has deleted this consent definition — show as historical record only */
     isDefinitionActive: boolean;
+    stage: string | null;
+    isMandatory: boolean;
+    displayOrder: number;
     status: CustomerConsentStatus;
     currentTemplateId: string | null;
     currentVersion: number | null;
     signedTemplateId: string | null;
     signedVersion: number | null;
     signedAt: string | null;
-    /** Presigned URL to the current template PDF (for preview before signing) */
+    /** Presigned download URL for the current template PDF */
     downloadUrl: string | null;
-    /** Presigned URL to the customer's scanned/attached consent file, if uploaded */
-    attachmentUrl: string | null;
+    /** Presigned URL to the customer's scanned/attached consent file (legacy, may be absent) */
+    attachmentUrl?: string | null;
 }
 
 export interface CustomerConsentsStatusResponse {

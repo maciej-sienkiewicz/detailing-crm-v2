@@ -11,7 +11,7 @@ import { Modal } from '@/common/components/Modal/Modal';
 import { Button } from '@/common/components/Button/Button';
 import { FormGrid, FieldGroup, Label, ErrorMessage } from '@/common/components/Form/Form';
 import { t } from '@/common/i18n';
-import { useUploadTemplate } from '../hooks/useConsents';
+import { useAddVersion } from '../hooks/useConsents';
 
 interface UploadTemplateModalProps {
     isOpen: boolean;
@@ -32,7 +32,7 @@ export const UploadTemplateModal = ({
     const [errors, setErrors] = useState<Record<string, string>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const { uploadTemplate, isUploading, error: apiError } = useUploadTemplate({
+    const { addVersion, isUploading, error: apiError } = useAddVersion({
         onSuccess: () => {
             handleClose();
         },
@@ -89,9 +89,9 @@ export const UploadTemplateModal = ({
             return;
         }
 
-        uploadTemplate({
+        addVersion({
+            definitionId,
             request: {
-                definitionId,
                 requiresResign,
                 setAsActive,
             },

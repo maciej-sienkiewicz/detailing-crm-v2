@@ -3,25 +3,21 @@ import styled from 'styled-components';
 import { Modal } from '@/common/components/Modal';
 import { Button, ButtonGroup } from '@/common/components/Button';
 import { ErrorMessage } from '@/common/components/Form';
-import { useCreateProtocolTemplate, useDeleteProtocolTemplate, useCreateProtocolRule } from '@/modules/protocols/api/useProtocols';
 import { consentsApi } from '@/modules/consents/api/consentsApi';
+import type { ProtocolStage } from '@/modules/consents/types';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-const toSlug = (text: string) =>
-    text
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[̀-ͯ]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .slice(0, 50);
 
 const formatSize = (bytes: number) => {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 };
+
+const STAGE_OPTIONS: { value: ProtocolStage; label: string }[] = [
+    { value: 'CHECK_IN', label: 'Przyjęcie pojazdu (CHECK_IN)' },
+    { value: 'CHECK_OUT', label: 'Wydanie pojazdu (CHECK_OUT)' },
+];
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -58,6 +54,21 @@ const InputEl = styled.input`
     width: 100%;
     &:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14,165,233,0.14); }
     &::placeholder { color: #94a3b8; }
+`;
+
+const SelectEl = styled.select`
+    height: 38px;
+    border-radius: 9px;
+    border: 1.5px solid #e2e8f0;
+    padding: 0 12px;
+    font-family: inherit;
+    font-size: 13px;
+    color: #0f172a;
+    background: #fff;
+    outline: none;
+    cursor: pointer;
+    width: 100%;
+    &:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14,165,233,0.14); }
 `;
 
 const TextareaEl = styled.textarea`
@@ -218,18 +229,17 @@ export function AddConsentDocumentModal({ isOpen, onClose, onSuccess }: AddConse
     const [file, setFile]               = useState<File | undefined>();
     const [name, setName]               = useState('');
     const [description, setDescription] = useState('');
+    const [stage, setStage]             = useState<ProtocolStage>('CHECK_IN');
+    const [isMandatory, setIsMandatory] = useState(false);
     const [requiresResign, setRequiresResign] = useState(false);
     const [errors, setErrors]           = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-    const createTemplate = useCreateProtocolTemplate();
-    const deleteTemplate = useDeleteProtocolTemplate();
-    const createRule     = useCreateProtocolRule();
-
     const reset = () => {
         setFile(undefined); setName(''); setDescription('');
+        setStage('CHECK_IN'); setIsMandatory(false);
         setRequiresResign(false); setErrors({}); setIsSubmitting(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
@@ -258,49 +268,30 @@ export function AddConsentDocumentModal({ isOpen, onClose, onSuccess }: AddConse
         setIsSubmitting(true);
         setErrors({});
 
-        const slug = toSlug(name.trim());
-        let createdTemplateId: string | undefined;
-
         try {
-            // A: protokół-szablon (PDF formularz per wizyta)
-            const protocol = await createTemplate.mutateAsync({
-                data: { name: name.trim(), description: description.trim() || undefined },
-                file,
-            });
-            createdTemplateId = protocol.id;
-
-            // B: definicja zgody
+            // 1. Utwórz definicję zgody (slug generowany automatycznie z nazwy)
             const definition = await consentsApi.createConsentDefinition({
-                slug,
                 name: name.trim(),
                 description: description.trim() || undefined,
+                stage,
+                isMandatory,
             });
 
-            // C: wersja dokumentu zgody (ten sam plik)
-            const uploadResp = await consentsApi.uploadConsentTemplate({
-                definitionId: definition.definitionId,
+            // 2. Dodaj pierwszą wersję PDF (presigned URL w odpowiedzi)
+            const versionResp = await consentsApi.addConsentVersion(definition.id, {
                 requiresResign,
                 setAsActive: true,
             });
-            await consentsApi.uploadFileToS3(uploadResp.uploadUrl, file!);
 
-            // D: reguła łącząca
-            await createRule.mutateAsync({
-                protocolTemplateId: protocol.id,
-                triggerType: 'CUSTOMER_CONSENT_REQUIRED',
-                stage: 'CHECK_IN',
-                consentDefinitionId: definition.definitionId,
-                isMandatory: false,
-                displayOrder: 999,
-            });
+            // 3. Wyślij plik do S3
+            if (versionResp.pdfUrl) {
+                await consentsApi.uploadFileToS3(versionResp.pdfUrl, file!);
+            }
 
             reset();
             onSuccess?.();
             onClose();
         } catch (err) {
-            if (createdTemplateId) {
-                try { await deleteTemplate.mutateAsync(createdTemplateId); } catch { /* best-effort */ }
-            }
             setErrors({ submit: err instanceof Error ? err.message : 'Wystąpił błąd podczas zapisywania' });
         } finally {
             setIsSubmitting(false);
@@ -368,6 +359,19 @@ export function AddConsentDocumentModal({ isOpen, onClose, onSuccess }: AddConse
                     {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
                 </Field>
 
+                {/* Stage */}
+                <Field>
+                    <FieldLabel>Etap wizyty *</FieldLabel>
+                    <SelectEl
+                        value={stage}
+                        onChange={e => setStage(e.target.value as ProtocolStage)}
+                    >
+                        {STAGE_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                    </SelectEl>
+                </Field>
+
                 {/* Description */}
                 <Field>
                     <FieldLabel>Opis <span style={{ fontWeight: 400, color: '#94a3b8' }}>(opcjonalnie)</span></FieldLabel>
@@ -378,6 +382,19 @@ export function AddConsentDocumentModal({ isOpen, onClose, onSuccess }: AddConse
                         rows={2}
                     />
                 </Field>
+
+                {/* isMandatory */}
+                <ToggleRow>
+                    <ToggleText>
+                        <ToggleLabel>Obowiązkowa</ToggleLabel>
+                        <ToggleDesc>Klient musi podpisać tę zgodę, aby kontynuować</ToggleDesc>
+                    </ToggleText>
+                    <ToggleBtn
+                        type="button" $on={isMandatory}
+                        onClick={() => setIsMandatory(v => !v)}
+                        role="switch" aria-checked={isMandatory}
+                    />
+                </ToggleRow>
 
                 {/* requiresResign */}
                 <ToggleRow>

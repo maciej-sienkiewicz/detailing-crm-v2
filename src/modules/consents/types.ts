@@ -1,7 +1,11 @@
 /**
  * Type definitions for the consent management module.
- * Reflects backend DTOs from AdminConsentController and CustomerConsentController.
+ * Reflects backend DTOs from ConsentController and CustomerConsentController.
  */
+
+import type { ProtocolStage } from '@/modules/protocols/types';
+
+export type { ProtocolStage };
 
 /**
  * Consent status types
@@ -12,131 +16,106 @@ export enum ConsentStatus {
     OUTDATED = 'OUTDATED'           // Signed old version but no re-sign required
 }
 
-/**
- * Consent definition - represents a type of consent (e.g., RODO, Marketing)
- */
-export interface ConsentDefinition {
-    id: string;
-    slug: string;                    // e.g., "rodo", "marketing", "kontakt-po-18"
-    name: string;                    // e.g., "RODO", "Zgoda marketingowa"
-    description?: string;
-    createdAt: string;
-    createdBy: string;
-    studioId: string;
-}
+// ===== Admin API Types =====
 
 /**
- * Consent template - a versioned PDF template for a consent definition
+ * A single versioned PDF attached to a consent definition.
+ * On creation, pdfUrl is a presigned S3 upload URL.
+ * On subsequent GETs, pdfUrl is a download URL (or null if not yet uploaded).
  */
-export interface ConsentTemplate {
-    id: string;
-    definitionId: string;
+export interface ConsentVersionResponse {
+    versionId: string;
     version: number;
-    requiresResign: boolean;         // Should all customers re-sign when this version is activated?
     isActive: boolean;
-    s3Key: string;
-    downloadUrl?: string;
+    requiresResign: boolean;
+    pdfUrl: string | null;
     createdAt: string;
-    createdBy: string;
 }
 
 /**
- * Customer consent record - tracks which consents a customer has signed
+ * Full consent definition with its versions.
+ * Returned by GET /api/v1/consents and GET /api/v1/consents/{id}.
  */
-export interface CustomerConsent {
+export interface ConsentResponse {
     id: string;
-    customerId: string;
-    definitionId: string;
-    templateId: string;
-    templateVersion: number;
-    status: ConsentStatus;
-    signedAt?: string;
-    signatureData?: string;          // Base64 encoded signature image
-    ipAddress?: string;
+    slug: string;
+    name: string;
+    description: string | null;
+    stage: ProtocolStage;
+    isMandatory: boolean;
+    displayOrder: number;
+    isActive: boolean;
+    currentVersion: ConsentVersionResponse | null;
+    versions: ConsentVersionResponse[];
     createdAt: string;
     updatedAt: string;
 }
 
-// ===== API Request/Response DTOs =====
-
 /**
- * Request to create a new consent definition
+ * Request body for POST /api/v1/consents
  */
-export interface CreateConsentDefinitionRequest {
-    slug: string;
+export interface CreateConsentRequest {
     name: string;
     description?: string;
+    stage: ProtocolStage;
+    isMandatory?: boolean;
+    displayOrder?: number;
 }
 
 /**
- * Response after creating a consent definition
+ * Request body for POST /api/v1/consents/{id}/versions
  */
-export interface CreateConsentDefinitionResponse {
+export interface AddVersionRequest {
+    requiresResign?: boolean;
+    setAsActive?: boolean;
+}
+
+// ===== Customer API Types =====
+
+export type CustomerConsentStatus = 'VALID' | 'OUTDATED' | 'REQUIRED';
+
+/**
+ * Single item in the customer consent status list.
+ * Matches ConsentStatusItemResponse from CustomerConsentController.
+ */
+export interface ConsentStatusItem {
     definitionId: string;
-    slug: string;
-    name: string;
+    definitionSlug: string;
+    definitionName: string;
+    isDefinitionActive: boolean;
+    stage: ProtocolStage | null;
+    isMandatory: boolean;
+    displayOrder: number;
+    status: CustomerConsentStatus;
+    currentTemplateId: string | null;
+    currentVersion: number | null;
+    signedTemplateId: string | null;
+    signedVersion: number | null;
+    signedAt: string | null;
+    downloadUrl: string | null;
+    consentId: string | null;
 }
 
 /**
- * Request to upload a new consent template version
+ * Response from GET /api/v1/customers/{customerId}/consents
  */
-export interface UploadTemplateRequest {
-    definitionId: string;
-    requiresResign: boolean;
-    setAsActive?: boolean;           // Default: true
+export interface ConsentStatusResponse {
+    consents: ConsentStatusItem[];
 }
 
 /**
- * Response with S3 presigned upload URL
- */
-export interface UploadTemplateResponse {
-    templateId: string;
-    version: number;
-    uploadUrl: string;
-    s3Key: string;
-}
-
-/**
- * Request to get customer consents
- */
-export interface GetCustomerConsentsRequest {
-    customerId: string;
-}
-
-/**
- * Response with customer consents and their statuses
- */
-export interface CustomerConsentDetails {
-    consent: CustomerConsent;
-    definition: ConsentDefinition;
-    currentTemplate: ConsentTemplate;
-}
-
-/**
- * Request to sign a consent
+ * Request body for POST /api/v1/customers/{customerId}/consents/{templateId}/sign
  */
 export interface SignConsentRequest {
-    customerId: string;
-    templateId: string;
-    signatureData?: string;          // Base64 encoded signature image
+    requestAttachmentUpload?: boolean;
 }
 
 /**
- * Response after signing a consent
+ * Response from signing a consent
  */
 export interface SignConsentResponse {
     consentId: string;
-    status: ConsentStatus;
     signedAt: string;
-}
-
-// ===== View Models for UI =====
-
-/**
- * Definition with its active template for display
- */
-export interface ConsentDefinitionWithTemplate {
-    definition: ConsentDefinition;
-    activeTemplate?: ConsentTemplate;
-    allTemplates: ConsentTemplate[];
+    attachmentUploadUrl?: string | null;
+    attachmentS3Key?: string | null;
 }
