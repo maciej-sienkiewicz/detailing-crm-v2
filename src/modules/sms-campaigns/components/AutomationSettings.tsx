@@ -453,6 +453,18 @@ function formatTimingBadge(minutes: number, direction: 'before' | 'after'): stri
   return `${value} ${unitStr} ${direction === 'before' ? 'przed wizytą' : 'po wizycie'}`;
 }
 
+const ImmediateBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: ${st.accentGreenDim};
+  color: ${st.accentGreen};
+  border-radius: ${st.radiusFull};
+  font-size: ${st.fontXs};
+  font-weight: 600;
+`;
+
 const VARS: { key: string; label: string }[] = [
   { key: '{{imie}}',     label: 'imię'     },
   { key: '{{nazwisko}}', label: 'nazwisko' },
@@ -464,13 +476,22 @@ const VARS: { key: string; label: string }[] = [
 // ─── RuleEditor ───────────────────────────────────────────────────────────────
 
 interface RuleEditorProps {
-  rule:      SmsAutomationRule;
-  direction: 'before' | 'after';
-  onChange:  (rule: SmsAutomationRule) => void;
+  rule:        SmsAutomationRule;
+  direction?:  'before' | 'after';
+  directionLabel?: string;
+  showTiming?: boolean;
+  onChange:    (rule: SmsAutomationRule) => void;
 }
 
-const RuleEditor: React.FC<RuleEditorProps> = ({ rule, direction, onChange }) => {
-  const { value, unit } = minutesToValue(rule.offsetMinutes);
+const RuleEditor: React.FC<RuleEditorProps> = ({
+  rule,
+  direction,
+  directionLabel,
+  showTiming = true,
+  onChange,
+}) => {
+  const offsetMinutes = rule.offsetMinutes ?? 60;
+  const { value, unit } = minutesToValue(offsetMinutes);
   const len    = rule.messageTemplate.length;
   const isOver = len > 280;
   const isMulti = len > 160;
@@ -484,32 +505,34 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, direction, onChange }) =>
   return (
     <>
       {/* ── Timing ── */}
-      <div>
-        <SectionLabel>Czas wysyłki</SectionLabel>
-        <TimingSentence>
-          <TimingWord>Wyślij</TimingWord>
-          <TimingNumber
-            type="number"
-            min={1}
-            value={value}
-            onChange={(e) => setOffset(Math.max(1, Number(e.target.value)), unit)}
-          />
-          <UnitSelectWrap>
-            <SmsSelect
-              value={unit}
-              onChange={(val) => setOffset(value, val as Unit)}
-              options={[
-                { value: 'minutes', label: 'minut'  },
-                { value: 'hours',   label: 'godzin' },
-                { value: 'days',    label: 'dni'    },
-              ]}
+      {showTiming && (
+        <div>
+          <SectionLabel>Czas wysyłki</SectionLabel>
+          <TimingSentence>
+            <TimingWord>Wyślij</TimingWord>
+            <TimingNumber
+              type="number"
+              min={1}
+              value={value}
+              onChange={(e) => setOffset(Math.max(1, Number(e.target.value)), unit)}
             />
-          </UnitSelectWrap>
-          <DirectionTag>
-            {direction === 'before' ? 'przed wizytą' : 'po wizycie'}
-          </DirectionTag>
-        </TimingSentence>
-      </div>
+            <UnitSelectWrap>
+              <SmsSelect
+                value={unit}
+                onChange={(val) => setOffset(value, val as Unit)}
+                options={[
+                  { value: 'minutes', label: 'minut'  },
+                  { value: 'hours',   label: 'godzin' },
+                  { value: 'days',    label: 'dni'    },
+                ]}
+              />
+            </UnitSelectWrap>
+            <DirectionTag>
+              {directionLabel ?? (direction === 'before' ? 'przed wizytą' : 'po wizycie')}
+            </DirectionTag>
+          </TimingSentence>
+        </div>
+      )}
 
       {/* ── Message ── */}
       <MessageSection>
@@ -559,17 +582,17 @@ export const AutomationSettings: React.FC = () => {
     if (config && !localConfig) setLocalConfig(config);
   }, [config, localConfig]);
 
-  const updatePreVisit = (rule: SmsAutomationRule) => {
+  const makeUpdater = (key: keyof SmsAutomationConfig) => (rule: SmsAutomationRule) => {
     if (!localConfig) return;
-    setLocalConfig({ ...localConfig, preVisit: rule });
+    setLocalConfig({ ...localConfig, [key]: rule });
     setSavedAt(null);
   };
 
-  const updatePostVisit = (rule: SmsAutomationRule) => {
-    if (!localConfig) return;
-    setLocalConfig({ ...localConfig, postVisit: rule });
-    setSavedAt(null);
-  };
+  const updatePreVisit          = makeUpdater('preVisit');
+  const updatePostVisit         = makeUpdater('postVisit');
+  const updateDelayedReminder   = makeUpdater('delayedReminder');
+  const updateBookingConf       = makeUpdater('bookingConfirmation');
+  const updateRescheduleConf    = makeUpdater('rescheduleConfirmation');
 
   const handleSave = async () => {
     if (!localConfig) return;
@@ -581,26 +604,18 @@ export const AutomationSettings: React.FC = () => {
   if (isLoading || !localConfig) {
     return (
       <Container>
-        <Card $enabled={false}>
-          <CardHeader style={{ cursor: 'default' }}>
-            <SkeletonBox $w="36px" $h="36px" style={{ borderRadius: '10px', flexShrink: 0 }} />
-            <CardTitleGroup>
-              <SkeletonBox $w="48%" $h="14px" style={{ marginBottom: 8 }} />
-              <SkeletonBox $w="30%" $h="11px" />
-            </CardTitleGroup>
-            <SkeletonBox $w="44px" $h="24px" style={{ borderRadius: '9999px', flexShrink: 0 }} />
-          </CardHeader>
-        </Card>
-        <Card $enabled={false}>
-          <CardHeader style={{ cursor: 'default' }}>
-            <SkeletonBox $w="36px" $h="36px" style={{ borderRadius: '10px', flexShrink: 0 }} />
-            <CardTitleGroup>
-              <SkeletonBox $w="42%" $h="14px" style={{ marginBottom: 8 }} />
-              <SkeletonBox $w="28%" $h="11px" />
-            </CardTitleGroup>
-            <SkeletonBox $w="44px" $h="24px" style={{ borderRadius: '9999px', flexShrink: 0 }} />
-          </CardHeader>
-        </Card>
+        {[48, 42, 52, 44, 50].map((w, i) => (
+          <Card key={i} $enabled={false}>
+            <CardHeader style={{ cursor: 'default' }}>
+              <SkeletonBox $w="36px" $h="36px" style={{ borderRadius: '10px', flexShrink: 0 }} />
+              <CardTitleGroup>
+                <SkeletonBox $w={`${w}%`} $h="14px" style={{ marginBottom: 8 }} />
+                <SkeletonBox $w={`${w - 18}%`} $h="11px" />
+              </CardTitleGroup>
+              <SkeletonBox $w="44px" $h="24px" style={{ borderRadius: '9999px', flexShrink: 0 }} />
+            </CardHeader>
+          </Card>
+        ))}
       </Container>
     );
   }
@@ -641,7 +656,7 @@ export const AutomationSettings: React.FC = () => {
             <CardMeta>
               {localConfig.preVisit.enabled ? (
                 <TimingBadge>
-                  {formatTimingBadge(localConfig.preVisit.offsetMinutes, 'before')}
+                  {formatTimingBadge(localConfig.preVisit.offsetMinutes ?? 60, 'before')}
                 </TimingBadge>
               ) : (
                 <InactiveLabel>Nieaktywne</InactiveLabel>
@@ -689,7 +704,7 @@ export const AutomationSettings: React.FC = () => {
             <CardMeta>
               {localConfig.postVisit.enabled ? (
                 <TimingBadge>
-                  {formatTimingBadge(localConfig.postVisit.offsetMinutes, 'after')}
+                  {formatTimingBadge(localConfig.postVisit.offsetMinutes ?? 30, 'after')}
                 </TimingBadge>
               ) : (
                 <InactiveLabel>Nieaktywne</InactiveLabel>
@@ -713,6 +728,153 @@ export const AutomationSettings: React.FC = () => {
                 rule={localConfig.postVisit}
                 direction="after"
                 onChange={updatePostVisit}
+              />
+            </CardBody>
+          </>
+        )}
+      </Card>
+
+      {/* ── Delayed reminder ── */}
+      <Card $enabled={localConfig.delayedReminder.enabled}>
+        <CardHeader
+          onClick={() =>
+            updateDelayedReminder({ ...localConfig.delayedReminder, enabled: !localConfig.delayedReminder.enabled })
+          }
+        >
+          <CardIconWrap $enabled={localConfig.delayedReminder.enabled}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </CardIconWrap>
+
+          <CardTitleGroup>
+            <CardTitle>Przypomnienie po dłuższej nieobecności</CardTitle>
+            <CardMeta>
+              {localConfig.delayedReminder.enabled ? (
+                <TimingBadge>
+                  {formatTimingBadge(localConfig.delayedReminder.offsetMinutes ?? 129600, 'after')}
+                </TimingBadge>
+              ) : (
+                <InactiveLabel>Nieaktywne</InactiveLabel>
+              )}
+            </CardMeta>
+          </CardTitleGroup>
+
+          <ToggleTrack
+            $on={localConfig.delayedReminder.enabled}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ToggleThumb $on={localConfig.delayedReminder.enabled} />
+          </ToggleTrack>
+        </CardHeader>
+
+        {localConfig.delayedReminder.enabled && (
+          <>
+            <BodyDivider />
+            <CardBody>
+              <RuleEditor
+                rule={localConfig.delayedReminder}
+                direction="after"
+                directionLabel="od ostatniej wizyty"
+                onChange={updateDelayedReminder}
+              />
+            </CardBody>
+          </>
+        )}
+      </Card>
+
+      {/* ── Booking confirmation ── */}
+      <Card $enabled={localConfig.bookingConfirmation.enabled}>
+        <CardHeader
+          onClick={() =>
+            updateBookingConf({ ...localConfig.bookingConfirmation, enabled: !localConfig.bookingConfirmation.enabled })
+          }
+        >
+          <CardIconWrap $enabled={localConfig.bookingConfirmation.enabled}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+              <polyline points="9 16 11 18 15 14"/>
+            </svg>
+          </CardIconWrap>
+
+          <CardTitleGroup>
+            <CardTitle>Potwierdzenie rezerwacji</CardTitle>
+            <CardMeta>
+              {localConfig.bookingConfirmation.enabled ? (
+                <ImmediateBadge>Natychmiast po rezerwacji</ImmediateBadge>
+              ) : (
+                <InactiveLabel>Nieaktywne</InactiveLabel>
+              )}
+            </CardMeta>
+          </CardTitleGroup>
+
+          <ToggleTrack
+            $on={localConfig.bookingConfirmation.enabled}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ToggleThumb $on={localConfig.bookingConfirmation.enabled} />
+          </ToggleTrack>
+        </CardHeader>
+
+        {localConfig.bookingConfirmation.enabled && (
+          <>
+            <BodyDivider />
+            <CardBody>
+              <RuleEditor
+                rule={localConfig.bookingConfirmation}
+                showTiming={false}
+                onChange={updateBookingConf}
+              />
+            </CardBody>
+          </>
+        )}
+      </Card>
+
+      {/* ── Reschedule confirmation ── */}
+      <Card $enabled={localConfig.rescheduleConfirmation.enabled}>
+        <CardHeader
+          onClick={() =>
+            updateRescheduleConf({ ...localConfig.rescheduleConfirmation, enabled: !localConfig.rescheduleConfirmation.enabled })
+          }
+        >
+          <CardIconWrap $enabled={localConfig.rescheduleConfirmation.enabled}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 4v6h-6"/>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+          </CardIconWrap>
+
+          <CardTitleGroup>
+            <CardTitle>Potwierdzenie zmiany terminu</CardTitle>
+            <CardMeta>
+              {localConfig.rescheduleConfirmation.enabled ? (
+                <ImmediateBadge>Natychmiast po zmianie</ImmediateBadge>
+              ) : (
+                <InactiveLabel>Nieaktywne</InactiveLabel>
+              )}
+            </CardMeta>
+          </CardTitleGroup>
+
+          <ToggleTrack
+            $on={localConfig.rescheduleConfirmation.enabled}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ToggleThumb $on={localConfig.rescheduleConfirmation.enabled} />
+          </ToggleTrack>
+        </CardHeader>
+
+        {localConfig.rescheduleConfirmation.enabled && (
+          <>
+            <BodyDivider />
+            <CardBody>
+              <RuleEditor
+                rule={localConfig.rescheduleConfirmation}
+                showTiming={false}
+                onChange={updateRescheduleConf}
               />
             </CardBody>
           </>

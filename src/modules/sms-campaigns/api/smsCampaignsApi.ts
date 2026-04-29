@@ -119,18 +119,29 @@ const mockAudienceCustomers = [
   },
 ];
 
-const mockAutomation: SmsAutomationConfig = {
+let mockAutomation: SmsAutomationConfig = {
   preVisit: {
-    enabled: true,
+    enabled: false,
     offsetMinutes: 60,
-    messageTemplate:
-      'Dzień dobry {{imie}}! Przypominamy o wizycie w naszym studiu jutro o {{godzina}}. Do zobaczenia! AutoCRM Studio',
+    messageTemplate: 'Przypominamy o wizycie w {{studio}} dnia {{data}} o godz. {{godzina}}. Do zobaczenia, {{imie}}!',
   },
   postVisit: {
     enabled: false,
-    offsetMinutes: 1440, // 24h
-    messageTemplate:
-      'Drogi {{imie}}, dziękujemy za wizytę! Mamy nadzieję, że jesteś zadowolony. Czekamy na Ciebie ponownie. AutoCRM Studio',
+    offsetMinutes: 30,
+    messageTemplate: 'Dziękujemy za wizytę w {{studio}}, {{imie}}! Mamy nadzieję, że jesteś zadowolony z usługi.',
+  },
+  delayedReminder: {
+    enabled: true,
+    offsetMinutes: 129600,
+    messageTemplate: 'Cześć {{imie}}! Minęły 3 miesiące od Twojej wizyty w {{studio}}. Czas na kolejny detailing? Zapraszamy!',
+  },
+  bookingConfirmation: {
+    enabled: false,
+    messageTemplate: 'Drogi/a {{imie}}, potwierdzamy rezerwację w {{studio}} na {{data}} o godz. {{godzina}}. Czekamy na Ciebie!',
+  },
+  rescheduleConfirmation: {
+    enabled: false,
+    messageTemplate: 'Drogi/a {{imie}}, termin Twojej wizyty w {{studio}} został zmieniony na {{data}} o godz. {{godzina}}. Do zobaczenia!',
   },
 };
 
@@ -227,11 +238,20 @@ export async function previewAudience(filters: CampaignFilters): Promise<Audienc
 }
 
 export async function fetchAutomationConfig(): Promise<SmsAutomationConfig> {
+  if (USE_MOCKS) {
+    await delay(300);
+    return { ...mockAutomation };
+  }
   const { data } = await apiClient.get<SmsAutomationConfig>('/v1/sms-campaigns/automation');
   return data;
 }
 
 export async function updateAutomationConfig(config: SmsAutomationConfig): Promise<SmsAutomationConfig> {
+  if (USE_MOCKS) {
+    await delay(400);
+    mockAutomation = { ...config };
+    return { ...mockAutomation };
+  }
   const { data } = await apiClient.put<SmsAutomationConfig>('/v1/sms-campaigns/automation', config);
   return data;
 }

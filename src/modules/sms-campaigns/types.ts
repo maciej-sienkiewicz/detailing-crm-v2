@@ -60,13 +60,16 @@ export interface AudiencePreviewResult {
 
 export interface SmsAutomationRule {
   enabled: boolean;
-  offsetMinutes: number;   // minutes before/after visit
-  messageTemplate: string; // may contain {{imie}}, {{data}}, {{godzina}}, {{studio}}
+  offsetMinutes?: number;   // minutes before/after event (absent for immediate event-based rules)
+  messageTemplate: string;  // may contain {{imie}}, {{data}}, {{godzina}}, {{studio}}
 }
 
 export interface SmsAutomationConfig {
   preVisit: SmsAutomationRule;
   postVisit: SmsAutomationRule;
+  delayedReminder: SmsAutomationRule;
+  bookingConfirmation: SmsAutomationRule;
+  rescheduleConfirmation: SmsAutomationRule;
 }
 
 // ─── Request / response shapes ────────────────────────────────────────────────
