@@ -8,11 +8,10 @@ import { useCustomerVehicles } from '../hooks/useCustomerVehicles';
 import { useCustomerVisits } from '../hooks/useCustomerVisits';
 import { useCustomerReservations } from '../hooks/useCustomerReservations';
 import { useCustomerCommunication } from '../hooks/useCustomerCommunication';
-import { useUpdateConsent } from '../hooks/useUpdateConsent';
 import { CustomerNotes } from '../components/CustomerNotes';
 import { CustomerCommunicationList } from '../components/CustomerCommunicationList';
 import { DocumentsManager } from '../components/DocumentsManager';
-import { ConsentManager } from '../components/ConsentManager';
+import { CustomerConsentsSection } from '../components/CustomerConsentsSection';
 import { AuditTimeline } from '@/common/components/AuditTimeline';
 import { EditCustomerModal } from '../components/EditCustomerModal';
 import { EditCompanyModal } from '../components/EditCompanyModal';
@@ -134,7 +133,6 @@ export const CustomerDetailView = () => {
     const { visits: rawVisits }                              = useCustomerVisits(customerId!, 1, 50);
     const { reservations }                                   = useCustomerReservations(customerId!);
     const { entries: commEntries }                           = useCustomerCommunication(customerId!);
-    const { updateConsent, isUpdating: consentUpdating }     = useUpdateConsent({ customerId: customerId! });
 
     const visits = useMemo(() => rawVisits.map(v => ({
         ...v,
@@ -660,13 +658,7 @@ export const CustomerDetailView = () => {
                         </CollapsibleSection>
 
                         {/* Consents */}
-                        {marketingConsents.length > 0 && (
-                            <ConsentManager
-                                consents={marketingConsents}
-                                onConsentToggle={(id, granted) => updateConsent({ consentId: id, granted })}
-                                isUpdating={consentUpdating}
-                            />
-                        )}
+                        <CustomerConsentsSection customerId={customerId!} />
 
                         {/* Audit trail */}
                         <CollapsibleSection>

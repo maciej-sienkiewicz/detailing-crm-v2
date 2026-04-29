@@ -280,3 +280,36 @@ export interface UploadDocumentPayload {
     customerId: string;
     name?: string;
 }
+
+// ─── Customer Consent Status API ─────────────────────────────────────────────
+
+export type CustomerConsentStatus = 'VALID' | 'OUTDATED' | 'REQUIRED';
+
+export interface CustomerConsentStatusItem {
+    consentId: string | null;
+    definitionId: string;
+    definitionSlug: string;
+    definitionName: string;
+    status: CustomerConsentStatus;
+    currentTemplateId: string;
+    currentVersion: number;
+    signedTemplateId: string | null;
+    signedVersion: number | null;
+    signedAt: string | null;
+    downloadUrl: string;
+}
+
+export interface CustomerConsentsStatusResponse {
+    consents: CustomerConsentStatusItem[];
+}
+
+export interface SignCustomerConsentPayload {
+    requestAttachmentUpload?: boolean;
+}
+
+export interface SignCustomerConsentResult {
+    consentId: string;
+    signedAt: string;
+    attachmentUploadUrl: string | null;
+    attachmentS3Key: string | null;
+}

@@ -14,6 +14,9 @@ import type {
     Reservation,
     CustomerReservationsResponse,
     CustomerCommunicationResponse,
+    CustomerConsentsStatusResponse,
+    SignCustomerConsentPayload,
+    SignCustomerConsentResult,
 } from '../types';
 import { mapBackendVehiclesResponse, mapBackendVisitsResponse, mapBackendReservationsResponse } from '../utils/customerMappers';
 
@@ -499,5 +502,38 @@ export const customerDetailApi = {
             `${CUSTOMERS_BASE_PATH}/${customerId}/communication`
         );
         return response.data;
+    },
+
+    getCustomerConsentsStatus: async (customerId: string): Promise<CustomerConsentsStatusResponse> => {
+        const response = await apiClient.get<CustomerConsentsStatusResponse>(
+            `${CUSTOMERS_BASE_PATH}/${customerId}/consents/status`
+        );
+        return response.data;
+    },
+
+    signCustomerConsent: async (
+        customerId: string,
+        templateId: string,
+        payload: SignCustomerConsentPayload = {}
+    ): Promise<SignCustomerConsentResult> => {
+        const response = await apiClient.post<SignCustomerConsentResult>(
+            `${CUSTOMERS_BASE_PATH}/${customerId}/consents/${templateId}/sign`,
+            payload
+        );
+        return response.data;
+    },
+
+    revokeCustomerConsent: async (customerId: string, consentId: string): Promise<void> => {
+        await apiClient.delete(
+            `${CUSTOMERS_BASE_PATH}/${customerId}/consents/${consentId}`
+        );
+    },
+
+    uploadConsentAttachment: async (uploadUrl: string, file: File): Promise<void> => {
+        await fetch(uploadUrl, {
+            method: 'PUT',
+            body: file,
+            headers: { 'Content-Type': 'application/pdf' },
+        });
     },
 };
