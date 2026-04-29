@@ -9,7 +9,7 @@ import {
 } from '@/modules/protocols/api/useProtocols';
 import { useConsentDefinitions } from '@/modules/consents/hooks/useConsents';
 import type { ProtocolRule, ProtocolStage, ProtocolTemplate } from '@/modules/protocols/types';
-import type { ConsentDefinition } from '@/modules/consents/types';
+import type { ConsentResponse } from '@/modules/consents/types';
 import { AddDocumentModal } from './AddDocumentModal';
 import { AddConsentDocumentModal } from './AddConsentDocumentModal';
 
@@ -681,7 +681,7 @@ const InfoIconSm = () => (
 interface ConsentSectionProps {
     rules: ProtocolRule[];
     templatesMap: Map<string, ProtocolTemplate>;
-    definitionsMap: Map<string, ConsentDefinition>;
+    definitionsMap: Map<string, ConsentResponse>;
     onAdd: () => void;
     onRefresh: () => void;
 }
@@ -809,8 +809,8 @@ export function DocumentsSection() {
     const isLoading = loadingTemplates || loadingRules || loadingDefinitions;
 
     const templatesMap = new Map<string, ProtocolTemplate>(templates.map(t => [t.id, t]));
-    const definitionsMap = new Map<string, ConsentDefinition>(
-        definitionItems.map(d => [d.definition.id, d.definition])
+    const definitionsMap = new Map<string, ConsentResponse>(
+        definitionItems.map(d => [d.id, d])
     );
 
     // Separate regular rules from consent rules
