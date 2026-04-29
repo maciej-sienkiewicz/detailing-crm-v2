@@ -569,6 +569,26 @@ const RuleEditor: React.FC<RuleEditorProps> = ({
   );
 };
 
+// ─── Defaults for fields that may be absent from older API responses ──────────
+
+const CONFIG_DEFAULTS: SmsAutomationConfig = {
+  preVisit:              { enabled: false, offsetMinutes: 60,     messageTemplate: '' },
+  postVisit:             { enabled: false, offsetMinutes: 30,     messageTemplate: '' },
+  delayedReminder:       { enabled: false, offsetMinutes: 129600, messageTemplate: 'Cześć {{imie}}! Minęły 3 miesiące od Twojej wizyty w {{studio}}. Czas na kolejny detailing? Zapraszamy!' },
+  bookingConfirmation:   { enabled: false,                        messageTemplate: 'Drogi/a {{imie}}, potwierdzamy rezerwację w {{studio}} na {{data}} o godz. {{godzina}}. Czekamy na Ciebie!' },
+  rescheduleConfirmation:{ enabled: false,                        messageTemplate: 'Drogi/a {{imie}}, termin Twojej wizyty w {{studio}} został zmieniony na {{data}} o godz. {{godzina}}. Do zobaczenia!' },
+};
+
+function mergeWithDefaults(config: Partial<SmsAutomationConfig>): SmsAutomationConfig {
+  return {
+    preVisit:               config.preVisit               ?? CONFIG_DEFAULTS.preVisit,
+    postVisit:              config.postVisit              ?? CONFIG_DEFAULTS.postVisit,
+    delayedReminder:        config.delayedReminder        ?? CONFIG_DEFAULTS.delayedReminder,
+    bookingConfirmation:    config.bookingConfirmation    ?? CONFIG_DEFAULTS.bookingConfirmation,
+    rescheduleConfirmation: config.rescheduleConfirmation ?? CONFIG_DEFAULTS.rescheduleConfirmation,
+  };
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export const AutomationSettings: React.FC = () => {
@@ -579,7 +599,7 @@ export const AutomationSettings: React.FC = () => {
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
   useEffect(() => {
-    if (config && !localConfig) setLocalConfig(config);
+    if (config && !localConfig) setLocalConfig(mergeWithDefaults(config));
   }, [config, localConfig]);
 
   const makeUpdater = (key: keyof SmsAutomationConfig) => (rule: SmsAutomationRule) => {
