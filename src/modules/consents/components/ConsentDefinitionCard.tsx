@@ -3,11 +3,12 @@
  */
 
 import { useState } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { Button } from '@/common/components/Button/Button';
 import { t } from '@/common/i18n';
 import { ConsentDefinitionWithTemplate } from '../types';
 import { UploadTemplateModal } from './UploadTemplateModal';
+import { useDeleteDefinition } from '../hooks/useConsents';
 
 interface ConsentDefinitionCardProps {
     definitionWithTemplate: ConsentDefinitionWithTemplate;
@@ -17,6 +18,9 @@ export const ConsentDefinitionCard = ({ definitionWithTemplate }: ConsentDefinit
     const { definition, activeTemplate, allTemplates } = definitionWithTemplate;
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [showAllVersions, setShowAllVersions] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState(false);
+
+    const { deleteDefinition, isDeleting } = useDeleteDefinition();
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('pl-PL', {
@@ -55,6 +59,19 @@ export const ConsentDefinitionCard = ({ definitionWithTemplate }: ConsentDefinit
                         >
                             {t.consents.uploadNewVersion}
                         </Button>
+                        <DeleteButton
+                            type="button"
+                            onClick={() => setConfirmDelete(true)}
+                            disabled={isDeleting}
+                            title="Usuń definicję zgody"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6l-1 14H6L5 6"/>
+                                <path d="M10 11v6M14 11v6"/>
+                            </svg>
+                            Usuń
+                        </DeleteButton>
                     </HeaderActions>
                 </CardHeader>
 
@@ -129,6 +146,40 @@ export const ConsentDefinitionCard = ({ definitionWithTemplate }: ConsentDefinit
                 definitionId={definition.id}
                 definitionName={definition.name}
             />
+
+            {confirmDelete && (
+                <ConfirmOverlay onClick={() => setConfirmDelete(false)}>
+                    <ConfirmBox onClick={e => e.stopPropagation()}>
+                        <ConfirmTitle>Usuń definicję zgody</ConfirmTitle>
+                        <ConfirmDesc>
+                            Czy na pewno chcesz usunąć{' '}
+                            <strong>„{definition.name}"</strong>?{' '}
+                            Istniejące podpisane zgody klientów zostaną zachowane jako wpisy
+                            historyczne, ale definicja przestanie być aktywna.
+                        </ConfirmDesc>
+                        <ConfirmActions>
+                            <Button
+                                $variant="secondary"
+                                $size="sm"
+                                onClick={() => setConfirmDelete(false)}
+                                disabled={isDeleting}
+                            >
+                                Anuluj
+                            </Button>
+                            <Button
+                                $variant="danger"
+                                $size="sm"
+                                onClick={() => deleteDefinition(definition.id, {
+                                    onSuccess: () => setConfirmDelete(false),
+                                })}
+                                disabled={isDeleting}
+                            >
+                                {isDeleting ? 'Usuwanie…' : 'Usuń definicję'}
+                            </Button>
+                        </ConfirmActions>
+                    </ConfirmBox>
+                </ConfirmOverlay>
+            )}
         </>
     );
 };
@@ -308,6 +359,77 @@ const TemplateMetaItem = styled.div`
 const TemplateActions = styled.div`
     display: flex;
     gap: ${(props) => props.theme.spacing.sm};
+`;
+
+const DeleteButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: ${(props) => props.theme.spacing.xs};
+    padding: ${(props) => props.theme.spacing.xs} ${(props) => props.theme.spacing.sm};
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: ${(props) => props.theme.colors.error};
+    background: transparent;
+    border: 1px solid ${(props) => props.theme.colors.error}40;
+    border-radius: ${(props) => props.theme.radii.md};
+    cursor: pointer;
+    transition: all ${(props) => props.theme.transitions.fast};
+
+    &:hover:not(:disabled) {
+        background-color: ${(props) => props.theme.colors.error}12;
+        border-color: ${(props) => props.theme.colors.error};
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+`;
+
+const fadeIn = keyframes`
+    from { opacity: 0; }
+    to   { opacity: 1; }
+`;
+
+const ConfirmOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.4);
+    animation: ${fadeIn} 150ms ease;
+`;
+
+const ConfirmBox = styled.div`
+    background: ${(props) => props.theme.colors.surface};
+    border: 1px solid ${(props) => props.theme.colors.border};
+    border-radius: ${(props) => props.theme.radii.lg};
+    padding: ${(props) => props.theme.spacing.lg};
+    max-width: 420px;
+    width: calc(100% - 32px);
+    box-shadow: ${(props) => props.theme.shadows.lg};
+`;
+
+const ConfirmTitle = styled.p`
+    margin: 0 0 ${(props) => props.theme.spacing.sm} 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: ${(props) => props.theme.colors.text};
+`;
+
+const ConfirmDesc = styled.p`
+    margin: 0 0 ${(props) => props.theme.spacing.lg} 0;
+    font-size: 0.875rem;
+    color: ${(props) => props.theme.colors.textSecondary};
+    line-height: 1.55;
+`;
+
+const ConfirmActions = styled.div`
+    display: flex;
+    gap: ${(props) => props.theme.spacing.sm};
+    justify-content: flex-end;
 `;
 
 const ViewPdfButton = styled.a`

@@ -290,14 +290,16 @@ export interface CustomerConsentStatusItem {
     definitionId: string;
     definitionSlug: string;
     definitionName: string;
+    /** False when the admin has deleted this consent definition — show as historical record only */
+    isDefinitionActive: boolean;
     status: CustomerConsentStatus;
-    currentTemplateId: string;
-    currentVersion: number;
+    currentTemplateId: string | null;
+    currentVersion: number | null;
     signedTemplateId: string | null;
     signedVersion: number | null;
     signedAt: string | null;
     /** Presigned URL to the current template PDF (for preview before signing) */
-    downloadUrl: string;
+    downloadUrl: string | null;
     /** Presigned URL to the customer's scanned/attached consent file, if uploaded */
     attachmentUrl: string | null;
 }

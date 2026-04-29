@@ -100,6 +100,15 @@ export const uploadFileToS3 = async (
 };
 
 /**
+ * Delete a consent definition and all its templates.
+ * Existing customer consent records are preserved as historical data
+ * (isDefinitionActive: false in the status endpoint).
+ */
+export const deleteConsentDefinition = async (definitionId: string): Promise<void> => {
+    await apiClient.delete(`${ADMIN_BASE_PATH}/definitions/${definitionId}`);
+};
+
+/**
  * Set a template as active (and deactivate others)
  */
 export const setTemplateActive = async (
@@ -162,6 +171,7 @@ export const consentsApi = {
     getConsentDefinitions,
     getConsentDefinition,
     createConsentDefinition,
+    deleteConsentDefinition,
     getConsentTemplates,
     uploadConsentTemplate,
     uploadFileToS3,

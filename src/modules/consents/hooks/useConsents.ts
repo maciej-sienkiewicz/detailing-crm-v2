@@ -112,6 +112,36 @@ export const useCreateDefinition = (options?: UseCreateDefinitionOptions) => {
     };
 };
 
+interface UseDeleteDefinitionOptions {
+    onSuccess?: () => void;
+    onError?: (error: Error) => void;
+}
+
+/**
+ * Hook to delete a consent definition.
+ * Existing customer records are kept as historical data.
+ */
+export const useDeleteDefinition = (options?: UseDeleteDefinitionOptions) => {
+    const queryClient = useQueryClient();
+
+    const mutation = useMutation({
+        mutationFn: (definitionId: string) => consentsApi.deleteConsentDefinition(definitionId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: CONSENT_QUERY_KEYS.definitions });
+            options?.onSuccess?.();
+        },
+        onError: (error: Error) => {
+            options?.onError?.(error);
+        },
+    });
+
+    return {
+        deleteDefinition: mutation.mutate,
+        isDeleting: mutation.isPending,
+        error: mutation.error,
+    };
+};
+
 interface UseUploadTemplateOptions {
     onSuccess?: () => void;
     onError?: (error: Error) => void;

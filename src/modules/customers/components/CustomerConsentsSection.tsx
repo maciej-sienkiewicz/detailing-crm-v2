@@ -82,6 +82,30 @@ const ConsentRow = styled.div`
     &:hover { background: ${st.bgCardAlt}; }
 `;
 
+const DeletedConsentRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 18px;
+    border-bottom: 1px solid ${st.border};
+    background: ${st.bg};
+    opacity: 0.65;
+    animation: ${fadeIn} 200ms ease;
+
+    &:last-child { border-bottom: none; }
+`;
+
+const DeletedIcon = styled.div`
+    width: 40px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: ${st.textMuted};
+    svg { width: 14px; height: 14px; }
+`;
+
 const ToggleButton = styled.button<{ $active: boolean; $disabled: boolean }>`
     position: relative;
     width: 40px;
@@ -134,7 +158,7 @@ const ConsentMeta = styled.div`
     color: ${st.textMuted};
 `;
 
-const StatusBadge = styled.span<{ $status: 'VALID' | 'OUTDATED' | 'REQUIRED' }>`
+const StatusBadge = styled.span<{ $status: 'VALID' | 'OUTDATED' | 'REQUIRED' | 'DELETED' }>`
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -156,6 +180,10 @@ const StatusBadge = styled.span<{ $status: 'VALID' | 'OUTDATED' | 'REQUIRED' }>`
     ${p => p.$status === 'REQUIRED' && `
         background: ${st.accentRedDim};
         color: ${st.accentRed};
+    `}
+    ${p => p.$status === 'DELETED' && `
+        background: ${st.bgCardAlt};
+        color: ${st.textMuted};
     `}
 `;
 
@@ -338,6 +366,58 @@ function ConsentItem({ item, onToggle, onAttach, onRevoke, isBusy }: ConsentItem
     const hasAttachment = !!item.attachmentUrl;
     const signedManuallyNoScan = isActive && !hasAttachment;
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            onAttach(item, file);
+            e.target.value = '';
+        }
+    };
+
+    // ── Deleted definition: read-only historical record ───────────────────────
+    if (!item.isDefinitionActive) {
+        const deletedMeta = item.signedAt
+            ? `Podpisana ${formatDateTime(item.signedAt)}${item.signedVersion ? ` · wersja ${item.signedVersion}` : ''}`
+            : 'Nigdy nie podpisana';
+
+        return (
+            <DeletedConsentRow>
+                <DeletedIcon>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6l-1 14H6L5 6"/>
+                        <path d="M10 11v6M14 11v6"/>
+                    </svg>
+                </DeletedIcon>
+                <ConsentInfo>
+                    <ConsentName>
+                        {item.definitionName}
+                        <StatusBadge $status="DELETED">Usunięta</StatusBadge>
+                    </ConsentName>
+                    <ConsentMeta>{deletedMeta}</ConsentMeta>
+                </ConsentInfo>
+                {item.attachmentUrl && (
+                    <Actions>
+                        <IconBtn
+                            as="a"
+                            href={item.attachmentUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Podgląd podpisanego dokumentu"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                            Podpisany dok.
+                        </IconBtn>
+                    </Actions>
+                )}
+            </DeletedConsentRow>
+        );
+    }
+
+    // ── Active definition ─────────────────────────────────────────────────────
     const statusLabel = {
         VALID:     'Aktualna',
         OUTDATED:  'Nieaktualna',
@@ -347,14 +427,6 @@ function ConsentItem({ item, onToggle, onAttach, onRevoke, isBusy }: ConsentItem
     const metaText = isActive && item.signedAt
         ? `Podpisano ${formatDateTime(item.signedAt)}${item.signedVersion ? ` · wersja ${item.signedVersion}` : ''}`
         : 'Zgoda nie została udzielona';
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            onAttach(item, file);
-            e.target.value = '';
-        }
-    };
 
     return (
         <ConsentRow>
@@ -384,7 +456,6 @@ function ConsentItem({ item, onToggle, onAttach, onRevoke, isBusy }: ConsentItem
                 )}
             </ConsentInfo>
             <Actions>
-                {/* Show signed attachment if available, otherwise template for unsigned consents */}
                 {hasAttachment ? (
                     <IconBtn
                         as="a"
@@ -470,6 +541,7 @@ export const CustomerConsentsSection = ({ customerId }: CustomerConsentsSectionP
     const { mutateAsync: uploadAttachment } = useUploadConsentAttachment();
 
     const handleToggle = async (item: CustomerConsentStatusItem) => {
+        if (!item.isDefinitionActive || !item.currentTemplateId) return;
         const isActive = item.status === 'VALID' || item.status === 'OUTDATED';
         if (isActive) {
             setConfirmRevoke(item);
@@ -484,6 +556,7 @@ export const CustomerConsentsSection = ({ customerId }: CustomerConsentsSectionP
     };
 
     const handleAttach = async (item: CustomerConsentStatusItem, file: File) => {
+        if (!item.currentTemplateId) return;
         setBusyDefinitionId(item.definitionId);
         try {
             const result = await signConsent({
