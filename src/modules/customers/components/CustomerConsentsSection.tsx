@@ -310,6 +310,18 @@ const HiddenFileInput = styled.input`
     display: none;
 `;
 
+const NoScanWarning = styled.div`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 3px;
+    font-size: 10px;
+    font-weight: 500;
+    color: ${st.accentAmber};
+
+    svg { width: 11px; height: 11px; flex-shrink: 0; }
+`;
+
 // ─── Sub-component: single consent row ────────────────────────────────────────
 
 interface ConsentItemProps {
@@ -323,6 +335,8 @@ interface ConsentItemProps {
 function ConsentItem({ item, onToggle, onAttach, onRevoke, isBusy }: ConsentItemProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const isActive = item.status === 'VALID' || item.status === 'OUTDATED';
+    const hasAttachment = !!item.attachmentUrl;
+    const signedManuallyNoScan = isActive && !hasAttachment;
 
     const statusLabel = {
         VALID:     'Aktualna',
@@ -358,9 +372,34 @@ function ConsentItem({ item, onToggle, onAttach, onRevoke, isBusy }: ConsentItem
                     <StatusBadge $status={item.status}>{statusLabel}</StatusBadge>
                 </ConsentName>
                 <ConsentMeta>{metaText}</ConsentMeta>
+                {signedManuallyNoScan && (
+                    <NoScanWarning>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        Nie dołączyłeś skanu zgody
+                    </NoScanWarning>
+                )}
             </ConsentInfo>
             <Actions>
-                {item.downloadUrl && (
+                {/* Show signed attachment if available, otherwise template for unsigned consents */}
+                {hasAttachment ? (
+                    <IconBtn
+                        as="a"
+                        href={item.attachmentUrl!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Podgląd podpisanego dokumentu zgody"
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        Podpisany dok.
+                    </IconBtn>
+                ) : !isActive && item.downloadUrl ? (
                     <IconBtn
                         as="a"
                         href={item.downloadUrl}
@@ -374,18 +413,18 @@ function ConsentItem({ item, onToggle, onAttach, onRevoke, isBusy }: ConsentItem
                         </svg>
                         Szablon
                     </IconBtn>
-                )}
+                ) : null}
                 <IconBtn
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isBusy}
-                    title="Dołącz zeskanowany dokument zgody"
+                    title={hasAttachment ? 'Zastąp skan nowszym dokumentem' : 'Dołącz zeskanowany dokument zgody'}
                 >
                     {isBusy ? <Spinner /> : (
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
                         </svg>
                     )}
-                    Dołącz plik
+                    {hasAttachment ? 'Zastąp skan' : 'Dołącz plik'}
                 </IconBtn>
                 <HiddenFileInput
                     ref={fileInputRef}
@@ -460,9 +499,10 @@ export const CustomerConsentsSection = ({ customerId }: CustomerConsentsSectionP
     };
 
     const handleConfirmRevoke = async () => {
-        if (!confirmRevoke?.consentId) return;
+        if (!confirmRevoke) return;
+        const consentId = confirmRevoke.consentId ?? confirmRevoke.definitionId;
         try {
-            await revokeConsent(confirmRevoke.consentId);
+            await revokeConsent(consentId);
         } finally {
             setConfirmRevoke(null);
         }
@@ -536,7 +576,7 @@ export const CustomerConsentsSection = ({ customerId }: CustomerConsentsSectionP
                             </CancelBtn>
                             <DangerBtn
                                 onClick={handleConfirmRevoke}
-                                disabled={isRevoking || !confirmRevoke.consentId}
+                                disabled={isRevoking}
                             >
                                 {isRevoking && <Spinner />}
                                 Wycofaj zgodę

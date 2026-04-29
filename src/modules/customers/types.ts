@@ -296,7 +296,10 @@ export interface CustomerConsentStatusItem {
     signedTemplateId: string | null;
     signedVersion: number | null;
     signedAt: string | null;
+    /** Presigned URL to the current template PDF (for preview before signing) */
     downloadUrl: string;
+    /** Presigned URL to the customer's scanned/attached consent file, if uploaded */
+    attachmentUrl: string | null;
 }
 
 export interface CustomerConsentsStatusResponse {
