@@ -7,7 +7,7 @@ import {
     useDeleteProtocolTemplate,
     useUpdateProtocolTemplate,
 } from '@/modules/protocols/api/useProtocols';
-import { useConsentDefinitions } from '@/modules/consents/hooks/useConsents';
+import { useConsentDefinitions, useDeleteDefinition } from '@/modules/consents/hooks/useConsents';
 import type { ProtocolRule, ProtocolStage, ProtocolTemplate } from '@/modules/protocols/types';
 import type { ConsentResponse } from '@/modules/consents/types';
 import { AddDocumentModal } from './AddDocumentModal';
@@ -679,28 +679,20 @@ const InfoIconSm = () => (
 // ─── ConsentSection ───────────────────────────────────────────────────────────
 
 interface ConsentSectionProps {
-    rules: ProtocolRule[];
-    templatesMap: Map<string, ProtocolTemplate>;
-    definitionsMap: Map<string, ConsentResponse>;
+    definitions: ConsentResponse[];
     onAdd: () => void;
     onRefresh: () => void;
 }
 
-function ConsentSection({ rules, templatesMap, definitionsMap, onAdd, onRefresh }: ConsentSectionProps) {
-    const deleteRule = useDeleteProtocolRule();
-    const deleteTemplate = useDeleteProtocolTemplate();
-    const [editingTemplate, setEditingTemplate] = useState<ProtocolTemplate | null>(null);
+function ConsentSection({ definitions, onAdd, onRefresh }: ConsentSectionProps) {
+    const { deleteDefinition, isDeleting } = useDeleteDefinition({ onSuccess: onRefresh });
 
-    const handleDelete = async (rule: ProtocolRule) => {
-        const tpl = rule.protocolTemplate ?? templatesMap.get(rule.protocolTemplateId);
-        const name = tpl?.name ?? 'ten dokument';
-        if (!confirm(`Usunąć zgodę „${name}"?\n\nHistoria podpisów klientów zostanie zachowana, ale dokument nie będzie już dołączany do nowych wizyt.`)) return;
-        try {
-            await deleteRule.mutateAsync(rule.id);
-            if (tpl) { try { await deleteTemplate.mutateAsync(tpl.id); } catch { /* ok */ } }
-            onRefresh();
-        } catch { onRefresh(); }
+    const handleDelete = (def: ConsentResponse) => {
+        if (!confirm(`Usunąć zgodę „${def.name}"?\n\nHistoria podpisów klientów zostanie zachowana, ale zgoda przestanie być aktywna.`)) return;
+        deleteDefinition(def.id);
     };
+
+    const sorted = [...definitions].sort((a, b) => a.displayOrder - b.displayOrder);
 
     return (
         <ConsentPanel>
@@ -708,7 +700,7 @@ function ConsentSection({ rules, templatesMap, definitionsMap, onAdd, onRefresh 
                 <PanelTitle>
                     <ConsentIconWrap><ShieldIcon /></ConsentIconWrap>
                     Zgody marketingowe
-                    <Count>{rules.length}</Count>
+                    <Count>{definitions.length}</Count>
                 </PanelTitle>
                 <ConsentAddBtn onClick={onAdd}>
                     <PlusIcon />
@@ -717,65 +709,61 @@ function ConsentSection({ rules, templatesMap, definitionsMap, onAdd, onRefresh 
             </ConsentPanelHead>
 
             <RuleList>
-                {rules.length === 0 ? (
+                {sorted.length === 0 ? (
                     <EmptyBox>
                         <EmptyFileIcon />
                         <EmptyTitle>Brak zgód</EmptyTitle>
                         <EmptyDesc>Zgody zbierane jednorazowo — klient podpisuje tylko raz i system pamięta to między wizytami.</EmptyDesc>
                     </EmptyBox>
                 ) : (
-                    rules
-                        .sort((a, b) => a.displayOrder - b.displayOrder)
-                        .map(rule => {
-                            const tpl = rule.protocolTemplate ?? templatesMap.get(rule.protocolTemplateId);
-                            const def = rule.consentDefinitionId ? definitionsMap.get(rule.consentDefinitionId) : undefined;
-                            return (
-                                <RuleItem key={rule.id}>
-                                    <FileIconWrap style={{ background: 'rgba(99,102,241,0.08)', color: '#6366f1' }}>
-                                        <ShieldIcon />
-                                    </FileIconWrap>
-                                    <RuleInfo>
-                                        <RuleName>{tpl?.name ?? '—'}</RuleName>
-                                        <RuleMeta>
-                                            <StageMiniPill $stage={rule.stage}>
-                                                {rule.stage === 'CHECK_IN' ? 'Przyjęcie' : 'Wydanie'}
-                                            </StageMiniPill>
+                    sorted.map(def => (
+                        <RuleItem key={def.id}>
+                            <FileIconWrap style={{ background: 'rgba(99,102,241,0.08)', color: '#6366f1' }}>
+                                <ShieldIcon />
+                            </FileIconWrap>
+                            <RuleInfo>
+                                <RuleName>{def.name}</RuleName>
+                                <RuleMeta>
+                                    <StageMiniPill $stage={def.stage}>
+                                        {def.stage === 'CHECK_IN' ? 'Przyjęcie' : 'Wydanie'}
+                                    </StageMiniPill>
+                                    <MetaDot>·</MetaDot>
+                                    <PillBadge $variant={def.isMandatory ? 'mandatory' : 'optional'}>
+                                        {def.isMandatory ? 'Obowiązkowa' : 'Opcjonalna'}
+                                    </PillBadge>
+                                    <MetaDot>·</MetaDot>
+                                    <SlugPill>{def.slug}</SlugPill>
+                                    {def.currentVersion && (
+                                        <>
                                             <MetaDot>·</MetaDot>
-                                            <PillBadge $variant={rule.isMandatory ? 'mandatory' : 'optional'}>
-                                                {rule.isMandatory ? 'Obowiązkowa' : 'Opcjonalna'}
-                                            </PillBadge>
-                                            {def && (
-                                                <>
-                                                    <MetaDot>·</MetaDot>
-                                                    <SlugPill>{def.slug}</SlugPill>
-                                                </>
-                                            )}
-                                        </RuleMeta>
-                                    </RuleInfo>
-                                    <RuleActions>
-                                        {tpl?.templateUrl && (
-                                            <IconBtn
-                                                as="a"
-                                                href={tpl.templateUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                title="Podgląd PDF"
-                                            >
-                                                <EyeIcon />
-                                            </IconBtn>
-                                        )}
-                                        {tpl && (
-                                            <IconBtn title="Edytuj" onClick={() => setEditingTemplate(tpl)}>
-                                                <PencilIcon />
-                                            </IconBtn>
-                                        )}
-                                        <IconBtn className="danger" title="Usuń" onClick={() => handleDelete(rule)}>
-                                            <TrashIcon />
-                                        </IconBtn>
-                                    </RuleActions>
-                                </RuleItem>
-                            );
-                        })
+                                            <span>v{def.currentVersion.version}</span>
+                                        </>
+                                    )}
+                                </RuleMeta>
+                            </RuleInfo>
+                            <RuleActions>
+                                {def.currentVersion?.pdfUrl && (
+                                    <IconBtn
+                                        as="a"
+                                        href={def.currentVersion.pdfUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        title="Podgląd PDF"
+                                    >
+                                        <EyeIcon />
+                                    </IconBtn>
+                                )}
+                                <IconBtn
+                                    className="danger"
+                                    title="Usuń"
+                                    disabled={isDeleting}
+                                    onClick={() => handleDelete(def)}
+                                >
+                                    <TrashIcon />
+                                </IconBtn>
+                            </RuleActions>
+                        </RuleItem>
+                    ))
                 )}
             </RuleList>
 
@@ -783,14 +771,6 @@ function ConsentSection({ rules, templatesMap, definitionsMap, onAdd, onRefresh 
                 <InfoIconSm />
                 Zgoda jest zbierana jednorazowo per klient i nie jest wymagana przy kolejnych wizytach, jeśli jest już aktywna.
             </InfoChip>
-
-            {editingTemplate && (
-                <EditTemplateModal
-                    template={editingTemplate}
-                    onClose={() => setEditingTemplate(null)}
-                    onSuccess={onRefresh}
-                />
-            )}
         </ConsentPanel>
     );
 }
@@ -809,16 +789,9 @@ export function DocumentsSection() {
     const isLoading = loadingTemplates || loadingRules || loadingDefinitions;
 
     const templatesMap = new Map<string, ProtocolTemplate>(templates.map(t => [t.id, t]));
-    const definitionsMap = new Map<string, ConsentResponse>(
-        definitionItems.map(d => [d.id, d])
-    );
 
-    // Separate regular rules from consent rules
-    const regularRules = rules.filter(r => r.triggerType !== 'CUSTOMER_CONSENT_REQUIRED');
-    const consentRules  = rules.filter(r => r.triggerType === 'CUSTOMER_CONSENT_REQUIRED');
-
-    const checkInRules  = regularRules.filter(r => r.stage === 'CHECK_IN');
-    const checkOutRules = regularRules.filter(r => r.stage === 'CHECK_OUT');
+    const checkInRules  = rules.filter(r => r.stage === 'CHECK_IN');
+    const checkOutRules = rules.filter(r => r.stage === 'CHECK_OUT');
 
     const handleAdd = (stage: ProtocolStage) => {
         setAddStage(stage);
@@ -867,9 +840,7 @@ export function DocumentsSection() {
                     </StagesGrid>
 
                     <ConsentSection
-                        rules={consentRules}
-                        templatesMap={templatesMap}
-                        definitionsMap={definitionsMap}
+                        definitions={definitionItems}
                         onAdd={() => setConsentModalOpen(true)}
                         onRefresh={handleRefresh}
                     />
