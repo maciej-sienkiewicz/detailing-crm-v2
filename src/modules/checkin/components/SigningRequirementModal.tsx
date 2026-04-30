@@ -106,6 +106,8 @@ export const SigningRequirementModal = ({
         },
     });
 
+    const hasProtocol = protocols?.some(p => p.templateId !== null) ?? false;
+
     useEffect(() => {
         if (isOpen) {
             setPreviewProtocolId(null);
@@ -118,8 +120,6 @@ export const SigningRequirementModal = ({
         const pdfUrl = protocols.find(p => p.id === protocolId)?.filledPdfUrl;
         if (pdfUrl) window.open(pdfUrl, '_blank');
     };
-
-    const hasProtocol = protocols?.some(p => p.templateId !== null) ?? false;
     const mandatoryProtocols = protocols?.filter(p => p.isMandatory) ?? [];
     const allMandatoryReady = mandatoryProtocols.every(p => p.status === 'READY_FOR_SIGNATURE');
     const canProceed = allMandatoryReady || mandatoryProtocols.length === 0;
