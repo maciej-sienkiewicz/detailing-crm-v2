@@ -12,6 +12,7 @@ import type {
     UpdateServiceStatusPayload,
     ServiceLineItem,
     VisitPhotosResponse,
+    ConfirmVisitOptions,
 } from '../types';
 import type { ServicesChangesPayload } from '../types';
 
@@ -521,16 +522,16 @@ export const visitApi = {
         await apiClient.patch(`${BASE_PATH}/${visitId}/title`, { title });
     },
 
-    confirmDraftVisit: async (visitId: string): Promise<{ visitId: string; message: string }> => {
+    confirmDraftVisit: async (visitId: string, options?: ConfirmVisitOptions): Promise<{ visitId: string; message: string }> => {
         if (USE_MOCKS) {
             await new Promise(resolve => setTimeout(resolve, 600));
-            console.log('Mock: Confirming draft visit', visitId);
+            console.log('Mock: Confirming draft visit', visitId, options);
             return {
                 visitId,
                 message: 'Visit confirmed successfully'
             };
         }
-        const response = await apiClient.post(`${BASE_PATH}/${visitId}/confirm`);
+        const response = await apiClient.post(`${BASE_PATH}/${visitId}/confirm`, options ?? {});
         return response.data;
     },
 

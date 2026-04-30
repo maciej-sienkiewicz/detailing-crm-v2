@@ -260,6 +260,19 @@ export interface VisitPhotosResponse {
     photos: VisitPhoto[];
 }
 
+export interface ConfirmVisitEmailOptions {
+    attachProtocol?: boolean;
+    attachPhotos?: boolean;
+    photoIds?: string[];
+    attachDamageMap?: boolean;
+}
+
+export interface ConfirmVisitOptions {
+    sendSms?: boolean;
+    sendEmail?: boolean;
+    emailOptions?: ConfirmVisitEmailOptions;
+}
+
 // ─── Communication History ────────────────────────────────────────────────────
 
 export type { CommunicationChannel, CommunicationStatus, CommunicationEntry } from '@/common/types/communication';
