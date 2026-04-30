@@ -110,15 +110,16 @@ export const SigningRequirementModal = ({
         if (isOpen) {
             setPreviewProtocolId(null);
             setShowSkipConfirmDialog(false);
-            setNotifOptions(defaultNotificationOptions());
+            setNotifOptions(defaultNotificationOptions(hasProtocol));
         }
-    }, [isOpen]);
+    }, [isOpen, hasProtocol]);
 
     const handlePrint = (protocolId: string) => {
         const pdfUrl = protocols.find(p => p.id === protocolId)?.filledPdfUrl;
         if (pdfUrl) window.open(pdfUrl, '_blank');
     };
 
+    const hasProtocol = protocols?.some(p => p.templateId !== null) ?? false;
     const mandatoryProtocols = protocols?.filter(p => p.isMandatory) ?? [];
     const allMandatoryReady = mandatoryProtocols.every(p => p.status === 'READY_FOR_SIGNATURE');
     const canProceed = allMandatoryReady || mandatoryProtocols.length === 0;
@@ -174,6 +175,7 @@ export const SigningRequirementModal = ({
                     {canInteract && visitId && (
                         <NotificationSection
                             visitId={visitId}
+                            hasProtocol={hasProtocol}
                             options={notifOptions}
                             onChange={setNotifOptions}
                         />

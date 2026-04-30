@@ -346,7 +346,7 @@ export interface PendingPhoto {
 
 export interface ProtocolResponse {
     id: string;
-    templateId: string;
+    templateId: string | null;
     templateName: string;
     stage: 'CHECK_IN' | 'CHECK_OUT';
     isMandatory: boolean;

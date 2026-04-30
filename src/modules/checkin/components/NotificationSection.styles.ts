@@ -153,12 +153,14 @@ export const AttachmentsList = styled.div`
     gap: 8px;
 `;
 
-export const AttachmentRow = styled.label`
+export const AttachmentRow = styled.label<{ $disabled?: boolean }>`
     display: flex;
     align-items: center;
     gap: 10px;
-    cursor: pointer;
+    cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
     padding: 3px 0;
+    opacity: ${props => props.$disabled ? 0.45 : 1};
+    pointer-events: ${props => props.$disabled ? 'none' : 'auto'};
 
     &:hover > span:first-child {
         border-color: ${st.accentBlue};

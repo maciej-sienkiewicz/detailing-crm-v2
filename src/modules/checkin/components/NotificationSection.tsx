@@ -47,11 +47,11 @@ export interface NotificationOptions {
     };
 }
 
-export const defaultNotificationOptions = (): NotificationOptions => ({
+export const defaultNotificationOptions = (hasProtocol = true): NotificationOptions => ({
     sendSms: true,
     sendEmail: true,
     emailOptions: {
-        attachProtocol: true,
+        attachProtocol: hasProtocol,
         attachPhotos: false,
         selectedPhotoIds: new Set(),
         attachDamageMap: false,
@@ -190,14 +190,15 @@ interface AttachmentCheckboxProps {
     label: string;
     suffix?: string;
     checked: boolean;
+    disabled?: boolean;
     onChange: (checked: boolean) => void;
     children?: ReactNode;
 }
 
-const AttachmentCheckbox = ({ icon, label, suffix, checked, onChange, children }: AttachmentCheckboxProps) => (
+const AttachmentCheckbox = ({ icon, label, suffix, checked, disabled, onChange, children }: AttachmentCheckboxProps) => (
     <div>
-        <AttachmentRow>
-            <HiddenCheckbox checked={checked} onChange={e => onChange(e.target.checked)} />
+        <AttachmentRow $disabled={disabled}>
+            <HiddenCheckbox checked={checked} disabled={disabled} onChange={e => onChange(e.target.checked)} />
             <Checkbox $checked={checked}>
                 <CheckIcon />
             </Checkbox>
@@ -242,11 +243,12 @@ const NotifCardToggle = ({ icon, label, description, active, onToggle, children 
 
 interface NotificationSectionProps {
     visitId: string;
+    hasProtocol: boolean;
     options: NotificationOptions;
     onChange: (options: NotificationOptions) => void;
 }
 
-export const NotificationSection = ({ visitId, options, onChange }: NotificationSectionProps) => {
+export const NotificationSection = ({ visitId, hasProtocol, options, onChange }: NotificationSectionProps) => {
     const { sendSms, sendEmail, emailOptions } = options;
     const { attachProtocol, attachPhotos, selectedPhotoIds, attachDamageMap } = emailOptions;
 
@@ -290,7 +292,8 @@ export const NotificationSection = ({ visitId, options, onChange }: Notification
                             <AttachmentCheckbox
                                 icon={<DocumentIcon />}
                                 label="Protokół przyjęcia pojazdu"
-                                checked={attachProtocol}
+                                checked={attachProtocol && hasProtocol}
+                                disabled={!hasProtocol}
                                 onChange={v => updateEmailOptions({ attachProtocol: v })}
                             />
 
