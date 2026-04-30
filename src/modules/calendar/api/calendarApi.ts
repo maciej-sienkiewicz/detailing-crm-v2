@@ -78,6 +78,7 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         currency: 'PLN',
         status: appointment.status,
         note: appointment.note,
+        smsInfo: appointment.smsInfo,
     };
 
     return {

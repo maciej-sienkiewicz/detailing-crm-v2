@@ -2,6 +2,25 @@
 
 import { EventInput } from '@fullcalendar/core';
 
+export type SmsSendStatus = 'PENDING' | 'SENT' | 'FAILED';
+
+export interface CalendarConfirmationSms {
+    status: 'SENT' | 'FAILED';
+    sentAt: string;
+}
+
+export interface CalendarReminderSms {
+    requested: boolean;
+    status: SmsSendStatus | null;
+    sentAt: string | null;
+    editable: boolean;
+}
+
+export interface CalendarSmsInfo {
+    confirmationSms: CalendarConfirmationSms | null;
+    reminderSms: CalendarReminderSms;
+}
+
 export type CalendarEventType = 'APPOINTMENT' | 'VISIT';
 
 export type CalendarView = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay';
@@ -39,6 +58,7 @@ export interface AppointmentEventData extends CalendarEventData {
     isAllDay: boolean;
     status?: string;
     note?: string;
+    smsInfo?: CalendarSmsInfo;
 }
 
 /**
@@ -96,6 +116,7 @@ export interface AppointmentResponse {
     totalGross: number;
     totalVat: number;
     note?: string;
+    smsInfo?: CalendarSmsInfo;
 }
 
 /**
