@@ -15,8 +15,8 @@ const formatSize = (bytes: number) => {
 };
 
 const STAGE_OPTIONS: { value: ProtocolStage; label: string }[] = [
-    { value: 'CHECK_IN', label: 'Przyjęcie pojazdu (CHECK_IN)' },
-    { value: 'CHECK_OUT', label: 'Wydanie pojazdu (CHECK_OUT)' },
+    { value: 'CHECK_IN', label: 'Przyjęcie pojazdu' },
+    { value: 'CHECK_OUT', label: 'Wydanie pojazdu' },
 ];
 
 // ─── Styled components ────────────────────────────────────────────────────────

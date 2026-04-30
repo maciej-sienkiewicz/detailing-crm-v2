@@ -731,14 +731,6 @@ function ConsentSection({ definitions, onAdd, onRefresh }: ConsentSectionProps) 
                                     <PillBadge $variant={def.isMandatory ? 'mandatory' : 'optional'}>
                                         {def.isMandatory ? 'Obowiązkowa' : 'Opcjonalna'}
                                     </PillBadge>
-                                    <MetaDot>·</MetaDot>
-                                    <SlugPill>{def.slug}</SlugPill>
-                                    {def.currentVersion && (
-                                        <>
-                                            <MetaDot>·</MetaDot>
-                                            <span>v{def.currentVersion.version}</span>
-                                        </>
-                                    )}
                                 </RuleMeta>
                             </RuleInfo>
                             <RuleActions>

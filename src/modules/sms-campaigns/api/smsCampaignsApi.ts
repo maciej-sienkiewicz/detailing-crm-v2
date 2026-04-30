@@ -13,7 +13,7 @@ import {apiClient} from "@/core";
 
 // ─── Mock flag ────────────────────────────────────────────────────────────────
 
-const USE_MOCKS = true;
+const USE_MOCKS = false;
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
@@ -163,7 +163,7 @@ const mockBrands: VehicleBrandOption[] = [
 // ─── API functions ─────────────────────────────────────────────────────────────
 
 export async function fetchCampaigns(): Promise<SmsCampaign[]> {
-  if (USE_MOCKS) {
+  if (true) {
     await delay(300);
     return [...mockCampaigns];
   }

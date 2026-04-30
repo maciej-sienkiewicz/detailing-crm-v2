@@ -503,14 +503,12 @@ export function AddDocumentModal({ isOpen, onClose, initialStage = 'CHECK_IN', o
                             <StageIconWrap $stage="CHECK_IN"><ArrowDownIcon /></StageIconWrap>
                             <StageText>
                                 <StageName>Przyjęcie pojazdu</StageName>
-                                <StageDesc>Generowany przy check-in</StageDesc>
                             </StageText>
                         </StageCard>
                         <StageCard type="button" $selected={stage === 'CHECK_OUT'} onClick={() => setStage('CHECK_OUT')}>
                             <StageIconWrap $stage="CHECK_OUT"><ArrowUpIcon /></StageIconWrap>
                             <StageText>
                                 <StageName>Wydanie pojazdu</StageName>
-                                <StageDesc>Generowany przy check-out</StageDesc>
                             </StageText>
                         </StageCard>
                     </StageRow>
