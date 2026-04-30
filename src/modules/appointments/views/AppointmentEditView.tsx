@@ -13,6 +13,8 @@ import type { AppointmentCreateRequest } from '@/modules/appointments/types';
 import { Button } from '@/common/components/Button';
 import { t } from '@/common/i18n';
 import { toInstant, fromInstantToLocalInput } from '@/common/dateTime';
+import { SmsReminderEditSection } from '../components/SmsReminderEditSection';
+import type { AppointmentSmsInfo } from '../types';
 
 const Container = styled.div`
     min-height: 100vh;
@@ -338,6 +340,13 @@ export const AppointmentEditView = () => {
                     initialVehicleData={initialData?.vehicleData === undefined ? undefined : (initialData?.vehicleData ?? null)}
                     initialIsNewVehicle={initialData?.isNewVehicle}
                 />
+
+                {appointment?.smsInfo && (
+                    <SmsReminderEditSection
+                        appointmentId={appointmentId!}
+                        smsInfo={appointment.smsInfo as AppointmentSmsInfo}
+                    />
+                )}
 
                 <FooterActions>
                     <Button $variant="secondary" onClick={() => navigate('/appointments')} disabled={updateMutation.isPending}>

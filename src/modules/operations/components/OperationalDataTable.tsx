@@ -13,7 +13,7 @@ import { ChangeDateModal } from './ChangeDateModal';
 import { CancelReservationModal } from './CancelReservationModal';
 import { formatCurrency, formatDate } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { Operation, OperationType, OperationStatus } from '../types';
+import type { Operation, OperationType, OperationStatus, SmsSendStatus } from '../types';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -23,6 +23,13 @@ const formatTime = (iso: string): string => {
     } catch {
         return '';
     }
+};
+
+const smsStatusLabel = (status: SmsSendStatus | null | undefined): string => {
+    if (status === 'SENT') return 'Wysłany';
+    if (status === 'FAILED') return 'Błąd';
+    if (status === 'PENDING') return 'Oczekuje';
+    return '';
 };
 
 // ─── Animations ───────────────────────────────────────────────────────────────
@@ -242,6 +249,50 @@ const TypeTag = styled.span<{ $isVisit: boolean }>`
     font-weight: 600;
     color: ${props => props.$isVisit ? '#059669' : '#2563EB'};
     letter-spacing: 0.2px;
+`;
+
+const SmsBadge = styled.span<{ $status: SmsSendStatus | 'NOT_SENT' }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    background: ${props => {
+        if (props.$status === 'SENT') return 'rgba(5, 150, 105, 0.10)';
+        if (props.$status === 'FAILED') return 'rgba(220, 38, 38, 0.09)';
+        if (props.$status === 'PENDING') return 'rgba(234, 179, 8, 0.10)';
+        return 'rgba(148, 163, 184, 0.12)';
+    }};
+    color: ${props => {
+        if (props.$status === 'SENT') return '#059669';
+        if (props.$status === 'FAILED') return '#DC2626';
+        if (props.$status === 'PENDING') return '#B45309';
+        return '#64748B';
+    }};
+`;
+
+const SmsDot = styled.span<{ $status: SmsSendStatus | 'NOT_SENT' }>`
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: ${props => {
+        if (props.$status === 'SENT') return '#059669';
+        if (props.$status === 'FAILED') return '#DC2626';
+        if (props.$status === 'PENDING') return '#D97706';
+        return '#94A3B8';
+    }};
+    flex-shrink: 0;
+`;
+
+const SmsInfoRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 4px;
+    flex-wrap: wrap;
 `;
 
 const CustomerName = styled.div`
@@ -774,6 +825,24 @@ export const OperationalDataTable = ({
                                                     {isVisit ? 'Wizyta' : 'Rezerwacja'}
                                                 </TypeTag>
                                             </RowMeta>
+                                            {!isVisit && op.smsInfo && (
+                                                <SmsInfoRow>
+                                                    {/* Confirmation SMS badge */}
+                                                    {op.smsInfo.confirmationSms ? (
+                                                        <SmsBadge $status={op.smsInfo.confirmationSms.status} title="SMS potwierdzenia">
+                                                            <SmsDot $status={op.smsInfo.confirmationSms.status} />
+                                                            Potwierdzenie: {smsStatusLabel(op.smsInfo.confirmationSms.status)}
+                                                        </SmsBadge>
+                                                    ) : null}
+                                                    {/* Reminder SMS badge */}
+                                                    {op.smsInfo.reminderSms.requested && op.smsInfo.reminderSms.status ? (
+                                                        <SmsBadge $status={op.smsInfo.reminderSms.status} title="SMS przypomnienia">
+                                                            <SmsDot $status={op.smsInfo.reminderSms.status} />
+                                                            Przypomnienie: {smsStatusLabel(op.smsInfo.reminderSms.status)}
+                                                        </SmsBadge>
+                                                    ) : null}
+                                                </SmsInfoRow>
+                                            )}
                                         </VehicleBlock>
                                     </MainCell>
 

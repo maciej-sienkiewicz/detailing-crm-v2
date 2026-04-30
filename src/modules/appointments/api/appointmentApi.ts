@@ -1,5 +1,5 @@
 import { apiClient } from '@/core';
-import type { AppointmentCreateRequest, Service, Customer, Vehicle, AppointmentColor } from '../types';
+import type { AppointmentCreateRequest, Service, Customer, Vehicle, AppointmentColor, AppointmentSmsInfo } from '../types';
 import type { Customer as CustomerFull, CustomerListResponse } from '@/modules/customers/types';
 
 const USE_MOCKS = false
@@ -132,5 +132,14 @@ export const appointmentApi = {
 
     updateTitle: async (appointmentId: string, title: string): Promise<void> => {
         await apiClient.patch(`/v1/appointments/${appointmentId}/title`, { title });
+    },
+
+    updateSmsPreferences: async (appointmentId: string, sendReminderSms: boolean): Promise<void> => {
+        await apiClient.patch(`/v1/appointments/${appointmentId}/sms-preferences`, { sendReminderSms });
+    },
+
+    getSmsInfo: async (appointmentId: string): Promise<AppointmentSmsInfo> => {
+        const response = await apiClient.get(`/v1/appointments/${appointmentId}`);
+        return response.data.smsInfo;
     },
 };

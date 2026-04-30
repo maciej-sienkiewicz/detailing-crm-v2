@@ -11,6 +11,7 @@ import { CustomerModal } from '../components/CustomerModal';
 import { VehicleModal } from '../components/VehicleModal';
 import { InvoiceSummary } from '../components/InvoiceSummary';
 import {LoadingSkeleton} from "@/modules/appointments/components/common";
+import { SmsNotificationsSection } from '../components/SmsNotificationsSection';
 
 const Container = styled.div`
     min-height: 100vh;
@@ -94,6 +95,10 @@ export const AppointmentCreateView = () => {
         canSubmit,
         isSubmitting,
         submitError,
+        sendConfirmationSms,
+        setSendConfirmationSms,
+        sendReminderSms,
+        setSendReminderSms,
     } = useAppointmentCreation();
 
     if (isLoading) {
@@ -139,6 +144,13 @@ export const AppointmentCreateView = () => {
                             selectedColorId={selectedColorId}
                             onColorChange={setSelectedColorId}
                             colors={appointmentColors}
+                        />
+
+                        <SmsNotificationsSection
+                            sendConfirmationSms={sendConfirmationSms}
+                            onSendConfirmationSmsChange={setSendConfirmationSms}
+                            sendReminderSms={sendReminderSms}
+                            onSendReminderSmsChange={setSendReminderSms}
                         />
                     </LeftColumn>
 

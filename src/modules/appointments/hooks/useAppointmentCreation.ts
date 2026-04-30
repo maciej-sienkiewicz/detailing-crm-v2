@@ -26,6 +26,9 @@ export const useAppointmentCreation = () => {
     const [appointmentTitle, setAppointmentTitle] = useState('');
     const [selectedColorId, setSelectedColorId] = useState('');
 
+    const [sendConfirmationSms, setSendConfirmationSms] = useState(false);
+    const [sendReminderSms, setSendReminderSms] = useState(false);
+
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
 
@@ -112,6 +115,8 @@ export const useAppointmentCreation = () => {
             },
             appointmentTitle: appointmentTitle || undefined,
             appointmentColorId: selectedColorId,
+            sendConfirmationSms,
+            sendReminderSms,
         };
 
         createMutation.mutate(data, {
@@ -152,5 +157,9 @@ export const useAppointmentCreation = () => {
         canSubmit,
         isSubmitting: createMutation.isPending,
         submitError: createMutation.isError,
+        sendConfirmationSms,
+        setSendConfirmationSms,
+        sendReminderSms,
+        setSendReminderSms,
     };
 };

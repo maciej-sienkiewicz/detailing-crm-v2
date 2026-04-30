@@ -102,6 +102,27 @@ export interface AppointmentCreateRequest {
     appointmentTitle?: string;
     note?: string;
     appointmentColorId: string;
+    sendConfirmationSms?: boolean;
+    sendReminderSms?: boolean;
+}
+
+export type SmsStatus = 'PENDING' | 'SENT' | 'FAILED';
+
+export interface ConfirmationSmsInfo {
+    status: 'SENT' | 'FAILED';
+    sentAt: string;
+}
+
+export interface ReminderSmsInfo {
+    requested: boolean;
+    status: SmsStatus | null;
+    sentAt: string | null;
+    editable: boolean;
+}
+
+export interface AppointmentSmsInfo {
+    confirmationSms: ConfirmationSmsInfo | null;
+    reminderSms: ReminderSmsInfo;
 }
 
 export interface Service {

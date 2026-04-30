@@ -41,6 +41,25 @@ export interface LastModification {
     };
 }
 
+export type SmsSendStatus = 'PENDING' | 'SENT' | 'FAILED';
+
+export interface OperationConfirmationSms {
+    status: 'SENT' | 'FAILED';
+    sentAt: string;
+}
+
+export interface OperationReminderSms {
+    requested: boolean;
+    status: SmsSendStatus | null;
+    sentAt: string | null;
+    editable: boolean;
+}
+
+export interface OperationSmsInfo {
+    confirmationSms: OperationConfirmationSms | null;
+    reminderSms: OperationReminderSms;
+}
+
 export interface Operation {
     id: string;
     type: OperationType;
@@ -54,6 +73,7 @@ export interface Operation {
     endDateTime: string;
     financials: OperationFinancials;
     lastModification: LastModification;
+    smsInfo?: OperationSmsInfo;
 }
 
 export interface OperationListResponse {
