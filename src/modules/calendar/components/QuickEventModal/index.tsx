@@ -980,7 +980,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                             <S.Divider />
 
                             {/* ── SMS row ────────────────────────────────────────── */}
-                            <S.Row>
+                            <S.Row style={{ alignItems: 'center' }}>
                                 <S.IconWrapper>
                                     <IconMessageSquare />
                                 </S.IconWrapper>
