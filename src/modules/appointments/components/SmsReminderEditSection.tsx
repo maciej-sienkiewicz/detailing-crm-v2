@@ -351,9 +351,9 @@ export const SmsReminderEditSection = ({
                                     disabled={!canEditReminder || mutation.isPending}
                                     onChange={e => handleToggle(e.target.checked)}
                                 />
-                                <ToggleTrack $checked={reminderChecked} $saving={mutation.isPending} />
-                                <ToggleText $checked={reminderChecked} $saving={mutation.isPending}>
-                                    {mutation.isPending ? 'Zapisuję…' : reminderChecked ? 'Włączone' : 'Wyłączone'}
+                                <ToggleTrack $checked={canEditReminder && reminderChecked} $saving={mutation.isPending} />
+                                <ToggleText $checked={canEditReminder && reminderChecked} $saving={mutation.isPending}>
+                                    {mutation.isPending ? 'Zapisuję…' : (canEditReminder && reminderChecked) ? 'Włączone' : 'Wyłączone'}
                                 </ToggleText>
                             </ToggleLabel>
                         )}
