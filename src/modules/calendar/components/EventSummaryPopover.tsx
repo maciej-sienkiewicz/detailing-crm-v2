@@ -425,57 +425,22 @@ const SmsRow = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 11px 14px;
-    border-radius: 12px;
-    background: rgba(99, 102, 241, 0.04);
-    border: 1px solid rgba(99, 102, 241, 0.10);
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.12);
     margin-bottom: 16px;
 `;
 
-const SmsRowLeft = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    min-width: 0;
-`;
-
-const SmsRowIcon = styled.div<{ $sent?: boolean }>`
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-    background: ${p => p.$sent ? 'rgba(5, 150, 105, 0.10)' : 'rgba(59, 130, 246, 0.10)'};
-    color: ${p => p.$sent ? '#059669' : '#3B82F6'};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    svg { width: 14px; height: 14px; }
-`;
-
-const SmsRowText = styled.div`
-    min-width: 0;
-`;
-
-const SmsRowTitle = styled.div`
+const SmsLabel = styled.span`
     font-size: 12px;
-    font-weight: 700;
-    color: #1e293b;
+    font-weight: 600;
+    color: #334155;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 `;
 
-const SmsRowSub = styled.div`
-    font-size: 11px;
-    color: #64748b;
-    margin-top: 1px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-`;
-
-const SmsRowRight = styled.div`
+const SmsRight = styled.div`
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -486,7 +451,7 @@ const SmsSentPill = styled.span`
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 3px 9px;
+    padding: 2px 8px;
     border-radius: 20px;
     font-size: 11px;
     font-weight: 700;
@@ -609,14 +574,21 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId 
         staleTime: 60_000,
     });
 
+    const { data: automation } = useQuery({
+        queryKey: ['sms-automation-config'],
+        queryFn: () => import('@/modules/sms-campaigns/api/smsCampaignsApi').then(m => m.fetchAutomationConfig()),
+        staleTime: 120_000,
+    });
+
     const smsInfo: CalendarSmsInfo | undefined = appointment?.smsInfo;
+    const preVisitEnabled = automation?.preVisit?.enabled ?? true;
 
     const { reminderSms } = smsInfo ?? { reminderSms: { requested: false, status: null, sentAt: null, editable: false } };
     const alreadySent = !reminderSms.editable && reminderSms.status === 'SENT';
+    const canToggle = reminderSms.editable && preVisitEnabled;
 
     const [checked, setChecked] = useState(false);
 
-    // Sync local state when data arrives
     React.useEffect(() => {
         if (smsInfo) setChecked(smsInfo.reminderSms.requested);
     }, [smsInfo]);
@@ -629,7 +601,7 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId 
     });
 
     const handleToggle = (value: boolean) => {
-        if (!reminderSms.editable || mutation.isPending) return;
+        if (!canToggle || mutation.isPending) return;
         setChecked(value);
         mutation.mutate(value);
     };
@@ -637,33 +609,13 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId 
     if (isLoading) return <SmsRowSkeleton />;
     if (!smsInfo) return null;
 
+    const effectiveChecked = canToggle && checked;
+
     return (
         <SmsRow>
-            <SmsRowLeft>
-                <SmsRowIcon $sent={alreadySent}>
-                    {alreadySent ? (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                    ) : (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                        </svg>
-                    )}
-                </SmsRowIcon>
-                <SmsRowText>
-                    <SmsRowTitle>SMS z przypomnieniem</SmsRowTitle>
-                    {alreadySent ? (
-                        <SmsRowSub>SMS o nadchodzącej wizycie został wysłany</SmsRowSub>
-                    ) : mutation.isPending ? (
-                        <SmsRowSub>Zapisywanie…</SmsRowSub>
-                    ) : (
-                        <SmsRowSub>{checked ? 'Zostanie wysłany 60 min przed wizytą' : 'Wyłączone dla tej rezerwacji'}</SmsRowSub>
-                    )}
-                </SmsRowText>
-            </SmsRowLeft>
+            <SmsLabel>SMS z przypomnieniem</SmsLabel>
 
-            <SmsRowRight>
+            <SmsRight>
                 {alreadySent ? (
                     <SmsSentPill>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -672,19 +624,19 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId 
                         Wysłany
                     </SmsSentPill>
                 ) : (
-                    <ToggleLabel $disabled={!reminderSms.editable || mutation.isPending}>
+                    <ToggleLabel $disabled={!canToggle || mutation.isPending}>
                         <ToggleInput
-                            checked={checked}
-                            disabled={!reminderSms.editable || mutation.isPending}
+                            checked={effectiveChecked}
+                            disabled={!canToggle || mutation.isPending}
                             onChange={e => handleToggle(e.target.checked)}
                         />
-                        <ToggleTrack $checked={checked} $saving={mutation.isPending} />
-                        <ToggleValueText $checked={checked} $saving={mutation.isPending}>
-                            {checked ? 'Wł.' : 'Wył.'}
+                        <ToggleTrack $checked={effectiveChecked} $saving={mutation.isPending} />
+                        <ToggleValueText $checked={effectiveChecked} $saving={mutation.isPending}>
+                            {mutation.isPending ? '…' : effectiveChecked ? 'Wł.' : 'Wył.'}
                         </ToggleValueText>
                     </ToggleLabel>
                 )}
-            </SmsRowRight>
+            </SmsRight>
         </SmsRow>
     );
 };
