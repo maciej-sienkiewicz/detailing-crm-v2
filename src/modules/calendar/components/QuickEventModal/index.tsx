@@ -23,8 +23,9 @@ export type { QuickEventModalRef };
 
 const SmsCheckList = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    align-items: center;
 `;
 
 const SmsCheckItem = styled.label<{ $disabled?: boolean }>`
