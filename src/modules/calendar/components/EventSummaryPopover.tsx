@@ -367,96 +367,132 @@ const EmptyState = styled.div`
     border-radius: 10px;
 `;
 
-const SmsSection = styled.div`
-    background: #f8fafc;
-    border-radius: 12px;
-    padding: 12px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+/* ── Toggle switch ─────────────────────────────────────────────────────────── */
+
+const ToggleLabel = styled.label<{ $disabled?: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    cursor: ${p => p.$disabled ? 'not-allowed' : 'pointer'};
+    opacity: ${p => p.$disabled ? 0.45 : 1};
+    user-select: none;
+    flex-shrink: 0;
 `;
+
+const ToggleInput = styled.input.attrs({ type: 'checkbox' })`
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+`;
+
+const ToggleTrack = styled.span<{ $checked: boolean; $saving?: boolean }>`
+    position: relative;
+    display: inline-block;
+    width: 34px;
+    height: 20px;
+    border-radius: 10px;
+    background: ${p => p.$saving ? '#e2e8f0' : p.$checked ? '#6366f1' : '#cbd5e1'};
+    transition: background 200ms ease;
+    flex-shrink: 0;
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: 3px;
+        left: ${p => p.$checked ? '17px' : '3px'};
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+        transition: left 200ms ease;
+    }
+`;
+
+const ToggleValueText = styled.span<{ $checked: boolean; $saving?: boolean }>`
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: ${p => p.$saving ? '#94a3b8' : p.$checked ? '#4f46e5' : '#94a3b8'};
+    transition: color 200ms ease;
+`;
+
+/* ── SMS inline row ─────────────────────────────────────────────────────────── */
 
 const SmsRow = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 12px;
+    padding: 11px 14px;
+    border-radius: 12px;
+    background: rgba(99, 102, 241, 0.04);
+    border: 1px solid rgba(99, 102, 241, 0.10);
+    margin-bottom: 16px;
 `;
 
-const SmsRowLabel = styled.div`
-    font-size: 12px;
-    font-weight: 600;
-    color: #475569;
-    flex-shrink: 0;
-`;
-
-const SmsBadge = styled.span<{ $status: SmsSendStatus | 'NONE' }>`
-    display: inline-flex;
+const SmsRowLeft = styled.div`
+    display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.2px;
-    background: ${props => {
-        if (props.$status === 'SENT') return 'rgba(5, 150, 105, 0.11)';
-        if (props.$status === 'FAILED') return 'rgba(220, 38, 38, 0.09)';
-        if (props.$status === 'PENDING') return 'rgba(234, 179, 8, 0.11)';
-        return 'rgba(148, 163, 184, 0.15)';
-    }};
-    color: ${props => {
-        if (props.$status === 'SENT') return '#059669';
-        if (props.$status === 'FAILED') return '#DC2626';
-        if (props.$status === 'PENDING') return '#B45309';
-        return '#64748B';
-    }};
+    gap: 9px;
+    min-width: 0;
 `;
 
-const SmsDot = styled.span<{ $status: SmsSendStatus | 'NONE' }>`
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: ${props => {
-        if (props.$status === 'SENT') return '#059669';
-        if (props.$status === 'FAILED') return '#DC2626';
-        if (props.$status === 'PENDING') return '#D97706';
-        return '#94A3B8';
-    }};
+const SmsRowIcon = styled.div<{ $sent?: boolean }>`
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: ${p => p.$sent ? 'rgba(5, 150, 105, 0.10)' : 'rgba(99, 102, 241, 0.10)'};
+    color: ${p => p.$sent ? '#059669' : '#6366f1'};
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+    svg { width: 14px; height: 14px; }
 `;
 
-const SmsToggle = styled.label<{ $disabled?: boolean }>`
+const SmsRowText = styled.div`
+    min-width: 0;
+`;
+
+const SmsRowTitle = styled.div`
+    font-size: 12px;
+    font-weight: 700;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+`;
+
+const SmsRowSub = styled.div`
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+`;
+
+const SmsRowRight = styled.div`
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     gap: 6px;
-    cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
-    opacity: ${props => props.$disabled ? 0.5 : 1};
 `;
 
-const SmsToggleInput = styled.input.attrs({ type: 'checkbox' })`
-    width: 15px;
-    height: 15px;
-    accent-color: #6366f1;
-    cursor: inherit;
-    flex-shrink: 0;
-`;
-
-const SmsToggleText = styled.span<{ $saving?: boolean }>`
+const SmsSentPill = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 20px;
     font-size: 11px;
-    font-weight: 600;
-    color: ${props => props.$saving ? '#94a3b8' : '#334155'};
-`;
-
-const SmsDivider = styled.div`
-    height: 1px;
-    background: rgba(0,0,0,0.06);
-`;
-
-const SmsNotSent = styled.span`
-    font-size: 11px;
-    color: #94a3b8;
-    font-weight: 500;
+    font-weight: 700;
+    background: rgba(5, 150, 105, 0.10);
+    color: #059669;
+    svg { width: 10px; height: 10px; }
 `;
 
 const NotesContainer = styled.div`
@@ -550,19 +586,15 @@ const StatusBlockDesc = styled.div`
 
 // ─── SMS subcomponent ─────────────────────────────────────────────────────────
 
-const smsBadgeLabel = (status: SmsSendStatus | null): string => {
-    if (status === 'SENT') return 'Wysłany';
-    if (status === 'FAILED') return 'Błąd';
-    if (status === 'PENDING') return 'Oczekuje';
-    return '';
-};
-
-const AppointmentSmsSection: React.FC<{ appointmentId: string; smsInfo: CalendarSmsInfo }> = ({
+const AppointmentSmsRow: React.FC<{ appointmentId: string; smsInfo: CalendarSmsInfo }> = ({
     appointmentId,
     smsInfo,
 }) => {
     const queryClient = useQueryClient();
-    const [reminderChecked, setReminderChecked] = useState(smsInfo.reminderSms.requested);
+    const { reminderSms } = smsInfo;
+    const alreadySent = !reminderSms.editable && reminderSms.status === 'SENT';
+
+    const [checked, setChecked] = useState(reminderSms.requested);
 
     const mutation = useMutation({
         mutationFn: (value: boolean) => appointmentApi.updateSmsPreferences(appointmentId, value),
@@ -571,55 +603,61 @@ const AppointmentSmsSection: React.FC<{ appointmentId: string; smsInfo: Calendar
         },
     });
 
-    const handleToggle = (checked: boolean) => {
-        if (!smsInfo.reminderSms.editable || mutation.isPending) return;
-        setReminderChecked(checked);
-        mutation.mutate(checked);
+    const handleToggle = (value: boolean) => {
+        if (!reminderSms.editable || mutation.isPending) return;
+        setChecked(value);
+        mutation.mutate(value);
     };
 
-    const { confirmationSms, reminderSms } = smsInfo;
-
     return (
-        <SmsSection>
-            {/* Confirmation SMS */}
-            <SmsRow>
-                <SmsRowLabel>Potwierdzenie</SmsRowLabel>
-                {confirmationSms ? (
-                    <SmsBadge $status={confirmationSms.status}>
-                        <SmsDot $status={confirmationSms.status} />
-                        {smsBadgeLabel(confirmationSms.status)}
-                    </SmsBadge>
+        <SmsRow>
+            <SmsRowLeft>
+                <SmsRowIcon $sent={alreadySent}>
+                    {alreadySent ? (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                    ) : (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                        </svg>
+                    )}
+                </SmsRowIcon>
+                <SmsRowText>
+                    <SmsRowTitle>SMS z przypomnieniem</SmsRowTitle>
+                    {alreadySent ? (
+                        <SmsRowSub>SMS o nadchodzącej wizycie został wysłany</SmsRowSub>
+                    ) : mutation.isPending ? (
+                        <SmsRowSub>Zapisywanie…</SmsRowSub>
+                    ) : (
+                        <SmsRowSub>{checked ? 'Zostanie wysłany 60 min przed wizytą' : 'Wyłączone dla tej rezerwacji'}</SmsRowSub>
+                    )}
+                </SmsRowText>
+            </SmsRowLeft>
+
+            <SmsRowRight>
+                {alreadySent ? (
+                    <SmsSentPill>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        Wysłany
+                    </SmsSentPill>
                 ) : (
-                    <SmsNotSent>Nie wysłano</SmsNotSent>
-                )}
-            </SmsRow>
-
-            <SmsDivider />
-
-            {/* Reminder SMS */}
-            <SmsRow>
-                <SmsRowLabel>Przypomnienie</SmsRowLabel>
-                {reminderSms.editable ? (
-                    <SmsToggle $disabled={mutation.isPending}>
-                        <SmsToggleInput
-                            checked={reminderChecked}
-                            disabled={mutation.isPending}
+                    <ToggleLabel $disabled={!reminderSms.editable || mutation.isPending}>
+                        <ToggleInput
+                            checked={checked}
+                            disabled={!reminderSms.editable || mutation.isPending}
                             onChange={e => handleToggle(e.target.checked)}
                         />
-                        <SmsToggleText $saving={mutation.isPending}>
-                            {mutation.isPending ? 'Zapisywanie…' : (reminderChecked ? 'Zaplanowany' : 'Wyłączony')}
-                        </SmsToggleText>
-                    </SmsToggle>
-                ) : reminderSms.status ? (
-                    <SmsBadge $status={reminderSms.status}>
-                        <SmsDot $status={reminderSms.status} />
-                        {smsBadgeLabel(reminderSms.status)}
-                    </SmsBadge>
-                ) : (
-                    <SmsNotSent>Nie wysłano</SmsNotSent>
+                        <ToggleTrack $checked={checked} $saving={mutation.isPending} />
+                        <ToggleValueText $checked={checked} $saving={mutation.isPending}>
+                            {checked ? 'Wł.' : 'Wył.'}
+                        </ToggleValueText>
+                    </ToggleLabel>
                 )}
-            </SmsRow>
-        </SmsSection>
+            </SmsRowRight>
+        </SmsRow>
     );
 };
 
@@ -813,6 +851,14 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                         </Section>
                     </InfoColumns>
 
+                    {/* SMS — tylko dla rezerwacji z smsInfo */}
+                    {isAppointment && (event as AppointmentEventData).smsInfo && (
+                        <AppointmentSmsRow
+                            appointmentId={event.id}
+                            smsInfo={(event as AppointmentEventData).smsInfo!}
+                        />
+                    )}
+
                     {/* Usługi - tylko dla rezerwacji */}
                     {isAppointment && (event as AppointmentEventData).serviceNames && (
                         <Section>
@@ -845,17 +891,6 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                 </InfoIcon>
                                 <InfoValue>{formatStatus(event.status) || '—'}</InfoValue>
                             </InfoRow>
-                        </Section>
-                    )}
-
-                    {/* SMS — tylko dla rezerwacji */}
-                    {isAppointment && (event as AppointmentEventData).smsInfo && (
-                        <Section>
-                            <SectionTitle>Powiadomienia SMS</SectionTitle>
-                            <AppointmentSmsSection
-                                appointmentId={event.id}
-                                smsInfo={(event as AppointmentEventData).smsInfo!}
-                            />
                         </Section>
                     )}
 
