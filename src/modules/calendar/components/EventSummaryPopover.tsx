@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AppointmentEventData, VisitEventData, SmsSendStatus, CalendarSmsInfo } from '../types';
 import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
 
@@ -586,20 +586,45 @@ const StatusBlockDesc = styled.div`
 
 // ─── SMS subcomponent ─────────────────────────────────────────────────────────
 
-const AppointmentSmsRow: React.FC<{ appointmentId: string; smsInfo: CalendarSmsInfo }> = ({
-    appointmentId,
-    smsInfo,
-}) => {
+const SmsRowSkeleton = styled.div`
+    height: 52px;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #f1f5f9 0%, #e8edf4 50%, #f1f5f9 100%);
+    background-size: 400px 100%;
+    animation: shimmer 1.4s infinite linear;
+    margin-bottom: 16px;
+
+    @keyframes shimmer {
+        0%   { background-position: -400px 0; }
+        100% { background-position:  400px 0; }
+    }
+`;
+
+const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId }) => {
     const queryClient = useQueryClient();
-    const { reminderSms } = smsInfo;
+
+    const { data: appointment, isLoading } = useQuery({
+        queryKey: ['appointments', appointmentId],
+        queryFn: () => appointmentApi.getAppointment(appointmentId),
+        staleTime: 60_000,
+    });
+
+    const smsInfo: CalendarSmsInfo | undefined = appointment?.smsInfo;
+
+    const { reminderSms } = smsInfo ?? { reminderSms: { requested: false, status: null, sentAt: null, editable: false } };
     const alreadySent = !reminderSms.editable && reminderSms.status === 'SENT';
 
-    const [checked, setChecked] = useState(reminderSms.requested);
+    const [checked, setChecked] = useState(false);
+
+    // Sync local state when data arrives
+    React.useEffect(() => {
+        if (smsInfo) setChecked(smsInfo.reminderSms.requested);
+    }, [smsInfo]);
 
     const mutation = useMutation({
         mutationFn: (value: boolean) => appointmentApi.updateSmsPreferences(appointmentId, value),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+            queryClient.invalidateQueries({ queryKey: ['appointments', appointmentId] });
         },
     });
 
@@ -608,6 +633,9 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string; smsInfo: CalendarSmsI
         setChecked(value);
         mutation.mutate(value);
     };
+
+    if (isLoading) return <SmsRowSkeleton />;
+    if (!smsInfo) return null;
 
     return (
         <SmsRow>
@@ -851,12 +879,9 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                         </Section>
                     </InfoColumns>
 
-                    {/* SMS — tylko dla rezerwacji z smsInfo */}
-                    {isAppointment && (event as AppointmentEventData).smsInfo && (
-                        <AppointmentSmsRow
-                            appointmentId={event.id}
-                            smsInfo={(event as AppointmentEventData).smsInfo!}
-                        />
+                    {/* SMS — tylko dla rezerwacji */}
+                    {isAppointment && (
+                        <AppointmentSmsRow appointmentId={event.id} />
                     )}
 
                     {/* Usługi - tylko dla rezerwacji */}
