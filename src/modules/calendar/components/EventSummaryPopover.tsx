@@ -393,7 +393,7 @@ const ToggleTrack = styled.span<{ $checked: boolean; $saving?: boolean }>`
     width: 34px;
     height: 20px;
     border-radius: 10px;
-    background: ${p => p.$saving ? '#e2e8f0' : p.$checked ? '#6366f1' : '#cbd5e1'};
+    background: ${p => p.$saving ? '#e2e8f0' : p.$checked ? '#3B82F6' : '#cbd5e1'};
     transition: background 200ms ease;
     flex-shrink: 0;
 
@@ -415,7 +415,7 @@ const ToggleValueText = styled.span<{ $checked: boolean; $saving?: boolean }>`
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.2px;
-    color: ${p => p.$saving ? '#94a3b8' : p.$checked ? '#4f46e5' : '#94a3b8'};
+    color: ${p => p.$saving ? '#94a3b8' : p.$checked ? '#3B82F6' : '#94a3b8'};
     transition: color 200ms ease;
 `;
 
@@ -444,8 +444,8 @@ const SmsRowIcon = styled.div<{ $sent?: boolean }>`
     width: 30px;
     height: 30px;
     border-radius: 8px;
-    background: ${p => p.$sent ? 'rgba(5, 150, 105, 0.10)' : 'rgba(99, 102, 241, 0.10)'};
-    color: ${p => p.$sent ? '#059669' : '#6366f1'};
+    background: ${p => p.$sent ? 'rgba(5, 150, 105, 0.10)' : 'rgba(59, 130, 246, 0.10)'};
+    color: ${p => p.$sent ? '#059669' : '#3B82F6'};
     display: flex;
     align-items: center;
     justify-content: center;

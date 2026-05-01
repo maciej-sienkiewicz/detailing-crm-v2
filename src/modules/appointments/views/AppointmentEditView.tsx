@@ -15,6 +15,13 @@ import { t } from '@/common/i18n';
 import { toInstant, fromInstantToLocalInput } from '@/common/dateTime';
 import { SmsReminderEditSection } from '../components/SmsReminderEditSection';
 import type { AppointmentSmsInfo } from '../types';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
+
+const SmsSeparator = styled.div`
+    height: 1px;
+    background: ${st.border};
+    margin: 8px 0;
+`;
 
 const Container = styled.div`
     min-height: 100vh;
@@ -342,10 +349,13 @@ export const AppointmentEditView = () => {
                 />
 
                 {appointment?.smsInfo && (
-                    <SmsReminderEditSection
-                        appointmentId={appointmentId!}
-                        smsInfo={appointment.smsInfo as AppointmentSmsInfo}
-                    />
+                    <>
+                        <SmsSeparator />
+                        <SmsReminderEditSection
+                            appointmentId={appointmentId!}
+                            smsInfo={appointment.smsInfo as AppointmentSmsInfo}
+                        />
+                    </>
                 )}
 
                 <FooterActions>
