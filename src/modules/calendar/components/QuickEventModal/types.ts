@@ -30,6 +30,8 @@ export interface QuickEventFormData {
     tempServices?: { [key: string]: { name: string; basePriceNet: number; vatRate: number } };
     colorId: string;
     notes?: string;
+    sendConfirmationSms: boolean;
+    sendReminderSms: boolean;
 }
 
 export interface QuickEventModalRef {

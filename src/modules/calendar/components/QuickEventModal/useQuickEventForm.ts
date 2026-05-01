@@ -76,6 +76,10 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
     // ─── Vehicle edit mode ─────────────────────────────────────────────────────
     const [vehicleEditMode, setVehicleEditMode] = useState(false);
 
+    // ─── SMS state ─────────────────────────────────────────────────────────────
+    const [sendConfirmationSms, setSendConfirmationSms] = useState(false);
+    const [sendReminderSms, setSendReminderSms] = useState(false);
+
     // ─── Sub-modal state ───────────────────────────────────────────────────────
     const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
     const [isPriceInputModalOpen, setIsPriceInputModalOpen] = useState(false);
@@ -127,6 +131,13 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
             return response.data.colors || [];
         },
     });
+
+    const { data: automationConfig } = useQuery({
+        queryKey: ['sms-automation-config'],
+        queryFn: () => import('@/modules/sms-campaigns/api/smsCampaignsApi').then(m => m.fetchAutomationConfig()),
+        staleTime: 120_000,
+    });
+    const preVisitEnabled = automationConfig?.preVisit?.enabled ?? true;
 
     // ─── Computed values ───────────────────────────────────────────────────────
     const selectedColor = appointmentColors.find((c: AppointmentColor) => c.id === selectedColorId);
@@ -262,6 +273,8 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
         vehicleAutoOpenRef.current = false;
         setNotes('');
         setTempServices({});
+        setSendConfirmationSms(false);
+        setSendReminderSms(false);
     };
 
     useImperativeHandle(ref, () => ({ clearForm }));
@@ -380,6 +393,8 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
                 tempServices,
                 colorId: selectedColorId,
                 notes,
+                sendConfirmationSms,
+                sendReminderSms: preVisitEnabled && sendReminderSms,
             }));
         } catch (err: any) {
             let message = 'Wystąpił nieoczekiwany błąd podczas zapisu.';
@@ -764,6 +779,11 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
         vehicleSectionRef,
         serviceInputRef,
         colorSectionRef,
+
+        // SMS
+        sendConfirmationSms, setSendConfirmationSms,
+        sendReminderSms, setSendReminderSms,
+        preVisitEnabled,
 
         // Handlers
         handleAllDayToggle,

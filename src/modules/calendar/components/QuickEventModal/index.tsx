@@ -1,6 +1,7 @@
 // src/modules/calendar/components/QuickEventModal/index.tsx
 
 import React, { forwardRef, useState, useEffect } from 'react';
+import styled from 'styled-components';
 import { createPortal } from 'react-dom';
 import { DateTimePicker } from '../DateTimePicker';
 import { QuickServiceModal } from '../QuickServiceModal';
@@ -19,6 +20,43 @@ import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Servic
 
 export type { QuickEventFormData } from './types';
 export type { QuickEventModalRef };
+
+const SmsCheckList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+`;
+
+const SmsCheckItem = styled.label<{ $disabled?: boolean }>`
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: ${p => p.$disabled ? 'not-allowed' : 'pointer'};
+    opacity: ${p => p.$disabled ? 0.45 : 1};
+    user-select: none;
+`;
+
+const SmsCheckbox = styled.input.attrs({ type: 'checkbox' })`
+    flex-shrink: 0;
+    width: 15px;
+    height: 15px;
+    margin-top: 1px;
+    cursor: inherit;
+    accent-color: #3b82f6;
+`;
+
+const SmsCheckText = styled.span`
+    font-size: 13px;
+    color: #334155;
+    line-height: 1.45;
+`;
+
+const SmsDisabledHint = styled.span`
+    display: block;
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 2px;
+`;
 
 export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalProps>(({
     isOpen,
@@ -935,6 +973,39 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                         onFocus={() => form.setFocusedField('notes')}
                                         onBlur={() => form.setFocusedField(null)}
                                     />
+                                </S.RowContent>
+                            </S.Row>
+
+                            <S.Divider />
+
+                            {/* ── SMS row ────────────────────────────────────────── */}
+                            <S.Row>
+                                <S.IconWrapper>
+                                    <IconMessageSquare />
+                                </S.IconWrapper>
+                                <S.RowContent>
+                                    <SmsCheckList>
+                                        <SmsCheckItem>
+                                            <SmsCheckbox
+                                                checked={form.sendConfirmationSms}
+                                                onChange={e => form.setSendConfirmationSms(e.target.checked)}
+                                            />
+                                            <SmsCheckText>Wyślij SMS z potwierdzeniem rezerwacji</SmsCheckText>
+                                        </SmsCheckItem>
+                                        <SmsCheckItem $disabled={!form.preVisitEnabled}>
+                                            <SmsCheckbox
+                                                checked={form.sendReminderSms && form.preVisitEnabled}
+                                                onChange={e => form.setSendReminderSms(e.target.checked)}
+                                                disabled={!form.preVisitEnabled}
+                                            />
+                                            <SmsCheckText>
+                                                Wyślij SMS przypominający przed wizytą
+                                                {!form.preVisitEnabled && (
+                                                    <SmsDisabledHint>Wyłączone globalnie w konfiguracji SMS</SmsDisabledHint>
+                                                )}
+                                            </SmsCheckText>
+                                        </SmsCheckItem>
+                                    </SmsCheckList>
                                 </S.RowContent>
                             </S.Row>
                         </S.ScrollableContent>

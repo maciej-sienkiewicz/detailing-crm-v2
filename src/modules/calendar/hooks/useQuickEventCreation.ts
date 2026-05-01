@@ -181,6 +181,8 @@ export const useQuickEventCreation = () => {
                 appointmentTitle: data.title || undefined,
                 note: data.notes || undefined,
                 appointmentColorId: data.colorId,
+                sendConfirmationSms: data.sendConfirmationSms,
+                sendReminderSms: data.sendReminderSms,
             };
 
             const response = await apiClient.post('/v1/appointments', payload);
