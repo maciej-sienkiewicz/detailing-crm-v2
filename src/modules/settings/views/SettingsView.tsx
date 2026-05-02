@@ -2,6 +2,7 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { CompanySection } from '../components/CompanySection';
 import { DocumentsSection } from '../components/DocumentsSection';
+import { ServicesSection } from '../components/ServicesSection';
 import { AutomationSettings } from '@/modules/sms-campaigns/components/AutomationSettings';
 
 // ─── Nav definition ──────────────────────────────────────────────────────────
@@ -50,7 +51,7 @@ const NAV_GROUPS: NavGroup[] = [
         group: 'Studio',
         items: [
             { id: 'company',  label: 'Dane firmy',      icon: <BuildingIcon /> },
-            { id: 'services', label: 'Cennik usług',     icon: <ListChecksIcon />, badge: '47' },
+            { id: 'services', label: 'Cennik usług',     icon: <ListChecksIcon /> },
             { id: 'team',     label: 'Pracownicy',       icon: <UsersIcon />, badge: '4' },
             { id: 'opening',  label: 'Godziny pracy',    icon: <ClockIcon /> },
         ],
@@ -258,6 +259,8 @@ export function SettingsView() {
         content = <DocumentsSection />;
     } else if (section === 'templates') {
         content = <AutomationSettings />;
+    } else if (section === 'services') {
+        content = <ServicesSection />;
     } else {
         content = <ComingSoonSection label={activeLabel} />;
     }

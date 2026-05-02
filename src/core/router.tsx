@@ -11,7 +11,6 @@ import { CheckInWizardWrapper } from '@/modules/checkin/views/CheckInWizardWrapp
 import { WalkInCheckInWrapper } from '@/modules/checkin/views/WalkInCheckInWrapper';
 import { MobilePhotoUploadWrapper } from '@/modules/checkin/views/MobilePhotoUploadWrapper';
 import { LoginView, SignupView } from '@/modules/auth';
-import { ServiceListView } from "@/modules/services";
 import { AppointmentColorListView } from "@/modules/appointment-colors";
 import { ConsentSettingsView } from "@/modules/consents";
 import { CalendarPageView } from "@/modules/calendar";
@@ -146,14 +145,6 @@ export const router = createBrowserRouter([
         // Public mobile upload route — no auth required, token via ?t=
         path: '/m/upload',
         element: <MobilePhotoUploadWrapper />,
-    },
-    {
-        path: '/services',
-        element: (
-            <ProtectedRoute>
-                <Layout><ServiceListView /></Layout>
-            </ProtectedRoute>
-        ),
     },
     {
         path: '/appointment-colors',

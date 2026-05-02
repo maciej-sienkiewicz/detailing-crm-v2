@@ -1,0 +1,1157 @@
+import React, { useState, useEffect } from 'react';
+import styled, { keyframes } from 'styled-components';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
+import {
+  useServices,
+  useCreateService,
+  useUpdateService,
+  useArchiveService,
+} from '@/modules/services/hooks/useServices';
+import {
+  calculateGrossFromNet,
+  formatMoneyAmount,
+  parseMoneyInput,
+} from '@/modules/services/utils/priceCalculator';
+import type { Service, VatRate } from '@/modules/services/types';
+
+// ─── Animations ───────────────────────────────────────────────────────────────
+
+const shimmer = keyframes`
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+`;
+
+const expandDown = keyframes`
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
+// ─── Layout ───────────────────────────────────────────────────────────────────
+
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+// ─── Toolbar ──────────────────────────────────────────────────────────────────
+
+const Toolbar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+const SearchWrap = styled.div`
+  position: relative;
+  flex: 1;
+  min-width: 180px;
+`;
+
+const SearchIconWrap = styled.div`
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: ${st.textMuted};
+  display: flex;
+  pointer-events: none;
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px 9px 34px;
+  font-size: ${st.fontSm};
+  border: 1px solid ${st.border};
+  border-radius: ${st.radiusSm};
+  background: ${st.bgCard};
+  color: ${st.text};
+  outline: none;
+  transition: border-color ${st.transition}, box-shadow ${st.transition};
+
+  &:focus {
+    border-color: ${st.accentBlue};
+    box-shadow: ${st.shadowBlue};
+  }
+  &::placeholder { color: ${st.textMuted}; }
+`;
+
+const ToggleFilterBtn = styled.button<{ $on: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: ${st.fontSm};
+  font-weight: ${p => p.$on ? 600 : 500};
+  background: ${p => p.$on ? st.accentBlueDim : st.bgCard};
+  color: ${p => p.$on ? st.accentBlue : st.textSecondary};
+  border: 1px solid ${p => p.$on ? `${st.accentBlue}40` : st.border};
+  border-radius: ${st.radiusSm};
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all ${st.transition};
+
+  &:hover { border-color: ${st.accentBlue}; color: ${st.accentBlue}; }
+`;
+
+const AddButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  font-size: ${st.fontSm};
+  font-weight: 700;
+  background: ${st.accentBlue};
+  color: #fff;
+  border: none;
+  border-radius: ${st.radiusFull};
+  cursor: pointer;
+  box-shadow: ${st.shadowXs};
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all ${st.transition};
+
+  &:hover:not(:disabled) {
+    background: #2563EB;
+    box-shadow: ${st.shadowSm};
+    transform: translateY(-1px);
+  }
+  &:active { transform: translateY(0); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+`;
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
+
+const StatsRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 18px;
+`;
+
+const StatText = styled.span`
+  font-size: ${st.fontXs};
+  color: ${st.textMuted};
+
+  strong { color: ${st.text}; font-weight: 700; }
+`;
+
+// ─── Form panel ───────────────────────────────────────────────────────────────
+
+const FormPanel = styled.div`
+  background: ${st.bgCard};
+  border: 1px solid ${st.accentBlue}30;
+  border-radius: ${st.radius};
+  box-shadow: 0 0 0 1px ${st.accentBlue}14, ${st.shadowMd};
+  overflow: hidden;
+  animation: ${expandDown} 220ms ease both;
+`;
+
+const FormHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 20px;
+  border-bottom: 1px solid ${st.border};
+`;
+
+const FormTitle = styled.span`
+  font-size: ${st.fontSm};
+  font-weight: 700;
+  color: ${st.text};
+`;
+
+const CloseBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid ${st.border};
+  border-radius: ${st.radiusSm};
+  cursor: pointer;
+  color: ${st.textMuted};
+  transition: all ${st.transition};
+
+  &:hover {
+    background: ${st.bgCardAlt};
+    color: ${st.text};
+    border-color: ${st.borderHover};
+  }
+`;
+
+const FormBody = styled.div`
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+`;
+
+const FormRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 100px 130px;
+  gap: 12px;
+  align-items: flex-start;
+`;
+
+const FormField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const FieldLabel = styled.label`
+  font-size: ${st.fontXs};
+  font-weight: 700;
+  color: ${st.textSecondary};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const FieldInput = styled.input<{ $error?: boolean }>`
+  padding: 9px 12px;
+  font-size: ${st.fontSm};
+  border: 1px solid ${p => p.$error ? st.accentRed : st.border};
+  border-radius: ${st.radiusSm};
+  background: ${st.bgCard};
+  color: ${st.text};
+  outline: none;
+  transition: border-color ${st.transition}, box-shadow ${st.transition};
+
+  &:focus {
+    border-color: ${p => p.$error ? st.accentRed : st.accentBlue};
+    box-shadow: ${p => p.$error
+      ? '0 0 0 3px rgba(239,68,68,0.12)'
+      : st.shadowBlue};
+  }
+  &::placeholder { color: ${st.textMuted}; }
+  &:disabled {
+    background: ${st.bgCardAlt};
+    color: ${st.textMuted};
+    cursor: not-allowed;
+  }
+`;
+
+const FieldSelect = styled.select`
+  padding: 9px 12px;
+  font-size: ${st.fontSm};
+  border: 1px solid ${st.border};
+  border-radius: ${st.radiusSm};
+  background: ${st.bgCard};
+  color: ${st.text};
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394A3B8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+  transition: border-color ${st.transition}, box-shadow ${st.transition};
+
+  &:focus {
+    border-color: ${st.accentBlue};
+    box-shadow: ${st.shadowBlue};
+  }
+`;
+
+const ErrorMsg = styled.span`
+  font-size: ${st.fontXs};
+  color: ${st.accentRed};
+`;
+
+const GrossPreview = styled.div`
+  padding: 9px 12px;
+  font-size: ${st.fontSm};
+  border: 1px solid ${st.border};
+  border-radius: ${st.radiusSm};
+  background: ${st.bgCardAlt};
+  color: ${st.textSecondary};
+  white-space: nowrap;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+`;
+
+const ManualRow = styled.label`
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+`;
+
+const ToggleTrack = styled.div<{ $on: boolean }>`
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  background: ${p => p.$on ? st.accentBlue : st.bgCardAlt};
+  border: 1px solid ${p => p.$on ? st.accentBlue : st.border};
+  border-radius: ${st.radiusFull};
+  position: relative;
+  transition: background ${st.transition}, border-color ${st.transition};
+`;
+
+const ToggleThumb = styled.div<{ $on: boolean }>`
+  width: 18px;
+  height: 18px;
+  background: ${p => p.$on ? '#fff' : st.textMuted};
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: ${p => p.$on ? '22px' : '2px'};
+  transition: left ${st.transition}, background ${st.transition};
+  box-shadow: ${st.shadowXs};
+`;
+
+const ManualTextWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+
+const ManualLabel = styled.span`
+  font-size: ${st.fontSm};
+  font-weight: 600;
+  color: ${st.text};
+`;
+
+const ManualDesc = styled.span`
+  font-size: ${st.fontXs};
+  color: ${st.textMuted};
+  line-height: 1.5;
+`;
+
+const FormFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid ${st.border};
+  background: ${st.bg};
+`;
+
+const CancelBtn = styled.button`
+  padding: 8px 18px;
+  font-size: ${st.fontSm};
+  font-weight: 500;
+  background: transparent;
+  color: ${st.textSecondary};
+  border: 1px solid ${st.border};
+  border-radius: ${st.radiusFull};
+  cursor: pointer;
+  transition: all ${st.transition};
+
+  &:hover { background: ${st.bgCardAlt}; border-color: ${st.borderHover}; }
+`;
+
+const SubmitBtn = styled.button`
+  padding: 8px 22px;
+  font-size: ${st.fontSm};
+  font-weight: 700;
+  background: ${st.accentBlue};
+  color: #fff;
+  border: none;
+  border-radius: ${st.radiusFull};
+  cursor: pointer;
+  box-shadow: ${st.shadowXs};
+  transition: all ${st.transition};
+
+  &:hover:not(:disabled) { background: #2563EB; }
+  &:active { transform: translateY(0); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+// ─── Service table ────────────────────────────────────────────────────────────
+
+const ServiceList = styled.div`
+  background: ${st.bgCard};
+  border: 1px solid ${st.border};
+  border-radius: ${st.radius};
+  box-shadow: ${st.shadowSm};
+  overflow: hidden;
+`;
+
+const ListHeader = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 64px 160px 90px 72px;
+  gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid ${st.border};
+  background: ${st.bg};
+`;
+
+const ColLabel = styled.span`
+  font-size: ${st.fontXs};
+  font-weight: 700;
+  color: ${st.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+`;
+
+const ServiceRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 64px 160px 90px 72px;
+  gap: 8px;
+  align-items: center;
+  padding: 13px 20px;
+  border-bottom: 1px solid ${st.border};
+  transition: background ${st.transition};
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: ${st.bg}; }
+`;
+
+const RowNameCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+`;
+
+const ServiceName = styled.span<{ $muted?: boolean }>`
+  font-size: ${st.fontSm};
+  font-weight: 600;
+  color: ${p => p.$muted ? st.textMuted : st.text};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const ManualBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: ${st.fontXs};
+  font-weight: 600;
+  background: ${st.accentAmberDim};
+  color: ${st.accentAmber};
+  border-radius: ${st.radiusFull};
+  white-space: nowrap;
+  flex-shrink: 0;
+`;
+
+const VatBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 9px;
+  font-size: ${st.fontXs};
+  font-weight: 700;
+  background: ${st.accentBlueDim};
+  color: ${st.accentBlue};
+  border-radius: ${st.radiusFull};
+  white-space: nowrap;
+`;
+
+const PriceCell = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+`;
+
+const PriceNet = styled.span`
+  font-size: ${st.fontSm};
+  font-weight: 700;
+  color: ${st.text};
+  white-space: nowrap;
+`;
+
+const PriceGross = styled.span`
+  font-size: ${st.fontXs};
+  color: ${st.textMuted};
+  white-space: nowrap;
+`;
+
+const StatusCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 5px;
+`;
+
+const StatusDot = styled.div<{ $active: boolean }>`
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: ${p => p.$active ? st.accentGreen : st.textMuted};
+`;
+
+const StatusLabel = styled.span<{ $active: boolean }>`
+  font-size: ${st.fontXs};
+  font-weight: 600;
+  color: ${p => p.$active ? st.accentGreen : st.textMuted};
+`;
+
+const ActionsCell = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+`;
+
+const ActionBtn = styled.button<{ $danger?: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: ${st.radiusSm};
+  border: 1px solid transparent;
+  background: transparent;
+  color: ${p => p.$danger ? st.accentRed : st.textMuted};
+  cursor: pointer;
+  transition: all ${st.transition};
+
+  &:hover:not(:disabled) {
+    background: ${p => p.$danger ? st.accentRedDim : st.bgCardAlt};
+    border-color: ${p => p.$danger ? `${st.accentRed}30` : st.border};
+    color: ${p => p.$danger ? st.accentRed : st.text};
+  }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+`;
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
+const SkeletonBox = styled.div<{ $w?: string }>`
+  height: 13px;
+  width: ${p => p.$w ?? '100%'};
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: ${shimmer} 1.5s infinite;
+  border-radius: 4px;
+`;
+
+const SkeletonRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 64px 160px 90px 72px;
+  gap: 8px;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid ${st.border};
+
+  &:last-child { border-bottom: none; }
+`;
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
+
+const EmptyWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 10px;
+  text-align: center;
+`;
+
+const EmptyTitle = styled.p`
+  margin: 0;
+  font-size: ${st.fontSm};
+  font-weight: 600;
+  color: ${st.textSecondary};
+`;
+
+const EmptyDesc = styled.p`
+  margin: 0;
+  font-size: ${st.fontXs};
+  color: ${st.textMuted};
+  line-height: 1.6;
+`;
+
+// ─── Pagination ───────────────────────────────────────────────────────────────
+
+const Pager = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-top: 1px solid ${st.border};
+  background: ${st.bg};
+`;
+
+const PagerInfo = styled.span`
+  font-size: ${st.fontXs};
+  color: ${st.textMuted};
+`;
+
+const PagerControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const PagerBtn = styled.button<{ $active?: boolean }>`
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: ${st.fontXs};
+  font-weight: ${p => p.$active ? 700 : 500};
+  border-radius: ${st.radiusSm};
+  border: 1px solid ${p => p.$active ? `${st.accentBlue}40` : st.border};
+  background: ${p => p.$active ? st.accentBlueDim : st.bgCard};
+  color: ${p => p.$active ? st.accentBlue : st.textSecondary};
+  cursor: pointer;
+  transition: all ${st.transition};
+
+  &:hover:not(:disabled) { background: ${st.bgCardAlt}; border-color: ${st.borderHover}; }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+`;
+
+// ─── Archive dialog ───────────────────────────────────────────────────────────
+
+const Overlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: ${st.bgOverlay};
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+`;
+
+const Dialog = styled.div`
+  background: ${st.bgCard};
+  border-radius: ${st.radius};
+  padding: 28px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: ${st.shadowLg};
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: ${expandDown} 200ms ease both;
+`;
+
+const DialogTitle = styled.h3`
+  margin: 0;
+  font-size: ${st.fontMd};
+  font-weight: 700;
+  color: ${st.text};
+`;
+
+const DialogText = styled.p`
+  margin: 0;
+  font-size: ${st.fontSm};
+  color: ${st.textSecondary};
+  line-height: 1.65;
+`;
+
+const DialogActions = styled.div`
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+`;
+
+const DangerBtn = styled.button`
+  padding: 8px 20px;
+  font-size: ${st.fontSm};
+  font-weight: 700;
+  background: ${st.accentRed};
+  color: #fff;
+  border: none;
+  border-radius: ${st.radiusFull};
+  cursor: pointer;
+  transition: background ${st.transition};
+
+  &:hover:not(:disabled) { background: #DC2626; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const VAT_OPTIONS: { value: VatRate; label: string }[] = [
+  { value: 23, label: '23%' },
+  { value: 8,  label: '8%'  },
+  { value: 5,  label: '5%'  },
+  { value: 0,  label: '0%'  },
+  { value: -1, label: 'zw.' },
+];
+
+const formatPLN = (grosze: number): string => {
+  const formatted = formatMoneyAmount(grosze);
+  return `${parseFloat(formatted).toLocaleString('pl-PL', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} zł`;
+};
+
+const vatLabel = (rate: VatRate): string => (rate === -1 ? 'zw.' : `${rate}%`);
+
+function buildPageNumbers(current: number, total: number): (number | '…')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages: (number | '…')[] = [1];
+  if (current > 3) pages.push('…');
+  for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) {
+    pages.push(p);
+  }
+  if (current < total - 2) pages.push('…');
+  pages.push(total);
+  return pages;
+}
+
+// ─── Form types ───────────────────────────────────────────────────────────────
+
+interface FormValues {
+  name: string;
+  priceInput: string;
+  vatRate: VatRate;
+  requireManualPrice: boolean;
+}
+
+interface FormErrors {
+  name?: string;
+  priceInput?: string;
+}
+
+const EMPTY_FORM: FormValues = {
+  name: '',
+  priceInput: '',
+  vatRate: 23,
+  requireManualPrice: false,
+};
+
+function serviceToForm(s: Service): FormValues {
+  return {
+    name: s.name,
+    priceInput: s.requireManualPrice
+      ? ''
+      : String(parseFloat(formatMoneyAmount(s.basePriceNet)).toFixed(2)).replace('.', ','),
+    vatRate: s.vatRate,
+    requireManualPrice: s.requireManualPrice,
+  };
+}
+
+function validateForm(v: FormValues): FormErrors {
+  const errors: FormErrors = {};
+  const name = v.name.trim();
+  if (!name) {
+    errors.name = 'Nazwa jest wymagana';
+  } else if (name.length < 3) {
+    errors.name = 'Nazwa musi mieć co najmniej 3 znaki';
+  } else if (name.length > 100) {
+    errors.name = 'Nazwa może mieć maksymalnie 100 znaków';
+  }
+  if (!v.requireManualPrice) {
+    const amount = parseMoneyInput(v.priceInput);
+    if (isNaN(amount) || amount < 0) {
+      errors.priceInput = 'Podaj poprawną cenę netto';
+    }
+  }
+  return errors;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+type FormMode = 'add' | 'edit';
+
+const PAGE_SIZE = 15;
+
+export const ServicesSection: React.FC = () => {
+  const [search, setSearch]               = useState('');
+  const [debouncedSearch, setDebounced]   = useState('');
+  const [page, setPage]                   = useState(1);
+  const [showInactive, setShowInactive]   = useState(false);
+
+  const [formMode, setFormMode]           = useState<FormMode | null>(null);
+  const [editTarget, setEditTarget]       = useState<Service | null>(null);
+  const [formValues, setFormValues]       = useState<FormValues>(EMPTY_FORM);
+  const [formErrors, setFormErrors]       = useState<FormErrors>({});
+
+  const [archiveTarget, setArchiveTarget] = useState<Service | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => { setDebounced(search); setPage(1); }, 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const filters = { search: debouncedSearch, page, limit: PAGE_SIZE, showInactive };
+  const { services, pagination, isLoading } = useServices(filters);
+
+  const createMutation  = useCreateService();
+  const updateMutation  = useUpdateService();
+  const archiveMutation = useArchiveService();
+
+  const isSaving   = createMutation.isPending || updateMutation.isPending;
+  const totalItems = pagination?.totalItems ?? 0;
+  const totalPages = pagination?.totalPages ?? 1;
+
+  // ── Gross preview ──
+  const grossPreview = (() => {
+    if (formValues.requireManualPrice || !formValues.priceInput.trim()) return null;
+    const net = parseMoneyInput(formValues.priceInput);
+    if (isNaN(net) || net < 0) return null;
+    return formatPLN(calculateGrossFromNet(net, formValues.vatRate).priceGross);
+  })();
+
+  // ── Form handlers ──
+  const openAdd = () => {
+    setFormMode('add');
+    setEditTarget(null);
+    setFormValues(EMPTY_FORM);
+    setFormErrors({});
+  };
+
+  const openEdit = (s: Service) => {
+    setFormMode('edit');
+    setEditTarget(s);
+    setFormValues(serviceToForm(s));
+    setFormErrors({});
+  };
+
+  const closeForm = () => { setFormMode(null); setEditTarget(null); };
+
+  const setField = <K extends keyof FormValues>(key: K, value: FormValues[K]) => {
+    setFormValues(prev => ({ ...prev, [key]: value }));
+    if (key in formErrors) setFormErrors(prev => ({ ...prev, [key]: undefined }));
+  };
+
+  const handleSubmit = async () => {
+    const errors = validateForm(formValues);
+    if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
+
+    const basePriceNet = formValues.requireManualPrice ? 0 : parseMoneyInput(formValues.priceInput);
+
+    if (formMode === 'add') {
+      await createMutation.mutateAsync({
+        name: formValues.name.trim(),
+        basePriceNet,
+        vatRate: formValues.vatRate,
+        requireManualPrice: formValues.requireManualPrice,
+      });
+    } else if (editTarget) {
+      await updateMutation.mutateAsync({
+        originalServiceId: editTarget.id,
+        name: formValues.name.trim(),
+        basePriceNet,
+        vatRate: formValues.vatRate,
+        requireManualPrice: formValues.requireManualPrice,
+      });
+    }
+    closeForm();
+  };
+
+  const handleArchiveConfirm = async () => {
+    if (!archiveTarget) return;
+    await archiveMutation.mutateAsync(archiveTarget.id);
+    setArchiveTarget(null);
+  };
+
+  const pageNumbers = buildPageNumbers(page, totalPages);
+
+  return (
+    <Container>
+      {/* ── Toolbar ── */}
+      <Toolbar>
+        <SearchWrap>
+          <SearchIconWrap>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </SearchIconWrap>
+          <SearchInput
+            placeholder="Szukaj usługi…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </SearchWrap>
+
+        <ToggleFilterBtn $on={showInactive} onClick={() => { setShowInactive(v => !v); setPage(1); }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {showInactive ? (
+              <>
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </>
+            ) : (
+              <>
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </>
+            )}
+          </svg>
+          Pokaż archiwalne
+        </ToggleFilterBtn>
+
+        <AddButton onClick={openAdd} disabled={formMode !== null}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Dodaj usługę
+        </AddButton>
+      </Toolbar>
+
+      {/* ── Stats ── */}
+      <StatsRow>
+        {!isLoading && (
+          <StatText>
+            <strong>{totalItems}</strong>{' '}
+            {showInactive ? 'usług łącznie (w tym archiwalne)' : 'aktywnych usług'}
+          </StatText>
+        )}
+      </StatsRow>
+
+      {/* ── Form panel ── */}
+      {formMode !== null && (
+        <FormPanel>
+          <FormHeader>
+            <FormTitle>
+              {formMode === 'add' ? 'Nowa usługa' : `Edytuj: ${editTarget?.name}`}
+            </FormTitle>
+            <CloseBtn onClick={closeForm} aria-label="Zamknij">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </CloseBtn>
+          </FormHeader>
+
+          <FormBody>
+            {/* Nazwa */}
+            <FormField>
+              <FieldLabel>Nazwa usługi</FieldLabel>
+              <FieldInput
+                placeholder="np. Mycie ręczne premium"
+                value={formValues.name}
+                onChange={e => setField('name', e.target.value)}
+                $error={!!formErrors.name}
+                autoFocus
+              />
+              {formErrors.name && <ErrorMsg>{formErrors.name}</ErrorMsg>}
+            </FormField>
+
+            {/* Cena / VAT / Brutto */}
+            <FormRow>
+              <FormField>
+                <FieldLabel>Cena netto</FieldLabel>
+                <FieldInput
+                  placeholder={formValues.requireManualPrice ? 'Wycena ręczna' : 'np. 150,00'}
+                  value={formValues.priceInput}
+                  onChange={e => setField('priceInput', e.target.value)}
+                  disabled={formValues.requireManualPrice}
+                  $error={!!formErrors.priceInput}
+                />
+                {formErrors.priceInput && <ErrorMsg>{formErrors.priceInput}</ErrorMsg>}
+              </FormField>
+
+              <FormField>
+                <FieldLabel>Stawka VAT</FieldLabel>
+                <FieldSelect
+                  value={formValues.vatRate}
+                  onChange={e => setField('vatRate', Number(e.target.value) as VatRate)}
+                >
+                  {VAT_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </FieldSelect>
+              </FormField>
+
+              <FormField>
+                <FieldLabel>Cena brutto</FieldLabel>
+                <GrossPreview>
+                  {grossPreview ?? <span style={{ color: st.textMuted }}>–</span>}
+                </GrossPreview>
+              </FormField>
+            </FormRow>
+
+            {/* Wycena ręczna */}
+            <ManualRow onClick={() => setField('requireManualPrice', !formValues.requireManualPrice)}>
+              <ToggleTrack $on={formValues.requireManualPrice}>
+                <ToggleThumb $on={formValues.requireManualPrice} />
+              </ToggleTrack>
+              <ManualTextWrap>
+                <ManualLabel>Wycena ręczna</ManualLabel>
+                <ManualDesc>
+                  Cena będzie ustalana indywidualnie podczas tworzenia zlecenia
+                </ManualDesc>
+              </ManualTextWrap>
+            </ManualRow>
+          </FormBody>
+
+          <FormFooter>
+            <CancelBtn onClick={closeForm}>Anuluj</CancelBtn>
+            <SubmitBtn onClick={handleSubmit} disabled={isSaving}>
+              {isSaving
+                ? (formMode === 'add' ? 'Dodawanie…' : 'Zapisywanie…')
+                : (formMode === 'add' ? 'Dodaj usługę' : 'Zapisz zmiany')}
+            </SubmitBtn>
+          </FormFooter>
+        </FormPanel>
+      )}
+
+      {/* ── List ── */}
+      <ServiceList>
+        <ListHeader>
+          <ColLabel>Usługa</ColLabel>
+          <ColLabel style={{ textAlign: 'center' }}>VAT</ColLabel>
+          <ColLabel style={{ textAlign: 'right' }}>Cena</ColLabel>
+          <ColLabel>Status</ColLabel>
+          <ColLabel />
+        </ListHeader>
+
+        {isLoading ? (
+          Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonRow key={i}>
+              <SkeletonBox $w={`${42 + (i % 4) * 10}%`} />
+              <SkeletonBox $w="36px" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'flex-end' }}>
+                <SkeletonBox $w="90px" />
+                <SkeletonBox $w="70px" />
+              </div>
+              <SkeletonBox $w="56px" />
+              <SkeletonBox $w="52px" />
+            </SkeletonRow>
+          ))
+        ) : services.length === 0 ? (
+          <EmptyWrap>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={st.border} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+            <EmptyTitle>Brak usług</EmptyTitle>
+            <EmptyDesc>
+              {debouncedSearch
+                ? 'Żadna usługa nie pasuje do wyszukiwania.'
+                : 'Dodaj pierwszą usługę klikając „Dodaj usługę".'}
+            </EmptyDesc>
+          </EmptyWrap>
+        ) : (
+          services.map(service => {
+            const calc = !service.requireManualPrice
+              ? calculateGrossFromNet(service.basePriceNet, service.vatRate)
+              : null;
+
+            return (
+              <ServiceRow key={service.id}>
+                <RowNameCell>
+                  <ServiceName $muted={!service.isActive}>{service.name}</ServiceName>
+                  {service.requireManualPrice && <ManualBadge>Wycena ręczna</ManualBadge>}
+                </RowNameCell>
+
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <VatBadge>{vatLabel(service.vatRate)}</VatBadge>
+                </div>
+
+                {service.requireManualPrice ? (
+                  <PriceCell>
+                    <PriceNet style={{ color: st.textMuted }}>–</PriceNet>
+                  </PriceCell>
+                ) : (
+                  <PriceCell>
+                    <PriceNet>{formatPLN(service.basePriceNet)}</PriceNet>
+                    {calc && <PriceGross>{formatPLN(calc.priceGross)} brutto</PriceGross>}
+                  </PriceCell>
+                )}
+
+                <StatusCell>
+                  <StatusDot $active={service.isActive} />
+                  <StatusLabel $active={service.isActive}>
+                    {service.isActive ? 'Aktywna' : 'Archiwalna'}
+                  </StatusLabel>
+                </StatusCell>
+
+                <ActionsCell>
+                  {service.isActive && (
+                    <>
+                      <ActionBtn
+                        title="Edytuj"
+                        disabled={formMode !== null}
+                        onClick={() => openEdit(service)}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                      </ActionBtn>
+                      <ActionBtn
+                        $danger
+                        title="Archiwizuj"
+                        onClick={() => setArchiveTarget(service)}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="21 8 21 21 3 21 3 8"/>
+                          <rect x="1" y="3" width="22" height="5"/>
+                          <line x1="10" y1="12" x2="14" y2="12"/>
+                        </svg>
+                      </ActionBtn>
+                    </>
+                  )}
+                </ActionsCell>
+              </ServiceRow>
+            );
+          })
+        )}
+
+        {/* ── Pagination ── */}
+        {!isLoading && totalPages > 1 && (
+          <Pager>
+            <PagerInfo>
+              {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, totalItems)} z {totalItems}
+            </PagerInfo>
+            <PagerControls>
+              <PagerBtn
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                title="Poprzednia"
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </PagerBtn>
+              {pageNumbers.map((n, i) =>
+                n === '…' ? (
+                  <PagerBtn key={`e${i}`} disabled style={{ cursor: 'default' }}>…</PagerBtn>
+                ) : (
+                  <PagerBtn key={n} $active={n === page} onClick={() => setPage(n)}>
+                    {n}
+                  </PagerBtn>
+                )
+              )}
+              <PagerBtn
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                title="Następna"
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </PagerBtn>
+            </PagerControls>
+          </Pager>
+        )}
+      </ServiceList>
+
+      {/* ── Archive dialog ── */}
+      {archiveTarget && (
+        <Overlay onClick={e => e.target === e.currentTarget && setArchiveTarget(null)}>
+          <Dialog>
+            <DialogTitle>Archiwizuj usługę</DialogTitle>
+            <DialogText>
+              Czy na pewno chcesz zarchiwizować usługę{' '}
+              <strong>„{archiveTarget.name}"</strong>?{' '}
+              Usługa nie będzie dostępna przy tworzeniu nowych zleceń, ale
+              historyczne wizyty pozostaną niezmienione.
+            </DialogText>
+            <DialogActions>
+              <CancelBtn onClick={() => setArchiveTarget(null)}>Anuluj</CancelBtn>
+              <DangerBtn
+                onClick={handleArchiveConfirm}
+                disabled={archiveMutation.isPending}
+              >
+                {archiveMutation.isPending ? 'Archiwizowanie…' : 'Archiwizuj'}
+              </DangerBtn>
+            </DialogActions>
+          </Dialog>
+        </Overlay>
+      )}
+    </Container>
+  );
+};
