@@ -29,7 +29,7 @@ const PopoverContainer = styled.div<{ $x: number; $y: number }>`
         0 12px 24px rgba(0, 0, 0, 0.06),
         0 24px 48px rgba(0, 0, 0, 0.08);
     width: 390px;
-    max-height: 600px;
+    max-height: 580px;
     z-index: 1000;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.8);
@@ -80,6 +80,7 @@ const EventType = styled.div`
     font-weight: 700;
     position: relative;
     z-index: 1;
+    margin-bottom: 6px;
 `;
 
 const PopoverBody = styled.div`
@@ -715,6 +716,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
             <PopoverContainer $x={position.x} $y={position.y}>
                 <PopoverHeader $color={event.colorHex || '#3b82f6'}>
                     <EventType>{isAppointment ? 'Rezerwacja' : 'Wizyta'}</EventType>
+                    <EventTitle>{event.title}</EventTitle>
                 </PopoverHeader>
 
                 <PopoverBody>
