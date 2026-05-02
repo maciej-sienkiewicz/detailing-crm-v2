@@ -64,7 +64,7 @@ const PopoverHeader = styled.div<{ $color: string }>`
 `;
 
 const EventTitle = styled.h3`
-    margin: 0 0 8px;
+    margin: 0;
     font-size: 18px;
     font-weight: 700;
     color: inherit;
@@ -222,7 +222,6 @@ const PricesContainer = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
-    margin-top: 12px;
 `;
 
 const PriceTag = styled.div`
@@ -466,6 +465,7 @@ const NotesContainer = styled.div`
     background: linear-gradient(135deg, #fef3c7, #fde68a);
     border-radius: 12px;
     border-left: 4px solid #f59e0b;
+    margin-bottom: 20px;
 `;
 
 const NotesLabel = styled.div`
@@ -475,9 +475,6 @@ const NotesLabel = styled.div`
     text-transform: uppercase;
     letter-spacing: 1.2px;
     margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
 `;
 
 const NotesText = styled.div`
@@ -748,7 +745,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
 
                     <InfoColumns>
                         {/* Klient */}
-                        <Section>
+                        <div>
                             <SectionTitle>Klient</SectionTitle>
                             {event.customerId ? (
                                 <InfoRowLink onClick={() => { onClose(); navigate(`/customers/${event.customerId}`); }}>
@@ -786,21 +783,10 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                     <InfoValue>{event.customerPhone}</InfoValue>
                                 </InfoRow>
                             )}
-                            {event.customerEmail && (
-                                <InfoRow>
-                                    <InfoIcon>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                                            <polyline points="22,6 12,13 2,6" />
-                                        </svg>
-                                    </InfoIcon>
-                                    <InfoValue>{event.customerEmail}</InfoValue>
-                                </InfoRow>
-                            )}
-                        </Section>
+                        </div>
 
                         {/* Pojazd */}
-                        <Section>
+                        <div>
                             <SectionTitle>Pojazd</SectionTitle>
                             {event.vehicleId ? (
                                 <InfoRowLink onClick={() => { onClose(); navigate(`/vehicles/${event.vehicleId}`); }}>
@@ -830,36 +816,32 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                     <InfoValue>{event.vehicleInfo || '—'}</InfoValue>
                                 </InfoRow>
                             )}
-                        </Section>
+                        </div>
                     </InfoColumns>
 
-                    {/* SMS — tylko dla rezerwacji */}
-                    {isAppointment && (
+                    {/* SMS — tylko dla rezerwacji, nie dla anulowanych/porzuconych */}
+                    {isAppointment && !isCancelled && (
                         <AppointmentSmsRow appointmentId={event.id} />
                     )}
 
-                    {/* Usługi - tylko dla rezerwacji */}
-                    {isAppointment && (event as AppointmentEventData).serviceNames && (
-                        <Section>
+                    {/* Usługi - tylko dla rezerwacji z przypisanymi usługami */}
+                    {isAppointment && (event as AppointmentEventData).serviceNames?.length > 0 && (
+                        <div style={{ marginBottom: '20px' }}>
                             <SectionTitle>Usługi</SectionTitle>
-                            {(event as AppointmentEventData).serviceNames.length > 0 ? (
-                                <ServicesList>
-                                    {(event as AppointmentEventData).serviceNames.map((service, index) => (
-                                        <ServiceItem key={index}>
-                                            <ServiceBullet />
-                                            {service}
-                                        </ServiceItem>
-                                    ))}
-                                </ServicesList>
-                            ) : (
-                                <EmptyState>Brak przypisanych usług</EmptyState>
-                            )}
-                        </Section>
+                            <ServicesList>
+                                {(event as AppointmentEventData).serviceNames.map((service, index) => (
+                                    <ServiceItem key={index}>
+                                        <ServiceBullet />
+                                        {service}
+                                    </ServiceItem>
+                                ))}
+                            </ServicesList>
+                        </div>
                     )}
 
                     {/* Status - dla wizyt */}
                     {!isAppointment && (
-                        <Section>
+                        <div style={{ marginBottom: '20px' }}>
                             <SectionTitle>Status</SectionTitle>
                             <InfoRow>
                                 <InfoIcon>
@@ -870,22 +852,15 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                 </InfoIcon>
                                 <InfoValue>{formatStatus(event.status) || '—'}</InfoValue>
                             </InfoRow>
-                        </Section>
+                        </div>
                     )}
 
                     {/* Notatka */}
                     {eventNote && (
-                        <Section>
-                            <NotesContainer>
-                                <NotesLabel>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '14px', height: '14px' }}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                    </svg>
-                                    {isAppointment ? 'Notatka' : 'Notatka'}
-                                </NotesLabel>
-                                <NotesText>{eventNote}</NotesText>
-                            </NotesContainer>
-                        </Section>
+                        <NotesContainer>
+                            <NotesLabel>Notatka</NotesLabel>
+                            <NotesText>{eventNote}</NotesText>
+                        </NotesContainer>
                     )}
 
                     {/* Ceny */}
