@@ -552,6 +552,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             onFocus={() => form.setFocusedField('vehicle')}
                                                             onBlur={() => form.setFocusedField(null)}
                                                             autoComplete="new-password"
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    e.preventDefault();
+                                                                    form.handleConfirmVehicleEdit();
+                                                                }
+                                                            }}
                                                         />
                                                     </S.CustomerFieldGroup>
                                                 </S.VehicleInputRow>
@@ -715,6 +721,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             onFocus={() => form.setFocusedField('vehicle')}
                                                             onBlur={() => form.setFocusedField(null)}
                                                             autoComplete="new-password"
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    e.preventDefault();
+                                                                    form.handleAddNewVehicleDirectly();
+                                                                }
+                                                            }}
                                                         />
                                                     </S.CustomerFieldGroup>
                                                 </S.VehicleInputRow>
@@ -756,6 +768,16 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                             onBlur={() => {
                                                 form.setFocusedField(null);
                                                 setTimeout(() => form.setShowServiceDropdown(false), 200);
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    if (form.serviceSearch.trim() && form.filteredServices.length === 0) {
+                                                        form.setIsQuickServiceModalOpen(true);
+                                                        form.setShowServiceDropdown(false);
+                                                        form.setFocusedField(null);
+                                                    }
+                                                }
                                             }}
                                         />
                                         {form.showServiceDropdown && serviceDropdownPos && createPortal(
