@@ -474,6 +474,7 @@ const StatusCell = styled.div`
   display: flex;
   align-items: center;
   gap: 5px;
+  padding-left: 14px;
 `;
 
 const StatusDot = styled.div<{ $active: boolean }>`
@@ -1038,7 +1039,7 @@ export const ServicesSection: React.FC = () => {
           <ColLabel>Usługa</ColLabel>
           <ColLabel style={{ textAlign: 'center' }}>VAT</ColLabel>
           <ColLabel style={{ textAlign: 'right' }}>Cena</ColLabel>
-          <ColLabel>Status</ColLabel>
+          <ColLabel style={{ paddingLeft: '14px' }}>Status</ColLabel>
           <ColLabel />
         </ListHeader>
 
