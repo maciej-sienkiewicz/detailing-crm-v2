@@ -139,7 +139,17 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     if (customerFields.includes(target)) {
                                         e.preventDefault();
                                         form.handleConfirmEdit();
+                                        return;
                                     }
+                                }
+                                if (target === form.vehicleYearInputRef.current) {
+                                    e.preventDefault();
+                                    if (form.vehicleEditMode) {
+                                        form.handleConfirmVehicleEdit();
+                                    } else {
+                                        form.handleAddNewVehicleDirectly();
+                                    }
+                                    return;
                                 }
                             }
                         }}
