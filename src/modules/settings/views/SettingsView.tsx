@@ -2,6 +2,7 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { CompanySection } from '../components/CompanySection';
 import { DocumentsSection } from '../components/DocumentsSection';
+import { AutomationSettings } from '@/modules/sms-campaigns/components/AutomationSettings';
 
 // ─── Nav definition ──────────────────────────────────────────────────────────
 
@@ -57,7 +58,7 @@ const NAV_GROUPS: NavGroup[] = [
     {
         group: 'Komunikacja',
         items: [
-            { id: 'templates',  label: 'Szablony wiadomości',       icon: <MessageIcon /> },
+            { id: 'templates',  label: 'Szablony SMS',               icon: <MessageIcon /> },
             { id: 'reminders',  label: 'Automatyczne przypomnienia', icon: <BellIcon /> },
             { id: 'documents',  label: 'Dokumenty i podpisy',        icon: <FileSignIcon /> },
         ],
@@ -255,6 +256,8 @@ export function SettingsView() {
         content = <CompanySection />;
     } else if (section === 'documents') {
         content = <DocumentsSection />;
+    } else if (section === 'templates') {
+        content = <AutomationSettings />;
     } else {
         content = <ComingSoonSection label={activeLabel} />;
     }

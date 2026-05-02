@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Plus, X } from 'lucide-react';
 import { CampaignList } from '../components/CampaignList';
-import { AutomationSettings } from '../components/AutomationSettings';
 import { AiCampaignCreator } from '../components/AiCampaignCreator';
 import { useCampaigns, useDeleteCampaign, useSendCampaign } from '../hooks';
 import type { SmsCampaign } from '../types';
@@ -84,31 +83,6 @@ const NewCampaignBtn = styled.button`
 
   &:hover { background: #1E293B; transform: translateY(-1px); }
   &:active { transform: translateY(0); }
-`;
-
-// ─── Tabs ─────────────────────────────────────────────────────────────────────
-
-const TabBar = styled.div`
-  display: flex;
-  border-bottom: 1px solid #E2E8F0;
-  margin-bottom: 24px;
-  gap: 0;
-`;
-
-const TabBtn = styled.button<{ $active: boolean }>`
-  padding: 10px 18px;
-  font-size: 13px;
-  font-weight: ${p => p.$active ? 600 : 400};
-  color: ${p => p.$active ? '#0F172A' : '#94A3B8'};
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid ${p => p.$active ? '#0F172A' : 'transparent'};
-  margin-bottom: -1px;
-  cursor: pointer;
-  transition: color 150ms, border-color 150ms;
-  white-space: nowrap;
-
-  &:hover { color: ${p => p.$active ? '#0F172A' : '#475569'}; }
 `;
 
 // ─── Creator panel (inline, above the list) ───────────────────────────────────
@@ -257,8 +231,6 @@ const RetryBtn = styled.button`
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Tab = 'campaigns' | 'automation';
-
 interface ConfirmState {
   type: 'send' | 'delete';
   campaign: SmsCampaign;
@@ -267,7 +239,6 @@ interface ConfirmState {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const SmsCampaignsView: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<Tab>('campaigns');
   const [isCreatorOpen, setIsCreatorOpen] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [sendingId, setSendingId] = useState<string | undefined>();
@@ -304,65 +275,45 @@ export const SmsCampaignsView: React.FC = () => {
           <PageTitle>Kampanie SMS</PageTitle>
           <PageSubtitle>Zarządzaj wiadomościami do klientów</PageSubtitle>
         </TitleBlock>
-        {activeTab === 'campaigns' && (
-          <NewCampaignBtn onClick={() => { setIsCreatorOpen(true); }}>
-            <Plus size={14} strokeWidth={2.5} />
-            Nowa kampania
-          </NewCampaignBtn>
-        )}
+        <NewCampaignBtn onClick={() => { setIsCreatorOpen(true); }}>
+          <Plus size={14} strokeWidth={2.5} />
+          Nowa kampania
+        </NewCampaignBtn>
       </Header>
 
-      {/* ── Tabs ── */}
-      <TabBar>
-        <TabBtn $active={activeTab === 'campaigns'} onClick={() => setActiveTab('campaigns')}>
-          Kampanie
-        </TabBtn>
-        <TabBtn $active={activeTab === 'automation'} onClick={() => setActiveTab('automation')}>
-          Automatyzacja
-        </TabBtn>
-      </TabBar>
-
-      {/* ── Campaigns tab ── */}
-      {activeTab === 'campaigns' && (
-        <>
-          {/* Inline creator panel */}
-          {isCreatorOpen && (
-            <CreatorPanel>
-              <CreatorHeader>
-                <CreatorTitle>Nowa kampania</CreatorTitle>
-                <CloseBtn onClick={() => setIsCreatorOpen(false)} aria-label="Zamknij">
-                  <X size={14} strokeWidth={2} />
-                </CloseBtn>
-              </CreatorHeader>
-              <CreatorBody>
-                <AiCampaignCreator
-                  onClose={() => setIsCreatorOpen(false)}
-                  onSuccess={handleCreatorSuccess}
-                />
-              </CreatorBody>
-            </CreatorPanel>
-          )}
-
-          {/* Campaign list */}
-          {isError ? (
-            <ErrorBar>
-              Nie udało się załadować kampanii.
-              <RetryBtn onClick={() => refetch()}>Spróbuj ponownie</RetryBtn>
-            </ErrorBar>
-          ) : (
-            <CampaignList
-              campaigns={campaigns}
-              isLoading={isLoading}
-              onSend={handleSend}
-              onDelete={handleDelete}
-              sendingId={sendingId}
+      {/* ── Inline creator panel ── */}
+      {isCreatorOpen && (
+        <CreatorPanel>
+          <CreatorHeader>
+            <CreatorTitle>Nowa kampania</CreatorTitle>
+            <CloseBtn onClick={() => setIsCreatorOpen(false)} aria-label="Zamknij">
+              <X size={14} strokeWidth={2} />
+            </CloseBtn>
+          </CreatorHeader>
+          <CreatorBody>
+            <AiCampaignCreator
+              onClose={() => setIsCreatorOpen(false)}
+              onSuccess={handleCreatorSuccess}
             />
-          )}
-        </>
+          </CreatorBody>
+        </CreatorPanel>
       )}
 
-      {/* ── Automation tab ── */}
-      {activeTab === 'automation' && <AutomationSettings />}
+      {/* ── Campaign list ── */}
+      {isError ? (
+        <ErrorBar>
+          Nie udało się załadować kampanii.
+          <RetryBtn onClick={() => refetch()}>Spróbuj ponownie</RetryBtn>
+        </ErrorBar>
+      ) : (
+        <CampaignList
+          campaigns={campaigns}
+          isLoading={isLoading}
+          onSend={handleSend}
+          onDelete={handleDelete}
+          sendingId={sendingId}
+        />
+      )}
 
       {/* ── Confirm dialog ── */}
       {confirm && (
