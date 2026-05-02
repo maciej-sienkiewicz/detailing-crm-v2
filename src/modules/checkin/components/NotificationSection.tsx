@@ -48,7 +48,6 @@ export interface NotificationOptions {
 }
 
 export const defaultNotificationOptions = (hasProtocol = true): NotificationOptions => ({
-    sendSms: true,
     sendEmail: true,
     emailOptions: {
         attachProtocol: hasProtocol,
@@ -59,7 +58,6 @@ export const defaultNotificationOptions = (hasProtocol = true): NotificationOpti
 });
 
 export const toConfirmVisitOptions = (opts: NotificationOptions): ConfirmVisitOptions => ({
-    sendSms: opts.sendSms || undefined,
     sendEmail: opts.sendEmail || undefined,
     emailOptions: opts.sendEmail
         ? {
@@ -249,7 +247,7 @@ interface NotificationSectionProps {
 }
 
 export const NotificationSection = ({ visitId, hasProtocol, options, onChange }: NotificationSectionProps) => {
-    const { sendSms, sendEmail, emailOptions } = options;
+    const { sendEmail, emailOptions } = options;
     const { attachProtocol, attachPhotos, selectedPhotoIds, attachDamageMap } = emailOptions;
 
     const updateEmailOptions = (patch: Partial<typeof emailOptions>) =>
@@ -268,14 +266,6 @@ export const NotificationSection = ({ visitId, hasProtocol, options, onChange }:
                 <SectionTitleIcon><BellIcon /></SectionTitleIcon>
                 <SectionTitle>Powiadomienia dla klienta</SectionTitle>
             </SectionHeader>
-
-            <NotifCardToggle
-                icon={<SmsIcon />}
-                label="Wyślij SMS potwierdzający"
-                description="Krótka wiadomość z informacją o rozpoczęciu wizyty"
-                active={sendSms}
-                onToggle={() => onChange({ ...options, sendSms: !sendSms })}
-            />
 
             <NotifCardToggle
                 icon={<EmailIcon />}
