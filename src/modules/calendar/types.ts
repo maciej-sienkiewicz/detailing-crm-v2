@@ -35,10 +35,10 @@ export type AppointmentStatus = 'CREATED' | 'ABANDONED' | 'CANCELLED';
 export interface CalendarEventData {
     id: string;
     type: CalendarEventType;
+    title: string;
     customerId?: string;
     customerName: string;
     customerPhone?: string;
-    customerEmail?: string;
     vehicleId?: string;
     vehicleInfo: string;
     status?: string;

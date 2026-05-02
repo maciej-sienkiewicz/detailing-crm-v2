@@ -60,13 +60,15 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
     const colorHex = isCancelled ? '#111827' : (appointment.appointmentColor?.hexColor || '#94a3b8');
     const textColor = getContrastingTextColor(colorHex);
 
+    const eventTitle = appointment.appointmentTitle || `${customerName} | ${vehicleInfo}`;
+
     const eventData: AppointmentEventData = {
         id: appointment.id,
         type: 'APPOINTMENT',
+        title: eventTitle,
         customerId: appointment.customerId,
         customerName,
         customerPhone: appointment.customer.phone,
-        customerEmail: appointment.customer.email,
         vehicleId: appointment.vehicleId ?? undefined,
         vehicleInfo,
         colorHex,
@@ -83,7 +85,7 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
 
     return {
         id: appointment.id,
-        title: appointment.appointmentTitle || `${customerName} | ${vehicleInfo}`,
+        title: eventTitle,
         start: appointment.schedule.startDateTime,
         end: appointment.schedule.endDateTime,
         allDay: appointment.schedule.isAllDay,
@@ -117,9 +119,12 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
     const textColor = getContrastingTextColor(colorHex);
     const overdue = isVisitOverdue(status, visit.estimatedCompletionDate);
 
+    const visitTitle = visit.title || `${visit.visitNumber} | ${customerName}`;
+
     const eventData: VisitEventData = {
         id: visit.id,
         type: 'VISIT',
+        title: visitTitle,
         customerId: visit.customerId,
         customerName,
         customerPhone: visit.customer.phone,
@@ -137,7 +142,7 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
 
     return {
         id: visit.id,
-        title: visit.title || `${visit.visitNumber} | ${customerName}`,
+        title: visitTitle,
         start: visit.scheduledDate,
         end: visit.estimatedCompletionDate,
         allDay: false,
