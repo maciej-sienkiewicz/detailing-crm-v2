@@ -9,6 +9,7 @@ import {
 } from '@/modules/services/hooks/useServices';
 import {
   calculateGrossFromNet,
+  calculateNetFromGross,
   formatMoneyAmount,
   parseMoneyInput,
 } from '@/modules/services/utils/priceCalculator';
@@ -193,7 +194,7 @@ const FormBody = styled.div`
 
 const FormRow = styled.div`
   display: grid;
-  grid-template-columns: 1fr 100px 130px;
+  grid-template-columns: 1fr 1fr 100px;
   gap: 12px;
   align-items: flex-start;
 `;
@@ -686,6 +687,12 @@ const formatPLN = (grosze: number): string => {
   })} zł`;
 };
 
+const formatDecimalInput = (grosze: number): string =>
+  formatMoneyAmount(grosze).replace('.', ',');
+
+const isValidPriceInput = (raw: string): boolean =>
+  raw === '' || /^\d*[,.]?\d{0,2}$/.test(raw);
+
 const vatLabel = (rate: VatRate): string => (rate === -1 ? 'zw.' : `${rate}%`);
 
 function buildPageNumbers(current: number, total: number): (number | '…')[] {
@@ -704,31 +711,35 @@ function buildPageNumbers(current: number, total: number): (number | '…')[] {
 
 interface FormValues {
   name: string;
-  priceInput: string;
+  netInput: string;
+  grossInput: string;
   vatRate: VatRate;
   requireManualPrice: boolean;
 }
 
 interface FormErrors {
   name?: string;
-  priceInput?: string;
+  netInput?: string;
 }
 
 const EMPTY_FORM: FormValues = {
   name: '',
-  priceInput: '',
+  netInput: '',
+  grossInput: '',
   vatRate: 23,
   requireManualPrice: false,
 };
 
 function serviceToForm(s: Service): FormValues {
+  if (s.requireManualPrice) {
+    return { name: s.name, netInput: '', grossInput: '', vatRate: s.vatRate, requireManualPrice: true };
+  }
   return {
     name: s.name,
-    priceInput: s.requireManualPrice
-      ? ''
-      : String(parseFloat(formatMoneyAmount(s.basePriceNet)).toFixed(2)).replace('.', ','),
+    netInput: formatDecimalInput(s.basePriceNet),
+    grossInput: formatDecimalInput(calculateGrossFromNet(s.basePriceNet, s.vatRate).priceGross),
     vatRate: s.vatRate,
-    requireManualPrice: s.requireManualPrice,
+    requireManualPrice: false,
   };
 }
 
@@ -743,9 +754,9 @@ function validateForm(v: FormValues): FormErrors {
     errors.name = 'Nazwa może mieć maksymalnie 100 znaków';
   }
   if (!v.requireManualPrice) {
-    const amount = parseMoneyInput(v.priceInput);
+    const amount = parseMoneyInput(v.netInput);
     if (isNaN(amount) || amount < 0) {
-      errors.priceInput = 'Podaj poprawną cenę netto';
+      errors.netInput = 'Podaj poprawną cenę netto';
     }
   }
   return errors;
@@ -786,14 +797,6 @@ export const ServicesSection: React.FC = () => {
   const totalItems = pagination?.totalItems ?? 0;
   const totalPages = pagination?.totalPages ?? 1;
 
-  // ── Gross preview ──
-  const grossPreview = (() => {
-    if (formValues.requireManualPrice || !formValues.priceInput.trim()) return null;
-    const net = parseMoneyInput(formValues.priceInput);
-    if (isNaN(net) || net < 0) return null;
-    return formatPLN(calculateGrossFromNet(net, formValues.vatRate).priceGross);
-  })();
-
   // ── Form handlers ──
   const openAdd = () => {
     setFormMode('add');
@@ -816,11 +819,48 @@ export const ServicesSection: React.FC = () => {
     if (key in formErrors) setFormErrors(prev => ({ ...prev, [key]: undefined }));
   };
 
+  const handleNetChange = (raw: string) => {
+    if (!isValidPriceInput(raw)) return;
+    const net = parseMoneyInput(raw);
+    const grossStr = raw.trim() === '' || net <= 0
+      ? ''
+      : formatDecimalInput(calculateGrossFromNet(net, formValues.vatRate).priceGross);
+    setFormValues(prev => ({ ...prev, netInput: raw, grossInput: grossStr }));
+    setFormErrors(prev => ({ ...prev, netInput: undefined }));
+  };
+
+  const handleGrossChange = (raw: string) => {
+    if (!isValidPriceInput(raw)) return;
+    const gross = parseMoneyInput(raw);
+    const netStr = raw.trim() === '' || gross <= 0
+      ? ''
+      : formatDecimalInput(calculateNetFromGross(gross, formValues.vatRate).priceNet);
+    setFormValues(prev => ({ ...prev, grossInput: raw, netInput: netStr }));
+    setFormErrors(prev => ({ ...prev, netInput: undefined }));
+  };
+
+  const handleVatChange = (vatRate: VatRate) => {
+    const net = parseMoneyInput(formValues.netInput);
+    const grossStr = formValues.netInput.trim() === '' || isNaN(net) || net <= 0
+      ? ''
+      : formatDecimalInput(calculateGrossFromNet(net, vatRate).priceGross);
+    setFormValues(prev => ({ ...prev, vatRate, grossInput: grossStr }));
+  };
+
+  const handleManualToggle = () => {
+    setFormValues(prev =>
+      prev.requireManualPrice
+        ? { ...prev, requireManualPrice: false }
+        : { ...prev, requireManualPrice: true, netInput: '', grossInput: '', vatRate: 23 }
+    );
+    setFormErrors(prev => ({ ...prev, netInput: undefined }));
+  };
+
   const handleSubmit = async () => {
     const errors = validateForm(formValues);
     if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
 
-    const basePriceNet = formValues.requireManualPrice ? 0 : parseMoneyInput(formValues.priceInput);
+    const basePriceNet = formValues.requireManualPrice ? 0 : parseMoneyInput(formValues.netInput);
 
     if (formMode === 'add') {
       await createMutation.mutateAsync({
@@ -929,42 +969,46 @@ export const ServicesSection: React.FC = () => {
               {formErrors.name && <ErrorMsg>{formErrors.name}</ErrorMsg>}
             </FormField>
 
-            {/* Cena / VAT / Brutto */}
+            {/* Cena netto / Cena brutto / VAT */}
             <FormRow>
               <FormField>
                 <FieldLabel>Cena netto</FieldLabel>
                 <FieldInput
                   placeholder={formValues.requireManualPrice ? 'Wycena ręczna' : 'np. 150,00'}
-                  value={formValues.priceInput}
-                  onChange={e => setField('priceInput', e.target.value)}
+                  value={formValues.netInput}
+                  onChange={e => handleNetChange(e.target.value)}
                   disabled={formValues.requireManualPrice}
-                  $error={!!formErrors.priceInput}
+                  $error={!!formErrors.netInput}
                 />
-                {formErrors.priceInput && <ErrorMsg>{formErrors.priceInput}</ErrorMsg>}
+                {formErrors.netInput && <ErrorMsg>{formErrors.netInput}</ErrorMsg>}
+              </FormField>
+
+              <FormField>
+                <FieldLabel>Cena brutto</FieldLabel>
+                <FieldInput
+                  placeholder={formValues.requireManualPrice ? 'Wycena ręczna' : 'np. 184,50'}
+                  value={formValues.grossInput}
+                  onChange={e => handleGrossChange(e.target.value)}
+                  disabled={formValues.requireManualPrice}
+                />
               </FormField>
 
               <FormField>
                 <FieldLabel>Stawka VAT</FieldLabel>
                 <FieldSelect
                   value={formValues.vatRate}
-                  onChange={e => setField('vatRate', Number(e.target.value) as VatRate)}
+                  onChange={e => handleVatChange(Number(e.target.value) as VatRate)}
+                  disabled={formValues.requireManualPrice}
                 >
                   {VAT_OPTIONS.map(o => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </FieldSelect>
               </FormField>
-
-              <FormField>
-                <FieldLabel>Cena brutto</FieldLabel>
-                <GrossPreview>
-                  {grossPreview ?? <span style={{ color: st.textMuted }}>–</span>}
-                </GrossPreview>
-              </FormField>
             </FormRow>
 
             {/* Wycena ręczna */}
-            <ManualRow onClick={() => setField('requireManualPrice', !formValues.requireManualPrice)}>
+            <ManualRow onClick={handleManualToggle}>
               <ToggleTrack $on={formValues.requireManualPrice}>
                 <ToggleThumb $on={formValues.requireManualPrice} />
               </ToggleTrack>
