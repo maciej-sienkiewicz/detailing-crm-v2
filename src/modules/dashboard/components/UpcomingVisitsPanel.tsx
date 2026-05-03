@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import { ArrowRight, User, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -518,7 +519,7 @@ export const UpcomingVisitsPanel = () => {
         </PanelLink>
       )}
 
-      {contextMenu && (
+      {contextMenu && createPortal(
         <ContextMenu
           ref={menuRef}
           $x={contextMenu.x}
@@ -539,7 +540,8 @@ export const UpcomingVisitsPanel = () => {
             </svg>
             Rozpocznij
           </ContextMenuItem>
-        </ContextMenu>
+        </ContextMenu>,
+        document.body,
       )}
     </Panel>
   );
