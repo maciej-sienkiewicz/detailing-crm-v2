@@ -1,0 +1,109 @@
+import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
+
+// ─── Styled ───────────────────────────────────────────────────────────────────
+
+const Menu = styled.div<{ $x: number; $y: number }>`
+  position: fixed;
+  top: ${p => p.$y}px;
+  left: ${p => p.$x}px;
+  z-index: 1000;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(15,23,42,0.12), 0 1px 4px rgba(15,23,42,0.08);
+  min-width: 160px;
+  padding: 4px 0;
+`;
+
+const MenuItem = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0f172a;
+  font-family: inherit;
+  text-align: left;
+  transition: background 120ms ease;
+  &:hover { background: #f1f5f9; }
+  svg { width: 14px; height: 14px; flex-shrink: 0; color: #64748b; }
+`;
+
+const Divider = styled.div`
+  height: 1px;
+  background: #f1f5f9;
+  margin: 4px 0;
+`;
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface ReservationContextMenuProps {
+  appointmentId: string;
+  x: number;
+  y: number;
+  onClose: () => void;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export const ReservationContextMenu = ({ appointmentId, x, y, onClose }: ReservationContextMenuProps) => {
+  const navigate = useNavigate();
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
+
+  const safeX = Math.min(x, window.innerWidth - 168);
+
+  const handleEdit = () => {
+    onClose();
+    navigate(`/appointments/${appointmentId}/edit`);
+  };
+
+  const handleStart = () => {
+    onClose();
+    navigate(`/reservations/${appointmentId}/checkin`);
+  };
+
+  return createPortal(
+    <Menu ref={menuRef} $x={safeX} $y={y} onMouseDown={e => e.stopPropagation()}>
+      <MenuItem onClick={handleEdit}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+        Edytuj
+      </MenuItem>
+      <Divider />
+      <MenuItem onClick={handleStart}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polygon points="5 3 19 12 5 21 5 3" />
+        </svg>
+        Rozpocznij
+      </MenuItem>
+    </Menu>,
+    document.body,
+  );
+};

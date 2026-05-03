@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ReservationContextMenu } from '@/common/components/ReservationContextMenu';
 import styled from 'styled-components';
 import { useCustomerDetail } from '../hooks/useCustomerDetail';
 import { useCustomerVehicles } from '../hooks/useCustomerVehicles';
@@ -127,6 +128,7 @@ export const CustomerDetailView = () => {
     const [isDocsOpen,             setIsDocsOpen]             = useState(false);
     const [isCommOpen,             setIsCommOpen]             = useState(false);
     const [isAuditOpen,            setIsAuditOpen]            = useState(false);
+    const [reservationMenu, setReservationMenu] = useState<{ id: string; x: number; y: number } | null>(null);
 
     const { customerDetail, isLoading, isError, refetch }   = useCustomerDetail(customerId!);
     const { vehicles, isLoading: vehiclesLoading }           = useCustomerVehicles(customerId!);
@@ -477,7 +479,11 @@ export const CustomerDetailView = () => {
                                             const { day, month } = formatShortDate(r.date);
                                             const { label, kind } = reservationStatusBadge(r.status);
                                             return (
-                                                <UpcomingItem key={r.id}>
+                                                <UpcomingItem
+                                                    key={r.id}
+                                                    style={{ cursor: 'pointer' }}
+                                                    onClick={e => setReservationMenu({ id: r.id, x: e.clientX, y: e.clientY })}
+                                                >
                                                     <UpcomingDateBox>
                                                         <UpcomingDateNum>{day}</UpcomingDateNum>
                                                         {month}
@@ -716,6 +722,15 @@ export const CustomerDetailView = () => {
                 customerId={customerId!}
                 company={customer.company}
             />
+
+            {reservationMenu && (
+                <ReservationContextMenu
+                    appointmentId={reservationMenu.id}
+                    x={reservationMenu.x}
+                    y={reservationMenu.y}
+                    onClose={() => setReservationMenu(null)}
+                />
+            )}
         </ViewContainer>
     );
 };
