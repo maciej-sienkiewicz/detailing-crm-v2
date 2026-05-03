@@ -53,14 +53,12 @@ const NAV_GROUPS: NavGroup[] = [
             { id: 'company',  label: 'Dane firmy',      icon: <BuildingIcon /> },
             { id: 'services', label: 'Cennik usług',     icon: <ListChecksIcon /> },
             { id: 'team',     label: 'Pracownicy',       icon: <UsersIcon />, badge: '4' },
-            { id: 'opening',  label: 'Godziny pracy',    icon: <ClockIcon /> },
         ],
     },
     {
         group: 'Komunikacja',
         items: [
             { id: 'templates',  label: 'Szablony SMS',               icon: <MessageIcon /> },
-            { id: 'reminders',  label: 'Automatyczne przypomnienia', icon: <BellIcon /> },
             { id: 'documents',  label: 'Dokumenty i podpisy',        icon: <FileSignIcon /> },
         ],
     },
