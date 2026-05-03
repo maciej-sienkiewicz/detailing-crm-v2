@@ -480,11 +480,15 @@ export const dashboardApi = {
     const tomorrowDate = new Date(startDate);
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     const tomorrowIso = toLocalDay(tomorrowDate.toISOString());
+    const yesterdayDate = new Date(startDate);
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayIso = toLocalDay(yesterdayDate.toISOString());
 
     const dateLabel = (iso: string): string => {
       const day = toLocalDay(iso);
-      if (day === todayIso) return 'dziś';
-      if (day === tomorrowIso) return 'jutro';
+      if (day === todayIso) return 'DZISIAJ';
+      if (day === tomorrowIso) return 'JUTRO';
+      if (day === yesterdayIso) return 'WCZORAJ';
       return new Date(iso).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' });
     };
 
@@ -497,7 +501,7 @@ export const dashboardApi = {
 
     const appointmentEntries: Entry[] = appointments.map(a => {
       const label = dateLabel(a.schedule.startDateTime);
-      const statusKind: VisitStatusKind = label === 'dziś' ? 'warn' : 'neutral';
+      const statusKind: VisitStatusKind = label === 'DZISIAJ' ? 'warn' : 'neutral';
       return {
         sortKey: a.schedule.startDateTime,
         item: {
@@ -510,7 +514,7 @@ export const dashboardApi = {
           vehicleName: a.vehicle ? `${a.vehicle.brand} ${a.vehicle.model}` : '—',
           price: (a.totalGross ?? 0) / 100,
           statusKind,
-          statusLabel: label === 'dziś' ? 'Oczekująca' : 'Zaplanowana',
+          statusLabel: label === 'DZISIAJ' ? 'Oczekująca' : 'Zaplanowana',
         },
       };
     });
