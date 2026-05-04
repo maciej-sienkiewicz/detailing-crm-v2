@@ -4,7 +4,8 @@ import styled, { keyframes } from 'styled-components';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatCurrency } from '@/common/utils/formatters';
-import type { BusinessMetric } from '../types';
+import { useDashboardRevenue } from '../hooks/useDashboardRevenue';
+import type { DashboardRevenueSummary } from '../types';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
@@ -66,7 +67,7 @@ const Delta = styled.div<{ $positive: boolean }>`
   svg { width: 13px; height: 13px; stroke-width: 2.5; }
 `;
 
-// ─── Chart popover (rendered via portal to escape overflow:hidden) ────────────
+// ─── Chart popover ────────────────────────────────────────────────────────────
 
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(6px); }
@@ -108,41 +109,34 @@ const CustomTooltipBox = styled.div`
   pointer-events: none;
 `;
 
-// ─── Fixed shape — deterministic upward trend over 13 weeks ──────────────────
-
-const WEEK_SHAPE = [0.72, 0.79, 0.85, 0.74, 0.91, 0.86, 0.97, 0.90, 1.04, 0.96, 1.10, 1.04, 1.0];
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const RevenueKpiCard = ({ revenue }: { revenue?: BusinessMetric }) => {
+export const RevenueKpiCard = () => {
+  const { data } = useDashboardRevenue();
   const [hovered, setHovered] = useState(false);
   const [pos, setPos] = useState({ top: 0, right: 0 });
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const chartData = useMemo(() => {
-    if (!revenue) return [];
-    const base = revenue.currentValue;
-    const today = new Date();
-    return WEEK_SHAPE.map((mult, i) => {
-      const d = new Date(today);
-      d.setDate(d.getDate() - (12 - i) * 7);
+    if (!data) return [];
+    return data.buckets.map(b => {
+      const d = new Date(b.weekStart);
       return {
         weekLabel: d.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' }),
-        value: Math.round(base * mult),
+        value: b.grossAmount,
       };
     });
-  }, [revenue]);
+  }, [data]);
 
-  if (!revenue) return null;
-  const positive = revenue.deltaPercentage >= 0;
+  if (!data) return null;
+
+  const positive = data.deltaPercentage >= 0;
+  const currency = data.currentWeek.currency;
 
   const handleMouseEnter = () => {
     if (wrapperRef.current) {
       const rect = wrapperRef.current.getBoundingClientRect();
-      setPos({
-        top: rect.bottom + 10,
-        right: window.innerWidth - rect.right,
-      });
+      setPos({ top: rect.bottom + 10, right: window.innerWidth - rect.right });
     }
     setHovered(true);
   };
@@ -155,10 +149,10 @@ export const RevenueKpiCard = ({ revenue }: { revenue?: BusinessMetric }) => {
     >
       <Card>
         <Eyebrow>Przychód · tydzień</Eyebrow>
-        <Number>{formatCurrency(revenue.currentValue)}</Number>
+        <Number>{formatCurrency(data.currentWeek.grossAmount, currency)}</Number>
         <Delta $positive={positive}>
           {positive ? <TrendingUp /> : <TrendingDown />}
-          {positive ? '+' : ''}{revenue.deltaPercentage.toFixed(1)}% vs. poprzedni tydzień
+          {positive ? '+' : ''}{data.deltaPercentage.toFixed(1)}% vs. poprzedni tydzień
         </Delta>
       </Card>
 
@@ -184,14 +178,14 @@ export const RevenueKpiCard = ({ revenue }: { revenue?: BusinessMetric }) => {
                 tick={{ fill: '#475569', fontSize: 10 }}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={v => `${(v / 1000).toFixed(0)}k`}
+                tickFormatter={v => `${(v / 100000).toFixed(0)}k`}
               />
               <Tooltip
                 content={({ active, payload, label }) =>
                   active && payload?.length ? (
                     <CustomTooltipBox>
                       <div style={{ color: '#94a3b8', marginBottom: 2 }}>{label}</div>
-                      <div style={{ fontWeight: 700 }}>{formatCurrency(payload[0].value as number)}</div>
+                      <div style={{ fontWeight: 700 }}>{formatCurrency(payload[0].value as number, currency)}</div>
                     </CustomTooltipBox>
                   ) : null
                 }

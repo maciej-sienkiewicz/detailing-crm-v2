@@ -51,6 +51,22 @@ export interface OperationalStats {
 }
 
 /**
+ * Revenue summary from dedicated endpoint
+ */
+export interface DashboardRevenueBucket {
+  weekStart: string;
+  grossAmount: number;
+  currency: string;
+}
+
+export interface DashboardRevenueSummary {
+  currentWeek: { grossAmount: number; currency: string };
+  previousWeek: { grossAmount: number; currency: string };
+  deltaPercentage: number;
+  buckets: DashboardRevenueBucket[];
+}
+
+/**
  * Business metric with comparison to previous period
  */
 export interface BusinessMetric {

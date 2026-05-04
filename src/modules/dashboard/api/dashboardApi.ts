@@ -4,7 +4,7 @@
  * Supports mock data mode for development and testing
  */
 
-import type { DashboardData, IncomingCall, DashboardTask, UpcomingVisit, VisitStatusKind } from '../types';
+import type { DashboardData, IncomingCall, DashboardTask, UpcomingVisit, VisitStatusKind, DashboardRevenueSummary } from '../types';
 import type { AppointmentResponse, VisitResponse } from '@/modules/calendar/types';
 import { apiClient } from '@/core';
 
@@ -454,6 +454,14 @@ export const dashboardApi = {
     // TODO: Replace with actual API call
     // await apiClient.patch(`/v1/dashboard/calls/${callId}`, data);
     throw new Error('Real API not implemented yet');
+  },
+
+  getRevenueSummary: async (weeks = 13): Promise<DashboardRevenueSummary> => {
+    const response = await apiClient.get<DashboardRevenueSummary>(
+      '/v1/dashboard/revenue-summary',
+      { params: { weeks } },
+    );
+    return response.data;
   },
 
   /**

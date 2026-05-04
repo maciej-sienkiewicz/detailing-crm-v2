@@ -348,7 +348,7 @@ export const DashboardView = () => {
               </HeroBtnGhost>
             </HeroActions>
           </HeroLeft>
-          <RevenueKpiCard revenue={revenue} />
+          <RevenueKpiCard />
         </HeroRow>
       </HeroCard>
 
