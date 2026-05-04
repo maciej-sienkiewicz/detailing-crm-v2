@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
-import { st } from './StatisticsTheme';
 import type { PeriodDetail, PeriodVisit, Granularity } from '../types';
 import { fetchPeriodDetail } from '../api/periodDetailMockApi';
 
@@ -29,9 +28,9 @@ const Backdrop = styled.div`
     position: fixed;
     inset: 0;
     z-index: 400;
-    background: rgba(15, 23, 42, 0.25);
+    background: rgba(15, 23, 42, 0.35);
     backdrop-filter: blur(2px);
-    animation: ${fadeIn} 200ms ease;
+    animation: ${fadeIn} 180ms ease;
     cursor: pointer;
 `;
 
@@ -42,13 +41,13 @@ const Drawer = styled.aside<{ $closing: boolean }>`
     bottom: 0;
     z-index: 401;
     width: min(480px, 95vw);
-    background: ${st.bgCard};
-    box-shadow: -8px 0 40px rgba(15, 23, 42, 0.14), -2px 0 8px rgba(15, 23, 42, 0.06);
+    background: ${p => p.theme.colors.surface};
+    box-shadow: -4px 0 24px rgba(15, 23, 42, 0.10), -1px 0 4px rgba(15, 23, 42, 0.06);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     animation: ${p => p.$closing
-        ? css`${slideOut} 220ms ease forwards`
+        ? css`${slideOut} 200ms ease forwards`
         : css`${slideIn} 240ms cubic-bezier(0.22, 1, 0.36, 1) forwards`};
 `;
 
@@ -56,15 +55,16 @@ const Drawer = styled.aside<{ $closing: boolean }>`
 
 const DrawerHeader = styled.div`
     flex-shrink: 0;
-    padding: 20px 24px 0;
+    background: ${p => p.theme.colors.surface};
 `;
 
-const HeaderRow = styled.div`
+const HeaderTop = styled.div`
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 14px;
+    padding: 20px 22px 14px;
+    border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
 `;
 
 const HeaderMeta = styled.div`
@@ -74,61 +74,68 @@ const HeaderMeta = styled.div`
     min-width: 0;
 `;
 
-const PeriodLabel = styled.div`
-    font-size: 11px;
+// 10px · 600 · uppercase · +0.06em — matches VisitDateLabel in dashboard
+const Eyebrow = styled.span`
+    font-size: 10px;
     font-weight: 600;
-    color: ${st.textMuted};
+    color: ${p => p.theme.colors.textMuted};
     text-transform: uppercase;
-    letter-spacing: 0.8px;
+    letter-spacing: 0.06em;
+    display: block;
 `;
 
+// 18px · 600 · -0.1px — matches CARD TITLE in design system
 const DrawerTitle = styled.h2`
     margin: 0;
-    font-size: 20px;
-    font-weight: 800;
-    color: ${st.text};
-    letter-spacing: -0.3px;
+    font-size: 18px;
+    font-weight: 600;
+    color: ${p => p.theme.colors.text};
+    letter-spacing: -0.1px;
 `;
 
 const CloseBtn = styled.button`
     flex-shrink: 0;
-    width: 32px;
-    height: 32px;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    background: ${st.bg};
-    color: ${st.textMuted};
-    font-size: 16px;
-    cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: all ${st.transition};
-    &:hover { background: ${st.bgCard}; border-color: ${st.borderHover}; color: ${st.text}; }
+    width: 28px;
+    height: 28px;
+    margin-top: 2px;
+    background: transparent;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.md};
+    font-size: 14px;
+    color: ${p => p.theme.colors.textMuted};
+    cursor: pointer;
+    transition: all ${p => p.theme.transitions.fast};
+    line-height: 1;
+
+    &:hover {
+        background: ${p => p.theme.colors.surfaceAlt};
+        border-color: ${p => p.theme.colors.textMuted};
+        color: ${p => p.theme.colors.text};
+    }
 `;
 
-// ─── Category filter badge ────────────────────────────────────────────────────
+// ─── Filter context banner ────────────────────────────────────────────────────
 
-const FilterBadge = styled.div`
+const FilterBanner = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 5px 10px;
-    background: ${st.accentBlueDim};
-    border: 1px solid ${st.accentBlue}33;
-    border-radius: ${st.radiusFull};
-    font-size: 11px;
-    font-weight: 600;
-    color: ${st.accentBlue};
-    margin-bottom: 12px;
-    align-self: flex-start;
+    padding: 8px 22px;
+    background: rgba(14, 165, 233, 0.07);
+    border-bottom: 1px solid rgba(14, 165, 233, 0.15);
+    font-size: 12px;
+    font-weight: 500;
+    color: #0284c7;
 `;
 
 const FilterDot = styled.span`
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: ${st.accentBlue};
+    background: var(--brand-primary, #0ea5e9);
     flex-shrink: 0;
 `;
 
@@ -136,47 +143,44 @@ const FilterDot = styled.span`
 
 const KpiStrip = styled.div`
     display: flex;
-    gap: 10px;
-    padding-bottom: 14px;
+    gap: 1px;
+    background: ${p => p.theme.colors.surfaceAlt};
+    border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
 `;
 
-const KpiTile = styled.div<{ $color: string; $dimColor: string }>`
+const KpiTile = styled.div`
     flex: 1;
-    padding: 10px 12px;
-    background: ${p => p.$dimColor};
-    border: 1px solid ${p => p.$color}22;
-    border-radius: ${st.radiusSm};
+    padding: 12px 16px;
+    background: ${p => p.theme.colors.surface};
     display: flex;
     flex-direction: column;
     gap: 2px;
 `;
 
+// 10px · 600 · uppercase · +0.06em
 const KpiLabel = styled.span`
     font-size: 10px;
-    font-weight: 700;
-    color: ${st.textMuted};
+    font-weight: 600;
+    color: ${p => p.theme.colors.textMuted};
     text-transform: uppercase;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.06em;
 `;
 
+// 20px · 700 · -0.3px — between PAGE TITLE and CARD TITLE
 const KpiValue = styled.span<{ $color: string }>`
-    font-size: 16px;
-    font-weight: 800;
+    font-size: 20px;
+    font-weight: 700;
     color: ${p => p.$color};
     letter-spacing: -0.3px;
     line-height: 1.2;
+    font-variant-numeric: tabular-nums;
 `;
 
+// 12px · 500 — matches CAPTION
 const KpiSub = styled.span`
-    font-size: 10px;
-    color: ${st.textMuted};
+    font-size: 12px;
     font-weight: 500;
-`;
-
-const Divider = styled.div`
-    height: 1px;
-    background: ${st.border};
-    margin: 0 -24px;
+    color: ${p => p.theme.colors.textMuted};
 `;
 
 // ─── Scrollable body ──────────────────────────────────────────────────────────
@@ -184,87 +188,95 @@ const Divider = styled.div`
 const DrawerBody = styled.div`
     flex: 1;
     overflow-y: auto;
-    padding: 0 24px 80px;
+    padding: 0 0 72px;
     scrollbar-width: thin;
-    scrollbar-color: ${st.border} transparent;
-    &::-webkit-scrollbar { width: 5px; }
+    scrollbar-color: ${p => p.theme.colors.border} transparent;
+    &::-webkit-scrollbar { width: 4px; }
     &::-webkit-scrollbar-track { background: transparent; }
-    &::-webkit-scrollbar-thumb { background: ${st.border}; border-radius: 4px; }
+    &::-webkit-scrollbar-thumb { background: ${p => p.theme.colors.border}; border-radius: 4px; }
 `;
 
-const VisitListLabel = styled.div`
-    padding: 14px 0 8px;
-    font-size: 10px;
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
+// Section label matching dashboard pattern
+const SectionLabel = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    &::after { content: ''; flex: 1; height: 1px; background: ${st.border}; }
+    padding: 14px 22px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    color: ${p => p.theme.colors.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+`;
+
+const SectionRule = styled.div`
+    flex: 1;
+    height: 1px;
+    background: ${p => p.theme.colors.surfaceAlt};
 `;
 
 // ─── Visit card ───────────────────────────────────────────────────────────────
 
-const VisitCard = styled.div<{ $expanded: boolean }>`
-    border: 1px solid ${p => p.$expanded ? st.accentBlue + '44' : st.border};
-    border-radius: ${st.radiusSm};
-    background: ${p => p.$expanded ? st.accentBlueDim : st.bgCard};
-    margin-bottom: 8px;
-    overflow: hidden;
-    transition: border-color ${st.transition}, background ${st.transition};
+const VisitCard = styled.div`
+    border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
+    background: ${p => p.theme.colors.surface};
+
+    &:last-child { border-bottom: none; }
 `;
 
-const VisitHeader = styled.button`
+const VisitHeader = styled.button<{ $expanded: boolean }>`
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 11px;
-    padding: 11px 14px;
-    background: transparent;
+    gap: 12px;
+    padding: 13px 22px;
+    background: ${p => p.$expanded ? p.theme.colors.surfaceAlt : 'transparent'};
     border: none;
     cursor: pointer;
     text-align: left;
-    transition: background ${st.transition};
-    &:hover { background: rgba(15, 23, 42, 0.025); }
+    transition: background ${p => p.theme.transitions.fast};
+
+    &:hover { background: ${p => p.theme.colors.surfaceHover}; }
 `;
 
 const VisitAvatar = styled.div<{ $color: string }>`
     flex-shrink: 0;
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     background: ${p => p.$color};
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
-    font-weight: 800;
+    font-size: 11px;
+    font-weight: 700;
     color: #fff;
-    letter-spacing: -0.5px;
+    letter-spacing: -0.3px;
 `;
 
 const VisitInfo = styled.div`
     flex: 1;
     min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
 `;
 
+// 13px · 600 — matches VisitTitle in dashboard
 const VisitClient = styled.span`
+    display: block;
     font-size: 13px;
-    font-weight: 700;
-    color: ${st.text};
+    font-weight: 600;
+    color: ${p => p.theme.colors.text};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-bottom: 2px;
 `;
 
+// 12px · 500 — matches CAPTION
 const VisitMeta = styled.span`
-    font-size: 11px;
-    color: ${st.textMuted};
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: ${p => p.theme.colors.textMuted};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -278,62 +290,72 @@ const VisitRight = styled.div`
     gap: 2px;
 `;
 
+// Revenue: 14px · 700 · tabular-nums · success color
 const VisitRevenue = styled.span`
     font-size: 14px;
-    font-weight: 800;
-    color: ${st.accentGreen};
+    font-weight: 700;
+    color: ${p => p.theme.colors.success};
     letter-spacing: -0.3px;
+    font-variant-numeric: tabular-nums;
 `;
 
-// When filter active: show full visit total as secondary/muted
 const VisitRevenueAll = styled.span`
     font-size: 11px;
-    color: ${st.textMuted};
     font-weight: 500;
+    color: ${p => p.theme.colors.textMuted};
 `;
 
-const VisitServiceCount = styled.span<{ $expanded: boolean }>`
-    font-size: 10px;
-    color: ${p => p.$expanded ? st.accentBlue : st.textMuted};
+const VisitServiceCount = styled.span`
+    font-size: 11px;
     font-weight: 500;
-    transition: color ${st.transition};
+    color: ${p => p.theme.colors.textMuted};
 `;
 
 const Chevron = styled.span<{ $expanded: boolean }>`
     flex-shrink: 0;
-    font-size: 10px;
-    color: ${st.textMuted};
+    font-size: 9px;
+    color: ${p => p.theme.colors.textMuted};
     transform: ${p => p.$expanded ? 'rotate(180deg)' : 'rotate(0deg)'};
-    transition: transform 220ms ease;
+    transition: transform 200ms ease;
     margin-left: -4px;
 `;
 
-// ─── Services panel (accordion) ───────────────────────────────────────────────
+// ─── Services accordion ───────────────────────────────────────────────────────
 
 const ServicesPanel = styled.div<{ $expanded: boolean; $maxH: number }>`
     max-height: ${p => p.$expanded ? `${p.$maxH}px` : '0'};
     overflow: hidden;
-    transition: max-height 280ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition: max-height 260ms cubic-bezier(0.4, 0, 0.2, 1);
+    background: ${p => p.theme.colors.surfaceHover};
+    border-top: ${p => p.$expanded ? `1px solid ${p.theme.colors.surfaceAlt}` : 'none'};
 `;
 
 const ServicesInner = styled.div`
-    padding: 0 14px 12px;
+    padding: 10px 22px 12px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
 `;
 
-// Section label inside the expanded panel
+// In-category section label: 10px · 600 · uppercase with left accent bar
 const ServiceSectionLabel = styled.div`
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
+    padding: 2px 0 6px;
     font-size: 10px;
-    font-weight: 700;
-    color: ${st.textMuted};
+    font-weight: 600;
+    color: ${p => p.theme.colors.textMuted};
     text-transform: uppercase;
-    letter-spacing: 0.6px;
-    padding: 2px 0 4px;
+    letter-spacing: 0.06em;
+`;
+
+const ServiceSectionAccent = styled.span`
+    width: 2px;
+    height: 12px;
+    border-radius: 1px;
+    background: ${p => p.theme.colors.success};
+    flex-shrink: 0;
 `;
 
 const ServiceRow = styled.div<{ $dimmed?: boolean }>`
@@ -341,109 +363,77 @@ const ServiceRow = styled.div<{ $dimmed?: boolean }>`
     align-items: center;
     gap: 10px;
     padding: 7px 10px;
-    background: ${p => p.$dimmed ? st.bgCardAlt : st.bgCard};
-    border: 1px solid ${p => p.$dimmed ? 'transparent' : st.border};
-    border-radius: 6px;
-    opacity: ${p => p.$dimmed ? 0.55 : 1};
-    transition: opacity ${st.transition};
+    background: ${p => p.$dimmed ? 'transparent' : p.theme.colors.surface};
+    border: 1px solid ${p => p.$dimmed ? 'transparent' : p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.md};
+    opacity: ${p => p.$dimmed ? 0.5 : 1};
+    transition: opacity ${p => p.theme.transitions.fast};
 `;
 
 const ServiceDot = styled.span<{ $dimmed?: boolean }>`
     flex-shrink: 0;
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
-    background: ${p => p.$dimmed ? st.textMuted : st.accentGreen};
+    background: ${p => p.$dimmed ? p.theme.colors.textMuted : p.theme.colors.success};
 `;
 
+// 13px · 400 — BODY SMALL
 const ServiceName = styled.span`
     flex: 1;
-    font-size: 12px;
-    color: ${st.textSecondary};
+    font-size: 13px;
+    font-weight: 400;
+    color: ${p => p.theme.colors.textSecondary};
     min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 `;
 
+// 13px · 600 · tabular-nums
 const ServicePrice = styled.span`
     flex-shrink: 0;
-    font-size: 12px;
-    font-weight: 700;
-    color: ${st.text};
+    font-size: 13px;
+    font-weight: 600;
+    color: ${p => p.theme.colors.text};
     font-variant-numeric: tabular-nums;
 `;
 
-const SummaryRow = styled.div`
+// Visit summary row (inside services panel)
+const VisitSummaryRow = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 5px 10px 0;
-    margin-top: 2px;
-    border-top: 1px solid ${st.border};
+    padding: 7px 10px 0;
+    margin-top: 4px;
+    border-top: 1px solid ${p => p.theme.colors.border};
 `;
 
-const SummaryLabel = styled.span`
-    font-size: 11px;
-    color: ${st.textMuted};
-    font-weight: 600;
+const VisitSummaryLabel = styled.span`
+    font-size: 12px;
+    font-weight: 500;
+    color: ${p => p.theme.colors.textMuted};
 `;
 
-const SummaryValue = styled.span<{ $color?: string }>`
+const VisitSummaryValue = styled.span`
     font-size: 13px;
-    font-weight: 800;
-    color: ${p => p.$color ?? st.accentGreen};
+    font-weight: 700;
+    color: ${p => p.theme.colors.success};
+    font-variant-numeric: tabular-nums;
 `;
 
-// ─── "Other services" collapse toggle ────────────────────────────────────────
+// ─── Contribution bar ─────────────────────────────────────────────────────────
 
-const OtherServicesToggle = styled.button<{ $open: boolean }>`
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 10px;
-    margin-top: 2px;
-    background: transparent;
-    border: 1px dashed ${st.border};
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 11px;
-    font-weight: 600;
-    color: ${st.textMuted};
-    transition: all ${st.transition};
-    text-align: left;
-    &:hover { background: ${st.bgCardAlt}; border-color: ${st.borderHover}; color: ${st.textSecondary}; }
-`;
-
-const OtherChevron = styled.span<{ $open: boolean }>`
-    font-size: 9px;
-    transform: ${p => p.$open ? 'rotate(180deg)' : 'rotate(0)'};
-    transition: transform 200ms ease;
-`;
-
-const OtherServicesList = styled.div<{ $open: boolean; $count: number }>`
-    max-height: ${p => p.$open ? `${p.$count * 36}px` : '0'};
-    overflow: hidden;
-    transition: max-height 240ms cubic-bezier(0.4, 0, 0.2, 1);
+const ContribWrap = styled.div`
+    padding: 8px 0 2px;
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    margin-top: ${p => p.$open ? '3px' : '0'};
-`;
-
-// ─── Contribution bar (% of visit revenue) ────────────────────────────────────
-
-const ContribBar = styled.div`
-    margin: 6px 0 4px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    gap: 5px;
 `;
 
 const ContribTrack = styled.div`
-    height: 4px;
-    background: ${st.bgCardAlt};
+    height: 3px;
+    background: ${p => p.theme.colors.border};
     border-radius: 2px;
     overflow: hidden;
 `;
@@ -451,19 +441,64 @@ const ContribTrack = styled.div`
 const ContribFill = styled.div<{ $pct: number }>`
     height: 100%;
     width: ${p => p.$pct}%;
-    background: ${st.accentGreen};
+    background: ${p => p.theme.colors.success};
     border-radius: 2px;
-    transition: width 400ms ease;
+    transition: width 360ms ease;
 `;
 
-const ContribLabel = styled.div`
+const ContribMeta = styled.div`
     display: flex;
     justify-content: space-between;
-    font-size: 10px;
-    color: ${st.textMuted};
+    font-size: 11px;
+    font-weight: 500;
+    color: ${p => p.theme.colors.textMuted};
 `;
 
-// ─── Loading / footer ─────────────────────────────────────────────────────────
+// ─── "Other services" toggle ──────────────────────────────────────────────────
+
+const OthersToggle = styled.button<{ $open: boolean }>`
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 10px;
+    margin-top: 4px;
+    background: transparent;
+    border: 1px dashed ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.md};
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: ${p => p.theme.colors.textMuted};
+    text-align: left;
+    transition: all ${p => p.theme.transitions.fast};
+    font-family: inherit;
+
+    &:hover {
+        background: ${p => p.theme.colors.surface};
+        color: ${p => p.theme.colors.textSecondary};
+        border-color: ${p => p.theme.colors.textMuted};
+    }
+`;
+
+const OthersChevron = styled.span<{ $open: boolean }>`
+    font-size: 8px;
+    color: ${p => p.theme.colors.textMuted};
+    transform: ${p => p.$open ? 'rotate(180deg)' : 'rotate(0)'};
+    transition: transform 180ms ease;
+`;
+
+const OthersPanel = styled.div<{ $open: boolean; $count: number }>`
+    max-height: ${p => p.$open ? `${p.$count * 36}px` : '0'};
+    overflow: hidden;
+    transition: max-height 220ms cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: ${p => p.$open ? '3px' : '0'};
+`;
+
+// ─── Loading ──────────────────────────────────────────────────────────────────
 
 const LoadingState = styled.div`
     flex: 1;
@@ -471,34 +506,38 @@ const LoadingState = styled.div`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    color: ${st.textMuted};
+    gap: 10px;
+    color: ${p => p.theme.colors.textMuted};
     font-size: 13px;
+    font-weight: 500;
 `;
 
 const Spinner = styled.div`
-    width: 28px;
-    height: 28px;
-    border: 2.5px solid ${st.border};
-    border-top-color: ${st.accentBlue};
+    width: 24px;
+    height: 24px;
+    border: 2px solid ${p => p.theme.colors.border};
+    border-top-color: var(--brand-primary, #0ea5e9);
     border-radius: 50%;
-    animation: spin 0.7s linear infinite;
+    animation: spin 0.65s linear infinite;
     @keyframes spin { to { transform: rotate(360deg); } }
 `;
+
+// ─── Mock badge ───────────────────────────────────────────────────────────────
 
 const MockBadge = styled.div`
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
+    padding: 7px 22px;
+    background: ${p => p.theme.colors.surface};
+    border-top: 1px solid ${p => p.theme.colors.surfaceAlt};
+    font-size: 11px;
+    font-weight: 500;
+    color: ${p => p.theme.colors.textMuted};
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 24px;
-    background: ${st.bgCard};
-    border-top: 1px solid ${st.border};
-    font-size: 10px;
-    color: ${st.textMuted};
 `;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -507,8 +546,8 @@ const PLN = (grosz: number) =>
     (grosz / 100).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 });
 
 const AVATAR_COLORS = [
-    '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6',
-    '#EF4444', '#06B6D4', '#EC4899', '#F97316',
+    '#0ea5e9', '#16a34a', '#d97706', '#8b5cf6',
+    '#dc2626', '#0891b2', '#db2777', '#ea580c',
 ];
 
 function avatarColor(name: string): string {
@@ -521,7 +560,7 @@ function initials(name: string): string {
     return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
 }
 
-// ─── Visit card component ─────────────────────────────────────────────────────
+// ─── Visit item ───────────────────────────────────────────────────────────────
 
 const VisitItem = ({
     visit,
@@ -538,25 +577,25 @@ const VisitItem = ({
     const hasFilter = categoryName != null;
     const inCat = hasFilter ? visit.services.filter(s => s.inCategory) : visit.services;
     const others = hasFilter ? visit.services.filter(s => !s.inCategory) : [];
-
     const isFiltered = hasFilter && visit.totalRevenueGross !== visit.totalRevenueGrossAll;
+
     const contribPct = isFiltered
         ? Math.round((visit.totalRevenueGross / visit.totalRevenueGrossAll) * 100)
         : 100;
 
-    // Estimate expanded height for smooth animation
-    const inCatRows = inCat.length;
-    const otherRows = othersOpen ? others.length : 0;
-    const sectionLabels = hasFilter && inCat.length > 0 ? 1 : 0;
-    const contribBarH = isFiltered ? 40 : 0;
-    const estimatedH = (inCatRows + otherRows + sectionLabels) * 40 + 60 + contribBarH + (others.length > 0 ? 40 : 0);
-
-    const color = avatarColor(visit.clientName);
+    const estimatedH =
+        (inCat.length + (othersOpen ? others.length : 0)) * 36 +
+        (hasFilter && inCat.length > 0 ? 24 : 0) +
+        (isFiltered ? 44 : 0) +
+        (others.length > 0 ? 40 : 0) +
+        56;
 
     return (
-        <VisitCard $expanded={expanded}>
-            <VisitHeader onClick={() => setExpanded(e => !e)}>
-                <VisitAvatar $color={color}>{initials(visit.clientName)}</VisitAvatar>
+        <VisitCard>
+            <VisitHeader $expanded={expanded} onClick={() => setExpanded(e => !e)}>
+                <VisitAvatar $color={avatarColor(visit.clientName)}>
+                    {initials(visit.clientName)}
+                </VisitAvatar>
                 <VisitInfo>
                     <VisitClient>{visit.clientName}</VisitClient>
                     <VisitMeta>{visit.vehicleInfo} · {visit.visitDate}</VisitMeta>
@@ -568,8 +607,9 @@ const VisitItem = ({
                             {PLN(visit.totalRevenueGrossAll)} łącznie
                         </VisitRevenueAll>
                     )}
-                    <VisitServiceCount $expanded={expanded}>
-                        {visit.services.length} {visit.services.length === 1 ? 'usługa' : visit.services.length < 5 ? 'usługi' : 'usług'}
+                    <VisitServiceCount>
+                        {visit.services.length}{' '}
+                        {visit.services.length === 1 ? 'usługa' : visit.services.length < 5 ? 'usługi' : 'usług'}
                     </VisitServiceCount>
                 </VisitRight>
                 <Chevron $expanded={expanded}>▼</Chevron>
@@ -577,13 +617,13 @@ const VisitItem = ({
 
             <ServicesPanel $expanded={expanded} $maxH={estimatedH}>
                 <ServicesInner>
-                    {/* In-category services */}
                     {hasFilter && inCat.length > 0 && (
                         <ServiceSectionLabel>
-                            <FilterDot />
+                            <ServiceSectionAccent />
                             {categoryName}
                         </ServiceSectionLabel>
                     )}
+
                     {inCat.map(svc => (
                         <ServiceRow key={svc.serviceId}>
                             <ServiceDot />
@@ -592,31 +632,29 @@ const VisitItem = ({
                         </ServiceRow>
                     ))}
 
-                    {/* Contribution bar — only when filter is active */}
                     {isFiltered && inCat.length > 0 && (
-                        <ContribBar>
+                        <ContribWrap>
                             <ContribTrack>
                                 <ContribFill $pct={contribPct} />
                             </ContribTrack>
-                            <ContribLabel>
+                            <ContribMeta>
                                 <span>{categoryName}: {PLN(visit.totalRevenueGross)}</span>
                                 <span>{contribPct}% wartości wizyty</span>
-                            </ContribLabel>
-                        </ContribBar>
+                            </ContribMeta>
+                        </ContribWrap>
                     )}
 
-                    {/* Other services toggle */}
                     {hasFilter && others.length > 0 && (
                         <>
-                            <OtherServicesToggle
+                            <OthersToggle
                                 $open={othersOpen}
                                 onClick={e => { e.stopPropagation(); setOthersOpen(o => !o); }}
                             >
-                                <OtherChevron $open={othersOpen}>▼</OtherChevron>
+                                <OthersChevron $open={othersOpen}>▼</OthersChevron>
                                 Pozostałe usługi ({others.length}) —{' '}
                                 {PLN(others.reduce((s, sv) => s + sv.priceGross, 0))}
-                            </OtherServicesToggle>
-                            <OtherServicesList $open={othersOpen} $count={others.length}>
+                            </OthersToggle>
+                            <OthersPanel $open={othersOpen} $count={others.length}>
                                 {others.map(svc => (
                                     <ServiceRow key={svc.serviceId} $dimmed>
                                         <ServiceDot $dimmed />
@@ -624,17 +662,16 @@ const VisitItem = ({
                                         <ServicePrice>{PLN(svc.priceGross)}</ServicePrice>
                                     </ServiceRow>
                                 ))}
-                            </OtherServicesList>
+                            </OthersPanel>
                         </>
                     )}
 
-                    {/* Summary row */}
-                    <SummaryRow>
-                        <SummaryLabel>
+                    <VisitSummaryRow>
+                        <VisitSummaryLabel>
                             {isFiltered ? `${categoryName} w wizycie` : 'Suma wizyty'}
-                        </SummaryLabel>
-                        <SummaryValue>{PLN(visit.totalRevenueGross)}</SummaryValue>
-                    </SummaryRow>
+                        </VisitSummaryLabel>
+                        <VisitSummaryValue>{PLN(visit.totalRevenueGross)}</VisitSummaryValue>
+                    </VisitSummaryRow>
                 </ServicesInner>
             </ServicesPanel>
         </VisitCard>
@@ -664,7 +701,7 @@ export const PeriodDetailDrawer = ({
 
     const handleClose = useCallback(() => {
         setClosing(true);
-        setTimeout(() => { setClosing(false); onClose(); }, 220);
+        setTimeout(() => { setClosing(false); onClose(); }, 200);
     }, [onClose]);
 
     useEffect(() => {
@@ -694,46 +731,55 @@ export const PeriodDetailDrawer = ({
         <>
             <Backdrop onClick={handleClose} />
             <Drawer $closing={closing}>
+
+                {/* ── Header ──────────────────────────────────── */}
                 <DrawerHeader>
-                    <HeaderRow>
+                    <HeaderTop>
                         <HeaderMeta>
-                            <PeriodLabel>Szczegóły okresu</PeriodLabel>
+                            <Eyebrow>Szczegóły okresu</Eyebrow>
                             <DrawerTitle>{period}</DrawerTitle>
                         </HeaderMeta>
                         <CloseBtn onClick={handleClose} title="Zamknij (Esc)">✕</CloseBtn>
-                    </HeaderRow>
+                    </HeaderTop>
 
                     {isFiltered && (
-                        <FilterBadge>
+                        <FilterBanner>
                             <FilterDot />
-                            Filtr: {categoryName}
-                        </FilterBadge>
+                            Filtr aktywny: {categoryName}
+                        </FilterBanner>
                     )}
 
                     {detail && (
                         <KpiStrip>
-                            <KpiTile $color={st.accentGreen} $dimColor={st.accentGreenDim}>
-                                <KpiLabel>{isFiltered ? `Przychód (${categoryName})` : 'Przychód'}</KpiLabel>
-                                <KpiValue $color={st.accentGreen}>{PLN(detail.totalRevenueGross)}</KpiValue>
+                            <KpiTile>
+                                <KpiLabel>
+                                    {isFiltered ? categoryName! : 'Przychód'}
+                                </KpiLabel>
+                                <KpiValue $color="var(--kpi-revenue, #16a34a)">
+                                    {PLN(detail.totalRevenueGross)}
+                                </KpiValue>
                                 {isFiltered && detail.totalRevenueGrossAll !== detail.totalRevenueGross && (
                                     <KpiSub>{PLN(detail.totalRevenueGrossAll)} łącznie</KpiSub>
                                 )}
                             </KpiTile>
-                            <KpiTile $color={st.accentBlue} $dimColor={st.accentBlueDim}>
+                            <KpiTile>
                                 <KpiLabel>Wizyty</KpiLabel>
-                                <KpiValue $color={st.accentBlue}>{detail.orderCount}</KpiValue>
+                                <KpiValue $color="var(--brand-primary, #0ea5e9)">
+                                    {detail.orderCount}
+                                </KpiValue>
                             </KpiTile>
-                            <KpiTile $color={st.accentAmber} $dimColor={st.accentAmberDim}>
+                            <KpiTile>
                                 <KpiLabel>Śr. wizyta</KpiLabel>
-                                <KpiValue $color={st.accentAmber}>{PLN(avgPerVisit)}</KpiValue>
+                                <KpiValue $color="#d97706">
+                                    {PLN(avgPerVisit)}
+                                </KpiValue>
                                 {isFiltered && <KpiSub>z filtra</KpiSub>}
                             </KpiTile>
                         </KpiStrip>
                     )}
-
-                    <Divider />
                 </DrawerHeader>
 
+                {/* ── Body ────────────────────────────────────── */}
                 {loading && (
                     <LoadingState>
                         <Spinner />
@@ -743,7 +789,10 @@ export const PeriodDetailDrawer = ({
 
                 {detail && !loading && (
                     <DrawerBody>
-                        <VisitListLabel>Wizyty ({detail.visits.length})</VisitListLabel>
+                        <SectionLabel>
+                            Wizyty ({detail.visits.length})
+                            <SectionRule />
+                        </SectionLabel>
                         {detail.visits.map((visit, idx) => (
                             <VisitItem
                                 key={visit.visitId}
@@ -755,11 +804,13 @@ export const PeriodDetailDrawer = ({
                     </DrawerBody>
                 )}
 
-                <MockBadge>
-                    ⚠ Mock API · GET /v1/statistics/periods/{'{period}'}/visits{isFiltered ? `?categoryId=${categoryId}` : ''}
-                </MockBadge>
+                {detail && !loading && (
+                    <MockBadge>
+                        ⚠ Mock API · GET /v1/statistics/periods/{'{period}'}/visits
+                        {isFiltered ? `?categoryId=${categoryId}` : ''}
+                    </MockBadge>
+                )}
             </Drawer>
         </>
     );
 };
-
