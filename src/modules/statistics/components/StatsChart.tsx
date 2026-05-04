@@ -17,7 +17,7 @@ import { t } from '@/common/i18n';
 import { st } from './StatisticsTheme';
 
 const ChartWrapper = styled.div`
-    padding: 24px 24px 16px;
+    padding: 24px 24px 0;
     background: ${st.bgCard};
     border: 1px solid ${st.border};
     border-radius: ${st.radius};
@@ -29,6 +29,8 @@ const ChartHeader = styled.div`
     align-items: center;
     justify-content: space-between;
     margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 8px;
 `;
 
 const ChartTitle = styled.span`
@@ -62,29 +64,6 @@ const LegendDot = styled.span<{ $color: string; $variant?: 'bar' | 'line' }>`
     flex-shrink: 0;
 `;
 
-const ClickHint = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-    margin-left: auto;
-    padding-right: 4px;
-`;
-
-const HintIcon = styled.span`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    border: 1px solid ${st.border};
-    font-size: 9px;
-    color: ${st.textMuted};
-    flex-shrink: 0;
-`;
-
 const EmptyChart = styled.div`
     display: flex;
     align-items: center;
@@ -94,10 +73,33 @@ const EmptyChart = styled.div`
     font-size: ${st.fontSm};
 `;
 
+// Stały hint pod wykresem — nie ucieka, bo nie jest tooltipem
+const ClickHintBar = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 0 10px;
+    border-top: 1px solid ${st.border};
+    margin-top: 8px;
+    font-size: 11px;
+    color: ${st.textMuted};
+`;
+
+const HintDot = styled.span`
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: ${st.accentGreen};
+    opacity: 0.25;
+    flex-shrink: 0;
+`;
+
+// ─── Tooltip — tylko dane, bez CTA ───────────────────────────────────────────
+
 const formatRevenue = (grosz: number) =>
     (grosz / 100).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 });
-
-// ─── Custom tooltip ───────────────────────────────────────────────────────────
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
@@ -111,8 +113,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                 borderRadius: 10,
                 padding: '12px 16px',
                 fontSize: 13,
-                minWidth: 190,
+                minWidth: 170,
                 boxShadow: st.shadowMd,
+                pointerEvents: 'none', // tooltip nigdy nie przechwytuje kliknięć
             }}
         >
             <p style={{ margin: '0 0 10px', fontWeight: 700, color: st.text, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</p>
@@ -125,47 +128,34 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                 </div>
             )}
             {orders && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ display: 'inline-block', width: 10, height: 3, borderRadius: 2, background: st.accentBlue, flexShrink: 0 }} />
                     <span style={{ color: st.textSecondary, fontSize: 13 }}>
                         {orders.value} {orders.value === 1 ? 'wizyta' : orders.value < 5 ? 'wizyty' : 'wizyt'}
                     </span>
                 </div>
             )}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                paddingTop: 8,
-                borderTop: `1px solid ${st.border}`,
-                color: st.accentBlue,
-                fontSize: 11,
-                fontWeight: 600,
-            }}>
-                <span style={{ fontSize: 13 }}>↗</span>
-                Kliknij, aby zobaczyć wizyty
-            </div>
         </div>
     );
 };
 
-// ─── Custom bar shape ─────────────────────────────────────────────────────────
+// ─── Custom bar shape z hover glow ────────────────────────────────────────────
 
 const ActiveBarShape = (props: any) => {
-    const { x, y, width, height, fill, isActive } = props;
+    const { x, y, width, height, fill, isHovered } = props;
     if (!height || height <= 0) return null;
     return (
-        <g>
-            {isActive && (
+        <g style={{ cursor: 'pointer' }}>
+            {isHovered && (
                 <rect
-                    x={x - 3}
-                    y={y - 4}
-                    width={width + 6}
-                    height={height + 4}
-                    rx={7}
-                    ry={7}
+                    x={x - 4}
+                    y={y - 6}
+                    width={width + 8}
+                    height={height + 6}
+                    rx={8}
+                    ry={8}
                     fill={st.accentGreen}
-                    opacity={0.12}
+                    opacity={0.14}
                 />
             )}
             <rect
@@ -175,8 +165,8 @@ const ActiveBarShape = (props: any) => {
                 height={height}
                 rx={5}
                 ry={5}
-                fill={isActive ? '#059669' : fill}
-                opacity={isActive ? 1 : 0.85}
+                fill={isHovered ? '#059669' : fill}
+                opacity={isHovered ? 1 : 0.85}
             />
         </g>
     );
@@ -200,12 +190,6 @@ export const StatsChart = ({ data, onBarClick }: StatsChartProps) => {
         );
     }
 
-    const handleBarClick = (barData: any) => {
-        if (onBarClick && barData?.activePayload?.[0]?.payload?.period) {
-            onBarClick(barData.activePayload[0].payload.period);
-        }
-    };
-
     return (
         <ChartWrapper>
             <ChartHeader>
@@ -219,24 +203,16 @@ export const StatsChart = ({ data, onBarClick }: StatsChartProps) => {
                         <LegendDot $color={st.accentBlue} $variant="line" />
                         {t.statistics.chart.ordersLabel}
                     </LegendItem>
-                    {onBarClick && (
-                        <ClickHint>
-                            <HintIcon>↗</HintIcon>
-                            kliknij słupek
-                        </ClickHint>
-                    )}
                 </LegendDots>
             </ChartHeader>
+
             <ResponsiveContainer width="100%" height={300}>
                 <ComposedChart
                     data={data}
                     margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
-                    onClick={onBarClick ? handleBarClick : undefined}
-                    style={{ cursor: onBarClick ? 'pointer' : 'default' }}
                     onMouseMove={(state: any) => {
-                        if (state?.activePayload?.[0]?.payload?.period) {
-                            setHoveredPeriod(state.activePayload[0].payload.period);
-                        }
+                        const period = state?.activePayload?.[0]?.payload?.period ?? null;
+                        setHoveredPeriod(period);
                     }}
                     onMouseLeave={() => setHoveredPeriod(null)}
                 >
@@ -268,25 +244,27 @@ export const StatsChart = ({ data, onBarClick }: StatsChartProps) => {
                         allowDecimals={false}
                         width={32}
                     />
-                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(15,23,42,0.03)' }} />
+                    <Tooltip
+                        content={<CustomTooltip />}
+                        cursor={{ fill: 'rgba(15,23,42,0.03)' }}
+                    />
                     <Bar
                         yAxisId="revenue"
                         dataKey="totalRevenueGross"
                         name={t.statistics.chart.revenueLabel}
                         fill={st.accentGreen}
                         maxBarSize={48}
+                        // onClick na Bar — Recharts daje data.period bezpośrednio
+                        onClick={(data: any) => onBarClick?.(data.period)}
                         shape={(props: any) => (
                             <ActiveBarShape
                                 {...props}
-                                isActive={props.period === hoveredPeriod}
+                                isHovered={props.period === hoveredPeriod}
                             />
                         )}
                     >
                         {data.map(entry => (
-                            <Cell
-                                key={entry.period}
-                                fill={st.accentGreen}
-                            />
+                            <Cell key={entry.period} fill={st.accentGreen} />
                         ))}
                     </Bar>
                     <Line
@@ -301,6 +279,13 @@ export const StatsChart = ({ data, onBarClick }: StatsChartProps) => {
                     />
                 </ComposedChart>
             </ResponsiveContainer>
+
+            {onBarClick && (
+                <ClickHintBar>
+                    <HintDot />
+                    Kliknij dowolny słupek, aby zobaczyć szczegóły wizyt z danego okresu
+                </ClickHintBar>
+            )}
         </ChartWrapper>
     );
 };
