@@ -9,6 +9,7 @@ import { useCustomerReservations } from '../hooks/useCustomerReservations';
 import { useCustomerCommunication } from '../hooks/useCustomerCommunication';
 import { CustomerNotes } from '../components/CustomerNotes';
 import { CustomerCommunicationList } from '../components/CustomerCommunicationList';
+import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
 import { DocumentsManager } from '../components/DocumentsManager';
 import { CustomerConsentsSection } from '../components/CustomerConsentsSection';
 import { AuditTimeline } from '@/common/components/AuditTimeline';
@@ -45,18 +46,6 @@ import {
 
 // ─── Local styled components ──────────────────────────────────────────────────
 
-const VehicleIconWrap = styled.div`
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  flex-shrink: 0;
-  background: ${st.bgCardAlt};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: ${st.textMuted};
-  svg { width: 16px; height: 16px; }
-`;
 
 const PaginationBar = styled.div`
   display: flex;
@@ -389,13 +378,7 @@ export const CustomerDetailView = () => {
                                             key={vehicle.id}
                                             onClick={() => navigate(`/vehicles/${vehicle.id}`)}
                                         >
-                                            <VehicleIconWrap>
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                                                    <path d="M19 17H5a2 2 0 0 1-2-2V9l2-4h10l4 4v4a2 2 0 0 1-2 2Z" />
-                                                    <circle cx="7.5" cy="17" r="1.5" />
-                                                    <circle cx="16.5" cy="17" r="1.5" />
-                                                </svg>
-                                            </VehicleIconWrap>
+                                            <CarLogoImage brand={vehicle.make} size="sm" />
                                             <VehicleInfo>
                                                 <VehicleName>{vehicle.make} {vehicle.model}</VehicleName>
                                                 <VehicleSub>
