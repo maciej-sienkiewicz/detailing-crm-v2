@@ -202,6 +202,41 @@ const EmptyText = styled.p`
     text-align: center;
 `;
 
+const PaginationBar = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    border-top: 1px solid ${st.bgCardAlt};
+`;
+
+const PaginationInfo = styled.span`
+    font-size: 12px;
+    color: ${st.textMuted};
+`;
+
+const PaginationBtns = styled.div`
+    display: flex;
+    gap: 6px;
+`;
+
+const PaginationBtn = styled.button<{ $disabled?: boolean }>`
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 6px;
+    border: 1px solid ${st.border};
+    background: ${p => p.$disabled ? st.bgCardAlt : '#fff'};
+    color: ${p => p.$disabled ? st.textMuted : st.text};
+    font-size: 12px;
+    font-weight: 500;
+    cursor: ${p => p.$disabled ? 'default' : 'pointer'};
+    font-family: inherit;
+    transition: background 140ms ease;
+    &:hover:not([disabled]) { background: ${st.bgCardAlt}; }
+`;
+
+const PAGE_SIZE = 4;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -211,6 +246,7 @@ interface Props {
 
 export const CustomerCommunicationList = ({ entries, isLoading }: Props) => {
     const [selected, setSelected] = useState<CommunicationEntry | null>(null);
+    const [page, setPage] = useState(0);
 
     if (isLoading) {
         return (
@@ -240,52 +276,78 @@ export const CustomerCommunicationList = ({ entries, isLoading }: Props) => {
         );
     }
 
+    const sorted = [...entries].sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime());
+    const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+    const pageEntries = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
     return (
         <>
             <TimelineList>
-                {[...entries]
-                    .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime())
-                    .map((entry, idx, arr) => {
-                        const isFailed = entry.status === 'FAILED';
-                        const isLast = idx === arr.length - 1;
-                        return (
-                            <TimelineItem key={entry.id} $last={isLast}>
-                                <ChannelDot $channel={entry.channel} $failed={isFailed}>
-                                    {entry.channel === 'EMAIL'
-                                        ? <EmailIcon size={14} />
-                                        : <SmsIcon size={14} />
-                                    }
-                                </ChannelDot>
-                                <EntryCard
-                                    onClick={() => setSelected(entry)}
-                                    aria-label={`Podgląd: ${entry.messageTypeLabel}`}
-                                >
-                                    <EntryMain>
-                                        <EntryLabel>{entry.messageTypeLabel}</EntryLabel>
-                                        <EntryMeta>
-                                            <span>{entry.channel === 'EMAIL' ? 'E-mail' : 'SMS'}</span>
-                                            <span>·</span>
-                                            <span>{entry.recipientAddress}</span>
-                                            <span>·</span>
-                                            <span>{formatCommDate(entry.sentAt)}</span>
-                                        </EntryMeta>
-                                    </EntryMain>
-                                    <EntryRight>
-                                        <StatusBadge $status={entry.status}>
-                                            {entry.status === 'SENT'
-                                                ? <><CheckIcon /> Wysłano</>
-                                                : entry.status === 'RECEIVED'
-                                                    ? <><CheckIcon /> Otrzymano</>
-                                                    : <><AlertIcon /> Błąd</>
-                                            }
-                                        </StatusBadge>
-                                        <PreviewHint>Podgląd →</PreviewHint>
-                                    </EntryRight>
-                                </EntryCard>
-                            </TimelineItem>
-                        );
-                    })}
+                {pageEntries.map((entry, idx) => {
+                    const isFailed = entry.status === 'FAILED';
+                    const isLast = idx === pageEntries.length - 1;
+                    return (
+                        <TimelineItem key={entry.id} $last={isLast}>
+                            <ChannelDot $channel={entry.channel} $failed={isFailed}>
+                                {entry.channel === 'EMAIL'
+                                    ? <EmailIcon size={14} />
+                                    : <SmsIcon size={14} />
+                                }
+                            </ChannelDot>
+                            <EntryCard
+                                onClick={() => setSelected(entry)}
+                                aria-label={`Podgląd: ${entry.messageTypeLabel}`}
+                            >
+                                <EntryMain>
+                                    <EntryLabel>{entry.messageTypeLabel}</EntryLabel>
+                                    <EntryMeta>
+                                        <span>{entry.channel === 'EMAIL' ? 'E-mail' : 'SMS'}</span>
+                                        <span>·</span>
+                                        <span>{entry.recipientAddress}</span>
+                                        <span>·</span>
+                                        <span>{formatCommDate(entry.sentAt)}</span>
+                                    </EntryMeta>
+                                </EntryMain>
+                                <EntryRight>
+                                    <StatusBadge $status={entry.status}>
+                                        {entry.status === 'SENT'
+                                            ? <><CheckIcon /> Wysłano</>
+                                            : entry.status === 'RECEIVED'
+                                                ? <><CheckIcon /> Otrzymano</>
+                                                : <><AlertIcon /> Błąd</>
+                                        }
+                                    </StatusBadge>
+                                    <PreviewHint>Podgląd →</PreviewHint>
+                                </EntryRight>
+                            </EntryCard>
+                        </TimelineItem>
+                    );
+                })}
             </TimelineList>
+
+            {totalPages > 1 && (
+                <PaginationBar>
+                    <PaginationInfo>
+                        {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, sorted.length)} z {sorted.length}
+                    </PaginationInfo>
+                    <PaginationBtns>
+                        <PaginationBtn
+                            $disabled={page === 0}
+                            disabled={page === 0}
+                            onClick={() => setPage(p => p - 1)}
+                        >
+                            ← Poprzednie
+                        </PaginationBtn>
+                        <PaginationBtn
+                            $disabled={page >= totalPages - 1}
+                            disabled={page >= totalPages - 1}
+                            onClick={() => setPage(p => p + 1)}
+                        >
+                            Następne →
+                        </PaginationBtn>
+                    </PaginationBtns>
+                </PaginationBar>
+            )}
 
             {selected && (
                 <CommunicationPreviewModal

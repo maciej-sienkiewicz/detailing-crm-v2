@@ -1,5 +1,3 @@
-// src/modules/customers/views/CustomerDetailView.tsx
-
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ReservationContextMenu } from '@/common/components/ReservationContextMenu';
@@ -44,6 +42,54 @@ import {
     SectionIconWrap, CollapsibleTitle, CollapsibleBadge, ChevronIcon, CollapsibleBody,
     CenteredBox, SpinnerEl, LoadingText, ErrorTitle, ErrorMsg,
 } from './CustomerDetailView.styles';
+
+// ─── Local styled components ──────────────────────────────────────────────────
+
+const VehicleIconWrap = styled.div`
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: ${st.bgCardAlt};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${st.textMuted};
+  svg { width: 16px; height: 16px; }
+`;
+
+const PaginationBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  border-top: 1px solid ${st.bgCardAlt};
+`;
+
+const PaginationInfo = styled.span`
+  font-size: 12px;
+  color: ${st.textMuted};
+`;
+
+const PaginationBtns = styled.div`
+  display: flex;
+  gap: 6px;
+`;
+
+const PaginationBtn = styled.button<{ $disabled?: boolean }>`
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid ${st.border};
+  background: ${p => p.$disabled ? st.bgCardAlt : '#fff'};
+  color: ${p => p.$disabled ? st.textMuted : st.text};
+  font-size: 12px;
+  font-weight: 500;
+  cursor: ${p => p.$disabled ? 'default' : 'pointer'};
+  font-family: inherit;
+  transition: background 140ms ease;
+  &:hover:not([disabled]) { background: ${st.bgCardAlt}; }
+`;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -129,6 +175,9 @@ export const CustomerDetailView = () => {
     const [isCommOpen,             setIsCommOpen]             = useState(false);
     const [isAuditOpen,            setIsAuditOpen]            = useState(false);
     const [reservationMenu, setReservationMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+    const [visitsPage, setVisitsPage] = useState(0);
+
+    const VISITS_PAGE_SIZE = 4;
 
     const { customerDetail, isLoading, isError, refetch }   = useCustomerDetail(customerId!);
     const { vehicles, isLoading: vehiclesLoading }           = useCustomerVehicles(customerId!);
@@ -193,7 +242,8 @@ export const CustomerDetailView = () => {
     const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || 'Nieznany klient';
     const initials = getInitials(customer.firstName, customer.lastName);
 
-    const recentVisits = visits.slice(0, 5);
+    const visitsTotalPages = Math.ceil(visits.length / VISITS_PAGE_SIZE);
+    const recentVisits = visits.slice(visitsPage * VISITS_PAGE_SIZE, (visitsPage + 1) * VISITS_PAGE_SIZE);
 
     return (
         <ViewContainer>
@@ -339,6 +389,13 @@ export const CustomerDetailView = () => {
                                             key={vehicle.id}
                                             onClick={() => navigate(`/vehicles/${vehicle.id}`)}
                                         >
+                                            <VehicleIconWrap>
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                                                    <path d="M19 17H5a2 2 0 0 1-2-2V9l2-4h10l4 4v4a2 2 0 0 1-2 2Z" />
+                                                    <circle cx="7.5" cy="17" r="1.5" />
+                                                    <circle cx="16.5" cy="17" r="1.5" />
+                                                </svg>
+                                            </VehicleIconWrap>
                                             <VehicleInfo>
                                                 <VehicleName>{vehicle.make} {vehicle.model}</VehicleName>
                                                 <VehicleSub>
@@ -401,10 +458,13 @@ export const CustomerDetailView = () => {
                             </SumCell>
 
                             {activeVisit ? (
-                                <SumCellActive>
+                                <SumCellActive
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={() => navigate(`/visits/${activeVisit.id}`)}
+                                >
                                     <KpiEyebrow $light>Aktywna wizyta</KpiEyebrow>
-                                    <KpiValue $light>#{activeVisit.id.slice(0, 6).toUpperCase()}</KpiValue>
-                                    <KpiDelta $light>W trakcie · {activeVisit.vehicleName}</KpiDelta>
+                                    <KpiValue $light>{activeVisit.vehicleName}</KpiValue>
+                                    <KpiDelta $light>W trakcie · kliknij aby przejść</KpiDelta>
                                 </SumCellActive>
                             ) : (
                                 <SumCell>
@@ -517,17 +577,12 @@ export const CustomerDetailView = () => {
                                     </svg>
                                     Ostatnie wizyty
                                 </PanelTitle>
-                                {visits.length > 5 && (
-                                    <PanelLinkBtn to={`/customers/${customerId}`}>
-                                        Wszystkie {visits.length}
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M9 18l6-6-6-6"/>
-                                        </svg>
-                                    </PanelLinkBtn>
+                                {visits.length > 0 && (
+                                    <PanelCountBadge>{visits.length}</PanelCountBadge>
                                 )}
                             </PanelHead>
                             <PanelBodyFlush>
-                                {recentVisits.length === 0 ? (
+                                {visits.length === 0 ? (
                                     <PanelBody>
                                         <NoteText>Brak historii wizyt.</NoteText>
                                     </PanelBody>
@@ -577,6 +632,29 @@ export const CustomerDetailView = () => {
                                     })
                                 )}
                             </PanelBodyFlush>
+                            {visitsTotalPages > 1 && (
+                                <PaginationBar>
+                                    <PaginationInfo>
+                                        {visitsPage * VISITS_PAGE_SIZE + 1}–{Math.min((visitsPage + 1) * VISITS_PAGE_SIZE, visits.length)} z {visits.length}
+                                    </PaginationInfo>
+                                    <PaginationBtns>
+                                        <PaginationBtn
+                                            $disabled={visitsPage === 0}
+                                            disabled={visitsPage === 0}
+                                            onClick={() => setVisitsPage(p => p - 1)}
+                                        >
+                                            ← Poprzednie
+                                        </PaginationBtn>
+                                        <PaginationBtn
+                                            $disabled={visitsPage >= visitsTotalPages - 1}
+                                            disabled={visitsPage >= visitsTotalPages - 1}
+                                            onClick={() => setVisitsPage(p => p + 1)}
+                                        >
+                                            Następne →
+                                        </PaginationBtn>
+                                    </PaginationBtns>
+                                </PaginationBar>
+                            )}
                         </Panel>
 
                         {/* ── Collapsible sections ───────────────── */}
