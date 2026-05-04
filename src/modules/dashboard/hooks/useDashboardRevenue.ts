@@ -6,5 +6,5 @@ export const useDashboardRevenue = (weeks = 13) =>
     useQuery<DashboardRevenueSummary>({
         queryKey: ['dashboard', 'revenue-summary', weeks],
         queryFn: () => dashboardApi.getRevenueSummary(weeks),
-        staleTime: 5 * 60_000,
+        staleTime: 0,
     });
