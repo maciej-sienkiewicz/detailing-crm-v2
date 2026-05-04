@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import { ReservationContextMenu } from '@/common/components/ReservationContextMenu';
 import {
   Clock,
   AlertTriangle,
@@ -403,7 +404,7 @@ const VisitRow = ({
 }: {
   visit: VisitDetail;
   variant: CardVariant;
-  onRowClick?: (id: string) => void;
+  onRowClick?: (id: string, e: React.MouseEvent) => void;
 }) => {
   const isOverdue = Boolean(
     visit.estimatedCompletionDate && new Date(visit.estimatedCompletionDate) < new Date()
@@ -413,7 +414,7 @@ const VisitRow = ({
     <VisitItem
       $overdue={isOverdue}
       $clickable={!!onRowClick}
-      onClick={() => onRowClick?.(visit.id)}
+      onClick={e => onRowClick?.(visit.id, e)}
     >
       <BrandAvatar $variant={variant}>{visit.brand.charAt(0).toUpperCase()}</BrandAvatar>
 
@@ -518,7 +519,7 @@ interface DrawerData {
   label: string;
   subtitle: string;
   visits: VisitDetail[];
-  onRowClick?: (id: string) => void;
+  onRowClick?: (id: string, e: React.MouseEvent) => void;
   footerLabel?: string;
   footerPath?: string;
 }
@@ -596,6 +597,7 @@ const VisitDrawer = ({
 
 export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
   const [activeKey, setActiveKey] = useState<string | null>(null);
+  const [ctxMenu, setCtxMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const navigate = useNavigate();
 
   const toggle = (key: string) =>
@@ -609,7 +611,7 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
       case 'readyForPickup':
         return { variant: 'readyForPickup', label: t.dashboard.stats.readyForPickup, subtitle: 'Lista wizyt', visits: stats.readyForPickupDetails ?? [], onRowClick: (id) => navigate(`/visits/${id}`) };
       case 'incomingToday':
-        return { variant: 'incomingToday', label: t.dashboard.stats.arrivals, subtitle: 'Lista wizyt', visits: stats.incomingTodayDetails ?? [], onRowClick: (id) => navigate(`/reservations/${id}/checkin`) };
+        return { variant: 'incomingToday', label: t.dashboard.stats.arrivals, subtitle: 'Lista wizyt', visits: stats.incomingTodayDetails ?? [], onRowClick: (id, e) => setCtxMenu({ id, x: e.clientX, y: e.clientY }) };
       case 'abandoned':
         return { variant: 'abandoned', label: t.dashboard.stats.abandoned, subtitle: 'Ostatnie 30 dni · Porzucone i Anulowane', visits: stats.abandonedDetails ?? [], onRowClick: (id) => navigate(`/appointments/${id}`), footerLabel: 'Pokaż rezerwacje', footerPath: '/appointments' };
       default:
@@ -671,6 +673,15 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
 
       {drawerData && (
         <VisitDrawer data={drawerData} onClose={() => setActiveKey(null)} />
+      )}
+
+      {ctxMenu && (
+        <ReservationContextMenu
+          appointmentId={ctxMenu.id}
+          x={ctxMenu.x}
+          y={ctxMenu.y}
+          onClose={() => setCtxMenu(null)}
+        />
       )}
     </>
   );
