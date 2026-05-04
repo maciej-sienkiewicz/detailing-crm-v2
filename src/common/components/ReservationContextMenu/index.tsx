@@ -9,7 +9,7 @@ const Menu = styled.div<{ $x: number; $y: number }>`
   position: fixed;
   top: ${p => p.$y}px;
   left: ${p => p.$x}px;
-  z-index: 1000;
+  z-index: 1200;
   background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
