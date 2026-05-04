@@ -23,6 +23,30 @@ import { mapBackendVehiclesResponse, mapBackendVisitsResponse, mapBackendReserva
 const CUSTOMERS_BASE_PATH = '/v1/customers';
 const USE_MOCKS = false;
 
+// ─── Revenue summary ──────────────────────────────────────────────────────────
+
+export interface RevenueBucket {
+    year: number;
+    month: number;
+    grossAmount: number;
+    currency: string;
+    visitCount: number;
+}
+
+export interface RevenueSummary {
+    buckets: RevenueBucket[];
+    total: {
+        grossAmount: number;
+        netAmount: number;
+        currency: string;
+        visitCount: number;
+    };
+    period: {
+        from: string;
+        to: string;
+    };
+}
+
 // Backend vehicle response type
 interface BackendVehicle {
     id: string;
@@ -440,6 +464,14 @@ export const customerDetailApi = {
             `${CUSTOMERS_BASE_PATH}/${customerId}/visits?${params.toString()}`
         );
         return mapBackendVisitsResponse(response.data);
+    },
+
+    getRevenueSummary: async (customerId: string, months = 12): Promise<RevenueSummary> => {
+        const response = await apiClient.get<RevenueSummary>(
+            `${CUSTOMERS_BASE_PATH}/${customerId}/revenue-summary`,
+            { params: { months } },
+        );
+        return response.data;
     },
 
     updateConsent: async (

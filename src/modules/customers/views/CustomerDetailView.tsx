@@ -7,6 +7,7 @@ import { useCustomerVehicles } from '../hooks/useCustomerVehicles';
 import { useCustomerVisits } from '../hooks/useCustomerVisits';
 import { useCustomerReservations } from '../hooks/useCustomerReservations';
 import { useCustomerCommunication } from '../hooks/useCustomerCommunication';
+import { useCustomerRevenue } from '../hooks/useCustomerRevenue';
 import { CustomerNotes } from '../components/CustomerNotes';
 import { CustomerCommunicationList } from '../components/CustomerCommunicationList';
 import { CarLogoImage } from '@/modules/vehicles/components/CarLogoImage';
@@ -127,31 +128,6 @@ function deriveContactPreference(consents: MarketingConsent[]): string {
     return granted.map(t => labels[t] ?? t).join(', ');
 }
 
-// ─── Compute monthly revenue buckets from visits (12 trailing months) ────────
-
-function buildMonthlyRevenue(visits: Visit[]): number[] {
-    const buckets = Array(12).fill(0) as number[];
-    const now = new Date();
-    visits.forEach(v => {
-        const d = new Date(v.date);
-        const monthsAgo =
-            (now.getFullYear() - d.getFullYear()) * 12 +
-            now.getMonth() - d.getMonth();
-        if (monthsAgo >= 0 && monthsAgo < 12) {
-            buckets[11 - monthsAgo] += v.totalCost.grossAmount;
-        }
-    });
-    return buckets;
-}
-
-function buildMonthLabels(): string[] {
-    const now = new Date();
-    return Array.from({ length: 12 }, (_, i) => {
-        const m = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
-        return MONTH_LABELS[m.getMonth()];
-    });
-}
-
 // ─── Main view ────────────────────────────────────────────────────────────────
 
 export const CustomerDetailView = () => {
@@ -173,15 +149,22 @@ export const CustomerDetailView = () => {
     const { visits: rawVisits }                              = useCustomerVisits(customerId!, 1, 50);
     const { reservations }                                   = useCustomerReservations(customerId!);
     const { entries: commEntries }                           = useCustomerCommunication(customerId!);
+    const { data: revenueSummary }                           = useCustomerRevenue(customerId!);
 
     const visits = useMemo(() => rawVisits.map(v => ({
         ...v,
         licensePlate: v.licensePlate || vehicles.find(vh => vh.id === v.vehicleId)?.licensePlate,
     })), [rawVisits, vehicles]);
 
-    const monthlyRevenue = useMemo(() => buildMonthlyRevenue(visits), [visits]);
-    const monthLabels    = useMemo(() => buildMonthLabels(), []);
-    const revenueMax     = useMemo(() => Math.max(...monthlyRevenue, 1), [monthlyRevenue]);
+    const monthlyRevenue = useMemo(
+        () => revenueSummary?.buckets.map(b => b.grossAmount) ?? Array(12).fill(0),
+        [revenueSummary],
+    );
+    const monthLabels = useMemo(
+        () => revenueSummary?.buckets.map(b => MONTH_LABELS[b.month - 1]) ?? Array(12).fill(''),
+        [revenueSummary],
+    );
+    const revenueMax = useMemo(() => Math.max(...monthlyRevenue, 1), [monthlyRevenue]);
 
     const activeVisit = useMemo(
         () => visits.find(v => v.status === 'in-progress'),
@@ -475,8 +458,8 @@ export const CustomerDetailView = () => {
                                     <span style={{ fontSize: 12, color: '#64748b' }}>
                                         Suma: <strong style={{ color: '#0f172a' }}>
                                             {formatCurrency(
-                                                monthlyRevenue.reduce((a, b) => a + b, 0),
-                                                lifetimeValue.currency,
+                                                revenueSummary?.total.grossAmount ?? 0,
+                                                revenueSummary?.total.currency ?? lifetimeValue.currency,
                                             )}
                                         </strong>
                                     </span>
@@ -489,7 +472,7 @@ export const CustomerDetailView = () => {
                                                     <ChartBar
                                                         $h={Math.max(3, Math.round((val / revenueMax) * 100))}
                                                         $active={i === 11}
-                                                        title={formatCurrency(val, lifetimeValue.currency)}
+                                                        title={formatCurrency(val, revenueSummary?.total.currency ?? lifetimeValue.currency)}
                                                     />
                                                 </ChartBarWrap>
                                                 <ChartBarLabel>{monthLabels[i]}</ChartBarLabel>
