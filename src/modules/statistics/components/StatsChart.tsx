@@ -1,4 +1,5 @@
 // src/modules/statistics/components/StatsChart.tsx
+import { useState } from 'react';
 import styled from 'styled-components';
 import {
     ComposedChart,
@@ -9,7 +10,7 @@ import {
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    Legend,
+    Cell,
 } from 'recharts';
 import type { StatsDataPoint } from '../types';
 import { t } from '@/common/i18n';
@@ -61,6 +62,29 @@ const LegendDot = styled.span<{ $color: string; $variant?: 'bar' | 'line' }>`
     flex-shrink: 0;
 `;
 
+const ClickHint = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+    margin-left: auto;
+    padding-right: 4px;
+`;
+
+const HintIcon = styled.span`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid ${st.border};
+    font-size: 9px;
+    color: ${st.textMuted};
+    flex-shrink: 0;
+`;
+
 const EmptyChart = styled.div`
     display: flex;
     align-items: center;
@@ -72,6 +96,8 @@ const EmptyChart = styled.div`
 
 const formatRevenue = (grosz: number) =>
     (grosz / 100).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 });
+
+// ─── Custom tooltip ───────────────────────────────────────────────────────────
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
@@ -85,7 +111,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                 borderRadius: 10,
                 padding: '12px 16px',
                 fontSize: 13,
-                minWidth: 170,
+                minWidth: 190,
                 boxShadow: st.shadowMd,
             }}
         >
@@ -99,22 +125,73 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                 </div>
             )}
             {orders && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                     <span style={{ display: 'inline-block', width: 10, height: 3, borderRadius: 2, background: st.accentBlue, flexShrink: 0 }} />
                     <span style={{ color: st.textSecondary, fontSize: 13 }}>
                         {orders.value} {orders.value === 1 ? 'wizyta' : orders.value < 5 ? 'wizyty' : 'wizyt'}
                     </span>
                 </div>
             )}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                paddingTop: 8,
+                borderTop: `1px solid ${st.border}`,
+                color: st.accentBlue,
+                fontSize: 11,
+                fontWeight: 600,
+            }}>
+                <span style={{ fontSize: 13 }}>↗</span>
+                Kliknij, aby zobaczyć wizyty
+            </div>
         </div>
     );
 };
 
+// ─── Custom bar shape ─────────────────────────────────────────────────────────
+
+const ActiveBarShape = (props: any) => {
+    const { x, y, width, height, fill, isActive } = props;
+    if (!height || height <= 0) return null;
+    return (
+        <g>
+            {isActive && (
+                <rect
+                    x={x - 3}
+                    y={y - 4}
+                    width={width + 6}
+                    height={height + 4}
+                    rx={7}
+                    ry={7}
+                    fill={st.accentGreen}
+                    opacity={0.12}
+                />
+            )}
+            <rect
+                x={x}
+                y={y}
+                width={width}
+                height={height}
+                rx={5}
+                ry={5}
+                fill={isActive ? '#059669' : fill}
+                opacity={isActive ? 1 : 0.85}
+            />
+        </g>
+    );
+};
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 interface StatsChartProps {
     data: StatsDataPoint[];
+    onBarClick?: (period: string) => void;
 }
 
-export const StatsChart = ({ data }: StatsChartProps) => {
+export const StatsChart = ({ data, onBarClick }: StatsChartProps) => {
+    const [hoveredPeriod, setHoveredPeriod] = useState<string | null>(null);
+
     if (data.length === 0) {
         return (
             <ChartWrapper>
@@ -122,6 +199,12 @@ export const StatsChart = ({ data }: StatsChartProps) => {
             </ChartWrapper>
         );
     }
+
+    const handleBarClick = (barData: any) => {
+        if (onBarClick && barData?.activePayload?.[0]?.payload?.period) {
+            onBarClick(barData.activePayload[0].payload.period);
+        }
+    };
 
     return (
         <ChartWrapper>
@@ -136,10 +219,27 @@ export const StatsChart = ({ data }: StatsChartProps) => {
                         <LegendDot $color={st.accentBlue} $variant="line" />
                         {t.statistics.chart.ordersLabel}
                     </LegendItem>
+                    {onBarClick && (
+                        <ClickHint>
+                            <HintIcon>↗</HintIcon>
+                            kliknij słupek
+                        </ClickHint>
+                    )}
                 </LegendDots>
             </ChartHeader>
             <ResponsiveContainer width="100%" height={300}>
-                <ComposedChart data={data} margin={{ top: 4, right: 24, left: 8, bottom: 4 }}>
+                <ComposedChart
+                    data={data}
+                    margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
+                    onClick={onBarClick ? handleBarClick : undefined}
+                    style={{ cursor: onBarClick ? 'pointer' : 'default' }}
+                    onMouseMove={(state: any) => {
+                        if (state?.activePayload?.[0]?.payload?.period) {
+                            setHoveredPeriod(state.activePayload[0].payload.period);
+                        }
+                    }}
+                    onMouseLeave={() => setHoveredPeriod(null)}
+                >
                     <CartesianGrid strokeDasharray="3 3" stroke={st.border} vertical={false} />
                     <XAxis
                         dataKey="period"
@@ -174,10 +274,21 @@ export const StatsChart = ({ data }: StatsChartProps) => {
                         dataKey="totalRevenueGross"
                         name={t.statistics.chart.revenueLabel}
                         fill={st.accentGreen}
-                        radius={[5, 5, 0, 0]}
                         maxBarSize={48}
-                        opacity={0.85}
-                    />
+                        shape={(props: any) => (
+                            <ActiveBarShape
+                                {...props}
+                                isActive={props.period === hoveredPeriod}
+                            />
+                        )}
+                    >
+                        {data.map(entry => (
+                            <Cell
+                                key={entry.period}
+                                fill={st.accentGreen}
+                            />
+                        ))}
+                    </Bar>
                     <Line
                         yAxisId="orders"
                         dataKey="orderCount"

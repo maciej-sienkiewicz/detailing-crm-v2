@@ -7,6 +7,7 @@ import { StatsTotalsBar } from '../components/StatsTotalsBar';
 import { StatsChart } from '../components/StatsChart';
 import { BreakdownTable } from '../components/BreakdownTable';
 import { CategoryFormModal } from '../components/CategoryFormModal';
+import { PeriodDetailDrawer } from '../components/PeriodDetailDrawer';
 import { StatsNav } from '../components/StatsNav';
 import { useCategories, useDeleteCategory, useAssignService, useUnassignService } from '../hooks/useCategories';
 import { useBreakdown, useCategoryStats } from '../hooks/useStats';
@@ -346,6 +347,7 @@ export const StatisticsView = () => {
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | undefined>();
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+    const [drillPeriod, setDrillPeriod] = useState<string | null>(null);
 
     const {
         breakdown,
@@ -532,7 +534,10 @@ export const StatisticsView = () => {
                 {displayData && (
                     <ChartArea $fading={chartFetching || (chartInitialLoading && !chartData)}>
                         <StatsTotalsBar totals={displayData.totals} />
-                        <StatsChart data={displayData.data} />
+                        <StatsChart
+                            data={displayData.data}
+                            onBarClick={setDrillPeriod}
+                        />
                     </ChartArea>
                 )}
             </Section>
@@ -659,6 +664,12 @@ export const StatisticsView = () => {
                 isOpen={isFormModalOpen}
                 onClose={handleCloseModal}
                 category={editingCategory}
+            />
+
+            <PeriodDetailDrawer
+                period={drillPeriod}
+                granularity={granularity}
+                onClose={() => setDrillPeriod(null)}
             />
         </ViewContainer>
     );

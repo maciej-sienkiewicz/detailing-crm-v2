@@ -87,6 +87,31 @@ export interface UpdateCategoryRequest {
     color?: string | null;
 }
 
+// ─── Period Detail (visit drill-down) ─────────────────────────────────────────
+
+export interface PeriodVisitService {
+    serviceId: string;
+    serviceName: string;
+    priceGross: number;
+}
+
+export interface PeriodVisit {
+    visitId: string;
+    visitDate: string;
+    clientName: string;
+    vehicleInfo: string;
+    totalRevenueGross: number;
+    services: PeriodVisitService[];
+}
+
+export interface PeriodDetail {
+    period: string;
+    granularity: Granularity;
+    orderCount: number;
+    totalRevenueGross: number;
+    visits: PeriodVisit[];
+}
+
 // ─── Delay Statistics ─────────────────────────────────────────────────────────
 
 export interface DelayTrendPoint {
