@@ -28,7 +28,7 @@ export async function fetchEmailAutomationConfig(): Promise<EmailAutomationConfi
     return { ...mockConfig };
   }
   const { data } = await apiClient.get<EmailAutomationConfig>(
-    '/api/v1/email-campaigns/automation'
+    '/v1/email-campaigns/automation'
   );
   return data;
 }
@@ -42,7 +42,7 @@ export async function updateEmailAutomationConfig(
     return { ...mockConfig };
   }
   const { data } = await apiClient.put<EmailAutomationConfig>(
-    '/api/v1/email-campaigns/automation',
+    '/v1/email-campaigns/automation',
     config
   );
   return data;
