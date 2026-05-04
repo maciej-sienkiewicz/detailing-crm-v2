@@ -93,6 +93,8 @@ export interface PeriodVisitService {
     serviceId: string;
     serviceName: string;
     priceGross: number;
+    /** true when a category filter is active and this service belongs to it */
+    inCategory?: boolean;
 }
 
 export interface PeriodVisit {
@@ -100,7 +102,10 @@ export interface PeriodVisit {
     visitDate: string;
     clientName: string;
     vehicleInfo: string;
+    /** Revenue from category-filtered services only (equals revenueGrossAll when no filter) */
     totalRevenueGross: number;
+    /** Full visit revenue regardless of filter */
+    totalRevenueGrossAll: number;
     services: PeriodVisitService[];
 }
 
@@ -108,7 +113,12 @@ export interface PeriodDetail {
     period: string;
     granularity: Granularity;
     orderCount: number;
+    /** Revenue from category-filtered services only */
     totalRevenueGross: number;
+    /** Full period revenue regardless of filter */
+    totalRevenueGrossAll: number;
+    /** Category name when a filter is active, null otherwise */
+    categoryName: string | null;
     visits: PeriodVisit[];
 }
 
