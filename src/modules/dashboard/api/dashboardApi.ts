@@ -497,7 +497,13 @@ export const dashboardApi = {
     yesterdayDate.setDate(yesterdayDate.getDate() - 1);
     const yesterdayIso = localDateStr(yesterdayDate);
 
-    const toLocalDay = (iso: string) => iso.slice(0, 10);
+    const toLocalDay = (iso: string): string => {
+      const d = new Date(iso);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
 
     const dateLabel = (iso: string): string => {
       const day = toLocalDay(iso);
