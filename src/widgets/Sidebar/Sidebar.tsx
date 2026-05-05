@@ -24,6 +24,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
 import { useAuth } from '@/core/context/AuthContext';
 import { authApi } from '@/modules/auth/api/authApi';
+import { useSmsCreditBalance } from '@/modules/settings/hooks/useSmsCredits';
 import { SidebarMenu, MenuSection } from './SidebarMenu';
 import {
     Overlay,
@@ -44,6 +45,11 @@ import {
     UserName,
     UserRole,
     UserLogoutButton,
+    SmsCreditsWidget,
+    SmsCreditsIcon,
+    SmsCreditsInfo,
+    SmsCreditsLabel,
+    SmsCreditsValue,
 } from './SidebarStyles';
 
 const menuSections: MenuSection[] = [
@@ -104,6 +110,9 @@ export const Sidebar = () => {
     const { user, setAuthenticated } = useAuth();
     const navigate = useNavigate();
 
+    const isDetailer = user?.role?.toLowerCase() === 'detailer';
+    const { data: creditBalance } = useSmsCreditBalance({ enabled: !isDetailer });
+
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
             if (e.key === 'Escape' && isMobileOpen) closeMobileMenu();
@@ -156,6 +165,20 @@ export const Sidebar = () => {
                         </CloseButton>
                     </HeaderActions>
                 </SidebarHeader>
+
+                {!isDetailer && creditBalance !== undefined && (
+                    <SmsCreditsWidget $isCollapsed={isCollapsed}>
+                        <SmsCreditsIcon>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                            </svg>
+                        </SmsCreditsIcon>
+                        <SmsCreditsInfo $isCollapsed={isCollapsed}>
+                            <SmsCreditsLabel>Kredyty SMS</SmsCreditsLabel>
+                            <SmsCreditsValue>{creditBalance.availableCredits.toLocaleString('pl-PL')}</SmsCreditsValue>
+                        </SmsCreditsInfo>
+                    </SmsCreditsWidget>
+                )}
 
                 <SidebarMenu
                     sections={menuSections}

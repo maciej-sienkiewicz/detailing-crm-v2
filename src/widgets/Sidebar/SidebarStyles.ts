@@ -196,6 +196,71 @@ export const CloseButton = styled.button`
     }
 `;
 
+// ─── SMS Credits Widget ───────────────────────────────────────────────────────
+
+export const SmsCreditsWidget = styled.div<{ $isCollapsed: boolean }>`
+    margin: 0 8px;
+    padding: 10px 12px;
+    background: rgba(14, 165, 233, 0.08);
+    border: 1px solid rgba(14, 165, 233, 0.18);
+    border-radius: 10px;
+    flex-shrink: 0;
+    overflow: hidden;
+    transition: all 260ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
+        padding: ${p => p.$isCollapsed ? '10px 0' : '10px 12px'};
+        margin: ${p => p.$isCollapsed ? '0 auto' : '0 8px'};
+        width: ${p => p.$isCollapsed ? '40px' : 'auto'};
+        display: flex;
+        align-items: center;
+        justify-content: ${p => p.$isCollapsed ? 'center' : 'flex-start'};
+        gap: ${p => p.$isCollapsed ? '0' : '10px'};
+    }
+`;
+
+export const SmsCreditsIcon = styled.div`
+    width: 28px;
+    height: 28px;
+    background: rgba(14, 165, 233, 0.15);
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #38bdf8;
+    flex-shrink: 0;
+
+    svg { width: 14px; height: 14px; }
+`;
+
+export const SmsCreditsInfo = styled.div<{ $isCollapsed: boolean }>`
+    overflow: hidden;
+
+    @media (min-width: ${p => p.theme.breakpoints.md}) {
+        opacity: ${p => p.$isCollapsed ? 0 : 1};
+        max-width: ${p => p.$isCollapsed ? '0px' : '160px'};
+        transition: opacity 200ms ease, max-width 260ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+`;
+
+export const SmsCreditsLabel = styled.div`
+    font-size: 10px;
+    font-weight: 600;
+    color: ${S.sectionLabel};
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+`;
+
+export const SmsCreditsValue = styled.div`
+    font-size: 15px;
+    font-weight: 800;
+    color: #38bdf8;
+    line-height: 1.2;
+    white-space: nowrap;
+    letter-spacing: -0.3px;
+`;
+
 // ─── Menu ─────────────────────────────────────────────────────────────────────
 
 export const MenuContainer = styled.nav`
