@@ -300,10 +300,8 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
     onPopupClose,
     eventsCount,
 }) => {
-    const [popupOpenInternal, setPopupOpenInternal] = useState(false);
+    const [popupOpen, setPopupOpen] = useState(false);
     const barRef = useRef<HTMLDivElement>(null);
-
-    const popupOpen = popupOpenProp !== undefined ? popupOpenProp : popupOpenInternal;
 
     const activeStatuses = [
         ...selectedAppointmentStatuses,
@@ -337,23 +335,16 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
     };
 
     const closePopup = () => {
-        setPopupOpenInternal(false);
+        setPopupOpen(false);
         onPopupClose?.();
     };
 
-    const togglePopup = () => {
-        if (popupOpenProp !== undefined) {
-            onPopupClose?.();
-        } else {
-            setPopupOpenInternal(o => !o);
-        }
-    };
+    // "Dodaj filtr" button always toggles internal state
+    const togglePopup = () => setPopupOpen(o => !o);
 
-    // Sync external open prop → close when it goes false
+    // When mobile pill triggers external open, open our popup
     useEffect(() => {
-        if (popupOpenProp === false) {
-            setPopupOpenInternal(false);
-        }
+        if (popupOpenProp) setPopupOpen(true);
     }, [popupOpenProp]);
 
     // Close on outside click

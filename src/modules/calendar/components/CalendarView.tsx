@@ -40,114 +40,9 @@ const CalendarContainer = styled.div`
     }
 
     /* ===================== TOOLBAR ===================== */
+    /* Hidden — replaced by the custom DesktopPageHeader above the grid */
     .fc-header-toolbar {
-        padding: 12px 16px;
-        margin-bottom: 0 !important;
-        background: rgba(255, 255, 255, 0.96);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border-bottom: 1px solid rgba(15, 23, 42, 0.07);
-        align-items: center;
-    }
-
-    .fc-toolbar-title {
-        font-size: 22px;
-        font-weight: 600;
-        color: #0f172a;
-        letter-spacing: -0.3px;
-    }
-
-    /* --- Buttons base --- */
-    .fc-button-group {
-        border: 1px solid rgba(15, 23, 42, 0.12);
-        border-radius: 8px;
-        overflow: hidden;
-    }
-
-    .fc-button {
-        background: #fff !important;
-        color: #1e293b !important;
-        border: none !important;
-        font-weight: 500 !important;
-        text-transform: none !important;
-        padding: 7px 16px !important;
-        box-shadow: none !important;
-        transition: background 0.15s ease, color 0.15s ease !important;
-        font-size: 13px !important;
-        letter-spacing: 0;
-        font-family: inherit !important;
-    }
-
-    .fc-button:hover {
-        background: rgba(99, 102, 241, 0.06) !important;
-        color: #6366f1 !important;
-    }
-
-    .fc-button-active {
-        background: rgba(99, 102, 241, 0.1) !important;
-        color: #6366f1 !important;
-        font-weight: 600 !important;
-    }
-
-    .fc-button:disabled {
-        opacity: 0.35;
-        cursor: not-allowed;
-    }
-
-    /* Today button */
-    .fc-today-button {
-        border: 1px solid rgba(15, 23, 42, 0.12) !important;
-        border-radius: 8px !important;
-        margin-right: 8px !important;
-        font-weight: 500 !important;
-        color: #1e293b !important;
-        transition: all 0.15s ease !important;
-    }
-
-    .fc-today-button:hover:not(:disabled) {
-        background: rgba(99, 102, 241, 0.06) !important;
-        border-color: rgba(99, 102, 241, 0.3) !important;
-        color: #6366f1 !important;
-    }
-
-    /* Filter button */
-    .fc-filter-button {
-        border: 1px solid rgba(15, 23, 42, 0.12) !important;
-        border-radius: 8px !important;
-        margin-left: 8px !important;
-        font-weight: 500 !important;
-        background: #fff !important;
-        color: #1e293b !important;
-        transition: all 0.15s ease !important;
-    }
-
-    .fc-filter-button:hover {
-        background: rgba(99, 102, 241, 0.06) !important;
-        border-color: rgba(99, 102, 241, 0.3) !important;
-        color: #6366f1 !important;
-    }
-
-    /* Navigation buttons */
-    .fc-prev-button,
-    .fc-next-button {
-        border: none !important;
-        border-radius: 50% !important;
-        margin: 0 2px !important;
-        padding: 0 !important;
-        width: 36px !important;
-        height: 36px !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        background: transparent !important;
-        color: #1e293b !important;
-        transition: background 0.15s ease !important;
-    }
-
-    .fc-prev-button:hover,
-    .fc-next-button:hover {
-        background: rgba(99, 102, 241, 0.08) !important;
-        color: #6366f1 !important;
+        display: none !important;
     }
 
     /* ===================== GRID ===================== */
@@ -491,26 +386,7 @@ const CalendarContainer = styled.div`
     }
 
     /* ===================== RESPONSIVE ===================== */
-    @media (max-width: 1024px) {
-        .fc-header-toolbar {
-            padding: 10px 12px;
-        }
-
-        .fc-toolbar-title {
-            font-size: 18px;
-        }
-
-        .fc-button {
-            padding: 6px 12px !important;
-            font-size: 12px !important;
-        }
-    }
-
     @media (max-width: 768px) {
-        .fc-header-toolbar {
-            display: none !important;
-        }
-
         .fc-col-header-cell {
             padding: 8px 4px;
             font-size: 10px;
@@ -729,6 +605,142 @@ const MobileAddBtn = styled.button`
 
     &:hover { background: #f1f3f4; }
     &:active { background: #e8f0fe; }
+`;
+
+/* ===================== DESKTOP PAGE HEADER ===================== */
+
+const DesktopPageHeader = styled.div`
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    flex-shrink: 0;
+    background: #fff;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+
+    @media (max-width: 768px) {
+        display: none;
+    }
+`;
+
+const PageCrumb = styled.div`
+    font-size: 12px;
+    color: #94a3b8;
+    font-weight: 500;
+    margin-bottom: 4px;
+    letter-spacing: 0.02em;
+`;
+
+const PageTitle = styled.h1`
+    font-size: 28px;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.4px;
+    margin: 0;
+    line-height: 1.1;
+`;
+
+const PageHeaderRight = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+`;
+
+const MonthNavGroup = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
+const NavIconBtn = styled.button`
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #475569;
+    transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+
+    &:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        color: #0f172a;
+    }
+
+    svg { width: 16px; height: 16px; }
+`;
+
+const TodayNavBtn = styled.button`
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+
+    &:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        color: #0f172a;
+    }
+`;
+
+const ViewSwitchGroup = styled.div`
+    display: inline-flex;
+    padding: 3px;
+    background: #f1f5f9;
+    border-radius: 10px;
+    gap: 2px;
+`;
+
+const ViewSwitchBtn = styled.button<{ $active: boolean }>`
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: ${p => (p.$active ? '#0f172a' : '#64748b')};
+    background: ${p => (p.$active ? '#fff' : 'transparent')};
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: ${p => (p.$active ? '0 1px 2px rgba(15,23,42,0.06)' : 'none')};
+    transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+
+    &:hover {
+        color: ${p => (p.$active ? '#0f172a' : '#475569')};
+    }
+`;
+
+const NewEventBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 9999px;
+    background: #0ea5e9;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 150ms ease, box-shadow 150ms ease;
+
+    &:hover {
+        background: #0284c7;
+        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.38);
+    }
+
+    svg { width: 14px; height: 14px; flex-shrink: 0; }
 `;
 
 interface CalendarViewProps {
@@ -1095,6 +1107,70 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     </MobileAddBtn>
                 </MobileActions>
             </MobileHeader>
+
+            {/* Desktop page header – month view only (week/day custom views have their own built-in headers) */}
+            {currentView === 'dayGridMonth' && (
+                <DesktopPageHeader>
+                    <div>
+                        <PageCrumb>Główne · Kalendarz</PageCrumb>
+                        <PageTitle>
+                            {calendarTitle
+                                ? calendarTitle.charAt(0).toUpperCase() + calendarTitle.slice(1)
+                                : 'Kalendarz'}
+                        </PageTitle>
+                    </div>
+                    <PageHeaderRight>
+                        <MonthNavGroup>
+                            <NavIconBtn
+                                onClick={() => calendarRef.current?.getApi().prev()}
+                                aria-label="Poprzedni miesiąc"
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="15 18 9 12 15 6" />
+                                </svg>
+                            </NavIconBtn>
+                            <TodayNavBtn onClick={() => calendarRef.current?.getApi().today()}>
+                                Dziś
+                            </TodayNavBtn>
+                            <NavIconBtn
+                                onClick={() => calendarRef.current?.getApi().next()}
+                                aria-label="Następny miesiąc"
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="9 18 15 12 9 6" />
+                                </svg>
+                            </NavIconBtn>
+                        </MonthNavGroup>
+
+                        <ViewSwitchGroup>
+                            {([
+                                { view: 'dayGridMonth', label: 'Miesiąc' },
+                                { view: 'timeGridWeek', label: 'Tydzień' },
+                                { view: 'timeGridDay',  label: 'Dzień'   },
+                            ] as { view: CalendarViewType; label: string }[]).map(({ view, label }) => (
+                                <ViewSwitchBtn
+                                    key={view}
+                                    $active={currentView === view}
+                                    onClick={() => calendarRef.current?.getApi().changeView(view)}
+                                >
+                                    {label}
+                                </ViewSwitchBtn>
+                            ))}
+                        </ViewSwitchGroup>
+
+                        <NewEventBtn onClick={handleMobileAddClick}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            Nowa rezerwacja
+                        </NewEventBtn>
+                    </PageHeaderRight>
+                </DesktopPageHeader>
+            )}
 
             {/* Command-bar filter (Variant D) – desktop visible; mobile pill controls popup */}
             <CalendarFilterBar
