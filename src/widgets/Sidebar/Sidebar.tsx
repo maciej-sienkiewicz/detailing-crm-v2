@@ -19,7 +19,6 @@ import {
     Settings,
     LogOut,
     Search,
-    Wallet,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
@@ -83,10 +82,9 @@ const menuSections: MenuSection[] = [
     {
         title: 'Marketing',
         items: [
-            { path: '/sms-campaigns',          label: 'Kampanie SMS',  icon: MessageSquare },
-            { path: '/settings?tab=credits',   label: 'Kredyty SMS',   icon: Wallet },
-            { path: '/instagram',              label: 'Instagram',     icon: Camera },
-            { path: '/google-reviews',         label: 'Google Reviews', icon: Search },
+            { path: '/sms-campaigns',  label: 'Kampanie SMS',   icon: MessageSquare },
+            { path: '/instagram',      label: 'Instagram',      icon: Camera },
+            { path: '/google-reviews', label: 'Google Reviews', icon: Search },
         ],
     },
 ];
@@ -169,7 +167,11 @@ export const Sidebar = () => {
                 </SidebarHeader>
 
                 {!isDetailer && creditBalance !== undefined && (
-                    <SmsCreditsWidget $isCollapsed={isCollapsed}>
+                    <SmsCreditsWidget
+                        $isCollapsed={isCollapsed}
+                        onClick={() => { navigate('/settings?tab=credits'); closeMobileMenu(); }}
+                        title="Przejdź do ustawień kredytów SMS"
+                    >
                         <SmsCreditsIcon>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -177,7 +179,11 @@ export const Sidebar = () => {
                         </SmsCreditsIcon>
                         <SmsCreditsInfo $isCollapsed={isCollapsed}>
                             <SmsCreditsLabel>Kredyty SMS</SmsCreditsLabel>
-                            <SmsCreditsValue>{creditBalance.availableCredits.toLocaleString('pl-PL')}</SmsCreditsValue>
+                            <SmsCreditsValue $isEmpty={creditBalance.availableCredits === 0}>
+                                {creditBalance.availableCredits === 0
+                                    ? 'Uzupełnij pakiet'
+                                    : creditBalance.availableCredits.toLocaleString('pl-PL')}
+                            </SmsCreditsValue>
                         </SmsCreditsInfo>
                     </SmsCreditsWidget>
                 )}

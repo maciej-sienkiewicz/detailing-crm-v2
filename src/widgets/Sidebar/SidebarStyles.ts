@@ -206,7 +206,17 @@ export const SmsCreditsWidget = styled.div<{ $isCollapsed: boolean }>`
     border-radius: 10px;
     flex-shrink: 0;
     overflow: hidden;
+    cursor: pointer;
     transition: all 260ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+        background: rgba(14, 165, 233, 0.15);
+        border-color: rgba(14, 165, 233, 0.35);
+    }
+
+    &:active {
+        background: rgba(14, 165, 233, 0.22);
+    }
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
         padding: ${p => p.$isCollapsed ? '10px 0' : '10px 12px'};
@@ -252,10 +262,10 @@ export const SmsCreditsLabel = styled.div`
     white-space: nowrap;
 `;
 
-export const SmsCreditsValue = styled.div`
-    font-size: 15px;
+export const SmsCreditsValue = styled.div<{ $isEmpty?: boolean }>`
+    font-size: ${p => p.$isEmpty ? '11px' : '15px'};
     font-weight: 800;
-    color: #38bdf8;
+    color: ${p => p.$isEmpty ? '#f87171' : '#38bdf8'};
     line-height: 1.2;
     white-space: nowrap;
     letter-spacing: -0.3px;
