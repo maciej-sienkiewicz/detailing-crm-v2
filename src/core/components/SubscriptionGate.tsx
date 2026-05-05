@@ -186,31 +186,15 @@ const BtnSpinner = styled.div`
     animation: ${spin} 0.7s linear infinite;
 `;
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── ExpiredModal — fetches plans only when actually shown ───────────────────
 
-interface SubscriptionGateProps {
-    children: ReactNode;
-}
-
-export function SubscriptionGate({ children }: SubscriptionGateProps) {
-    const { user, isLoading: authLoading } = useAuth();
+function ExpiredModal() {
+    const { user } = useAuth();
     const { showSuccess, showError } = useToast();
-    const { status, isLoading: statusLoading } = useSubscriptionStatus();
     const { plans } = useSubscriptionPlans();
     const purchase = usePurchaseSubscription();
 
     const isOwner = user?.role === 'OWNER';
-
-    // while auth or subscription is loading, just render children (ProtectedRoute already shows a loader)
-    if (authLoading || statusLoading || !status) {
-        return <>{children}</>;
-    }
-
-    // subscription is still valid
-    if (status.isAccessible) {
-        return <>{children}</>;
-    }
-
     const monthlyPlan = plans.find(p => p.type === 'MONTHLY');
     const yearlyPlan  = plans.find(p => p.type === 'YEARLY');
 
@@ -225,74 +209,97 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     };
 
     return (
+        <Overlay>
+            <Card>
+                <Head>
+                    <IconWrap>
+                        <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                            <line x1="12" y1="9" x2="12" y2="13" />
+                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                        </svg>
+                    </IconWrap>
+                    <Title>Twoja subskrypcja wygasła</Title>
+                    <Subtitle>
+                        Aby kontynuować korzystanie z systemu, wybierz jeden z poniższych planów i odnów dostęp. Wszystkie Twoje dane są bezpieczne.
+                    </Subtitle>
+                </Head>
+
+                <PlansGrid>
+                    {monthlyPlan && (
+                        <PlanCard
+                            $highlighted={false}
+                            $disabled={!isOwner || purchase.isPending}
+                            disabled={!isOwner || purchase.isPending}
+                            onClick={() => handlePurchase('MONTHLY')}
+                        >
+                            <PlanName $light={false}>{monthlyPlan.name}</PlanName>
+                            <PlanAmount $light={false}>
+                                {formatPrice(monthlyPlan.priceGross, monthlyPlan.currency)}
+                            </PlanAmount>
+                            <PlanPer $light={false}>/ miesiąc</PlanPer>
+                        </PlanCard>
+                    )}
+
+                    {yearlyPlan && (
+                        <PlanCard
+                            $highlighted={true}
+                            $disabled={!isOwner || purchase.isPending}
+                            disabled={!isOwner || purchase.isPending}
+                            onClick={() => handlePurchase('YEARLY')}
+                        >
+                            <SaveBadge>Najlepsza oferta</SaveBadge>
+                            <PlanName $light={true}>{yearlyPlan.name}</PlanName>
+                            <PlanAmount $light={true}>
+                                {formatPrice(yearlyPlan.pricePerMonth, yearlyPlan.currency)}
+                            </PlanAmount>
+                            <PlanPer $light={true}>/ miesiąc</PlanPer>
+                            <PlanTotal $light={true}>
+                                {formatPrice(yearlyPlan.priceGross, yearlyPlan.currency)} / rok
+                            </PlanTotal>
+                        </PlanCard>
+                    )}
+                </PlansGrid>
+
+                {purchase.isPending && (
+                    <PurchaseBtn disabled>
+                        <BtnSpinner />
+                        Przetwarzanie płatności…
+                    </PurchaseBtn>
+                )}
+
+                {!isOwner && (
+                    <OwnerNote>
+                        Odnowienie subskrypcji jest możliwe wyłącznie przez właściciela studia. Skontaktuj się z właścicielem, aby odblokować dostęp.
+                    </OwnerNote>
+                )}
+            </Card>
+        </Overlay>
+    );
+}
+
+// ─── Gate — only fetches status; renders modal when access is blocked ─────────
+
+interface SubscriptionGateProps {
+    children: ReactNode;
+}
+
+export function SubscriptionGate({ children }: SubscriptionGateProps) {
+    const { isLoading: authLoading } = useAuth();
+    const { status, isLoading: statusLoading } = useSubscriptionStatus();
+
+    if (authLoading || statusLoading || !status) {
+        return <>{children}</>;
+    }
+
+    if (status.isAccessible) {
+        return <>{children}</>;
+    }
+
+    return (
         <>
             {children}
-            <Overlay>
-                <Card>
-                    <Head>
-                        <IconWrap>
-                            <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                                <line x1="12" y1="9" x2="12" y2="13" />
-                                <line x1="12" y1="17" x2="12.01" y2="17" />
-                            </svg>
-                        </IconWrap>
-                        <Title>Twoja subskrypcja wygasła</Title>
-                        <Subtitle>
-                            Aby kontynuować korzystanie z systemu, wybierz jeden z poniższych planów i odnów dostęp. Wszystkie Twoje dane są bezpieczne.
-                        </Subtitle>
-                    </Head>
-
-                    <PlansGrid>
-                        {monthlyPlan && (
-                            <PlanCard
-                                $highlighted={false}
-                                $disabled={!isOwner || purchase.isPending}
-                                disabled={!isOwner || purchase.isPending}
-                                onClick={() => handlePurchase('MONTHLY')}
-                            >
-                                <PlanName $light={false}>{monthlyPlan.name}</PlanName>
-                                <PlanAmount $light={false}>
-                                    {formatPrice(monthlyPlan.priceGross, monthlyPlan.currency)}
-                                </PlanAmount>
-                                <PlanPer $light={false}>/ miesiąc</PlanPer>
-                            </PlanCard>
-                        )}
-
-                        {yearlyPlan && (
-                            <PlanCard
-                                $highlighted={true}
-                                $disabled={!isOwner || purchase.isPending}
-                                disabled={!isOwner || purchase.isPending}
-                                onClick={() => handlePurchase('YEARLY')}
-                            >
-                                <SaveBadge>Najlepsza oferta</SaveBadge>
-                                <PlanName $light={true}>{yearlyPlan.name}</PlanName>
-                                <PlanAmount $light={true}>
-                                    {formatPrice(yearlyPlan.pricePerMonth, yearlyPlan.currency)}
-                                </PlanAmount>
-                                <PlanPer $light={true}>/ miesiąc</PlanPer>
-                                <PlanTotal $light={true}>
-                                    {formatPrice(yearlyPlan.priceGross, yearlyPlan.currency)} / rok
-                                </PlanTotal>
-                            </PlanCard>
-                        )}
-                    </PlansGrid>
-
-                    {purchase.isPending && (
-                        <PurchaseBtn disabled>
-                            <BtnSpinner />
-                            Przetwarzanie płatności…
-                        </PurchaseBtn>
-                    )}
-
-                    {!isOwner && (
-                        <OwnerNote>
-                            Odnowienie subskrypcji jest możliwe wyłącznie przez właściciela studia. Skontaktuj się z właścicielem, aby odblokować dostęp.
-                        </OwnerNote>
-                    )}
-                </Card>
-            </Overlay>
+            <ExpiredModal />
         </>
     );
 }
