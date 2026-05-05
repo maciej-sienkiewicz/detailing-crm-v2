@@ -382,7 +382,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
                 {allActive ? (
                     <AllChip>
                         <ChipDot $color="#0ea5e9" />
-                        wszystkie wydarzenia
+                        Wszystkie wydarzenia
                     </AllChip>
                 ) : (
                     activeStatuses.map(s => {

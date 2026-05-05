@@ -86,8 +86,7 @@ export const SmsNotificationsSection = ({
                         onChange={e => onSendReminderSmsChange(e.target.checked)}
                     />
                     <CheckboxLabel>
-                        <CheckboxTitle>Wyślij SMS przypominający przed wizytą</CheckboxTitle>
-                        <CheckboxDesc>SMS zostanie wysłany automatycznie 60 minut przed wizytą</CheckboxDesc>
+                        <CheckboxTitle>Wyślij SMS przypominający o nadchodzącej wizycie</CheckboxTitle>
                     </CheckboxLabel>
                 </CheckboxRow>
             </CheckboxList>
