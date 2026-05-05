@@ -265,7 +265,7 @@ export const SmsCreditsLabel = styled.div`
 export const SmsCreditsValue = styled.div<{ $isEmpty?: boolean }>`
     font-size: ${p => p.$isEmpty ? '11px' : '15px'};
     font-weight: 800;
-    color: ${p => p.$isEmpty ? '#f87171' : '#38bdf8'};
+    color: ${p => p.$isEmpty ? '#8c8b8b' : '#38bdf8'};
     line-height: 1.2;
     white-space: nowrap;
     letter-spacing: -0.3px;

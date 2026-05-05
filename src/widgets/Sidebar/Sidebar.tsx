@@ -181,7 +181,7 @@ export const Sidebar = () => {
                             <SmsCreditsLabel>Kredyty SMS</SmsCreditsLabel>
                             <SmsCreditsValue $isEmpty={creditBalance.availableCredits === 0}>
                                 {creditBalance.availableCredits === 0
-                                    ? 'Uzupełnij pakiet'
+                                    ? 'Uzupełnij'
                                     : creditBalance.availableCredits.toLocaleString('pl-PL')}
                             </SmsCreditsValue>
                         </SmsCreditsInfo>
