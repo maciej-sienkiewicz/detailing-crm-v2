@@ -17,7 +17,11 @@ interface SidebarMenuItemProps {
 
 export const SidebarMenuItem = ({ item, isCollapsed, onNavigate }: SidebarMenuItemProps) => {
     const location = useLocation();
-    const isActive = location.pathname.startsWith(item.path);
+    const pathOnly = item.path.split('?')[0];
+    const itemSearch = item.path.includes('?') ? item.path.slice(item.path.indexOf('?')) : null;
+    const isActive = itemSearch
+        ? location.pathname === pathOnly && location.search === itemSearch
+        : location.pathname.startsWith(pathOnly);
     const Icon = item.icon;
 
     return (

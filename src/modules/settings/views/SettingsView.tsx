@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { CompanySection } from '../components/CompanySection';
 import { DocumentsSection } from '../components/DocumentsSection';
@@ -250,8 +251,18 @@ function ComingSoonSection({ label }: { label: string }) {
 
 // ─── Main view ───────────────────────────────────────────────────────────────
 
+const VALID_SECTIONS = new Set<SectionId>([
+    'company', 'services', 'team', 'opening',
+    'templates', 'email-templates', 'reminders', 'documents',
+    'plan', 'credits', 'invoices', 'security',
+    'integrations', 'api',
+]);
+
 export function SettingsView() {
-    const [section, setSection] = useState<SectionId>('company');
+    const [searchParams] = useSearchParams();
+    const tabParam = searchParams.get('tab') as SectionId | null;
+    const initialSection: SectionId = tabParam && VALID_SECTIONS.has(tabParam) ? tabParam : 'company';
+    const [section, setSection] = useState<SectionId>(initialSection);
 
     const activeLabel = NAV_GROUPS.flatMap(g => g.items).find(i => i.id === section)?.label ?? '';
 

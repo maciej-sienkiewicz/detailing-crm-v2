@@ -19,6 +19,7 @@ import {
     Settings,
     LogOut,
     Search,
+    Wallet,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
@@ -82,9 +83,10 @@ const menuSections: MenuSection[] = [
     {
         title: 'Marketing',
         items: [
-            { path: '/sms-campaigns',  label: 'Kampanie SMS',    icon: MessageSquare },
-            { path: '/instagram',      label: 'Instagram',       icon: Camera },
-            { path: '/google-reviews', label: 'Google Reviews',  icon: Search },
+            { path: '/sms-campaigns',          label: 'Kampanie SMS',  icon: MessageSquare },
+            { path: '/settings?tab=credits',   label: 'Kredyty SMS',   icon: Wallet },
+            { path: '/instagram',              label: 'Instagram',     icon: Camera },
+            { path: '/google-reviews',         label: 'Google Reviews', icon: Search },
         ],
     },
 ];
