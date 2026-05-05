@@ -17,8 +17,7 @@ import { useCalendarFilters } from '../hooks/useCalendarFilters';
 import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
 import { QuickEventModal, type QuickEventFormData, type QuickEventModalRef } from './QuickEventModal';
 import { EventSummaryPopover } from './EventSummaryPopover';
-import { CalendarFilterDropdown } from './CalendarFilterDropdown';
-import { CalendarStatusBar } from './CalendarStatusBar';
+import { CalendarFilterBar } from './CalendarFilterBar';
 import { WeekKanbanView } from './WeekKanbanView';
 import { DayTimelineView } from './DayTimeline';
 import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData } from '../types';
@@ -181,11 +180,17 @@ const CalendarContainer = styled.div`
     }
 
     .fc-daygrid-day {
-        border-color: rgba(15, 23, 42, 0.07) !important;
+        border-color: #f1f5f9 !important;
+    }
+
+    /* Weekend column tint */
+    .fc-daygrid-day.fc-day-sat,
+    .fc-daygrid-day.fc-day-sun {
+        background: #fbfcfe !important;
     }
 
     .fc-scrollgrid-sync-inner {
-        border-color: rgba(15, 23, 42, 0.07) !important;
+        border-color: #f1f5f9 !important;
     }
 
     .fc-timegrid-slot {
@@ -194,42 +199,43 @@ const CalendarContainer = styled.div`
 
     /* Today highlighting */
     .fc-day-today {
-        background-color: rgba(99, 102, 241, 0.03) !important;
+        background-color: rgba(14, 165, 233, 0.03) !important;
     }
 
     .fc-day-today .fc-daygrid-day-number {
-        background: linear-gradient(135deg, #6366f1, #4f46e5);
+        background: #0ea5e9;
         color: #fff;
         border-radius: 50%;
-        width: 28px;
-        height: 28px;
+        width: 22px;
+        height: 22px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 700;
-        font-size: 13px;
-        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+        font-size: 12px;
+        box-shadow: 0 2px 6px rgba(14, 165, 233, 0.35);
     }
 
     /* Day numbers */
     .fc-daygrid-day-number {
-        padding: 6px 8px;
-        color: #1e293b;
-        font-size: 13px;
+        padding: 0 4px;
+        color: #475569;
+        font-size: 12px;
         font-weight: 500;
         border-radius: 50%;
-        width: 28px;
-        height: 28px;
+        width: 22px;
+        height: 22px;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin: 2px;
+        margin: 2px 0 4px 2px;
         transition: background 0.15s ease;
+        align-self: flex-start;
     }
 
     .fc-daygrid-day-number:hover {
-        background: rgba(99, 102, 241, 0.08);
-        color: #6366f1;
+        background: rgba(14, 165, 233, 0.1);
+        color: #0ea5e9;
     }
 
     .fc-daygrid-day-top {
@@ -245,20 +251,41 @@ const CalendarContainer = styled.div`
 
     /* ===================== EVENTS ===================== */
     .fc-event {
-        border-radius: 6px !important;
+        border-radius: 5px !important;
         border: none !important;
-        padding: 2px 6px;
+        padding: 0 !important;
         margin: 1px 2px;
         cursor: pointer;
-        transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+        transition: filter 0.15s ease, transform 0.15s ease;
+        box-shadow: none !important;
     }
 
     .fc-event:hover {
         filter: brightness(0.93);
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.08);
         z-index: 10;
+    }
+
+    /* Daygrid chips — transparent shell; inner div carries the alpha bg + left border */
+    .fc-daygrid-event.fc-event {
+        background-color: transparent !important;
+        border-color: transparent !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 1px 2px;
+    }
+
+    .fc-daygrid-event.fc-event:hover {
+        filter: none;
+        transform: none;
+    }
+
+    .fc-daygrid-block-event .fc-event-main {
+        padding: 0;
+    }
+
+    .fc-daygrid-day-events {
+        padding: 0 2px 3px;
     }
 
     .fc-event-title {
@@ -271,20 +298,6 @@ const CalendarContainer = styled.div`
         font-weight: 400;
         font-size: 11px;
         opacity: 0.85;
-    }
-
-    .fc-daygrid-event {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .fc-daygrid-block-event .fc-event-main {
-        padding: 1px 4px;
-    }
-
-    .fc-daygrid-day-events {
-        padding: 0 1px 2px;
     }
 
     /* Abandoned/Cancelled appointments */
@@ -359,7 +372,7 @@ const CalendarContainer = styled.div`
 
     /* ===================== MORE LINK ===================== */
     .fc-daygrid-more-link {
-        color: #6366f1;
+        color: #64748b;
         font-weight: 600;
         font-size: 11px;
         padding: 2px 6px;
@@ -369,8 +382,8 @@ const CalendarContainer = styled.div`
     }
 
     .fc-daygrid-more-link:hover {
-        background: rgba(99, 102, 241, 0.1);
-        color: #4f46e5;
+        background: rgba(14, 165, 233, 0.08);
+        color: #0ea5e9;
     }
 
     /* ===================== MORE POPOVER ===================== */
@@ -467,7 +480,7 @@ const CalendarContainer = styled.div`
 
     /* Selection highlighting */
     .fc-highlight {
-        background: rgba(99, 102, 241, 0.07);
+        background: rgba(14, 165, 233, 0.07);
         border-radius: 4px;
     }
 
@@ -1083,24 +1096,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 </MobileActions>
             </MobileHeader>
 
-            {/* Quick-filter status bar – always visible, replaces the hidden dropdown on desktop */}
-            <CalendarStatusBar
+            {/* Command-bar filter (Variant D) – desktop visible; mobile pill controls popup */}
+            <CalendarFilterBar
                 selectedAppointmentStatuses={selectedAppointmentStatuses}
                 selectedVisitStatuses={selectedVisitStatuses}
                 onAppointmentStatusesChange={setSelectedAppointmentStatuses}
                 onVisitStatusesChange={setSelectedVisitStatuses}
+                popupOpen={isFilterOpen}
+                onPopupClose={() => setIsFilterOpen(false)}
+                eventsCount={events.length}
             />
 
             <CalendarWrapper>
-                {/* Dropdown kept as a secondary entry point for the mobile "Filtruj" pill */}
-                <CalendarFilterDropdown
-                    selectedAppointmentStatuses={selectedAppointmentStatuses}
-                    selectedVisitStatuses={selectedVisitStatuses}
-                    onAppointmentStatusesChange={setSelectedAppointmentStatuses}
-                    onVisitStatusesChange={setSelectedVisitStatuses}
-                    isOpen={isFilterOpen}
-                    onClose={() => setIsFilterOpen(false)}
-                />
 
                 {/* ── Kanban week view – replaces FullCalendar's timeGridWeek ── */}
                 {currentView === 'timeGridWeek' && dateRange && (
@@ -1227,15 +1234,61 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 // Hide event time from calendar tiles
                 displayEventTime={false}
 
-                // Custom event content – type icon + title + optional status badge
+                // Custom event content
                 eventContent={(arg) => {
                     const props = arg.event.extendedProps as AppointmentEventData | VisitEventData;
-                    const isAppointment = props.type === 'APPOINTMENT';
                     const status = props.status as string | undefined;
                     const isCancelled = status === 'ABANDONED' || status === 'CANCELLED';
+                    const color = arg.event.backgroundColor || '#6366f1';
 
-                    // Show a compact status badge only for states that aren't already
-                    // communicated by color or opacity (i.e. non-default active states).
+                    // Daygrid month view: chip style matching prototype (time + title, alpha bg, left border)
+                    if (arg.view.type === 'dayGridMonth') {
+                        const start = arg.event.start;
+                        const timeStr = (!arg.event.allDay && start)
+                            ? `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`
+                            : '';
+                        return (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                width: '100%',
+                                padding: '3px 6px 3px 4px',
+                                background: `${color}14`,
+                                borderLeft: `3px solid ${color}`,
+                                borderRadius: '5px',
+                                overflow: 'hidden',
+                                whiteSpace: 'nowrap',
+                                textOverflow: 'ellipsis',
+                                lineHeight: 1.2,
+                            }}>
+                                {timeStr && (
+                                    <span style={{
+                                        color: '#64748b',
+                                        fontSize: '10px',
+                                        fontWeight: 600,
+                                        flexShrink: 0,
+                                        fontVariantNumeric: 'tabular-nums',
+                                    }}>
+                                        {timeStr}
+                                    </span>
+                                )}
+                                <span style={{
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    fontSize: '11px',
+                                    color: '#0f172a',
+                                    fontWeight: 500,
+                                    textDecoration: isCancelled ? 'line-through' : 'none',
+                                }}>
+                                    {arg.event.title}
+                                </span>
+                            </div>
+                        );
+                    }
+
+                    // Time-grid views (hidden behind custom views, kept for completeness)
+                    const isAppointment = props.type === 'APPOINTMENT';
                     const statusBadge = (() => {
                         if (status === 'READY_FOR_PICKUP') return { text: 'Do odbioru', color: '#10b981' };
                         if (status === 'REJECTED')         return { text: 'Odrzucona',  color: '#ef4444' };
@@ -1244,63 +1297,29 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                         if (status === 'ARCHIVED')         return { text: 'Archiwum',   color: '#9ca3af' };
                         return null;
                     })();
-
                     return (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden', width: '100%' }}>
-                            {/* Type icon – calendar for appointments, wrench for visits */}
                             {isAppointment ? (
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="11" height="11" viewBox="0 0 24 24"
+                                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"
                                     fill="none" stroke="currentColor" strokeWidth="2.5"
-                                    strokeLinecap="round" strokeLinejoin="round"
-                                    style={{ flexShrink: 0, opacity: 0.85 }}
-                                >
+                                    strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.85 }}>
                                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                                     <line x1="16" y1="2" x2="16" y2="6" />
                                     <line x1="8" y1="2" x2="8" y2="6" />
                                     <line x1="3" y1="10" x2="21" y2="10" />
                                 </svg>
                             ) : (
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="11" height="11" viewBox="0 0 24 24"
+                                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"
                                     fill="none" stroke="currentColor" strokeWidth="2.5"
-                                    strokeLinecap="round" strokeLinejoin="round"
-                                    style={{ flexShrink: 0, opacity: 0.85 }}
-                                >
+                                    strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.85 }}>
                                     <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
                                 </svg>
                             )}
-
-                            {/* Title */}
-                            <span style={{
-                                flex: 1,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                fontWeight: 600,
-                                fontSize: '13px',
-                                lineHeight: '1.4',
-                                textDecoration: isCancelled ? 'line-through' : 'none',
-                            }}>
+                            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600, fontSize: '13px', lineHeight: '1.4', textDecoration: isCancelled ? 'line-through' : 'none' }}>
                                 {arg.event.title}
                             </span>
-
-                            {/* Status badge – shown only for non-default / non-obvious states */}
                             {statusBadge && (
-                                <span style={{
-                                    flexShrink: 0,
-                                    fontSize: '10px',
-                                    fontWeight: 700,
-                                    padding: '1px 5px',
-                                    borderRadius: '4px',
-                                    background: `${statusBadge.color}28`,
-                                    color: statusBadge.color,
-                                    border: `1px solid ${statusBadge.color}50`,
-                                    lineHeight: '1.5',
-                                    letterSpacing: '0.1px',
-                                }}>
+                                <span style={{ flexShrink: 0, fontSize: '10px', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: `${statusBadge.color}28`, color: statusBadge.color, border: `1px solid ${statusBadge.color}50`, lineHeight: '1.5' }}>
                                     {statusBadge.text}
                                 </span>
                             )}
