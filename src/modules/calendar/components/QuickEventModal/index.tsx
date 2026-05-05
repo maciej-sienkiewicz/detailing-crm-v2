@@ -23,27 +23,54 @@ export type { QuickEventModalRef };
 
 const SmsCheckList = styled.div`
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px 20px;
-    align-items: center;
+    flex-direction: column;
+    gap: 8px;
 `;
 
 const SmsCheckItem = styled.label<{ $disabled?: boolean }>`
     display: flex;
-    align-items: flex-start;
-    gap: 10px;
+    align-items: center;
+    gap: 9px;
     cursor: ${p => p.$disabled ? 'not-allowed' : 'pointer'};
     opacity: ${p => p.$disabled ? 0.45 : 1};
     user-select: none;
 `;
 
 const SmsCheckbox = styled.input.attrs({ type: 'checkbox' })`
+    appearance: none;
+    -webkit-appearance: none;
     flex-shrink: 0;
     width: 15px;
     height: 15px;
-    margin-top: 1px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 4px;
+    background: white;
     cursor: inherit;
-    accent-color: #3b82f6;
+    transition: background 130ms, border-color 130ms;
+    position: relative;
+
+    &:checked {
+        background: #3b82f6;
+        border-color: #3b82f6;
+    }
+
+    &:checked::after {
+        content: '';
+        position: absolute;
+        left: 3px;
+        top: 0px;
+        width: 5px;
+        height: 9px;
+        border: 2px solid white;
+        border-top: none;
+        border-left: none;
+        transform: rotate(45deg);
+    }
+
+    &:disabled {
+        background: #f1f5f9;
+        border-color: #e2e8f0;
+    }
 `;
 
 const SmsCheckText = styled.span`
@@ -1002,7 +1029,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                             <S.Divider />
 
                             {/* ── SMS row ────────────────────────────────────────── */}
-                            <S.Row style={{ alignItems: 'center' }}>
+                            <S.Row>
                                 <S.IconWrapper>
                                     <IconMessageSquare />
                                 </S.IconWrapper>
