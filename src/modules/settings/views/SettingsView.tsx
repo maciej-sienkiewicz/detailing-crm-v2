@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { CompanySection } from '../components/CompanySection';
 import { DocumentsSection } from '../components/DocumentsSection';
 import { ServicesSection } from '../components/ServicesSection';
+import { SubscriptionSection } from '../components/SubscriptionSection';
 import { AutomationSettings } from '@/modules/sms-campaigns/components/AutomationSettings';
 import { EmailAutomationSettings } from '@/modules/email-campaigns/components/EmailAutomationSettings';
 
@@ -264,6 +265,8 @@ export function SettingsView() {
         content = <EmailAutomationSettings />;
     } else if (section === 'services') {
         content = <ServicesSection />;
+    } else if (section === 'plan') {
+        content = <SubscriptionSection />;
     } else {
         content = <ComingSoonSection label={activeLabel} />;
     }
