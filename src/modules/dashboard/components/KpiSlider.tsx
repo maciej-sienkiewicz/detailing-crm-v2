@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useLayoutEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { RevenueKpiCard } from './RevenueKpiCard';
 import { ReservationsKpiCard } from './ReservationsKpiCard';
@@ -29,8 +29,25 @@ const Wrapper = styled.div`
   }
 `;
 
-const SlideWrapper = styled.div<{ $direction: 'forward' | 'backward' }>`
+/**
+ * Locks width + height so the slider never shifts layout during transitions.
+ * overflow: hidden clips the brief translateX travel of the entering slide.
+ * cursor + wildcard override the inner Card's cursor: default.
+ */
+const SlideViewport = styled.div<{ $h: number }>`
+  overflow: hidden;
+  min-width: 220px;
+  height: ${p => p.$h > 0 ? `${p.$h}px` : 'auto'};
   cursor: pointer;
+  & * { cursor: pointer; }
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    width: 100%;
+    min-width: 0;
+  }
+`;
+
+const SlideAnim = styled.div<{ $direction: 'forward' | 'backward' }>`
   ${p => p.$direction === 'forward'
     ? css`animation: ${fadeSlideIn} 220ms ease both;`
     : css`animation: ${fadeSlideInReverse} 220ms ease both;`
@@ -55,9 +72,7 @@ const Dot = styled.button<{ $active: boolean; $color: string }>`
   background: ${p => p.$active ? p.$color : 'rgba(255,255,255,0.2)'};
   opacity: ${p => p.$active ? 1 : 0.5};
 
-  &:hover {
-    opacity: 1;
-  }
+  &:hover { opacity: 1; }
 `;
 
 // ─── Slides config ────────────────────────────────────────────────────────────
@@ -70,9 +85,18 @@ const SLIDES = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const KpiSlider = () => {
-  const [active, setActive] = useState(0);
+  const [active, setActive]       = useState(0);
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
-  const [animKey, setAnimKey] = useState(0);
+  const [animKey, setAnimKey]     = useState(0);
+  const [lockedH, setLockedH]     = useState(0);
+  const viewportRef = useRef<HTMLDivElement>(null);
+
+  // Measure and lock height after first paint so it never changes on slide switch.
+  useLayoutEffect(() => {
+    if (viewportRef.current && lockedH === 0) {
+      setLockedH(viewportRef.current.offsetHeight);
+    }
+  }, [lockedH]);
 
   const goTo = useCallback((idx: number) => {
     if (idx === active) return;
@@ -89,9 +113,11 @@ export const KpiSlider = () => {
 
   return (
     <Wrapper>
-      <SlideWrapper key={animKey} $direction={direction} onClick={goNext}>
-        {slide.component}
-      </SlideWrapper>
+      <SlideViewport ref={viewportRef} $h={lockedH} onClick={goNext}>
+        <SlideAnim key={animKey} $direction={direction}>
+          {slide.component}
+        </SlideAnim>
+      </SlideViewport>
 
       <Dots>
         {SLIDES.map((s, i) => (
@@ -99,7 +125,7 @@ export const KpiSlider = () => {
             key={s.key}
             $active={i === active}
             $color={s.color}
-            onClick={() => goTo(i)}
+            onClick={e => { e.stopPropagation(); goTo(i); }}
             aria-label={`Pokaż kartę ${i + 1}`}
           />
         ))}
