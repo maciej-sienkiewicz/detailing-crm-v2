@@ -40,7 +40,7 @@ const SlideViewport = styled.div<{ $w: number; $h: number }>`
   cursor: pointer;
   width:  ${p => p.$w > 0 ? `${p.$w}px` : 'auto'};
   height: ${p => p.$h > 0 ? `${p.$h}px` : 'auto'};
-  min-width: 220px;
+  min-width: 260px;
 
   /* Pull SlideAnim + card Wrapper to full locked width */
   & > *, & > * > * {
