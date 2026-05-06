@@ -30,6 +30,7 @@ const Wrapper = styled.div`
 `;
 
 const SlideWrapper = styled.div<{ $direction: 'forward' | 'backward' }>`
+  cursor: pointer;
   ${p => p.$direction === 'forward'
     ? css`animation: ${fadeSlideIn} 220ms ease both;`
     : css`animation: ${fadeSlideInReverse} 220ms ease both;`
@@ -80,11 +81,15 @@ export const KpiSlider = () => {
     setAnimKey(k => k + 1);
   }, [active]);
 
+  const goNext = useCallback(() => {
+    goTo((active + 1) % SLIDES.length);
+  }, [active, goTo]);
+
   const slide = SLIDES[active];
 
   return (
     <Wrapper>
-      <SlideWrapper key={animKey} $direction={direction}>
+      <SlideWrapper key={animKey} $direction={direction} onClick={goNext}>
         {slide.component}
       </SlideWrapper>
 
