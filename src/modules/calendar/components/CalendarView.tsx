@@ -1108,9 +1108,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 </MobileActions>
             </MobileHeader>
 
-            {/* Desktop page header – month view only (week/day custom views have their own built-in headers) */}
-            {currentView === 'dayGridMonth' && (
-                <DesktopPageHeader>
+            {/* Desktop page header – all views; custom week/day views suppress their internal toolbars */}
+            <DesktopPageHeader>
                     <div>
                         <PageCrumb>Główne · Kalendarz</PageCrumb>
                         <PageTitle>
@@ -1123,7 +1122,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                         <MonthNavGroup>
                             <NavIconBtn
                                 onClick={() => calendarRef.current?.getApi().prev()}
-                                aria-label="Poprzedni miesiąc"
+                                aria-label="Poprzedni"
                             >
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1135,7 +1134,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                             </TodayNavBtn>
                             <NavIconBtn
                                 onClick={() => calendarRef.current?.getApi().next()}
-                                aria-label="Następny miesiąc"
+                                aria-label="Następny"
                             >
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1170,7 +1169,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                         </NewEventBtn>
                     </PageHeaderRight>
                 </DesktopPageHeader>
-            )}
 
             {/* Command-bar filter (Variant D) – desktop visible; mobile pill controls popup */}
             <CalendarFilterBar
@@ -1192,6 +1190,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                         weekStart={dateRange.start}
                         calendarTitle={calendarTitle}
                         currentView={currentView}
+                        hideToolbar
                         onEventClick={(eventData, position) => {
                             setPopoverEvent(eventData);
                             setPopoverPosition(position);
@@ -1215,6 +1214,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                         dayStart={dateRange.start}
                         calendarTitle={calendarTitle}
                         currentView={currentView}
+                        hideToolbar
                         isToday={(() => {
                             const today = new Date();
                             const day   = new Date(dateRange.start);

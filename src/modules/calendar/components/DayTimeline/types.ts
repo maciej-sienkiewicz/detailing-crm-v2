@@ -24,4 +24,5 @@ export interface DayTimelineViewProps {
     onNext: () => void;
     onToday: () => void;
     onViewChange: (view: CalendarViewType) => void;
+    hideToolbar?: boolean;
 }

@@ -130,6 +130,7 @@ interface WeekKanbanViewProps {
     onNext: () => void;
     onToday: () => void;
     onViewChange: (view: CalendarViewType) => void;
+    hideToolbar?: boolean;
 }
 
 // ─── Animations ───────────────────────────────────────────────────────────────
@@ -553,6 +554,7 @@ export const WeekKanbanView = ({
     onNext,
     onToday,
     onViewChange,
+    hideToolbar = false,
 }: WeekKanbanViewProps) => {
     const days    = buildWeekDays(weekStart);
     const byDay   = groupEventsByDay(events, days);
@@ -578,35 +580,36 @@ export const WeekKanbanView = ({
 
     return (
         <Root>
-            {/* Toolbar – mirrors FullCalendar header style */}
-            <Toolbar>
-                <ToolbarLeft>
-                    <NavBtn onClick={onPrev} aria-label="Poprzedni tydzień">
-                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                        </svg>
-                    </NavBtn>
-                    <NavBtn onClick={onNext} aria-label="Następny tydzień">
-                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                        </svg>
-                    </NavBtn>
-                    <TodayBtn onClick={onToday}>Dzisiaj</TodayBtn>
-                    <ToolbarTitle>{calendarTitle}</ToolbarTitle>
-                </ToolbarLeft>
+            {!hideToolbar && (
+                <Toolbar>
+                    <ToolbarLeft>
+                        <NavBtn onClick={onPrev} aria-label="Poprzedni tydzień">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                            </svg>
+                        </NavBtn>
+                        <NavBtn onClick={onNext} aria-label="Następny tydzień">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                            </svg>
+                        </NavBtn>
+                        <TodayBtn onClick={onToday}>Dzisiaj</TodayBtn>
+                        <ToolbarTitle>{calendarTitle}</ToolbarTitle>
+                    </ToolbarLeft>
 
-                <ViewSwitcher>
-                    {VIEW_LABELS.map(({ view, label }) => (
-                        <ViewBtn
-                            key={view}
-                            $active={currentView === view}
-                            onClick={() => onViewChange(view)}
-                        >
-                            {label}
-                        </ViewBtn>
-                    ))}
-                </ViewSwitcher>
-            </Toolbar>
+                    <ViewSwitcher>
+                        {VIEW_LABELS.map(({ view, label }) => (
+                            <ViewBtn
+                                key={view}
+                                $active={currentView === view}
+                                onClick={() => onViewChange(view)}
+                            >
+                                {label}
+                            </ViewBtn>
+                        ))}
+                    </ViewSwitcher>
+                </Toolbar>
+            )}
 
             {/* Board */}
             <BoardScroll>
