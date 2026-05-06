@@ -8,6 +8,7 @@ import {
     Images,
     BarChart3,
     TrendingUp,
+    LineChart,
     MessageSquare,
     FileText,
     UserCog,
@@ -85,6 +86,7 @@ const menuSections: MenuSection[] = [
             { path: '/sms-campaigns',  label: 'Kampanie SMS',   icon: MessageSquare },
             { path: '/instagram',      label: 'Instagram',      icon: Camera },
             { path: '/google-reviews', label: 'Google Reviews', icon: Search },
+            { path: '/google-trends',  label: 'Google Trends',  icon: LineChart },
         ],
     },
 ];

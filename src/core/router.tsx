@@ -27,6 +27,7 @@ import { GalleryView } from "@/modules/gallery/views/GalleryView";
 import { ComingSoonView } from "@/common/components/ComingSoonView";
 import { EmployeeListView, EmployeeDetailView } from '@/modules/employees';
 import { SettingsView } from '@/modules/settings';
+import { TrendsView } from '@/modules/trends';
 
 export const router = createBrowserRouter([
     {
@@ -279,6 +280,14 @@ export const router = createBrowserRouter([
         element: (
             <ProtectedRoute>
                 <Layout><EmployeeDetailView /></Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/google-trends',
+        element: (
+            <ProtectedRoute>
+                <Layout><TrendsView /></Layout>
             </ProtectedRoute>
         ),
     },
