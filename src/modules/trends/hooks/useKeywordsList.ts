@@ -9,11 +9,13 @@ export function useKeywordsList(params: { locationCode?: number; sort?: SortFiel
         queryKey: [...KEYWORDS_LIST_KEY, params],
         queryFn: () => trendsApi.getKeywords({ status: 'ACTIVE', ...params }),
         staleTime: 5 * 60_000,
+        placeholderData: prev => prev,
     });
 
     return {
         data: query.data?.data ?? null,
         isLoading: query.isLoading,
+        isFetching: query.isFetching,
         isError: query.isError,
         refetch: query.refetch,
     };

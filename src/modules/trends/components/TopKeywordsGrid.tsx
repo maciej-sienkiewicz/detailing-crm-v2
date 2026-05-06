@@ -1,95 +1,142 @@
-import styled from 'styled-components';
-import { TrendingUp, DollarSign, Target } from 'lucide-react';
+import styled, { keyframes } from 'styled-components';
+import { ArrowUpRight } from 'lucide-react';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { KeywordListItem } from '../types';
 
 const Grid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 12px;
 `;
 
-const Card = styled.button`
+const fadeUp = keyframes`
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+`;
+
+const Card = styled.button<{ $delay: number }>`
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0;
     padding: 16px;
-    background: ${p => p.theme.colors.surface};
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.lg};
-    box-shadow: ${p => p.theme.shadows.sm};
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowSm};
     cursor: pointer;
     text-align: left;
-    transition: all ${p => p.theme.transitions.fast};
+    font-family: inherit;
+    transition: all ${st.transition};
+    animation: ${fadeUp} 300ms ease both;
+    animation-delay: ${p => p.$delay}ms;
 
     &:hover {
-        border-color: var(--brand-primary);
-        box-shadow: 0 0 0 3px rgb(14 165 233 / 0.1);
-        transform: translateY(-1px);
+        border-color: ${st.accentBlue};
+        box-shadow: ${st.shadowMd}, 0 0 0 3px ${st.accentBlueDim};
+        transform: translateY(-2px);
+    }
+
+    &:hover .arrow-icon {
+        opacity: 1;
+        transform: translate(0, 0);
     }
 `;
 
-const Rank = styled.span`
-    font-size: 11px;
-    font-weight: ${p => p.theme.fontWeights.bold};
-    color: var(--brand-primary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+const CardTop = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+`;
+
+const RankBadge = styled.span`
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    color: ${st.accentBlue};
+    letter-spacing: 0.05em;
+`;
+
+const ArrowIcon = styled.span`
+    opacity: 0;
+    color: ${st.accentBlue};
+    transform: translate(-4px, 4px);
+    transition: all ${st.transition};
+    display: flex;
 `;
 
 const Keyword = styled.div`
-    font-size: ${p => p.theme.fontSizes.sm};
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    color: ${p => p.theme.colors.text};
+    font-size: ${st.fontMd};
+    font-weight: 600;
+    color: ${st.text};
     line-height: 1.3;
+    margin-bottom: 14px;
+    letter-spacing: -0.1px;
     word-break: break-word;
 `;
 
-const Metrics = styled.div`
+const VolumeRow = styled.div`
     display: flex;
-    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 10px;
+`;
+
+const VolumeNum = styled.span`
+    font-size: 28px;
+    font-weight: 800;
+    color: ${st.text};
+    letter-spacing: -1px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+`;
+
+const VolumeUnit = styled.span`
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
+    font-weight: 400;
+`;
+
+const Divider = styled.div`
+    height: 1px;
+    background: ${st.border};
+    margin-bottom: 10px;
+`;
+
+const MetaRow = styled.div`
+    display: flex;
     gap: 8px;
-    margin-top: 4px;
-`;
-
-const Metric = styled.div`
-    display: flex;
     align-items: center;
-    gap: 4px;
+    flex-wrap: wrap;
+`;
+
+const MetaItem = styled.span`
+    font-size: 12px;
+    color: ${st.textMuted};
+    font-weight: 500;
+`;
+
+const CompBadge = styled.span<{ $level: string }>`
     font-size: 11px;
-    color: ${p => p.theme.colors.textSecondary};
-`;
-
-const Volume = styled.div`
-    font-size: ${p => p.theme.fontSizes.xl};
-    font-weight: ${p => p.theme.fontWeights.bold};
-    color: ${p => p.theme.colors.text};
-    letter-spacing: -0.5px;
-`;
-
-const VolumeLabel = styled.div`
-    font-size: 11px;
-    color: ${p => p.theme.colors.textMuted};
-`;
-
-const CompetitionBadge = styled.span<{ $level: string }>`
-    font-size: 10px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    padding: 2px 7px;
-    border-radius: ${p => p.theme.radii.full};
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: ${st.radiusFull};
+    letter-spacing: 0.04em;
 
     ${p => {
         switch (p.$level?.toUpperCase()) {
-            case 'HIGH': return 'background: #fef2f2; color: #dc2626;';
-            case 'MEDIUM': return 'background: #fffbeb; color: #d97706;';
-            case 'LOW': return 'background: #f0fdf4; color: #16a34a;';
-            default: return 'background: #f1f5f9; color: #64748b;';
+            case 'HIGH':   return `background: ${st.accentRedDim}; color: ${st.accentRed};`;
+            case 'MEDIUM': return `background: ${st.accentAmberDim}; color: ${st.accentAmber};`;
+            case 'LOW':    return `background: ${st.accentGreenDim}; color: ${st.accentGreen};`;
+            default:       return `background: ${st.bgCardAlt}; color: ${st.textMuted};`;
         }
     }}
 `;
 
 function formatVolume(v: number | null): string {
     if (v == null) return '—';
-    if (v >= 1000) return `${(v / 1000).toFixed(1)}k`;
+    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+    if (v >= 1_000) return `${(v / 1_000).toFixed(1)}k`;
     return v.toString();
 }
 
@@ -102,30 +149,28 @@ export function TopKeywordsGrid({ keywords, onSelect }: Props) {
     return (
         <Grid>
             {keywords.map((kw, i) => (
-                <Card key={kw.keyword} onClick={() => onSelect(kw.keyword)}>
-                    <Rank>#{i + 1}</Rank>
+                <Card key={kw.keyword} $delay={i * 30} onClick={() => onSelect(kw.keyword)}>
+                    <CardTop>
+                        <RankBadge>#{i + 1}</RankBadge>
+                        <ArrowIcon className="arrow-icon"><ArrowUpRight size={15} /></ArrowIcon>
+                    </CardTop>
                     <Keyword>{kw.keyword}</Keyword>
-                    <Volume>{formatVolume(kw.searchVolume)}</Volume>
-                    <VolumeLabel>wyszukiwań / mies.</VolumeLabel>
-                    <Metrics>
+                    <VolumeRow>
+                        <VolumeNum>{formatVolume(kw.searchVolume)}</VolumeNum>
+                        <VolumeUnit>/ mies.</VolumeUnit>
+                    </VolumeRow>
+                    <Divider />
+                    <MetaRow>
                         {kw.cpc != null && (
-                            <Metric>
-                                <DollarSign size={11} />
-                                {kw.cpc.toFixed(2)} CPC
-                            </Metric>
+                            <MetaItem>CPC {kw.cpc.toFixed(2)} zł</MetaItem>
                         )}
                         {kw.competition && (
-                            <CompetitionBadge $level={kw.competition}>
-                                {kw.competition}
-                            </CompetitionBadge>
+                            <CompBadge $level={kw.competition}>{kw.competition}</CompBadge>
                         )}
-                        {kw.searchVolume != null && (
-                            <Metric>
-                                <TrendingUp size={11} />
-                                {kw.competitionIndex ?? '—'}
-                            </Metric>
+                        {kw.competitionIndex != null && (
+                            <MetaItem>idx {kw.competitionIndex}</MetaItem>
                         )}
-                    </Metrics>
+                    </MetaRow>
                 </Card>
             ))}
         </Grid>

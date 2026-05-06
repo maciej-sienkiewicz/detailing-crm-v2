@@ -1,5 +1,6 @@
 import { apiClient } from '@/core/apiClient';
 import type {
+    LocationsResponse,
     KeywordsListResponse,
     KeywordHistoryResponse,
     DashboardSummary,
@@ -8,6 +9,9 @@ import type {
 } from '../types';
 
 export const trendsApi = {
+    getLocations: () =>
+        apiClient.get<LocationsResponse>('/trends/locations'),
+
     getSummary: () =>
         apiClient.get<DashboardSummary>('/trends/summary'),
 
@@ -18,8 +22,13 @@ export const trendsApi = {
         keyword: string,
         params: { locationCode?: number; from?: string; to?: string }
     ) =>
-        apiClient.get<KeywordHistoryResponse>(`/trends/keywords/${encodeURIComponent(keyword)}/history`, { params }),
+        apiClient.get<KeywordHistoryResponse>(
+            `/trends/keywords/${encodeURIComponent(keyword)}/history`,
+            { params }
+        ),
 
     getVoivodeshipComparison: (keyword: string) =>
-        apiClient.get<VoivodeshipComparisonResponse>(`/trends/voivodeships/${encodeURIComponent(keyword)}`),
+        apiClient.get<VoivodeshipComparisonResponse>(
+            `/trends/voivodeships/${encodeURIComponent(keyword)}`
+        ),
 };

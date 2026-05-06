@@ -1,3 +1,14 @@
+export interface LocationItem {
+    locationCode: number;
+    canonicalName: string;
+    polishName: string;
+}
+
+export interface LocationsResponse {
+    country: LocationItem;
+    voivodeships: LocationItem[];
+}
+
 export interface KeywordListItem {
     keyword: string;
     searchVolume: number | null;
@@ -76,3 +87,4 @@ export interface VoivodeshipComparisonResponse {
 }
 
 export type SortField = 'volume' | 'cpc' | 'competition' | 'keyword';
+export type Tab = 'overview' | 'keywords' | 'regions';

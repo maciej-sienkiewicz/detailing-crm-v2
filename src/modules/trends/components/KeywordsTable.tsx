@@ -1,193 +1,238 @@
 import { useState } from 'react';
-import styled from 'styled-components';
-import { ChevronUp, ChevronDown, Search } from 'lucide-react';
+import styled, { css, keyframes } from 'styled-components';
+import { ChevronUp, ChevronDown, Search, ArrowUpRight } from 'lucide-react';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { KeywordListItem, SortField } from '../types';
+
+// ─── Styled ───────────────────────────────────────────────────────────────────
 
 const Wrapper = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
 `;
 
-const Controls = styled.div`
+const ControlBar = styled.div`
     display: flex;
     gap: 12px;
-    flex-wrap: wrap;
     align-items: center;
+    flex-wrap: wrap;
 `;
 
-const SearchWrapper = styled.div`
+const SearchBox = styled.div`
     position: relative;
     flex: 1;
     min-width: 200px;
-    max-width: 360px;
+    max-width: 380px;
 `;
 
-const SearchIcon = styled.span`
+const SearchIco = styled.span`
     position: absolute;
     left: 12px;
     top: 50%;
     transform: translateY(-50%);
-    color: ${p => p.theme.colors.textMuted};
+    color: ${st.textMuted};
     display: flex;
-    align-items: center;
+    pointer-events: none;
 `;
 
 const SearchInput = styled.input`
     width: 100%;
     padding: 9px 12px 9px 36px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.md};
-    font-size: ${p => p.theme.fontSizes.sm};
-    color: ${p => p.theme.colors.text};
-    background: ${p => p.theme.colors.surface};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    color: ${st.text};
+    background: ${st.bgCard};
     outline: none;
-    transition: border-color ${p => p.theme.transitions.fast};
+    font-family: inherit;
     box-sizing: border-box;
+    transition: border-color ${st.transition}, box-shadow ${st.transition};
 
     &:focus {
-        border-color: var(--brand-primary);
-        box-shadow: 0 0 0 3px rgb(14 165 233 / 0.1);
+        border-color: ${st.accentBlue};
+        box-shadow: ${st.shadowBlue};
     }
-
-    &::placeholder { color: ${p => p.theme.colors.textMuted}; }
+    &::placeholder { color: ${st.textMuted}; }
 `;
 
-const TableContainer = styled.div`
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.lg};
+const ResultCount = styled.span`
+    font-size: 13px;
+    color: ${st.textMuted};
+    font-weight: 500;
+    margin-left: auto;
+    white-space: nowrap;
+`;
+
+const shimmer = keyframes`
+    0%   { opacity: 1; }
+    50%  { opacity: 0.4; }
+    100% { opacity: 1; }
+`;
+
+const FetchingBar = styled.div`
+    height: 2px;
+    background: linear-gradient(90deg, ${st.accentBlue}, ${st.accentBlueDim});
+    border-radius: 2px;
+    animation: ${shimmer} 1s infinite;
+`;
+
+const TableWrap = styled.div`
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
     overflow: hidden;
     overflow-x: auto;
+    box-shadow: ${st.shadowSm};
 `;
 
 const Table = styled.table`
     width: 100%;
     border-collapse: collapse;
-    font-size: ${p => p.theme.fontSizes.sm};
+    font-size: ${st.fontSm};
 `;
 
-const Th = styled.th<{ $sortable?: boolean; $active?: boolean }>`
-    padding: 12px 16px;
-    text-align: left;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    font-size: 12px;
+const Th = styled.th<{ $sortable?: boolean; $active?: boolean; $align?: string }>`
+    padding: 11px 16px;
+    text-align: ${p => p.$align ?? 'left'};
+    font-size: 11px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
-    color: ${p => p.$active ? 'var(--brand-primary)' : p.theme.colors.textMuted};
-    background: ${p => p.theme.colors.surfaceAlt};
-    border-bottom: 1px solid ${p => p.theme.colors.border};
+    letter-spacing: 0.07em;
+    color: ${p => p.$active ? st.accentBlue : st.textMuted};
+    background: ${st.bgCardAlt};
+    border-bottom: 1px solid ${st.border};
     white-space: nowrap;
     cursor: ${p => p.$sortable ? 'pointer' : 'default'};
     user-select: none;
+    transition: color ${st.transition};
 
-    &:hover {
-        color: ${p => p.$sortable ? 'var(--brand-primary)' : undefined};
-    }
+    &:hover { color: ${p => p.$sortable ? st.accentBlue : undefined}; }
 `;
 
-const ThContent = styled.span`
-    display: flex;
+const ThInner = styled.span`
+    display: inline-flex;
     align-items: center;
     gap: 4px;
 `;
 
-const Tr = styled.tr`
+const Tr = styled.tr<{ $faded?: boolean }>`
+    border-bottom: 1px solid ${st.border};
     cursor: pointer;
-    border-bottom: 1px solid ${p => p.theme.colors.border};
+    transition: background ${st.transition};
+    opacity: ${p => p.$faded ? 0.5 : 1};
 
     &:last-child { border-bottom: none; }
-
-    &:hover td {
-        background: ${p => p.theme.colors.surfaceHover};
-    }
+    &:hover td { background: rgba(59,130,246,0.03); }
 `;
 
-const Td = styled.td`
-    padding: 12px 16px;
-    color: ${p => p.theme.colors.text};
-    background: ${p => p.theme.colors.surface};
-    transition: background ${p => p.theme.transitions.fast};
+const Td = styled.td<{ $align?: string }>`
+    padding: 13px 16px;
+    color: ${st.text};
+    background: ${st.bgCard};
     white-space: nowrap;
+    text-align: ${p => p.$align ?? 'left'};
+    transition: background ${st.transition};
 `;
 
 const KeywordCell = styled.div`
-    font-weight: ${p => p.theme.fontWeights.medium};
-    color: var(--brand-primary);
-    max-width: 280px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: ${st.accentBlue};
+    max-width: 300px;
+`;
+
+const KwText = styled.span`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 `;
 
-const NumCell = styled.span`
+const LinkIcon = styled.span`
+    opacity: 0;
+    color: ${st.accentBlue};
+    transition: opacity ${st.transition};
+    flex-shrink: 0;
+    display: flex;
+
+    ${Tr}:hover & { opacity: 1; }
+`;
+
+const Num = styled.span`
     font-variant-numeric: tabular-nums;
+    font-weight: 500;
 `;
 
-const MutedCell = styled.span`
-    color: ${p => p.theme.colors.textMuted};
+const Muted = styled.span`
+    color: ${st.textMuted};
+    font-weight: 400;
 `;
 
-const CompetitionBadge = styled.span<{ $level: string }>`
+const CompBadge = styled.span<{ $level: string }>`
     display: inline-block;
     font-size: 11px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    padding: 2px 8px;
-    border-radius: ${p => p.theme.radii.full};
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: ${st.radiusFull};
+    letter-spacing: 0.04em;
 
     ${p => {
         switch (p.$level?.toUpperCase()) {
-            case 'HIGH': return 'background: #fef2f2; color: #dc2626;';
-            case 'MEDIUM': return 'background: #fffbeb; color: #d97706;';
-            case 'LOW': return 'background: #f0fdf4; color: #16a34a;';
-            default: return 'background: #f1f5f9; color: #64748b;';
+            case 'HIGH':   return css`background: ${st.accentRedDim}; color: ${st.accentRed};`;
+            case 'MEDIUM': return css`background: ${st.accentAmberDim}; color: ${st.accentAmber};`;
+            case 'LOW':    return css`background: ${st.accentGreenDim}; color: ${st.accentGreen};`;
+            default:       return css`background: ${st.bgCardAlt}; color: ${st.textMuted};`;
         }
     }}
 `;
 
-const CompIndexBar = styled.div<{ $pct: number }>`
+const IndexBar = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 100px;
 `;
 
-const BarTrack = styled.div`
+const Track = styled.div`
     flex: 1;
-    height: 6px;
-    background: ${p => p.theme.colors.border};
+    height: 5px;
+    background: ${st.bgCardAlt};
     border-radius: 3px;
-    min-width: 60px;
+    overflow: hidden;
 `;
 
-const BarFill = styled.div<{ $pct: number }>`
+const Fill = styled.div<{ $pct: number; $level: string }>`
     height: 100%;
     width: ${p => p.$pct}%;
-    background: var(--brand-primary);
     border-radius: 3px;
-    transition: width 0.3s ease;
+    background: ${p => {
+        if (p.$pct >= 70) return st.accentRed;
+        if (p.$pct >= 40) return st.accentAmber;
+        return st.accentGreen;
+    }};
+    transition: width 0.4s ease;
 `;
 
-const CountBadge = styled.div`
-    font-size: 12px;
-    color: ${p => p.theme.colors.textMuted};
-    margin-left: auto;
+const EmptyRow = styled.td`
+    padding: 48px 20px;
+    text-align: center;
+    color: ${st.textMuted};
+    font-size: ${st.fontSm};
+    background: ${st.bgCard};
 `;
 
-function formatVolume(v: number | null): string {
-    if (v == null) return '—';
-    return v.toLocaleString('pl-PL');
-}
+// ─── Logic ────────────────────────────────────────────────────────────────────
 
-interface SortConfig {
-    field: SortField;
-    dir: 'asc' | 'desc';
-}
+interface SortConfig { field: SortField; dir: 'asc' | 'desc'; }
 
 interface Props {
     keywords: KeywordListItem[];
+    isFetching?: boolean;
     onSelect: (keyword: string) => void;
 }
 
-export function KeywordsTable({ keywords, onSelect }: Props) {
+export function KeywordsTable({ keywords, isFetching, onSelect }: Props) {
     const [search, setSearch] = useState('');
     const [sort, setSort] = useState<SortConfig>({ field: 'volume', dir: 'desc' });
 
@@ -196,104 +241,113 @@ export function KeywordsTable({ keywords, onSelect }: Props) {
     );
 
     const sorted = [...filtered].sort((a, b) => {
-        let diff = 0;
+        let d = 0;
         switch (sort.field) {
-            case 'keyword': diff = a.keyword.localeCompare(b.keyword, 'pl'); break;
-            case 'cpc': diff = (a.cpc ?? -1) - (b.cpc ?? -1); break;
-            case 'competition': diff = (a.competitionIndex ?? -1) - (b.competitionIndex ?? -1); break;
-            default: diff = (a.searchVolume ?? -1) - (b.searchVolume ?? -1); break;
+            case 'keyword':     d = a.keyword.localeCompare(b.keyword, 'pl'); break;
+            case 'cpc':         d = (a.cpc ?? -1) - (b.cpc ?? -1); break;
+            case 'competition': d = (a.competitionIndex ?? -1) - (b.competitionIndex ?? -1); break;
+            default:            d = (a.searchVolume ?? -1) - (b.searchVolume ?? -1); break;
         }
-        return sort.dir === 'asc' ? diff : -diff;
+        return sort.dir === 'asc' ? d : -d;
     });
 
     function toggleSort(field: SortField) {
-        setSort(s => s.field === field ? { field, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { field, dir: 'desc' });
+        setSort(s => s.field === field
+            ? { field, dir: s.dir === 'asc' ? 'desc' : 'asc' }
+            : { field, dir: 'desc' }
+        );
     }
 
     function SortIcon({ field }: { field: SortField }) {
-        if (sort.field !== field) return <ChevronDown size={13} style={{ opacity: 0.3 }} />;
-        return sort.dir === 'asc' ? <ChevronUp size={13} /> : <ChevronDown size={13} />;
+        if (sort.field !== field) return <ChevronDown size={12} style={{ opacity: 0.3 }} />;
+        return sort.dir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />;
     }
 
     return (
         <Wrapper>
-            <Controls>
-                <SearchWrapper>
-                    <SearchIcon><Search size={15} /></SearchIcon>
+            <ControlBar>
+                <SearchBox>
+                    <SearchIco><Search size={14} /></SearchIco>
                     <SearchInput
-                        placeholder="Szukaj słowa kluczowego..."
+                        placeholder="Szukaj frazy kluczowej…"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                     />
-                </SearchWrapper>
-                <CountBadge>{sorted.length} z {keywords.length} fraz</CountBadge>
-            </Controls>
+                </SearchBox>
+                <ResultCount>
+                    {filtered.length !== keywords.length
+                        ? `${filtered.length} z ${keywords.length} fraz`
+                        : `${keywords.length} fraz`}
+                </ResultCount>
+            </ControlBar>
 
-            <TableContainer>
+            {isFetching && <FetchingBar />}
+
+            <TableWrap>
                 <Table>
                     <thead>
                         <tr>
                             <Th $sortable $active={sort.field === 'keyword'} onClick={() => toggleSort('keyword')}>
-                                <ThContent>Fraza kluczowa <SortIcon field="keyword" /></ThContent>
+                                <ThInner>Fraza kluczowa <SortIcon field="keyword" /></ThInner>
                             </Th>
-                            <Th $sortable $active={sort.field === 'volume'} onClick={() => toggleSort('volume')}>
-                                <ThContent>Wol. wyszukiwań <SortIcon field="volume" /></ThContent>
+                            <Th $sortable $active={sort.field === 'volume'} $align="right" onClick={() => toggleSort('volume')}>
+                                <ThInner>Wyszukiwania / mies. <SortIcon field="volume" /></ThInner>
                             </Th>
-                            <Th $sortable $active={sort.field === 'cpc'} onClick={() => toggleSort('cpc')}>
-                                <ThContent>CPC (PLN) <SortIcon field="cpc" /></ThContent>
+                            <Th $sortable $active={sort.field === 'cpc'} $align="right" onClick={() => toggleSort('cpc')}>
+                                <ThInner>CPC <SortIcon field="cpc" /></ThInner>
                             </Th>
                             <Th $sortable $active={sort.field === 'competition'} onClick={() => toggleSort('competition')}>
-                                <ThContent>Konkurencja <SortIcon field="competition" /></ThContent>
+                                <ThInner>Konkurencja <SortIcon field="competition" /></ThInner>
                             </Th>
-                            <Th>Indeks komp.</Th>
+                            <Th>Indeks</Th>
                         </tr>
                     </thead>
                     <tbody>
                         {sorted.map(kw => (
                             <Tr key={kw.keyword} onClick={() => onSelect(kw.keyword)}>
                                 <Td>
-                                    <KeywordCell title={kw.keyword}>{kw.keyword}</KeywordCell>
+                                    <KeywordCell>
+                                        <KwText title={kw.keyword}>{kw.keyword}</KwText>
+                                        <LinkIcon><ArrowUpRight size={13} /></LinkIcon>
+                                    </KeywordCell>
                                 </Td>
-                                <Td>
+                                <Td $align="right">
                                     {kw.searchVolume != null
-                                        ? <NumCell>{formatVolume(kw.searchVolume)}</NumCell>
-                                        : <MutedCell>—</MutedCell>
-                                    }
+                                        ? <Num>{kw.searchVolume.toLocaleString('pl-PL')}</Num>
+                                        : <Muted>—</Muted>}
                                 </Td>
-                                <Td>
+                                <Td $align="right">
                                     {kw.cpc != null
-                                        ? <NumCell>{kw.cpc.toFixed(2)}</NumCell>
-                                        : <MutedCell>—</MutedCell>
-                                    }
+                                        ? <Num>{kw.cpc.toFixed(2)} zł</Num>
+                                        : <Muted>—</Muted>}
                                 </Td>
                                 <Td>
                                     {kw.competition
-                                        ? <CompetitionBadge $level={kw.competition}>{kw.competition}</CompetitionBadge>
-                                        : <MutedCell>—</MutedCell>
-                                    }
+                                        ? <CompBadge $level={kw.competition}>{kw.competition}</CompBadge>
+                                        : <Muted>—</Muted>}
                                 </Td>
                                 <Td>
                                     {kw.competitionIndex != null ? (
-                                        <CompIndexBar $pct={kw.competitionIndex}>
-                                            <BarTrack>
-                                                <BarFill $pct={kw.competitionIndex} />
-                                            </BarTrack>
-                                            <NumCell>{kw.competitionIndex}</NumCell>
-                                        </CompIndexBar>
-                                    ) : <MutedCell>—</MutedCell>}
+                                        <IndexBar>
+                                            <Track>
+                                                <Fill $pct={kw.competitionIndex} $level={kw.competition ?? ''} />
+                                            </Track>
+                                            <Num style={{ fontSize: 12, minWidth: 24 }}>{kw.competitionIndex}</Num>
+                                        </IndexBar>
+                                    ) : <Muted>—</Muted>}
                                 </Td>
                             </Tr>
                         ))}
                         {sorted.length === 0 && (
                             <tr>
-                                <Td colSpan={5} style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>
-                                    Brak wyników dla &quot;{search}&quot;
-                                </Td>
+                                <EmptyRow colSpan={5}>
+                                    {search ? `Brak wyników dla „${search}"` : 'Brak danych'}
+                                </EmptyRow>
                             </tr>
                         )}
                     </tbody>
                 </Table>
-            </TableContainer>
+            </TableWrap>
         </Wrapper>
     );
 }

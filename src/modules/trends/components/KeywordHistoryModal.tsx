@@ -1,28 +1,26 @@
 import styled, { keyframes } from 'styled-components';
-import { X, TrendingUp, DollarSign, BarChart2, Activity } from 'lucide-react';
+import { X, TrendingUp, DollarSign, BarChart2, Activity, MapPin } from 'lucide-react';
 import {
-    ResponsiveContainer,
-    BarChart,
-    Bar,
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ReferenceLine,
+    ResponsiveContainer, BarChart, Bar, LineChart, Line,
+    XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
 } from 'recharts';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useKeywordHistory } from '../hooks/useKeywordHistory';
 
-const MONTH_NAMES = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'];
+const MONTHS = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'];
 
-const fadeIn = keyframes`from { opacity: 0; } to { opacity: 1; }`;
-const slideUp = keyframes`from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; }`;
+// ─── Animations ───────────────────────────────────────────────────────────────
+
+const fadeIn  = keyframes`from { opacity: 0; } to { opacity: 1; }`;
+const slideUp = keyframes`from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; }`;
+
+// ─── Overlay + Sheet ─────────────────────────────────────────────────────────
 
 const Overlay = styled.div`
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.45);
+    background: rgba(15,23,42,0.5);
+    backdrop-filter: blur(2px);
     z-index: 1000;
     display: flex;
     align-items: center;
@@ -32,63 +30,76 @@ const Overlay = styled.div`
 `;
 
 const Sheet = styled.div`
-    background: ${p => p.theme.colors.surface};
-    border-radius: ${p => p.theme.radii.xl};
-    box-shadow: ${p => p.theme.shadows.xl};
+    background: ${st.bgCard};
+    border-radius: 18px;
+    box-shadow: ${st.shadowLg};
     width: 100%;
-    max-width: 860px;
+    max-width: 880px;
     max-height: 90vh;
     overflow-y: auto;
     animation: ${slideUp} 0.2s ease;
     display: flex;
     flex-direction: column;
+    border: 1px solid ${st.border};
 `;
+
+// ─── Header ──────────────────────────────────────────────────────────────────
 
 const Header = styled.div`
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     padding: 24px 28px 20px;
-    border-bottom: 1px solid ${p => p.theme.colors.border};
+    border-bottom: 1px solid ${st.border};
     position: sticky;
     top: 0;
-    background: ${p => p.theme.colors.surface};
+    background: ${st.bgCard};
     z-index: 1;
     gap: 16px;
 `;
 
-const HeaderLeft = styled.div``;
+const HeaderLeft = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
 
-const Keyword = styled.h2`
-    margin: 0 0 4px;
+const KeywordTitle = styled.h2`
+    margin: 0;
     font-size: 22px;
-    font-weight: ${p => p.theme.fontWeights.bold};
-    color: ${p => p.theme.colors.text};
+    font-weight: 700;
+    color: ${st.text};
     letter-spacing: -0.3px;
 `;
 
-const Location = styled.p`
-    margin: 0;
-    font-size: ${p => p.theme.fontSizes.sm};
-    color: ${p => p.theme.colors.textMuted};
+const LocationLine = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    color: ${st.textMuted};
+    font-weight: 500;
 `;
 
 const CloseBtn = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.md};
+    width: 34px;
+    height: 34px;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
     background: transparent;
-    color: ${p => p.theme.colors.textMuted};
+    color: ${st.textMuted};
     cursor: pointer;
     flex-shrink: 0;
-    transition: all ${p => p.theme.transitions.fast};
+    font-family: inherit;
+    transition: all ${st.transition};
 
-    &:hover { background: ${p => p.theme.colors.surfaceAlt}; color: ${p => p.theme.colors.text}; }
+    &:hover { background: ${st.bgCardAlt}; color: ${st.text}; }
 `;
+
+// ─── Body ────────────────────────────────────────────────────────────────────
 
 const Body = styled.div`
     padding: 24px 28px;
@@ -97,47 +108,62 @@ const Body = styled.div`
     gap: 28px;
 `;
 
-const MetricsRow = styled.div`
+// ─── Metrics strip ───────────────────────────────────────────────────────────
+
+const MetricsStrip = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 12px;
 `;
 
-const MetricCard = styled.div`
-    background: ${p => p.theme.colors.surfaceAlt};
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.lg};
+const MetricTile = styled.div<{ $accent: string; $dimBg: string }>`
     padding: 16px;
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-top: 3px solid ${p => p.$accent};
+    border-radius: ${st.radius};
+    box-shadow: ${st.shadowXs};
     display: flex;
     flex-direction: column;
     gap: 6px;
 `;
 
-const MetricIcon = styled.div`
-    color: var(--brand-primary);
+const MetricIcon = styled.div<{ $bg: string; $color: string }>`
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: ${p => p.$bg};
     display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${p => p.$color};
+    margin-bottom: 4px;
 `;
 
 const MetricLabel = styled.div`
     font-size: 11px;
+    font-weight: 700;
+    color: ${st.textMuted};
     text-transform: uppercase;
-    letter-spacing: 0.4px;
-    color: ${p => p.theme.colors.textMuted};
-    font-weight: ${p => p.theme.fontWeights.medium};
+    letter-spacing: 0.07em;
 `;
 
 const MetricValue = styled.div`
     font-size: 24px;
-    font-weight: ${p => p.theme.fontWeights.bold};
-    color: ${p => p.theme.colors.text};
+    font-weight: 800;
+    color: ${st.text};
     letter-spacing: -0.5px;
+    line-height: 1;
     font-variant-numeric: tabular-nums;
 `;
 
 const MetricSub = styled.div`
-    font-size: 11px;
-    color: ${p => p.theme.colors.textMuted};
+    font-size: 12px;
+    color: ${st.textMuted};
+    font-weight: 400;
 `;
+
+// ─── Chart section ───────────────────────────────────────────────────────────
 
 const ChartSection = styled.div`
     display: flex;
@@ -145,205 +171,250 @@ const ChartSection = styled.div`
     gap: 12px;
 `;
 
-const ChartTitle = styled.h3`
-    margin: 0;
-    font-size: ${p => p.theme.fontSizes.sm};
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    color: ${p => p.theme.colors.textSecondary};
+const ChartHeader = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
 `;
 
-const Empty = styled.div`
+const ChartLabel = styled.h3`
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+`;
+
+const ChartCard = styled.div`
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radius};
+    padding: 20px 20px 12px;
+`;
+
+const EmptyChart = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 120px;
-    color: ${p => p.theme.colors.textMuted};
-    font-size: ${p => p.theme.fontSizes.sm};
-    background: ${p => p.theme.colors.surfaceAlt};
-    border-radius: ${p => p.theme.radii.lg};
+    height: 140px;
+    background: ${st.bgCardAlt};
+    border-radius: ${st.radiusSm};
+    color: ${st.textMuted};
+    font-size: ${st.fontSm};
 `;
 
 const Loading = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 48px;
-    color: ${p => p.theme.colors.textMuted};
+    padding: 56px;
+    color: ${st.textMuted};
+    font-size: ${st.fontSm};
 `;
 
 const CompBadge = styled.span<{ $level: string }>`
-    display: inline-block;
-    font-size: 12px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
+    font-size: 13px;
+    font-weight: 700;
     padding: 3px 10px;
-    border-radius: ${p => p.theme.radii.full};
+    border-radius: ${st.radiusFull};
     ${p => {
         switch (p.$level?.toUpperCase()) {
-            case 'HIGH': return 'background: #fef2f2; color: #dc2626;';
-            case 'MEDIUM': return 'background: #fffbeb; color: #d97706;';
-            case 'LOW': return 'background: #f0fdf4; color: #16a34a;';
-            default: return 'background: #f1f5f9; color: #64748b;';
+            case 'HIGH':   return `background: ${st.accentRedDim}; color: ${st.accentRed};`;
+            case 'MEDIUM': return `background: ${st.accentAmberDim}; color: ${st.accentAmber};`;
+            case 'LOW':    return `background: ${st.accentGreenDim}; color: ${st.accentGreen};`;
+            default:       return `background: ${st.bgCardAlt}; color: ${st.textMuted};`;
         }
     }}
 `;
 
-function formatVolume(v: number | null): string {
-    if (v == null) return '—';
-    return v.toLocaleString('pl-PL');
-}
+// ─── Tooltip styles ──────────────────────────────────────────────────────────
+
+const tooltipStyle = {
+    fontSize: 12,
+    borderRadius: 8,
+    border: `1px solid ${st.border}`,
+    boxShadow: st.shadowMd,
+};
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 interface Props {
     keyword: string;
+    locationCode: number;
     onClose: () => void;
 }
 
-export function KeywordHistoryModal({ keyword, onClose }: Props) {
-    const { history, isLoading } = useKeywordHistory(keyword);
+export function KeywordHistoryModal({ keyword, locationCode, onClose }: Props) {
+    const { history, isLoading } = useKeywordHistory(keyword, locationCode);
 
-    const monthlyData = (history?.monthlySearches ?? [])
+    const monthlyData = [...(history?.monthlySearches ?? [])]
         .sort((a, b) => a.year !== b.year ? a.year - b.year : a.month - b.month)
         .map(p => ({
-            label: `${MONTH_NAMES[p.month - 1]} ${p.year}`,
+            label: `${MONTHS[p.month - 1]} ${p.year}`,
             volume: p.searchVolume ?? 0,
         }));
 
-    const dailyData = (history?.dailyTrend ?? [])
+    const dailyData = [...(history?.dailyTrend ?? [])]
         .sort((a, b) => a.date.localeCompare(b.date))
-        .map(p => ({
-            date: p.date,
-            index: p.trendIndex ?? 0,
-        }));
+        .map(p => ({ date: p.date, index: p.trendIndex ?? 0 }));
 
     const avgTrend = dailyData.length > 0
         ? Math.round(dailyData.reduce((s, d) => s + d.index, 0) / dailyData.length)
         : null;
+
+    const m = history?.currentMetrics;
 
     return (
         <Overlay onClick={e => e.target === e.currentTarget && onClose()}>
             <Sheet>
                 <Header>
                     <HeaderLeft>
-                        <Keyword>{keyword}</Keyword>
-                        <Location>{history?.locationName ?? 'Polska'}</Location>
+                        <KeywordTitle>{keyword}</KeywordTitle>
+                        <LocationLine>
+                            <MapPin size={12} />
+                            {history?.locationName ?? 'Polska'}
+                        </LocationLine>
                     </HeaderLeft>
-                    <CloseBtn onClick={onClose}><X size={18} /></CloseBtn>
+                    <CloseBtn onClick={onClose}><X size={16} /></CloseBtn>
                 </Header>
 
                 <Body>
                     {isLoading ? (
-                        <Loading>Ładowanie danych...</Loading>
+                        <Loading>Ładowanie danych…</Loading>
                     ) : (
                         <>
-                            {history?.currentMetrics && (
-                                <MetricsRow>
-                                    <MetricCard>
-                                        <MetricIcon><TrendingUp size={16} /></MetricIcon>
+                            {m && (
+                                <MetricsStrip>
+                                    <MetricTile $accent={st.accentBlue} $dimBg={st.accentBlueDim}>
+                                        <MetricIcon $bg={st.accentBlueDim} $color={st.accentBlue}>
+                                            <TrendingUp size={14} />
+                                        </MetricIcon>
                                         <MetricLabel>Wyszukiwania / mies.</MetricLabel>
-                                        <MetricValue>{formatVolume(history.currentMetrics.searchVolume)}</MetricValue>
+                                        <MetricValue>
+                                            {m.searchVolume != null
+                                                ? m.searchVolume.toLocaleString('pl-PL')
+                                                : '—'}
+                                        </MetricValue>
                                         <MetricSub>średnia miesięczna</MetricSub>
-                                    </MetricCard>
-                                    <MetricCard>
-                                        <MetricIcon><DollarSign size={16} /></MetricIcon>
+                                    </MetricTile>
+
+                                    <MetricTile $accent={st.accentGreen} $dimBg={st.accentGreenDim}>
+                                        <MetricIcon $bg={st.accentGreenDim} $color={st.accentGreen}>
+                                            <DollarSign size={14} />
+                                        </MetricIcon>
                                         <MetricLabel>CPC</MetricLabel>
                                         <MetricValue>
-                                            {history.currentMetrics.cpc != null
-                                                ? `${history.currentMetrics.cpc.toFixed(2)} zł`
-                                                : '—'}
+                                            {m.cpc != null ? `${m.cpc.toFixed(2)} zł` : '—'}
                                         </MetricValue>
-                                        <MetricSub>koszt kliknięcia</MetricSub>
-                                    </MetricCard>
-                                    <MetricCard>
-                                        <MetricIcon><BarChart2 size={16} /></MetricIcon>
+                                        <MetricSub>koszt kliknięcia (reklama)</MetricSub>
+                                    </MetricTile>
+
+                                    <MetricTile $accent={st.accentAmber} $dimBg={st.accentAmberDim}>
+                                        <MetricIcon $bg={st.accentAmberDim} $color={st.accentAmber}>
+                                            <BarChart2 size={14} />
+                                        </MetricIcon>
                                         <MetricLabel>Konkurencja</MetricLabel>
                                         <MetricValue>
-                                            {history.currentMetrics.competition
-                                                ? <CompBadge $level={history.currentMetrics.competition}>{history.currentMetrics.competition}</CompBadge>
+                                            {m.competition
+                                                ? <CompBadge $level={m.competition}>{m.competition}</CompBadge>
                                                 : '—'}
                                         </MetricValue>
-                                        <MetricSub>
-                                            indeks: {history.currentMetrics.competitionIndex ?? '—'}
-                                        </MetricSub>
-                                    </MetricCard>
+                                        <MetricSub>indeks {m.competitionIndex ?? '—'} / 100</MetricSub>
+                                    </MetricTile>
+
                                     {avgTrend != null && (
-                                        <MetricCard>
-                                            <MetricIcon><Activity size={16} /></MetricIcon>
+                                        <MetricTile $accent="#8b5cf6" $dimBg="rgba(139,92,246,.10)">
+                                            <MetricIcon $bg="rgba(139,92,246,.10)" $color="#8b5cf6">
+                                                <Activity size={14} />
+                                            </MetricIcon>
                                             <MetricLabel>Śr. indeks trendu</MetricLabel>
                                             <MetricValue>{avgTrend}</MetricValue>
-                                            <MetricSub>ostatnie 12 mies.</MetricSub>
-                                        </MetricCard>
+                                            <MetricSub>ostatnie 12 miesięcy</MetricSub>
+                                        </MetricTile>
                                     )}
-                                </MetricsRow>
+                                </MetricsStrip>
                             )}
 
                             <ChartSection>
-                                <ChartTitle><BarChart2 size={15} /> Wolumen wyszukiwań miesięcznie</ChartTitle>
-                                {monthlyData.length > 0 ? (
-                                    <ResponsiveContainer width="100%" height={200}>
-                                        <BarChart data={monthlyData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                                            <XAxis
-                                                dataKey="label"
-                                                tick={{ fontSize: 11, fill: '#94a3b8' }}
-                                                tickLine={false}
-                                                axisLine={false}
-                                                interval="preserveStartEnd"
-                                            />
-                                            <YAxis
-                                                tick={{ fontSize: 11, fill: '#94a3b8' }}
-                                                tickLine={false}
-                                                axisLine={false}
-                                                tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v}
-                                            />
-                                            <Tooltip
-                                                formatter={(v: number) => [v.toLocaleString('pl-PL'), 'Wyszukiwania']}
-                                                contentStyle={{ fontSize: 12, borderRadius: 8 }}
-                                            />
-                                            <Bar dataKey="volume" fill="var(--brand-primary)" radius={[4, 4, 0, 0]} />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                ) : <Empty>Brak danych miesięcznych</Empty>}
+                                <ChartHeader>
+                                    <ChartLabel>Wolumen wyszukiwań miesięcznie</ChartLabel>
+                                </ChartHeader>
+                                <ChartCard>
+                                    {monthlyData.length > 0 ? (
+                                        <ResponsiveContainer width="100%" height={200}>
+                                            <BarChart data={monthlyData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke={st.border} vertical={false} />
+                                                <XAxis
+                                                    dataKey="label"
+                                                    tick={{ fontSize: 11, fill: st.textMuted }}
+                                                    tickLine={false}
+                                                    axisLine={false}
+                                                    interval="preserveStartEnd"
+                                                />
+                                                <YAxis
+                                                    tick={{ fontSize: 11, fill: st.textMuted }}
+                                                    tickLine={false}
+                                                    axisLine={false}
+                                                    tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v}
+                                                />
+                                                <Tooltip
+                                                    formatter={(v: number) => [v.toLocaleString('pl-PL'), 'Wyszukiwania']}
+                                                    contentStyle={tooltipStyle}
+                                                />
+                                                <Bar dataKey="volume" fill={st.accentBlue} radius={[4, 4, 0, 0]} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    ) : <EmptyChart>Brak danych miesięcznych</EmptyChart>}
+                                </ChartCard>
                             </ChartSection>
 
                             <ChartSection>
-                                <ChartTitle><Activity size={15} /> Indeks trendu Google (dziennie)</ChartTitle>
-                                {dailyData.length > 0 ? (
-                                    <ResponsiveContainer width="100%" height={180}>
-                                        <LineChart data={dailyData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                                            <XAxis
-                                                dataKey="date"
-                                                tick={{ fontSize: 10, fill: '#94a3b8' }}
-                                                tickLine={false}
-                                                axisLine={false}
-                                                interval={Math.floor(dailyData.length / 6)}
-                                            />
-                                            <YAxis
-                                                domain={[0, 100]}
-                                                tick={{ fontSize: 11, fill: '#94a3b8' }}
-                                                tickLine={false}
-                                                axisLine={false}
-                                            />
-                                            <Tooltip
-                                                formatter={(v: number) => [v, 'Indeks trendu']}
-                                                contentStyle={{ fontSize: 12, borderRadius: 8 }}
-                                            />
-                                            {avgTrend != null && (
-                                                <ReferenceLine y={avgTrend} stroke="#94a3b8" strokeDasharray="4 4" />
-                                            )}
-                                            <Line
-                                                type="monotone"
-                                                dataKey="index"
-                                                stroke="var(--brand-primary)"
-                                                strokeWidth={2}
-                                                dot={false}
-                                                activeDot={{ r: 4 }}
-                                            />
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                ) : <Empty>Brak danych trendów</Empty>}
+                                <ChartHeader>
+                                    <ChartLabel>Indeks trendu Google (dziennie)</ChartLabel>
+                                </ChartHeader>
+                                <ChartCard>
+                                    {dailyData.length > 0 ? (
+                                        <ResponsiveContainer width="100%" height={180}>
+                                            <LineChart data={dailyData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke={st.border} vertical={false} />
+                                                <XAxis
+                                                    dataKey="date"
+                                                    tick={{ fontSize: 10, fill: st.textMuted }}
+                                                    tickLine={false}
+                                                    axisLine={false}
+                                                    interval={Math.max(1, Math.floor(dailyData.length / 8))}
+                                                />
+                                                <YAxis
+                                                    domain={[0, 100]}
+                                                    tick={{ fontSize: 11, fill: st.textMuted }}
+                                                    tickLine={false}
+                                                    axisLine={false}
+                                                />
+                                                <Tooltip
+                                                    formatter={(v: number) => [v, 'Indeks trendu']}
+                                                    contentStyle={tooltipStyle}
+                                                />
+                                                {avgTrend != null && (
+                                                    <ReferenceLine
+                                                        y={avgTrend}
+                                                        stroke={st.textMuted}
+                                                        strokeDasharray="4 3"
+                                                        label={{ value: `śr. ${avgTrend}`, fontSize: 10, fill: st.textMuted, position: 'right' }}
+                                                    />
+                                                )}
+                                                <Line
+                                                    type="monotone"
+                                                    dataKey="index"
+                                                    stroke={st.accentBlue}
+                                                    strokeWidth={2}
+                                                    dot={false}
+                                                    activeDot={{ r: 4, fill: st.accentBlue }}
+                                                />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    ) : <EmptyChart>Brak danych trendów</EmptyChart>}
+                                </ChartCard>
                             </ChartSection>
                         </>
                     )}
