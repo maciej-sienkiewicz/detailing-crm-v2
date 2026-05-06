@@ -572,18 +572,16 @@ const RuleEditor: React.FC<RuleEditorProps> = ({
 // ─── Defaults for fields that may be absent from older API responses ──────────
 
 const CONFIG_DEFAULTS: SmsAutomationConfig = {
-  preVisit:              { enabled: false, offsetMinutes: 60,     messageTemplate: '' },
-  postVisit:             { enabled: false, offsetMinutes: 30,     messageTemplate: '' },
-  delayedReminder:       { enabled: false, offsetMinutes: 129600, messageTemplate: 'Cześć {{imie}}! Minęły 3 miesiące od Twojej wizyty w {{studio}}. Czas na kolejny detailing? Zapraszamy!' },
-  bookingConfirmation:   { enabled: false,                        messageTemplate: 'Drogi/a {{imie}}, potwierdzamy rezerwację w {{studio}} na {{data}} o godz. {{godzina}}. Czekamy na Ciebie!' },
-  rescheduleConfirmation:{ enabled: false,                        messageTemplate: 'Drogi/a {{imie}}, termin Twojej wizyty w {{studio}} został zmieniony na {{data}} o godz. {{godzina}}. Do zobaczenia!' },
+  preVisit:              { enabled: false, offsetMinutes: 60, messageTemplate: '' },
+  postVisit:             { enabled: false, offsetMinutes: 30, messageTemplate: '' },
+  bookingConfirmation:   { enabled: false,                    messageTemplate: 'Drogi/a {{imie}}, potwierdzamy rezerwację w {{studio}} na {{data}} o godz. {{godzina}}. Czekamy na Ciebie!' },
+  rescheduleConfirmation:{ enabled: false,                    messageTemplate: 'Drogi/a {{imie}}, termin Twojej wizyty w {{studio}} został zmieniony na {{data}} o godz. {{godzina}}. Do zobaczenia!' },
 };
 
 function mergeWithDefaults(config: Partial<SmsAutomationConfig>): SmsAutomationConfig {
   return {
     preVisit:               config.preVisit               ?? CONFIG_DEFAULTS.preVisit,
     postVisit:              config.postVisit              ?? CONFIG_DEFAULTS.postVisit,
-    delayedReminder:        config.delayedReminder        ?? CONFIG_DEFAULTS.delayedReminder,
     bookingConfirmation:    config.bookingConfirmation    ?? CONFIG_DEFAULTS.bookingConfirmation,
     rescheduleConfirmation: config.rescheduleConfirmation ?? CONFIG_DEFAULTS.rescheduleConfirmation,
   };
@@ -608,11 +606,10 @@ export const AutomationSettings: React.FC = () => {
     setSavedAt(null);
   };
 
-  const updatePreVisit          = makeUpdater('preVisit');
-  const updatePostVisit         = makeUpdater('postVisit');
-  const updateDelayedReminder   = makeUpdater('delayedReminder');
-  const updateBookingConf       = makeUpdater('bookingConfirmation');
-  const updateRescheduleConf    = makeUpdater('rescheduleConfirmation');
+  const updatePreVisit       = makeUpdater('preVisit');
+  const updatePostVisit      = makeUpdater('postVisit');
+  const updateBookingConf    = makeUpdater('bookingConfirmation');
+  const updateRescheduleConf = makeUpdater('rescheduleConfirmation');
 
   const handleSave = async () => {
     if (!localConfig) return;
@@ -624,7 +621,7 @@ export const AutomationSettings: React.FC = () => {
   if (isLoading || !localConfig) {
     return (
       <Container>
-        {[48, 42, 52, 44, 50].map((w, i) => (
+        {[48, 42, 44, 50].map((w, i) => (
           <Card key={i} $enabled={false}>
             <CardHeader style={{ cursor: 'default' }}>
               <SkeletonBox $w="36px" $h="36px" style={{ borderRadius: '10px', flexShrink: 0 }} />
@@ -748,56 +745,6 @@ export const AutomationSettings: React.FC = () => {
                 rule={localConfig.postVisit}
                 direction="after"
                 onChange={updatePostVisit}
-              />
-            </CardBody>
-          </>
-        )}
-      </Card>
-
-      {/* ── Delayed reminder ── */}
-      <Card $enabled={localConfig.delayedReminder.enabled}>
-        <CardHeader
-          onClick={() =>
-            updateDelayedReminder({ ...localConfig.delayedReminder, enabled: !localConfig.delayedReminder.enabled })
-          }
-        >
-          <CardIconWrap $enabled={localConfig.delayedReminder.enabled}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12 6 12 12 16 14"/>
-            </svg>
-          </CardIconWrap>
-
-          <CardTitleGroup>
-            <CardTitle>Przypomnienie po dłuższej nieobecności</CardTitle>
-            <CardMeta>
-              {localConfig.delayedReminder.enabled ? (
-                <TimingBadge>
-                  {formatTimingBadge(localConfig.delayedReminder.offsetMinutes ?? 129600, 'after')}
-                </TimingBadge>
-              ) : (
-                <InactiveLabel>Nieaktywne</InactiveLabel>
-              )}
-            </CardMeta>
-          </CardTitleGroup>
-
-          <ToggleTrack
-            $on={localConfig.delayedReminder.enabled}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ToggleThumb $on={localConfig.delayedReminder.enabled} />
-          </ToggleTrack>
-        </CardHeader>
-
-        {localConfig.delayedReminder.enabled && (
-          <>
-            <BodyDivider />
-            <CardBody>
-              <RuleEditor
-                rule={localConfig.delayedReminder}
-                direction="after"
-                directionLabel="od ostatniej wizyty"
-                onChange={updateDelayedReminder}
               />
             </CardBody>
           </>

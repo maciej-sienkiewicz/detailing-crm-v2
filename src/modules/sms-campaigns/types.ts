@@ -67,7 +67,6 @@ export interface SmsAutomationRule {
 export interface SmsAutomationConfig {
   preVisit: SmsAutomationRule;
   postVisit: SmsAutomationRule;
-  delayedReminder: SmsAutomationRule;
   bookingConfirmation: SmsAutomationRule;
   rescheduleConfirmation: SmsAutomationRule;
 }
