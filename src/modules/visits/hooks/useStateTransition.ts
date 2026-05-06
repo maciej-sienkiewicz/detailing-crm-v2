@@ -55,6 +55,8 @@ export const useStateTransitionWizard = (
 
     const totalSteps = transitionType === 'in_progress_to_ready' ? 2 : 3;
 
+    const { showError } = useToast();
+
     const { mutate: markReadyForPickup, isPending: isMarkingReady } = useMutation({
         mutationFn: () => stateTransitionApi.markReadyForPickup(visitId, {
             sms: wizardData.notifications?.sms || false,
@@ -66,6 +68,16 @@ export const useStateTransitionWizard = (
             });
             handleClose();
             onTransitionSuccess?.();
+        },
+        onError: (error: any) => {
+            if (error?.response?.status === 402) {
+                showError(
+                    'Brak kredytów SMS',
+                    error.response.data?.message ?? 'Doładuj konto w panelu zarządzania.'
+                );
+            } else {
+                showError('Błąd', 'Nie udało się zmienić statusu wizyty.');
+            }
         },
     });
 
