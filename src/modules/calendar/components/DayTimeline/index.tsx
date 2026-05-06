@@ -78,6 +78,7 @@ export const DayTimelineView = ({
     onNext,
     onToday,
     onViewChange,
+    hideToolbar = false,
 }: DayTimelineViewProps) => {
     const stats  = computeDayStats(events);
     const byCol  = groupByStatus(events);
@@ -101,16 +102,18 @@ export const DayTimelineView = ({
 
     return (
         <Root>
-            <CalendarToolbar
-                title={calendarTitle}
-                currentView={currentView}
-                onPrev={onPrev}
-                onNext={onNext}
-                onToday={onToday}
-                onViewChange={onViewChange}
-                prevAriaLabel="Poprzedni dzień"
-                nextAriaLabel="Następny dzień"
-            />
+            {!hideToolbar && (
+                <CalendarToolbar
+                    title={calendarTitle}
+                    currentView={currentView}
+                    onPrev={onPrev}
+                    onNext={onNext}
+                    onToday={onToday}
+                    onViewChange={onViewChange}
+                    prevAriaLabel="Poprzedni dzień"
+                    nextAriaLabel="Następny dzień"
+                />
+            )}
 
             <StatsStrip stats={stats} />
 
