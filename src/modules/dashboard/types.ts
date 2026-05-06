@@ -67,6 +67,21 @@ export interface DashboardRevenueSummary {
 }
 
 /**
+ * Reservation count summary from dedicated endpoint
+ */
+export interface DashboardReservationBucket {
+  weekStart: string;
+  count: number;
+}
+
+export interface DashboardReservationSummary {
+  currentWeek: { count: number };
+  previousWeek: { count: number };
+  deltaPercentage: number;
+  buckets: DashboardReservationBucket[];
+}
+
+/**
  * Business metric with comparison to previous period
  */
 export interface BusinessMetric {

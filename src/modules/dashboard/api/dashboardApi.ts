@@ -4,7 +4,7 @@
  * Supports mock data mode for development and testing
  */
 
-import type { DashboardData, IncomingCall, DashboardTask, UpcomingVisit, VisitStatusKind, DashboardRevenueSummary } from '../types';
+import type { DashboardData, IncomingCall, DashboardTask, UpcomingVisit, VisitStatusKind, DashboardRevenueSummary, DashboardReservationSummary } from '../types';
 import type { AppointmentResponse, VisitResponse } from '@/modules/calendar/types';
 import { apiClient } from '@/core';
 
@@ -459,6 +459,14 @@ export const dashboardApi = {
   getRevenueSummary: async (weeks = 13): Promise<DashboardRevenueSummary> => {
     const response = await apiClient.get<DashboardRevenueSummary>(
       '/v1/dashboard/revenue-summary',
+      { params: { weeks } },
+    );
+    return response.data;
+  },
+
+  getReservationSummary: async (weeks = 13): Promise<DashboardReservationSummary> => {
+    const response = await apiClient.get<DashboardReservationSummary>(
+      '/v1/dashboard/reservation-summary',
       { params: { weeks } },
     );
     return response.data;
