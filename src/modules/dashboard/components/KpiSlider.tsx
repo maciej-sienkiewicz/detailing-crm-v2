@@ -30,15 +30,23 @@ const Wrapper = styled.div`
 `;
 
 /**
- * Locks width + height so the slider never shifts layout during transitions.
- * overflow: hidden clips the brief translateX travel of the entering slide.
- * cursor + wildcard override the inner Card's cursor: default.
+ * Locks both width and height after first paint so neither dimension shifts
+ * when switching between cards. overflow: hidden clips the translateX travel.
+ * The two-level child cascade forces both SlideAnim and the card's own Wrapper
+ * to fill the locked width, regardless of their internal min-width.
  */
-const SlideViewport = styled.div<{ $h: number }>`
+const SlideViewport = styled.div<{ $w: number; $h: number }>`
   overflow: hidden;
-  min-width: 220px;
-  height: ${p => p.$h > 0 ? `${p.$h}px` : 'auto'};
   cursor: pointer;
+  width:  ${p => p.$w > 0 ? `${p.$w}px` : 'auto'};
+  height: ${p => p.$h > 0 ? `${p.$h}px` : 'auto'};
+  min-width: 220px;
+
+  /* Pull SlideAnim + card Wrapper to full locked width */
+  & > *, & > * > * {
+    width: 100%;
+    box-sizing: border-box;
+  }
   & * { cursor: pointer; }
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
@@ -88,12 +96,14 @@ export const KpiSlider = () => {
   const [active, setActive]       = useState(0);
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
   const [animKey, setAnimKey]     = useState(0);
+  const [lockedW, setLockedW]     = useState(0);
   const [lockedH, setLockedH]     = useState(0);
   const viewportRef = useRef<HTMLDivElement>(null);
 
-  // Measure and lock height after first paint so it never changes on slide switch.
+  // Measure and lock both dimensions after first paint.
   useLayoutEffect(() => {
     if (viewportRef.current && lockedH === 0) {
+      setLockedW(viewportRef.current.offsetWidth);
       setLockedH(viewportRef.current.offsetHeight);
     }
   }, [lockedH]);
@@ -113,7 +123,7 @@ export const KpiSlider = () => {
 
   return (
     <Wrapper>
-      <SlideViewport ref={viewportRef} $h={lockedH} onClick={goNext}>
+      <SlideViewport ref={viewportRef} $w={lockedW} $h={lockedH} onClick={goNext}>
         <SlideAnim key={animKey} $direction={direction}>
           {slide.component}
         </SlideAnim>
