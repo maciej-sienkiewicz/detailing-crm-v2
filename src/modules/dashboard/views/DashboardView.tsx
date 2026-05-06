@@ -10,8 +10,7 @@ import { useAuth } from '@/core/context/AuthContext';
 import { OperationalScorecard } from '../components/OperationalScorecard';
 import { UpcomingVisitsPanel } from '../components/UpcomingVisitsPanel';
 import { TasksPanel } from '../components/TasksPanel';
-import { RevenueKpiCard } from '../components/RevenueKpiCard';
-import { ReservationsKpiCard } from '../components/ReservationsKpiCard';
+import { KpiSlider } from '../components/KpiSlider';
 import { CompetitorStoriesSection } from '../components/CompetitorStoriesSection';
 import { GeneratePostModal } from '@/modules/competition-monitoring/components/GeneratePostModal';
 import { useDashboard, useDashboardSocket } from '../hooks';
@@ -218,31 +217,6 @@ const HeroBtnGhost = styled.button`
   svg { width: 16px; height: 16px; stroke-width: 2; }
 `;
 
-// ─── KPI cards column ─────────────────────────────────────────────────────────
-
-const KpiColumn = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  flex-shrink: 0;
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    width: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-`;
-
-const KpiDivider = styled.div`
-  height: 1px;
-  background: rgba(255,255,255,0.07);
-  margin: 0 4px;
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    display: none;
-  }
-`;
-
 // ─── Two-column panels grid ───────────────────────────────────────────────────
 
 const TwoColGrid = styled.div`
@@ -374,11 +348,7 @@ export const DashboardView = () => {
               </HeroBtnGhost>
             </HeroActions>
           </HeroLeft>
-          <KpiColumn>
-            <RevenueKpiCard />
-            <KpiDivider />
-            <ReservationsKpiCard />
-          </KpiColumn>
+          <KpiSlider />
         </HeroRow>
       </HeroCard>
 
