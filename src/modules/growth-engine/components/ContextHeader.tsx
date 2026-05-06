@@ -1,55 +1,40 @@
-/**
- * Global Context Header
- * Location selector and time range display for the Growth Engine view
- */
-
 import styled from 'styled-components';
 import { ge } from './GrowthEngineTheme';
-import type { LocationFilter, Voivodeship } from '../types';
+import type { Location, Granularity } from '../types';
 
 interface ContextHeaderProps {
-  location: LocationFilter;
-  onLocationChange: (location: LocationFilter) => void;
-  locations: Voivodeship[];
+  locationCode: number;
+  onLocationChange: (code: number) => void;
+  locations: Location[];
   locationName: string;
-  lastUpdated?: string;
+  granularity: Granularity;
+  onGranularityChange: (g: Granularity) => void;
 }
 
 const HeaderContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 24px;
-  background: ${ge.gradientHeader};
-  border: 1px solid ${ge.border};
-  border-radius: ${ge.radiusLg};
 
   @media (min-width: 768px) {
     flex-direction: row;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
   }
 `;
 
-const TitleSection = styled.div`
+const TitleGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 4px;
 `;
 
 const Title = styled.h1`
-  font-size: ${ge.fontXxl};
-  font-weight: 700;
+  font-size: 28px;
+  font-weight: 800;
   color: ${ge.text};
   margin: 0;
   letter-spacing: -0.5px;
-
-  span {
-    background: ${ge.gradientGreen};
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
 `;
 
 const Subtitle = styled.p`
@@ -61,7 +46,7 @@ const Subtitle = styled.p`
 const Controls = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 `;
 
@@ -71,26 +56,27 @@ const SelectWrapper = styled.div`
   &::after {
     content: '▾';
     position: absolute;
-    right: 12px;
+    right: 10px;
     top: 50%;
     transform: translateY(-50%);
     color: ${ge.textMuted};
     pointer-events: none;
-    font-size: 12px;
+    font-size: 11px;
   }
 `;
 
 const Select = styled.select`
   appearance: none;
-  background: ${ge.bgInput};
+  background: ${ge.bgCard};
   border: 1px solid ${ge.border};
   border-radius: ${ge.radiusSm};
   color: ${ge.text};
   font-size: ${ge.fontSm};
-  padding: 10px 36px 10px 14px;
+  padding: 8px 32px 8px 12px;
   cursor: pointer;
   transition: border-color ${ge.transition};
-  min-width: 200px;
+  min-width: 180px;
+  box-shadow: ${ge.shadowSm};
 
   &:hover {
     border-color: ${ge.borderHover};
@@ -98,80 +84,82 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: ${ge.neonGreen};
-    box-shadow: ${ge.neonGreenGlow};
-  }
-
-  option {
-    background: ${ge.bgCard};
-    color: ${ge.text};
+    border-color: ${ge.borderFocus};
+    box-shadow: ${ge.shadowBlue};
   }
 `;
 
-const TimeRangeBadge = styled.div`
+const GranularityToggle = styled.div`
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 14px;
-  background: ${ge.bgInput};
+  background: ${ge.bgCardAlt};
   border: 1px solid ${ge.border};
   border-radius: ${ge.radiusSm};
-  font-size: ${ge.fontSm};
-  color: ${ge.textSecondary};
-
-  span {
-    color: ${ge.neonCyan};
-    font-weight: 600;
-  }
+  overflow: hidden;
 `;
 
-const UpdateInfo = styled.div`
-  font-size: ${ge.fontXs};
-  color: ${ge.textMuted};
+const GranularityButton = styled.button<{ $active: boolean }>`
+  padding: 8px 14px;
+  font-size: ${ge.fontSm};
+  font-weight: ${(p) => (p.$active ? '600' : '400')};
+  color: ${(p) => (p.$active ? ge.accentBlue : ge.textSecondary)};
+  background: ${(p) => (p.$active ? ge.bgCard : 'transparent')};
+  border: none;
+  cursor: pointer;
+  transition: all ${ge.transition};
+  white-space: nowrap;
+
+  &:hover {
+    color: ${ge.text};
+    background: ${ge.bgCard};
+  }
 `;
 
 export const ContextHeader = ({
-  location,
+  locationCode,
   onLocationChange,
   locations,
   locationName,
-  lastUpdated,
+  granularity,
+  onGranularityChange,
 }: ContextHeaderProps) => {
   return (
     <HeaderContainer>
-      <TitleSection>
-        <Title>
-          <span>Growth Engine</span>
-        </Title>
-        <Subtitle>
-          Analiza popytu rynkowego &bull; {locationName}
-        </Subtitle>
-      </TitleSection>
+      <TitleGroup>
+        <Title>Raporty</Title>
+        <Subtitle>Trendy wyszukiwań · {locationName}</Subtitle>
+      </TitleGroup>
 
       <Controls>
         <SelectWrapper>
           <Select
-            value={location}
-            onChange={(e) => onLocationChange(e.target.value as LocationFilter)}
+            value={locationCode}
+            onChange={(e) => onLocationChange(Number(e.target.value))}
           >
-            <option value="PL">Cała Polska</option>
-            {locations.map((v) => (
-              <option key={v.code} value={v.code}>
-                woj. {v.name}
-              </option>
-            ))}
+            <option value={2616}>Cała Polska</option>
+            {locations
+              .filter((l) => l.geoLevel === 'voivodeship')
+              .map((l) => (
+                <option key={l.locationCode} value={l.locationCode}>
+                  woj. {l.polishName ?? l.locationName}
+                </option>
+              ))}
           </Select>
         </SelectWrapper>
 
-        <TimeRangeBadge>
-          Okres: <span>12 miesięcy</span>
-        </TimeRangeBadge>
-
-        {lastUpdated && (
-          <UpdateInfo>
-            Dane z: {new Date(lastUpdated).toLocaleDateString('pl-PL')}
-          </UpdateInfo>
-        )}
+        <GranularityToggle>
+          <GranularityButton
+            $active={granularity === 'monthly'}
+            onClick={() => onGranularityChange('monthly')}
+          >
+            Miesięcznie
+          </GranularityButton>
+          <GranularityButton
+            $active={granularity === 'daily'}
+            onClick={() => onGranularityChange('daily')}
+          >
+            Dziennie
+          </GranularityButton>
+        </GranularityToggle>
       </Controls>
     </HeaderContainer>
   );

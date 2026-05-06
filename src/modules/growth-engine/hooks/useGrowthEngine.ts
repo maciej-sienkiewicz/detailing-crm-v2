@@ -1,109 +1,149 @@
-/**
- * Growth Engine Data Hook
- * Manages market demand data fetching with location filtering
- */
-
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { growthEngineApi } from '../api/growthEngineApi';
-import type { GrowthEngineData, LocationFilter, ServiceIntent } from '../types';
+import { useQuery, useQueries } from '@tanstack/react-query';
+import { trendsApi } from '../api/trendsApi';
+import { CHART_COLORS } from '../types';
+import type { Granularity } from '../types';
 
-export const GROWTH_ENGINE_KEY = ['growth-engine', 'data'] as const;
+export const GROWTH_ENGINE_KEY = ['growth-engine'] as const;
+
+const MONTH_SHORT = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'];
+
+function normalizeTo100(values: (number | null)[]): number[] {
+  const max = Math.max(...values.map((v) => v ?? 0), 1);
+  return values.map((v) => Math.round(((v ?? 0) / max) * 100));
+}
+
+function daysAgo(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+}
 
 export const useGrowthEngine = () => {
-  const [location, setLocation] = useState<LocationFilter>('PL');
+  const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
+  const [locationCode, setLocationCode] = useState(2616);
+  const [granularity, setGranularity] = useState<Granularity>('monthly');
 
-  const { data, isLoading, isError, refetch } = useQuery<GrowthEngineData>({
-    queryKey: [...GROWTH_ENGINE_KEY, location],
-    queryFn: () => growthEngineApi.getData(location),
-    staleTime: 5 * 60_000, // 5 minutes
+  const {
+    data: keywordsData,
+    isLoading: keywordsLoading,
+    isError: keywordsError,
+  } = useQuery({
+    queryKey: ['trends', 'keywords'],
+    queryFn: () => trendsApi.getKeywords(),
+    staleTime: 10 * 60_000,
   });
 
-  // Top 5 by demand volume (for default chart lines)
-  const top5ByVolume = useMemo(() => {
-    if (!data) return [];
-    return [...data.intents]
-      .sort((a, b) => b.demandVolume - a.demandVolume)
-      .slice(0, 5);
-  }, [data]);
+  const allKeywords = useMemo(() => keywordsData ?? [], [keywordsData]);
 
-  // Top 10 by momentum (for trend monitor)
-  const top10ByMomentum = useMemo(() => {
-    if (!data) return [];
-    return [...data.intents]
-      .filter((i) => i.momentum > 0)
-      .sort((a, b) => b.momentum - a.momentum)
-      .slice(0, 10);
-  }, [data]);
+  const effectiveSelected = useMemo(() => {
+    if (selectedKeywords.length > 0) return selectedKeywords;
+    return allKeywords.slice(0, 3).map((k) => k.keyword);
+  }, [selectedKeywords, allKeywords]);
 
-  // Opportunities (not in offer, sorted by demand)
-  const opportunities = useMemo(() => {
-    if (!data) return [];
-    return [...data.intents]
-      .filter((i) => !i.inOffer)
-      .sort((a, b) => b.demandVolume - a.demandVolume);
-  }, [data]);
+  const firstKeyword = allKeywords[0]?.keyword;
 
-  // All intents for the comparison dropdown
-  const allIntents = useMemo(() => {
-    if (!data) return [];
-    return [...data.intents].sort((a, b) => b.demandVolume - a.demandVolume);
-  }, [data]);
+  const { data: locationsData } = useQuery({
+    queryKey: ['trends', 'locations', firstKeyword],
+    queryFn: () => trendsApi.getVoivodeships(firstKeyword!),
+    enabled: !!firstKeyword,
+    staleTime: 60 * 60_000,
+  });
 
-  // Location display name
+  const from = granularity === 'daily' ? daysAgo(90) : undefined;
+
+  const historyQueries = useQueries({
+    queries: effectiveSelected.map((keyword) => ({
+      queryKey: ['trends', 'history', keyword, locationCode, granularity],
+      queryFn: () => trendsApi.getKeywordHistory(keyword, locationCode, from),
+      staleTime: 5 * 60_000,
+    })),
+  });
+
+  const isLoading = keywordsLoading || historyQueries.some((q) => q.isLoading && !q.data);
+  const isError = keywordsError || historyQueries.every((q) => q.isError);
+
+  const chartData = useMemo(() => {
+    const loaded = historyQueries
+      .map((q, i) => ({ keyword: effectiveSelected[i], data: q.data, color: CHART_COLORS[i % CHART_COLORS.length] }))
+      .filter((item): item is typeof item & { data: NonNullable<typeof item.data> } => !!item.data);
+
+    if (loaded.length === 0) return [];
+
+    if (granularity === 'monthly') {
+      const sortedPoints = [...loaded[0].data.monthlySearches].sort(
+        (a, b) => a.year * 12 + a.month - (b.year * 12 + b.month),
+      );
+
+      return sortedPoints.map((point, idx) => {
+        const entry: Record<string, string | number> = {
+          name: `${MONTH_SHORT[point.month - 1]} ${point.year}`,
+        };
+        loaded.forEach(({ keyword, data }) => {
+          const vals = [...data.monthlySearches]
+            .sort((a, b) => a.year * 12 + a.month - (b.year * 12 + b.month))
+            .map((p) => p.searchVolume);
+          entry[keyword] = normalizeTo100(vals)[idx] ?? 0;
+        });
+        return entry;
+      });
+    } else {
+      const sortedDates = [...loaded[0].data.dailyTrend].sort((a, b) =>
+        a.date.localeCompare(b.date),
+      );
+
+      return sortedDates.map((point, idx) => {
+        const entry: Record<string, string | number> = { name: point.date.slice(5) };
+        loaded.forEach(({ keyword, data }) => {
+          const sorted = [...data.dailyTrend].sort((a, b) => a.date.localeCompare(b.date));
+          entry[keyword] = sorted[idx]?.trendIndex ?? 0;
+        });
+        return entry;
+      });
+    }
+  }, [historyQueries, effectiveSelected, granularity]);
+
+  const keywordColors = useMemo(
+    () =>
+      Object.fromEntries(
+        effectiveSelected.map((kw, i) => [kw, CHART_COLORS[i % CHART_COLORS.length]]),
+      ),
+    [effectiveSelected],
+  );
+
+  const locations = useMemo(() => locationsData ?? [], [locationsData]);
+
   const locationName = useMemo(() => {
-    if (location === 'PL') return 'Cała Polska';
-    const voi = data?.locations.find((l) => l.code === location);
-    return voi ? `woj. ${voi.name}` : 'Cała Polska';
-  }, [location, data]);
+    if (locationCode === 2616) return 'Cała Polska';
+    const loc = locations.find((l) => l.locationCode === locationCode);
+    return loc?.polishName ?? loc?.locationName ?? 'Nieznana lokalizacja';
+  }, [locationCode, locations]);
 
-  return {
-    // Data
-    intents: data?.intents ?? [],
-    allIntents,
-    top5ByVolume,
-    top10ByMomentum,
-    opportunities,
-    locations: data?.locations ?? [],
-    lastUpdated: data?.lastUpdated,
-    locationName,
-
-    // State
-    location,
-    setLocation,
-    isLoading,
-    isError,
-
-    // Actions
-    refetch,
-  };
-};
-
-/**
- * Hook for managing which intents are visible on the seasonality chart
- */
-export const useChartSelection = (top5: ServiceIntent[]) => {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
-  // Initialize with top 5 when they arrive
-  const effectiveIds = useMemo(() => {
-    if (selectedIds.size > 0) return selectedIds;
-    return new Set(top5.map((i) => i.id));
-  }, [selectedIds, top5]);
-
-  const toggle = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev.size > 0 ? prev : top5.map((i) => i.id));
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
+  const toggle = (keyword: string) => {
+    setSelectedKeywords((prev) => {
+      const base = prev.length > 0 ? prev : allKeywords.slice(0, 3).map((k) => k.keyword);
+      return base.includes(keyword) ? base.filter((k) => k !== keyword) : [...base, keyword];
     });
   };
 
-  const isSelected = (id: string) => effectiveIds.has(id);
+  const isSelected = (keyword: string) => effectiveSelected.includes(keyword);
 
-  return { selectedIds: effectiveIds, toggle, isSelected };
+  return {
+    allKeywords,
+    effectiveSelected,
+    chartData,
+    keywordColors,
+    locations,
+    locationName,
+    locationCode,
+    setLocationCode,
+    granularity,
+    setGranularity,
+    isLoading,
+    isError,
+    toggle,
+    isSelected,
+    refetch: () => historyQueries.forEach((q) => q.refetch()),
+  };
 };
+

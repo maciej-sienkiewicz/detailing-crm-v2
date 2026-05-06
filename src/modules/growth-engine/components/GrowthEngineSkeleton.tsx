@@ -1,27 +1,22 @@
-/**
- * Growth Engine Loading Skeleton
- * Shown while data is being fetched
- */
-
 import styled, { keyframes } from 'styled-components';
 import { ge } from './GrowthEngineTheme';
 
 const shimmer = keyframes`
-  0% { background-position: -1000px 0; }
-  100% { background-position: 1000px 0; }
+  0% { background-position: -800px 0; }
+  100% { background-position: 800px 0; }
 `;
 
 const SkeletonBlock = styled.div<{ $h?: string; $w?: string }>`
-  height: ${(p) => p.$h ?? '20px'};
+  height: ${(p) => p.$h ?? '16px'};
   width: ${(p) => p.$w ?? '100%'};
   background: linear-gradient(
     90deg,
-    ${ge.bgCard} 25%,
-    ${ge.bgCardHover} 37%,
-    ${ge.bgCard} 63%
+    ${ge.bgCardAlt} 25%,
+    ${ge.border} 37%,
+    ${ge.bgCardAlt} 63%
   );
-  background-size: 1000px 100%;
-  animation: ${shimmer} 1.8s ease-in-out infinite;
+  background-size: 800px 100%;
+  animation: ${shimmer} 1.6s ease-in-out infinite;
   border-radius: ${ge.radiusSm};
 `;
 
@@ -31,69 +26,28 @@ const Container = styled.div`
   gap: 24px;
 `;
 
-const KpiRow = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-
-  @media (max-width: 1024px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const KpiSkeleton = styled.div`
+const Card = styled.div`
   background: ${ge.bgCard};
   border: 1px solid ${ge.border};
-  border-radius: ${ge.radius};
-  padding: 20px;
+  border-radius: ${ge.radiusLg};
+  padding: 24px;
+  box-shadow: ${ge.shadowSm};
   display: flex;
   flex-direction: column;
   gap: 12px;
 `;
 
-const ChartSkeleton = styled.div`
-  background: ${ge.bgCard};
-  border: 1px solid ${ge.border};
-  border-radius: ${ge.radiusLg};
-  padding: 24px;
-`;
-
 export const GrowthEngineSkeleton = () => (
   <Container>
-    {/* Header */}
-    <SkeletonBlock $h="80px" />
-
-    {/* KPI Strip */}
-    <KpiRow>
-      {Array.from({ length: 4 }).map((_, i) => (
-        <KpiSkeleton key={i}>
-          <SkeletonBlock $h="12px" $w="60%" />
-          <SkeletonBlock $h="36px" $w="40%" />
-          <SkeletonBlock $h="12px" $w="80%" />
-        </KpiSkeleton>
-      ))}
-    </KpiRow>
-
-    {/* Chart */}
-    <ChartSkeleton>
-      <SkeletonBlock $h="16px" $w="200px" />
-      <div style={{ height: 12 }} />
-      <SkeletonBlock $h="350px" />
-    </ChartSkeleton>
-
-    {/* Trend monitor */}
-    <ChartSkeleton>
-      <SkeletonBlock $h="16px" $w="180px" />
-      <div style={{ height: 12 }} />
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} style={{ marginTop: 8 }}>
-          <SkeletonBlock $h="44px" />
-        </div>
-      ))}
-    </ChartSkeleton>
+    <Card>
+      <SkeletonBlock $h="28px" $w="120px" />
+      <SkeletonBlock $h="14px" $w="60%" />
+    </Card>
+    <Card>
+      <SkeletonBlock $h="20px" $w="200px" />
+      <SkeletonBlock $h="12px" $w="50%" />
+      <div style={{ height: 8 }} />
+      <SkeletonBlock $h="380px" />
+    </Card>
   </Container>
 );
