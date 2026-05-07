@@ -1877,6 +1877,7 @@ export const LeadListView: React.FC = () => {
               icon={PhoneCall}
               value={summary?.awaitingFirstContactCount ?? 0}
               label="Do obsłużenia"
+              tooltip="Liczba leadów, które czekają na PIERWSZY kontakt. Każda godzina zwłoki = rosnące ryzyko, że klient zadzwoni do konkurencji. W detailingu przy PPF czy ceramice klient często wysyła zapytanie do 3–5 firm jednocześnie."
               subContent={summary && (
                 <span style={{ fontSize: 12, color: '#ef4444' }}>
                   Śr. oczekiwanie: {formatWaitingTime(summary.avgWaitingTimeMinutes)}
@@ -1888,6 +1889,7 @@ export const LeadListView: React.FC = () => {
               icon={TrendingUp}
               value={summary ? `${summary.conversionRateThisMonth.toFixed(1)}%` : '—'}
               label="Konwersja (ten miesiąc)"
+              tooltip="Ile procent leadów zamienia się w prawdziwych klientów. To jest zdrowie całego procesu. Jeśli konwersja spada z 45% do 20%, coś się popsuło — może zbyt wolna odpowiedź, może ceny za wysokie, może zły formularz."
               subContent={summary && (() => {
                 const trend = summary.conversionRateTrendPp;
                 const isUp = trend >= 0;
@@ -1903,6 +1905,7 @@ export const LeadListView: React.FC = () => {
               icon={CheckCircle2}
               value={summary ? formatPLN(summary.convertedValueThisMonth) : '—'}
               label="Zrealizowane (ten miesiąc)"
+              tooltip="Suma wartości leadów zamienionych w klientów w bieżącym miesiącu. To nie pipeline, to przychód już potwierdzony. Satysfakcja + motywacja."
               subContent={summary && (
                 <span style={{ fontSize: 12, color: st.textMuted }}>
                   {summary.convertedCountThisMonth} {
@@ -1917,6 +1920,7 @@ export const LeadListView: React.FC = () => {
               icon={AlertTriangle}
               value={summary ? formatPLN(summary.atRiskValue) : '—'}
               label="Ryzyko utraty"
+              tooltip="Suma wartości leadów, z którymi nie było żadnej interakcji od 24+ godzin. To jest koszt bezczynności — liczba, która boli i zmusza do działania."
               subContent={summary && (
                 <span style={{ fontSize: 12, color: '#d97706' }}>
                   {summary.atRiskCount} {
