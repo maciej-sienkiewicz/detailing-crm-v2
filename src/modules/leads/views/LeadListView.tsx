@@ -1,5 +1,5 @@
 // src/modules/leads/views/LeadListView.tsx
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import styled, { css, keyframes } from 'styled-components';
 import {
   Inbox,
@@ -13,8 +13,15 @@ import {
   Phone,
   Mail,
   PenLine,
-  AlertCircle,
+  X,
+  Car,
+  Calendar,
+  User,
+  Wrench,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { visitApi } from '@/modules/visits/api/visitApi';
+import { Modal } from '@/common/components/Modal/Modal';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { StatTile, StatTileSkeleton } from '@/common/components/StatTile';
 import { LeadForm } from '../components/LeadForm';
@@ -854,6 +861,311 @@ const PageBtn = styled.button`
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
 
+// ─── Related visits ───────────────────────────────────────────────────────────
+
+const RelatedVisitsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const RelatedVisitBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 8px;
+  border: 1px solid ${st.border};
+  border-radius: 8px;
+  background: #fff;
+  color: ${st.accentBlue};
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: all ${st.transition};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+
+  svg { width: 12px; height: 12px; flex-shrink: 0; color: ${st.textMuted}; }
+
+  &:hover {
+    background: #f0f9ff;
+    border-color: #bae6fd;
+    color: #0284c7;
+  }
+`;
+
+// ─── Visit preview modal ──────────────────────────────────────────────────────
+
+const VisitModalGrid = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+`;
+
+const VisitModalMeta = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+`;
+
+const VisitMetaItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 9px;
+  border: 1px solid ${st.border};
+`;
+
+const VisitMetaLabel = styled.div`
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: ${st.textMuted};
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  svg { width: 11px; height: 11px; }
+`;
+
+const VisitMetaValue = styled.div`
+  font-size: 13px;
+  font-weight: 600;
+  color: ${st.text};
+`;
+
+const VisitServicesTable = styled.div`
+  background: #fff;
+  border: 1px solid ${st.border};
+  border-radius: 10px;
+  overflow: hidden;
+`;
+
+const VisitServicesHead = styled.div`
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: ${st.bg};
+  border-bottom: 1px solid ${st.border};
+`;
+
+const VisitServicesHeadCell = styled.span`
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: ${st.textMuted};
+`;
+
+const VisitServiceRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  &:last-of-type { border-bottom: none; }
+`;
+
+const VisitServiceName = styled.span`
+  font-size: 13px;
+  color: ${st.textSecondary};
+  min-width: 0;
+`;
+
+const VisitServicePrice = styled.span`
+  font-size: 13px;
+  font-weight: 600;
+  color: ${st.text};
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.3px;
+`;
+
+const VisitTotalRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-top: 1px solid ${st.border};
+`;
+
+const VisitTotalLabel = styled.span`
+  font-size: 13px;
+  font-weight: 700;
+  color: ${st.text};
+`;
+
+const VisitTotalPrice = styled.span`
+  font-size: 15px;
+  font-weight: 800;
+  color: ${st.text};
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+`;
+
+const VisitNotes = styled.p`
+  font-size: 13px;
+  color: ${st.textSecondary};
+  line-height: 1.6;
+  margin: 0;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid ${st.border};
+  border-radius: 10px;
+  border-left: 3px solid #e2e8f0;
+`;
+
+const VisitStatusBadge = styled.span<{ $status: string }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  ${p => {
+    switch (p.$status?.toLowerCase()) {
+      case 'completed': case 'done': case 'zakończona': case 'zrealizowana':
+        return 'background:#dcfce7; color:#166534;';
+      case 'in_progress': case 'in progress': case 'w trakcie':
+        return 'background:#dbeafe; color:#1e40af;';
+      case 'cancelled': case 'anulowana':
+        return 'background:#f3f4f6; color:#4b5563;';
+      default:
+        return `background:${st.accentBlueDim}; color:${st.accentBlue};`;
+    }
+  }}
+`;
+
+const ModalLoadingBox = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: ${st.textMuted};
+  font-size: ${st.fontSm};
+`;
+
+const ModalErrorBox = styled.div`
+  padding: 24px;
+  text-align: center;
+  color: #dc2626;
+  font-size: ${st.fontSm};
+`;
+
+// ─── Visit Preview Modal component ───────────────────────────────────────────
+
+interface VisitPreviewModalProps {
+  visitId: string | null;
+  onClose: () => void;
+}
+
+const VisitPreviewModal: React.FC<VisitPreviewModalProps> = ({ visitId, onClose }) => {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['visit-preview', visitId],
+    queryFn: () => visitApi.getVisitDetail(visitId!),
+    enabled: !!visitId,
+    staleTime: 5 * 60_000,
+  });
+
+  const visit = data?.visit ?? data?.operation ?? (data as any);
+  const title = visit?.visitNumber
+    ? `Wizyta #${visit.visitNumber}`
+    : 'Podgląd wizyty';
+
+  return (
+    <Modal isOpen={!!visitId} onClose={onClose} title={title} maxWidth="600px">
+      {isLoading && (
+        <ModalLoadingBox>
+          <SkeletonPulse $w="200px" $h="14px" />
+        </ModalLoadingBox>
+      )}
+      {isError && (
+        <ModalErrorBox>Nie udało się załadować wizyty.</ModalErrorBox>
+      )}
+      {visit && !isLoading && (
+        <VisitModalGrid>
+          <VisitModalMeta>
+            {visit.status && (
+              <VisitMetaItem>
+                <VisitMetaLabel>Status</VisitMetaLabel>
+                <VisitStatusBadge $status={visit.status}>{visit.status}</VisitStatusBadge>
+              </VisitMetaItem>
+            )}
+            {visit.scheduledDate && (
+              <VisitMetaItem>
+                <VisitMetaLabel><Calendar />Data</VisitMetaLabel>
+                <VisitMetaValue>{visit.scheduledDate.slice(0, 10)}</VisitMetaValue>
+              </VisitMetaItem>
+            )}
+            {(visit.vehicle?.brand || visit.vehicle?.model) && (
+              <VisitMetaItem>
+                <VisitMetaLabel><Car />Pojazd</VisitMetaLabel>
+                <VisitMetaValue>
+                  {[visit.vehicle.brand, visit.vehicle.model].filter(Boolean).join(' ')}
+                  {visit.vehicle.licensePlate && (
+                    <span style={{ fontWeight: 400, color: st.textMuted, marginLeft: 6 }}>
+                      {visit.vehicle.licensePlate}
+                    </span>
+                  )}
+                </VisitMetaValue>
+              </VisitMetaItem>
+            )}
+            {visit.customer?.name && (
+              <VisitMetaItem>
+                <VisitMetaLabel><User />Klient</VisitMetaLabel>
+                <VisitMetaValue>{visit.customer.name}</VisitMetaValue>
+              </VisitMetaItem>
+            )}
+          </VisitModalMeta>
+
+          {visit.services && visit.services.length > 0 && (
+            <div>
+              <VisitServicesTable>
+                <VisitServicesHead>
+                  <VisitServicesHeadCell>Usługa</VisitServicesHeadCell>
+                  <VisitServicesHeadCell>Brutto</VisitServicesHeadCell>
+                </VisitServicesHead>
+                {visit.services.map((svc: any, i: number) => (
+                  <VisitServiceRow key={i}>
+                    <VisitServiceName>{svc.serviceName ?? svc.name ?? '—'}</VisitServiceName>
+                    <VisitServicePrice>
+                      {formatCurrency(svc.finalPriceGross ?? svc.priceGross ?? 0)}
+                    </VisitServicePrice>
+                  </VisitServiceRow>
+                ))}
+                {(visit.totalCost != null) && (
+                  <VisitTotalRow>
+                    <VisitTotalLabel>ŁĄCZNIE</VisitTotalLabel>
+                    <VisitTotalPrice>{formatCurrency(visit.totalCost)} brutto</VisitTotalPrice>
+                  </VisitTotalRow>
+                )}
+              </VisitServicesTable>
+            </div>
+          )}
+
+          {visit.technicalNotes && (
+            <div>
+              <PanelLabel style={{ marginBottom: 6 }}>Notatki techniczne</PanelLabel>
+              <VisitNotes>{visit.technicalNotes}</VisitNotes>
+            </div>
+          )}
+        </VisitModalGrid>
+      )}
+    </Modal>
+  );
+};
+
 // ─── Static config ────────────────────────────────────────────────────────────
 
 const TILE_CONFIGS = {
@@ -944,6 +1256,7 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
 
   const [priceInput, setPriceInput] = useState(String(lead.estimatedValue / 100));
   const [savedMsg, setSavedMsg]     = useState(false);
+  const [previewVisitId, setPreviewVisitId] = useState<string | null>(null);
 
   useEffect(() => {
     setPriceInput(String(lead.estimatedValue / 100));
@@ -960,113 +1273,139 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
   };
 
   const estimation = detail?.estimation ?? null;
+  const relatedVisits = detail?.relatedVisits ?? lead.relatedVisits ?? [];
 
   return (
-    <ExpandedTr>
-      <ExpandedTd colSpan={colSpan}>
-        <ExpandedPanel>
-          {/* Left — message + estimation */}
-          <PanelSection>
-            {lead.initialMessage && (
-              <>
-                <PanelLabel>Wiadomość od klienta</PanelLabel>
-                <MessageBox>{lead.initialMessage}</MessageBox>
-              </>
-            )}
+    <>
+      <ExpandedTr>
+        <ExpandedTd colSpan={colSpan}>
+          <ExpandedPanel>
+            {/* Left — message + estimation + related visits */}
+            <PanelSection>
+              {lead.initialMessage && (
+                <>
+                  <PanelLabel>Wiadomość od klienta</PanelLabel>
+                  <MessageBox>{lead.initialMessage}</MessageBox>
+                </>
+              )}
 
-            <PanelLabel>Kosztorys wstępny</PanelLabel>
+              <PanelLabel>Kosztorys wstępny</PanelLabel>
 
-            {isDetailLoading ? (
-              <EstCard>
-                <EstRow><SkeletonPulse $w="55%" /></EstRow>
-                <EstRow><SkeletonPulse $w="45%" /></EstRow>
-                <EstRow $isTotal><SkeletonPulse $w="30%" /></EstRow>
-              </EstCard>
-            ) : estimation && estimation.matchedItems.length > 0 ? (
-              <EstCard>
-                {estimation.matchedItems.map(item => (
-                  <EstRow key={item.serviceName}>
-                    <EstName>{item.serviceName}</EstName>
-                    <EstPrice>{formatCurrency(item.priceGross)} brutto</EstPrice>
+              {isDetailLoading ? (
+                <EstCard>
+                  <EstRow><SkeletonPulse $w="55%" /></EstRow>
+                  <EstRow><SkeletonPulse $w="45%" /></EstRow>
+                  <EstRow $isTotal><SkeletonPulse $w="30%" /></EstRow>
+                </EstCard>
+              ) : estimation && estimation.matchedItems.length > 0 ? (
+                <EstCard>
+                  {estimation.matchedItems.map(item => (
+                    <EstRow key={item.serviceName}>
+                      <EstName>{item.serviceName}</EstName>
+                      <EstPrice>{formatCurrency(item.priceGross)} brutto</EstPrice>
+                    </EstRow>
+                  ))}
+                  <EstRow $isTotal>
+                    <EstName $isTotal>ŁĄCZNIE</EstName>
+                    <EstPrice $isTotal>
+                      {formatCurrency(estimation.totalGross)} brutto
+                      {estimation.unmatchedNeeds.length > 0 && (
+                        <span style={{ fontWeight: 400, fontSize: 11, marginLeft: 4, color: '#92400e' }}>
+                          + {estimation.unmatchedNeeds.join(', ')}
+                        </span>
+                      )}
+                    </EstPrice>
                   </EstRow>
-                ))}
-                <EstRow $isTotal>
-                  <EstName $isTotal>ŁĄCZNIE</EstName>
-                  <EstPrice $isTotal>
-                    {formatCurrency(estimation.totalGross)} brutto
-                    {estimation.unmatchedNeeds.length > 0 && (
-                      <span style={{ fontWeight: 400, fontSize: 11, marginLeft: 4, color: '#92400e' }}>
-                        + {estimation.unmatchedNeeds.join(', ')}
-                      </span>
-                    )}
-                  </EstPrice>
-                </EstRow>
-                {estimation.unmatchedNeeds.length > 0 && (
-                  <UnmatchedRow>
-                    <UnmatchedLabel>Nie znaleziono w cenniku:</UnmatchedLabel>
-                    {estimation.unmatchedNeeds.map(n => (
-                      <UnmatchedTag key={n}>{n}</UnmatchedTag>
+                  {estimation.unmatchedNeeds.length > 0 && (
+                    <UnmatchedRow>
+                      <UnmatchedLabel>Nie znaleziono w cenniku:</UnmatchedLabel>
+                      {estimation.unmatchedNeeds.map(n => (
+                        <UnmatchedTag key={n}>{n}</UnmatchedTag>
+                      ))}
+                    </UnmatchedRow>
+                  )}
+                </EstCard>
+              ) : (
+                <NoEstBox>Brak kosztorysu wstępnego dla tego leada.</NoEstBox>
+              )}
+
+              {relatedVisits.length > 0 && (
+                <>
+                  <PanelLabel style={{ marginTop: 4 }}>Na podstawie wizyt</PanelLabel>
+                  <RelatedVisitsList>
+                    {relatedVisits.map(rv => (
+                      <RelatedVisitBtn
+                        key={rv.id}
+                        onClick={e => { e.stopPropagation(); setPreviewVisitId(rv.id); }}
+                        title="Kliknij, aby zobaczyć szczegóły wizyty"
+                      >
+                        <Wrench />
+                        {rv.title ?? `Wizyta ${rv.id.slice(0, 8)}…`}
+                      </RelatedVisitBtn>
                     ))}
-                  </UnmatchedRow>
-                )}
-              </EstCard>
-            ) : (
-              <NoEstBox>Brak kosztorysu wstępnego dla tego leada.</NoEstBox>
-            )}
-          </PanelSection>
+                  </RelatedVisitsList>
+                </>
+              )}
+            </PanelSection>
 
-          {/* Right — price override + status */}
-          <PanelSection>
-            <PanelLabel>Twoja wycena</PanelLabel>
-            <PriceRow>
-              <PriceInputWrap>
-                <PriceInput
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={priceInput}
-                  onChange={e => { setPriceInput(e.target.value); setSavedMsg(false); }}
-                  onKeyDown={e => e.key === 'Enter' && handleSave()}
-                />
-                <PriceSuffix>PLN</PriceSuffix>
-              </PriceInputWrap>
-              <SaveBtn onClick={handleSave} disabled={updateValue.isPending}>
-                {updateValue.isPending ? 'Zapisywanie…' : 'Zapisz'}
-              </SaveBtn>
-              {savedMsg && <SavedTag>✓ Zapisano</SavedTag>}
-            </PriceRow>
+            {/* Right — price override + status */}
+            <PanelSection>
+              <PanelLabel>Twoja wycena</PanelLabel>
+              <PriceRow>
+                <PriceInputWrap>
+                  <PriceInput
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={priceInput}
+                    onChange={e => { setPriceInput(e.target.value); setSavedMsg(false); }}
+                    onKeyDown={e => e.key === 'Enter' && handleSave()}
+                  />
+                  <PriceSuffix>PLN</PriceSuffix>
+                </PriceInputWrap>
+                <SaveBtn onClick={handleSave} disabled={updateValue.isPending}>
+                  {updateValue.isPending ? 'Zapisywanie…' : 'Zapisz'}
+                </SaveBtn>
+                {savedMsg && <SavedTag>✓ Zapisano</SavedTag>}
+              </PriceRow>
 
-            <PanelLabel style={{ marginTop: 6 }}>Zmień status</PanelLabel>
-            <StatusBtnGroup>
-              <StatusActionBtn
-                $active={lead.status === LeadStatus.IN_PROGRESS}
-                $color="#1d4ed8"
-                onClick={() => updateStatus.mutate({ id: lead.id, status: LeadStatus.IN_PROGRESS })}
-                disabled={updateStatus.isPending}
-              >
-                W kontakcie
-              </StatusActionBtn>
-              <StatusActionBtn
-                $active={lead.status === LeadStatus.CONVERTED}
-                $color="#16a34a"
-                onClick={() => updateStatus.mutate({ id: lead.id, status: LeadStatus.CONVERTED })}
-                disabled={updateStatus.isPending}
-              >
-                Zrealizowany
-              </StatusActionBtn>
-              <StatusActionBtn
-                $active={lead.status === LeadStatus.ABANDONED}
-                $color="#64748b"
-                onClick={() => updateStatus.mutate({ id: lead.id, status: LeadStatus.ABANDONED })}
-                disabled={updateStatus.isPending}
-              >
-                Odpuszczony
-              </StatusActionBtn>
-            </StatusBtnGroup>
-          </PanelSection>
-        </ExpandedPanel>
-      </ExpandedTd>
-    </ExpandedTr>
+              <PanelLabel style={{ marginTop: 6 }}>Zmień status</PanelLabel>
+              <StatusBtnGroup>
+                <StatusActionBtn
+                  $active={lead.status === LeadStatus.IN_PROGRESS}
+                  $color="#1d4ed8"
+                  onClick={() => updateStatus.mutate({ id: lead.id, status: LeadStatus.IN_PROGRESS })}
+                  disabled={updateStatus.isPending}
+                >
+                  W kontakcie
+                </StatusActionBtn>
+                <StatusActionBtn
+                  $active={lead.status === LeadStatus.CONVERTED}
+                  $color="#16a34a"
+                  onClick={() => updateStatus.mutate({ id: lead.id, status: LeadStatus.CONVERTED })}
+                  disabled={updateStatus.isPending}
+                >
+                  Zrealizowany
+                </StatusActionBtn>
+                <StatusActionBtn
+                  $active={lead.status === LeadStatus.ABANDONED}
+                  $color="#64748b"
+                  onClick={() => updateStatus.mutate({ id: lead.id, status: LeadStatus.ABANDONED })}
+                  disabled={updateStatus.isPending}
+                >
+                  Odpuszczony
+                </StatusActionBtn>
+              </StatusBtnGroup>
+            </PanelSection>
+          </ExpandedPanel>
+        </ExpandedTd>
+      </ExpandedTr>
+
+      <VisitPreviewModal
+        visitId={previewVisitId}
+        onClose={() => setPreviewVisitId(null)}
+      />
+    </>
   );
 };
 
@@ -1194,9 +1533,11 @@ export const LeadListView: React.FC = () => {
           </Td>
 
           <Td>
-            {lead.initialMessage
-              ? <CellNote title={lead.initialMessage}>{lead.initialMessage}</CellNote>
-              : <CellSub style={{ fontStyle: 'italic' }}>—</CellSub>
+            {lead.reasoning
+              ? <CellNote title={lead.reasoning}>{lead.reasoning}</CellNote>
+              : lead.initialMessage
+                ? <CellNote title={lead.initialMessage}>{lead.initialMessage}</CellNote>
+                : <CellSub style={{ fontStyle: 'italic' }}>—</CellSub>
             }
           </Td>
 
@@ -1368,7 +1709,7 @@ export const LeadListView: React.FC = () => {
               <tr>
                 <ThIcon />
                 <Th>Kontakt</Th>
-                <Th>Wiadomość</Th>
+                <Th>Uzasadnienie</Th>
                 <Th>Aktywność</Th>
                 <Th>Status</Th>
                 <Th>Wartość</Th>

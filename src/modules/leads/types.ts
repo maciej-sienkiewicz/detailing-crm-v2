@@ -24,6 +24,14 @@ export enum LeadStatus {
 }
 
 /**
+ * Brief reference to a related visit (used in lead estimation context)
+ */
+export interface RelatedVisit {
+  id: string;
+  title: string | null;
+}
+
+/**
  * Lead entity representing an inquiry from various sources
  */
 export interface Lead {
@@ -39,6 +47,18 @@ export interface Lead {
 
   /** Initial message or note from the inquiry */
   initialMessage?: string;
+
+  /** System-generated reasoning / analysis summary for this lead */
+  reasoning?: string;
+
+  /** Vehicle brand extracted from the inquiry */
+  vehicleBrand?: string;
+
+  /** Vehicle model extracted from the inquiry */
+  vehicleModel?: string;
+
+  /** Visits that were used to build the estimation for this lead */
+  relatedVisits: RelatedVisit[];
 
   /** ISO timestamp of when the lead was created */
   createdAt: string;
@@ -202,6 +222,10 @@ export interface LeadEstimation {
   unmatchedNeeds: string[];
   /** Total gross value in grosze */
   totalGross: number;
+  /** Visits that contributed to building this estimation */
+  relatedVisits: RelatedVisit[];
+  /** System-generated reasoning used to produce the estimation */
+  reasoning?: string;
   createdAt: string;
   updatedAt: string;
 }

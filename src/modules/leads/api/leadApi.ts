@@ -25,10 +25,17 @@ const mockLeads: Lead[] = [
     status: 'IN_PROGRESS' as LeadStatus,
     contactIdentifier: '+48 123 456 789',
     customerName: 'Jan Kowalski',
-    initialMessage: 'Zainteresowany polerowaniam całego auta',
+    initialMessage: 'Zainteresowany polerowaniam całego auta, może też folia?',
+    reasoning: 'Klient pyta o polerowanie i folię PPF — prawdopodobnie chce kompleksowej ochrony lakieru przed sprzedażą lub długoterminowego użytkowania. Wysoka wartość transakcji.',
+    vehicleBrand: 'BMW',
+    vehicleModel: 'M3 Competition',
+    relatedVisits: [
+      { id: '95ddeec4-4420-4153-9058-e3c95524ee6d', title: 'Detailing + PPF BMW 5 Series' },
+      { id: 'b12c3d4e-5678-90ab-cdef-1234567890ab', title: 'Full PPF BMW M4' },
+    ],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    estimatedValue: 250000, // 2500.00 PLN
+    estimatedValue: 250000,
     requiresVerification: true,
   },
   {
@@ -37,10 +44,16 @@ const mockLeads: Lead[] = [
     status: 'IN_PROGRESS' as LeadStatus,
     contactIdentifier: 'anna.nowak@example.com',
     customerName: 'Anna Nowak',
-    initialMessage: 'Chciałabym zamówić powłokę ceramiczną',
+    initialMessage: 'Chciałabym zamówić powłokę ceramiczną na moje auto. Macie w ofercie korekta lakieru przed nałożeniem?',
+    reasoning: 'Klientka zainteresowana pakietem ceramika + korekta. Świadoma procesu — wymagający klient premium. Duże prawdopodobieństwo konwersji.',
+    vehicleBrand: 'Porsche',
+    vehicleModel: 'Macan S',
+    relatedVisits: [
+      { id: 'c23d4e5f-6789-01bc-defa-234567890bcd', title: 'Powłoka ceramiczna Porsche 911' },
+    ],
     createdAt: new Date(Date.now() - 3600000).toISOString(),
     updatedAt: new Date(Date.now() - 1800000).toISOString(),
-    estimatedValue: 450000, // 4500.00 PLN
+    estimatedValue: 450000,
     requiresVerification: false,
   },
   {
@@ -49,9 +62,13 @@ const mockLeads: Lead[] = [
     status: 'IN_PROGRESS' as LeadStatus,
     contactIdentifier: '+48 987 654 321',
     customerName: 'Piotr Wiśniewski',
-    initialMessage: 'Folia PPF na maskę i błotniki',
+    initialMessage: 'Folia PPF na maskę i błotniki przednie. Proszę o wycenę.',
+    reasoning: 'Standardowe zapytanie o częściowe PPF. Klient wie czego chce — wystarczy wycena na konkretny zakres.',
+    vehicleBrand: 'Audi',
+    vehicleModel: 'RS6 Avant',
+    relatedVisits: [],
     createdAt: new Date(Date.now() - 7200000).toISOString(),
-    estimatedValue: 350000, // 3500.00 PLN
+    estimatedValue: 350000,
     requiresVerification: false,
   },
   {
@@ -60,10 +77,16 @@ const mockLeads: Lead[] = [
     status: 'CONVERTED' as LeadStatus,
     contactIdentifier: '+48 555 666 777',
     customerName: 'Maria Dąbrowska',
-    initialMessage: 'Detailing kompletny przed sprzedażą auta',
+    initialMessage: 'Detailing kompletny przed sprzedażą auta, chcę żeby wyglądało jak nowe.',
+    reasoning: 'Przygotowanie do sprzedaży — klientka szuka kompleksowego odświeżenia. Priorytet: wygląd i zapach wnętrza.',
+    vehicleBrand: 'Volkswagen',
+    vehicleModel: 'Tiguan',
+    relatedVisits: [
+      { id: 'd34e5f60-7890-12cd-efab-345678901cde', title: 'Detailing pre-sale VW Tiguan' },
+    ],
     createdAt: new Date(Date.now() - 86400000).toISOString(),
     updatedAt: new Date(Date.now() - 43200000).toISOString(),
-    estimatedValue: 180000, // 1800.00 PLN
+    estimatedValue: 180000,
     requiresVerification: false,
   },
   {
@@ -72,10 +95,14 @@ const mockLeads: Lead[] = [
     status: 'ABANDONED' as LeadStatus,
     contactIdentifier: 'tomasz.lewandowski@business.pl',
     customerName: 'Tomasz Lewandowski',
-    initialMessage: 'Wycena flotowa dla 10 samochodów',
+    initialMessage: 'Proszę o wycenę flotową dla 10 samochodów firmowych — corocznie.',
+    reasoning: 'Zapytanie flotowe B2B z potencjałem cyklicznym. Wymaga dedykowanej oferty i negocjacji cenowych.',
+    vehicleBrand: undefined,
+    vehicleModel: undefined,
+    relatedVisits: [],
     createdAt: new Date(Date.now() - 172800000).toISOString(),
     updatedAt: new Date(Date.now() - 86400000).toISOString(),
-    estimatedValue: 1500000, // 15000.00 PLN
+    estimatedValue: 1500000,
     requiresVerification: false,
   },
 ];
@@ -308,18 +335,23 @@ const mockEstimations: Record<string, LeadEstimation> = {
         serviceName: 'Full Body PPF',
         priceNet: 668293,
         vatRate: 23,
-        priceGross: 822000, // 8 220 PLN
+        priceGross: 822000,
       },
       {
         serviceId: 'svc-interior',
         serviceName: 'Detailing wnętrza',
         priceNet: 56911,
         vatRate: 23,
-        priceGross: 70000, // 700 PLN
+        priceGross: 70000,
       },
     ],
     unmatchedNeeds: ['Mycie felg'],
-    totalGross: 892000, // 8 920 PLN
+    totalGross: 892000,
+    relatedVisits: [
+      { id: '95ddeec4-4420-4153-9058-e3c95524ee6d', title: 'Detailing + PPF BMW 5 Series' },
+      { id: 'b12c3d4e-5678-90ab-cdef-1234567890ab', title: 'Full PPF BMW M4' },
+    ],
+    reasoning: 'Na podstawie podobnych realizacji dla BMW wyceniono pełne PPF oraz detailing wnętrza. Mycie felg nie jest w cenniku — do wyceny indywidualnej.',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -333,18 +365,22 @@ const mockEstimations: Record<string, LeadEstimation> = {
         serviceName: 'Powłoka ceramiczna',
         priceNet: 284553,
         vatRate: 23,
-        priceGross: 350000, // 3 500 PLN
+        priceGross: 350000,
       },
       {
         serviceId: 'svc-correction',
         serviceName: 'Korekta lakieru (1-etapowa)',
         priceNet: 81301,
         vatRate: 23,
-        priceGross: 100000, // 1 000 PLN
+        priceGross: 100000,
       },
     ],
     unmatchedNeeds: [],
-    totalGross: 450000, // 4 500 PLN
+    totalGross: 450000,
+    relatedVisits: [
+      { id: 'c23d4e5f-6789-01bc-defa-234567890bcd', title: 'Powłoka ceramiczna Porsche 911' },
+    ],
+    reasoning: 'Klientka wskazała jasno na ceramikę + korektę. Wycena bazuje na standardowym pakiecie dla SUV premium. Wszystkie pozycje dopasowane z cennika.',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
