@@ -22,6 +22,8 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { visitApi } from '@/modules/visits/api/visitApi';
 import { Modal } from '@/common/components/Modal/Modal';
+import { ImageViewerModal } from '@/modules/visits/components/ImageViewerModal';
+import type { VisitPhoto } from '@/modules/visits/types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { StatTile, StatTileSkeleton } from '@/common/components/StatTile';
 import { LeadForm } from '../components/LeadForm';
@@ -924,64 +926,119 @@ const RelatedVisitArrow = styled.span`
   ${RelatedVisitRow}:hover & { color: #93c5fd; }
 `;
 
-// ─── Visit preview modal ──────────────────────────────────────────────────────
+// ─── Visit preview modal — styled components ────────────────────────────────
 
-const VisitModalGrid = styled.div`
+const VModal = styled.div`
   display: flex;
   flex-direction: column;
   gap: 20px;
 `;
 
-const VisitModalMeta = styled.div`
+const VInfoStrip = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 `;
 
-const VisitMetaItem = styled.div`
+const VInfoCard = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 10px 12px;
+  gap: 6px;
+  padding: 12px 14px;
   background: #f8fafc;
-  border-radius: 9px;
   border: 1px solid ${st.border};
+  border-radius: 10px;
 `;
 
-const VisitMetaLabel = styled.div`
+const VInfoIconBox = styled.div<{ $color: string; $bg: string }>`
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: ${p => p.$bg};
+  color: ${p => p.$color};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  svg { width: 13px; height: 13px; }
+`;
+
+const VInfoLabel = styled.div`
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: ${st.textMuted};
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  svg { width: 11px; height: 11px; }
 `;
 
-const VisitMetaValue = styled.div`
+const VInfoMain = styled.div`
   font-size: 13px;
   font-weight: 600;
   color: ${st.text};
+  line-height: 1.3;
 `;
 
-const VisitServicesTable = styled.div`
+const VInfoSub = styled.div`
+  font-size: 11px;
+  color: ${st.textMuted};
+  margin-top: 1px;
+`;
+
+const VSectionLabel = styled.div`
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: ${st.textMuted};
+  margin-bottom: 8px;
+`;
+
+const VStatusBadge = styled.span<{ $status: string }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  ${p => {
+    const s = p.$status?.toUpperCase();
+    if (s === 'COMPLETED')         return 'background:#dcfce7; color:#166534;';
+    if (s === 'READY_FOR_PICKUP')  return 'background:#d1fae5; color:#065f46;';
+    if (s === 'IN_PROGRESS')       return 'background:#dbeafe; color:#1e40af;';
+    if (s === 'DRAFT')             return 'background:#f1f5f9; color:#475569;';
+    if (s === 'REJECTED')          return 'background:#fee2e2; color:#991b1b;';
+    if (s === 'ARCHIVED')          return 'background:#f3f4f6; color:#6b7280;';
+    return `background:${st.accentBlueDim}; color:${st.accentBlue};`;
+  }}
+`;
+
+const VStatusLabel: Record<string, string> = {
+  DRAFT:            'Szkic',
+  IN_PROGRESS:      'W realizacji',
+  READY_FOR_PICKUP: 'Gotowy do odbioru',
+  COMPLETED:        'Zakończona',
+  REJECTED:         'Odrzucona',
+  ARCHIVED:         'Zarchiwizowana',
+};
+
+const VServicesCard = styled.div`
   background: #fff;
   border: 1px solid ${st.border};
   border-radius: 10px;
   overflow: hidden;
 `;
 
-const VisitServicesHead = styled.div`
+const VServicesHead = styled.div`
   display: flex;
   justify-content: space-between;
+  align-items: center;
   padding: 8px 14px;
   background: ${st.bg};
   border-bottom: 1px solid ${st.border};
 `;
 
-const VisitServicesHeadCell = styled.span`
+const VServicesHeadCell = styled.span`
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -989,7 +1046,7 @@ const VisitServicesHeadCell = styled.span`
   color: ${st.textMuted};
 `;
 
-const VisitServiceRow = styled.div`
+const VServiceRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -999,13 +1056,14 @@ const VisitServiceRow = styled.div`
   &:last-of-type { border-bottom: none; }
 `;
 
-const VisitServiceName = styled.span`
+const VServiceName = styled.span`
   font-size: 13px;
   color: ${st.textSecondary};
   min-width: 0;
+  flex: 1;
 `;
 
-const VisitServicePrice = styled.span`
+const VServicePrice = styled.span`
   font-size: 13px;
   font-weight: 600;
   color: ${st.text};
@@ -1014,7 +1072,7 @@ const VisitServicePrice = styled.span`
   letter-spacing: -0.3px;
 `;
 
-const VisitTotalRow = styled.div`
+const VTotalRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1024,69 +1082,95 @@ const VisitTotalRow = styled.div`
   border-top: 1px solid ${st.border};
 `;
 
-const VisitTotalLabel = styled.span`
+const VTotalLabel = styled.span`
   font-size: 13px;
   font-weight: 700;
   color: ${st.text};
 `;
 
-const VisitTotalPrice = styled.span`
-  font-size: 15px;
+const VTotalPrice = styled.span`
+  font-size: 16px;
   font-weight: 800;
   color: ${st.text};
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.5px;
 `;
 
-const VisitNotes = styled.p`
-  font-size: 13px;
-  color: ${st.textSecondary};
-  line-height: 1.6;
-  margin: 0;
-  padding: 12px 14px;
-  background: #fff;
+const VPhotoGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+
+  @media (max-width: 500px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+`;
+
+const VPhotoThumb = styled.button`
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
   border: 1px solid ${st.border};
-  border-radius: 10px;
-  border-left: 3px solid #e2e8f0;
+  background: #f1f5f9;
+  cursor: pointer;
+  padding: 0;
+  transition: all ${st.transition};
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  &:hover {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 2px rgba(59,130,246,0.18);
+    transform: scale(1.02);
+  }
 `;
 
-const VisitStatusBadge = styled.span<{ $status: string }>`
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 9999px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  ${p => {
-    switch (p.$status?.toLowerCase()) {
-      case 'completed': case 'done': case 'zakończona': case 'zrealizowana':
-        return 'background:#dcfce7; color:#166534;';
-      case 'in_progress': case 'in progress': case 'w trakcie':
-        return 'background:#dbeafe; color:#1e40af;';
-      case 'cancelled': case 'anulowana':
-        return 'background:#f3f4f6; color:#4b5563;';
-      default:
-        return `background:${st.accentBlueDim}; color:${st.accentBlue};`;
-    }
-  }}
-`;
-
-const ModalLoadingBox = styled.div`
+const VPhotoOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0) ;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 48px 24px;
-  color: ${st.textMuted};
-  font-size: ${st.fontSm};
+  transition: background ${st.transition};
+  color: #fff;
+  svg { width: 20px; height: 20px; opacity: 0; transition: opacity ${st.transition}; }
+
+  ${VPhotoThumb}:hover & {
+    background: rgba(0,0,0,0.28);
+    svg { opacity: 1; }
+  }
 `;
 
-const ModalErrorBox = styled.div`
-  padding: 24px;
+const VEmptyPhotos = styled.div`
+  padding: 20px;
+  text-align: center;
+  font-size: ${st.fontSm};
+  color: ${st.textMuted};
+  background: #f8fafc;
+  border: 1px dashed ${st.border};
+  border-radius: 10px;
+`;
+
+const VModalLoading = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+`;
+
+const VModalError = styled.div`
+  padding: 32px 16px;
   text-align: center;
   color: #dc2626;
   font-size: ${st.fontSm};
+  font-weight: 500;
 `;
 
 // ─── Visit Preview Modal component ───────────────────────────────────────────
@@ -1097,98 +1181,199 @@ interface VisitPreviewModalProps {
 }
 
 const VisitPreviewModal: React.FC<VisitPreviewModalProps> = ({ visitId, onClose }) => {
-  const { data, isLoading, isError } = useQuery({
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const { data: detailData, isLoading: isDetailLoading, isError } = useQuery({
     queryKey: ['visit-preview', visitId],
     queryFn: () => visitApi.getVisitDetail(visitId!),
     enabled: !!visitId,
     staleTime: 5 * 60_000,
   });
 
-  const visit = data?.visit ?? data?.operation ?? (data as any);
-  const title = visit?.visitNumber
-    ? `Wizyta #${visit.visitNumber}`
+  const { data: photosData, isLoading: isPhotosLoading } = useQuery({
+    queryKey: ['visit-photos-preview', visitId],
+    queryFn: () => visitApi.getVisitPhotos(visitId!),
+    enabled: !!visitId,
+    staleTime: 5 * 60_000,
+  });
+
+  const visit = detailData?.visit;
+  const photos: VisitPhoto[] = photosData?.photos ?? [];
+  const isLoading = isDetailLoading;
+
+  const visitTitle = visit?.visitNumber
+    ? `Wizyta ${visit.visitNumber}`
     : 'Podgląd wizyty';
 
+  const customerName = visit?.customer
+    ? `${visit.customer.firstName} ${visit.customer.lastName}`.trim()
+    : null;
+
+  const vehicleLabel = visit?.vehicle
+    ? `${visit.vehicle.brand} ${visit.vehicle.model}`.trim()
+    : null;
+
+  const vehicleSub = visit?.vehicle
+    ? [
+        visit.vehicle.yearOfProduction ? String(visit.vehicle.yearOfProduction) : null,
+        visit.vehicle.color ?? null,
+        visit.vehicle.licensePlate ?? null,
+      ].filter(Boolean).join(' · ')
+    : null;
+
+  const formattedDate = visit?.scheduledDate
+    ? new Intl.DateTimeFormat('pl-PL', { day: '2-digit', month: 'long', year: 'numeric' })
+        .format(new Date(visit.scheduledDate))
+    : null;
+
   return (
-    <Modal isOpen={!!visitId} onClose={onClose} title={title} maxWidth="600px">
-      {isLoading && (
-        <ModalLoadingBox>
-          <SkeletonPulse $w="200px" $h="14px" />
-        </ModalLoadingBox>
-      )}
-      {isError && (
-        <ModalErrorBox>Nie udało się załadować wizyty.</ModalErrorBox>
-      )}
-      {visit && !isLoading && (
-        <VisitModalGrid>
-          <VisitModalMeta>
-            {visit.status && (
-              <VisitMetaItem>
-                <VisitMetaLabel>Status</VisitMetaLabel>
-                <VisitStatusBadge $status={visit.status}>{visit.status}</VisitStatusBadge>
-              </VisitMetaItem>
-            )}
-            {visit.scheduledDate && (
-              <VisitMetaItem>
-                <VisitMetaLabel><Calendar />Data</VisitMetaLabel>
-                <VisitMetaValue>{visit.scheduledDate.slice(0, 10)}</VisitMetaValue>
-              </VisitMetaItem>
-            )}
-            {(visit.vehicle?.brand || visit.vehicle?.model) && (
-              <VisitMetaItem>
-                <VisitMetaLabel><Car />Pojazd</VisitMetaLabel>
-                <VisitMetaValue>
-                  {[visit.vehicle.brand, visit.vehicle.model].filter(Boolean).join(' ')}
-                  {visit.vehicle.licensePlate && (
-                    <span style={{ fontWeight: 400, color: st.textMuted, marginLeft: 6 }}>
-                      {visit.vehicle.licensePlate}
-                    </span>
-                  )}
-                </VisitMetaValue>
-              </VisitMetaItem>
-            )}
-            {visit.customer?.name && (
-              <VisitMetaItem>
-                <VisitMetaLabel><User />Klient</VisitMetaLabel>
-                <VisitMetaValue>{visit.customer.name}</VisitMetaValue>
-              </VisitMetaItem>
-            )}
-          </VisitModalMeta>
-
-          {visit.services && visit.services.length > 0 && (
-            <div>
-              <VisitServicesTable>
-                <VisitServicesHead>
-                  <VisitServicesHeadCell>Usługa</VisitServicesHeadCell>
-                  <VisitServicesHeadCell>Brutto</VisitServicesHeadCell>
-                </VisitServicesHead>
-                {visit.services.map((svc: any, i: number) => (
-                  <VisitServiceRow key={i}>
-                    <VisitServiceName>{svc.serviceName ?? svc.name ?? '—'}</VisitServiceName>
-                    <VisitServicePrice>
-                      {formatCurrency(svc.finalPriceGross ?? svc.priceGross ?? 0)}
-                    </VisitServicePrice>
-                  </VisitServiceRow>
-                ))}
-                {(visit.totalCost != null) && (
-                  <VisitTotalRow>
-                    <VisitTotalLabel>ŁĄCZNIE</VisitTotalLabel>
-                    <VisitTotalPrice>{formatCurrency(visit.totalCost)} brutto</VisitTotalPrice>
-                  </VisitTotalRow>
+    <>
+      <Modal isOpen={!!visitId} onClose={onClose} title={visitTitle} maxWidth="680px">
+        {isLoading && (
+          <VModalLoading>
+            <SkeletonPulse $h="80px" />
+            <SkeletonPulse $h="160px" />
+            <SkeletonPulse $h="120px" />
+          </VModalLoading>
+        )}
+        {isError && (
+          <VModalError>Nie udało się załadować danych wizyty.</VModalError>
+        )}
+        {visit && !isLoading && (
+          <VModal>
+            {/* ── Info strip ─────────────────────────────────────── */}
+            <VInfoStrip>
+              <VInfoCard>
+                <VInfoIconBox $color="#0ea5e9" $bg="rgba(14,165,233,0.1)">
+                  <Calendar />
+                </VInfoIconBox>
+                <VInfoLabel>Data wizyty</VInfoLabel>
+                <VInfoMain>{formattedDate ?? '—'}</VInfoMain>
+                {visit.status && (
+                  <VStatusBadge $status={visit.status}>
+                    {VStatusLabel[visit.status] ?? visit.status}
+                  </VStatusBadge>
                 )}
-              </VisitServicesTable>
-            </div>
-          )}
+              </VInfoCard>
 
-          {visit.technicalNotes && (
+              <VInfoCard>
+                <VInfoIconBox $color="#6366f1" $bg="rgba(99,102,241,0.1)">
+                  <Car />
+                </VInfoIconBox>
+                <VInfoLabel>Pojazd</VInfoLabel>
+                <VInfoMain>{vehicleLabel ?? '—'}</VInfoMain>
+                {vehicleSub && <VInfoSub>{vehicleSub}</VInfoSub>}
+              </VInfoCard>
+
+              <VInfoCard>
+                <VInfoIconBox $color="#10b981" $bg="rgba(16,185,129,0.1)">
+                  <User />
+                </VInfoIconBox>
+                <VInfoLabel>Właściciel</VInfoLabel>
+                <VInfoMain>{customerName ?? '—'}</VInfoMain>
+                {visit.customer?.phone && (
+                  <VInfoSub>{visit.customer.phone}</VInfoSub>
+                )}
+                {visit.customer?.companyName && (
+                  <VInfoSub>{visit.customer.companyName}</VInfoSub>
+                )}
+              </VInfoCard>
+            </VInfoStrip>
+
+            {/* ── Services ───────────────────────────────────────── */}
+            {visit.services && visit.services.length > 0 && (
+              <div>
+                <VSectionLabel>Wykonane usługi</VSectionLabel>
+                <VServicesCard>
+                  <VServicesHead>
+                    <VServicesHeadCell>Usługa</VServicesHeadCell>
+                    <VServicesHeadCell>Cena brutto</VServicesHeadCell>
+                  </VServicesHead>
+                  {visit.services.map(svc => (
+                    <VServiceRow key={svc.id}>
+                      <VServiceName>{svc.serviceName}</VServiceName>
+                      <VServicePrice>{formatCurrency(svc.finalPriceGross)}</VServicePrice>
+                    </VServiceRow>
+                  ))}
+                  {visit.totalCost && (
+                    <VTotalRow>
+                      <VTotalLabel>ŁĄCZNIE</VTotalLabel>
+                      <VTotalPrice>{formatCurrency(visit.totalCost.grossAmount)} brutto</VTotalPrice>
+                    </VTotalRow>
+                  )}
+                </VServicesCard>
+              </div>
+            )}
+
+            {/* ── Gallery ────────────────────────────────────────── */}
             <div>
-              <PanelLabel style={{ marginBottom: 6 }}>Notatki techniczne</PanelLabel>
-              <VisitNotes>{visit.technicalNotes}</VisitNotes>
+              <VSectionLabel>
+                Galeria zdjęć
+                {isPhotosLoading && (
+                  <span style={{ fontWeight: 400, textTransform: 'none', marginLeft: 6, color: st.textMuted }}>
+                    ładowanie…
+                  </span>
+                )}
+                {!isPhotosLoading && photos.length > 0 && (
+                  <span style={{ fontWeight: 400, textTransform: 'none', marginLeft: 6 }}>
+                    ({photos.length})
+                  </span>
+                )}
+              </VSectionLabel>
+              {isPhotosLoading ? (
+                <VPhotoGrid>
+                  {Array.from({ length: 4 }, (_, i) => (
+                    <SkeletonPulse key={i} $h="0" style={{ aspectRatio: '1', height: 'auto' }} />
+                  ))}
+                </VPhotoGrid>
+              ) : photos.length > 0 ? (
+                <VPhotoGrid>
+                  {photos.map((photo, idx) => (
+                    <VPhotoThumb
+                      key={photo.id}
+                      onClick={() => setLightboxIndex(idx)}
+                      title={photo.description ?? photo.fileName}
+                    >
+                      <img src={photo.thumbnailUrl} alt={photo.fileName} loading="lazy" />
+                      <VPhotoOverlay>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="11" cy="11" r="8" />
+                          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                          <line x1="11" y1="8" x2="11" y2="14" />
+                          <line x1="8" y1="11" x2="14" y2="11" />
+                        </svg>
+                      </VPhotoOverlay>
+                    </VPhotoThumb>
+                  ))}
+                </VPhotoGrid>
+              ) : (
+                <VEmptyPhotos>Brak zdjęć przypisanych do tej wizyty</VEmptyPhotos>
+              )}
             </div>
-          )}
-        </VisitModalGrid>
+          </VModal>
+        )}
+      </Modal>
+
+      {lightboxIndex !== null && photos[lightboxIndex] && (
+        <ImageViewerModal
+          imageUrl={photos[lightboxIndex].fullSizeUrl}
+          imageName={photos[lightboxIndex].fileName}
+          isOpen
+          onClose={() => setLightboxIndex(null)}
+          onDownload={() => {
+            const a = document.createElement('a');
+            a.href = photos[lightboxIndex!].fullSizeUrl;
+            a.download = photos[lightboxIndex!].fileName;
+            a.target = '_blank';
+            a.click();
+          }}
+          hasNext={lightboxIndex < photos.length - 1}
+          hasPrev={lightboxIndex > 0}
+          onNext={() => setLightboxIndex(i => (i ?? 0) + 1)}
+          onPrev={() => setLightboxIndex(i => (i ?? 0) - 1)}
+        />
       )}
-    </Modal>
+    </>
   );
 };
 
