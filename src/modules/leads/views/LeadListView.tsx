@@ -10,10 +10,10 @@ import {
   Plus,
   RefreshCw,
   ChevronDown,
+  ChevronRight,
   Phone,
   Mail,
   PenLine,
-  X,
   Car,
   Calendar,
   User,
@@ -863,39 +863,65 @@ const PageBtn = styled.button`
 
 // ─── Related visits ───────────────────────────────────────────────────────────
 
-const RelatedVisitsList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+const RelatedVisitsCard = styled.div`
+  background: #fff;
+  border: 1px solid ${st.border};
+  border-radius: 10px;
+  overflow: hidden;
 `;
 
-const RelatedVisitBtn = styled.button`
-  display: inline-flex;
+const RelatedVisitRow = styled.button`
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 10px 5px 8px;
-  border: 1px solid ${st.border};
-  border-radius: 8px;
-  background: #fff;
-  color: ${st.accentBlue};
-  font-size: 12px;
-  font-weight: 500;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
   font-family: inherit;
   cursor: pointer;
   text-align: left;
+  transition: background ${st.transition};
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: #f0f9ff; }
+  &:hover .rv-icon { background: #dbeafe; color: #1d4ed8; }
+`;
+
+const RelatedVisitIcon = styled.div.attrs({ className: 'rv-icon' })`
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: #f1f5f9;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   transition: all ${st.transition};
+  svg { width: 13px; height: 13px; }
+`;
+
+const RelatedVisitTitle = styled.span`
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: ${st.text};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 320px;
+  min-width: 0;
+`;
 
-  svg { width: 12px; height: 12px; flex-shrink: 0; color: ${st.textMuted}; }
+const RelatedVisitArrow = styled.span`
+  flex-shrink: 0;
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  svg { width: 13px; height: 13px; }
 
-  &:hover {
-    background: #f0f9ff;
-    border-color: #bae6fd;
-    color: #0284c7;
-  }
+  ${RelatedVisitRow}:hover & { color: #93c5fd; }
 `;
 
 // ─── Visit preview modal ──────────────────────────────────────────────────────
@@ -1332,18 +1358,24 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
               {relatedVisits.length > 0 && (
                 <>
                   <PanelLabel style={{ marginTop: 4 }}>Na podstawie wizyt</PanelLabel>
-                  <RelatedVisitsList>
+                  <RelatedVisitsCard>
                     {relatedVisits.map(rv => (
-                      <RelatedVisitBtn
+                      <RelatedVisitRow
                         key={rv.id}
                         onClick={e => { e.stopPropagation(); setPreviewVisitId(rv.id); }}
-                        title="Kliknij, aby zobaczyć szczegóły wizyty"
                       >
-                        <Wrench />
-                        {rv.title ?? `Wizyta ${rv.id.slice(0, 8)}…`}
-                      </RelatedVisitBtn>
+                        <RelatedVisitIcon>
+                          <Wrench />
+                        </RelatedVisitIcon>
+                        <RelatedVisitTitle>
+                          {rv.title ?? `Wizyta ${rv.id.slice(0, 8)}…`}
+                        </RelatedVisitTitle>
+                        <RelatedVisitArrow>
+                          <ChevronRight />
+                        </RelatedVisitArrow>
+                      </RelatedVisitRow>
                     ))}
-                  </RelatedVisitsList>
+                  </RelatedVisitsCard>
                 </>
               )}
             </PanelSection>
