@@ -1,9 +1,31 @@
 // src/modules/leads/views/LeadListView.tsx
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import styled, { css, keyframes } from 'styled-components';
-import { LeadStatsBar } from '../components/LeadStatsBar';
+import {
+  Inbox,
+  Users,
+  TrendingUp,
+  CheckCircle2,
+  BarChart3,
+  Plus,
+  RefreshCw,
+  ChevronDown,
+  Phone,
+  Mail,
+  PenLine,
+  AlertCircle,
+} from 'lucide-react';
+import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { StatTile, StatTileSkeleton } from '@/common/components/StatTile';
 import { LeadForm } from '../components/LeadForm';
-import { useLeads, useLead, useUpdateLeadStatus, useUpdateLeadValue, useLeadSocket } from '../hooks';
+import {
+  useLeads,
+  useLead,
+  useUpdateLeadStatus,
+  useUpdateLeadValue,
+  useLeadPipelineSummary,
+  useLeadSocket,
+} from '../hooks';
 import { LeadStatus, LeadSource } from '../types';
 import type { Lead, LeadListFilters } from '../types';
 import {
@@ -14,648 +36,624 @@ import {
   parseCurrencyToGrosze,
 } from '../utils/formatters';
 
-// ============================================================================
-// ANIMATIONS
-// ============================================================================
-
-const pulse = keyframes`
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
-  50% { opacity: 0.85; box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
-`;
-
-const slideDown = keyframes`
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
-`;
-
-const shimmer = keyframes`
-  0%   { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
-`;
+// ─── Animations ───────────────────────────────────────────────────────────────
 
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 `;
 
-// ============================================================================
-// PAGE LAYOUT
-// ============================================================================
+const shimmer = keyframes`
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+`;
 
-const PageContainer = styled.div`
+const pulseDot = keyframes`
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+`;
+
+// ─── Page layout — identical to CustomerListView ──────────────────────────────
+
+const ViewContainer = styled.main`
   display: flex;
   flex-direction: column;
-  gap: ${p => p.theme.spacing.lg};
-  padding: ${p => p.theme.spacing.md};
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
+  gap: 20px;
+  padding: 24px;
+  min-height: 100vh;
+  background: ${st.bg};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => p.theme.spacing.lg};
+    padding: 32px;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
+    padding: 40px 48px;
   }
 `;
 
-const PageHeader = styled.div`
+const ViewHeader = styled.header`
   display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.spacing.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: space-between;
-  }
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 `;
 
 const TitleSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex: 1;
+  min-width: 0;
 `;
 
 const PageTitle = styled.h1`
-  font-size: ${p => p.theme.fontSizes.xxl};
-  font-weight: ${p => p.theme.fontWeights.bold};
-  color: ${p => p.theme.colors.text};
   margin: 0;
+  font-size: ${st.fontXl};
+  font-weight: 700;
+  color: ${st.text};
+  letter-spacing: -0.3px;
   line-height: 1.2;
 `;
 
-const PageSubtitle = styled.p`
-  font-size: ${p => p.theme.fontSizes.sm};
-  color: ${p => p.theme.colors.textSecondary};
-  margin: 0;
+const PageMeta = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  flex-wrap: wrap;
 `;
 
-const HeaderActions = styled.div`
-  display: flex;
-  gap: ${p => p.theme.spacing.sm};
+const PageSubtitle = styled.span`
+  font-size: ${st.fontSm};
+  color: ${st.textMuted};
+`;
+
+const TotalChip = styled.span`
+  display: inline-flex;
   align-items: center;
+  padding: 2px 10px;
+  background: ${st.accentBlueDim};
+  color: ${st.accentBlue};
+  border-radius: ${st.radiusFull};
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+`;
+
+const NewChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+  border-radius: ${st.radiusFull};
+  font-size: 12px;
+  font-weight: 600;
+`;
+
+const NewDot = styled.span`
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #dc2626;
+  display: inline-block;
+  animation: ${pulseDot} 1.8s ease-in-out infinite;
+`;
+
+const HeaderBtns = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex-shrink: 0;
 `;
 
 const AddButton = styled.button`
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: ${p => p.theme.spacing.xs};
+  gap: 7px;
   padding: 10px 20px;
-  font-size: ${p => p.theme.fontSizes.sm};
-  font-weight: ${p => p.theme.fontWeights.semibold};
-  background: linear-gradient(135deg, var(--brand-primary) 0%, #0284c7 100%);
-  color: white;
+  background: #0ea5e9;
+  color: #fff;
   border: none;
-  border-radius: ${p => p.theme.radii.md};
+  border-radius: 9999px;
+  font-size: ${st.fontSm};
+  font-weight: 600;
   cursor: pointer;
-  transition: all ${p => p.theme.transitions.fast};
-  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all ${st.transition};
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
 
   &:hover {
+    background: #0284c7;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+    box-shadow: 0 4px 14px rgba(14, 165, 233, 0.36);
   }
   &:active { transform: translateY(0); }
+  svg { flex-shrink: 0; width: 15px; height: 15px; }
 `;
 
-const IconButton = styled.button`
-  display: flex;
+const SecondaryBtn = styled.button`
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  background: ${p => p.theme.colors.surface};
-  color: ${p => p.theme.colors.textSecondary};
-  border: 1px solid ${p => p.theme.colors.border};
-  border-radius: ${p => p.theme.radii.md};
+  gap: 6px;
+  padding: 8px 16px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: ${st.fontSm};
+  font-weight: 600;
   cursor: pointer;
-  transition: all ${p => p.theme.transitions.fast};
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all ${st.transition};
 
-  &:hover {
-    background: ${p => p.theme.colors.surfaceAlt};
-    color: ${p => p.theme.colors.text};
+  &:hover { background: #e2e8f0; color: #0f172a; }
+  svg { width: 15px; height: 15px; flex-shrink: 0; }
+`;
+
+// ─── Stats grid ───────────────────────────────────────────────────────────────
+
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    grid-template-columns: repeat(4, 1fr);
   }
 `;
 
-// ============================================================================
-// NEW LEADS BANNER
-// ============================================================================
+// ─── Content section — identical to CustomerListView ─────────────────────────
 
-const NewLeadsBanner = styled.div`
+const ContentSection = styled.section`
+  background: ${st.bgCard};
+  border: 1px solid ${st.border};
+  border-radius: ${st.radius};
+  box-shadow: ${st.shadowSm};
+  overflow: hidden;
+`;
+
+const FilterBar = styled.div`
+  border-bottom: 1px solid ${st.border};
+`;
+
+const FilterTopRow = styled.div`
   display: flex;
   align-items: center;
-  gap: ${p => p.theme.spacing.md};
-  padding: ${p => p.theme.spacing.md} ${p => p.theme.spacing.lg};
-  background: linear-gradient(135deg, #fef2f2 0%, #fff7ed 100%);
-  border: 1px solid #fca5a5;
-  border-radius: ${p => p.theme.radii.lg};
-  animation: ${slideDown} 0.25s ease-out;
-`;
-
-const BannerDot = styled.div`
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #dc2626;
-  flex-shrink: 0;
-  animation: ${pulse} 2s ease-in-out infinite;
-`;
-
-const BannerText = styled.p`
-  font-size: ${p => p.theme.fontSizes.sm};
-  font-weight: ${p => p.theme.fontWeights.semibold};
-  color: #991b1b;
-  margin: 0;
-`;
-
-const BannerSub = styled.span`
-  font-weight: ${p => p.theme.fontWeights.normal};
-  color: #b91c1c;
-`;
-
-// ============================================================================
-// FILTERS
-// ============================================================================
-
-const FiltersSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.spacing.sm};
-  padding: ${p => p.theme.spacing.md};
-  background: ${p => p.theme.colors.surface};
-  border: 1px solid ${p => p.theme.colors.border};
-  border-radius: ${p => p.theme.radii.lg};
+  gap: 10px;
+  padding: 14px 20px;
+  flex-wrap: wrap;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    flex-direction: row;
-    align-items: center;
-    gap: ${p => p.theme.spacing.md};
+    flex-wrap: nowrap;
   }
 `;
 
-const SearchWrapper = styled.div`
+// ─── Search input ─────────────────────────────────────────────────────────────
+
+const SearchWrap = styled.div`
   position: relative;
   flex: 1;
-  min-width: 0;
+  min-width: 180px;
+  max-width: 320px;
 `;
 
 const SearchInput = styled.input`
   width: 100%;
-  padding: 8px 12px 8px 38px;
-  font-size: ${p => p.theme.fontSizes.sm};
-  border: 1.5px solid ${p => p.theme.colors.border};
-  border-radius: ${p => p.theme.radii.md};
-  background: ${p => p.theme.colors.surfaceAlt};
-  color: ${p => p.theme.colors.text};
+  padding: 8px 12px 8px 36px;
+  font-size: ${st.fontSm};
+  font-family: inherit;
+  background: #f8fafc;
+  border: 1.5px solid ${st.border};
+  border-radius: 9999px;
+  color: ${st.text};
   outline: none;
-  transition: all ${p => p.theme.transitions.fast};
+  transition: all ${st.transition};
 
   &:focus {
-    border-color: var(--brand-primary);
-    background: ${p => p.theme.colors.surface};
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    border-color: #0ea5e9;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
   }
-  &::placeholder { color: ${p => p.theme.colors.textMuted}; }
+
+  &::placeholder { color: ${st.textMuted}; }
 `;
 
-const SearchIconWrap = styled.div`
+const SearchIcon = styled.div`
   position: absolute;
   left: 11px;
   top: 50%;
   transform: translateY(-50%);
-  color: ${p => p.theme.colors.textMuted};
+  color: ${st.textMuted};
   pointer-events: none;
-`;
-
-const FilterDivider = styled.div`
-  display: none;
-  width: 1px;
-  height: 22px;
-  background: ${p => p.theme.colors.border};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    display: block;
-  }
-`;
-
-const ChipsGroup = styled.div`
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-`;
-
-const Chip = styled.button<{ $active: boolean; $color?: string }>`
-  padding: 5px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  border-radius: ${p => p.theme.radii.full};
-  border: 1.5px solid;
-  cursor: pointer;
-  transition: all ${p => p.theme.transitions.fast};
-  white-space: nowrap;
-
-  ${p => p.$active
-    ? css`
-        border-color: ${p.$color || 'var(--brand-primary)'};
-        background: ${p.$color || 'var(--brand-primary)'};
-        color: white;
-      `
-    : css`
-        border-color: ${p.theme.colors.border};
-        background: transparent;
-        color: ${p.theme.colors.textSecondary};
-        &:hover { border-color: ${p.$color || 'var(--brand-primary)'}; color: ${p.$color || 'var(--brand-primary)'}; }
-      `
-  }
-`;
-
-// ============================================================================
-// LEADS LIST & STATES
-// ============================================================================
-
-const LeadsList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  background: ${p => p.theme.colors.surface};
-  border: 1px solid ${p => p.theme.colors.border};
-  border-radius: ${p => p.theme.radii.lg};
-  overflow: hidden;
-`;
-
-const EmptyState = styled.div`
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: ${p => p.theme.spacing.md};
-  padding: 64px ${p => p.theme.spacing.xl};
-  text-align: center;
-  color: ${p => p.theme.colors.textMuted};
 `;
 
-const EmptyTitle = styled.p`
-  font-size: ${p => p.theme.fontSizes.md};
+const Spacer = styled.div` flex: 1; `;
+
+// ─── Tab groups — same as CustomerListView ────────────────────────────────────
+
+const TabGroup = styled.div`
+  display: inline-flex;
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+  flex-shrink: 0;
+`;
+
+const TabBtn = styled.button<{ $active: boolean }>`
+  border: none;
+  background: ${p => p.$active ? '#fff' : 'transparent'};
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12px;
   font-weight: 600;
-  color: ${p => p.theme.colors.textSecondary};
-  margin: 0;
+  color: ${p => p.$active ? '#0f172a' : '#64748b'};
+  cursor: pointer;
+  transition: all 180ms ease;
+  white-space: nowrap;
+  box-shadow: ${p => p.$active ? '0 1px 3px rgba(0,0,0,0.06)' : 'none'};
+
+  &:hover:not(:disabled) {
+    color: ${p => p.$active ? '#0f172a' : '#475569'};
+  }
 `;
 
-const EmptyDesc = styled.p`
-  font-size: ${p => p.theme.fontSizes.sm};
-  margin: 0;
+// ─── Table — same structure as CustomerTable ──────────────────────────────────
+
+const TableWrapper = styled.div`
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 `;
 
-const ErrorBox = styled.div`
-  padding: ${p => p.theme.spacing.xl};
-  background: #fef2f2;
-  border: 1px solid #fca5a5;
-  border-radius: ${p => p.theme.radii.lg};
-  text-align: center;
-  color: #991b1b;
+const Table = styled.table`
+  width: 100%;
+  min-width: 800px;
+  border-collapse: collapse;
+  background: ${st.bgCard};
 `;
 
-// ============================================================================
-// ACCORDION CARD — COLLAPSED ROW
-// ============================================================================
+const Th = styled.th`
+  padding: 12px 20px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: ${st.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+  background: ${st.bg};
+  border-bottom: 1px solid ${st.border};
+`;
 
-const CardWrapper = styled.div<{ $isNew: boolean; $status: LeadStatus; $isExpanded: boolean }>`
-  position: relative;
-  border-bottom: 1px solid ${p => p.theme.colors.border};
-  transition: background ${p => p.theme.transitions.fast};
+const ThIcon = styled(Th)`
+  width: 44px;
+  padding-right: 0;
+`;
+
+const ThActions = styled(Th)`
+  width: 52px;
+  padding-left: 0;
+`;
+
+const Tr = styled.tr<{ $isExpanded?: boolean }>`
+  border-bottom: 1px solid #f1f5f9;
+  transition: background ${st.transition};
+  cursor: pointer;
+  animation: ${fadeIn} 200ms ease both;
 
   &:last-child { border-bottom: none; }
 
-  ${p => p.$isExpanded && css`
-    background: #f8faff;
-    border-left: 3px solid var(--brand-primary);
-  `}
-
-  ${p => !p.$isExpanded && p.$isNew && css`
-    border-left: 3px solid #dc2626;
-    background: linear-gradient(90deg, rgba(254, 242, 242, 0.6) 0%, transparent 60%);
-  `}
-
   &:hover {
-    background: ${p => p.$isExpanded ? '#f8faff' : p.theme.colors.surfaceAlt};
+    background: ${p => p.$isExpanded ? '#f0f7ff' : st.bg};
   }
+
+  ${p => p.$isExpanded && css`
+    background: #f0f7ff;
+    border-bottom: none;
+  `}
 `;
 
-const CardRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.spacing.md};
-  padding: 14px ${p => p.theme.spacing.md};
-  cursor: pointer;
-  user-select: none;
-
-  @media (max-width: 640px) {
-    flex-wrap: wrap;
-    gap: ${p => p.theme.spacing.sm};
-  }
+const Td = styled.td`
+  padding: 14px 20px;
+  font-size: 13px;
+  color: ${st.text};
+  vertical-align: middle;
 `;
 
-const SourceBadge = styled.div<{ $source: LeadSource }>`
+const TdIcon = styled(Td)`
+  padding-right: 0;
+  width: 44px;
+`;
+
+const TdActions = styled(Td)`
+  padding-left: 0;
+  width: 52px;
+`;
+
+// ─── Source icon ──────────────────────────────────────────────────────────────
+
+const SourceWrap = styled.div<{ $source: LeadSource }>`
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: ${p => p.theme.radii.md};
   flex-shrink: 0;
+
+  svg { width: 15px; height: 15px; }
 
   ${p => {
     switch (p.$source) {
-      case LeadSource.PHONE: return css`background:#dcfce7; color:#16a34a;`;
-      case LeadSource.EMAIL: return css`background:#dbeafe; color:#1d4ed8;`;
-      default:               return css`background:#f3e8ff; color:#7c3aed;`;
+      case LeadSource.PHONE:  return css`background:#dcfce7; color:#16a34a;`;
+      case LeadSource.EMAIL:  return css`background:#dbeafe; color:#1d4ed8;`;
+      default:                return css`background:#f3e8ff; color:#7c3aed;`;
     }
   }}
 `;
 
-const ContactBlock = styled.div`
+const NewIndicator = styled.span`
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #dc2626;
+  border: 2px solid #fff;
+  animation: ${pulseDot} 1.8s ease-in-out infinite;
+`;
+
+// ─── Cell helpers — same as CustomerTable ────────────────────────────────────
+
+const CellStack = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  min-width: 140px;
-  flex-shrink: 0;
+  gap: 3px;
 `;
 
-const ContactName = styled.span`
-  font-size: ${p => p.theme.fontSizes.sm};
+const CellMain = styled.div`
+  font-size: 13px;
   font-weight: 600;
-  color: ${p => p.theme.colors.text};
+  color: ${st.text};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 200px;
 `;
 
-const ContactId = styled.span`
+const CellSub = styled.div`
   font-size: 11px;
-  color: ${p => p.theme.colors.textMuted};
-  white-space: nowrap;
-`;
-
-const MessagePreview = styled.span`
-  flex: 1;
-  font-size: ${p => p.theme.fontSizes.sm};
-  color: ${p => p.theme.colors.textSecondary};
+  color: ${st.textMuted};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-width: 0;
-
-  @media (max-width: 768px) {
-    display: none;
-  }
 `;
 
-const CardMeta = styled.div`
-  display: flex;
+const CellNote = styled.div`
+  font-size: 13px;
+  color: ${st.textSecondary};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+`;
+
+const CellMono = styled.div`
+  font-size: 13px;
+  font-weight: 700;
+  color: ${st.text};
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+`;
+
+// ─── Status badge ─────────────────────────────────────────────────────────────
+
+const StatusBadge = styled.span<{ $variant: 'new' | 'progress' | 'converted' | 'abandoned' }>`
+  display: inline-flex;
   align-items: center;
-  gap: ${p => p.theme.spacing.sm};
-  flex-shrink: 0;
-  margin-left: auto;
-`;
-
-const TimeLabel = styled.span`
+  padding: 3px 9px;
+  border-radius: 9999px;
   font-size: 11px;
-  color: ${p => p.theme.colors.textMuted};
-  white-space: nowrap;
-
-  @media (max-width: 640px) {
-    display: none;
-  }
-`;
-
-const NewBadge = styled.span`
-  padding: 3px 8px;
-  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
-  background: #dc2626;
-  color: white;
-  border-radius: ${p => p.theme.radii.full};
-  animation: ${pulse} 2.5s ease-in-out infinite;
-  white-space: nowrap;
-`;
-
-const ValueChip = styled.span`
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
-  color: #92400e;
-  border: 1px solid #fcd34d;
-  border-radius: ${p => p.theme.radii.md};
-  white-space: nowrap;
-`;
-
-const StatusPill = styled.span<{ $status: LeadStatus }>`
-  padding: 4px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  border-radius: ${p => p.theme.radii.full};
+  letter-spacing: 0.05em;
   white-space: nowrap;
 
   ${p => {
-    switch (p.$status) {
-      case LeadStatus.IN_PROGRESS: return css`background:#dbeafe; color:#1e40af; border:1px solid #93c5fd;`;
-      case LeadStatus.CONVERTED:   return css`background:#dcfce7; color:#166534; border:1px solid #86efac;`;
-      case LeadStatus.ABANDONED:   return css`background:#f3f4f6; color:#4b5563; border:1px solid #d1d5db;`;
+    switch (p.$variant) {
+      case 'new':       return css`background:rgba(220,38,38,0.1); color:#dc2626;`;
+      case 'progress':  return css`background:#dbeafe; color:#1e40af;`;
+      case 'converted': return css`background:#dcfce7; color:#166534;`;
+      case 'abandoned': return css`background:#f3f4f6; color:#4b5563;`;
     }
   }}
-
-  @media (max-width: 480px) {
-    display: none;
-  }
 `;
 
-const ExpandToggle = styled.div<{ $isExpanded: boolean }>`
+// ─── Icon action button — same as CustomerTable ───────────────────────────────
+
+const IconBtn = styled.button<{ $rotated?: boolean }>`
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  color: ${p => p.theme.colors.textMuted};
-  transition: transform ${p => p.theme.transitions.fast};
-  transform: ${p => p.$isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'};
-  flex-shrink: 0;
+  transition: all ${st.transition};
+
+  svg {
+    width: 14px;
+    height: 14px;
+    transition: transform 180ms ease;
+    transform: ${p => p.$rotated ? 'rotate(180deg)' : 'rotate(0deg)'};
+  }
+
+  tr:hover & { background: #f1f5f9; color: #475569; }
+  &:hover { background: #e2e8f0 !important; color: #0f172a !important; }
 `;
 
-// ============================================================================
-// ACCORDION CARD — EXPANDED PANEL
-// ============================================================================
+// ─── Expanded row panel ───────────────────────────────────────────────────────
+
+const ExpandedTr = styled.tr`
+  animation: ${fadeIn} 180ms ease both;
+  border-bottom: 1px solid ${st.border};
+
+  &:last-child { border-bottom: none; }
+`;
+
+const ExpandedTd = styled.td`
+  padding: 0;
+  background: #f8fbff;
+`;
 
 const ExpandedPanel = styled.div`
-  padding: ${p => p.theme.spacing.lg};
-  padding-top: 0;
-  border-top: 1px dashed ${p => p.theme.colors.border};
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.spacing.lg};
-  animation: ${slideDown} 0.2s ease-out;
+  padding: 20px 20px 20px 84px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  border-top: 1px solid #dbeafe;
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => p.theme.spacing.lg} ${p => p.theme.spacing.xl};
-    padding-top: ${p => p.theme.spacing.md};
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    grid-template-columns: 1fr;
+    padding: 16px;
   }
 `;
 
-const SectionLabel = styled.div`
+const PanelSection = styled.div`
   display: flex;
-  align-items: center;
-  gap: ${p => p.theme.spacing.sm};
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const PanelLabel = styled.div`
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: ${p => p.theme.colors.textMuted};
-  margin-bottom: ${p => p.theme.spacing.xs};
-
-  &::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: ${p => p.theme.colors.border};
-  }
+  letter-spacing: 0.07em;
+  color: ${st.textMuted};
+  display: flex;
+  align-items: center;
+  gap: 6px;
 `;
 
-const FullMessage = styled.p`
-  font-size: ${p => p.theme.fontSizes.sm};
-  color: ${p => p.theme.colors.text};
+const MessageBox = styled.p`
+  font-size: ${st.fontSm};
+  color: ${st.textSecondary};
   line-height: 1.6;
   margin: 0;
-  padding: ${p => p.theme.spacing.md};
-  background: ${p => p.theme.colors.surfaceAlt};
-  border-radius: ${p => p.theme.radii.md};
-  border-left: 3px solid var(--brand-primary);
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid ${st.border};
+  border-radius: 10px;
+  border-left: 3px solid #0ea5e9;
 `;
 
-// --- Estimation ---
+// ─── Estimation / cost breakdown ──────────────────────────────────────────────
 
-const EstimationBox = styled.div`
-  background: linear-gradient(135deg, #f0f4ff 0%, #f8f9ff 100%);
-  border: 1px solid #c7d2fe;
-  border-radius: ${p => p.theme.radii.lg};
+const EstCard = styled.div`
+  background: #fff;
+  border: 1px solid ${st.border};
+  border-radius: 10px;
   overflow: hidden;
 `;
 
-const EstimationHeader = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.spacing.sm};
-  padding: 10px ${p => p.theme.spacing.md};
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  color: white;
-`;
-
-const EstimationTitle = styled.span`
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-`;
-
-const EstimationBody = styled.div`
-  padding: ${p => p.theme.spacing.md};
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const EstimationRow = styled.div<{ $isTotal?: boolean }>`
+const EstRow = styled.div<{ $isTotal?: boolean }>`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${p => p.$isTotal ? '10px 0 4px' : '6px 0'};
-  border-top: ${p => p.$isTotal ? '1px solid #c7d2fe' : 'none'};
-  gap: ${p => p.theme.spacing.md};
+  gap: 12px;
+  padding: ${p => p.$isTotal ? '10px 14px' : '8px 14px'};
+  border-bottom: ${p => p.$isTotal ? 'none' : `1px solid #f1f5f9`};
+  background: ${p => p.$isTotal ? '#f8fafc' : 'transparent'};
+
+  &:last-of-type {
+    border-bottom: none;
+  }
 `;
 
-const EstRowName = styled.span<{ $isTotal?: boolean }>`
-  font-size: ${p => p.$isTotal ? p.theme.fontSizes.md : p.theme.fontSizes.sm};
+const EstName = styled.span<{ $isTotal?: boolean }>`
+  font-size: ${p => p.$isTotal ? '13px' : st.fontSm};
   font-weight: ${p => p.$isTotal ? 700 : 400};
-  color: ${p => p.$isTotal ? '#1e1b4b' : '#3730a3'};
+  color: ${p => p.$isTotal ? st.text : st.textSecondary};
   min-width: 0;
 `;
 
-const EstRowPrice = styled.span<{ $isTotal?: boolean }>`
-  font-size: ${p => p.$isTotal ? p.theme.fontSizes.md : p.theme.fontSizes.sm};
+const EstPrice = styled.span<{ $isTotal?: boolean }>`
+  font-size: ${p => p.$isTotal ? '13px' : st.fontSm};
   font-weight: ${p => p.$isTotal ? 700 : 500};
-  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
-  color: ${p => p.$isTotal ? '#1e1b4b' : '#4338ca'};
+  color: ${p => p.$isTotal ? st.text : st.textSecondary};
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.3px;
 `;
 
-const UnmatchedSection = styled.div`
-  padding: ${p => p.theme.spacing.sm} ${p => p.theme.spacing.md};
+const UnmatchedRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 14px;
   background: #fffbeb;
   border-top: 1px solid #fde68a;
 `;
 
-const UnmatchedTitle = styled.p`
+const UnmatchedTag = styled.span`
   font-size: 11px;
-  font-weight: 600;
-  color: #92400e;
-  margin: 0 0 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-`;
-
-const UnmatchedList = styled.ul`
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-`;
-
-const UnmatchedItem = styled.li`
-  font-size: ${p => p.theme.fontSizes.xs};
   color: #92400e;
   background: #fef3c7;
   border: 1px solid #fde68a;
-  border-radius: ${p => p.theme.radii.full};
+  border-radius: 9999px;
   padding: 2px 8px;
-
-  &::before { content: '• '; }
+  font-weight: 500;
 `;
 
-const EstimationLoadingRow = styled.div`
-  height: 16px;
-  background: linear-gradient(90deg, #e0e7ff 25%, #c7d2fe 50%, #e0e7ff 75%);
-  background-size: 400px 100%;
-  border-radius: 4px;
-  animation: ${shimmer} 1.4s ease-in-out infinite;
+const UnmatchedLabel = styled.span`
+  font-size: 11px;
+  color: #92400e;
+  font-weight: 600;
+  align-self: center;
 `;
 
-const NoEstimation = styled.p`
-  font-size: ${p => p.theme.fontSizes.sm};
-  color: ${p => p.theme.colors.textMuted};
+const NoEstBox = styled.div`
+  padding: 14px;
+  font-size: ${st.fontSm};
+  color: ${st.textMuted};
   text-align: center;
-  padding: ${p => p.theme.spacing.md};
-  margin: 0;
+  background: #fff;
+  border: 1px solid ${st.border};
+  border-radius: 10px;
 `;
 
-// --- Admin Price Override ---
+// ─── Skeleton shimmer ─────────────────────────────────────────────────────────
 
-const PriceOverrideRow = styled.div`
+const SkeletonPulse = styled.div<{ $w?: string; $h?: string }>`
+  height: ${p => p.$h ?? '13px'};
+  width: ${p => p.$w ?? '100%'};
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f1f5f9 0%, #f8fafc 50%, #f1f5f9 100%);
+  background-size: 200% 100%;
+  animation: ${shimmer} 1.5s infinite;
+`;
+
+// ─── Price override ───────────────────────────────────────────────────────────
+
+const PriceRow = styled.div`
   display: flex;
   align-items: center;
-  gap: ${p => p.theme.spacing.sm};
+  gap: 8px;
   flex-wrap: wrap;
-`;
-
-const PriceLabel = styled.label`
-  font-size: ${p => p.theme.fontSizes.sm};
-  font-weight: 500;
-  color: ${p => p.theme.colors.text};
-  white-space: nowrap;
 `;
 
 const PriceInputWrap = styled.div`
@@ -665,239 +663,238 @@ const PriceInputWrap = styled.div`
 `;
 
 const PriceInput = styled.input`
-  width: 140px;
-  padding: 8px 44px 8px 12px;
-  font-size: ${p => p.theme.fontSizes.sm};
-  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
-  font-weight: 500;
-  border: 1.5px solid ${p => p.theme.colors.border};
-  border-radius: ${p => p.theme.radii.md};
-  background: ${p => p.theme.colors.surface};
-  color: ${p => p.theme.colors.text};
+  width: 130px;
+  padding: 7px 40px 7px 11px;
+  font-size: ${st.fontSm};
+  font-family: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  border: 1.5px solid ${st.border};
+  border-radius: 9999px;
+  background: #fff;
+  color: ${st.text};
   outline: none;
-  transition: all ${p => p.theme.transitions.fast};
+  transition: all ${st.transition};
 
   &:focus {
-    border-color: var(--brand-primary);
+    border-color: #0ea5e9;
     box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
   }
 `;
 
 const PriceSuffix = styled.span`
   position: absolute;
-  right: 10px;
-  font-size: 12px;
+  right: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: ${p => p.theme.colors.textMuted};
+  color: ${st.textMuted};
   pointer-events: none;
 `;
 
-const SavePriceBtn = styled.button`
-  padding: 8px 16px;
-  font-size: ${p => p.theme.fontSizes.sm};
-  font-weight: 600;
-  background: linear-gradient(135deg, var(--brand-primary) 0%, #0284c7 100%);
-  color: white;
-  border: none;
-  border-radius: ${p => p.theme.radii.md};
-  cursor: pointer;
-  transition: all ${p => p.theme.transitions.fast};
-
-  &:hover { filter: brightness(1.05); }
-  &:disabled { opacity: 0.6; cursor: not-allowed; }
-`;
-
-const PriceSaved = styled.span`
-  font-size: ${p => p.theme.fontSizes.xs};
-  color: #16a34a;
-  font-weight: 500;
-  animation: ${fadeIn} 0.2s ease-out;
-`;
-
-// --- Status Actions ---
-
-const StatusActions = styled.div`
-  display: flex;
-  gap: ${p => p.theme.spacing.sm};
-  flex-wrap: wrap;
+const SaveBtn = styled.button`
+  display: inline-flex;
   align-items: center;
-`;
-
-const StatusActionLabel = styled.span`
-  font-size: ${p => p.theme.fontSizes.sm};
-  font-weight: 500;
-  color: ${p => p.theme.colors.textSecondary};
-  white-space: nowrap;
-`;
-
-const StatusBtn = styled.button<{ $active: boolean; $variant: 'blue' | 'green' | 'gray' }>`
+  gap: 5px;
   padding: 7px 16px;
+  background: #0ea5e9;
+  color: #fff;
+  border: none;
+  border-radius: 9999px;
   font-size: 12px;
   font-weight: 600;
-  border-radius: ${p => p.theme.radii.md};
-  border: 1.5px solid transparent;
   cursor: pointer;
-  transition: all ${p => p.theme.transitions.fast};
+  font-family: inherit;
+  transition: all ${st.transition};
 
-  ${p => {
-    const variants = {
-      blue:  { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', activeBg: '#1e40af' },
-      green: { bg: '#dcfce7', text: '#166534', border: '#86efac', activeBg: '#16a34a' },
-      gray:  { bg: '#f3f4f6', text: '#4b5563', border: '#d1d5db', activeBg: '#6b7280' },
-    };
-    const v = variants[p.$variant];
-    return p.$active
-      ? css`background:${v.activeBg}; color:white; border-color:${v.activeBg};`
-      : css`background:${v.bg}; color:${v.text}; border-color:${v.border};
-            &:hover { background:${v.activeBg}; color:white; border-color:${v.activeBg}; }`;
-  }}
+  &:hover { background: #0284c7; }
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
 `;
 
-// ============================================================================
-// PAGINATION
-// ============================================================================
+const SavedTag = styled.span`
+  font-size: 12px;
+  font-weight: 600;
+  color: #16a34a;
+  animation: ${fadeIn} 180ms ease both;
+`;
 
-const PaginationRow = styled.div`
+// ─── Status action buttons ────────────────────────────────────────────────────
+
+const StatusBtnGroup = styled.div`
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px ${p => p.theme.spacing.md};
-  background: ${p => p.theme.colors.surface};
-  border: 1px solid ${p => p.theme.colors.border};
-  border-radius: ${p => p.theme.radii.lg};
-  gap: ${p => p.theme.spacing.sm};
+  gap: 6px;
   flex-wrap: wrap;
+`;
+
+const StatusActionBtn = styled.button<{ $active: boolean; $color: string }>`
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 9999px;
+  border: 1.5px solid;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all ${st.transition};
+  white-space: nowrap;
+
+  ${p => p.$active
+    ? css`
+        background: ${p.$color};
+        border-color: ${p.$color};
+        color: #fff;
+      `
+    : css`
+        background: transparent;
+        border-color: ${st.border};
+        color: ${st.textSecondary};
+        &:hover {
+          border-color: ${p.$color};
+          color: ${p.$color};
+        }
+      `
+  }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+// ─── States ───────────────────────────────────────────────────────────────────
+
+const LoadingRow = styled.tr``;
+
+const LoadingCell = styled.td`
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 64px 24px;
+  color: ${st.textMuted};
+  text-align: center;
+`;
+
+const EmptyTitle = styled.p`
+  font-size: ${st.fontMd};
+  font-weight: 600;
+  color: ${st.textSecondary};
+  margin: 0;
+`;
+
+const EmptyDesc = styled.p`
+  font-size: ${st.fontSm};
+  margin: 0;
+`;
+
+const ErrorWrap = styled.div`
+  padding: 32px;
+  text-align: center;
+  color: #dc2626;
+`;
+
+const RetryBtn = styled.button`
+  margin-top: 10px;
+  padding: 7px 18px;
+  background: transparent;
+  border: 1.5px solid #dc2626;
+  color: #dc2626;
+  border-radius: 9999px;
+  font-size: ${st.fontSm};
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all ${st.transition};
+  &:hover { background: #dc2626; color: #fff; }
+`;
+
+// ─── Pagination (same tokens as CustomerPagination) ───────────────────────────
+
+const PaginationContainer = styled.nav`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  padding: 14px 20px;
+  border-top: 1px solid ${st.border};
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    flex-direction: row;
+    justify-content: space-between;
+  }
 `;
 
 const PaginationInfo = styled.span`
-  font-size: ${p => p.theme.fontSizes.sm};
-  color: ${p => p.theme.colors.textSecondary};
+  font-size: ${st.fontSm};
+  color: ${st.textMuted};
 `;
 
-const PaginationBtns = styled.div`
+const PaginationControls = styled.div`
   display: flex;
-  gap: ${p => p.theme.spacing.xs};
+  gap: 4px;
 `;
 
-const PagBtn = styled.button`
-  padding: 6px 14px;
-  font-size: ${p => p.theme.fontSizes.sm};
+const PageBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  min-width: 36px;
+  height: 34px;
+  border: 1.5px solid ${st.border};
+  border-radius: 8px;
+  background: #fff;
+  color: ${st.text};
+  font-size: 13px;
   font-weight: 500;
-  border: 1px solid ${p => p.theme.colors.border};
-  border-radius: ${p => p.theme.radii.md};
-  background: ${p => p.theme.colors.surface};
-  color: ${p => p.theme.colors.text};
+  font-family: inherit;
   cursor: pointer;
-  transition: all ${p => p.theme.transitions.fast};
+  transition: all ${st.transition};
 
+  &:hover:not(:disabled) { border-color: #0ea5e9; color: #0ea5e9; }
   &:disabled { opacity: 0.4; cursor: not-allowed; }
-  &:not(:disabled):hover { background: ${p => p.theme.colors.surfaceAlt}; }
 `;
 
-// ============================================================================
-// SKELETON ROWS
-// ============================================================================
+// ─── Static config ────────────────────────────────────────────────────────────
 
-const SkeletonBar = styled.div<{ $w?: string; $h?: string }>`
-  width: ${p => p.$w || '100%'};
-  height: ${p => p.$h || '14px'};
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 400px 100%;
-  border-radius: 4px;
-  animation: ${shimmer} 1.4s ease-in-out infinite;
-`;
+const TILE_CONFIGS = {
+  active: {
+    accentColor: '#0ea5e9',
+    bgGradient: 'linear-gradient(140deg, #f0f9ff 0%, #ffffff 55%)',
+    iconBg: 'rgba(14, 165, 233, 0.1)',
+  },
+  pipeline: {
+    accentColor: '#3B82F6',
+    bgGradient: 'linear-gradient(140deg, #eff6ff 0%, #ffffff 55%)',
+    iconBg: 'rgba(59, 130, 246, 0.1)',
+  },
+  converted: {
+    accentColor: '#10B981',
+    bgGradient: 'linear-gradient(140deg, #f0fdf4 0%, #ffffff 55%)',
+    iconBg: 'rgba(16, 185, 129, 0.1)',
+  },
+  monthly: {
+    accentColor: '#F59E0B',
+    bgGradient: 'linear-gradient(140deg, #fffbeb 0%, #ffffff 55%)',
+    iconBg: 'rgba(245, 158, 11, 0.1)',
+  },
+} as const;
 
-// ============================================================================
-// SVG ICONS
-// ============================================================================
+type StatusTab = 'ALL' | LeadStatus;
+type SourceTab = 'ALL' | LeadSource;
 
-const PlusIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-  </svg>
-);
-const RefreshIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="23 4 23 10 17 10"/>
-    <polyline points="1 20 1 14 7 14"/>
-    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-  </svg>
-);
-const SearchIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-  </svg>
-);
-const ChevronIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="6 9 12 15 18 9"/>
-  </svg>
-);
-const PhoneIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
-  </svg>
-);
-const EmailIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-    <polyline points="22,6 12,13 2,6"/>
-  </svg>
-);
-const ManualIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-  </svg>
-);
-const BotIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/>
-    <path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/>
-  </svg>
-);
-const WalletIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
-    <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
-  </svg>
-);
-const InboxEmptyIcon = () => (
-  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <path d="M22 12h-6l-2 3H10l-2-3H2"/>
-    <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
-  </svg>
-);
+const STATUS_TABS: { id: StatusTab; label: string }[] = [
+  { id: 'ALL',                  label: 'Wszystkie' },
+  { id: LeadStatus.IN_PROGRESS, label: 'W kontakcie' },
+  { id: LeadStatus.CONVERTED,   label: 'Zrealizowane' },
+  { id: LeadStatus.ABANDONED,   label: 'Odpuszczone' },
+];
 
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-const getSourceIcon = (source: LeadSource) => {
-  switch (source) {
-    case LeadSource.PHONE:  return <PhoneIcon />;
-    case LeadSource.EMAIL:  return <EmailIcon />;
-    default:                return <ManualIcon />;
-  }
-};
-
-const formatContact = (lead: Lead): { primary: string; secondary?: string } => {
-  if (lead.customerName) {
-    const isPhone = !lead.contactIdentifier.includes('@');
-    return {
-      primary: lead.customerName,
-      secondary: isPhone
-        ? formatPhoneNumber(lead.contactIdentifier)
-        : truncateEmail(lead.contactIdentifier, 28),
-    };
-  }
-  const isPhone = !lead.contactIdentifier.includes('@');
-  return {
-    primary: isPhone
-      ? formatPhoneNumber(lead.contactIdentifier)
-      : truncateEmail(lead.contactIdentifier, 28),
-  };
-};
+const SOURCE_TABS: { id: SourceTab; label: string }[] = [
+  { id: 'ALL',             label: 'Wszystkie' },
+  { id: LeadSource.PHONE,  label: 'Telefon' },
+  { id: LeadSource.EMAIL,  label: 'E-mail' },
+  { id: LeadSource.MANUAL, label: 'Ręczne' },
+];
 
 const STATUS_LABELS: Record<LeadStatus, string> = {
   [LeadStatus.IN_PROGRESS]: 'W kontakcie',
@@ -905,275 +902,183 @@ const STATUS_LABELS: Record<LeadStatus, string> = {
   [LeadStatus.ABANDONED]:   'Odpuszczony',
 };
 
-// ============================================================================
-// LEAD ACCORDION CARD
-// ============================================================================
+const getStatusVariant = (lead: Lead): 'new' | 'progress' | 'converted' | 'abandoned' => {
+  if (lead.requiresVerification && lead.status === LeadStatus.IN_PROGRESS) return 'new';
+  if (lead.status === LeadStatus.IN_PROGRESS) return 'progress';
+  if (lead.status === LeadStatus.CONVERTED)   return 'converted';
+  return 'abandoned';
+};
 
-interface AccordionCardProps {
+const getStatusLabel = (lead: Lead): string => {
+  if (lead.requiresVerification && lead.status === LeadStatus.IN_PROGRESS) return 'Nowy';
+  return STATUS_LABELS[lead.status];
+};
+
+const formatContact = (lead: Lead): { primary: string; secondary?: string } => {
+  if (lead.customerName) {
+    return {
+      primary: lead.customerName,
+      secondary: lead.contactIdentifier.includes('@')
+        ? truncateEmail(lead.contactIdentifier, 28)
+        : formatPhoneNumber(lead.contactIdentifier),
+    };
+  }
+  return {
+    primary: lead.contactIdentifier.includes('@')
+      ? truncateEmail(lead.contactIdentifier, 32)
+      : formatPhoneNumber(lead.contactIdentifier),
+  };
+};
+
+// ─── Expanded row component ───────────────────────────────────────────────────
+
+interface ExpandedRowProps {
   lead: Lead;
-  isExpanded: boolean;
-  onToggle: (id: string) => void;
+  colSpan: number;
 }
 
-const LeadAccordionCard: React.FC<AccordionCardProps> = ({ lead, isExpanded, onToggle }) => {
-  const { lead: detail, isLoading: isDetailLoading } = useLead(isExpanded ? lead.id : undefined);
+const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
+  const { lead: detail, isLoading: isDetailLoading } = useLead(lead.id);
   const updateStatus = useUpdateLeadStatus();
   const updateValue  = useUpdateLeadValue();
 
-  const [priceInput, setPriceInput]   = useState('');
-  const [priceSaved, setPriceSaved]   = useState(false);
-  const priceInputRef = useRef<HTMLInputElement>(null);
+  const [priceInput, setPriceInput] = useState(String(lead.estimatedValue / 100));
+  const [savedMsg, setSavedMsg]     = useState(false);
 
-  // Sync input with current value when card expands
   useEffect(() => {
-    if (isExpanded) {
-      setPriceInput(String(lead.estimatedValue / 100));
-      setPriceSaved(false);
-    }
-  }, [isExpanded, lead.estimatedValue]);
+    setPriceInput(String(lead.estimatedValue / 100));
+    setSavedMsg(false);
+  }, [lead.estimatedValue]);
 
-  const handleSavePrice = useCallback(() => {
-    const newValue = parseCurrencyToGrosze(priceInput);
-    if (!isNaN(newValue) && newValue >= 0) {
-      updateValue.mutate({ id: lead.id, estimatedValue: newValue });
-      setPriceSaved(true);
-      setTimeout(() => setPriceSaved(false), 2500);
+  const handleSave = () => {
+    const val = parseCurrencyToGrosze(priceInput);
+    if (!isNaN(val) && val >= 0) {
+      updateValue.mutate({ id: lead.id, estimatedValue: val });
+      setSavedMsg(true);
+      setTimeout(() => setSavedMsg(false), 2500);
     }
-  }, [priceInput, lead.id, updateValue]);
-
-  const handlePriceKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSavePrice();
   };
 
-  const handleStatusChange = useCallback((status: LeadStatus) => {
-    updateStatus.mutate({ id: lead.id, status });
-  }, [lead.id, updateStatus]);
-
-  const contact   = formatContact(lead);
-  const isNew     = lead.requiresVerification;
   const estimation = detail?.estimation ?? null;
 
   return (
-    <CardWrapper $isNew={isNew} $status={lead.status} $isExpanded={isExpanded}>
-      {/* ── Collapsed Row ── */}
-      <CardRow onClick={() => onToggle(lead.id)}>
-        <SourceBadge $source={lead.source}>
-          {getSourceIcon(lead.source)}
-        </SourceBadge>
-
-        <ContactBlock>
-          <ContactName title={contact.primary}>{contact.primary}</ContactName>
-          {contact.secondary && <ContactId>{contact.secondary}</ContactId>}
-        </ContactBlock>
-
-        {lead.initialMessage && (
-          <MessagePreview title={lead.initialMessage}>
-            {lead.initialMessage}
-          </MessagePreview>
-        )}
-
-        <CardMeta>
-          <TimeLabel>{formatRelativeTime(lead.updatedAt || lead.createdAt)}</TimeLabel>
-          {isNew && <NewBadge>Nowy</NewBadge>}
-          <ValueChip>{formatCurrency(lead.estimatedValue)}</ValueChip>
-          <StatusPill $status={lead.status}>{STATUS_LABELS[lead.status]}</StatusPill>
-          <ExpandToggle $isExpanded={isExpanded}>
-            <ChevronIcon />
-          </ExpandToggle>
-        </CardMeta>
-      </CardRow>
-
-      {/* ── Expanded Panel ── */}
-      {isExpanded && (
+    <ExpandedTr>
+      <ExpandedTd colSpan={colSpan}>
         <ExpandedPanel>
-          {/* Wiadomość */}
-          {lead.initialMessage && (
-            <div>
-              <SectionLabel>Wiadomość od klienta</SectionLabel>
-              <FullMessage>{lead.initialMessage}</FullMessage>
-            </div>
-          )}
-
-          {/* AI Estimation */}
-          <div>
-            <SectionLabel>Automatyczna wycena AI</SectionLabel>
-            {isDetailLoading ? (
-              <EstimationBox>
-                <EstimationHeader>
-                  <BotIcon />
-                  <EstimationTitle>Wczytywanie wyceny…</EstimationTitle>
-                </EstimationHeader>
-                <EstimationBody>
-                  <EstimationLoadingRow style={{ width: '70%' }} />
-                  <EstimationLoadingRow style={{ width: '55%' }} />
-                  <EstimationLoadingRow style={{ width: '40%', marginTop: 8 }} />
-                </EstimationBody>
-              </EstimationBox>
-            ) : estimation ? (
-              <EstimationBox>
-                <EstimationHeader>
-                  <BotIcon />
-                  <EstimationTitle>Szacowany koszt (na podstawie dopasowania)</EstimationTitle>
-                </EstimationHeader>
-                <EstimationBody>
-                  {estimation.matchedItems.map((item) => (
-                    <EstimationRow key={item.serviceName}>
-                      <EstRowName>{item.serviceName}</EstRowName>
-                      <EstRowPrice>
-                        {formatCurrency(item.priceGross)} brutto
-                      </EstRowPrice>
-                    </EstimationRow>
-                  ))}
-                  <EstimationRow $isTotal>
-                    <EstRowName $isTotal>ŁĄCZNIE</EstRowName>
-                    <EstRowPrice $isTotal>
-                      {formatCurrency(estimation.totalGross)} brutto
-                      {estimation.unmatchedNeeds.length > 0 && (
-                        <span style={{ fontWeight: 400, fontSize: 11, marginLeft: 4 }}>
-                          + {estimation.unmatchedNeeds.join(', ')}
-                        </span>
-                      )}
-                    </EstRowPrice>
-                  </EstimationRow>
-                </EstimationBody>
-                {estimation.unmatchedNeeds.length > 0 && (
-                  <UnmatchedSection>
-                    <UnmatchedTitle>Nie znaleziono w cenniku</UnmatchedTitle>
-                    <UnmatchedList>
-                      {estimation.unmatchedNeeds.map((need) => (
-                        <UnmatchedItem key={need}>{need}</UnmatchedItem>
-                      ))}
-                    </UnmatchedList>
-                  </UnmatchedSection>
-                )}
-              </EstimationBox>
-            ) : (
-              <EstimationBox>
-                <EstimationHeader>
-                  <BotIcon />
-                  <EstimationTitle>Wycena AI</EstimationTitle>
-                </EstimationHeader>
-                <NoEstimation>Brak automatycznej wyceny dla tego leada.</NoEstimation>
-              </EstimationBox>
+          {/* Left — message + estimation */}
+          <PanelSection>
+            {lead.initialMessage && (
+              <>
+                <PanelLabel>Wiadomość od klienta</PanelLabel>
+                <MessageBox>{lead.initialMessage}</MessageBox>
+              </>
             )}
-          </div>
 
-          {/* Admin price override */}
-          <div>
-            <SectionLabel>Twoja wycena</SectionLabel>
-            <PriceOverrideRow>
-              <PriceLabel htmlFor={`price-${lead.id}`}>Szacowana wartość:</PriceLabel>
+            <PanelLabel>Kosztorys wstępny</PanelLabel>
+
+            {isDetailLoading ? (
+              <EstCard>
+                <EstRow><SkeletonPulse $w="55%" /></EstRow>
+                <EstRow><SkeletonPulse $w="45%" /></EstRow>
+                <EstRow $isTotal><SkeletonPulse $w="30%" /></EstRow>
+              </EstCard>
+            ) : estimation && estimation.matchedItems.length > 0 ? (
+              <EstCard>
+                {estimation.matchedItems.map(item => (
+                  <EstRow key={item.serviceName}>
+                    <EstName>{item.serviceName}</EstName>
+                    <EstPrice>{formatCurrency(item.priceGross)} brutto</EstPrice>
+                  </EstRow>
+                ))}
+                <EstRow $isTotal>
+                  <EstName $isTotal>ŁĄCZNIE</EstName>
+                  <EstPrice $isTotal>
+                    {formatCurrency(estimation.totalGross)} brutto
+                    {estimation.unmatchedNeeds.length > 0 && (
+                      <span style={{ fontWeight: 400, fontSize: 11, marginLeft: 4, color: '#92400e' }}>
+                        + {estimation.unmatchedNeeds.join(', ')}
+                      </span>
+                    )}
+                  </EstPrice>
+                </EstRow>
+                {estimation.unmatchedNeeds.length > 0 && (
+                  <UnmatchedRow>
+                    <UnmatchedLabel>Nie znaleziono w cenniku:</UnmatchedLabel>
+                    {estimation.unmatchedNeeds.map(n => (
+                      <UnmatchedTag key={n}>{n}</UnmatchedTag>
+                    ))}
+                  </UnmatchedRow>
+                )}
+              </EstCard>
+            ) : (
+              <NoEstBox>Brak kosztorysu wstępnego dla tego leada.</NoEstBox>
+            )}
+          </PanelSection>
+
+          {/* Right — price override + status */}
+          <PanelSection>
+            <PanelLabel>Twoja wycena</PanelLabel>
+            <PriceRow>
               <PriceInputWrap>
                 <PriceInput
-                  id={`price-${lead.id}`}
-                  ref={priceInputRef}
                   type="number"
                   min="0"
                   step="0.01"
                   value={priceInput}
-                  onChange={(e) => { setPriceInput(e.target.value); setPriceSaved(false); }}
-                  onKeyDown={handlePriceKeyDown}
-                  placeholder="0"
+                  onChange={e => { setPriceInput(e.target.value); setSavedMsg(false); }}
+                  onKeyDown={e => e.key === 'Enter' && handleSave()}
                 />
                 <PriceSuffix>PLN</PriceSuffix>
               </PriceInputWrap>
-              <SavePriceBtn
-                onClick={handleSavePrice}
-                disabled={updateValue.isPending}
-              >
+              <SaveBtn onClick={handleSave} disabled={updateValue.isPending}>
                 {updateValue.isPending ? 'Zapisywanie…' : 'Zapisz'}
-              </SavePriceBtn>
-              {priceSaved && <PriceSaved>✓ Zapisano</PriceSaved>}
-            </PriceOverrideRow>
-          </div>
+              </SaveBtn>
+              {savedMsg && <SavedTag>✓ Zapisano</SavedTag>}
+            </PriceRow>
 
-          {/* Status Actions */}
-          <div>
-            <SectionLabel>Zmień status</SectionLabel>
-            <StatusActions>
-              <StatusActionLabel>Status:</StatusActionLabel>
-              <StatusBtn
-                $variant="blue"
+            <PanelLabel style={{ marginTop: 6 }}>Zmień status</PanelLabel>
+            <StatusBtnGroup>
+              <StatusActionBtn
                 $active={lead.status === LeadStatus.IN_PROGRESS}
-                onClick={() => handleStatusChange(LeadStatus.IN_PROGRESS)}
+                $color="#1d4ed8"
+                onClick={() => updateStatus.mutate({ id: lead.id, status: LeadStatus.IN_PROGRESS })}
                 disabled={updateStatus.isPending}
               >
                 W kontakcie
-              </StatusBtn>
-              <StatusBtn
-                $variant="green"
+              </StatusActionBtn>
+              <StatusActionBtn
                 $active={lead.status === LeadStatus.CONVERTED}
-                onClick={() => handleStatusChange(LeadStatus.CONVERTED)}
+                $color="#16a34a"
+                onClick={() => updateStatus.mutate({ id: lead.id, status: LeadStatus.CONVERTED })}
                 disabled={updateStatus.isPending}
               >
                 Zrealizowany
-              </StatusBtn>
-              <StatusBtn
-                $variant="gray"
+              </StatusActionBtn>
+              <StatusActionBtn
                 $active={lead.status === LeadStatus.ABANDONED}
-                onClick={() => handleStatusChange(LeadStatus.ABANDONED)}
+                $color="#64748b"
+                onClick={() => updateStatus.mutate({ id: lead.id, status: LeadStatus.ABANDONED })}
                 disabled={updateStatus.isPending}
               >
                 Odpuszczony
-              </StatusBtn>
-            </StatusActions>
-          </div>
+              </StatusActionBtn>
+            </StatusBtnGroup>
+          </PanelSection>
         </ExpandedPanel>
-      )}
-    </CardWrapper>
+      </ExpandedTd>
+    </ExpandedTr>
   );
 };
 
-// ============================================================================
-// SKELETON ROWS
-// ============================================================================
-
-const SkeletonCardRow: React.FC = () => (
-  <CardWrapper $isNew={false} $status={LeadStatus.IN_PROGRESS} $isExpanded={false}>
-    <CardRow style={{ cursor: 'default' }}>
-      <div style={{ width: 36, height: 36, background: '#f0f0f0', borderRadius: 8, flexShrink: 0 }} />
-      <ContactBlock>
-        <SkeletonBar $w="120px" $h="14px" />
-        <SkeletonBar $w="80px" $h="11px" style={{ marginTop: 3 }} />
-      </ContactBlock>
-      <MessagePreview as="div">
-        <SkeletonBar $w="240px" $h="13px" />
-      </MessagePreview>
-      <CardMeta>
-        <SkeletonBar $w="50px" $h="12px" />
-        <SkeletonBar $w="70px" $h="22px" />
-        <SkeletonBar $w="80px" $h="22px" />
-      </CardMeta>
-    </CardRow>
-  </CardWrapper>
-);
-
-// ============================================================================
-// MAIN VIEW
-// ============================================================================
-
-const statusFilterOptions: { value: LeadStatus | 'ALL'; label: string; color?: string }[] = [
-  { value: 'ALL',                   label: 'Wszystkie' },
-  { value: LeadStatus.IN_PROGRESS,  label: 'W kontakcie',  color: '#1d4ed8' },
-  { value: LeadStatus.CONVERTED,    label: 'Zrealizowane', color: '#16a34a' },
-  { value: LeadStatus.ABANDONED,    label: 'Odpuszczone',  color: '#6b7280' },
-];
-
-const sourceFilterOptions: { value: LeadSource | 'ALL'; label: string }[] = [
-  { value: 'ALL',             label: 'Wszystkie źródła' },
-  { value: LeadSource.PHONE,  label: 'Telefon' },
-  { value: LeadSource.EMAIL,  label: 'E-mail' },
-  { value: LeadSource.MANUAL, label: 'Ręczne' },
-];
+// ─── Main view ────────────────────────────────────────────────────────────────
 
 export const LeadListView: React.FC = () => {
   useLeadSocket();
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-
-  const [activeStatus, setActiveStatus] = useState<LeadStatus | 'ALL'>('ALL');
-  const [activeSource, setActiveSource] = useState<LeadSource | 'ALL'>('ALL');
+  const [activeStatus, setActiveStatus] = useState<StatusTab>('ALL');
+  const [activeSource, setActiveSource] = useState<SourceTab>('ALL');
   const [searchValue, setSearchValue]   = useState('');
 
   const [filters, setFilters] = useState<LeadListFilters>({
@@ -1187,6 +1092,7 @@ export const LeadListView: React.FC = () => {
   });
 
   const { leads, pagination, isLoading, isError, refetch } = useLeads(filters);
+  const { summary, isLoading: isSummaryLoading } = useLeadPipelineSummary();
 
   const newLeadsCount = leads.filter(l => l.requiresVerification).length;
 
@@ -1196,161 +1102,309 @@ export const LeadListView: React.FC = () => {
     setFilters(p => ({ ...p, search: v, page: 1 }));
   }, []);
 
-  const handleStatusFilter = useCallback((v: LeadStatus | 'ALL') => {
+  const handleStatus = useCallback((v: StatusTab) => {
     setActiveStatus(v);
     setFilters(p => ({ ...p, status: v === 'ALL' ? [] : [v], page: 1 }));
   }, []);
 
-  const handleSourceFilter = useCallback((v: LeadSource | 'ALL') => {
+  const handleSource = useCallback((v: SourceTab) => {
     setActiveSource(v);
     setFilters(p => ({ ...p, source: v === 'ALL' ? [] : [v], page: 1 }));
   }, []);
 
-  const handleToggle = useCallback((id: string) => {
+  const toggleExpand = useCallback((id: string) => {
     setExpandedId(prev => prev === id ? null : id);
   }, []);
 
-  const sourceFilterForStats =
-    activeSource === 'ALL' ? undefined : [activeSource];
+  const COL_SPAN = 7;
+
+  const renderTableBody = () => {
+    if (isLoading) {
+      return Array.from({ length: 5 }, (_, i) => (
+        <LoadingRow key={i}>
+          {Array.from({ length: COL_SPAN }, (_, j) => (
+            <LoadingCell key={j}>
+              <SkeletonPulse $w={j === 0 ? '34px' : j === 1 ? '120px' : j === 5 ? '80px' : '60px'} $h={j === 0 ? '34px' : '13px'} />
+            </LoadingCell>
+          ))}
+        </LoadingRow>
+      ));
+    }
+
+    if (isError) {
+      return (
+        <tr>
+          <td colSpan={COL_SPAN}>
+            <ErrorWrap>
+              <p style={{ margin: '0 0 8px', fontWeight: 600 }}>Nie udało się załadować leadów</p>
+              <RetryBtn onClick={() => refetch()}>Spróbuj ponownie</RetryBtn>
+            </ErrorWrap>
+          </td>
+        </tr>
+      );
+    }
+
+    if (leads.length === 0) {
+      return (
+        <tr>
+          <td colSpan={COL_SPAN}>
+            <EmptyState>
+              <Inbox size={40} strokeWidth={1.25} />
+              <div>
+                <EmptyTitle>Brak leadów</EmptyTitle>
+                <EmptyDesc>
+                  {searchValue || activeStatus !== 'ALL' || activeSource !== 'ALL'
+                    ? 'Brak leadów spełniających wybrane kryteria'
+                    : 'Nowe leady pojawią się tutaj automatycznie'}
+                </EmptyDesc>
+              </div>
+            </EmptyState>
+          </td>
+        </tr>
+      );
+    }
+
+    return leads.flatMap(lead => {
+      const isExpanded = expandedId === lead.id;
+      const contact = formatContact(lead);
+
+      const rows = [
+        <Tr
+          key={lead.id}
+          $isExpanded={isExpanded}
+          onClick={() => toggleExpand(lead.id)}
+        >
+          <TdIcon>
+            <SourceWrap $source={lead.source}>
+              {lead.source === LeadSource.PHONE
+                ? <Phone />
+                : lead.source === LeadSource.EMAIL
+                  ? <Mail />
+                  : <PenLine />
+              }
+              {lead.requiresVerification && <NewIndicator />}
+            </SourceWrap>
+          </TdIcon>
+
+          <Td>
+            <CellStack>
+              <CellMain>{contact.primary}</CellMain>
+              {contact.secondary && <CellSub>{contact.secondary}</CellSub>}
+            </CellStack>
+          </Td>
+
+          <Td>
+            {lead.initialMessage
+              ? <CellNote title={lead.initialMessage}>{lead.initialMessage}</CellNote>
+              : <CellSub style={{ fontStyle: 'italic' }}>—</CellSub>
+            }
+          </Td>
+
+          <Td>
+            <CellSub>{formatRelativeTime(lead.updatedAt || lead.createdAt)}</CellSub>
+          </Td>
+
+          <Td>
+            <StatusBadge $variant={getStatusVariant(lead)}>
+              {getStatusLabel(lead)}
+            </StatusBadge>
+          </Td>
+
+          <Td>
+            <CellMono>{formatCurrency(lead.estimatedValue)}</CellMono>
+            <CellSub>brutto</CellSub>
+          </Td>
+
+          <TdActions onClick={e => e.stopPropagation()}>
+            <IconBtn
+              $rotated={isExpanded}
+              title={isExpanded ? 'Zwiń' : 'Rozwiń'}
+              onClick={() => toggleExpand(lead.id)}
+            >
+              <ChevronDown />
+            </IconBtn>
+          </TdActions>
+        </Tr>,
+      ];
+
+      if (isExpanded) {
+        rows.push(
+          <ExpandedRow key={`${lead.id}-expanded`} lead={lead} colSpan={COL_SPAN} />
+        );
+      }
+
+      return rows;
+    });
+  };
+
+  const startItem = pagination ? (pagination.currentPage - 1) * pagination.itemsPerPage + 1 : 0;
+  const endItem   = pagination ? Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems) : 0;
 
   return (
-    <PageContainer>
+    <ViewContainer>
       {/* Header */}
-      <PageHeader>
+      <ViewHeader>
         <TitleSection>
           <PageTitle>Leady</PageTitle>
-          <PageSubtitle>Zarządzaj zapytaniami i potencjalnymi klientami</PageSubtitle>
+          <PageMeta>
+            <PageSubtitle>Zarządzaj zapytaniami i potencjalnymi klientami</PageSubtitle>
+            {pagination && (
+              <TotalChip>{pagination.totalItems} leadów</TotalChip>
+            )}
+            {!isLoading && newLeadsCount > 0 && (
+              <NewChip>
+                <NewDot />
+                {newLeadsCount} {newLeadsCount === 1 ? 'nowy' : newLeadsCount < 5 ? 'nowe' : 'nowych'}
+              </NewChip>
+            )}
+          </PageMeta>
         </TitleSection>
-        <HeaderActions>
-          <IconButton onClick={() => refetch()} title="Odśwież">
-            <RefreshIcon />
-          </IconButton>
+
+        <HeaderBtns>
+          <SecondaryBtn onClick={() => refetch()}>
+            <RefreshCw />
+            Odśwież
+          </SecondaryBtn>
           <AddButton onClick={() => setIsFormOpen(true)}>
-            <PlusIcon />
+            <Plus />
             Dodaj lead
           </AddButton>
-        </HeaderActions>
-      </PageHeader>
+        </HeaderBtns>
+      </ViewHeader>
 
-      {/* Stats */}
-      <LeadStatsBar sourceFilter={sourceFilterForStats} />
-
-      {/* New leads banner */}
-      {!isLoading && newLeadsCount > 0 && (
-        <NewLeadsBanner>
-          <BannerDot />
-          <BannerText>
-            Masz {newLeadsCount} {newLeadsCount === 1 ? 'nowy lead' : newLeadsCount < 5 ? 'nowe leady' : 'nowych leadów'}{' '}
-            <BannerSub>— wymagają Twojej uwagi</BannerSub>
-          </BannerText>
-        </NewLeadsBanner>
-      )}
-
-      {/* Filters */}
-      <FiltersSection>
-        <SearchWrapper>
-          <SearchIconWrap><SearchIcon /></SearchIconWrap>
-          <SearchInput
-            type="text"
-            placeholder="Szukaj po nazwie, kontakcie lub wiadomości…"
-            value={searchValue}
-            onChange={handleSearch}
-          />
-        </SearchWrapper>
-
-        <FilterDivider />
-
-        <ChipsGroup>
-          {sourceFilterOptions.map(opt => (
-            <Chip
-              key={opt.value}
-              $active={activeSource === opt.value}
-              onClick={() => handleSourceFilter(opt.value)}
-            >
-              {opt.label}
-            </Chip>
-          ))}
-        </ChipsGroup>
-
-        <FilterDivider />
-
-        <ChipsGroup>
-          {statusFilterOptions.map(opt => (
-            <Chip
-              key={opt.value}
-              $active={activeStatus === opt.value}
-              $color={opt.color}
-              onClick={() => handleStatusFilter(opt.value)}
-            >
-              {opt.label}
-            </Chip>
-          ))}
-        </ChipsGroup>
-      </FiltersSection>
-
-      {/* Content */}
-      {isError ? (
-        <ErrorBox>
-          <p style={{ margin: '0 0 8px', fontWeight: 600 }}>Nie udało się załadować leadów</p>
-          <button onClick={() => refetch()} style={{ cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', color: '#991b1b' }}>
-            Spróbuj ponownie
-          </button>
-        </ErrorBox>
-      ) : isLoading ? (
-        <LeadsList>
-          {[1, 2, 3, 4, 5].map(i => <SkeletonCardRow key={i} />)}
-        </LeadsList>
-      ) : leads.length === 0 ? (
-        <EmptyState>
-          <InboxEmptyIcon />
-          <div>
-            <EmptyTitle>Brak leadów</EmptyTitle>
-            <EmptyDesc>
-              {searchValue || activeStatus !== 'ALL' || activeSource !== 'ALL'
-                ? 'Brak leadów spełniających wybrane kryteria'
-                : 'Nowe leady pojawią się tutaj automatycznie'}
-            </EmptyDesc>
-          </div>
-        </EmptyState>
-      ) : (
-        <LeadsList>
-          {leads.map(lead => (
-            <LeadAccordionCard
-              key={lead.id}
-              lead={lead}
-              isExpanded={expandedId === lead.id}
-              onToggle={handleToggle}
+      {/* Stats tiles */}
+      <StatsGrid>
+        {isSummaryLoading ? (
+          <>
+            <StatTileSkeleton {...TILE_CONFIGS.active} />
+            <StatTileSkeleton {...TILE_CONFIGS.pipeline} />
+            <StatTileSkeleton {...TILE_CONFIGS.converted} />
+            <StatTileSkeleton {...TILE_CONFIGS.monthly} />
+          </>
+        ) : (
+          <>
+            <StatTile
+              {...TILE_CONFIGS.active}
+              icon={Users}
+              value={summary?.inProgressCount ?? 0}
+              label="Aktywne leady"
             />
-          ))}
-        </LeadsList>
-      )}
+            <StatTile
+              {...TILE_CONFIGS.pipeline}
+              icon={TrendingUp}
+              value={summary ? formatCurrency(summary.totalPipelineValue) : '—'}
+              label="Wartość pipeline"
+            />
+            <StatTile
+              {...TILE_CONFIGS.converted}
+              icon={CheckCircle2}
+              value={summary?.convertedThisWeekCount ?? 0}
+              label="Zrealizowane (tydzień)"
+              subContent={
+                summary
+                  ? <span style={{ fontSize: 12, color: st.textMuted }}>{formatCurrency(summary.convertedThisWeekValue)}</span>
+                  : undefined
+              }
+            />
+            <StatTile
+              {...TILE_CONFIGS.monthly}
+              icon={BarChart3}
+              value={summary ? formatCurrency(summary.leadsValueThisMonth) : '—'}
+              label="Wartość (ten miesiąc)"
+            />
+          </>
+        )}
+      </StatsGrid>
 
-      {/* Pagination */}
-      {pagination && pagination.totalPages > 1 && (
-        <PaginationRow>
-          <PaginationInfo>
-            Wyświetlanie {(pagination.currentPage - 1) * pagination.itemsPerPage + 1}–
-            {Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)}{' '}
-            z {pagination.totalItems}
-          </PaginationInfo>
-          <PaginationBtns>
-            <PagBtn
-              disabled={pagination.currentPage === 1}
-              onClick={() => setFilters(p => ({ ...p, page: p.page - 1 }))}
-            >
-              Poprzednia
-            </PagBtn>
-            <PagBtn
-              disabled={pagination.currentPage === pagination.totalPages}
-              onClick={() => setFilters(p => ({ ...p, page: p.page + 1 }))}
-            >
-              Następna
-            </PagBtn>
-          </PaginationBtns>
-        </PaginationRow>
-      )}
+      {/* Content section */}
+      <ContentSection>
+        <FilterBar>
+          <FilterTopRow>
+            <SearchWrap>
+              <SearchIcon>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </SearchIcon>
+              <SearchInput
+                type="text"
+                placeholder="Szukaj po nazwie, kontakcie…"
+                value={searchValue}
+                onChange={handleSearch}
+              />
+            </SearchWrap>
+
+            <TabGroup>
+              {SOURCE_TABS.map(tab => (
+                <TabBtn
+                  key={tab.id}
+                  $active={activeSource === tab.id}
+                  onClick={() => handleSource(tab.id)}
+                >
+                  {tab.label}
+                </TabBtn>
+              ))}
+            </TabGroup>
+
+            <Spacer />
+
+            <TabGroup>
+              {STATUS_TABS.map(tab => (
+                <TabBtn
+                  key={tab.id}
+                  $active={activeStatus === tab.id}
+                  onClick={() => handleStatus(tab.id)}
+                >
+                  {tab.label}
+                </TabBtn>
+              ))}
+            </TabGroup>
+          </FilterTopRow>
+        </FilterBar>
+
+        <TableWrapper>
+          <Table>
+            <thead>
+              <tr>
+                <ThIcon />
+                <Th>Kontakt</Th>
+                <Th>Wiadomość</Th>
+                <Th>Aktywność</Th>
+                <Th>Status</Th>
+                <Th>Wartość</Th>
+                <ThActions />
+              </tr>
+            </thead>
+            <tbody>
+              {renderTableBody()}
+            </tbody>
+          </Table>
+        </TableWrapper>
+
+        {pagination && pagination.totalPages > 1 && (
+          <PaginationContainer aria-label="Pagination">
+            <PaginationInfo>
+              Wyświetlanie {startItem}–{endItem} z {pagination.totalItems} leadów
+            </PaginationInfo>
+            <PaginationControls>
+              <PageBtn
+                disabled={pagination.currentPage === 1}
+                onClick={() => setFilters(p => ({ ...p, page: p.page - 1 }))}
+              >
+                ←
+              </PageBtn>
+              <PageBtn
+                disabled={pagination.currentPage === pagination.totalPages}
+                onClick={() => setFilters(p => ({ ...p, page: p.page + 1 }))}
+              >
+                →
+              </PageBtn>
+            </PaginationControls>
+          </PaginationContainer>
+        )}
+      </ContentSection>
 
       <LeadForm isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} />
-    </PageContainer>
+    </ViewContainer>
   );
 };
