@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import styled, { css, keyframes } from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import {
-  PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { usePaymentMethodReport } from '../hooks/useFinance';
@@ -45,9 +45,6 @@ const formatPeriodLabel = (label: string, granularity: ReportGranularity): strin
   const m = new Date(Number(year), Number(month) - 1).toLocaleDateString('pl-PL', { month: 'short' });
   return `${m} ${year}`;
 };
-
-const pluralPayments = (n: number) =>
-  n === 1 ? '1 płatność' : n < 5 ? `${n} płatności` : `${n} płatności`;
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -251,7 +248,79 @@ const ChartTitle = styled.div`
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: ${st.textMuted};
-  margin-bottom: 14px;
+  margin-bottom: 16px;
+`;
+
+const DonutWrapper = styled.div`
+  position: relative;
+`;
+
+const DonutCenterOverlay = styled.div`
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+`;
+
+const DonutCenterValue = styled.div`
+  font-size: 22px;
+  font-weight: 800;
+  color: ${st.text};
+  line-height: 1;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+`;
+
+const DonutCenterSub = styled.div`
+  font-size: 10px;
+  color: ${st.textMuted};
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+`;
+
+const ChartLegend = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 18px;
+`;
+
+const LegendRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 9px;
+`;
+
+const LegendDot = styled.div<{ $color: string }>`
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: ${p => p.$color};
+  flex-shrink: 0;
+`;
+
+const LegendName = styled.div`
+  font-size: 13px;
+  color: ${st.text};
+  flex: 1;
+`;
+
+const LegendValue = styled.div`
+  font-size: 12px;
+  font-weight: 600;
+  color: ${st.text};
+  font-variant-numeric: tabular-nums;
+`;
+
+const LegendPct = styled.div`
+  font-size: 11px;
+  color: ${st.textMuted};
+  width: 36px;
+  text-align: right;
 `;
 
 // ─── Period breakdown table ───────────────────────────────────────────────────
@@ -267,19 +336,17 @@ const TableCard = styled.div`
 const TableHead = styled.div`
   display: grid;
   grid-template-columns: 1fr repeat(3, 1fr);
-  gap: 0;
   background: ${st.bg};
   border-bottom: 1px solid ${p => p.theme.colors.border};
 `;
 
-const Th = styled.div<{ $center?: boolean }>`
+const Th = styled.div`
   padding: 10px 14px;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: ${st.textMuted};
-  text-align: ${p => p.$center ? 'center' : 'left'};
 `;
 
 const ThMethod = styled(Th)<{ $color: string }>`
@@ -312,11 +379,10 @@ const TotalRow = styled(TableRow)`
   border-bottom: none;
 `;
 
-const Td = styled.div<{ $center?: boolean }>`
+const Td = styled.div`
   padding: 10px 14px;
   font-size: 13px;
   color: ${st.text};
-  text-align: ${p => p.$center ? 'center' : 'left'};
 `;
 
 const TdPeriod = styled(Td)`
@@ -324,10 +390,12 @@ const TdPeriod = styled(Td)`
   color: ${st.textSecondary};
 `;
 
-const TdGross = styled(Td)`
+const TdGross = styled.div`
+  font-size: 13px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.3px;
+  color: ${st.text};
 `;
 
 const TdNet = styled.div`
@@ -437,7 +505,7 @@ const MethodCardItem: React.FC<MethodCardProps> = ({ method, data, isLoading }) 
       <CardHeader>
         <CardIconBox $color={color} $bg={bg}><Icon /></CardIconBox>
         <CardLabel>{METHOD_LABELS[method]}</CardLabel>
-        {!isLoading && <CardCount>{pluralPayments(data.count)}</CardCount>}
+        {!isLoading && <CardCount>{data.count} szt.</CardCount>}
       </CardHeader>
       {isLoading ? (
         <>
@@ -453,6 +521,66 @@ const MethodCardItem: React.FC<MethodCardProps> = ({ method, data, isLoading }) 
     </MethodCard>
   );
 };
+
+// ─── Donut chart component ────────────────────────────────────────────────────
+
+interface DonutChartProps {
+  data: Array<{ name: string; value: number; fill: string }>;
+  centerValue: string;
+  centerLabel: string;
+  legendFormatter: (value: number) => string;
+  total: number;
+  isRevenue: boolean;
+}
+
+const DonutChart: React.FC<DonutChartProps> = ({
+  data, centerValue, centerLabel, legendFormatter, total, isRevenue,
+}) => (
+  <>
+    <DonutWrapper>
+      <ResponsiveContainer width="100%" height={190}>
+        <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={62}
+            outerRadius={88}
+            paddingAngle={2}
+            cornerRadius={3}
+            dataKey="value"
+            isAnimationActive
+            animationBegin={0}
+            animationDuration={450}
+            animationEasing="ease-out"
+            stroke="none"
+          >
+            {data.map((entry, i) => (
+              <Cell key={i} fill={entry.fill} />
+            ))}
+          </Pie>
+          <Tooltip content={<ChartTooltip isRevenue={isRevenue} />} />
+        </PieChart>
+      </ResponsiveContainer>
+      <DonutCenterOverlay>
+        <DonutCenterValue>{centerValue}</DonutCenterValue>
+        <DonutCenterSub>{centerLabel}</DonutCenterSub>
+      </DonutCenterOverlay>
+    </DonutWrapper>
+    <ChartLegend>
+      {data.map(item => (
+        <LegendRow key={item.name}>
+          <LegendDot $color={item.fill} />
+          <LegendName>{item.name}</LegendName>
+          <LegendValue>{legendFormatter(item.value)}</LegendValue>
+          <LegendPct>
+            {total > 0 ? `${((item.value / total) * 100).toFixed(0)}%` : '—'}
+          </LegendPct>
+        </LegendRow>
+      ))}
+    </ChartLegend>
+  </>
+);
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -473,11 +601,11 @@ export const PaymentSummaryTab: React.FC = () => {
     documentType: docType || undefined,
   });
 
-  const totals = report?.totals;
+  const totals  = report?.totals;
   const methods: Method[] = ['cash', 'card', 'transfer'];
 
-  const totalCount    = totals ? methods.reduce((s, m) => s + totals[m].count, 0) : 0;
-  const totalGross    = totals ? methods.reduce((s, m) => s + totals[m].totalGross, 0) : 0;
+  const totalCount = totals ? methods.reduce((s, m) => s + totals[m].count, 0) : 0;
+  const totalGross = totals ? methods.reduce((s, m) => s + totals[m].totalGross, 0) : 0;
 
   const countChartData = totals
     ? methods.map(m => ({ name: METHOD_LABELS[m], value: totals[m].count, fill: METHOD_COLORS[m] }))
@@ -486,6 +614,11 @@ export const PaymentSummaryTab: React.FC = () => {
   const revenueChartData = totals
     ? methods.map(m => ({ name: METHOD_LABELS[m], value: totals[m].totalGross, fill: METHOD_COLORS[m] }))
     : [];
+
+  // Only show periods that have at least one payment recorded
+  const activePeriods = report?.periods.filter(
+    p => p.cash.count > 0 || p.card.count > 0 || p.transfer.count > 0,
+  ) ?? [];
 
   return (
     <>
@@ -530,7 +663,10 @@ export const PaymentSummaryTab: React.FC = () => {
       </FiltersStrip>
 
       {isError && (
-        <ErrorBox>Nie udało się załadować raportu. <button onClick={() => refetch()}>Spróbuj ponownie</button></ErrorBox>
+        <ErrorBox>
+          Nie udało się załadować raportu.{' '}
+          <button onClick={() => refetch()}>Spróbuj ponownie</button>
+        </ErrorBox>
       )}
 
       <Content>
@@ -551,74 +687,32 @@ export const PaymentSummaryTab: React.FC = () => {
           <ChartsRow>
             <ChartCard>
               <ChartTitle>Liczba płatności</ChartTitle>
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie
-                    data={countChartData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={85}
-                    paddingAngle={3}
-                    dataKey="value"
-                    label={({ name, percent }) =>
-                      `${name} ${(percent * 100).toFixed(0)}%`
-                    }
-                    labelLine={false}
-                  >
-                    {countChartData.map((entry, i) => (
-                      <Cell key={i} fill={entry.fill} stroke="none" />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<ChartTooltip isRevenue={false} />} />
-                  <Legend
-                    formatter={(value, entry: any) => (
-                      <span style={{ fontSize: 12, color: st.textSecondary }}>
-                        {value} — {entry.payload.value} szt.
-                      </span>
-                    )}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              <DonutChart
+                data={countChartData}
+                centerValue={String(totalCount)}
+                centerLabel="płatności"
+                legendFormatter={v => `${v} szt.`}
+                total={totalCount}
+                isRevenue={false}
+              />
             </ChartCard>
 
             <ChartCard>
               <ChartTitle>Przychód (brutto)</ChartTitle>
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie
-                    data={revenueChartData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={85}
-                    paddingAngle={3}
-                    dataKey="value"
-                    label={({ name, percent }) =>
-                      `${name} ${(percent * 100).toFixed(0)}%`
-                    }
-                    labelLine={false}
-                  >
-                    {revenueChartData.map((entry, i) => (
-                      <Cell key={i} fill={entry.fill} stroke="none" />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<ChartTooltip isRevenue />} />
-                  <Legend
-                    formatter={(value, entry: any) => (
-                      <span style={{ fontSize: 12, color: st.textSecondary }}>
-                        {value} — {fmtCompact(entry.payload.value)} PLN
-                      </span>
-                    )}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              <DonutChart
+                data={revenueChartData}
+                centerValue={fmtCompact(totalGross)}
+                centerLabel="PLN brutto"
+                legendFormatter={v => `${fmtCompact(v)} PLN`}
+                total={totalGross}
+                isRevenue
+              />
             </ChartCard>
           </ChartsRow>
         )}
 
         {/* ── Period breakdown table ────────────────────────────────────── */}
-        {!isLoading && report && report.periods.length > 0 && (
+        {!isLoading && activePeriods.length > 0 && (
           <TableCard>
             <TableHead>
               <Th>Okres</Th>
@@ -627,9 +721,9 @@ export const PaymentSummaryTab: React.FC = () => {
               <ThMethod $color={METHOD_COLORS.transfer}>Przelew</ThMethod>
             </TableHead>
 
-            {report.periods.map((period, idx) => (
+            {activePeriods.map((period, idx) => (
               <TableRow key={period.periodLabel} $even={idx % 2 === 0}>
-                <TdPeriod>{formatPeriodLabel(period.periodLabel, report.granularity)}</TdPeriod>
+                <TdPeriod>{formatPeriodLabel(period.periodLabel, report!.granularity)}</TdPeriod>
                 {methods.map(m => (
                   <Td key={m}>
                     <TdGross>{period[m].totalGross > 0 ? fmt(period[m].totalGross) : '—'}</TdGross>
@@ -644,7 +738,6 @@ export const PaymentSummaryTab: React.FC = () => {
               </TableRow>
             ))}
 
-            {/* Totals footer */}
             {totals && (
               <TotalRow>
                 <Td style={{ fontWeight: 700 }}>ŁĄCZNIE</Td>
@@ -660,7 +753,7 @@ export const PaymentSummaryTab: React.FC = () => {
           </TableCard>
         )}
 
-        {!isLoading && report && report.periods.length === 0 && (
+        {!isLoading && report && activePeriods.length === 0 && (
           <EmptyBox>Brak danych dla wybranego zakresu.</EmptyBox>
         )}
 
