@@ -163,29 +163,25 @@ export interface InboundCallPayload {
 }
 
 /**
- * Pipeline summary for dashboard widget
+ * Pipeline summary returned by GET /api/v1/leads/pipeline-summary
  */
 export interface LeadPipelineSummary {
-  /** Total estimated value of IN_PROGRESS leads in grosze */
-  totalPipelineValue: number;
-  /** Count of IN_PROGRESS leads */
-  inProgressCount: number;
-  /** Count of CONVERTED leads */
-  convertedCount: number;
-  /** Count of ABANDONED leads */
-  abandonedCount: number;
-  /** Number of leads converted this week */
-  convertedThisWeekCount: number;
-  /** Value of leads converted this week in grosze */
-  convertedThisWeekValue: number;
-  /** Number of leads converted previous week */
-  convertedPreviousWeekCount: number;
-  /** Value of leads converted previous week in grosze */
-  convertedPreviousWeekValue: number;
-  /** Total value of leads created this month in grosze */
-  leadsValueThisMonth: number;
-  /** Value of converted leads this month in grosze */
+  /** Leads waiting for first contact (urgency metric) */
+  awaitingFirstContactCount: number;
+  /** Average waiting time for first contact in minutes */
+  avgWaitingTimeMinutes: number;
+  /** Conversion rate this month as a percentage (e.g. 42.5 = 42.5%) */
+  conversionRateThisMonth: number;
+  /** Trend in percentage points vs previous month (positive = improvement) */
+  conversionRateTrendPp: number;
+  /** Value of leads converted this month in PLN */
   convertedValueThisMonth: number;
+  /** Number of leads converted this month */
+  convertedCountThisMonth: number;
+  /** Total value of at-risk leads (no contact 3+ days) in PLN */
+  atRiskValue: number;
+  /** Number of at-risk leads */
+  atRiskCount: number;
 }
 
 /**

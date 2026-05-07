@@ -225,86 +225,18 @@ const mockUpdateLead = async (data: UpdateLeadRequest): Promise<Lead> => {
   });
 };
 
-const mockGetPipelineSummary = async (sourceFilter?: LeadSource[]): Promise<LeadPipelineSummary> => {
+const mockGetPipelineSummary = async (_sourceFilter?: LeadSource[]): Promise<LeadPipelineSummary> => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      // Filter by source if provided
-      let filteredLeads = mockLeadsStore;
-      if (sourceFilter && sourceFilter.length > 0) {
-        filteredLeads = mockLeadsStore.filter((l) => sourceFilter.includes(l.source));
-      }
-
-      const inProgress = filteredLeads.filter((l) => l.status === ('IN_PROGRESS' as LeadStatus));
-      const converted = filteredLeads.filter((l) => l.status === ('CONVERTED' as LeadStatus));
-      const abandoned = filteredLeads.filter((l) => l.status === ('ABANDONED' as LeadStatus));
-
-      const totalPipelineValue = inProgress.reduce(
-        (sum, lead) => sum + lead.estimatedValue,
-        0
-      );
-
-      // Calculate this month's value
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const leadsThisMonth = filteredLeads.filter(
-        (l) => new Date(l.createdAt) >= startOfMonth
-      );
-      const leadsValueThisMonth = leadsThisMonth.reduce(
-        (sum, lead) => sum + lead.estimatedValue,
-        0
-      );
-
-      // Calculate converted value this month (by conversion/updatedAt date)
-      const convertedThisMonth = converted.filter((l) => {
-        const updatedAt = l.updatedAt ? new Date(l.updatedAt) : new Date(l.createdAt);
-        return updatedAt >= startOfMonth;
-      });
-      const convertedValueThisMonth = convertedThisMonth.reduce(
-        (sum, lead) => sum + lead.estimatedValue,
-        0
-      );
-
-      // Calculate this week's conversions (by updatedAt date - conversion date)
-      const startOfThisWeek = new Date(now);
-      startOfThisWeek.setDate(now.getDate() - now.getDay() + 1); // Monday
-      startOfThisWeek.setHours(0, 0, 0, 0);
-
-      const startOfPreviousWeek = new Date(startOfThisWeek);
-      startOfPreviousWeek.setDate(startOfPreviousWeek.getDate() - 7);
-
-      const convertedThisWeek = converted.filter((l) => {
-        const updatedAt = l.updatedAt ? new Date(l.updatedAt) : new Date(l.createdAt);
-        return updatedAt >= startOfThisWeek;
-      });
-
-      const convertedPreviousWeek = converted.filter((l) => {
-        const updatedAt = l.updatedAt ? new Date(l.updatedAt) : new Date(l.createdAt);
-        return updatedAt >= startOfPreviousWeek && updatedAt < startOfThisWeek;
-      });
-
-      const convertedThisWeekCount = convertedThisWeek.length;
-      const convertedThisWeekValue = convertedThisWeek.reduce(
-        (sum, lead) => sum + lead.estimatedValue,
-        0
-      );
-
-      const convertedPreviousWeekCount = convertedPreviousWeek.length;
-      const convertedPreviousWeekValue = convertedPreviousWeek.reduce(
-        (sum, lead) => sum + lead.estimatedValue,
-        0
-      );
-
       resolve({
-        totalPipelineValue,
-        inProgressCount: inProgress.length,
-        convertedCount: converted.length,
-        abandonedCount: abandoned.length,
-        convertedThisWeekCount,
-        convertedThisWeekValue,
-        convertedPreviousWeekCount,
-        convertedPreviousWeekValue,
-        leadsValueThisMonth,
-        convertedValueThisMonth,
+        awaitingFirstContactCount: 5,
+        avgWaitingTimeMinutes: 135,
+        conversionRateThisMonth: 42.5,
+        conversionRateTrendPp: 8.3,
+        convertedValueThisMonth: 18400,
+        convertedCountThisMonth: 7,
+        atRiskValue: 12400,
+        atRiskCount: 3,
       });
     }, 200);
   });

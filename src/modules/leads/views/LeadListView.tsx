@@ -3,10 +3,10 @@ import React, { useState, useCallback, useEffect } from 'react';
 import styled, { css, keyframes } from 'styled-components';
 import {
   Inbox,
-  Users,
+  PhoneCall,
   TrendingUp,
   CheckCircle2,
-  BarChart3,
+  AlertTriangle,
   Plus,
   RefreshCw,
   ChevronDown,
@@ -42,6 +42,8 @@ import { LeadStatus, LeadSource } from '../types';
 import type { Lead, LeadListFilters } from '../types';
 import {
   formatCurrency,
+  formatPLN,
+  formatWaitingTime,
   formatRelativeTime,
   formatPhoneNumber,
   truncateEmail,
@@ -1397,12 +1399,12 @@ const VisitPreviewModal: React.FC<VisitPreviewModalProps> = ({ visitId, onClose 
 // ─── Static config ────────────────────────────────────────────────────────────
 
 const TILE_CONFIGS = {
-  active: {
-    accentColor: '#0ea5e9',
-    bgGradient: 'linear-gradient(140deg, #f0f9ff 0%, #ffffff 55%)',
-    iconBg: 'rgba(14, 165, 233, 0.1)',
+  awaiting: {
+    accentColor: '#dc2626',
+    bgGradient: 'linear-gradient(140deg, #fef2f2 0%, #ffffff 55%)',
+    iconBg: 'rgba(220, 38, 38, 0.1)',
   },
-  pipeline: {
+  conversion: {
     accentColor: '#3B82F6',
     bgGradient: 'linear-gradient(140deg, #eff6ff 0%, #ffffff 55%)',
     iconBg: 'rgba(59, 130, 246, 0.1)',
@@ -1412,7 +1414,7 @@ const TILE_CONFIGS = {
     bgGradient: 'linear-gradient(140deg, #f0fdf4 0%, #ffffff 55%)',
     iconBg: 'rgba(16, 185, 129, 0.1)',
   },
-  monthly: {
+  atRisk: {
     accentColor: '#F59E0B',
     bgGradient: 'linear-gradient(140deg, #fffbeb 0%, #ffffff 55%)',
     iconBg: 'rgba(245, 158, 11, 0.1)',
@@ -1863,41 +1865,66 @@ export const LeadListView: React.FC = () => {
       <StatsGrid>
         {isSummaryLoading ? (
           <>
-            <StatTileSkeleton {...TILE_CONFIGS.active} />
-            <StatTileSkeleton {...TILE_CONFIGS.pipeline} />
+            <StatTileSkeleton {...TILE_CONFIGS.awaiting} />
+            <StatTileSkeleton {...TILE_CONFIGS.conversion} />
             <StatTileSkeleton {...TILE_CONFIGS.converted} />
-            <StatTileSkeleton {...TILE_CONFIGS.monthly} />
+            <StatTileSkeleton {...TILE_CONFIGS.atRisk} />
           </>
         ) : (
           <>
             <StatTile
-              {...TILE_CONFIGS.active}
-              icon={Users}
-              value={summary?.inProgressCount ?? 0}
-              label="Aktywne leady"
+              {...TILE_CONFIGS.awaiting}
+              icon={PhoneCall}
+              value={summary?.awaitingFirstContactCount ?? 0}
+              label="Do obsłużenia"
+              subContent={summary && (
+                <span style={{ fontSize: 12, color: '#ef4444' }}>
+                  Śr. oczekiwanie: {formatWaitingTime(summary.avgWaitingTimeMinutes)}
+                </span>
+              )}
             />
             <StatTile
-              {...TILE_CONFIGS.pipeline}
+              {...TILE_CONFIGS.conversion}
               icon={TrendingUp}
-              value={summary ? formatCurrency(summary.totalPipelineValue) : '—'}
-              label="Wartość pipeline"
+              value={summary ? `${summary.conversionRateThisMonth.toFixed(1)}%` : '—'}
+              label="Konwersja (ten miesiąc)"
+              subContent={summary && (() => {
+                const trend = summary.conversionRateTrendPp;
+                const isUp = trend >= 0;
+                return (
+                  <span style={{ fontSize: 12, fontWeight: 600, color: isUp ? '#16a34a' : '#dc2626' }}>
+                    {isUp ? '↑' : '↓'} {Math.abs(trend).toFixed(1)} pp vs poprzedni miesiąc
+                  </span>
+                );
+              })()}
             />
             <StatTile
               {...TILE_CONFIGS.converted}
               icon={CheckCircle2}
-              value={summary?.convertedThisWeekCount ?? 0}
-              label="Zrealizowane (tydzień)"
-              subContent={
-                summary
-                  ? <span style={{ fontSize: 12, color: st.textMuted }}>{formatCurrency(summary.convertedThisWeekValue)}</span>
-                  : undefined
-              }
+              value={summary ? formatPLN(summary.convertedValueThisMonth) : '—'}
+              label="Zrealizowane (ten miesiąc)"
+              subContent={summary && (
+                <span style={{ fontSize: 12, color: st.textMuted }}>
+                  {summary.convertedCountThisMonth} {
+                    summary.convertedCountThisMonth === 1 ? 'lead' :
+                    summary.convertedCountThisMonth < 5 ? 'leady' : 'leadów'
+                  } zrealizowanych
+                </span>
+              )}
             />
             <StatTile
-              {...TILE_CONFIGS.monthly}
-              icon={BarChart3}
-              value={summary ? formatCurrency(summary.leadsValueThisMonth) : '—'}
-              label="Wartość (ten miesiąc)"
+              {...TILE_CONFIGS.atRisk}
+              icon={AlertTriangle}
+              value={summary ? formatPLN(summary.atRiskValue) : '—'}
+              label="Ryzyko utraty"
+              subContent={summary && (
+                <span style={{ fontSize: 12, color: '#d97706' }}>
+                  {summary.atRiskCount} {
+                    summary.atRiskCount === 1 ? 'lead' :
+                    summary.atRiskCount < 5 ? 'leady' : 'leadów'
+                  } bez kontaktu
+                </span>
+              )}
             />
           </>
         )}

@@ -1,6 +1,27 @@
 // src/modules/leads/utils/formatters.ts
 
 /**
+ * Format a PLN amount (already in PLN, not grosze) as a currency string.
+ * Used for summary endpoint values like convertedValueThisMonth, atRiskValue.
+ */
+export function formatPLN(valueInPLN: number): string {
+  return valueInPLN.toLocaleString('pl-PL', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }) + ' PLN';
+}
+
+/**
+ * Format minutes into a human-readable waiting time string (e.g. "2h 15min" or "45 min").
+ */
+export function formatWaitingTime(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m > 0 ? `${h}h ${m}min` : `${h}h`;
+}
+
+/**
  * Format a value in grosze to PLN currency string
  * @param valueInGrosze - Value in grosze (cents), e.g., 250000 = 2500.00 PLN
  * @returns Formatted string, e.g., "2 500 PLN"
