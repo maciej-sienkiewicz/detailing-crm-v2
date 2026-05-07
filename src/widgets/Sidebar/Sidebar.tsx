@@ -19,6 +19,7 @@ import {
     Settings,
     LogOut,
     Search,
+    Inbox,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
@@ -59,6 +60,7 @@ const menuSections: MenuSection[] = [
             { path: '/dashboard',  label: 'Tablica',   icon: LayoutDashboard },
             { path: '/operations', label: 'Wizyty',    icon: CalendarCheck },
             { path: '/calendar',   label: 'Kalendarz', icon: Calendar },
+            { path: '/leads',      label: 'Leady',     icon: Inbox },
         ],
     },
     {

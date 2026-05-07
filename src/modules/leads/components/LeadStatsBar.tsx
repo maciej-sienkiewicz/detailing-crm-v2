@@ -229,7 +229,7 @@ export const LeadStatsBar: React.FC<LeadStatsBarProps> = ({ sourceFilter }) => {
         </IconWrapper>
         <StatContent>
           <StatLabel>Aktywne leady</StatLabel>
-          <StatValue>{summary.activeLeadsCount}</StatValue>
+          <StatValue>{summary.inProgressCount}</StatValue>
         </StatContent>
       </StatCard>
 

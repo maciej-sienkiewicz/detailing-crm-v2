@@ -2,6 +2,8 @@
 import { apiClient } from '@/core';
 import type {
   Lead,
+  LeadDetail,
+  LeadEstimation,
   LeadId,
   LeadListFilters,
   LeadListResponse,
@@ -295,6 +297,72 @@ const mockDeleteLead = async (id: LeadId): Promise<void> => {
   });
 };
 
+const mockEstimations: Record<string, LeadEstimation> = {
+  '1': {
+    id: 'est-1',
+    status: 'COMPLETED',
+    extractedNeeds: ['Full Body PPF', 'Detailing wnętrza', 'Mycie felg'],
+    matchedItems: [
+      {
+        serviceId: 'svc-ppf',
+        serviceName: 'Full Body PPF',
+        priceNet: 668293,
+        vatRate: 23,
+        priceGross: 822000, // 8 220 PLN
+      },
+      {
+        serviceId: 'svc-interior',
+        serviceName: 'Detailing wnętrza',
+        priceNet: 56911,
+        vatRate: 23,
+        priceGross: 70000, // 700 PLN
+      },
+    ],
+    unmatchedNeeds: ['Mycie felg'],
+    totalGross: 892000, // 8 920 PLN
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  '2': {
+    id: 'est-2',
+    status: 'COMPLETED',
+    extractedNeeds: ['Powłoka ceramiczna', 'Korekta lakieru'],
+    matchedItems: [
+      {
+        serviceId: 'svc-ceramic',
+        serviceName: 'Powłoka ceramiczna',
+        priceNet: 284553,
+        vatRate: 23,
+        priceGross: 350000, // 3 500 PLN
+      },
+      {
+        serviceId: 'svc-correction',
+        serviceName: 'Korekta lakieru (1-etapowa)',
+        priceNet: 81301,
+        vatRate: 23,
+        priceGross: 100000, // 1 000 PLN
+      },
+    ],
+    unmatchedNeeds: [],
+    totalGross: 450000, // 4 500 PLN
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+};
+
+const mockGetLeadDetail = async (id: LeadId): Promise<LeadDetail> => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const lead = mockLeadsStore.find((l) => l.id === id);
+      if (!lead) {
+        reject(new Error('Lead not found'));
+        return;
+      }
+      resolve({ ...lead, estimation: mockEstimations[id] ?? null });
+    }, 200);
+  });
+};
+
 // For WebSocket integration - adds lead to mock store
 export const addLeadToMockStore = (lead: Lead): void => {
   mockLeadsStore.unshift(lead);
@@ -325,13 +393,11 @@ export const leadApi = {
   },
 
   /**
-   * Get a single lead by ID
+   * Get a single lead by ID — includes AI estimation breakdown if available
    */
-  getLead: async (id: LeadId): Promise<Lead> => {
+  getLead: async (id: LeadId): Promise<LeadDetail> => {
     if (USE_MOCKS) {
-      const lead = mockLeadsStore.find((l) => l.id === id);
-      if (!lead) throw new Error('Lead not found');
-      return Promise.resolve(lead);
+      return mockGetLeadDetail(id);
     }
 
     const response = await apiClient.get(`${BASE_PATH}/${id}`);

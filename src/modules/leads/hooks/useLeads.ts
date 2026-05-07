@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient, QueryKey } from '@tanstack/react
 import { leadApi } from '../api/leadApi';
 import type {
   Lead,
+  LeadDetail,
   LeadId,
   LeadListFilters,
   LeadListResponse,
@@ -45,16 +46,16 @@ export const useLeads = (filters: LeadListFilters) => {
 };
 
 /**
- * Hook for fetching a single lead by ID
+ * Hook for fetching a single lead detail by ID (includes AI estimation)
  */
 export const useLead = (id: LeadId | undefined) => {
   const queryKey = [...LEADS_KEY, 'detail', id];
 
-  const { data, isLoading, isError, error, refetch } = useQuery<Lead>({
+  const { data, isLoading, isError, error, refetch } = useQuery<LeadDetail>({
     queryKey,
     queryFn: () => leadApi.getLead(id!),
     enabled: !!id,
-    staleTime: 60_000, // 1 minute
+    staleTime: 60_000,
   });
 
   return {

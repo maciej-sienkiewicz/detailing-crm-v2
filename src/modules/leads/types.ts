@@ -179,3 +179,34 @@ export interface LeadFormValues {
   /** Display value in PLN (e.g., "2500.00") */
   estimatedValueDisplay: string;
 }
+
+// ---------------------------------------------------------------------------
+// AI Estimation types (returned from GET /api/v1/leads/{id})
+// ---------------------------------------------------------------------------
+
+export interface LeadEstimationItem {
+  serviceId: string | null;
+  serviceName: string;
+  /** Net price in grosze */
+  priceNet: number;
+  vatRate: number;
+  /** Gross price in grosze */
+  priceGross: number;
+}
+
+export interface LeadEstimation {
+  id: string;
+  status: string;
+  extractedNeeds: string[];
+  matchedItems: LeadEstimationItem[];
+  unmatchedNeeds: string[];
+  /** Total gross value in grosze */
+  totalGross: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Full lead detail — extends Lead with AI estimation breakdown */
+export interface LeadDetail extends Lead {
+  estimation: LeadEstimation | null;
+}
