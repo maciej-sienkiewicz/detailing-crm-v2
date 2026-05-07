@@ -14,6 +14,7 @@ import {
   Phone,
   Mail,
   PenLine,
+  Trash2,
   Car,
   Calendar,
   User,
@@ -26,12 +27,14 @@ import { ImageViewerModal } from '@/modules/visits/components/ImageViewerModal';
 import type { VisitPhoto } from '@/modules/visits/types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { StatTile, StatTileSkeleton } from '@/common/components/StatTile';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal/ConfirmationModal';
 import { LeadForm } from '../components/LeadForm';
 import {
   useLeads,
   useLead,
   useUpdateLeadStatus,
   useUpdateLeadValue,
+  useDeleteLead,
   useLeadPipelineSummary,
   useLeadSocket,
 } from '../hooks';
@@ -348,7 +351,7 @@ const ThIcon = styled(Th)`
 `;
 
 const ThActions = styled(Th)`
-  width: 52px;
+  width: 76px;
   padding-left: 0;
 `;
 
@@ -384,7 +387,7 @@ const TdIcon = styled(Td)`
 
 const TdActions = styled(Td)`
   padding-left: 0;
-  width: 52px;
+  width: 76px;
 `;
 
 // ─── Source icon ──────────────────────────────────────────────────────────────
@@ -490,7 +493,7 @@ const StatusBadge = styled.span<{ $variant: 'new' | 'progress' | 'converted' | '
 
 // ─── Icon action button — same as CustomerTable ───────────────────────────────
 
-const IconBtn = styled.button<{ $rotated?: boolean }>`
+const IconBtn = styled.button<{ $rotated?: boolean; $danger?: boolean }>`
   width: 28px;
   height: 28px;
   border-radius: 7px;
@@ -511,7 +514,21 @@ const IconBtn = styled.button<{ $rotated?: boolean }>`
   }
 
   tr:hover & { background: #f1f5f9; color: #475569; }
-  &:hover { background: #e2e8f0 !important; color: #0f172a !important; }
+
+  ${p => p.$danger
+    ? css`
+        &:hover { background: #fee2e2 !important; color: #dc2626 !important; }
+      `
+    : css`
+        &:hover { background: #e2e8f0 !important; color: #0f172a !important; }
+      `
+  }
+`;
+
+const ActionBtns = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 2px;
 `;
 
 // ─── Expanded row panel ───────────────────────────────────────────────────────
@@ -1636,6 +1653,9 @@ export const LeadListView: React.FC = () => {
   const [activeStatus, setActiveStatus] = useState<StatusTab>('ALL');
   const [activeSource, setActiveSource] = useState<SourceTab>('ALL');
   const [searchValue, setSearchValue]   = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const deleteLead = useDeleteLead();
 
   const [filters, setFilters] = useState<LeadListFilters>({
     search: '',
@@ -1774,13 +1794,22 @@ export const LeadListView: React.FC = () => {
           </Td>
 
           <TdActions onClick={e => e.stopPropagation()}>
-            <IconBtn
-              $rotated={isExpanded}
-              title={isExpanded ? 'Zwiń' : 'Rozwiń'}
-              onClick={() => toggleExpand(lead.id)}
-            >
-              <ChevronDown />
-            </IconBtn>
+            <ActionBtns>
+              <IconBtn
+                $danger
+                title="Usuń leada"
+                onClick={() => setDeleteTarget({ id: lead.id, name: lead.customerName || lead.contactIdentifier })}
+              >
+                <Trash2 />
+              </IconBtn>
+              <IconBtn
+                $rotated={isExpanded}
+                title={isExpanded ? 'Zwiń' : 'Rozwiń'}
+                onClick={() => toggleExpand(lead.id)}
+              >
+                <ChevronDown />
+              </IconBtn>
+            </ActionBtns>
           </TdActions>
         </Tr>,
       ];
@@ -1963,6 +1992,27 @@ export const LeadListView: React.FC = () => {
       </ContentSection>
 
       <LeadForm isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} />
+
+      <ConfirmationModal
+        isOpen={!!deleteTarget}
+        title="Usuń leada"
+        message={deleteTarget
+          ? `Czy na pewno chcesz usunąć leada „${deleteTarget.name}"? Tej operacji nie można cofnąć.`
+          : ''}
+        variant="danger"
+        confirmText={deleteLead.isPending ? 'Usuwanie…' : 'Usuń'}
+        cancelText="Anuluj"
+        onConfirm={() => {
+          if (!deleteTarget) return;
+          deleteLead.mutate(deleteTarget.id, {
+            onSuccess: () => {
+              setDeleteTarget(null);
+              if (expandedId === deleteTarget.id) setExpandedId(null);
+            },
+          });
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </ViewContainer>
   );
 };
