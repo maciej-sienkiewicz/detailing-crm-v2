@@ -10,6 +10,7 @@ import {
   CreateDocumentModal,
   CashRegisterPanel,
   InvoicingCredentialsPanel,
+  PaymentSummaryTab,
 } from '../components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
@@ -751,6 +752,9 @@ export const FinanceView: React.FC = () => {
             <TabItem $active={activeTab === 'invoicing'} onClick={() => setActiveTab('invoicing')}>
               Faktury zewnętrzne
             </TabItem>
+            <TabItem $active={activeTab === 'payment-summary'} onClick={() => setActiveTab('payment-summary')}>
+              Podsumowanie płatności
+            </TabItem>
           </TabBar>
 
           {activeTab === 'income' && (
@@ -761,6 +765,7 @@ export const FinanceView: React.FC = () => {
           )}
           {activeTab === 'cash' && <CashRegisterPanel />}
           {activeTab === 'invoicing' && <InvoicingCredentialsPanel />}
+          {activeTab === 'payment-summary' && <PaymentSummaryTab />}
         </PanelCard>
       </div>
 

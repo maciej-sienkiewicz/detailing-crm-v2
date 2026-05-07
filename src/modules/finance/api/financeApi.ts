@@ -10,6 +10,8 @@ import type {
   FinanceSummary,
   SyncInvoicesResult,
   ImportInvoicesResult,
+  PaymentMethodReport,
+  PaymentMethodReportParams,
 } from '../types';
 
 const BASE = '/v1/finance';
@@ -116,5 +118,16 @@ export const financeApi = {
   getInvoicePortalUrl: async (id: string): Promise<string> => {
     const response = await apiClient.get(`${BASE}/invoices/${id}/portal-url`);
     return response.data.url;
+  },
+
+  // ── Payment method report ──────────────────────────────────────────────────
+
+  getPaymentMethodReport: async (params: PaymentMethodReportParams): Promise<PaymentMethodReport> => {
+    const p = new URLSearchParams({ granularity: params.granularity });
+    if (params.dateFrom)     p.append('dateFrom',     params.dateFrom);
+    if (params.dateTo)       p.append('dateTo',       params.dateTo);
+    if (params.documentType) p.append('documentType', params.documentType);
+    const response = await apiClient.get(`${BASE}/payment-method-report?${p}`);
+    return response.data;
   },
 };

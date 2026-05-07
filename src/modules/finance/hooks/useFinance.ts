@@ -3,6 +3,7 @@ import { financeApi } from '../api/financeApi';
 import type {
   DocumentListFilters,
   CreateDocumentRequest,
+  PaymentMethodReportParams,
   CashAdjustRequest,
 } from '../types';
 
@@ -165,4 +166,16 @@ export const useFinanceSummary = (dateFrom?: string, dateTo?: string) => {
   });
 
   return { summary: data, isLoading, isError, refetch };
+};
+
+export const FINANCE_PAYMENT_REPORT_KEY = ['finance', 'payment-method-report'];
+
+export const usePaymentMethodReport = (params: PaymentMethodReportParams) => {
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: [...FINANCE_PAYMENT_REPORT_KEY, params],
+    queryFn: () => financeApi.getPaymentMethodReport(params),
+    staleTime: 2 * 60_000,
+  });
+
+  return { report: data, isLoading, isError, refetch };
 };

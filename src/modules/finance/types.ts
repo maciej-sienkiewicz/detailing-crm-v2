@@ -161,7 +161,7 @@ export interface FinanceSummary {
   overduePayables: number;
 }
 
-export type FinanceTab = 'income' | 'expense' | 'cash' | 'invoicing';
+export type FinanceTab = 'income' | 'expense' | 'cash' | 'invoicing' | 'payment-summary';
 
 export interface SyncInvoicesResult {
   synced: number;
@@ -210,4 +210,45 @@ export interface SyncResult {
   synced: number;
   failed: number;
   errors: string[];
+}
+
+// ─── Payment Method Report ─────────────────────────────────────────────────────
+
+export type ReportGranularity = 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
+
+export interface PaymentMethodEntry {
+  count: number;
+  /** Amount in PLN */
+  totalNet: number;
+  /** Amount in PLN */
+  totalGross: number;
+}
+
+export interface PaymentMethodPeriod {
+  periodLabel: string;
+  dateFrom: string;
+  dateTo: string;
+  cash: PaymentMethodEntry;
+  card: PaymentMethodEntry;
+  transfer: PaymentMethodEntry;
+}
+
+export interface PaymentMethodReport {
+  granularity: ReportGranularity;
+  dateFrom: string;
+  dateTo: string;
+  documentType: string | null;
+  periods: PaymentMethodPeriod[];
+  totals: {
+    cash: PaymentMethodEntry;
+    card: PaymentMethodEntry;
+    transfer: PaymentMethodEntry;
+  };
+}
+
+export interface PaymentMethodReportParams {
+  granularity: ReportGranularity;
+  dateFrom?: string;
+  dateTo?: string;
+  documentType?: string;
 }
