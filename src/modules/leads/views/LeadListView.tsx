@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { customerApi } from '@/modules/customers/api/customerApi';
 import type { Customer } from '@/modules/customers/types';
+import { useToast } from '@/common/components/Toast';
 import { servicesApi } from '@/modules/services/api/servicesApi';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { visitApi } from '@/modules/visits/api/visitApi';
@@ -634,6 +635,29 @@ const EstCard = styled.div`
   border: 1px solid ${st.border};
   border-radius: 10px;
   overflow: hidden;
+`;
+
+const EstColumnWrapper = styled.div<{ $dimmed?: boolean }>`
+  transition: opacity 0.2s, filter 0.2s;
+  ${p => p.$dimmed && css`
+    opacity: 0.38;
+    filter: grayscale(0.85);
+    pointer-events: none;
+    user-select: none;
+  `}
+`;
+
+const QuotePlaceholder = styled.div`
+  background: #fff;
+  border: 1.5px dashed ${st.border};
+  border-radius: 10px;
+  padding: 28px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: ${st.fontSm};
+  color: ${st.textMuted};
+  font-style: italic;
 `;
 
 const EstRow = styled.div<{ $isTotal?: boolean }>`
@@ -2199,6 +2223,7 @@ interface UserQuoteEditorProps {
 const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote, prefillItems, onSaved, onDeleted }) => {
   const saveQuote   = useSaveUserQuote(leadId);
   const deleteQuote = useDeleteUserQuote(leadId);
+  const { showSuccess } = useToast();
 
   const emptyItem = (): UserQuoteItem => ({ _key: `new-${Date.now()}`, serviceName: '', priceNet: '', vatRate: 23, priceGross: '' });
 
@@ -2227,8 +2252,6 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
     if (prefillItems?.length) return buildItemsFromEstimation(prefillItems);
     return [emptyItem()];
   });
-  const [savedMsg, setSavedMsg] = useState(false);
-
   useEffect(() => {
     if (existingQuote) {
       setItems(buildItemsFromQuote(existingQuote));
@@ -2267,8 +2290,7 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
 
     saveQuote.mutate({ items: validItems }, {
       onSuccess: (saved) => {
-        setSavedMsg(true);
-        setTimeout(() => setSavedMsg(false), 2500);
+        showSuccess('Kosztorys zapisany');
         onSaved?.(saved.totalGross);
       },
     });
@@ -2350,7 +2372,6 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
         <QuoteSaveBtn onClick={handleSave} disabled={saveQuote.isPending}>
           {saveQuote.isPending ? 'Zapisywanie…' : 'Zapisz kosztorys'}
         </QuoteSaveBtn>
-        {savedMsg && <SavedTag>✓ Zapisano</SavedTag>}
         {existingQuote && (
           <QuoteDeleteBtn onClick={handleDelete} disabled={deleteQuote.isPending}>
             {deleteQuote.isPending ? 'Usuwanie…' : 'Usuń kosztorys'}
@@ -2379,9 +2400,11 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
   const estimation    = detail?.estimation ?? null;
   const userQuote     = detail?.userQuote ?? null;
   const relatedVisits = estimation?.relatedVisits ?? detail?.relatedVisits ?? lead.relatedVisits ?? [];
+  const hasQuote      = !!userQuote;
 
-  // Show quote editor if explicitly opened OR if a saved quote exists
-  const showQuoteEditor = quoteEditorOpen || !!userQuote;
+  // AI is dimmed when user has their own quote; user quote is dimmed when not set and editor is closed
+  const aiDimmed    = hasQuote;
+  const quoteDimmed = !hasQuote && !quoteEditorOpen;
 
   // Silently sync estimatedValue when quote is saved or deleted
   const handleQuoteSaved = (totalGross: number) => {
@@ -2390,6 +2413,12 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
   const handleQuoteDeleted = () => {
     updateValue.mutate({ id: lead.id, estimatedValue: estimation?.totalGross ?? 0 });
   };
+
+  const editorBtnLabel = quoteEditorOpen && !hasQuote
+    ? 'Zamknij'
+    : hasQuote
+      ? 'Edytuj'
+      : 'Wprowadź';
 
   return (
     <>
@@ -2405,28 +2434,26 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
               </div>
             )}
 
-            {/* Estimations — AI and user quote side by side, labels in row 1, cards in row 2 */}
-            <EstimationsGrid $twoCol={showQuoteEditor}>
+            {/* Estimations — always side by side; labels in row 1, cards in row 2 */}
+            <EstimationsGrid $twoCol={true}>
               {/* Row 1 col 1 — AI label */}
               <PanelLabel style={{ display: 'flex', alignItems: 'center' }}>
                 <FileText size={13} style={{ marginRight: 6 }} /> Kosztorys AI
                 {!isDetailLoading && (
                   <EditEstBtn
                     onClick={e => { e.stopPropagation(); setQuoteEditorOpen(v => !v); }}
-                    title={quoteEditorOpen ? 'Zamknij edytor' : 'Utwórz / edytuj swój kosztorys'}
+                    title={editorBtnLabel}
                   >
-                    <Edit3 /> {quoteEditorOpen ? 'Zamknij' : 'Edytuj'}
+                    <Edit3 /> {editorBtnLabel}
                   </EditEstBtn>
                 )}
               </PanelLabel>
 
-              {/* Row 1 col 2 — User quote label (only when visible) */}
-              {showQuoteEditor && (
-                <PanelLabel><Edit3 size={13} style={{ marginRight: 6 }} /> Twój kosztorys</PanelLabel>
-              )}
+              {/* Row 1 col 2 — User quote label */}
+              <PanelLabel><Edit3 size={13} style={{ marginRight: 6 }} /> Twój kosztorys</PanelLabel>
 
-              {/* Row 2 col 1 — AI card */}
-              <div>
+              {/* Row 2 col 1 — AI card (dimmed when user quote is active) */}
+              <EstColumnWrapper $dimmed={aiDimmed}>
                 {isDetailLoading ? (
                   <EstCard>
                     <EstRow><SkeletonPulse $w="55%" /></EstRow>
@@ -2464,37 +2491,31 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
                       </UnmatchedRow>
                     )}
                   </EstCard>
-                ) : !isDetailLoading ? (
-                  <NoEstBox>
-                    Brak kosztorysu AI.{' '}
-                    {!showQuoteEditor && (
-                      <button
-                        style={{ background: 'none', border: 'none', color: '#0ea5e9', cursor: 'pointer', fontFamily: 'inherit', padding: 0, fontSize: 'inherit' }}
-                        onClick={e => { e.stopPropagation(); setQuoteEditorOpen(true); }}
-                      >
-                        Utwórz swój →
-                      </button>
-                    )}
-                  </NoEstBox>
-                ) : null}
-              </div>
+                ) : (
+                  <NoEstBox>Brak kosztorysu AI.</NoEstBox>
+                )}
+              </EstColumnWrapper>
 
-              {/* Row 2 col 2 — User quote editor */}
-              {showQuoteEditor && (
-                <div>
-                  {isDetailLoading ? (
-                    <SkeletonPulse $h="80px" />
-                  ) : (
-                    <UserQuoteEditor
-                      leadId={lead.id}
-                      existingQuote={userQuote}
-                      prefillItems={!userQuote && estimation ? estimation.matchedItems : undefined}
-                      onSaved={handleQuoteSaved}
-                      onDeleted={handleQuoteDeleted}
-                    />
-                  )}
-                </div>
-              )}
+              {/* Row 2 col 2 — User quote (dimmed placeholder when not set and editor closed) */}
+              <EstColumnWrapper $dimmed={quoteDimmed}>
+                {isDetailLoading ? (
+                  <EstCard>
+                    <EstRow><SkeletonPulse $w="55%" /></EstRow>
+                    <EstRow><SkeletonPulse $w="45%" /></EstRow>
+                    <EstRow $isTotal><SkeletonPulse $w="30%" /></EstRow>
+                  </EstCard>
+                ) : quoteDimmed ? (
+                  <QuotePlaceholder>Brak własnego kosztorysu</QuotePlaceholder>
+                ) : (
+                  <UserQuoteEditor
+                    leadId={lead.id}
+                    existingQuote={userQuote}
+                    prefillItems={!userQuote && estimation ? estimation.matchedItems : undefined}
+                    onSaved={handleQuoteSaved}
+                    onDeleted={handleQuoteDeleted}
+                  />
+                )}
+              </EstColumnWrapper>
             </EstimationsGrid>
 
             {/* Related visits */}
