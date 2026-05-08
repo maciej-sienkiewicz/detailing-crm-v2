@@ -515,23 +515,20 @@ const StatusBadge = styled.span<{ $variant: 'new' | 'progress' | 'converted' | '
 `;
 
 const StatusTd = styled.td`
-  position: relative;
   padding: 0 12px;
   vertical-align: middle;
   white-space: nowrap;
 `;
 
 const StatusMenu = styled.div`
-  position: absolute;
-  top: calc(100% + 2px);
-  left: 12px;
+  position: fixed;
   background: #fff;
   border: 1px solid ${st.border};
   border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-  z-index: 200;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+  z-index: 9999;
   overflow: hidden;
-  min-width: 160px;
+  min-width: 170px;
 `;
 
 const StatusMenuItem = styled.button<{ $active: boolean; $color: string }>`
@@ -2436,6 +2433,16 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
   const { lead: detail, isLoading: isDetailLoading } = useLead(lead.id);
   const updateValue = useUpdateLeadValue();
 
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Scroll expanded panel into view after mount
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
+
   const [previewVisitId, setPreviewVisitId] = useState<string | null>(null);
   const [quoteEditorOpen, setQuoteEditorOpen] = useState(false);
 
@@ -2466,7 +2473,7 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
     <>
       <ExpandedTr>
         <ExpandedTd colSpan={colSpan}>
-          <ExpandedPanel>
+          <ExpandedPanel ref={panelRef}>
 
             {/* Initial message — full width */}
             {lead.initialMessage && (
@@ -2608,15 +2615,20 @@ export const LeadListView: React.FC = () => {
   const [deleteTarget, setDeleteTarget]     = useState<{ id: string; name: string } | null>(null);
   const [pickerLeadId, setPickerLeadId]     = useState<string | null>(null);
   const [statusMenuLeadId, setStatusMenuLeadId] = useState<string | null>(null);
+  const [statusMenuPos, setStatusMenuPos]       = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
   const updateStatus = useUpdateLeadStatus();
 
-  // Close status menu on outside click
+  // Close status menu on outside click or scroll
   useEffect(() => {
     if (!statusMenuLeadId) return;
     const close = () => setStatusMenuLeadId(null);
     document.addEventListener('click', close);
-    return () => document.removeEventListener('click', close);
+    window.addEventListener('scroll', close, true);
+    return () => {
+      document.removeEventListener('click', close);
+      window.removeEventListener('scroll', close, true);
+    };
   }, [statusMenuLeadId]);
 
   const deleteLead = useDeleteLead();
@@ -2735,15 +2747,15 @@ export const LeadListView: React.FC = () => {
           </TdIcon>
 
           <Td onClick={e => e.stopPropagation()}>
-            <CellStack>
-              <CellMain>{contact.primary}</CellMain>
-              {contact.secondary && <CellSub>{contact.secondary}</CellSub>}
-              {/* Customer assignment inline */}
-              {lead.assignedCustomer ? (() => {
-                const c = lead.assignedCustomer!;
-                const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || '—';
-                const initials = [c.firstName?.[0], c.lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?';
-                return (
+            {lead.assignedCustomer ? (() => {
+              const c = lead.assignedCustomer!;
+              const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || '—';
+              const initials = [c.firstName?.[0], c.lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?';
+              const contactSub = lead.contactIdentifier.includes('@')
+                ? truncateEmail(lead.contactIdentifier, 28)
+                : formatPhoneNumber(lead.contactIdentifier);
+              return (
+                <CellStack>
                   <CustomerChip
                     $assigned
                     title={`Klient: ${name}\nKliknij aby zmienić`}
@@ -2754,8 +2766,13 @@ export const LeadListView: React.FC = () => {
                     </PickerCustomerAvatar>
                     {name}
                   </CustomerChip>
-                );
-              })() : (
+                  <CellSub>{contactSub}</CellSub>
+                </CellStack>
+              );
+            })() : (
+              <CellStack>
+                <CellMain>{contact.primary}</CellMain>
+                {contact.secondary && <CellSub>{contact.secondary}</CellSub>}
                 <CustomerChip
                   $assigned={false}
                   title="Przypisz klienta z bazy"
@@ -2763,8 +2780,8 @@ export const LeadListView: React.FC = () => {
                 >
                   <User /> Przypisz klienta
                 </CustomerChip>
-              )}
-            </CellStack>
+              </CellStack>
+            )}
           </Td>
 
           <Td>
@@ -2783,32 +2800,15 @@ export const LeadListView: React.FC = () => {
           <StatusTd onClick={e => e.stopPropagation()}>
             <StatusBadge
               $variant={getStatusVariant(lead)}
-              onClick={e => { e.stopPropagation(); setStatusMenuLeadId(v => v === lead.id ? null : lead.id); }}
+              onClick={e => {
+                e.stopPropagation();
+                const rect = e.currentTarget.getBoundingClientRect();
+                setStatusMenuPos({ top: rect.bottom + 4, left: rect.left });
+                setStatusMenuLeadId(v => v === lead.id ? null : lead.id);
+              }}
             >
               {getStatusLabel(lead)}
             </StatusBadge>
-            {statusMenuLeadId === lead.id && (
-              <StatusMenu onClick={e => e.stopPropagation()}>
-                {([
-                  { status: LeadStatus.IN_PROGRESS, label: 'W kontakcie',  color: '#1d4ed8' },
-                  { status: LeadStatus.CONVERTED,   label: 'Zrealizowany', color: '#16a34a' },
-                  { status: LeadStatus.ABANDONED,   label: 'Odpuszczony',  color: '#64748b' },
-                ] as const).map(({ status, label, color }) => (
-                  <StatusMenuItem
-                    key={status}
-                    $active={lead.status === status}
-                    $color={color}
-                    disabled={updateStatus.isPending}
-                    onClick={() => {
-                      updateStatus.mutate({ id: lead.id, status });
-                      setStatusMenuLeadId(null);
-                    }}
-                  >
-                    {label}
-                  </StatusMenuItem>
-                ))}
-              </StatusMenu>
-            )}
           </StatusTd>
 
           <Td>
@@ -3055,6 +3055,38 @@ export const LeadListView: React.FC = () => {
           }
         }}
       />
+
+      {/* Status change dropdown — rendered via portal to escape table stacking context */}
+      {statusMenuLeadId && (() => {
+        const menuLead = leads.find(l => l.id === statusMenuLeadId);
+        if (!menuLead) return null;
+        return createPortal(
+          <StatusMenu
+            style={{ top: statusMenuPos.top, left: statusMenuPos.left }}
+            onClick={e => e.stopPropagation()}
+          >
+            {([
+              { status: LeadStatus.IN_PROGRESS, label: 'W kontakcie',  color: '#1d4ed8' },
+              { status: LeadStatus.CONVERTED,   label: 'Zrealizowany', color: '#16a34a' },
+              { status: LeadStatus.ABANDONED,   label: 'Odpuszczony',  color: '#64748b' },
+            ] as const).map(({ status, label, color }) => (
+              <StatusMenuItem
+                key={status}
+                $active={menuLead.status === status}
+                $color={color}
+                disabled={updateStatus.isPending}
+                onClick={() => {
+                  updateStatus.mutate({ id: menuLead.id, status });
+                  setStatusMenuLeadId(null);
+                }}
+              >
+                {label}
+              </StatusMenuItem>
+            ))}
+          </StatusMenu>,
+          document.body
+        );
+      })()}
 
       <ConfirmationModal
         isOpen={!!deleteTarget}
