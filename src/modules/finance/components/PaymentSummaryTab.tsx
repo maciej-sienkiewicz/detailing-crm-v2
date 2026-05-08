@@ -505,7 +505,11 @@ const MethodCardItem: React.FC<MethodCardProps> = ({ method, data, isLoading }) 
       <CardHeader>
         <CardIconBox $color={color} $bg={bg}><Icon /></CardIconBox>
         <CardLabel>{METHOD_LABELS[method]}</CardLabel>
-        {!isLoading && <CardCount>{data.count} szt.</CardCount>}
+          {!isLoading && (
+              <CardCount>
+                  {data.count} {data.count === 1 ? 'płatność' : 'płatności'}
+              </CardCount>
+          )}
       </CardHeader>
       {isLoading ? (
         <>
@@ -515,7 +519,7 @@ const MethodCardItem: React.FC<MethodCardProps> = ({ method, data, isLoading }) 
       ) : (
         <>
           <CardGross>{fmt(data.totalGross)}</CardGross>
-          <CardNet>netto {fmt(data.totalNet)}</CardNet>
+          <CardNet>{fmt(data.totalNet)} netto</CardNet>
         </>
       )}
     </MethodCard>
@@ -691,7 +695,7 @@ export const PaymentSummaryTab: React.FC = () => {
                 data={countChartData}
                 centerValue={String(totalCount)}
                 centerLabel="płatności"
-                legendFormatter={v => `${v} szt.`}
+                legendFormatter={v => `${v} ${v === 1 ? 'płatność' : 'płatności'}`}
                 total={totalCount}
                 isRevenue={false}
               />
@@ -728,7 +732,7 @@ export const PaymentSummaryTab: React.FC = () => {
                   <Td key={m}>
                     <TdGross>{period[m].totalGross > 0 ? fmt(period[m].totalGross) : '—'}</TdGross>
                     {period[m].totalNet > 0 && (
-                      <TdNet>netto {fmt(period[m].totalNet)}</TdNet>
+                      <TdNet>{fmt(period[m].totalNet)} netto</TdNet>
                     )}
                     {period[m].count > 0 && (
                       <TdCount>{period[m].count} szt.</TdCount>
@@ -744,7 +748,7 @@ export const PaymentSummaryTab: React.FC = () => {
                 {methods.map(m => (
                   <Td key={m}>
                     <TdGross>{fmt(totals[m].totalGross)}</TdGross>
-                    <TdNet>netto {fmt(totals[m].totalNet)}</TdNet>
+                    <TdNet>{fmt(totals[m].totalNet)} netto</TdNet>
                     <TdCount>{totals[m].count} szt.</TdCount>
                   </Td>
                 ))}
