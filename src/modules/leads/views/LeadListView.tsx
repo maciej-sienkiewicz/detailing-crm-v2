@@ -498,6 +498,11 @@ const StatusBadge = styled.span<{ $variant: 'new' | 'progress' | 'converted' | '
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: filter 0.15s;
+
+  &:hover { filter: brightness(0.92); }
 
   ${p => {
     switch (p.$variant) {
@@ -507,6 +512,44 @@ const StatusBadge = styled.span<{ $variant: 'new' | 'progress' | 'converted' | '
       case 'abandoned': return css`background:#f3f4f6; color:#4b5563;`;
     }
   }}
+`;
+
+const StatusTd = styled.td`
+  position: relative;
+  padding: 0 12px;
+  vertical-align: middle;
+  white-space: nowrap;
+`;
+
+const StatusMenu = styled.div`
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 12px;
+  background: #fff;
+  border: 1px solid ${st.border};
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 200;
+  overflow: hidden;
+  min-width: 160px;
+`;
+
+const StatusMenuItem = styled.button<{ $active: boolean; $color: string }>`
+  display: block;
+  width: 100%;
+  padding: 9px 14px;
+  background: ${p => p.$active ? `${p.$color}14` : 'transparent'};
+  border: none;
+  text-align: left;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: ${p => p.$active ? 700 : 500};
+  color: ${p => p.$active ? p.$color : st.textSecondary};
+  cursor: pointer;
+  transition: background 0.12s;
+
+  &:hover { background: ${p => `${p.$color}1a`}; color: ${p => p.$color}; }
+  & + & { border-top: 1px solid #f1f5f9; }
 `;
 
 // ─── Icon action button — same as CustomerTable ───────────────────────────────
@@ -2557,13 +2600,24 @@ export const LeadListView: React.FC = () => {
 
   const queryClient = useQueryClient();
 
-  const [expandedId, setExpandedId]     = useState<string | null>(null);
-  const [isFormOpen, setIsFormOpen]     = useState(false);
-  const [activeStatus, setActiveStatus] = useState<StatusTab>('ALL');
-  const [activeSource, setActiveSource] = useState<SourceTab>('ALL');
-  const [searchValue, setSearchValue]   = useState('');
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
-  const [pickerLeadId, setPickerLeadId] = useState<string | null>(null);
+  const [expandedId, setExpandedId]         = useState<string | null>(null);
+  const [isFormOpen, setIsFormOpen]         = useState(false);
+  const [activeStatus, setActiveStatus]     = useState<StatusTab>('ALL');
+  const [activeSource, setActiveSource]     = useState<SourceTab>('ALL');
+  const [searchValue, setSearchValue]       = useState('');
+  const [deleteTarget, setDeleteTarget]     = useState<{ id: string; name: string } | null>(null);
+  const [pickerLeadId, setPickerLeadId]     = useState<string | null>(null);
+  const [statusMenuLeadId, setStatusMenuLeadId] = useState<string | null>(null);
+
+  const updateStatus = useUpdateLeadStatus();
+
+  // Close status menu on outside click
+  useEffect(() => {
+    if (!statusMenuLeadId) return;
+    const close = () => setStatusMenuLeadId(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [statusMenuLeadId]);
 
   const deleteLead = useDeleteLead();
 
@@ -2610,7 +2664,7 @@ export const LeadListView: React.FC = () => {
     setExpandedId(prev => prev === id ? null : id);
   }, []);
 
-  const COL_SPAN = 8;
+  const COL_SPAN = 7;
 
   const renderTableBody = () => {
     if (isLoading) {
@@ -2680,10 +2734,36 @@ export const LeadListView: React.FC = () => {
             </SourceWrap>
           </TdIcon>
 
-          <Td>
+          <Td onClick={e => e.stopPropagation()}>
             <CellStack>
               <CellMain>{contact.primary}</CellMain>
               {contact.secondary && <CellSub>{contact.secondary}</CellSub>}
+              {/* Customer assignment inline */}
+              {lead.assignedCustomer ? (() => {
+                const c = lead.assignedCustomer!;
+                const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || '—';
+                const initials = [c.firstName?.[0], c.lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?';
+                return (
+                  <CustomerChip
+                    $assigned
+                    title={`Klient: ${name}\nKliknij aby zmienić`}
+                    onClick={() => setPickerLeadId(lead.id)}
+                  >
+                    <PickerCustomerAvatar style={{ width: 14, height: 14, fontSize: 7, flexShrink: 0 }}>
+                      {initials}
+                    </PickerCustomerAvatar>
+                    {name}
+                  </CustomerChip>
+                );
+              })() : (
+                <CustomerChip
+                  $assigned={false}
+                  title="Przypisz klienta z bazy"
+                  onClick={() => setPickerLeadId(lead.id)}
+                >
+                  <User /> Przypisz klienta
+                </CustomerChip>
+              )}
             </CellStack>
           </Td>
 
@@ -2700,43 +2780,40 @@ export const LeadListView: React.FC = () => {
             <CellSub>{formatRelativeTime(lead.updatedAt || lead.createdAt)}</CellSub>
           </Td>
 
-          <Td>
-            <StatusBadge $variant={getStatusVariant(lead)}>
+          <StatusTd onClick={e => e.stopPropagation()}>
+            <StatusBadge
+              $variant={getStatusVariant(lead)}
+              onClick={e => { e.stopPropagation(); setStatusMenuLeadId(v => v === lead.id ? null : lead.id); }}
+            >
               {getStatusLabel(lead)}
             </StatusBadge>
-          </Td>
+            {statusMenuLeadId === lead.id && (
+              <StatusMenu onClick={e => e.stopPropagation()}>
+                {([
+                  { status: LeadStatus.IN_PROGRESS, label: 'W kontakcie',  color: '#1d4ed8' },
+                  { status: LeadStatus.CONVERTED,   label: 'Zrealizowany', color: '#16a34a' },
+                  { status: LeadStatus.ABANDONED,   label: 'Odpuszczony',  color: '#64748b' },
+                ] as const).map(({ status, label, color }) => (
+                  <StatusMenuItem
+                    key={status}
+                    $active={lead.status === status}
+                    $color={color}
+                    disabled={updateStatus.isPending}
+                    onClick={() => {
+                      updateStatus.mutate({ id: lead.id, status });
+                      setStatusMenuLeadId(null);
+                    }}
+                  >
+                    {label}
+                  </StatusMenuItem>
+                ))}
+              </StatusMenu>
+            )}
+          </StatusTd>
 
           <Td>
             <CellMono>{formatCurrency(lead.estimatedValue)}</CellMono>
             <CellSub>brutto</CellSub>
-          </Td>
-
-          <Td onClick={e => e.stopPropagation()}>
-            {lead.assignedCustomer ? (() => {
-              const c = lead.assignedCustomer!;
-              const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || '—';
-              const initials = [c.firstName?.[0], c.lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?';
-              return (
-                <CustomerChip
-                  $assigned
-                  title={`Klient: ${name}\nKliknij aby zmienić`}
-                  onClick={() => setPickerLeadId(lead.id)}
-                >
-                  <PickerCustomerAvatar style={{ width: 18, height: 18, fontSize: 8, flexShrink: 0 }}>
-                    {initials}
-                  </PickerCustomerAvatar>
-                  {name}
-                </CustomerChip>
-              );
-            })() : (
-              <CustomerChip
-                $assigned={false}
-                title="Przypisz klienta z bazy"
-                onClick={() => setPickerLeadId(lead.id)}
-              >
-                <User /> Przypisz
-              </CustomerChip>
-            )}
           </Td>
 
           <TdActions onClick={e => e.stopPropagation()}>
@@ -2934,7 +3011,6 @@ export const LeadListView: React.FC = () => {
                 <Th>Aktywność</Th>
                 <Th>Status</Th>
                 <Th>Wartość</Th>
-                <Th>Klient</Th>
                 <ThActions />
               </tr>
             </thead>
