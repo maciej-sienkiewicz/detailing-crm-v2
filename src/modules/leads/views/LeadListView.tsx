@@ -28,8 +28,11 @@ import {
 } from 'lucide-react';
 import { customerApi } from '@/modules/customers/api/customerApi';
 import type { Customer } from '@/modules/customers/types';
-import { useQuery } from '@tanstack/react-query';
+import { servicesApi } from '@/modules/services/api/servicesApi';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { visitApi } from '@/modules/visits/api/visitApi';
+import { LEADS_KEY } from '../hooks';
+import { leadApi } from '../api/leadApi';
 import { Modal } from '@/common/components/Modal/Modal';
 import { ImageViewerModal } from '@/modules/visits/components/ImageViewerModal';
 import type { VisitPhoto } from '@/modules/visits/types';
@@ -1050,6 +1053,98 @@ const QuoteDeleteBtn = styled.button`
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
+const EditEstBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  background: transparent;
+  border: 1.5px solid ${st.border};
+  color: ${st.textMuted};
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all ${st.transition};
+  margin-left: auto;
+
+  &:hover { border-color: #0ea5e9; color: #0ea5e9; background: #f0f9ff; }
+  svg { width: 11px; height: 11px; }
+`;
+
+// ─── Service name autocomplete ────────────────────────────────────────────────
+
+const SuggestBox = styled.div`
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1.5px solid #0ea5e9;
+  border-radius: 9px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 100;
+  overflow: hidden;
+  max-height: 180px;
+  overflow-y: auto;
+`;
+
+const SuggestRow = styled.button`
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 7px 10px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background ${st.transition};
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: #f0f9ff; }
+`;
+
+const SuggestName = styled.span`
+  font-size: 12px;
+  font-weight: 600;
+  color: ${st.text};
+`;
+
+const SuggestPrice = styled.span`
+  font-size: 10px;
+  color: ${st.textMuted};
+  margin-top: 1px;
+`;
+
+// ─── Customer chip in row ─────────────────────────────────────────────────────
+
+const CustomerChip = styled.button<{ $assigned: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 5px;
+  border-radius: 9999px;
+  border: 1.5px solid ${p => p.$assigned ? '#bfdbfe' : st.border};
+  background: ${p => p.$assigned ? '#eff6ff' : 'transparent'};
+  color: ${p => p.$assigned ? '#1d4ed8' : '#94a3b8'};
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: all ${st.transition};
+
+  &:hover {
+    border-color: #0ea5e9;
+    color: #0ea5e9;
+    background: #f0f9ff;
+  }
+  svg { width: 12px; height: 12px; flex-shrink: 0; }
+`;
+
 // ─── Skeleton shimmer ─────────────────────────────────────────────────────────
 
 const SkeletonPulse = styled.div<{ $w?: string; $h?: string }>`
@@ -1871,6 +1966,10 @@ const CustomerPickerModal: React.FC<CustomerPickerModalProps> = ({ isOpen, onClo
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   useEffect(() => {
+    if (!isOpen) { setSearch(''); setDebouncedSearch(''); }
+  }, [isOpen]);
+
+  useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(t);
   }, [search]);
@@ -1882,7 +1981,8 @@ const CustomerPickerModal: React.FC<CustomerPickerModalProps> = ({ isOpen, onClo
     staleTime: 30_000,
   });
 
-  const customers = data?.customers ?? [];
+  // API returns { data: Customer[], pagination: ... }
+  const customers = data?.data ?? [];
 
   if (!isOpen) return null;
 
@@ -1933,6 +2033,7 @@ const CustomerPickerModal: React.FC<CustomerPickerModalProps> = ({ isOpen, onClo
 
 interface UserQuoteItem {
   _key: string;
+  serviceId?: string | null;
   serviceName: string;
   priceNet: string;
   vatRate: number;
@@ -1947,6 +2048,63 @@ const computeGross = (netStr: string, vatRate: number): string => {
 
 const parsePLNToGrosze = (str: string): number => Math.round(parseFloat(str.replace(',', '.')) * 100);
 
+// ── Service name input with autocomplete ──────────────────────────────────────
+
+interface ServiceNameInputProps {
+  value: string;
+  onChange: (name: string, serviceId?: string | null, priceNet?: number, vatRate?: number) => void;
+}
+
+const ServiceNameInput: React.FC<ServiceNameInputProps> = ({ value, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState(value);
+  const wrapRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setSearch(value); }, [value]);
+
+  const { data } = useQuery({
+    queryKey: ['service-suggest', search],
+    queryFn: () => servicesApi.getServices({ search, page: 1, limit: 8, showInactive: false }),
+    enabled: open && search.length >= 1,
+    staleTime: 60_000,
+  });
+
+  const suggestions = data?.services ?? [];
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+      <QuoteItemInput
+        placeholder="Nazwa usługi"
+        value={search}
+        onChange={e => { setSearch(e.target.value); onChange(e.target.value, null); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 180)}
+        style={{ width: '100%' }}
+      />
+      {open && suggestions.length > 0 && (
+        <SuggestBox>
+          {suggestions.map(svc => (
+            <SuggestRow
+              key={svc.id}
+              onMouseDown={e => {
+                e.preventDefault();
+                setSearch(svc.name);
+                setOpen(false);
+                onChange(svc.name, svc.id, svc.basePriceNet, svc.vatRate);
+              }}
+            >
+              <SuggestName>{svc.name}</SuggestName>
+              <SuggestPrice>
+                {(svc.basePriceNet / 100).toFixed(2)} PLN netto · VAT {svc.vatRate}%
+              </SuggestPrice>
+            </SuggestRow>
+          ))}
+        </SuggestBox>
+      )}
+    </div>
+  );
+};
+
 interface UserQuoteEditorProps {
   leadId: string;
   existingQuote: LeadUserQuote | null;
@@ -1959,6 +2117,7 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
   const buildItemsFromQuote = (quote: LeadUserQuote): UserQuoteItem[] =>
     quote.items.map((item, i) => ({
       _key: `${i}-${item.id}`,
+      serviceId: item.serviceId,
       serviceName: item.serviceName,
       priceNet: (item.priceNet / 100).toFixed(2),
       vatRate: item.vatRate,
@@ -1966,12 +2125,12 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
     }));
 
   const [items, setItems] = useState<UserQuoteItem[]>(() =>
-    existingQuote ? buildItemsFromQuote(existingQuote) : []
+    existingQuote ? buildItemsFromQuote(existingQuote) : [{ _key: `new-${Date.now()}`, serviceName: '', priceNet: '', vatRate: 23, priceGross: '' }]
   );
   const [savedMsg, setSavedMsg] = useState(false);
 
   useEffect(() => {
-    setItems(existingQuote ? buildItemsFromQuote(existingQuote) : []);
+    setItems(existingQuote ? buildItemsFromQuote(existingQuote) : [{ _key: `new-${Date.now()}`, serviceName: '', priceNet: '', vatRate: 23, priceGross: '' }]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingQuote?.id, existingQuote?.updatedAt]);
 
@@ -1983,15 +2142,12 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
     setItems(prev => prev.filter(i => i._key !== key));
   };
 
-  const updateItem = (key: string, field: keyof UserQuoteItem, value: string | number) => {
+  const updateItem = (key: string, patch: Partial<UserQuoteItem>) => {
     setItems(prev => prev.map(item => {
       if (item._key !== key) return item;
-      const updated = { ...item, [field]: value };
-      if (field === 'priceNet' || field === 'vatRate') {
-        updated.priceGross = computeGross(
-          field === 'priceNet' ? String(value) : updated.priceNet,
-          field === 'vatRate' ? Number(value) : updated.vatRate
-        );
+      const updated = { ...item, ...patch };
+      if ('priceNet' in patch || 'vatRate' in patch) {
+        updated.priceGross = computeGross(updated.priceNet, updated.vatRate);
       }
       return updated;
     }));
@@ -2001,6 +2157,7 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
     const validItems: SaveUserQuoteItemRequest[] = items
       .filter(i => i.serviceName.trim() && i.priceNet)
       .map(i => ({
+        serviceId: i.serviceId ?? null,
         serviceName: i.serviceName.trim(),
         priceNet: parsePLNToGrosze(i.priceNet),
         vatRate: i.vatRate,
@@ -2008,15 +2165,12 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
       }));
 
     saveQuote.mutate({ items: validItems }, {
-      onSuccess: () => {
-        setSavedMsg(true);
-        setTimeout(() => setSavedMsg(false), 2500);
-      },
+      onSuccess: () => { setSavedMsg(true); setTimeout(() => setSavedMsg(false), 2500); },
     });
   };
 
   const handleDelete = () => {
-    deleteQuote.mutate(undefined, { onSuccess: () => setItems([]) });
+    deleteQuote.mutate(undefined, { onSuccess: () => setItems([{ _key: `new-${Date.now()}`, serviceName: '', priceNet: '', vatRate: 23, priceGross: '' }]) });
   };
 
   const totalNet   = items.reduce((s, i) => s + (parseFloat(i.priceNet.replace(',', '.')) || 0), 0);
@@ -2024,62 +2178,62 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
 
   return (
     <div>
-      {items.length > 0 && (
-        <QuoteCard>
-          {items.map(item => (
-            <QuoteItemRow key={item._key}>
-              <QuoteItemInput
-                placeholder="Nazwa usługi"
-                value={item.serviceName}
-                onChange={e => updateItem(item._key, 'serviceName', e.target.value)}
-              />
-              <QuoteItemInput
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="Netto"
-                value={item.priceNet}
-                onChange={e => updateItem(item._key, 'priceNet', e.target.value)}
-                title="Cena netto (PLN)"
-              />
-              <QuoteVatSelect
-                value={item.vatRate}
-                onChange={e => updateItem(item._key, 'vatRate', Number(e.target.value))}
-                title="Stawka VAT"
-              >
-                <option value={0}>0%</option>
-                <option value={5}>5%</option>
-                <option value={8}>8%</option>
-                <option value={23}>23%</option>
-              </QuoteVatSelect>
-              <QuoteGrossCell title="Cena brutto (PLN)">
-                {item.priceGross ? `${parseFloat(item.priceGross).toFixed(2)} PLN` : '—'}
-              </QuoteGrossCell>
-              <QuoteRemoveBtn onClick={() => removeItem(item._key)} title="Usuń pozycję">
-                <X />
-              </QuoteRemoveBtn>
-            </QuoteItemRow>
-          ))}
-          {items.length > 0 && (
-            <QuoteTotalRow>
-              <QuoteTotalLabel>ŁĄCZNIE</QuoteTotalLabel>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: st.textMuted }}>{totalNet.toFixed(2)} PLN netto</span>
-                <QuoteTotalValue>{totalGross.toFixed(2)} PLN brutto</QuoteTotalValue>
-              </div>
-            </QuoteTotalRow>
-          )}
-        </QuoteCard>
-      )}
+      <QuoteCard>
+        {items.map(item => (
+          <QuoteItemRow key={item._key}>
+            <ServiceNameInput
+              value={item.serviceName}
+              onChange={(name, serviceId, priceNet, vatRate) => {
+                const patch: Partial<UserQuoteItem> = { serviceName: name, serviceId: serviceId ?? null };
+                if (priceNet !== undefined) patch.priceNet = (priceNet / 100).toFixed(2);
+                if (vatRate !== undefined) patch.vatRate = vatRate;
+                updateItem(item._key, patch);
+              }}
+            />
+            <QuoteItemInput
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="Netto PLN"
+              value={item.priceNet}
+              onChange={e => updateItem(item._key, { priceNet: e.target.value })}
+              title="Cena netto (PLN)"
+            />
+            <QuoteVatSelect
+              value={item.vatRate}
+              onChange={e => updateItem(item._key, { vatRate: Number(e.target.value) })}
+              title="Stawka VAT"
+            >
+              <option value={0}>0%</option>
+              <option value={5}>5%</option>
+              <option value={8}>8%</option>
+              <option value={23}>23%</option>
+            </QuoteVatSelect>
+            <QuoteGrossCell title="Cena brutto (PLN)">
+              {item.priceGross ? `${parseFloat(item.priceGross).toFixed(2)} PLN` : '—'}
+            </QuoteGrossCell>
+            <QuoteRemoveBtn onClick={() => removeItem(item._key)} title="Usuń pozycję">
+              <X />
+            </QuoteRemoveBtn>
+          </QuoteItemRow>
+        ))}
+        {(totalNet > 0 || totalGross > 0) && (
+          <QuoteTotalRow>
+            <QuoteTotalLabel>ŁĄCZNIE</QuoteTotalLabel>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: st.textMuted }}>{totalNet.toFixed(2)} PLN netto</span>
+              <QuoteTotalValue>{totalGross.toFixed(2)} PLN brutto</QuoteTotalValue>
+            </div>
+          </QuoteTotalRow>
+        )}
+      </QuoteCard>
       <QuoteActions>
         <QuoteAddBtn onClick={addItem}>
           <Plus /> Dodaj usługę
         </QuoteAddBtn>
-        {items.length > 0 && (
-          <QuoteSaveBtn onClick={handleSave} disabled={saveQuote.isPending}>
-            {saveQuote.isPending ? 'Zapisywanie…' : 'Zapisz kosztorys'}
-          </QuoteSaveBtn>
-        )}
+        <QuoteSaveBtn onClick={handleSave} disabled={saveQuote.isPending}>
+          {saveQuote.isPending ? 'Zapisywanie…' : 'Zapisz kosztorys'}
+        </QuoteSaveBtn>
         {savedMsg && <SavedTag>✓ Zapisano</SavedTag>}
         {existingQuote && (
           <QuoteDeleteBtn onClick={handleDelete} disabled={deleteQuote.isPending}>
@@ -2100,14 +2254,13 @@ interface ExpandedRowProps {
 
 const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
   const { lead: detail, isLoading: isDetailLoading } = useLead(lead.id);
-  const updateStatus  = useUpdateLeadStatus();
-  const updateValue   = useUpdateLeadValue();
-  const assignCustomer = useAssignLeadCustomer(lead.id);
+  const updateStatus = useUpdateLeadStatus();
+  const updateValue  = useUpdateLeadValue();
 
-  const [priceInput, setPriceInput] = useState(String(lead.estimatedValue / 100));
-  const [savedMsg, setSavedMsg]     = useState(false);
-  const [previewVisitId, setPreviewVisitId]     = useState<string | null>(null);
-  const [isPickerOpen, setIsPickerOpen]         = useState(false);
+  const [priceInput, setPriceInput]       = useState(String(lead.estimatedValue / 100));
+  const [savedMsg, setSavedMsg]           = useState(false);
+  const [previewVisitId, setPreviewVisitId] = useState<string | null>(null);
+  const [quoteEditorOpen, setQuoteEditorOpen] = useState(false);
 
   useEffect(() => {
     setPriceInput(String(lead.estimatedValue / 100));
@@ -2123,18 +2276,12 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
     }
   };
 
-  const handleSelectCustomer = (customer: Customer) => {
-    assignCustomer.mutate(customer.id);
-  };
-
-  const handleUnassignCustomer = () => {
-    assignCustomer.mutate(null);
-  };
-
   const estimation    = detail?.estimation ?? null;
   const userQuote     = detail?.userQuote ?? null;
-  const assignedCust: CustomerSnapshot | null | undefined = detail?.assignedCustomer;
   const relatedVisits = estimation?.relatedVisits ?? detail?.relatedVisits ?? lead.relatedVisits ?? [];
+
+  // Show quote editor if explicitly opened OR if a saved quote exists
+  const showQuoteEditor = quoteEditorOpen || !!userQuote;
 
   return (
     <>
@@ -2150,7 +2297,17 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
                 </>
               )}
 
-              <PanelLabel><FileText size={13} /> Kosztorys AI</PanelLabel>
+              <PanelLabel style={{ display: 'flex', alignItems: 'center' }}>
+                <FileText size={13} style={{ marginRight: 6 }} /> Kosztorys AI
+                {!isDetailLoading && estimation && (
+                  <EditEstBtn
+                    onClick={e => { e.stopPropagation(); setQuoteEditorOpen(v => !v); }}
+                    title={quoteEditorOpen ? 'Zamknij edytor kosztorysu' : 'Utwórz / edytuj swój kosztorys'}
+                  >
+                    <Edit3 /> {quoteEditorOpen ? 'Zamknij' : 'Edytuj'}
+                  </EditEstBtn>
+                )}
+              </PanelLabel>
 
               {isDetailLoading ? (
                 <EstCard>
@@ -2189,9 +2346,19 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
                     </UnmatchedRow>
                   )}
                 </EstCard>
-              ) : (
-                <NoEstBox>Brak kosztorysu AI dla tego leada.</NoEstBox>
-              )}
+              ) : !isDetailLoading ? (
+                <NoEstBox>
+                  Brak kosztorysu AI dla tego leada.{' '}
+                  {!showQuoteEditor && (
+                    <button
+                      style={{ background: 'none', border: 'none', color: '#0ea5e9', cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit', padding: 0 }}
+                      onClick={e => { e.stopPropagation(); setQuoteEditorOpen(true); }}
+                    >
+                      Utwórz swój kosztorys →
+                    </button>
+                  )}
+                </NoEstBox>
+              ) : null}
 
               {relatedVisits.length > 0 && (
                 <>
@@ -2212,57 +2379,20 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
               )}
             </PanelSection>
 
-            {/* Right — customer assignment + user quote + value + status */}
+            {/* Right — user quote (conditional) + value + status */}
             <PanelSection>
-              {/* Customer assignment */}
-              <PanelLabel><UserCheck size={13} /> Przypisany klient</PanelLabel>
-              {isDetailLoading ? (
-                <SkeletonPulse $h="48px" />
-              ) : assignedCust ? (
-                <AssignedCustomerCard>
-                  <UserCheck size={18} color="#0ea5e9" style={{ flexShrink: 0 }} />
-                  <AssignedCustomerInfo>
-                    <AssignedCustomerName>
-                      {[assignedCust.firstName, assignedCust.lastName].filter(Boolean).join(' ') || '—'}
-                    </AssignedCustomerName>
-                    <AssignedCustomerContact>
-                      {[assignedCust.phone, assignedCust.email].filter(Boolean).join(' · ') || assignedCust.id}
-                    </AssignedCustomerContact>
-                  </AssignedCustomerInfo>
-                  <AssignBtn
-                    onClick={e => { e.stopPropagation(); setIsPickerOpen(true); }}
-                    disabled={assignCustomer.isPending}
-                    title="Zmień klienta"
-                  >
-                    <Edit3 /> Zmień
-                  </AssignBtn>
-                  <UnassignBtn
-                    onClick={e => { e.stopPropagation(); handleUnassignCustomer(); }}
-                    disabled={assignCustomer.isPending}
-                    title="Odepnij klienta"
-                  >
-                    <UserX />
-                  </UnassignBtn>
-                </AssignedCustomerCard>
-              ) : (
-                <AssignBtn
-                  onClick={e => { e.stopPropagation(); setIsPickerOpen(true); }}
-                  disabled={assignCustomer.isPending}
-                >
-                  <User /> Przypisz klienta z bazy danych
-                </AssignBtn>
+              {showQuoteEditor && (
+                <>
+                  <PanelLabel><Edit3 size={13} style={{ marginRight: 6 }} /> Twój kosztorys</PanelLabel>
+                  {isDetailLoading ? (
+                    <SkeletonPulse $h="80px" />
+                  ) : (
+                    <UserQuoteEditor leadId={lead.id} existingQuote={userQuote} />
+                  )}
+                </>
               )}
 
-              {/* User quote */}
-              <PanelLabel style={{ marginTop: 8 }}><Edit3 size={13} /> Twój kosztorys</PanelLabel>
-              {isDetailLoading ? (
-                <SkeletonPulse $h="60px" />
-              ) : (
-                <UserQuoteEditor leadId={lead.id} existingQuote={userQuote} />
-              )}
-
-              {/* Estimated value override */}
-              <PanelLabel style={{ marginTop: 8 }}>Wartość oferty</PanelLabel>
+              <PanelLabel style={{ marginTop: showQuoteEditor ? 12 : 0 }}>Wartość oferty</PanelLabel>
               <PriceRow>
                 <PriceInputWrap>
                   <PriceInput
@@ -2281,7 +2411,7 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
                 {savedMsg && <SavedTag>✓ Zapisano</SavedTag>}
               </PriceRow>
 
-              <PanelLabel style={{ marginTop: 6 }}>Zmień status</PanelLabel>
+              <PanelLabel style={{ marginTop: 12 }}>Zmień status</PanelLabel>
               <StatusBtnGroup>
                 <StatusActionBtn
                   $active={lead.status === LeadStatus.IN_PROGRESS}
@@ -2317,12 +2447,6 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
         visitId={previewVisitId}
         onClose={() => setPreviewVisitId(null)}
       />
-
-      <CustomerPickerModal
-        isOpen={isPickerOpen}
-        onClose={() => setIsPickerOpen(false)}
-        onSelect={handleSelectCustomer}
-      />
     </>
   );
 };
@@ -2332,14 +2456,25 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
 export const LeadListView: React.FC = () => {
   useLeadSocket();
 
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  const [expandedId, setExpandedId]     = useState<string | null>(null);
+  const [isFormOpen, setIsFormOpen]     = useState(false);
   const [activeStatus, setActiveStatus] = useState<StatusTab>('ALL');
   const [activeSource, setActiveSource] = useState<SourceTab>('ALL');
   const [searchValue, setSearchValue]   = useState('');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [pickerLeadId, setPickerLeadId] = useState<string | null>(null);
 
   const deleteLead = useDeleteLead();
+
+  const assignMutation = useMutation({
+    mutationFn: ({ leadId, customerId }: { leadId: string; customerId: string | null }) =>
+      leadApi.assignCustomer(leadId, customerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: LEADS_KEY });
+    },
+  });
 
   const [filters, setFilters] = useState<LeadListFilters>({
     search: '',
@@ -2376,7 +2511,7 @@ export const LeadListView: React.FC = () => {
     setExpandedId(prev => prev === id ? null : id);
   }, []);
 
-  const COL_SPAN = 7;
+  const COL_SPAN = 8;
 
   const renderTableBody = () => {
     if (isLoading) {
@@ -2384,7 +2519,7 @@ export const LeadListView: React.FC = () => {
         <LoadingRow key={i}>
           {Array.from({ length: COL_SPAN }, (_, j) => (
             <LoadingCell key={j}>
-              <SkeletonPulse $w={j === 0 ? '34px' : j === 1 ? '120px' : j === 5 ? '80px' : '60px'} $h={j === 0 ? '34px' : '13px'} />
+              <SkeletonPulse $w={j === 0 ? '34px' : j === 1 ? '120px' : j === 6 ? '80px' : '60px'} $h={j === 0 ? '34px' : '13px'} />
             </LoadingCell>
           ))}
         </LoadingRow>
@@ -2475,6 +2610,34 @@ export const LeadListView: React.FC = () => {
           <Td>
             <CellMono>{formatCurrency(lead.estimatedValue)}</CellMono>
             <CellSub>brutto</CellSub>
+          </Td>
+
+          <Td onClick={e => e.stopPropagation()}>
+            {lead.assignedCustomer ? (() => {
+              const c = lead.assignedCustomer!;
+              const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || '—';
+              const initials = [c.firstName?.[0], c.lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?';
+              return (
+                <CustomerChip
+                  $assigned
+                  title={`Klient: ${name}\nKliknij aby zmienić`}
+                  onClick={() => setPickerLeadId(lead.id)}
+                >
+                  <PickerCustomerAvatar style={{ width: 18, height: 18, fontSize: 8, flexShrink: 0 }}>
+                    {initials}
+                  </PickerCustomerAvatar>
+                  {name}
+                </CustomerChip>
+              );
+            })() : (
+              <CustomerChip
+                $assigned={false}
+                title="Przypisz klienta z bazy"
+                onClick={() => setPickerLeadId(lead.id)}
+              >
+                <User /> Przypisz
+              </CustomerChip>
+            )}
           </Td>
 
           <TdActions onClick={e => e.stopPropagation()}>
@@ -2672,6 +2835,7 @@ export const LeadListView: React.FC = () => {
                 <Th>Aktywność</Th>
                 <Th>Status</Th>
                 <Th>Wartość</Th>
+                <Th>Klient</Th>
                 <ThActions />
               </tr>
             </thead>
@@ -2705,6 +2869,17 @@ export const LeadListView: React.FC = () => {
       </ContentSection>
 
       <LeadForm isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} />
+
+      <CustomerPickerModal
+        isOpen={!!pickerLeadId}
+        onClose={() => setPickerLeadId(null)}
+        onSelect={customer => {
+          if (pickerLeadId) {
+            assignMutation.mutate({ leadId: pickerLeadId, customerId: customer.id });
+            setPickerLeadId(null);
+          }
+        }}
+      />
 
       <ConfirmationModal
         isOpen={!!deleteTarget}
