@@ -4,6 +4,8 @@ import { leadApi } from '../api/leadApi';
 import type {
   Lead,
   LeadDetail,
+  LeadUserQuote,
+  CustomerSnapshot,
   LeadId,
   LeadListFilters,
   LeadListResponse,
@@ -12,6 +14,7 @@ import type {
   LeadPipelineSummary,
   LeadStatus,
   LeadSource,
+  SaveUserQuoteRequest,
 } from '../types';
 
 // Query keys
@@ -273,6 +276,49 @@ export const useDeleteLead = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: LEADS_KEY });
       queryClient.invalidateQueries({ queryKey: LEAD_PIPELINE_KEY });
+    },
+  });
+};
+
+/**
+ * Hook for assigning / changing / unassigning a customer to a lead
+ */
+export const useAssignLeadCustomer = (leadId: LeadId) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<CustomerSnapshot | null, Error, string | null>({
+    mutationFn: (customerId) => leadApi.assignCustomer(leadId, customerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'detail', leadId] });
+      queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'list'] });
+    },
+  });
+};
+
+/**
+ * Hook for creating or replacing the user-defined quote for a lead
+ */
+export const useSaveUserQuote = (leadId: LeadId) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<LeadUserQuote, Error, SaveUserQuoteRequest>({
+    mutationFn: (data) => leadApi.saveUserQuote(leadId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'detail', leadId] });
+    },
+  });
+};
+
+/**
+ * Hook for deleting the user-defined quote for a lead
+ */
+export const useDeleteUserQuote = (leadId: LeadId) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, void>({
+    mutationFn: () => leadApi.deleteUserQuote(leadId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'detail', leadId] });
     },
   });
 };

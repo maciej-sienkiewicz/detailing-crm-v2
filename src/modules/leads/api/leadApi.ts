@@ -4,6 +4,8 @@ import type {
   Lead,
   LeadDetail,
   LeadEstimation,
+  LeadUserQuote,
+  CustomerSnapshot,
   LeadId,
   LeadListFilters,
   LeadListResponse,
@@ -12,6 +14,7 @@ import type {
   LeadPipelineSummary,
   LeadStatus,
   LeadSource,
+  SaveUserQuoteRequest,
 } from '../types';
 
 const USE_MOCKS = false;
@@ -278,12 +281,13 @@ const mockEstimations: Record<string, LeadEstimation> = {
       },
     ],
     unmatchedNeeds: ['Mycie felg'],
+    totalNet: 725204,
     totalGross: 892000,
     relatedVisits: [
       { id: '95ddeec4-4420-4153-9058-e3c95524ee6d', title: 'Detailing + PPF BMW 5 Series' },
       { id: 'b12c3d4e-5678-90ab-cdef-1234567890ab', title: 'Full PPF BMW M4' },
     ],
-    reasoning: 'Na podstawie podobnych realizacji dla BMW wyceniono pełne PPF oraz detailing wnętrza. Mycie felg nie jest w cenniku — do wyceny indywidualnej.',
+    aiReasoning: 'Na podstawie podobnych realizacji dla BMW wyceniono pełne PPF oraz detailing wnętrza. Mycie felg nie jest w cenniku — do wyceny indywidualnej.',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -308,15 +312,19 @@ const mockEstimations: Record<string, LeadEstimation> = {
       },
     ],
     unmatchedNeeds: [],
+    totalNet: 365854,
     totalGross: 450000,
     relatedVisits: [
       { id: 'c23d4e5f-6789-01bc-defa-234567890bcd', title: 'Powłoka ceramiczna Porsche 911' },
     ],
-    reasoning: 'Klientka wskazała jasno na ceramikę + korektę. Wycena bazuje na standardowym pakiecie dla SUV premium. Wszystkie pozycje dopasowane z cennika.',
+    aiReasoning: 'Klientka wskazała jasno na ceramikę + korektę. Wycena bazuje na standardowym pakiecie dla SUV premium. Wszystkie pozycje dopasowane z cennika.',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
 };
+
+let mockUserQuotes: Record<string, LeadUserQuote> = {};
+let mockAssignedCustomers: Record<string, CustomerSnapshot | null> = {};
 
 const mockGetLeadDetail = async (id: LeadId): Promise<LeadDetail> => {
   return new Promise((resolve, reject) => {
@@ -326,7 +334,68 @@ const mockGetLeadDetail = async (id: LeadId): Promise<LeadDetail> => {
         reject(new Error('Lead not found'));
         return;
       }
-      resolve({ ...lead, estimation: mockEstimations[id] ?? null });
+      resolve({
+        ...lead,
+        assignedCustomer: mockAssignedCustomers[id] ?? null,
+        estimation: mockEstimations[id] ?? null,
+        userQuote: mockUserQuotes[id] ?? null,
+      });
+    }, 200);
+  });
+};
+
+const mockAssignCustomer = async (leadId: LeadId, customerId: string | null): Promise<CustomerSnapshot | null> => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const lead = mockLeadsStore.find((l) => l.id === leadId);
+      if (!lead) { reject(new Error('Lead not found')); return; }
+      if (customerId === null) {
+        mockAssignedCustomers[leadId] = null;
+        resolve(null);
+      } else {
+        const snapshot: CustomerSnapshot = { id: customerId, firstName: 'Jan', lastName: 'Przykładowy', email: null, phone: '+48 100 200 300' };
+        mockAssignedCustomers[leadId] = snapshot;
+        resolve(snapshot);
+      }
+    }, 200);
+  });
+};
+
+let mockQuoteIdCounter = 1;
+
+const mockSaveUserQuote = async (leadId: LeadId, data: SaveUserQuoteRequest): Promise<LeadUserQuote> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const items = data.items.map((item, idx) => ({
+        id: `qi-${leadId}-${idx}`,
+        serviceId: item.serviceId ?? null,
+        serviceName: item.serviceName ?? '',
+        priceNet: item.priceNet,
+        vatRate: item.vatRate,
+        priceGross: item.priceGross,
+      }));
+      const totalNet = items.reduce((s, i) => s + i.priceNet, 0);
+      const totalGross = items.reduce((s, i) => s + i.priceGross, 0);
+      const now = new Date().toISOString();
+      const quote: LeadUserQuote = {
+        id: `uq-${leadId}-${mockQuoteIdCounter++}`,
+        items,
+        totalNet,
+        totalGross,
+        createdAt: mockUserQuotes[leadId]?.createdAt ?? now,
+        updatedAt: now,
+      };
+      mockUserQuotes[leadId] = quote;
+      resolve(quote);
+    }, 300);
+  });
+};
+
+const mockDeleteUserQuote = async (leadId: LeadId): Promise<void> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      delete mockUserQuotes[leadId];
+      resolve();
     }, 200);
   });
 };
@@ -449,5 +518,41 @@ export const leadApi = {
 
     const response = await apiClient.patch(`${BASE_PATH}/${id}/value`, { estimatedValue });
     return response.data;
+  },
+
+  /**
+   * Assign, change, or unassign a customer to/from a lead.
+   * Pass customerId to assign/change; pass null to unassign.
+   */
+  assignCustomer: async (leadId: LeadId, customerId: string | null): Promise<CustomerSnapshot | null> => {
+    if (USE_MOCKS) {
+      return mockAssignCustomer(leadId, customerId);
+    }
+
+    const response = await apiClient.patch(`${BASE_PATH}/${leadId}/customer`, { customerId });
+    return response.data ?? null;
+  },
+
+  /**
+   * Create or replace the user-defined quote for a lead.
+   */
+  saveUserQuote: async (leadId: LeadId, data: SaveUserQuoteRequest): Promise<LeadUserQuote> => {
+    if (USE_MOCKS) {
+      return mockSaveUserQuote(leadId, data);
+    }
+
+    const response = await apiClient.put(`${BASE_PATH}/${leadId}/user-quote`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete the user-defined quote for a lead.
+   */
+  deleteUserQuote: async (leadId: LeadId): Promise<void> => {
+    if (USE_MOCKS) {
+      return mockDeleteUserQuote(leadId);
+    }
+
+    await apiClient.delete(`${BASE_PATH}/${leadId}/user-quote`);
   },
 };

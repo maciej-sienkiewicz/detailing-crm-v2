@@ -19,7 +19,15 @@ import {
   Calendar,
   User,
   Wrench,
+  UserCheck,
+  UserX,
+  Search,
+  X,
+  FileText,
+  Edit3,
 } from 'lucide-react';
+import { customerApi } from '@/modules/customers/api/customerApi';
+import type { Customer } from '@/modules/customers/types';
 import { useQuery } from '@tanstack/react-query';
 import { visitApi } from '@/modules/visits/api/visitApi';
 import { Modal } from '@/common/components/Modal/Modal';
@@ -37,9 +45,12 @@ import {
   useDeleteLead,
   useLeadPipelineSummary,
   useLeadSocket,
+  useAssignLeadCustomer,
+  useSaveUserQuote,
+  useDeleteUserQuote,
 } from '../hooks';
 import { LeadStatus, LeadSource } from '../types';
-import type { Lead, LeadListFilters } from '../types';
+import type { Lead, LeadListFilters, CustomerSnapshot, LeadUserQuote, SaveUserQuoteItemRequest } from '../types';
 import {
   formatCurrency,
   formatPLN,
@@ -662,6 +673,364 @@ const NoEstBox = styled.div`
   background: #fff;
   border: 1px solid ${st.border};
   border-radius: 10px;
+`;
+
+// ─── Customer assignment ───────────────────────────────────────────────────────
+
+const AssignedCustomerCard = styled.div`
+  background: #fff;
+  border: 1px solid ${st.border};
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+const AssignedCustomerInfo = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const AssignedCustomerName = styled.div`
+  font-size: 13px;
+  font-weight: 600;
+  color: ${st.text};
+`;
+
+const AssignedCustomerContact = styled.div`
+  font-size: 11px;
+  color: ${st.textMuted};
+  margin-top: 2px;
+`;
+
+const AssignBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: transparent;
+  border: 1.5px solid #0ea5e9;
+  color: #0ea5e9;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: all ${st.transition};
+
+  &:hover { background: #e0f2fe; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  svg { width: 13px; height: 13px; }
+`;
+
+const UnassignBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  padding: 5px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all ${st.transition};
+  flex-shrink: 0;
+
+  &:hover { background: #fee2e2; color: #dc2626; }
+  svg { width: 14px; height: 14px; }
+`;
+
+// ─── Customer picker modal ────────────────────────────────────────────────────
+
+const PickerOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+`;
+
+const PickerBox = styled.div`
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  overflow: hidden;
+`;
+
+const PickerHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid ${st.border};
+`;
+
+const PickerTitle = styled.h3`
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: ${st.text};
+`;
+
+const PickerCloseBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: ${st.textMuted};
+  cursor: pointer;
+  transition: all ${st.transition};
+  &:hover { background: #f1f5f9; color: ${st.text}; }
+  svg { width: 15px; height: 15px; }
+`;
+
+const PickerSearchWrap = styled.div`
+  padding: 12px 16px;
+  border-bottom: 1px solid ${st.border};
+  position: relative;
+`;
+
+const PickerSearchIcon = styled.div`
+  position: absolute;
+  left: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: ${st.textMuted};
+  pointer-events: none;
+  display: flex;
+  svg { width: 14px; height: 14px; }
+`;
+
+const PickerSearchInput = styled.input`
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  font-size: ${st.fontSm};
+  font-family: inherit;
+  background: #f8fafc;
+  border: 1.5px solid ${st.border};
+  border-radius: 9999px;
+  color: ${st.text};
+  outline: none;
+  transition: all ${st.transition};
+  box-sizing: border-box;
+
+  &:focus { border-color: #0ea5e9; background: #fff; box-shadow: 0 0 0 3px rgba(14,165,233,0.12); }
+  &::placeholder { color: ${st.textMuted}; }
+`;
+
+const PickerList = styled.div`
+  overflow-y: auto;
+  flex: 1;
+`;
+
+const PickerCustomerRow = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background ${st.transition};
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: #f0f9ff; }
+`;
+
+const PickerCustomerAvatar = styled.div`
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: #1d4ed8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+`;
+
+const PickerCustomerName = styled.div`
+  font-size: 13px;
+  font-weight: 600;
+  color: ${st.text};
+`;
+
+const PickerCustomerSub = styled.div`
+  font-size: 11px;
+  color: ${st.textMuted};
+  margin-top: 1px;
+`;
+
+const PickerEmpty = styled.div`
+  padding: 32px 16px;
+  text-align: center;
+  font-size: ${st.fontSm};
+  color: ${st.textMuted};
+`;
+
+// ─── User quote editor ────────────────────────────────────────────────────────
+
+const QuoteCard = styled.div`
+  background: #fff;
+  border: 1px solid ${st.border};
+  border-radius: 10px;
+  overflow: hidden;
+`;
+
+const QuoteItemRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f1f5f9;
+
+  &:last-of-type { border-bottom: none; }
+`;
+
+const QuoteItemInput = styled.input`
+  padding: 5px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  border: 1.5px solid ${st.border};
+  border-radius: 7px;
+  background: #f8fafc;
+  color: ${st.text};
+  outline: none;
+  min-width: 0;
+  transition: border-color ${st.transition};
+
+  &:focus { border-color: #0ea5e9; background: #fff; }
+  &[type="number"] { width: 80px; font-variant-numeric: tabular-nums; }
+`;
+
+const QuoteVatSelect = styled.select`
+  padding: 5px 6px;
+  font-size: 12px;
+  font-family: inherit;
+  border: 1.5px solid ${st.border};
+  border-radius: 7px;
+  background: #f8fafc;
+  color: ${st.text};
+  outline: none;
+  cursor: pointer;
+  width: 64px;
+  transition: border-color ${st.transition};
+
+  &:focus { border-color: #0ea5e9; background: #fff; }
+`;
+
+const QuoteGrossCell = styled.div`
+  font-size: 12px;
+  font-weight: 600;
+  color: ${st.text};
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  min-width: 70px;
+  text-align: right;
+`;
+
+const QuoteRemoveBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all ${st.transition};
+  &:hover { background: #fee2e2; color: #dc2626; }
+  svg { width: 13px; height: 13px; }
+`;
+
+const QuoteTotalRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-top: 1px solid ${st.border};
+  gap: 8px;
+`;
+
+const QuoteTotalLabel = styled.span`
+  font-size: 12px;
+  font-weight: 700;
+  color: ${st.text};
+`;
+
+const QuoteTotalValue = styled.span`
+  font-size: 13px;
+  font-weight: 700;
+  color: ${st.text};
+  font-variant-numeric: tabular-nums;
+`;
+
+const QuoteActions = styled.div`
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+`;
+
+const QuoteAddBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1.5px dashed ${st.border};
+  color: ${st.textMuted};
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all ${st.transition};
+
+  &:hover { border-color: #0ea5e9; color: #0ea5e9; background: #f0f9ff; }
+  svg { width: 13px; height: 13px; }
+`;
+
+const QuoteSaveBtn = styled(SaveBtn)``;
+
+const QuoteDeleteBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1.5px solid #fecaca;
+  color: #dc2626;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all ${st.transition};
+
+  &:hover { background: #fee2e2; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
 // ─── Skeleton shimmer ─────────────────────────────────────────────────────────
@@ -1472,6 +1841,239 @@ const formatContact = (lead: Lead): { primary: string; secondary?: string } => {
   };
 };
 
+// ─── Customer Picker Modal ────────────────────────────────────────────────────
+
+interface CustomerPickerModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelect: (customer: Customer) => void;
+}
+
+const CustomerPickerModal: React.FC<CustomerPickerModalProps> = ({ isOpen, onClose, onSelect }) => {
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['customer-picker', debouncedSearch],
+    queryFn: () => customerApi.getCustomers({ search: debouncedSearch, page: 1, limit: 15 }),
+    enabled: isOpen,
+    staleTime: 30_000,
+  });
+
+  const customers = data?.customers ?? [];
+
+  if (!isOpen) return null;
+
+  return (
+    <PickerOverlay onClick={onClose}>
+      <PickerBox onClick={e => e.stopPropagation()}>
+        <PickerHeader>
+          <PickerTitle>Przypisz klienta z bazy</PickerTitle>
+          <PickerCloseBtn onClick={onClose}><X /></PickerCloseBtn>
+        </PickerHeader>
+        <PickerSearchWrap>
+          <PickerSearchIcon><Search /></PickerSearchIcon>
+          <PickerSearchInput
+            autoFocus
+            placeholder="Szukaj po nazwisku, emailu, telefonie…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </PickerSearchWrap>
+        <PickerList>
+          {isLoading ? (
+            <PickerEmpty>Ładowanie…</PickerEmpty>
+          ) : customers.length === 0 ? (
+            <PickerEmpty>
+              {debouncedSearch ? 'Brak wyników dla podanej frazy' : 'Brak klientów w bazie'}
+            </PickerEmpty>
+          ) : customers.map(customer => {
+            const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || '—';
+            const initials = [customer.firstName?.[0], customer.lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?';
+            const contact = customer.contact?.phone || customer.contact?.email || '';
+            return (
+              <PickerCustomerRow key={customer.id} onClick={() => { onSelect(customer); onClose(); }}>
+                <PickerCustomerAvatar>{initials}</PickerCustomerAvatar>
+                <div>
+                  <PickerCustomerName>{fullName}</PickerCustomerName>
+                  {contact && <PickerCustomerSub>{contact}</PickerCustomerSub>}
+                </div>
+              </PickerCustomerRow>
+            );
+          })}
+        </PickerList>
+      </PickerBox>
+    </PickerOverlay>
+  );
+};
+
+// ─── User Quote Editor ────────────────────────────────────────────────────────
+
+interface UserQuoteItem {
+  _key: string;
+  serviceName: string;
+  priceNet: string;
+  vatRate: number;
+  priceGross: string;
+}
+
+const computeGross = (netStr: string, vatRate: number): string => {
+  const net = parseFloat(netStr.replace(',', '.'));
+  if (isNaN(net) || net < 0) return '';
+  return (net * (1 + vatRate / 100)).toFixed(2);
+};
+
+const parsePLNToGrosze = (str: string): number => Math.round(parseFloat(str.replace(',', '.')) * 100);
+
+interface UserQuoteEditorProps {
+  leadId: string;
+  existingQuote: LeadUserQuote | null;
+}
+
+const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote }) => {
+  const saveQuote   = useSaveUserQuote(leadId);
+  const deleteQuote = useDeleteUserQuote(leadId);
+
+  const buildItemsFromQuote = (quote: LeadUserQuote): UserQuoteItem[] =>
+    quote.items.map((item, i) => ({
+      _key: `${i}-${item.id}`,
+      serviceName: item.serviceName,
+      priceNet: (item.priceNet / 100).toFixed(2),
+      vatRate: item.vatRate,
+      priceGross: (item.priceGross / 100).toFixed(2),
+    }));
+
+  const [items, setItems] = useState<UserQuoteItem[]>(() =>
+    existingQuote ? buildItemsFromQuote(existingQuote) : []
+  );
+  const [savedMsg, setSavedMsg] = useState(false);
+
+  useEffect(() => {
+    setItems(existingQuote ? buildItemsFromQuote(existingQuote) : []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingQuote?.id, existingQuote?.updatedAt]);
+
+  const addItem = () => {
+    setItems(prev => [...prev, { _key: `new-${Date.now()}`, serviceName: '', priceNet: '', vatRate: 23, priceGross: '' }]);
+  };
+
+  const removeItem = (key: string) => {
+    setItems(prev => prev.filter(i => i._key !== key));
+  };
+
+  const updateItem = (key: string, field: keyof UserQuoteItem, value: string | number) => {
+    setItems(prev => prev.map(item => {
+      if (item._key !== key) return item;
+      const updated = { ...item, [field]: value };
+      if (field === 'priceNet' || field === 'vatRate') {
+        updated.priceGross = computeGross(
+          field === 'priceNet' ? String(value) : updated.priceNet,
+          field === 'vatRate' ? Number(value) : updated.vatRate
+        );
+      }
+      return updated;
+    }));
+  };
+
+  const handleSave = () => {
+    const validItems: SaveUserQuoteItemRequest[] = items
+      .filter(i => i.serviceName.trim() && i.priceNet)
+      .map(i => ({
+        serviceName: i.serviceName.trim(),
+        priceNet: parsePLNToGrosze(i.priceNet),
+        vatRate: i.vatRate,
+        priceGross: parsePLNToGrosze(i.priceGross || computeGross(i.priceNet, i.vatRate)),
+      }));
+
+    saveQuote.mutate({ items: validItems }, {
+      onSuccess: () => {
+        setSavedMsg(true);
+        setTimeout(() => setSavedMsg(false), 2500);
+      },
+    });
+  };
+
+  const handleDelete = () => {
+    deleteQuote.mutate(undefined, { onSuccess: () => setItems([]) });
+  };
+
+  const totalNet   = items.reduce((s, i) => s + (parseFloat(i.priceNet.replace(',', '.')) || 0), 0);
+  const totalGross = items.reduce((s, i) => s + (parseFloat(i.priceGross.replace(',', '.')) || 0), 0);
+
+  return (
+    <div>
+      {items.length > 0 && (
+        <QuoteCard>
+          {items.map(item => (
+            <QuoteItemRow key={item._key}>
+              <QuoteItemInput
+                placeholder="Nazwa usługi"
+                value={item.serviceName}
+                onChange={e => updateItem(item._key, 'serviceName', e.target.value)}
+              />
+              <QuoteItemInput
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Netto"
+                value={item.priceNet}
+                onChange={e => updateItem(item._key, 'priceNet', e.target.value)}
+                title="Cena netto (PLN)"
+              />
+              <QuoteVatSelect
+                value={item.vatRate}
+                onChange={e => updateItem(item._key, 'vatRate', Number(e.target.value))}
+                title="Stawka VAT"
+              >
+                <option value={0}>0%</option>
+                <option value={5}>5%</option>
+                <option value={8}>8%</option>
+                <option value={23}>23%</option>
+              </QuoteVatSelect>
+              <QuoteGrossCell title="Cena brutto (PLN)">
+                {item.priceGross ? `${parseFloat(item.priceGross).toFixed(2)} PLN` : '—'}
+              </QuoteGrossCell>
+              <QuoteRemoveBtn onClick={() => removeItem(item._key)} title="Usuń pozycję">
+                <X />
+              </QuoteRemoveBtn>
+            </QuoteItemRow>
+          ))}
+          {items.length > 0 && (
+            <QuoteTotalRow>
+              <QuoteTotalLabel>ŁĄCZNIE</QuoteTotalLabel>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: st.textMuted }}>{totalNet.toFixed(2)} PLN netto</span>
+                <QuoteTotalValue>{totalGross.toFixed(2)} PLN brutto</QuoteTotalValue>
+              </div>
+            </QuoteTotalRow>
+          )}
+        </QuoteCard>
+      )}
+      <QuoteActions>
+        <QuoteAddBtn onClick={addItem}>
+          <Plus /> Dodaj usługę
+        </QuoteAddBtn>
+        {items.length > 0 && (
+          <QuoteSaveBtn onClick={handleSave} disabled={saveQuote.isPending}>
+            {saveQuote.isPending ? 'Zapisywanie…' : 'Zapisz kosztorys'}
+          </QuoteSaveBtn>
+        )}
+        {savedMsg && <SavedTag>✓ Zapisano</SavedTag>}
+        {existingQuote && (
+          <QuoteDeleteBtn onClick={handleDelete} disabled={deleteQuote.isPending}>
+            {deleteQuote.isPending ? 'Usuwanie…' : 'Usuń kosztorys'}
+          </QuoteDeleteBtn>
+        )}
+      </QuoteActions>
+    </div>
+  );
+};
+
 // ─── Expanded row component ───────────────────────────────────────────────────
 
 interface ExpandedRowProps {
@@ -1481,19 +2083,21 @@ interface ExpandedRowProps {
 
 const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
   const { lead: detail, isLoading: isDetailLoading } = useLead(lead.id);
-  const updateStatus = useUpdateLeadStatus();
-  const updateValue  = useUpdateLeadValue();
+  const updateStatus  = useUpdateLeadStatus();
+  const updateValue   = useUpdateLeadValue();
+  const assignCustomer = useAssignLeadCustomer(lead.id);
 
   const [priceInput, setPriceInput] = useState(String(lead.estimatedValue / 100));
   const [savedMsg, setSavedMsg]     = useState(false);
-  const [previewVisitId, setPreviewVisitId] = useState<string | null>(null);
+  const [previewVisitId, setPreviewVisitId]     = useState<string | null>(null);
+  const [isPickerOpen, setIsPickerOpen]         = useState(false);
 
   useEffect(() => {
     setPriceInput(String(lead.estimatedValue / 100));
     setSavedMsg(false);
   }, [lead.estimatedValue]);
 
-  const handleSave = () => {
+  const handleSaveValue = () => {
     const val = parseCurrencyToGrosze(priceInput);
     if (!isNaN(val) && val >= 0) {
       updateValue.mutate({ id: lead.id, estimatedValue: val });
@@ -1502,15 +2106,25 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
     }
   };
 
-  const estimation = detail?.estimation ?? null;
-  const relatedVisits = detail?.relatedVisits ?? lead.relatedVisits ?? [];
+  const handleSelectCustomer = (customer: Customer) => {
+    assignCustomer.mutate(customer.id);
+  };
+
+  const handleUnassignCustomer = () => {
+    assignCustomer.mutate(null);
+  };
+
+  const estimation    = detail?.estimation ?? null;
+  const userQuote     = detail?.userQuote ?? null;
+  const assignedCust: CustomerSnapshot | null | undefined = detail?.assignedCustomer;
+  const relatedVisits = estimation?.relatedVisits ?? detail?.relatedVisits ?? lead.relatedVisits ?? [];
 
   return (
     <>
       <ExpandedTr>
         <ExpandedTd colSpan={colSpan}>
           <ExpandedPanel>
-            {/* Left — message + estimation + related visits */}
+            {/* Left — message + AI estimation + related visits */}
             <PanelSection>
               {lead.initialMessage && (
                 <>
@@ -1519,7 +2133,7 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
                 </>
               )}
 
-              <PanelLabel>Kosztorys wstępny</PanelLabel>
+              <PanelLabel><FileText size={13} /> Kosztorys AI</PanelLabel>
 
               {isDetailLoading ? (
                 <EstCard>
@@ -1532,19 +2146,22 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
                   {estimation.matchedItems.map(item => (
                     <EstRow key={item.serviceName}>
                       <EstName>{item.serviceName}</EstName>
-                      <EstPrice>{formatCurrency(item.priceGross)} brutto</EstPrice>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                        <EstPrice>{formatCurrency(item.priceGross)} brutto</EstPrice>
+                        <span style={{ fontSize: 10, color: st.textMuted, fontVariantNumeric: 'tabular-nums' }}>
+                          {formatCurrency(item.priceNet)} netto · VAT {item.vatRate}%
+                        </span>
+                      </div>
                     </EstRow>
                   ))}
                   <EstRow $isTotal>
                     <EstName $isTotal>ŁĄCZNIE</EstName>
-                    <EstPrice $isTotal>
-                      {formatCurrency(estimation.totalGross)} brutto
-                      {estimation.unmatchedNeeds.length > 0 && (
-                        <span style={{ fontWeight: 400, fontSize: 11, marginLeft: 4, color: '#92400e' }}>
-                          + {estimation.unmatchedNeeds.join(', ')}
-                        </span>
-                      )}
-                    </EstPrice>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                      <EstPrice $isTotal>{formatCurrency(estimation.totalGross)} brutto</EstPrice>
+                      <span style={{ fontSize: 10, color: st.textMuted, fontVariantNumeric: 'tabular-nums' }}>
+                        {formatCurrency(estimation.totalNet)} netto
+                      </span>
+                    </div>
                   </EstRow>
                   {estimation.unmatchedNeeds.length > 0 && (
                     <UnmatchedRow>
@@ -1556,7 +2173,7 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
                   )}
                 </EstCard>
               ) : (
-                <NoEstBox>Brak kosztorysu wstępnego dla tego leada.</NoEstBox>
+                <NoEstBox>Brak kosztorysu AI dla tego leada.</NoEstBox>
               )}
 
               {relatedVisits.length > 0 && (
@@ -1568,15 +2185,9 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
                         key={rv.id}
                         onClick={e => { e.stopPropagation(); setPreviewVisitId(rv.id); }}
                       >
-                        <RelatedVisitIcon>
-                          <Wrench />
-                        </RelatedVisitIcon>
-                        <RelatedVisitTitle>
-                          {rv.title ?? `Wizyta ${rv.id.slice(0, 8)}…`}
-                        </RelatedVisitTitle>
-                        <RelatedVisitArrow>
-                          <ChevronRight />
-                        </RelatedVisitArrow>
+                        <RelatedVisitIcon><Wrench /></RelatedVisitIcon>
+                        <RelatedVisitTitle>{rv.title ?? `Wizyta ${rv.id.slice(0, 8)}…`}</RelatedVisitTitle>
+                        <RelatedVisitArrow><ChevronRight /></RelatedVisitArrow>
                       </RelatedVisitRow>
                     ))}
                   </RelatedVisitsCard>
@@ -1584,9 +2195,57 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
               )}
             </PanelSection>
 
-            {/* Right — price override + status */}
+            {/* Right — customer assignment + user quote + value + status */}
             <PanelSection>
-              <PanelLabel>Twoja wycena</PanelLabel>
+              {/* Customer assignment */}
+              <PanelLabel><UserCheck size={13} /> Przypisany klient</PanelLabel>
+              {isDetailLoading ? (
+                <SkeletonPulse $h="48px" />
+              ) : assignedCust ? (
+                <AssignedCustomerCard>
+                  <UserCheck size={18} color="#0ea5e9" style={{ flexShrink: 0 }} />
+                  <AssignedCustomerInfo>
+                    <AssignedCustomerName>
+                      {[assignedCust.firstName, assignedCust.lastName].filter(Boolean).join(' ') || '—'}
+                    </AssignedCustomerName>
+                    <AssignedCustomerContact>
+                      {[assignedCust.phone, assignedCust.email].filter(Boolean).join(' · ') || assignedCust.id}
+                    </AssignedCustomerContact>
+                  </AssignedCustomerInfo>
+                  <AssignBtn
+                    onClick={e => { e.stopPropagation(); setIsPickerOpen(true); }}
+                    disabled={assignCustomer.isPending}
+                    title="Zmień klienta"
+                  >
+                    <Edit3 /> Zmień
+                  </AssignBtn>
+                  <UnassignBtn
+                    onClick={e => { e.stopPropagation(); handleUnassignCustomer(); }}
+                    disabled={assignCustomer.isPending}
+                    title="Odepnij klienta"
+                  >
+                    <UserX />
+                  </UnassignBtn>
+                </AssignedCustomerCard>
+              ) : (
+                <AssignBtn
+                  onClick={e => { e.stopPropagation(); setIsPickerOpen(true); }}
+                  disabled={assignCustomer.isPending}
+                >
+                  <User /> Przypisz klienta z bazy danych
+                </AssignBtn>
+              )}
+
+              {/* User quote */}
+              <PanelLabel style={{ marginTop: 8 }}><Edit3 size={13} /> Twój kosztorys</PanelLabel>
+              {isDetailLoading ? (
+                <SkeletonPulse $h="60px" />
+              ) : (
+                <UserQuoteEditor leadId={lead.id} existingQuote={userQuote} />
+              )}
+
+              {/* Estimated value override */}
+              <PanelLabel style={{ marginTop: 8 }}>Wartość oferty</PanelLabel>
               <PriceRow>
                 <PriceInputWrap>
                   <PriceInput
@@ -1595,11 +2254,11 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
                     step="0.01"
                     value={priceInput}
                     onChange={e => { setPriceInput(e.target.value); setSavedMsg(false); }}
-                    onKeyDown={e => e.key === 'Enter' && handleSave()}
+                    onKeyDown={e => e.key === 'Enter' && handleSaveValue()}
                   />
                   <PriceSuffix>PLN</PriceSuffix>
                 </PriceInputWrap>
-                <SaveBtn onClick={handleSave} disabled={updateValue.isPending}>
+                <SaveBtn onClick={handleSaveValue} disabled={updateValue.isPending}>
                   {updateValue.isPending ? 'Zapisywanie…' : 'Zapisz'}
                 </SaveBtn>
                 {savedMsg && <SavedTag>✓ Zapisano</SavedTag>}
@@ -1640,6 +2299,12 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
       <VisitPreviewModal
         visitId={previewVisitId}
         onClose={() => setPreviewVisitId(null)}
+      />
+
+      <CustomerPickerModal
+        isOpen={isPickerOpen}
+        onClose={() => setIsPickerOpen(false)}
+        onSelect={handleSelectCustomer}
       />
     </>
   );

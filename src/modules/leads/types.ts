@@ -76,6 +76,9 @@ export interface Lead {
    * Flag for records coming from WebSockets/Phone that need verification
    */
   requiresVerification: boolean;
+
+  /** Customer from the database assigned to this lead */
+  assignedCustomer?: CustomerSnapshot | null;
 }
 
 /**
@@ -197,6 +200,18 @@ export interface LeadFormValues {
 }
 
 // ---------------------------------------------------------------------------
+// Customer snapshot (assigned to a lead)
+// ---------------------------------------------------------------------------
+
+export interface CustomerSnapshot {
+  id: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // AI Estimation types (returned from GET /api/v1/leads/{id})
 // ---------------------------------------------------------------------------
 
@@ -216,17 +231,60 @@ export interface LeadEstimation {
   extractedNeeds: string[];
   matchedItems: LeadEstimationItem[];
   unmatchedNeeds: string[];
+  /** Total net value in grosze */
+  totalNet: number;
   /** Total gross value in grosze */
   totalGross: number;
   /** Visits that contributed to building this estimation */
   relatedVisits: RelatedVisit[];
   /** System-generated reasoning used to produce the estimation */
-  reasoning?: string;
+  aiReasoning?: string;
   createdAt: string;
   updatedAt: string;
 }
 
-/** Full lead detail — extends Lead with AI estimation breakdown */
+// ---------------------------------------------------------------------------
+// User quote types (user-defined, independent of AI estimation)
+// ---------------------------------------------------------------------------
+
+export interface LeadUserQuoteItem {
+  id: string;
+  serviceId?: string | null;
+  serviceName: string;
+  /** Net price in grosze */
+  priceNet: number;
+  vatRate: number;
+  /** Gross price in grosze */
+  priceGross: number;
+}
+
+export interface LeadUserQuote {
+  id: string;
+  items: LeadUserQuoteItem[];
+  /** Total net value in grosze */
+  totalNet: number;
+  /** Total gross value in grosze */
+  totalGross: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SaveUserQuoteItemRequest {
+  serviceId?: string | null;
+  serviceName?: string;
+  /** Net price in grosze */
+  priceNet: number;
+  vatRate: number;
+  /** Gross price in grosze */
+  priceGross: number;
+}
+
+export interface SaveUserQuoteRequest {
+  items: SaveUserQuoteItemRequest[];
+}
+
+/** Full lead detail — extends Lead with AI estimation and user quote */
 export interface LeadDetail extends Lead {
   estimation: LeadEstimation | null;
+  userQuote: LeadUserQuote | null;
 }
