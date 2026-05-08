@@ -54,7 +54,7 @@ import {
   useDeleteUserQuote,
 } from '../hooks';
 import { LeadStatus, LeadSource } from '../types';
-import type { Lead, LeadListFilters, CustomerSnapshot, LeadUserQuote, SaveUserQuoteItemRequest } from '../types';
+import type { Lead, LeadListFilters, CustomerSnapshot, LeadUserQuote, LeadEstimationItem, SaveUserQuoteItemRequest } from '../types';
 import {
   formatCurrency,
   formatPLN,
@@ -574,10 +574,12 @@ const ExpandedPanel = styled.div`
   }
 `;
 
-const EstimationsGrid = styled.div`
+const EstimationsGrid = styled.div<{ $twoCol: boolean }>`
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  grid-template-columns: ${p => p.$twoCol ? '1fr 1fr' : '1fr'};
+  /* labels in row 1, cards in row 2 — both sides start at same height */
+  column-gap: 20px;
+  row-gap: 8px;
   align-items: start;
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
@@ -2189,9 +2191,12 @@ const ServiceNameInput: React.FC<ServiceNameInputProps> = ({ value, onChange }) 
 interface UserQuoteEditorProps {
   leadId: string;
   existingQuote: LeadUserQuote | null;
+  prefillItems?: LeadEstimationItem[];
+  onSaved?: (totalGross: number) => void;
+  onDeleted?: () => void;
 }
 
-const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote }) => {
+const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote, prefillItems, onSaved, onDeleted }) => {
   const saveQuote   = useSaveUserQuote(leadId);
   const deleteQuote = useDeleteUserQuote(leadId);
 
@@ -2207,13 +2212,31 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
       priceGross: (item.priceGross / 100).toFixed(2),
     }));
 
-  const [items, setItems] = useState<UserQuoteItem[]>(() =>
-    existingQuote ? buildItemsFromQuote(existingQuote) : [emptyItem()]
-  );
+  const buildItemsFromEstimation = (estItems: LeadEstimationItem[]): UserQuoteItem[] =>
+    estItems.map((item, i) => ({
+      _key: `est-${i}`,
+      serviceId: item.serviceId,
+      serviceName: item.serviceName,
+      priceNet: (item.priceNet / 100).toFixed(2),
+      vatRate: item.vatRate,
+      priceGross: (item.priceGross / 100).toFixed(2),
+    }));
+
+  const [items, setItems] = useState<UserQuoteItem[]>(() => {
+    if (existingQuote) return buildItemsFromQuote(existingQuote);
+    if (prefillItems?.length) return buildItemsFromEstimation(prefillItems);
+    return [emptyItem()];
+  });
   const [savedMsg, setSavedMsg] = useState(false);
 
   useEffect(() => {
-    setItems(existingQuote ? buildItemsFromQuote(existingQuote) : [emptyItem()]);
+    if (existingQuote) {
+      setItems(buildItemsFromQuote(existingQuote));
+    } else if (prefillItems?.length) {
+      setItems(buildItemsFromEstimation(prefillItems));
+    } else {
+      setItems([emptyItem()]);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingQuote?.id, existingQuote?.updatedAt]);
 
@@ -2243,12 +2266,21 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
       }));
 
     saveQuote.mutate({ items: validItems }, {
-      onSuccess: () => { setSavedMsg(true); setTimeout(() => setSavedMsg(false), 2500); },
+      onSuccess: (saved) => {
+        setSavedMsg(true);
+        setTimeout(() => setSavedMsg(false), 2500);
+        onSaved?.(saved.totalGross);
+      },
     });
   };
 
   const handleDelete = () => {
-    deleteQuote.mutate(undefined, { onSuccess: () => setItems([emptyItem()]) });
+    deleteQuote.mutate(undefined, {
+      onSuccess: () => {
+        setItems([emptyItem()]);
+        onDeleted?.();
+      },
+    });
   };
 
   const totalNet   = items.reduce((s, i) => s + (parseFloat(i.priceNet.replace(',', '.')) || 0), 0);
@@ -2341,24 +2373,8 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
   const updateStatus = useUpdateLeadStatus();
   const updateValue  = useUpdateLeadValue();
 
-  const [priceInput, setPriceInput]       = useState(String(lead.estimatedValue / 100));
-  const [savedMsg, setSavedMsg]           = useState(false);
   const [previewVisitId, setPreviewVisitId] = useState<string | null>(null);
   const [quoteEditorOpen, setQuoteEditorOpen] = useState(false);
-
-  useEffect(() => {
-    setPriceInput(String(lead.estimatedValue / 100));
-    setSavedMsg(false);
-  }, [lead.estimatedValue]);
-
-  const handleSaveValue = () => {
-    const val = parseCurrencyToGrosze(priceInput);
-    if (!isNaN(val) && val >= 0) {
-      updateValue.mutate({ id: lead.id, estimatedValue: val });
-      setSavedMsg(true);
-      setTimeout(() => setSavedMsg(false), 2500);
-    }
-  };
 
   const estimation    = detail?.estimation ?? null;
   const userQuote     = detail?.userQuote ?? null;
@@ -2366,6 +2382,14 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
 
   // Show quote editor if explicitly opened OR if a saved quote exists
   const showQuoteEditor = quoteEditorOpen || !!userQuote;
+
+  // Silently sync estimatedValue when quote is saved or deleted
+  const handleQuoteSaved = (totalGross: number) => {
+    updateValue.mutate({ id: lead.id, estimatedValue: totalGross });
+  };
+  const handleQuoteDeleted = () => {
+    updateValue.mutate({ id: lead.id, estimatedValue: estimation?.totalGross ?? 0 });
+  };
 
   return (
     <>
@@ -2381,22 +2405,28 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
               </div>
             )}
 
-            {/* Estimations — AI and user quote side by side */}
-            <EstimationsGrid>
-              {/* AI estimation */}
-              <PanelSection>
-                <PanelLabel style={{ display: 'flex', alignItems: 'center' }}>
-                  <FileText size={13} style={{ marginRight: 6 }} /> Kosztorys AI
-                  {!isDetailLoading && (
-                    <EditEstBtn
-                      onClick={e => { e.stopPropagation(); setQuoteEditorOpen(v => !v); }}
-                      title={quoteEditorOpen ? 'Zamknij edytor' : 'Utwórz / edytuj swój kosztorys'}
-                    >
-                      <Edit3 /> {quoteEditorOpen ? 'Zamknij' : 'Edytuj'}
-                    </EditEstBtn>
-                  )}
-                </PanelLabel>
+            {/* Estimations — AI and user quote side by side, labels in row 1, cards in row 2 */}
+            <EstimationsGrid $twoCol={showQuoteEditor}>
+              {/* Row 1 col 1 — AI label */}
+              <PanelLabel style={{ display: 'flex', alignItems: 'center' }}>
+                <FileText size={13} style={{ marginRight: 6 }} /> Kosztorys AI
+                {!isDetailLoading && (
+                  <EditEstBtn
+                    onClick={e => { e.stopPropagation(); setQuoteEditorOpen(v => !v); }}
+                    title={quoteEditorOpen ? 'Zamknij edytor' : 'Utwórz / edytuj swój kosztorys'}
+                  >
+                    <Edit3 /> {quoteEditorOpen ? 'Zamknij' : 'Edytuj'}
+                  </EditEstBtn>
+                )}
+              </PanelLabel>
 
+              {/* Row 1 col 2 — User quote label (only when visible) */}
+              {showQuoteEditor && (
+                <PanelLabel><Edit3 size={13} style={{ marginRight: 6 }} /> Twój kosztorys</PanelLabel>
+              )}
+
+              {/* Row 2 col 1 — AI card */}
+              <div>
                 {isDetailLoading ? (
                   <EstCard>
                     <EstRow><SkeletonPulse $w="55%" /></EstRow>
@@ -2447,94 +2477,75 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
                     )}
                   </NoEstBox>
                 ) : null}
-              </PanelSection>
+              </div>
 
-              {/* User quote — shown when editor open or saved quote exists */}
+              {/* Row 2 col 2 — User quote editor */}
               {showQuoteEditor && (
-                <PanelSection>
-                  <PanelLabel><Edit3 size={13} style={{ marginRight: 6 }} /> Twój kosztorys</PanelLabel>
+                <div>
                   {isDetailLoading ? (
                     <SkeletonPulse $h="80px" />
                   ) : (
-                    <UserQuoteEditor leadId={lead.id} existingQuote={userQuote} />
+                    <UserQuoteEditor
+                      leadId={lead.id}
+                      existingQuote={userQuote}
+                      prefillItems={!userQuote && estimation ? estimation.matchedItems : undefined}
+                      onSaved={handleQuoteSaved}
+                      onDeleted={handleQuoteDeleted}
+                    />
                   )}
-                </PanelSection>
+                </div>
               )}
             </EstimationsGrid>
 
-            {/* Bottom row — related visits + value/status controls */}
-            <BottomGrid>
-              {/* Related visits */}
+            {/* Related visits */}
+            {relatedVisits.length > 0 && (
               <PanelSection>
-                {relatedVisits.length > 0 && (
-                  <>
-                    <PanelLabel>Na podstawie wizyt</PanelLabel>
-                    <RelatedVisitsCard>
-                      {relatedVisits.map(rv => (
-                        <RelatedVisitRow
-                          key={rv.id}
-                          onClick={e => { e.stopPropagation(); setPreviewVisitId(rv.id); }}
-                        >
-                          <RelatedVisitIcon><Wrench /></RelatedVisitIcon>
-                          <RelatedVisitTitle>{rv.title ?? `Wizyta ${rv.id.slice(0, 8)}…`}</RelatedVisitTitle>
-                          <RelatedVisitArrow><ChevronRight /></RelatedVisitArrow>
-                        </RelatedVisitRow>
-                      ))}
-                    </RelatedVisitsCard>
-                  </>
-                )}
+                <PanelLabel>Na podstawie wizyt</PanelLabel>
+                <RelatedVisitsCard>
+                  {relatedVisits.map(rv => (
+                    <RelatedVisitRow
+                      key={rv.id}
+                      onClick={e => { e.stopPropagation(); setPreviewVisitId(rv.id); }}
+                    >
+                      <RelatedVisitIcon><Wrench /></RelatedVisitIcon>
+                      <RelatedVisitTitle>{rv.title ?? `Wizyta ${rv.id.slice(0, 8)}…`}</RelatedVisitTitle>
+                      <RelatedVisitArrow><ChevronRight /></RelatedVisitArrow>
+                    </RelatedVisitRow>
+                  ))}
+                </RelatedVisitsCard>
               </PanelSection>
+            )}
 
-              {/* Value override + status */}
-              <PanelSection>
-                <PanelLabel>Wartość oferty</PanelLabel>
-                <PriceRow>
-                  <PriceInputWrap>
-                    <PriceInput
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={priceInput}
-                      onChange={e => { setPriceInput(e.target.value); setSavedMsg(false); }}
-                      onKeyDown={e => e.key === 'Enter' && handleSaveValue()}
-                    />
-                    <PriceSuffix>PLN</PriceSuffix>
-                  </PriceInputWrap>
-                  <SaveBtn onClick={handleSaveValue} disabled={updateValue.isPending}>
-                    {updateValue.isPending ? 'Zapisywanie…' : 'Zapisz'}
-                  </SaveBtn>
-                  {savedMsg && <SavedTag>✓ Zapisano</SavedTag>}
-                </PriceRow>
-
-                <PanelLabel style={{ marginTop: 12 }}>Zmień status</PanelLabel>
-                <StatusBtnGroup>
-                  <StatusActionBtn
-                    $active={lead.status === LeadStatus.IN_PROGRESS}
-                    $color="#1d4ed8"
-                    onClick={() => updateStatus.mutate({ id: lead.id, status: LeadStatus.IN_PROGRESS })}
-                    disabled={updateStatus.isPending}
-                  >
-                    W kontakcie
-                  </StatusActionBtn>
-                  <StatusActionBtn
-                    $active={lead.status === LeadStatus.CONVERTED}
-                    $color="#16a34a"
-                    onClick={() => updateStatus.mutate({ id: lead.id, status: LeadStatus.CONVERTED })}
-                    disabled={updateStatus.isPending}
-                  >
-                    Zrealizowany
-                  </StatusActionBtn>
-                  <StatusActionBtn
-                    $active={lead.status === LeadStatus.ABANDONED}
-                    $color="#64748b"
-                    onClick={() => updateStatus.mutate({ id: lead.id, status: LeadStatus.ABANDONED })}
-                    disabled={updateStatus.isPending}
-                  >
-                    Odpuszczony
-                  </StatusActionBtn>
-                </StatusBtnGroup>
-              </PanelSection>
-            </BottomGrid>
+            {/* Status controls */}
+            <PanelSection>
+              <PanelLabel>Zmień status</PanelLabel>
+              <StatusBtnGroup>
+                <StatusActionBtn
+                  $active={lead.status === LeadStatus.IN_PROGRESS}
+                  $color="#1d4ed8"
+                  onClick={() => updateStatus.mutate({ id: lead.id, status: LeadStatus.IN_PROGRESS })}
+                  disabled={updateStatus.isPending}
+                >
+                  W kontakcie
+                </StatusActionBtn>
+                <StatusActionBtn
+                  $active={lead.status === LeadStatus.CONVERTED}
+                  $color="#16a34a"
+                  onClick={() => updateStatus.mutate({ id: lead.id, status: LeadStatus.CONVERTED })}
+                  disabled={updateStatus.isPending}
+                >
+                  Zrealizowany
+                </StatusActionBtn>
+                <StatusActionBtn
+                  $active={lead.status === LeadStatus.ABANDONED}
+                  $color="#64748b"
+                  onClick={() => updateStatus.mutate({ id: lead.id, status: LeadStatus.ABANDONED })}
+                  disabled={updateStatus.isPending}
+                >
+                  Odpuszczony
+                </StatusActionBtn>
+              </StatusBtnGroup>
+            </PanelSection>
 
           </ExpandedPanel>
         </ExpandedTd>
