@@ -2391,8 +2391,7 @@ interface ExpandedRowProps {
 
 const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
   const { lead: detail, isLoading: isDetailLoading } = useLead(lead.id);
-  const updateStatus = useUpdateLeadStatus();
-  const updateValue  = useUpdateLeadValue();
+  const updateValue = useUpdateLeadValue();
 
   const [previewVisitId, setPreviewVisitId] = useState<string | null>(null);
   const [quoteEditorOpen, setQuoteEditorOpen] = useState(false);
@@ -2439,6 +2438,11 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
               {/* Row 1 col 1 — AI label */}
               <PanelLabel style={{ display: 'flex', alignItems: 'center' }}>
                 <FileText size={13} style={{ marginRight: 6 }} /> Kosztorys AI
+              </PanelLabel>
+
+              {/* Row 1 col 2 — User quote label + action button */}
+              <PanelLabel style={{ display: 'flex', alignItems: 'center' }}>
+                <Edit3 size={13} style={{ marginRight: 6 }} /> Twój kosztorys
                 {!isDetailLoading && (
                   <EditEstBtn
                     onClick={e => { e.stopPropagation(); setQuoteEditorOpen(v => !v); }}
@@ -2448,9 +2452,6 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
                   </EditEstBtn>
                 )}
               </PanelLabel>
-
-              {/* Row 1 col 2 — User quote label */}
-              <PanelLabel><Edit3 size={13} style={{ marginRight: 6 }} /> Twój kosztorys</PanelLabel>
 
               {/* Row 2 col 1 — AI card (dimmed when user quote is active) */}
               <EstColumnWrapper $dimmed={aiDimmed}>
@@ -2536,37 +2537,6 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
                 </RelatedVisitsCard>
               </PanelSection>
             )}
-
-            {/* Status controls */}
-            <PanelSection>
-              <PanelLabel>Zmień status</PanelLabel>
-              <StatusBtnGroup>
-                <StatusActionBtn
-                  $active={lead.status === LeadStatus.IN_PROGRESS}
-                  $color="#1d4ed8"
-                  onClick={() => updateStatus.mutate({ id: lead.id, status: LeadStatus.IN_PROGRESS })}
-                  disabled={updateStatus.isPending}
-                >
-                  W kontakcie
-                </StatusActionBtn>
-                <StatusActionBtn
-                  $active={lead.status === LeadStatus.CONVERTED}
-                  $color="#16a34a"
-                  onClick={() => updateStatus.mutate({ id: lead.id, status: LeadStatus.CONVERTED })}
-                  disabled={updateStatus.isPending}
-                >
-                  Zrealizowany
-                </StatusActionBtn>
-                <StatusActionBtn
-                  $active={lead.status === LeadStatus.ABANDONED}
-                  $color="#64748b"
-                  onClick={() => updateStatus.mutate({ id: lead.id, status: LeadStatus.ABANDONED })}
-                  disabled={updateStatus.isPending}
-                >
-                  Odpuszczony
-                </StatusActionBtn>
-              </StatusBtnGroup>
-            </PanelSection>
 
           </ExpandedPanel>
         </ExpandedTd>
