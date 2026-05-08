@@ -1012,7 +1012,24 @@ const QuoteAddBtn = styled.button`
   svg { width: 13px; height: 13px; }
 `;
 
-const QuoteSaveBtn = styled(SaveBtn)``;
+const QuoteSaveBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 16px;
+  background: #0ea5e9;
+  color: #fff;
+  border: none;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all ${st.transition};
+
+  &:hover { background: #0284c7; }
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
+`;
 
 const QuoteDeleteBtn = styled.button`
   display: inline-flex;
