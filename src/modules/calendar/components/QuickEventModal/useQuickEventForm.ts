@@ -344,16 +344,10 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         if (!selectedCustomer) {
             newErrors.customer = 'Wybór klienta jest wymagany';
         } else if (selectedCustomer.isNew) {
-            if (!selectedCustomer.firstName || selectedCustomer.firstName.trim().length < 2) {
-                newErrors.customer = 'Imię klienta jest wymagane (minimum 2 znaki)';
-            } else if (!selectedCustomer.lastName || selectedCustomer.lastName.trim().length < 2) {
-                newErrors.customer = 'Nazwisko klienta jest wymagane (minimum 2 znaki)';
-            } else {
-                const hasPhone = selectedCustomer.phone && selectedCustomer.phone.trim().length > 0;
-                const hasEmail = selectedCustomer.email && selectedCustomer.email.trim().length > 0;
-                if (!hasPhone && !hasEmail) {
-                    newErrors.customer = 'Podaj co najmniej numer telefonu lub adres email klienta';
-                }
+            const hasPhone = selectedCustomer.phone && selectedCustomer.phone.trim().length > 0;
+            const hasEmail = selectedCustomer.email && selectedCustomer.email.trim().length > 0;
+            if (!hasPhone && !hasEmail) {
+                newErrors.customer = 'Podaj co najmniej numer telefonu lub adres email klienta';
             }
         }
 
@@ -479,10 +473,8 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         }, 300);
     };
 
-    const getCustomerFieldErrors = (fn: string, ln: string, ph: string, em: string): Record<string, string> => {
+    const getCustomerFieldErrors = (_fn: string, _ln: string, ph: string, em: string): Record<string, string> => {
         const errs: Record<string, string> = {};
-        if (fn.length < 2) errs.customerFirstName = 'Wymagane';
-        if (ln.length < 2) errs.customerLastName = 'Wymagane';
         if (!ph && !em) {
             errs.customerPhone = 'Podaj telefon lub email';
             errs.customerEmail = 'Podaj telefon lub email';
