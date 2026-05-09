@@ -53,9 +53,12 @@ import {
   useAssignLeadCustomer,
   useSaveUserQuote,
   useDeleteUserQuote,
+  useLeadAppointmentCreation,
 } from '../hooks';
 import { LeadStatus, LeadSource } from '../types';
-import type { Lead, LeadListFilters, CustomerSnapshot, LeadUserQuote, LeadEstimationItem, SaveUserQuoteItemRequest } from '../types';
+import type { Lead, LeadDetail, LeadListFilters, CustomerSnapshot, LeadUserQuote, LeadEstimationItem, SaveUserQuoteItemRequest } from '../types';
+import { QuickEventModal } from '@/modules/calendar/components/QuickEventModal';
+import type { QuickEventFormData, QuickEventInitialData } from '@/modules/calendar/components/QuickEventModal';
 import {
   formatCurrency,
   formatPLN,
@@ -488,7 +491,7 @@ const CellMono = styled.div`
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
-const StatusBadge = styled.span<{ $variant: 'new' | 'progress' | 'converted' | 'abandoned' }>`
+const StatusBadge = styled.span<{ $variant: 'new' | 'progress' | 'confirmed' | 'completed' | 'lost' | 'noshow' }>`
   display: inline-flex;
   align-items: center;
   padding: 3px 9px;
@@ -508,8 +511,10 @@ const StatusBadge = styled.span<{ $variant: 'new' | 'progress' | 'converted' | '
     switch (p.$variant) {
       case 'new':       return css`background:rgba(220,38,38,0.1); color:#dc2626;`;
       case 'progress':  return css`background:#dbeafe; color:#1e40af;`;
-      case 'converted': return css`background:#dcfce7; color:#166534;`;
-      case 'abandoned': return css`background:#f3f4f6; color:#4b5563;`;
+      case 'confirmed': return css`background:#dcfce7; color:#166534;`;
+      case 'completed': return css`background:#d1fae5; color:#065f46;`;
+      case 'lost':      return css`background:#f3f4f6; color:#4b5563;`;
+      case 'noshow':    return css`background:#fef3c7; color:#92400e;`;
     }
   }}
 `;
@@ -587,6 +592,28 @@ const ActionBtns = styled.div`
   display: flex;
   align-items: center;
   gap: 2px;
+`;
+
+const BookingBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: transparent;
+  border: 1.5px solid #0ea5e9;
+  color: #0ea5e9;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: all ${st.transition};
+
+  svg { width: 12px; height: 12px; }
+
+  &:hover { background: #e0f2fe; }
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
 `;
 
 // ─── Expanded row panel ───────────────────────────────────────────────────────
@@ -2045,9 +2072,12 @@ type SourceTab = 'ALL' | LeadSource;
 
 const STATUS_TABS: { id: StatusTab; label: string }[] = [
   { id: 'ALL',                  label: 'Wszystkie' },
+  { id: LeadStatus.NEW,         label: 'Nowe' },
   { id: LeadStatus.IN_PROGRESS, label: 'W kontakcie' },
-  { id: LeadStatus.CONVERTED,   label: 'Zrealizowane' },
-  { id: LeadStatus.ABANDONED,   label: 'Odpuszczone' },
+  { id: LeadStatus.CONFIRMED,   label: 'Zarezerwowane' },
+  { id: LeadStatus.COMPLETED,   label: 'Zakończone' },
+  { id: LeadStatus.LOST,        label: 'Utracone' },
+  { id: LeadStatus.NO_SHOW,     label: 'No-show' },
 ];
 
 const SOURCE_TABS: { id: SourceTab; label: string }[] = [
@@ -2058,22 +2088,27 @@ const SOURCE_TABS: { id: SourceTab; label: string }[] = [
 ];
 
 const STATUS_LABELS: Record<LeadStatus, string> = {
+  [LeadStatus.NEW]:        'Nowy',
   [LeadStatus.IN_PROGRESS]: 'W kontakcie',
-  [LeadStatus.CONVERTED]:   'Zrealizowany',
-  [LeadStatus.ABANDONED]:   'Odpuszczony',
+  [LeadStatus.CONFIRMED]:  'Zarezerwowany',
+  [LeadStatus.COMPLETED]:  'Zakończony',
+  [LeadStatus.LOST]:       'Utracony',
+  [LeadStatus.NO_SHOW]:    'No-show',
 };
 
-const getStatusVariant = (lead: Lead): 'new' | 'progress' | 'converted' | 'abandoned' => {
-  if (lead.requiresVerification && lead.status === LeadStatus.IN_PROGRESS) return 'new';
-  if (lead.status === LeadStatus.IN_PROGRESS) return 'progress';
-  if (lead.status === LeadStatus.CONVERTED)   return 'converted';
-  return 'abandoned';
+const getStatusVariant = (lead: Lead): 'new' | 'progress' | 'confirmed' | 'completed' | 'lost' | 'noshow' => {
+  switch (lead.status) {
+    case LeadStatus.NEW:        return 'new';
+    case LeadStatus.IN_PROGRESS: return 'progress';
+    case LeadStatus.CONFIRMED:  return 'confirmed';
+    case LeadStatus.COMPLETED:  return 'completed';
+    case LeadStatus.LOST:       return 'lost';
+    case LeadStatus.NO_SHOW:    return 'noshow';
+    default:                    return 'progress';
+  }
 };
 
-const getStatusLabel = (lead: Lead): string => {
-  if (lead.requiresVerification && lead.status === LeadStatus.IN_PROGRESS) return 'Nowy';
-  return STATUS_LABELS[lead.status];
-};
+const getStatusLabel = (lead: Lead): string => STATUS_LABELS[lead.status];
 
 const formatContact = (lead: Lead): { primary: string; secondary?: string } => {
   if (lead.customerName) {
@@ -2625,7 +2660,69 @@ export const LeadListView: React.FC = () => {
   const [statusMenuLeadId, setStatusMenuLeadId] = useState<string | null>(null);
   const [statusMenuPos, setStatusMenuPos]       = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
+  // ─── Booking modal state ───────────────────────────────────────────────────
+  const [bookingLeadId, setBookingLeadId]       = useState<string | null>(null);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [bookingInitialData, setBookingInitialData] = useState<QuickEventInitialData | undefined>(undefined);
+  const { lead: bookingDetail, isLoading: isBookingDetailLoading } = useLead(bookingLeadId ?? undefined);
+  const createLeadAppointment = useLeadAppointmentCreation(bookingLeadId);
+
+  const { showError: showBookingError } = useToast();
+
   const updateStatus = useUpdateLeadStatus();
+
+  // Build initial data from booking detail and open modal when ready
+  useEffect(() => {
+    if (!bookingLeadId || !bookingDetail || isBookingModalOpen) return;
+
+    const c = bookingDetail.assignedCustomer;
+    const customer: QuickEventInitialData['customer'] = c
+      ? { id: c.id, firstName: c.firstName ?? undefined, lastName: c.lastName ?? undefined, phone: c.phone ?? undefined, email: c.email ?? undefined, isNew: false }
+      : undefined;
+
+    // Prefer user quote over AI estimation
+    const activeItems = bookingDetail.userQuote?.items ?? bookingDetail.estimation?.matchedItems ?? [];
+    const serviceIds: string[] = [];
+    const servicePrices: { [k: string]: number } = {};
+    const tempServices: { [k: string]: { name: string; basePriceNet: number; vatRate: number } } = {};
+
+    activeItems.forEach((item, idx) => {
+      const id = item.serviceId ?? `lead-temp-${bookingLeadId}-${idx}`;
+      serviceIds.push(id);
+      // Convert grosze → PLN for the modal's price state
+      servicePrices[id] = item.priceGross / 100;
+      if (!item.serviceId) {
+        tempServices[id] = { name: item.serviceName, basePriceNet: item.priceNet, vatRate: item.vatRate };
+      }
+    });
+
+    const vehicle = bookingDetail.vehicleBrand
+      ? { brand: bookingDetail.vehicleBrand, model: bookingDetail.vehicleModel ?? '', isNew: true }
+      : undefined;
+
+    setBookingInitialData({ customer, vehicle, serviceIds, servicePrices, tempServices });
+    setIsBookingModalOpen(true);
+  }, [bookingLeadId, bookingDetail]);
+
+  const handleStartBooking = (lead: Lead) => {
+    if (lead.status === LeadStatus.CONFIRMED || lead.status === LeadStatus.COMPLETED) return;
+    setBookingLeadId(lead.id);
+  };
+
+  const handleBookingClose = () => {
+    setIsBookingModalOpen(false);
+    setBookingLeadId(null);
+    setBookingInitialData(undefined);
+  };
+
+  const handleBookingSave = async (data: QuickEventFormData) => {
+    try {
+      await createLeadAppointment.mutateAsync(data);
+      handleBookingClose();
+    } catch (err) {
+      showBookingError(err instanceof Error ? err.message : 'Nie udało się utworzyć rezerwacji');
+    }
+  };
 
   // Close status menu on outside click or scroll
   useEffect(() => {
@@ -2826,6 +2923,16 @@ export const LeadListView: React.FC = () => {
 
           <TdActions onClick={e => e.stopPropagation()}>
             <ActionBtns>
+              {lead.status !== LeadStatus.CONFIRMED && lead.status !== LeadStatus.COMPLETED && (
+                <BookingBtn
+                  title="Rozpocznij rezerwację"
+                  disabled={isBookingDetailLoading && bookingLeadId === lead.id}
+                  onClick={() => handleStartBooking(lead)}
+                >
+                  <Calendar size={12} />
+                  Rezerwuj
+                </BookingBtn>
+              )}
               <IconBtn
                 $danger
                 title="Usuń leada"
@@ -3074,9 +3181,12 @@ export const LeadListView: React.FC = () => {
             onClick={e => e.stopPropagation()}
           >
             {([
-              { status: LeadStatus.IN_PROGRESS, label: 'W kontakcie',  color: '#1d4ed8' },
-              { status: LeadStatus.CONVERTED,   label: 'Zrealizowany', color: '#16a34a' },
-              { status: LeadStatus.ABANDONED,   label: 'Odpuszczony',  color: '#64748b' },
+              { status: LeadStatus.NEW,         label: 'Nowy',           color: '#dc2626' },
+              { status: LeadStatus.IN_PROGRESS, label: 'W kontakcie',    color: '#1d4ed8' },
+              { status: LeadStatus.CONFIRMED,   label: 'Zarezerwowany',  color: '#16a34a' },
+              { status: LeadStatus.COMPLETED,   label: 'Zakończony',     color: '#065f46' },
+              { status: LeadStatus.LOST,        label: 'Utracony',       color: '#64748b' },
+              { status: LeadStatus.NO_SHOW,     label: 'No-show',        color: '#92400e' },
             ] as const).map(({ status, label, color }) => (
               <StatusMenuItem
                 key={status}
@@ -3115,6 +3225,14 @@ export const LeadListView: React.FC = () => {
           });
         }}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      <QuickEventModal
+        isOpen={isBookingModalOpen}
+        eventData={null}
+        initialData={bookingInitialData}
+        onClose={handleBookingClose}
+        onSave={handleBookingSave}
       />
     </ViewContainer>
   );

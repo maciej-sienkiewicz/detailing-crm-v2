@@ -18,9 +18,12 @@ export enum LeadSource {
  * Lead lifecycle status
  */
 export enum LeadStatus {
-  IN_PROGRESS = 'IN_PROGRESS', // Contacted
-  CONVERTED = 'CONVERTED',   // Closed Won
-  ABANDONED = 'ABANDONED',   // Closed Lost
+  NEW        = 'NEW',        // Just received, nobody has responded yet
+  IN_PROGRESS = 'IN_PROGRESS', // Responded, waiting for client decision
+  CONFIRMED  = 'CONFIRMED',  // Appointment created from this lead
+  COMPLETED  = 'COMPLETED',  // Visit happened successfully
+  LOST       = 'LOST',       // Contact lost / offer rejected
+  NO_SHOW    = 'NO_SHOW',    // Appointment was planned but client didn't show
 }
 
 /**
@@ -65,6 +68,9 @@ export interface Lead {
 
   /** ISO timestamp of last update */
   updatedAt?: string;
+
+  /** ID of appointment created from this lead (set when status → CONFIRMED) */
+  appointmentId?: string | null;
 
   /**
    * Potential revenue in grosze (cents) for decimal precision

@@ -25,7 +25,7 @@ const mockLeads: Lead[] = [
   {
     id: '1',
     source: 'PHONE' as LeadSource,
-    status: 'IN_PROGRESS' as LeadStatus,
+    status: 'NEW' as LeadStatus,
     contactIdentifier: '+48 123 456 789',
     customerName: 'Jan Kowalski',
     initialMessage: 'Zainteresowany polerowaniam całego auta, może też folia?',
@@ -46,6 +46,7 @@ const mockLeads: Lead[] = [
     source: 'EMAIL' as LeadSource,
     status: 'IN_PROGRESS' as LeadStatus,
     contactIdentifier: 'anna.nowak@example.com',
+
     customerName: 'Anna Nowak',
     initialMessage: 'Chciałabym zamówić powłokę ceramiczną na moje auto. Macie w ofercie korekta lakieru przed nałożeniem?',
     reasoning: 'Klientka zainteresowana pakietem ceramika + korekta. Świadoma procesu — wymagający klient premium. Duże prawdopodobieństwo konwersji.',
@@ -64,6 +65,7 @@ const mockLeads: Lead[] = [
     source: 'MANUAL' as LeadSource,
     status: 'IN_PROGRESS' as LeadStatus,
     contactIdentifier: '+48 987 654 321',
+
     customerName: 'Piotr Wiśniewski',
     initialMessage: 'Folia PPF na maskę i błotniki przednie. Proszę o wycenę.',
     reasoning: 'Standardowe zapytanie o częściowe PPF. Klient wie czego chce — wystarczy wycena na konkretny zakres.',
@@ -77,7 +79,7 @@ const mockLeads: Lead[] = [
   {
     id: '4',
     source: 'PHONE' as LeadSource,
-    status: 'CONVERTED' as LeadStatus,
+    status: 'CONFIRMED' as LeadStatus,
     contactIdentifier: '+48 555 666 777',
     customerName: 'Maria Dąbrowska',
     initialMessage: 'Detailing kompletny przed sprzedażą auta, chcę żeby wyglądało jak nowe.',
@@ -95,7 +97,7 @@ const mockLeads: Lead[] = [
   {
     id: '5',
     source: 'EMAIL' as LeadSource,
-    status: 'ABANDONED' as LeadStatus,
+    status: 'LOST' as LeadStatus,
     contactIdentifier: 'tomasz.lewandowski@business.pl',
     customerName: 'Tomasz Lewandowski',
     initialMessage: 'Proszę o wycenę flotową dla 10 samochodów firmowych — corocznie.',
@@ -183,7 +185,7 @@ const mockCreateLead = async (data: CreateLeadRequest): Promise<Lead> => {
       const newLead: Lead = {
         id: String(mockIdCounter++),
         source: data.source,
-        status: 'IN_PROGRESS' as LeadStatus,
+        status: 'NEW' as LeadStatus,
         contactIdentifier: data.contactIdentifier,
         customerName: data.customerName,
         initialMessage: data.initialMessage,
@@ -217,7 +219,7 @@ const mockUpdateLead = async (data: UpdateLeadRequest): Promise<Lead> => {
         updatedAt: new Date().toISOString(),
         // Clear verification flag when status changes to IN_PROGRESS
         requiresVerification:
-          data.status === ('IN_PROGRESS' as LeadStatus)
+          (data.status === ('IN_PROGRESS' as LeadStatus) || data.status === ('NEW' as LeadStatus))
             ? false
             : existingLead.requiresVerification,
       };
@@ -400,6 +402,24 @@ const mockDeleteUserQuote = async (leadId: LeadId): Promise<void> => {
   });
 };
 
+const mockCreateLeadAppointment = async (leadId: LeadId, _data: unknown): Promise<Lead> => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const index = mockLeadsStore.findIndex((l) => l.id === leadId);
+      if (index === -1) { reject(new Error('Lead not found')); return; }
+      const updated: Lead = {
+        ...mockLeadsStore[index],
+        status: 'CONFIRMED' as LeadStatus,
+        appointmentId: `mock-apt-${Date.now()}`,
+        requiresVerification: false,
+        updatedAt: new Date().toISOString(),
+      };
+      mockLeadsStore[index] = updated;
+      resolve(updated);
+    }, 400);
+  });
+};
+
 // For WebSocket integration - adds lead to mock store
 export const addLeadToMockStore = (lead: Lead): void => {
   mockLeadsStore.unshift(lead);
@@ -554,5 +574,18 @@ export const leadApi = {
     }
 
     await apiClient.delete(`${BASE_PATH}/${leadId}/user-quote`);
+  },
+
+  /**
+   * Create an appointment from a lead in a single transaction.
+   * Changes lead status to CONFIRMED and sets appointmentId.
+   */
+  createLeadAppointment: async (leadId: LeadId, data: unknown): Promise<Lead> => {
+    if (USE_MOCKS) {
+      return mockCreateLeadAppointment(leadId, data);
+    }
+
+    const response = await apiClient.post(`${BASE_PATH}/${leadId}/appointment`, data);
+    return response.data;
   },
 };

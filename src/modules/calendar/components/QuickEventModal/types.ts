@@ -3,6 +3,16 @@ import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/t
 
 export type { EventCreationData };
 
+/** Pre-fill data for opening the modal from an external context (e.g. lead booking) */
+export interface QuickEventInitialData {
+  customer?: SelectedCustomer;
+  vehicle?: SelectedVehicle;
+  title?: string;
+  serviceIds?: string[];
+  servicePrices?: { [serviceId: string]: number };
+  tempServices?: { [serviceId: string]: { name: string; basePriceNet: number; vatRate: number } };
+}
+
 export interface Service {
     id: string;
     name: string;
@@ -43,4 +53,5 @@ export interface QuickEventModalProps {
     eventData: EventCreationData | null;
     onClose: () => void;
     onSave: (data: QuickEventFormData) => Promise<void> | void;
+    initialData?: QuickEventInitialData;
 }

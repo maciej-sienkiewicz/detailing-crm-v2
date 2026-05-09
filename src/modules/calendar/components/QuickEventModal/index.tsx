@@ -18,7 +18,7 @@ import {
 } from './icons';
 import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Service } from './types';
 
-export type { QuickEventFormData } from './types';
+export type { QuickEventFormData, QuickEventInitialData } from './types';
 export type { QuickEventModalRef };
 
 const SmsCheckList = styled.div`
@@ -91,8 +91,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     eventData,
     onClose,
     onSave,
+    initialData,
 }, ref) => {
-    const form = useQuickEventForm({ isOpen, eventData, onClose, onSave, ref });
+    const form = useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, initialData });
 
     const [serviceDropdownPos, setServiceDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
     const [autoOpenModel, setAutoOpenModel] = useState(false);

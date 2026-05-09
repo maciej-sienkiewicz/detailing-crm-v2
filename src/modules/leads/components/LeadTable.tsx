@@ -84,12 +84,12 @@ const TableRow = styled.tr<{ $isNew?: boolean; $requiresVerification?: boolean; 
       transparent 100%);
   `}
 
-  ${props => props.$status === LeadStatus.CONVERTED && css`
+  ${props => (props.$status === LeadStatus.CONFIRMED || props.$status === LeadStatus.COMPLETED) && css`
     background: rgba(34, 197, 94, 0.06);
-    opacity: 0.75;
+    opacity: 0.8;
   `}
 
-  ${props => props.$status === LeadStatus.ABANDONED && css`
+  ${props => (props.$status === LeadStatus.LOST || props.$status === LeadStatus.NO_SHOW) && css`
     background: rgba(148, 163, 184, 0.08);
     opacity: 0.65;
   `}
@@ -271,23 +271,41 @@ const StatusBadge = styled.button<{ $status: LeadStatus }>`
 
   ${props => {
     switch (props.$status) {
+      case LeadStatus.NEW:
+        return css`
+          background: rgba(220,38,38,0.1);
+          color: #dc2626;
+          border-color: #fca5a5;
+        `;
       case LeadStatus.IN_PROGRESS:
         return css`
           background: #dbeafe;
           color: #1e40af;
           border-color: #93c5fd;
         `;
-      case LeadStatus.CONVERTED:
+      case LeadStatus.CONFIRMED:
         return css`
           background: #dcfce7;
           color: #166534;
           border-color: #86efac;
         `;
-      case LeadStatus.ABANDONED:
+      case LeadStatus.COMPLETED:
+        return css`
+          background: #d1fae5;
+          color: #065f46;
+          border-color: #6ee7b7;
+        `;
+      case LeadStatus.LOST:
         return css`
           background: #f3f4f6;
           color: #4b5563;
           border-color: #d1d5db;
+        `;
+      case LeadStatus.NO_SHOW:
+        return css`
+          background: #fef3c7;
+          color: #92400e;
+          border-color: #fde68a;
         `;
       default:
         return '';
@@ -443,12 +461,12 @@ const MobileCard = styled.div<{ $status?: LeadStatus; $isNew?: boolean }>`
     border-left: 3px solid #ef4444;
   `}
 
-  ${props => props.$status === LeadStatus.CONVERTED && css`
+  ${props => (props.$status === LeadStatus.CONFIRMED || props.$status === LeadStatus.COMPLETED) && css`
     background: rgba(34, 197, 94, 0.06);
     opacity: 0.8;
   `}
 
-  ${props => props.$status === LeadStatus.ABANDONED && css`
+  ${props => (props.$status === LeadStatus.LOST || props.$status === LeadStatus.NO_SHOW) && css`
     background: rgba(148, 163, 184, 0.08);
     opacity: 0.7;
   `}
@@ -611,12 +629,22 @@ const ChevronIcon = () => (
 // ============================================================================
 
 const statusLabels: Record<LeadStatus, string> = {
+  [LeadStatus.NEW]:        'Nowy',
   [LeadStatus.IN_PROGRESS]: t.leads?.status?.inProgress || 'W kontakcie',
-  [LeadStatus.CONVERTED]: t.leads?.status?.converted || 'Zrealizowany',
-  [LeadStatus.ABANDONED]: t.leads?.status?.abandoned || 'Odpuszczony',
+  [LeadStatus.CONFIRMED]:  'Zarezerwowany',
+  [LeadStatus.COMPLETED]:  'Zakończony',
+  [LeadStatus.LOST]:       'Utracony',
+  [LeadStatus.NO_SHOW]:    'No-show',
 };
 
-const allStatuses: LeadStatus[] = [LeadStatus.IN_PROGRESS, LeadStatus.CONVERTED, LeadStatus.ABANDONED];
+const allStatuses: LeadStatus[] = [
+  LeadStatus.NEW,
+  LeadStatus.IN_PROGRESS,
+  LeadStatus.CONFIRMED,
+  LeadStatus.COMPLETED,
+  LeadStatus.LOST,
+  LeadStatus.NO_SHOW,
+];
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -837,9 +865,9 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
 
   // Sort leads - active on top
   const sortedLeads = [...leads].sort((a, b) => {
-    // Active = IN_PROGRESS only (PENDING removed)
-    const aIsActive = a.status === LeadStatus.IN_PROGRESS;
-    const bIsActive = b.status === LeadStatus.IN_PROGRESS;
+    const activeStatuses = [LeadStatus.NEW, LeadStatus.IN_PROGRESS];
+    const aIsActive = activeStatuses.includes(a.status);
+    const bIsActive = activeStatuses.includes(b.status);
     if (aIsActive && !bIsActive) return -1;
     if (!aIsActive && bIsActive) return 1;
     if (a.requiresVerification !== b.requiresVerification) {

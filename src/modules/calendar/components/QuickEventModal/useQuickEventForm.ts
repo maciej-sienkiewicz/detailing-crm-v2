@@ -14,6 +14,7 @@ import type {
     QuickEventFormData,
     QuickEventModalRef,
     EventCreationData,
+    QuickEventInitialData,
 } from './types';
 
 interface UseQuickEventFormOptions {
@@ -22,9 +23,10 @@ interface UseQuickEventFormOptions {
     onClose: () => void;
     onSave: (data: QuickEventFormData) => Promise<void> | void;
     ref: React.ForwardedRef<QuickEventModalRef>;
+    initialData?: QuickEventInitialData;
 }
 
-export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: UseQuickEventFormOptions) {
+export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, initialData }: UseQuickEventFormOptions) {
     // ─── Form state ────────────────────────────────────────────────────────────
     const [title, setTitle] = useState('');
     const [startDateTime, setStartDateTime] = useState('');
@@ -278,6 +280,47 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref }: U
     };
 
     useImperativeHandle(ref, () => ({ clearForm }));
+
+    // ─── Apply initialData when the modal first opens ──────────────────────────
+    const prevIsOpenRef = useRef(false);
+    useEffect(() => {
+        const justOpened = isOpen && !prevIsOpenRef.current;
+        prevIsOpenRef.current = isOpen;
+
+        if (!justOpened || !initialData) return;
+
+        // Reset first so we start with a clean slate
+        clearForm();
+
+        if (initialData.title) setTitle(initialData.title);
+
+        if (initialData.customer) {
+            const c = initialData.customer;
+            setSelectedCustomer(c);
+            setSelectedCustomerId(c.id);
+            setCustomerFirstName(c.firstName || '');
+            setCustomerLastName(c.lastName || '');
+            setCustomerPhone(c.phone || '');
+            setCustomerEmail(c.email || '');
+        }
+        if (initialData.vehicle) {
+            const v = initialData.vehicle;
+            setSelectedVehicle(v);
+            setVehicleBrand(v.brand || '');
+            setVehicleModel(v.model || '');
+            setVehicleYear(v.year ? String(v.year) : '');
+        }
+        if (initialData.serviceIds?.length) {
+            setSelectedServiceIds(initialData.serviceIds);
+        }
+        if (initialData.servicePrices) {
+            setServicePrices(initialData.servicePrices);
+        }
+        if (initialData.tempServices) {
+            setTempServices(initialData.tempServices);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen]);
 
     // ─── Handlers ──────────────────────────────────────────────────────────────
     const handleAllDayToggle = (checked: boolean) => {
