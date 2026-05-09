@@ -119,7 +119,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         };
     }, [form.showServiceDropdown]);
 
-    if (!eventData) return null;
+    if (!eventData && !initialData) return null;
 
     return (
         <>
