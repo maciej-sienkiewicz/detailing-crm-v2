@@ -1,8 +1,7 @@
 // src/modules/leads/hooks/useLeads.ts
 import { useQuery, useMutation, useQueryClient, QueryKey } from '@tanstack/react-query';
-import { apiClient } from '@/core';
-import { toInstant } from '@/common/dateTime';
 import { leadApi } from '../api/leadApi';
+import { buildAppointmentPayload } from '@/modules/appointments/utils/buildAppointmentPayload';
 import type {
   Lead,
   LeadDetail,
@@ -335,99 +334,7 @@ export const useLeadAppointmentCreation = (leadId: LeadId | null) => {
   return useMutation<Lead, Error, import('@/modules/calendar/components/QuickEventModal').QuickEventFormData>({
     mutationFn: async (data) => {
       if (!leadId) throw new Error('Brak ID leada');
-
-      let endDateTimeText = data.endDateTime;
-      if (!endDateTimeText.includes('T')) endDateTimeText = `${endDateTimeText}T23:59:59`;
-
-      const startInstant = toInstant(
-        data.isAllDay && !data.startDateTime.includes('T')
-          ? `${data.startDateTime}T00:00:00`
-          : data.startDateTime
-      );
-      const endInstant = toInstant(endDateTimeText);
-
-      if (!data.customer) throw new Error('Klient jest wymagany');
-
-      let customerPayload;
-      if (data.customer.isNew) {
-        customerPayload = { mode: 'NEW' as const, newData: { firstName: data.customer.firstName || '', lastName: data.customer.lastName || '', phone: data.customer.phone || '', email: data.customer.email || '' } };
-      } else if (data.customer.hasUpdates) {
-        if (!data.customer.id) throw new Error('ID klienta jest wymagane do aktualizacji');
-        customerPayload = { mode: 'UPDATE' as const, id: data.customer.id, patch: { firstName: data.customer.firstName || '', lastName: data.customer.lastName || '', phone: data.customer.phone || '', email: data.customer.email || '' } };
-      } else {
-        if (!data.customer.id) throw new Error('ID klienta jest wymagane');
-        customerPayload = { mode: 'EXISTING' as const, id: data.customer.id };
-      }
-
-      let vehiclePayload;
-      if (data.vehicle) {
-        if (data.vehicle.isNew) {
-          vehiclePayload = { mode: 'NEW' as const, newData: { brand: data.vehicle.brand, model: data.vehicle.model, year: data.vehicle.year } };
-        } else if (data.vehicle.id) {
-          vehiclePayload = { mode: 'EXISTING' as const, id: data.vehicle.id };
-        } else {
-          vehiclePayload = { mode: 'NONE' as const };
-        }
-      } else {
-        vehiclePayload = { mode: 'NONE' as const };
-      }
-
-      const servicesResponse = await apiClient.get('/v1/services');
-      const allServices = servicesResponse.data.services || [];
-
-      const servicesPayload = data.serviceIds.map((serviceId, index) => {
-        let service = allServices.find((s: { id: string }) => s.id === serviceId);
-        let isTempService = false;
-        if (!service) {
-          const temp = data.tempServices?.[serviceId];
-          if (temp) {
-            isTempService = true;
-            service = { id: serviceId, name: temp.name, basePriceNet: temp.basePriceNet, vatRate: temp.vatRate, requireManualPrice: false };
-          }
-        }
-        if (!service) throw new Error(`Nie znaleziono usługi (${serviceId})`);
-
-        const customPriceGross = data.servicePrices?.[serviceId];
-        let adjustmentType: 'FIXED_GROSS' | 'SET_GROSS';
-        let adjustmentValue: number;
-        if (customPriceGross !== undefined) {
-          const customPriceInCents = Math.round(customPriceGross * 100);
-          const basePriceGross = Math.round(service.basePriceNet * (1 + service.vatRate / 100));
-          if (customPriceInCents === basePriceGross) {
-            adjustmentType = 'FIXED_GROSS';
-            adjustmentValue = 0;
-          } else {
-            adjustmentType = 'SET_GROSS';
-            adjustmentValue = customPriceInCents;
-          }
-        } else {
-          adjustmentType = 'FIXED_GROSS';
-          adjustmentValue = 0;
-        }
-
-        return {
-          serviceId: isTempService ? null : service.id,
-          serviceName: service.name,
-          basePriceNet: service.basePriceNet,
-          vatRate: service.vatRate,
-          adjustmentType,
-          adjustmentValue,
-          note: data.serviceNotes?.[serviceId] || '',
-        };
-      });
-
-      const payload = {
-        customer: customerPayload,
-        vehicle: vehiclePayload,
-        services: servicesPayload,
-        schedule: { isAllDay: data.isAllDay, startDateTime: startInstant, endDateTime: endInstant },
-        appointmentTitle: data.title || undefined,
-        note: data.notes || undefined,
-        appointmentColorId: data.colorId,
-        sendConfirmationSms: data.sendConfirmationSms,
-        sendReminderSms: data.sendReminderSms,
-      };
-
+      const payload = await buildAppointmentPayload(data);
       return leadApi.createLeadAppointment(leadId, payload);
     },
     onSuccess: () => {
