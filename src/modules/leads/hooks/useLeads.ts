@@ -388,24 +388,30 @@ export const useLeadAppointmentCreation = (leadId: LeadId | null) => {
         if (!service) throw new Error(`Nie znaleziono usługi (${serviceId})`);
 
         const customPriceGross = data.servicePrices?.[serviceId];
-        let adjustment;
+        let adjustmentType: 'FIXED_GROSS' | 'SET_GROSS';
+        let adjustmentValue: number;
         if (customPriceGross !== undefined) {
           const customPriceInCents = Math.round(customPriceGross * 100);
           const basePriceGross = Math.round(service.basePriceNet * (1 + service.vatRate / 100));
-          adjustment = customPriceInCents === basePriceGross
-            ? { type: 'FIXED_GROSS' as const, value: 0 }
-            : { type: 'SET_GROSS' as const, value: customPriceInCents };
+          if (customPriceInCents === basePriceGross) {
+            adjustmentType = 'FIXED_GROSS';
+            adjustmentValue = 0;
+          } else {
+            adjustmentType = 'SET_GROSS';
+            adjustmentValue = customPriceInCents;
+          }
         } else {
-          adjustment = { type: 'FIXED_GROSS' as const, value: 0 };
+          adjustmentType = 'FIXED_GROSS';
+          adjustmentValue = 0;
         }
 
         return {
-          id: `${Date.now()}-${index}`,
           serviceId: isTempService ? null : service.id,
           serviceName: service.name,
           basePriceNet: service.basePriceNet,
           vatRate: service.vatRate,
-          adjustment,
+          adjustmentType,
+          adjustmentValue,
           note: data.serviceNotes?.[serviceId] || '',
         };
       });
