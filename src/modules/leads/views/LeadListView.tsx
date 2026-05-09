@@ -2435,12 +2435,20 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
 
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Scroll expanded panel into view after mount
+  // Scroll so the full expanded panel is visible after mount
   useEffect(() => {
-    const id = requestAnimationFrame(() => {
-      panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const raf = requestAnimationFrame(() => {
+      const el = panelRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight;
+      if (rect.bottom <= vh) return; // already fully in view
+      // Panel fits with breathing room → scroll bottom into view
+      // Panel is very tall → scroll to its top so user can read from start
+      const block = rect.height < vh - 80 ? 'end' : 'start';
+      el.scrollIntoView({ behavior: 'smooth', block });
     });
-    return () => cancelAnimationFrame(id);
+    return () => cancelAnimationFrame(raf);
   }, []);
 
   const [previewVisitId, setPreviewVisitId] = useState<string | null>(null);
