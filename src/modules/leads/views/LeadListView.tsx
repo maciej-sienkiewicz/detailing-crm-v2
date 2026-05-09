@@ -2661,52 +2661,61 @@ export const LeadListView: React.FC = () => {
   const [statusMenuPos, setStatusMenuPos]       = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
   // ─── Booking modal state ───────────────────────────────────────────────────
-  const [bookingLeadId, setBookingLeadId]       = useState<string | null>(null);
+  const [bookingLeadId, setBookingLeadId]           = useState<string | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [bookingInitialData, setBookingInitialData] = useState<QuickEventInitialData | undefined>(undefined);
-  const { lead: bookingDetail, isLoading: isBookingDetailLoading } = useLead(bookingLeadId ?? undefined);
+  const [isBookingLoading, setIsBookingLoading]     = useState(false);
   const createLeadAppointment = useLeadAppointmentCreation(bookingLeadId);
 
   const { showError: showBookingError } = useToast();
 
   const updateStatus = useUpdateLeadStatus();
 
-  // Build initial data from booking detail and open modal when ready
-  useEffect(() => {
-    if (!bookingLeadId || !bookingDetail || isBookingModalOpen) return;
-
-    const c = bookingDetail.assignedCustomer;
+  const buildInitialData = (detail: LeadDetail): QuickEventInitialData => {
+    const c = detail.assignedCustomer;
     const customer: QuickEventInitialData['customer'] = c
       ? { id: c.id, firstName: c.firstName ?? undefined, lastName: c.lastName ?? undefined, phone: c.phone ?? undefined, email: c.email ?? undefined, isNew: false }
       : undefined;
 
-    // Prefer user quote over AI estimation
-    const activeItems = bookingDetail.userQuote?.items ?? bookingDetail.estimation?.matchedItems ?? [];
+    const activeItems = detail.userQuote?.items ?? detail.estimation?.matchedItems ?? [];
     const serviceIds: string[] = [];
     const servicePrices: { [k: string]: number } = {};
     const tempServices: { [k: string]: { name: string; basePriceNet: number; vatRate: number } } = {};
 
     activeItems.forEach((item, idx) => {
-      const id = item.serviceId ?? `lead-temp-${bookingLeadId}-${idx}`;
+      const id = item.serviceId ?? `lead-temp-${detail.id}-${idx}`;
       serviceIds.push(id);
-      // Convert grosze → PLN for the modal's price state
       servicePrices[id] = item.priceGross / 100;
       if (!item.serviceId) {
         tempServices[id] = { name: item.serviceName, basePriceNet: item.priceNet, vatRate: item.vatRate };
       }
     });
 
-    const vehicle = bookingDetail.vehicleBrand
-      ? { brand: bookingDetail.vehicleBrand, model: bookingDetail.vehicleModel ?? '', isNew: true }
+    const vehicle = detail.vehicleBrand
+      ? { brand: detail.vehicleBrand, model: detail.vehicleModel ?? '', isNew: true }
       : undefined;
 
-    setBookingInitialData({ customer, vehicle, serviceIds, servicePrices, tempServices });
-    setIsBookingModalOpen(true);
-  }, [bookingLeadId, bookingDetail]);
+    return { customer, vehicle, serviceIds, servicePrices, tempServices };
+  };
 
-  const handleStartBooking = (lead: Lead) => {
-    if (lead.status === LeadStatus.CONFIRMED || lead.status === LeadStatus.COMPLETED) return;
+  const handleStartBooking = async (lead: Lead) => {
+    if (isBookingLoading) return;
+    setIsBookingLoading(true);
     setBookingLeadId(lead.id);
+    try {
+      const detail = await leadApi.getLead(lead.id);
+      setBookingInitialData(buildInitialData(detail));
+    } catch {
+      // Fallback: open modal with just basic lead data (no services pre-filled)
+      const c = lead.assignedCustomer;
+      setBookingInitialData(c
+        ? { customer: { id: c.id, firstName: c.firstName ?? undefined, lastName: c.lastName ?? undefined, phone: c.phone ?? undefined, email: c.email ?? undefined, isNew: false } }
+        : undefined
+      );
+    } finally {
+      setIsBookingLoading(false);
+      setIsBookingModalOpen(true);
+    }
   };
 
   const handleBookingClose = () => {
@@ -2724,7 +2733,7 @@ export const LeadListView: React.FC = () => {
     }
   };
 
-  // Close status menu on outside click or scroll
+  // ─── (removed useLead-based effect — now using imperative fetch in handleStartBooking)
   useEffect(() => {
     if (!statusMenuLeadId) return;
     const close = () => setStatusMenuLeadId(null);
@@ -2926,11 +2935,11 @@ export const LeadListView: React.FC = () => {
               {lead.status !== LeadStatus.CONFIRMED && lead.status !== LeadStatus.COMPLETED && (
                 <BookingBtn
                   title="Rozpocznij rezerwację"
-                  disabled={isBookingDetailLoading && bookingLeadId === lead.id}
+                  disabled={isBookingLoading}
                   onClick={() => handleStartBooking(lead)}
                 >
                   <Calendar size={12} />
-                  Rezerwuj
+                  {isBookingLoading && bookingLeadId === lead.id ? '…' : 'Rezerwuj'}
                 </BookingBtn>
               )}
               <IconBtn
