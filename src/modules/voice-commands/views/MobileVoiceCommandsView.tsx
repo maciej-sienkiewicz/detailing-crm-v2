@@ -1,6 +1,6 @@
 // src/modules/voice-commands/views/MobileVoiceCommandsView.tsx
 
-import { useState, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useVoiceCommandsLogic } from '../hooks/useVoiceCommandsLogic';
 import {
     Container,
@@ -28,14 +28,21 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
     // Toast state — purely UI, lives in the view
     const [toastText, setToastText] = useState('');
     const [toastVisible, setToastVisible] = useState(false);
-    const toastTimerRef = { current: 0 as ReturnType<typeof setTimeout> };
+    const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        return () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); };
+    }, []);
 
     const showToast = useCallback((msg: string) => {
-        clearTimeout(toastTimerRef.current);
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
         setToastText(msg);
         setToastVisible(true);
-        toastTimerRef.current = setTimeout(() => setToastVisible(false), 2500);
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+        toastTimerRef.current = setTimeout(() => {
+            setToastVisible(false);
+            toastTimerRef.current = null;
+        }, 2500);
+    }, []);
 
     const handleSubmitDictate = useCallback(() => {
         const text = logic.dictateState === 'editing'
@@ -210,21 +217,13 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
                             <TranscriptTextarea
                                 value={logic.editableText}
                                 onChange={e => logic.setEditableText(e.target.value)}
-                                placeholder="Napisz lub edytuj tekst..."
-                                aria-label="Treść"
-                                autoFocus={!logic.hasPermissionError && !logic.hasSpeechSupport}
-                            />
-                        )}
-
-                        {/* Fallback: no speech support */}
-                        {!logic.hasSpeechSupport && logic.dictateState === 'editing' && !logic.hasPermissionError && (
-                            <TranscriptTextarea
-                                value={logic.editableText}
-                                onChange={e => logic.setEditableText(e.target.value)}
-                                placeholder="Wpisz tekst lub użyj dyktowania z klawiatury"
+                                placeholder={
+                                    logic.hasSpeechSupport
+                                        ? 'Napisz lub edytuj tekst...'
+                                        : 'Wpisz tekst lub użyj dyktowania z klawiatury'
+                                }
                                 aria-label="Treść"
                                 autoFocus
-                                style={{ marginTop: -16 }}
                             />
                         )}
 
