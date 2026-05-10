@@ -485,11 +485,24 @@ const ScheduleSmsBtn = styled.button`
 
     svg { width: 15px; height: 15px; flex-shrink: 0; }
 
-    &:hover {
+    &:hover:not(:disabled) {
         border-color: #0ea5e9;
         color: #0369a1;
         background: #f0f9ff;
     }
+
+    &:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+`;
+
+const ScheduleSmsNoPhone = styled.p`
+    margin: 6px 0 0;
+    font-size: 11px;
+    color: ${st.textMuted};
+    text-align: center;
+    line-height: 1.4;
 `;
 
 // ─── View ─────────────────────────────────────────────────────────────────────
@@ -874,16 +887,27 @@ export const VisitDetailView = () => {
                                 </ReminderCardActions>
                             </ReminderCard>
                         )}
-                        {!pendingReminder && visit.status === 'COMPLETED' && (
-                            <ScheduleSmsBtn
-                                onClick={() => { setSmsReminderForEdit(null); setIsSmsReminderOpen(true); }}
-                            >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                                </svg>
-                                Zaplanuj SMS przypominający
-                            </ScheduleSmsBtn>
-                        )}
+                        {!pendingReminder && visit.status === 'COMPLETED' && (() => {
+                            const hasPhone = !!visit.customer.phone?.trim();
+                            return (
+                                <>
+                                    <ScheduleSmsBtn
+                                        disabled={!hasPhone}
+                                        onClick={() => { setSmsReminderForEdit(null); setIsSmsReminderOpen(true); }}
+                                    >
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                        </svg>
+                                        Zaplanuj SMS przypominający
+                                    </ScheduleSmsBtn>
+                                    {!hasPhone && (
+                                        <ScheduleSmsNoPhone>
+                                            Klient nie ma przypisanego numeru telefonu
+                                        </ScheduleSmsNoPhone>
+                                    )}
+                                </>
+                            );
+                        })()}
                         <CustomerInfoCard
                             customer={visit.customer}
                             onViewDetails={() => navigate(`/customers/${visit.customer.id}`)}

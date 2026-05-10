@@ -330,6 +330,22 @@ const Btn = styled.button<{ $primary?: boolean; $danger?: boolean }>`
     &:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; }
 `;
 
+const SubmitError = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    padding: 8px 12px;
+    background: #fef2f2;
+    border: 1px solid rgba(239,68,68,0.25);
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontXs};
+    color: #dc2626;
+    line-height: 1.45;
+    width: 100%;
+
+    svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; }
+`;
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const DAY_PRESETS = [7, 14, 30, 60, 90];
@@ -373,6 +389,7 @@ export const SmsReminderModal = ({ visitId, customer, existingReminder, onClose 
     const [days, setDays] = useState<number>(() =>
         existingReminder ? daysFromNowForDate(existingReminder.scheduledFor) : 90
     );
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
     const { generateContent, isGenerating, scheduleReminder, isScheduling, updateReminder, isUpdating, cancelReminder, isCancelling } = useSmsReminder(visitId);
 
@@ -399,18 +416,23 @@ export const SmsReminderModal = ({ visitId, customer, existingReminder, onClose 
 
     const handleSubmit = async () => {
         if (!message.trim()) return;
+        setSubmitError(null);
         const scheduledFor = scheduledDateFromDays(days).toISOString();
 
-        if (isEditMode && existingReminder) {
-            await updateReminder({
-                reminderId: existingReminder.id,
-                messageContent: message,
-                scheduledFor,
-            });
-        } else {
-            await scheduleReminder({ messageContent: message, scheduledFor });
+        try {
+            if (isEditMode && existingReminder) {
+                await updateReminder({ reminderId: existingReminder.id, messageContent: message, scheduledFor });
+            } else {
+                await scheduleReminder({ messageContent: message, scheduledFor });
+            }
+            onClose();
+        } catch (err: unknown) {
+            const apiMessage =
+                (err as any)?.response?.data?.message ??
+                (err instanceof Error ? err.message : null) ??
+                'Nie udało się zaplanować SMS-a. Spróbuj ponownie.';
+            setSubmitError(apiMessage);
         }
-        onClose();
     };
 
     const handleCancel = async () => {
@@ -520,6 +542,16 @@ export const SmsReminderModal = ({ visitId, customer, existingReminder, onClose 
                 </Body>
 
                 <Footer>
+                    {submitError && (
+                        <SubmitError>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            {submitError}
+                        </SubmitError>
+                    )}
                     {isEditMode && (
                         <Btn $danger onClick={handleCancel} disabled={isBusy}>
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
