@@ -234,6 +234,7 @@ const mockGetPipelineSummary = async (_sourceFilter?: LeadSource[]): Promise<Lea
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve({
+        newLeadsCount: mockLeadsStore.filter(l => l.status === 'NEW').length,
         awaitingFirstContactCount: 5,
         avgWaitingTimeMinutes: 135,
         conversionRateThisMonth: 42.5,

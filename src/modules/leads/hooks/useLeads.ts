@@ -72,6 +72,21 @@ export const useLead = (id: LeadId | undefined) => {
 };
 
 /**
+ * Returns the count of leads in NEW status.
+ * Subscribes to LEAD_PIPELINE_KEY — deduplicates with useLeadPipelineSummary,
+ * and is automatically invalidated by useLeadSocket on incoming WebSocket events.
+ */
+export const useNewLeadsCount = (): number => {
+  const { data } = useQuery<LeadPipelineSummary, Error, number>({
+    queryKey: LEAD_PIPELINE_KEY,
+    queryFn: () => leadApi.getPipelineSummary(),
+    select: (summary) => summary.newLeadsCount,
+    staleTime: 30_000,
+  });
+  return data ?? 0;
+};
+
+/**
  * Hook for fetching pipeline summary
  * @param sourceFilter - Optional array of sources to filter by
  */

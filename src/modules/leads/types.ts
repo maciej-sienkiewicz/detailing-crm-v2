@@ -175,6 +175,8 @@ export interface InboundCallPayload {
  * Pipeline summary returned by GET /api/v1/leads/pipeline-summary
  */
 export interface LeadPipelineSummary {
+  /** Leads currently in NEW status (used for sidebar badge) */
+  newLeadsCount: number;
   /** Leads waiting for first contact (urgency metric) */
   awaitingFirstContactCount: number;
   /** Average waiting time for first contact in minutes */

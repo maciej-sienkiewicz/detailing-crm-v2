@@ -26,6 +26,7 @@ import { useSidebar } from './context/SidebarContext';
 import { useAuth } from '@/core/context/AuthContext';
 import { authApi } from '@/modules/auth/api/authApi';
 import { useSmsCreditBalance } from '@/modules/settings/hooks/useSmsCredits';
+import { useNewLeadsCount } from '@/modules/leads/hooks/useLeads';
 import { SidebarMenu, MenuSection } from './SidebarMenu';
 import {
     Overlay,
@@ -53,14 +54,14 @@ import {
     SmsCreditsValue,
 } from './SidebarStyles';
 
-const menuSections: MenuSection[] = [
+const buildMenuSections = (newLeadsCount: number): MenuSection[] => [
     {
         title: 'Główne',
         items: [
             { path: '/dashboard',  label: 'Tablica',   icon: LayoutDashboard },
             { path: '/operations', label: 'Wizyty',    icon: CalendarCheck },
             { path: '/calendar',   label: 'Kalendarz', icon: Calendar },
-            { path: '/leads',      label: 'Leady',     icon: Inbox },
+            { path: '/leads',      label: 'Leady',     icon: Inbox, badge: newLeadsCount > 0 ? newLeadsCount : undefined },
         ],
     },
     {
@@ -114,6 +115,8 @@ export const Sidebar = () => {
 
     const isDetailer = user?.role?.toLowerCase() === 'detailer';
     const { data: creditBalance } = useSmsCreditBalance({ enabled: !isDetailer });
+    const newLeadsCount = useNewLeadsCount();
+    const menuSections = buildMenuSections(newLeadsCount);
 
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
