@@ -453,20 +453,36 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     <S.CustomerInputRow>
                                                         <S.CustomerFieldGroup $borderRight $hasError={!!form.errors.customerPhone}>
                                                             <S.CustomerFieldLabel $hasError={!!form.errors.customerPhone}>Telefon</S.CustomerFieldLabel>
-                                                            <S.CustomerFieldInput
-                                                                ref={form.customerPhoneInputRef}
-                                                                type="tel"
-                                                                placeholder="+48 123 456 789"
-                                                                value={form.customerPhone}
-                                                                onChange={(e) => {
-                                                                    form.setCustomerPhone(e.target.value);
-                                                                    form.setShowCustomerDropdown(true);
-                                                                }}
-                                                                onFocus={form.handleCustomerFieldFocus}
-                                                                onBlur={form.handleCustomerFieldBlur}
-                                                                autoComplete="new-password"
-                                                                $hasError={!!form.errors.customerPhone}
-                                                            />
+                                                            <S.PhoneInputRow>
+                                                                <S.PhonePrefixInput
+                                                                    ref={form.customerPhonePrefixRef}
+                                                                    type="text"
+                                                                    placeholder="+48"
+                                                                    value={form.customerPhonePrefix}
+                                                                    onChange={(e) => {
+                                                                        form.setCustomerPhonePrefix(e.target.value);
+                                                                        form.setShowCustomerDropdown(true);
+                                                                    }}
+                                                                    onFocus={form.handleCustomerFieldFocus}
+                                                                    onBlur={form.handleCustomerFieldBlur}
+                                                                    autoComplete="new-password"
+                                                                    $hasError={!!form.errors.customerPhone}
+                                                                />
+                                                                <S.CustomerFieldInput
+                                                                    ref={form.customerPhoneInputRef}
+                                                                    type="tel"
+                                                                    placeholder="123 456 789"
+                                                                    value={form.customerPhone}
+                                                                    onChange={(e) => {
+                                                                        form.setCustomerPhone(e.target.value);
+                                                                        form.setShowCustomerDropdown(true);
+                                                                    }}
+                                                                    onFocus={form.handleCustomerFieldFocus}
+                                                                    onBlur={form.handleCustomerFieldBlur}
+                                                                    autoComplete="new-password"
+                                                                    $hasError={!!form.errors.customerPhone}
+                                                                />
+                                                            </S.PhoneInputRow>
                                                         </S.CustomerFieldGroup>
                                                         <S.CustomerFieldGroup $hasError={!!form.errors.customerEmail}>
                                                             <S.CustomerFieldLabel $hasError={!!form.errors.customerEmail}>E-mail</S.CustomerFieldLabel>
