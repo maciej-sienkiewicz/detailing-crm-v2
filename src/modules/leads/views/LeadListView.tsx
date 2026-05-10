@@ -338,6 +338,147 @@ const TabBtn = styled.button<{ $active: boolean }>`
   }
 `;
 
+// ─── Status dropdown filter ───────────────────────────────────────────────────
+
+const StatusFilterWrap = styled.div`
+  position: relative;
+  flex-shrink: 0;
+`;
+
+const StatusFilterBtn = styled.button<{ $active: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  border: 1.5px solid ${p => p.$active ? '#0ea5e9' : st.border};
+  background: ${p => p.$active ? '#f0f9ff' : '#f8fafc'};
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: ${p => p.$active ? '#0369a1' : st.textSecondary};
+  cursor: pointer;
+  transition: all 180ms ease;
+  white-space: nowrap;
+
+  &:hover {
+    border-color: #0ea5e9;
+    background: #f0f9ff;
+    color: #0369a1;
+  }
+
+  svg { flex-shrink: 0; transition: transform 180ms ease; }
+`;
+
+const StatusFilterCount = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  background: #0ea5e9;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+`;
+
+const StatusDropdownMenu = styled.div`
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 500;
+  min-width: 200px;
+  background: #fff;
+  border: 1px solid ${st.border};
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+`;
+
+const StatusDropdownItem = styled.button<{ $checked: boolean; $color: string }>`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: ${p => p.$checked ? `${p.$color}12` : 'transparent'};
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: ${p => p.$checked ? 600 : 400};
+  color: ${p => p.$checked ? p.$color : st.text};
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+
+  &:hover { background: ${p => `${p.$color}1e`}; }
+`;
+
+const StatusDot = styled.span<{ $color: string }>`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: ${p => p.$color};
+  flex-shrink: 0;
+`;
+
+const StatusCheckbox = styled.span<{ $checked: boolean; $color: string }>`
+  margin-left: auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid ${p => p.$checked ? p.$color : '#cbd5e1'};
+  background: ${p => p.$checked ? p.$color : 'transparent'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.12s;
+
+  &::after {
+    content: '';
+    display: ${p => p.$checked ? 'block' : 'none'};
+    width: 4px;
+    height: 7px;
+    border: 1.5px solid #fff;
+    border-top: none;
+    border-left: none;
+    transform: rotate(45deg) translateY(-1px);
+  }
+`;
+
+const StatusDropdownDivider = styled.div`
+  height: 1px;
+  background: ${st.border};
+  margin: 4px 2px;
+`;
+
+const ClearAllBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: ${st.textMuted};
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+
+  &:hover { background: #f1f5f9; color: ${st.textSecondary}; }
+`;
+
 // ─── Table — same structure as CustomerTable ──────────────────────────────────
 
 const TableWrapper = styled.div`
@@ -2067,18 +2208,7 @@ const TILE_CONFIGS = {
   },
 } as const;
 
-type StatusTab = 'ALL' | LeadStatus;
 type SourceTab = 'ALL' | LeadSource;
-
-const STATUS_TABS: { id: StatusTab; label: string }[] = [
-  { id: 'ALL',                  label: 'Wszystkie' },
-  { id: LeadStatus.NEW,         label: 'Nowe' },
-  { id: LeadStatus.IN_PROGRESS, label: 'W kontakcie' },
-  { id: LeadStatus.CONFIRMED,   label: 'Zarezerwowane' },
-  { id: LeadStatus.COMPLETED,   label: 'Zakończone' },
-  { id: LeadStatus.LOST,        label: 'Utracone' },
-  { id: LeadStatus.NO_SHOW,     label: 'No-show' },
-];
 
 const SOURCE_TABS: { id: SourceTab; label: string }[] = [
   { id: 'ALL',             label: 'Wszystkie' },
@@ -2109,6 +2239,24 @@ const getStatusVariant = (lead: Lead): 'new' | 'progress' | 'confirmed' | 'compl
 };
 
 const getStatusLabel = (lead: Lead): string => STATUS_LABELS[lead.status];
+
+const STATUS_COLORS: Record<LeadStatus, string> = {
+  [LeadStatus.NEW]:         '#dc2626',
+  [LeadStatus.IN_PROGRESS]: '#1e40af',
+  [LeadStatus.CONFIRMED]:   '#166534',
+  [LeadStatus.COMPLETED]:   '#065f46',
+  [LeadStatus.LOST]:        '#4b5563',
+  [LeadStatus.NO_SHOW]:     '#92400e',
+};
+
+const STATUS_FILTER_OPTIONS: { id: LeadStatus; label: string }[] = [
+  { id: LeadStatus.NEW,         label: 'Nowe' },
+  { id: LeadStatus.IN_PROGRESS, label: 'W kontakcie' },
+  { id: LeadStatus.CONFIRMED,   label: 'Zarezerwowane' },
+  { id: LeadStatus.COMPLETED,   label: 'Zakończone' },
+  { id: LeadStatus.LOST,        label: 'Utracone' },
+  { id: LeadStatus.NO_SHOW,     label: 'No-show' },
+];
 
 const formatContact = (lead: Lead): { primary: string; secondary?: string } => {
   if (lead.customerName) {
@@ -2652,7 +2800,9 @@ export const LeadListView: React.FC = () => {
 
   const [expandedId, setExpandedId]         = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen]         = useState(false);
-  const [activeStatus, setActiveStatus]     = useState<StatusTab>('ALL');
+  const [selectedStatuses, setSelectedStatuses] = useState<LeadStatus[]>([]);
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
   const [activeSource, setActiveSource]     = useState<SourceTab>('ALL');
   const [searchValue, setSearchValue]       = useState('');
   const [deleteTarget, setDeleteTarget]     = useState<{ id: string; name: string } | null>(null);
@@ -2776,10 +2926,32 @@ export const LeadListView: React.FC = () => {
     setFilters(p => ({ ...p, search: v, page: 1 }));
   }, []);
 
-  const handleStatus = useCallback((v: StatusTab) => {
-    setActiveStatus(v);
-    setFilters(p => ({ ...p, status: v === 'ALL' ? [] : [v], page: 1 }));
+  const handleStatusToggle = useCallback((status: LeadStatus) => {
+    setSelectedStatuses(prev => {
+      const next = prev.includes(status)
+        ? prev.filter(s => s !== status)
+        : [...prev, status];
+      setFilters(p => ({ ...p, status: next, page: 1 }));
+      return next;
+    });
   }, []);
+
+  const handleClearStatuses = useCallback(() => {
+    setSelectedStatuses([]);
+    setFilters(p => ({ ...p, status: [], page: 1 }));
+    setIsStatusDropdownOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isStatusDropdownOpen) return;
+    const handle = (e: MouseEvent) => {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(e.target as Node)) {
+        setIsStatusDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [isStatusDropdownOpen]);
 
   const handleSource = useCallback((v: SourceTab) => {
     setActiveSource(v);
@@ -2827,7 +2999,7 @@ export const LeadListView: React.FC = () => {
               <div>
                 <EmptyTitle>Brak leadów</EmptyTitle>
                 <EmptyDesc>
-                  {searchValue || activeStatus !== 'ALL' || activeSource !== 'ALL'
+                  {searchValue || selectedStatuses.length > 0 || activeSource !== 'ALL'
                     ? 'Brak leadów spełniających wybrane kryteria'
                     : 'Nowe leady pojawią się tutaj automatycznie'}
                 </EmptyDesc>
@@ -3111,17 +3283,60 @@ export const LeadListView: React.FC = () => {
 
             <Spacer />
 
-            <TabGroup>
-              {STATUS_TABS.map(tab => (
-                <TabBtn
-                  key={tab.id}
-                  $active={activeStatus === tab.id}
-                  onClick={() => handleStatus(tab.id)}
-                >
-                  {tab.label}
-                </TabBtn>
-              ))}
-            </TabGroup>
+            <StatusFilterWrap ref={statusDropdownRef}>
+              <StatusFilterBtn
+                $active={selectedStatuses.length > 0}
+                onClick={() => setIsStatusDropdownOpen(p => !p)}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                </svg>
+                {selectedStatuses.length === 0
+                  ? 'Status'
+                  : selectedStatuses.length === 1
+                    ? STATUS_FILTER_OPTIONS.find(o => o.id === selectedStatuses[0])?.label ?? 'Status'
+                    : `${selectedStatuses.length} statusy`
+                }
+                {selectedStatuses.length > 0 && (
+                  <StatusFilterCount>{selectedStatuses.length}</StatusFilterCount>
+                )}
+                <ChevronDown
+                  size={12}
+                  style={{ transform: isStatusDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                />
+              </StatusFilterBtn>
+
+              {isStatusDropdownOpen && (
+                <StatusDropdownMenu>
+                  {selectedStatuses.length > 0 && (
+                    <>
+                      <ClearAllBtn onClick={handleClearStatuses}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                        Wyczyść filtry
+                      </ClearAllBtn>
+                      <StatusDropdownDivider />
+                    </>
+                  )}
+                  {STATUS_FILTER_OPTIONS.map(opt => (
+                    <StatusDropdownItem
+                      key={opt.id}
+                      $checked={selectedStatuses.includes(opt.id)}
+                      $color={STATUS_COLORS[opt.id]}
+                      onClick={() => handleStatusToggle(opt.id)}
+                    >
+                      <StatusDot $color={STATUS_COLORS[opt.id]} />
+                      {opt.label}
+                      <StatusCheckbox
+                        $checked={selectedStatuses.includes(opt.id)}
+                        $color={STATUS_COLORS[opt.id]}
+                      />
+                    </StatusDropdownItem>
+                  ))}
+                </StatusDropdownMenu>
+              )}
+            </StatusFilterWrap>
           </FilterTopRow>
         </FilterBar>
 
