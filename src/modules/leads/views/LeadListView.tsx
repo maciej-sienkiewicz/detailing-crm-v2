@@ -3048,7 +3048,7 @@ export const LeadListView: React.FC = () => {
             <StatTile
               {...TILE_CONFIGS.converted}
               icon={CheckCircle2}
-              value={summary ? formatPLN(summary.convertedValueThisMonth) : '—'}
+              value={summary ? formatCurrency(summary.convertedValueThisMonth) : '—'}
               label="Zrealizowane (ten miesiąc)"
               tooltip="Suma wartości leadów zamienionych w klientów w bieżącym miesiącu. To nie pipeline, to przychód już potwierdzony. Satysfakcja + motywacja."
               subContent={summary && (
