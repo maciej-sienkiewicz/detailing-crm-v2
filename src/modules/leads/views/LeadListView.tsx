@@ -246,7 +246,6 @@ const ContentSection = styled.section`
   border: 1px solid ${st.border};
   border-radius: ${st.radius};
   box-shadow: ${st.shadowSm};
-  overflow: hidden;
 `;
 
 const FilterBar = styled.div`
@@ -2223,7 +2222,7 @@ const STATUS_LABELS: Record<LeadStatus, string> = {
   [LeadStatus.CONFIRMED]:  'Zarezerwowany',
   [LeadStatus.COMPLETED]:  'Zakończony',
   [LeadStatus.LOST]:       'Utracony',
-  [LeadStatus.NO_SHOW]:    'No-show',
+  [LeadStatus.NO_SHOW]:    'Porzucony',
 };
 
 const getStatusVariant = (lead: Lead): 'new' | 'progress' | 'confirmed' | 'completed' | 'lost' | 'noshow' => {
@@ -2255,7 +2254,7 @@ const STATUS_FILTER_OPTIONS: { id: LeadStatus; label: string }[] = [
   { id: LeadStatus.CONFIRMED,   label: 'Zarezerwowane' },
   { id: LeadStatus.COMPLETED,   label: 'Zakończone' },
   { id: LeadStatus.LOST,        label: 'Utracone' },
-  { id: LeadStatus.NO_SHOW,     label: 'No-show' },
+  { id: LeadStatus.NO_SHOW,     label: 'Porzucony' },
 ];
 
 const formatContact = (lead: Lead): { primary: string; secondary?: string } => {
@@ -3359,7 +3358,7 @@ export const LeadListView: React.FC = () => {
           </Table>
         </TableWrapper>
 
-        {pagination && pagination.totalPages > 1 && (
+        {pagination && (
           <PaginationContainer aria-label="Pagination">
             <PaginationInfo>
               Wyświetlanie {startItem}–{endItem} z {pagination.totalItems} leadów
@@ -3410,7 +3409,7 @@ export const LeadListView: React.FC = () => {
               { status: LeadStatus.CONFIRMED,   label: 'Zarezerwowany',  color: '#16a34a' },
               { status: LeadStatus.COMPLETED,   label: 'Zakończony',     color: '#065f46' },
               { status: LeadStatus.LOST,        label: 'Utracony',       color: '#64748b' },
-              { status: LeadStatus.NO_SHOW,     label: 'No-show',        color: '#92400e' },
+              { status: LeadStatus.NO_SHOW,     label: 'Porzucony',      color: '#92400e' },
             ] as const).map(({ status, label, color }) => (
               <StatusMenuItem
                 key={status}
