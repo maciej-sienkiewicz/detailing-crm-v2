@@ -11,6 +11,7 @@ import {
   formatPhoneNumber,
   truncateEmail,
   formatRelativeTime,
+  formatDateTime,
 } from '../utils/formatters';
 
 // ============================================================================
@@ -201,6 +202,18 @@ const PrimaryText = styled.span`
 const SecondaryText = styled.span`
   font-size: ${props => props.theme.fontSizes.xs};
   color: ${props => props.theme.colors.textMuted};
+`;
+
+const ActivityWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+`;
+
+const ActivityLabel = styled.span`
+  font-size: ${props => props.theme.fontSizes.xs};
+  color: ${props => props.theme.colors.textMuted};
+  font-weight: 500;
 `;
 
 // ============================================================================
@@ -921,9 +934,12 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
                 </MobileCardRow>
                 <MobileCardRow>
                   <MobileCardLabel>Aktywność</MobileCardLabel>
-                  <MobileCardSecondary>
-                    {formatRelativeTime(lead.updatedAt || lead.createdAt)}
-                  </MobileCardSecondary>
+                  <ActivityWrap>
+                    <MobileCardSecondary>{formatDateTime(lead.createdAt)}</MobileCardSecondary>
+                    <MobileCardSecondary>
+                      Ostatnia aktualizacja: {formatRelativeTime(lead.updatedAt || lead.createdAt)}
+                    </MobileCardSecondary>
+                  </ActivityWrap>
                 </MobileCardRow>
               </MobileCardBody>
 
@@ -1006,9 +1022,15 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
 
                     {/* Last Activity */}
                     <TableCell>
-                      <SecondaryText>
-                        {formatRelativeTime(lead.updatedAt || lead.createdAt)}
-                      </SecondaryText>
+                      <ActivityWrap>
+                        <SecondaryText>{formatDateTime(lead.createdAt)}</SecondaryText>
+                        <ActivityLabel>
+                          Ostatnia aktualizacja:{' '}
+                          <SecondaryText>
+                            {formatRelativeTime(lead.updatedAt || lead.createdAt)}
+                          </SecondaryText>
+                        </ActivityLabel>
+                      </ActivityWrap>
                     </TableCell>
 
                     {/* Note */}
