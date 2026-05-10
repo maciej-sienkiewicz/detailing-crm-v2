@@ -7,10 +7,7 @@ import {
     LoadingWrap, Spinner, SpinnerSm, LoadingText,
     ErrorWrap, ErrorIconWrap, ErrorTitle, ErrorMessage,
     ScreenBody, ScreenContent, ScreenHeader, BackBtn, ModeBadge,
-    HomeArea, HomeBrand, HomeBrandDot, HomeBrandName,
-    HomeGreetingArea, HomeGreeting, HomeSubtitle,
-    ActionList, ActionCard, ActionCardIcon, ActionCardBody,
-    ActionCardTitle, ActionCardSub, ActionCardChevron,
+    SplitLayout, SplitBtn, SplitIcon, SplitLabel,
     ScreenTitle,
     FormLabel, FormField, PhoneInput,
     MicArea, MicRingWrap, MicRing, MicRingOuter, MicCircle, MicStatus,
@@ -97,69 +94,27 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
 
             {/* ── Screen 1: Home ──────────────────────────────────────────── */}
             {screen === 'home' && (
-                <ScreenBody>
-                    <HomeArea>
-                        <HomeBrand>
-                            <HomeBrandDot />
-                            <HomeBrandName>Voice Intake</HomeBrandName>
-                        </HomeBrand>
+                <SplitLayout>
+                    <SplitBtn $variant="dark" onClick={logic.goToLead} type="button" aria-label="Nowy lead">
+                        <SplitIcon $variant="dark" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                                <path strokeLinecap="round" strokeLinejoin="round"
+                                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                        </SplitIcon>
+                        <SplitLabel $variant="dark">Nowy Lead</SplitLabel>
+                    </SplitBtn>
 
-                        <HomeGreetingArea>
-                            <HomeGreeting>
-                                Dzień dobry,{'\n'}{logic.firstName}.
-                            </HomeGreeting>
-                            <HomeSubtitle>Co chcesz zapisać?</HomeSubtitle>
-                        </HomeGreetingArea>
-
-                        <ActionList>
-                            <ActionCard
-                                $variant="primary"
-                                onClick={logic.goToLead}
-                                type="button"
-                                aria-label="Nowy lead"
-                            >
-                                <ActionCardIcon $variant="primary" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path strokeLinecap="round" strokeLinejoin="round"
-                                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                    </svg>
-                                </ActionCardIcon>
-                                <ActionCardBody>
-                                    <ActionCardTitle $variant="primary">Nowy Lead</ActionCardTitle>
-                                    <ActionCardSub $variant="primary">Zapisz kontakt po rozmowie</ActionCardSub>
-                                </ActionCardBody>
-                                <ActionCardChevron $variant="primary" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
-                                    </svg>
-                                </ActionCardChevron>
-                            </ActionCard>
-
-                            <ActionCard
-                                $variant="secondary"
-                                onClick={logic.goToNote}
-                                type="button"
-                                aria-label="Notatka głosowa"
-                            >
-                                <ActionCardIcon $variant="secondary" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path strokeLinecap="round" strokeLinejoin="round"
-                                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                    </svg>
-                                </ActionCardIcon>
-                                <ActionCardBody>
-                                    <ActionCardTitle $variant="secondary">Notatka</ActionCardTitle>
-                                    <ActionCardSub $variant="secondary">Szybka notatka głosowa</ActionCardSub>
-                                </ActionCardBody>
-                                <ActionCardChevron $variant="secondary" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
-                                    </svg>
-                                </ActionCardChevron>
-                            </ActionCard>
-                        </ActionList>
-                    </HomeArea>
-                </ScreenBody>
+                    <SplitBtn $variant="light" onClick={logic.goToNote} type="button" aria-label="Notatka głosowa">
+                        <SplitIcon $variant="light" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                                <path strokeLinecap="round" strokeLinejoin="round"
+                                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                        </SplitIcon>
+                        <SplitLabel $variant="light">Notatka</SplitLabel>
+                    </SplitBtn>
+                </SplitLayout>
             )}
 
             {/* ── Screen 2: Phone number ───────────────────────────────────── */}

@@ -216,147 +216,66 @@ export const ModeBadge = styled.span<{ $mode: 'lead' | 'note' }>`
     `}
 `;
 
-// ─── Screen 1: Home ───────────────────────────────────────────────────────────
+// ─── Screen 1: Home — two full-height split buttons ──────────────────────────
 
-export const HomeArea = styled.div`
+export const SplitLayout = styled.div`
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: env(safe-area-inset-top, 0px) 0 0;
+    min-height: 0;
 `;
 
-export const HomeBrand = styled.div`
-    padding: 20px 24px 0;
+export const SplitBtn = styled.button<{ $variant: 'dark' | 'light' }>`
+    flex: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-`;
-
-export const HomeBrandDot = styled.div`
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: ${c.accent};
-`;
-
-export const HomeBrandName = styled.span`
-    font-size: 13px;
-    font-weight: 600;
-    color: ${c.textMuted};
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-`;
-
-export const HomeGreetingArea = styled.div`
-    flex: 1;
-    display: flex;
-    flex-direction: column;
     justify-content: center;
-    padding: 0 24px;
-`;
-
-export const HomeGreeting = styled.h1`
-    margin: 0 0 6px;
-    font-size: 34px;
-    font-weight: 700;
-    color: ${c.text};
-    letter-spacing: -0.6px;
-    line-height: 1.1;
-`;
-
-export const HomeSubtitle = styled.p`
-    margin: 0;
-    font-size: 17px;
-    color: ${c.textSub};
-    font-weight: 400;
-`;
-
-export const ActionList = styled.div`
-    padding: 0 20px;
-    padding-bottom: max(32px, env(safe-area-inset-bottom, 32px));
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    flex-shrink: 0;
-`;
-
-export const ActionCard = styled.button<{ $variant: 'primary' | 'secondary' }>`
-    display: flex;
-    align-items: center;
     gap: 16px;
-    width: 100%;
-    padding: 18px 20px;
-    border-radius: 18px;
     border: none;
     cursor: pointer;
     font-family: inherit;
-    text-align: left;
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     user-select: none;
+    transition: opacity 0.12s ease;
 
-    ${p => p.$variant === 'primary' && css`
-        background: ${c.text};
-        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18), 0 1px 4px rgba(15, 23, 42, 0.1);
+    ${p => p.$variant === 'dark' && css`
+        background: #0F172A;
     `}
-    ${p => p.$variant === 'secondary' && css`
-        background: ${c.surface};
-        border: 1.5px solid ${c.border};
-        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+    ${p => p.$variant === 'light' && css`
+        background: #FFFFFF;
+        border-top: 1px solid ${c.border};
     `}
 
-    &:active {
-        transform: scale(0.975);
-        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
-    }
+    &:active { opacity: 0.75; }
 `;
 
-export const ActionCardIcon = styled.div<{ $variant: 'primary' | 'secondary' }>`
-    width: 46px;
-    height: 46px;
-    border-radius: 13px;
+export const SplitIcon = styled.div<{ $variant: 'dark' | 'light' }>`
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
 
-    svg { width: 22px; height: 22px; }
+    svg { width: 26px; height: 26px; }
 
-    ${p => p.$variant === 'primary' && css`
-        background: rgba(255, 255, 255, 0.12);
-        color: #FFFFFF;
+    ${p => p.$variant === 'dark' && css`
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.85);
     `}
-    ${p => p.$variant === 'secondary' && css`
+    ${p => p.$variant === 'light' && css`
         background: ${c.accentLight};
         color: ${c.accent};
     `}
 `;
 
-export const ActionCardBody = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
-
-export const ActionCardTitle = styled.div<{ $variant: 'primary' | 'secondary' }>`
-    font-size: 17px;
+export const SplitLabel = styled.span<{ $variant: 'dark' | 'light' }>`
+    font-size: 20px;
     font-weight: 700;
-    letter-spacing: -0.2px;
-    color: ${p => p.$variant === 'primary' ? '#FFFFFF' : c.text};
-    margin-bottom: 2px;
-`;
-
-export const ActionCardSub = styled.div<{ $variant: 'primary' | 'secondary' }>`
-    font-size: 13px;
-    color: ${p => p.$variant === 'primary' ? 'rgba(255,255,255,0.60)' : c.textSub};
-    font-weight: 400;
-`;
-
-export const ActionCardChevron = styled.div<{ $variant: 'primary' | 'secondary' }>`
-    flex-shrink: 0;
-    color: ${p => p.$variant === 'primary' ? 'rgba(255,255,255,0.50)' : c.textMuted};
-    svg { width: 18px; height: 18px; display: block; }
+    letter-spacing: -0.3px;
+    color: ${p => p.$variant === 'dark' ? '#FFFFFF' : c.text};
 `;
 
 // ─── Screen title (phone / edit screens) ──────────────────────────────────────
