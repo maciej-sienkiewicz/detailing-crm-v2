@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="DetailBoost Voice" />
+  <title>DetailBoost Voice</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    /* ─────────────────────────────────────────────────────────────────────────
+     * Design tokens — values mirrored 1:1 from:
+     *   src/common/theme/theme.ts
+     *   src/common/styles/sharedButtonStyles.ts
+     *   src/common/styles/sharedFormStyles.ts
+     *   src/modules/checkin/components/LoadingScreen.tsx
+     *   src/modules/checkin/components/ErrorScreen.tsx
+     * ───────────────────────────────────────────────────────────────────────*/
+    :root {
+      /* Primary brand */
+      --primary:          #0ea5e9;
+      --primary-dark:     #0284c7;
+      --primary-light:    #38bdf8;
+      --primary-shadow:   rgba(14, 165, 233, 0.28);
+      --primary-ring:     rgba(14, 165, 233, 0.14);
+      --primary-disabled: rgba(14, 165, 233, 0.35);
+
+      /* Dark mobile background — same gradient as LoadingScreen / ErrorScreen */
+      --bg-start:         #0f172a;
+      --bg-end:           #1e293b;
+
+      /* Dark surface layers */
+      --surface:          rgba(255, 255, 255, 0.05);
+      --surface-hover:    rgba(255, 255, 255, 0.08);
+      --surface-active:   rgba(255, 255, 255, 0.12);
+      --border:           rgba(255, 255, 255, 0.10);
+      --border-strong:    rgba(255, 255, 255, 0.18);
+
+      /* Text — from ErrorScreen / sharedFormStyles */
+      --text:             #ffffff;
+      --text-secondary:   rgba(255, 255, 255, 0.70);
+      --text-muted:       rgba(255, 255, 255, 0.38);
+
+      /* Semantic */
+      --error:            #dc2626;
+      --error-bg:         rgba(220, 38,  38,  0.15);
+      --error-border:     rgba(220, 38,  38,  0.30);
+      --error-text:       #fca5a5;
+      --success-bg:       rgba(34,  197, 94,  0.12);
+      --success-border:   rgba(34,  197, 94,  0.30);
+      --success-text:     #86efac;
+
+      /* Lead accent — sky blue */
+      --lead-bg:          rgba(14,  165, 233, 0.12);
+      --lead-border:      rgba(14,  165, 233, 0.30);
+      --lead-text:        #38bdf8;
+
+      /* Note accent — violet */
+      --note-bg:          rgba(139, 92,  246, 0.12);
+      --note-border:      rgba(139, 92,  246, 0.30);
+      --note-text:        #a78bfa;
+
+      /* Spacing — from theme.ts */
+      --sp-xs:  4px;
+      --sp-sm:  8px;
+      --sp-md:  16px;
+      --sp-lg:  24px;
+      --sp-xl:  32px;
+      --sp-xxl: 48px;
+
+      /* Font sizes — from theme.ts */
+      --fs-xs:   12px;
+      --fs-sm:   14px;
+      --fs-md:   16px;
+      --fs-lg:   18px;
+      --fs-xl:   20px;
+      --fs-xxl:  24px;
+      --fs-xxxl: 32px;
+
+      /* Border radii — from theme.ts */
+      --r-sm:   4px;
+      --r-md:   8px;
+      --r-lg:   12px;
+      --r-xl:   16px;
+      --r-full: 9999px;
+
+      /* Transitions — from theme.ts */
+      --t-fast:   150ms ease;
+      --t-normal: 200ms ease;
+      --t-slow:   300ms ease;
+
+      /* Shadows — from theme.ts */
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.10), 0 2px 4px -2px rgb(0 0 0 / 0.10);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.10), 0 4px 6px -4px rgb(0 0 0 / 0.10);
+    }
+
+    /* ─── Reset ──────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ─── Base ───────────────────────────────────────────────────────────── */
+    html, body {
+      height: 100%;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      font-size: var(--fs-md);
+      background: var(--bg-start);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overscroll-behavior: none;
+    }
+
+    #app {
+      min-height: 100dvh;
+      background: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── Screen switcher ────────────────────────────────────────────────── */
+    .screen {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      min-height: 100dvh;
+    }
+    .screen.active { display: flex; }
+
+    /* ─── Spinner — from LoadingScreen.tsx ───────────────────────────────── */
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(255, 255, 255, 0.10);
+      border-top-color: var(--primary);
+      border-radius: var(--r-full);
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Screen 0: Loading — from LoadingScreen.tsx layout ─────────────── */
+    #screen-loading {
+      align-items: center;
+      justify-content: center;
+      gap: var(--sp-lg);
+      text-align: center;
+      padding: var(--sp-xl);
+    }
+    .loading-text {
+      font-size: var(--fs-lg);
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    /* ─── Screen Error — from ErrorScreen.tsx layout ─────────────────────── */
+    #screen-error {
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: var(--sp-xl);
+      gap: var(--sp-lg);
+    }
+    .error-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: var(--r-full);
+      background: var(--error-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .error-icon svg   { width: 40px; height: 40px; color: var(--error-text); }
+    .error-title      { font-size: var(--fs-xl); font-weight: 700; color: var(--text); }
+    .error-subtitle   { font-size: var(--fs-md); color: var(--text-secondary); line-height: 1.5; max-width: 280px; }
+
+    /* ─── Screen header ──────────────────────────────────────────────────── */
+    .screen-header {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      padding: calc(env(safe-area-inset-top, 0px) + var(--sp-md)) var(--sp-md) 0;
+      flex-shrink: 0;
+      min-height: 56px;
+    }
+
+    /* Back link — ghost style, touch-friendly 48px target */
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: inherit;
+      font-size: var(--fs-sm);
+      font-weight: 500;
+      color: var(--primary);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: var(--sp-sm);
+      margin: calc(-1 * var(--sp-sm));
+      border-radius: var(--r-lg);
+      min-height: 44px;
+      transition: color var(--t-fast);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .back-btn:hover  { color: var(--primary-dark); }
+    .back-btn svg    { width: 18px; height: 18px; flex-shrink: 0; }
+
+    /* Mode badge (Lead / Notatka) */
+    .mode-badge {
+      margin-left: auto;
+      padding: 4px 12px;
+      border-radius: var(--r-full);
+      font-size: var(--fs-xs);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .mode-badge.lead { background: var(--lead-bg); border: 1px solid var(--lead-border); color: var(--lead-text); }
+    .mode-badge.note { background: var(--note-bg); border: 1px solid var(--note-border); color: var(--note-text); }
+
+    /* ─── Screen content wrapper ─────────────────────────────────────────── */
+    .screen-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: var(--sp-lg) var(--sp-md) 0;
+      gap: var(--sp-md);
+      min-height: 0;
+    }
+
+    /* ─── Bottom action bar ──────────────────────────────────────────────── */
+    .bottom-bar {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-sm);
+      padding: var(--sp-md);
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--sp-md));
+    }
+
+    /* ─── Screen title ───────────────────────────────────────────────────── */
+    .screen-title {
+      font-size: var(--fs-xxl);
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.4px;
+      line-height: 1.2;
+    }
+
+    /* Recording dot — pulsing red indicator */
+    .screen-title.is-recording::before {
+      content: '';
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+      margin-right: 10px;
+      vertical-align: middle;
+      animation: pulse-dot 1.4s ease infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1;   transform: scale(1);    }
+      50%       { opacity: 0.4; transform: scale(0.75); }
+    }
+
+    /* ─── Screen 1: Home ─────────────────────────────────────────────────── */
+    #screen-home {
+      overflow: hidden;
+    }
+    .home-header {
+      padding: calc(env(safe-area-inset-top, 0px) + var(--sp-xxl)) var(--sp-md) var(--sp-md);
+      flex-shrink: 0;
+    }
+    .home-greeting {
+      font-size: var(--fs-xxl);
+      font-weight: 700;
+      letter-spacing: -0.4px;
+      margin-bottom: 4px;
+    }
+    .home-subtitle {
+      font-size: var(--fs-sm);
+      color: var(--text-secondary);
+    }
+
+    /* Tiles grid — equal height tiles filling the viewport */
+    .tiles-grid {
+      flex: 1;
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      gap: var(--sp-md);
+      padding: 0 var(--sp-md) calc(env(safe-area-inset-bottom, 0px) + var(--sp-lg));
+      min-height: 0;
+    }
+
+    /* Tile card — mirrors SectionCard dark pattern */
+    .tile {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: flex-end;
+      padding: var(--sp-xl);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-xl);
+      cursor: pointer;
+      transition: background var(--t-normal), border-color var(--t-normal), transform var(--t-fast);
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      font-family: inherit;
+      text-align: left;
+    }
+    .tile:hover   { background: var(--surface-hover); }
+    .tile:active  { background: var(--surface-active); border-color: var(--border-strong); transform: scale(0.98); }
+
+    .tile-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: var(--r-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: var(--sp-lg);
+      flex-shrink: 0;
+    }
+    .tile-icon svg { width: 28px; height: 28px; }
+
+    .tile.lead .tile-icon { background: var(--lead-bg); color: var(--lead-text); }
+    .tile.note .tile-icon { background: var(--note-bg); color: var(--note-text); }
+
+    .tile-title    { font-size: var(--fs-xl); font-weight: 700; color: var(--text); letter-spacing: -0.2px; margin-bottom: var(--sp-xs); }
+    .tile-subtitle { font-size: var(--fs-sm); color: var(--text-secondary); line-height: 1.4; }
+
+    /* ─── Form elements — mirrored from sharedFormStyles.ts (dark variant) ─ */
+    .form-label {
+      display: block;
+      font-size: var(--fs-sm);
+      font-weight: 500;
+      color: var(--text-secondary);
+      letter-spacing: 0.01em;
+      line-height: 1;
+    }
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-sm);
+    }
+
+    /* Input — FormInput dark variant */
+    .form-input {
+      width: 100%;
+      padding: 14px 18px;
+      background: var(--surface);
+      border: 1.5px solid var(--border-strong);
+      border-radius: var(--r-lg);
+      font-size: var(--fs-lg);
+      font-weight: 400;
+      color: var(--text);
+      outline: none;
+      transition: border-color var(--t-normal), box-shadow var(--t-normal);
+      font-family: inherit;
+    }
+    .form-input::placeholder { color: var(--text-muted); }
+    .form-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-ring);
+    }
+
+    /* Dictation content area — contenteditable div styled like FormTextarea */
+    .dictate-area {
+      flex: 1;
+      min-height: 160px;
+      padding: 14px 18px;
+      background: var(--surface);
+      border: 1.5px solid var(--border-strong);
+      border-radius: var(--r-lg);
+      font-size: var(--fs-md);
+      font-weight: 400;
+      color: var(--text);
+      outline: none;
+      overflow-y: auto;
+      transition: border-color var(--t-normal), box-shadow var(--t-normal);
+      font-family: inherit;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .dictate-area:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-ring);
+    }
+    /* Placeholder via pseudo-element */
+    .dictate-area:empty::before {
+      content: attr(data-placeholder);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    /* Interim text — visually muted, matches spec "jaśniejsze/szare" */
+    .dictate-area .interim {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* ─── Buttons — mirrored from sharedButtonStyles.ts ─────────────────── */
+
+    /* Primary — full-width mobile variant, pill shape */
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--sp-sm);
+      width: 100%;
+      min-height: 54px;
+      padding: 16px var(--sp-lg);
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--r-full);
+      font-family: inherit;
+      font-size: var(--fs-md);
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 8px var(--primary-shadow);
+      transition: background var(--t-normal), box-shadow var(--t-normal), transform var(--t-fast);
+      -webkit-tap-highlight-color: transparent;
+      line-height: 1;
+    }
+    .btn-primary:hover:not(:disabled)  { background: var(--primary-dark); box-shadow: 0 4px 14px var(--primary-shadow); transform: translateY(-1px); }
+    .btn-primary:active:not(:disabled) { transform: scale(0.98); box-shadow: 0 2px 6px var(--primary-shadow); }
+    .btn-primary:disabled              { background: var(--primary-disabled); box-shadow: none; cursor: not-allowed; transform: none; }
+
+    /* Secondary — ghost dark, pill shape */
+    .btn-secondary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--sp-sm);
+      width: 100%;
+      min-height: 54px;
+      padding: 14px var(--sp-lg);
+      background: var(--surface);
+      color: var(--text-secondary);
+      border: 1.5px solid var(--border-strong);
+      border-radius: var(--r-full);
+      font-family: inherit;
+      font-size: var(--fs-md);
+      font-weight: 600;
+      cursor: pointer;
+      transition: background var(--t-normal), color var(--t-normal), border-color var(--t-normal), transform var(--t-fast);
+      -webkit-tap-highlight-color: transparent;
+      line-height: 1;
+    }
+    .btn-secondary:hover:not(:disabled)  { background: var(--surface-hover); color: var(--text); border-color: rgba(255,255,255,0.25); }
+    .btn-secondary:active:not(:disabled) { background: var(--surface-active); transform: scale(0.98); }
+    .btn-secondary:disabled              { opacity: 0.5; cursor: not-allowed; }
+
+    /* Link button — inline ghost */
+    .btn-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-family: inherit;
+      font-size: var(--fs-sm);
+      font-weight: 500;
+      cursor: pointer;
+      padding: 0;
+      min-height: 44px;
+      transition: color var(--t-fast);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-link:hover { color: var(--primary-dark); }
+    .btn-link svg   { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* ─── Permission error card ──────────────────────────────────────────── */
+    .permission-error {
+      padding: var(--sp-md) var(--sp-lg);
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      border-radius: var(--r-lg);
+      color: var(--error-text);
+      font-size: var(--fs-sm);
+      line-height: 1.5;
+      display: none;
+    }
+
+    /* ─── Screen 4: Send states ──────────────────────────────────────────── */
+    .send-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--sp-lg);
+      text-align: center;
+      padding: var(--sp-xl);
+    }
+    .send-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: var(--r-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .send-icon.success { background: var(--success-bg); }
+    .send-icon.error   { background: var(--error-bg);   }
+    .send-icon.success svg { width: 40px; height: 40px; color: var(--success-text); }
+    .send-icon.error   svg { width: 40px; height: 40px; color: var(--error-text);   }
+
+    .send-title   { font-size: var(--fs-xxl); font-weight: 700; letter-spacing: -0.4px; }
+    .send-message { font-size: var(--fs-md); color: var(--text-secondary); line-height: 1.5; max-width: 280px; }
+
+    /* ─── Toast — pill notification ──────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 88px);
+      left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid var(--border-strong);
+      backdrop-filter: blur(8px);
+      color: var(--text);
+      padding: 11px 20px;
+      border-radius: var(--r-full);
+      font-size: var(--fs-sm);
+      font-weight: 500;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--t-normal), transform var(--t-normal);
+      z-index: 200;
+      box-shadow: var(--shadow-lg);
+    }
+    #toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ─── Utility ────────────────────────────────────────────────────────── */
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Screen 0: Loading ──────────────────────────────────────────────── -->
+  <div id="screen-loading" class="screen active">
+    <div class="spinner"></div>
+    <p class="loading-text">Łączenie...</p>
+  </div>
+
+  <!-- ── Screen Error ───────────────────────────────────────────────────── -->
+  <div id="screen-error" class="screen">
+    <div class="error-icon" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <h1 class="error-title">Link nieaktywny lub wygasły.</h1>
+    <p class="error-subtitle">Wygeneruj nowy link w ustawieniach CRM.</p>
+  </div>
+
+  <!-- ── Screen 1: Home ─────────────────────────────────────────────────── -->
+  <div id="screen-home" class="screen">
+    <div class="home-header">
+      <h1 class="home-greeting" id="home-greeting">Cześć!</h1>
+      <p class="home-subtitle">Co chcesz zrobić?</p>
+    </div>
+    <div class="tiles-grid">
+      <button class="tile lead" id="tile-lead" type="button" aria-label="Nowy lead — zapisz rozmowę z klientem">
+        <div class="tile-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+          </svg>
+        </div>
+        <div class="tile-title">NOWY LEAD</div>
+        <div class="tile-subtitle">Zapisz rozmowę z klientem</div>
+      </button>
+
+      <button class="tile note" id="tile-note" type="button" aria-label="Notatka — szybka notatka głosowa">
+        <div class="tile-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+          </svg>
+        </div>
+        <div class="tile-title">NOTATKA</div>
+        <div class="tile-subtitle">Szybka notatka głosowa</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Screen 2: Phone number (lead flow only) ────────────────────────── -->
+  <div id="screen-phone" class="screen">
+    <div class="screen-header">
+      <button class="back-btn" id="phone-back" type="button" aria-label="Wróć do ekranu głównego">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Wróć
+      </button>
+    </div>
+    <div class="screen-content">
+      <h2 class="screen-title">Numer telefonu klienta</h2>
+      <div class="form-field">
+        <label class="form-label" for="phone-input">Numer telefonu</label>
+        <input
+          id="phone-input"
+          class="form-input"
+          type="tel"
+          inputmode="tel"
+          autocomplete="tel"
+          placeholder="+48 ..."
+          aria-label="Numer telefonu klienta"
+        />
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <button class="btn-primary" id="phone-next" type="button" disabled>DALEJ</button>
+      <button class="btn-secondary" id="phone-skip" type="button">POMIŃ</button>
+    </div>
+  </div>
+
+  <!-- ── Screen 3: Dictation ────────────────────────────────────────────── -->
+  <div id="screen-dictate" class="screen">
+    <div class="screen-header">
+      <button class="back-btn" id="dictate-back" type="button" aria-label="Wróć">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Wróć
+      </button>
+      <span class="mode-badge" id="mode-badge" aria-label="Tryb">Lead</span>
+    </div>
+    <div class="screen-content">
+      <h2 class="screen-title is-recording" id="dictate-title">Mów teraz...</h2>
+
+      <div
+        id="dictate-area"
+        class="dictate-area"
+        role="textbox"
+        aria-multiline="true"
+        aria-label="Treść"
+        data-placeholder="Słucham..."
+      ></div>
+
+      <div class="permission-error" id="permission-error" role="alert">
+        Brak dostępu do mikrofonu. Zezwól na mikrofon w ustawieniach przeglądarki i spróbuj ponownie.
+      </div>
+
+      <button class="btn-link hidden" id="dictate-again" type="button">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        Dyktuj ponownie
+      </button>
+    </div>
+    <div class="bottom-bar">
+      <button class="btn-primary" id="dictate-submit" type="button">GOTOWE</button>
+    </div>
+  </div>
+
+  <!-- ── Screen 4: Send / Confirmation ─────────────────────────────────── -->
+  <div id="screen-send" class="screen">
+    <!-- Back only visible on error state -->
+    <div class="screen-header hidden" id="send-header">
+      <button class="back-btn" id="send-back" type="button" aria-label="Wróć do dyktowania">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Wróć
+      </button>
+    </div>
+
+    <!-- Sending state -->
+    <div class="send-body" id="send-sending">
+      <div class="spinner"></div>
+      <p class="loading-text">Wysyłanie...</p>
+    </div>
+
+    <!-- Success state -->
+    <div class="send-body hidden" id="send-success">
+      <div class="send-icon success" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <p class="send-title">Wysłano!</p>
+    </div>
+
+    <!-- Error state -->
+    <div class="send-body hidden" id="send-error">
+      <div class="send-icon error" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </div>
+      <p class="send-title">Nie udało się wysłać.</p>
+      <p class="send-message">Sprawdź połączenie i spróbuj ponownie.</p>
+    </div>
+
+    <!-- Actions — shown after send completes -->
+    <div class="bottom-bar hidden" id="send-actions">
+      <button class="btn-primary hidden"    id="btn-send-again"  type="button">Dodaj kolejny</button>
+      <button class="btn-primary hidden"    id="btn-send-retry"  type="button">Spróbuj ponownie</button>
+      <button class="btn-secondary hidden"  id="btn-send-back"   type="button">Wróć</button>
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<!-- Toast notification -->
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+
+// ── State ─────────────────────────────────────────────────────────────────────
+const state = {
+  token:       null,
+  firstName:   '',
+  mode:        null,   // 'lead' | 'note'
+  phoneNumber: null,
+  text:        '',
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function el(id) { return document.getElementById(id); }
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  el(id).classList.add('active');
+}
+
+function show(id)   { el(id).classList.remove('hidden'); }
+function hide(id)   { el(id).classList.add('hidden');    }
+
+let _toastTimer = null;
+function showToast(msg) {
+  const t = el('toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('visible'), 2500);
+}
+
+function escapeHtml(s) {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ── Screen 0: Init & token validation ────────────────────────────────────────
+async function init() {
+  const params = new URLSearchParams(location.search);
+  state.token  = params.get('token');
+
+  if (!state.token) {
+    showScreen('screen-error');
+    return;
+  }
+
+  try {
+    const res  = await fetch(`/api/mobile/voice/context?token=${encodeURIComponent(state.token)}`);
+    if (!res.ok) throw new Error('non-200');
+    const data = await res.json();
+    state.firstName = data.firstName || '';
+    el('home-greeting').textContent = `Cześć, ${state.firstName}!`;
+    showScreen('screen-home');
+  } catch {
+    showScreen('screen-error');
+  }
+}
+
+// ── Screen 1: Home ────────────────────────────────────────────────────────────
+el('tile-lead').addEventListener('click', () => {
+  state.mode        = 'lead';
+  state.phoneNumber = null;
+  el('phone-input').value            = '';
+  el('phone-next').disabled          = true;
+  showScreen('screen-phone');
+});
+
+el('tile-note').addEventListener('click', () => {
+  state.mode = 'note';
+  enterDictateScreen();
+});
+
+// ── Screen 2: Phone number ────────────────────────────────────────────────────
+const phoneInput = el('phone-input');
+
+phoneInput.addEventListener('input', () => {
+  el('phone-next').disabled = phoneInput.value.trim().length === 0;
+});
+
+el('phone-back').addEventListener('click', () => {
+  phoneInput.value = '';
+  showScreen('screen-home');
+});
+
+el('phone-next').addEventListener('click', () => {
+  state.phoneNumber = phoneInput.value.trim() || null;
+  enterDictateScreen();
+});
+
+el('phone-skip').addEventListener('click', () => {
+  state.phoneNumber = null;
+  enterDictateScreen();
+});
+
+// ── Screen 3: Dictation ───────────────────────────────────────────────────────
+let recognition    = null;
+let silenceTimer   = null;
+let silenceExpired = false;
+let finalText      = '';
+
+function enterDictateScreen() {
+  // Reset
+  finalText      = '';
+  silenceExpired = false;
+  if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+
+  // Badge
+  const badge      = el('mode-badge');
+  badge.textContent = state.mode === 'lead' ? 'Lead' : 'Notatka';
+  badge.className   = `mode-badge ${state.mode}`;
+
+  // Content area
+  const area = el('dictate-area');
+  area.innerHTML          = '';
+  area.contentEditable    = 'false';
+  area.dataset.placeholder = 'Słucham...';
+
+  // Title
+  el('dictate-title').textContent = 'Mów teraz...';
+  el('dictate-title').className   = 'screen-title is-recording';
+
+  hide('dictate-again');
+  hide('permission-error');
+
+  showScreen('screen-dictate');
+  startRecognition();
+}
+
+function startRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SR) {
+    switchToEditMode();
+    el('dictate-title').textContent = 'Wpisz treść';
+    el('dictate-title').className   = 'screen-title';
+    el('dictate-area').dataset.placeholder = 'Wpisz tekst lub użyj dyktowania z klawiatury';
+    return;
+  }
+
+  recognition = new SR();
+  recognition.lang            = 'pl-PL';
+  recognition.continuous      = true;
+  recognition.interimResults  = true;
+
+  resetSilenceTimer();
+
+  recognition.onresult = (event) => {
+    finalText = '';
+    let interimText = '';
+
+    for (let i = 0; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        finalText += event.results[i][0].transcript;
+        resetSilenceTimer();
+      } else {
+        interimText = event.results[i][0].transcript;
+      }
+    }
+
+    const area = el('dictate-area');
+    const gap  = finalText && interimText ? ' ' : '';
+    area.innerHTML = escapeHtml(finalText)
+      + (interimText
+          ? `${escapeHtml(gap)}<span class="interim">${escapeHtml(interimText)}</span>`
+          : '');
+    area.scrollTop = area.scrollHeight;
+  };
+
+  recognition.onend = () => {
+    if (!silenceExpired) {
+      try { recognition.start(); } catch (_) {}
+    }
+  };
+
+  recognition.onerror = (event) => {
+    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+      show('permission-error');
+      switchToEditMode();
+      el('dictate-title').textContent = 'Wpisz treść';
+      el('dictate-title').className   = 'screen-title';
+    }
+    // Other errors: onend will attempt restart unless silenceExpired
+  };
+
+  try { recognition.start(); } catch (_) {}
+}
+
+function resetSilenceTimer() {
+  if (silenceTimer) clearTimeout(silenceTimer);
+  silenceTimer = setTimeout(onSilence, 3000);
+}
+
+function onSilence() {
+  silenceExpired = true;
+  switchToEditMode();
+}
+
+function switchToEditMode() {
+  const area = el('dictate-area');
+  // Strip interim span, keep only final text
+  area.innerHTML           = escapeHtml(finalText);
+  area.contentEditable     = 'true';
+  area.dataset.placeholder = 'Napisz lub edytuj tekst...';
+
+  el('dictate-title').textContent = 'Sprawdź i wyślij';
+  el('dictate-title').className   = 'screen-title';
+  show('dictate-again');
+  area.focus();
+}
+
+function stopRecognition() {
+  if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+  if (recognition)  {
+    silenceExpired = true;
+    try { recognition.abort(); } catch (_) {}
+    recognition = null;
+  }
+}
+
+el('dictate-again').addEventListener('click', () => {
+  stopRecognition();
+  finalText      = '';
+  silenceExpired = false;
+
+  const area = el('dictate-area');
+  area.innerHTML          = '';
+  area.contentEditable    = 'false';
+  area.dataset.placeholder = 'Słucham...';
+
+  el('dictate-title').textContent = 'Mów teraz...';
+  el('dictate-title').className   = 'screen-title is-recording';
+  hide('dictate-again');
+  hide('permission-error');
+
+  startRecognition();
+});
+
+el('dictate-back').addEventListener('click', () => {
+  stopRecognition();
+  if (state.mode === 'lead') {
+    showScreen('screen-phone');
+  } else {
+    showScreen('screen-home');
+  }
+});
+
+el('dictate-submit').addEventListener('click', () => {
+  const area = el('dictate-area');
+  // Get text from contenteditable (textContent strips HTML tags)
+  const text = area.textContent.trim();
+
+  if (!text) {
+    showToast('Podyktuj lub wpisz treść');
+    return;
+  }
+
+  state.text = text;
+  stopRecognition();
+  doSend();
+});
+
+// ── Screen 4: Send ────────────────────────────────────────────────────────────
+function doSend() {
+  showScreen('screen-send');
+
+  // Reset to sending state
+  hide('send-header');
+  show('send-sending');
+  hide('send-success');
+  hide('send-error');
+  hide('send-actions');
+
+  const endpoint = state.mode === 'lead' ? '/api/mobile/voice/lead' : '/api/mobile/voice/note';
+  const body     = state.mode === 'lead'
+    ? { token: state.token, phoneNumber: state.phoneNumber, text: state.text }
+    : { token: state.token, text: state.text };
+
+  fetch(endpoint, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(body),
+  })
+    .then(res => {
+      if (res.status === 201) return 'ok';
+      throw new Error(String(res.status));
+    })
+    .then(() => {
+      hide('send-sending');
+      show('send-success');
+      show('send-actions');
+      show('btn-send-again');
+      hide('btn-send-retry');
+      hide('btn-send-back');
+    })
+    .catch(() => {
+      hide('send-sending');
+      show('send-error');
+      show('send-header');
+      show('send-actions');
+      hide('btn-send-again');
+      show('btn-send-retry');
+      show('btn-send-back');
+    });
+}
+
+el('btn-send-again').addEventListener('click', () => {
+  state.mode        = null;
+  state.phoneNumber = null;
+  state.text        = '';
+  showScreen('screen-home');
+});
+
+el('btn-send-retry').addEventListener('click', doSend);
+
+el('btn-send-back').addEventListener('click', () => showScreen('screen-dictate'));
+el('send-back').addEventListener('click',     () => showScreen('screen-dictate'));
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
