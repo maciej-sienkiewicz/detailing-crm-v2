@@ -7,9 +7,13 @@ import {
     LoadingWrap, Spinner, SpinnerSm, LoadingText,
     ErrorWrap, ErrorIconWrap, ErrorTitle, ErrorMessage,
     ScreenBody, ScreenContent, ScreenHeader, BackBtn, ModeBadge,
-    HomeHeader, HomeGreeting, HomeSubtitle, TilesGrid, Tile, TileIcon, TileTitle, TileSubtitle,
+    HomeArea, HomeBrand, HomeBrandDot, HomeBrandName,
+    HomeGreetingArea, HomeGreeting, HomeSubtitle,
+    ActionList, ActionCard, ActionCardIcon, ActionCardBody,
+    ActionCardTitle, ActionCardSub, ActionCardChevron,
     ScreenTitle,
     FormLabel, FormField, PhoneInput,
+    MicArea, MicRingWrap, MicRing, MicRingOuter, MicCircle, MicStatus,
     TranscriptDisplay, Placeholder, InterimText, TranscriptTextarea,
     PermissionError,
     PrimaryBtn, SecondaryBtn, LinkBtn,
@@ -25,7 +29,6 @@ interface Props {
 export const MobileVoiceCommandsView = ({ token }: Props) => {
     const logic = useVoiceCommandsLogic(token);
 
-    // Toast state — purely UI, lives in the view
     const [toastText, setToastText] = useState('');
     const [toastVisible, setToastVisible] = useState(false);
     const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -47,7 +50,6 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
     const handleSubmitDictate = useCallback(() => {
         const text = logic.dictateState === 'editing'
             ? logic.editableText.trim()
-            // Include interim: user may tap DONE before the last phrase is committed as final
             : (logic.finalText + (logic.interimText ? ' ' + logic.interimText : '')).trim();
         if (!text) {
             showToast('Podyktuj lub wpisz treść');
@@ -69,7 +71,7 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
         );
     }
 
-    // ─── Error (invalid / expired token) ─────────────────────────────────────
+    // ─── Error ────────────────────────────────────────────────────────────────
 
     if (logic.sessionState === 'error') {
         return (
@@ -81,14 +83,12 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
                                   d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </ErrorIconWrap>
-                    <ErrorTitle>Link nieaktywny lub wygasły.</ErrorTitle>
+                    <ErrorTitle>Link nieaktywny lub wygasły</ErrorTitle>
                     <ErrorMessage>Wygeneruj nowy link w ustawieniach CRM.</ErrorMessage>
                 </ErrorWrap>
             </Container>
         );
     }
-
-    // ─── Active session ───────────────────────────────────────────────────────
 
     const { screen, mode } = logic;
 
@@ -98,59 +98,91 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
             {/* ── Screen 1: Home ──────────────────────────────────────────── */}
             {screen === 'home' && (
                 <ScreenBody>
-                    <HomeHeader>
-                        <HomeGreeting>Cześć, {logic.firstName}!</HomeGreeting>
-                        <HomeSubtitle>Co chcesz zrobić?</HomeSubtitle>
-                    </HomeHeader>
-                    <TilesGrid>
-                        <Tile $mode="lead" onClick={logic.goToLead} type="button"
-                              aria-label="Nowy lead — zapisz rozmowę z klientem">
-                            <TileIcon $mode="lead" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path strokeLinecap="round" strokeLinejoin="round"
-                                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
-                            </TileIcon>
-                            <TileTitle>NOWY LEAD</TileTitle>
-                            <TileSubtitle>Zapisz rozmowę z klientem</TileSubtitle>
-                        </Tile>
+                    <HomeArea>
+                        <HomeBrand>
+                            <HomeBrandDot />
+                            <HomeBrandName>Voice Intake</HomeBrandName>
+                        </HomeBrand>
 
-                        <Tile $mode="note" onClick={logic.goToNote} type="button"
-                              aria-label="Notatka — szybka notatka głosowa">
-                            <TileIcon $mode="note" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path strokeLinecap="round" strokeLinejoin="round"
-                                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                            </TileIcon>
-                            <TileTitle>NOTATKA</TileTitle>
-                            <TileSubtitle>Szybka notatka głosowa</TileSubtitle>
-                        </Tile>
-                    </TilesGrid>
+                        <HomeGreetingArea>
+                            <HomeGreeting>
+                                Dzień dobry,{'\n'}{logic.firstName}.
+                            </HomeGreeting>
+                            <HomeSubtitle>Co chcesz zapisać?</HomeSubtitle>
+                        </HomeGreetingArea>
+
+                        <ActionList>
+                            <ActionCard
+                                $variant="primary"
+                                onClick={logic.goToLead}
+                                type="button"
+                                aria-label="Nowy lead"
+                            >
+                                <ActionCardIcon $variant="primary" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path strokeLinecap="round" strokeLinejoin="round"
+                                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                </ActionCardIcon>
+                                <ActionCardBody>
+                                    <ActionCardTitle $variant="primary">Nowy Lead</ActionCardTitle>
+                                    <ActionCardSub $variant="primary">Zapisz kontakt po rozmowie</ActionCardSub>
+                                </ActionCardBody>
+                                <ActionCardChevron $variant="primary" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
+                                    </svg>
+                                </ActionCardChevron>
+                            </ActionCard>
+
+                            <ActionCard
+                                $variant="secondary"
+                                onClick={logic.goToNote}
+                                type="button"
+                                aria-label="Notatka głosowa"
+                            >
+                                <ActionCardIcon $variant="secondary" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path strokeLinecap="round" strokeLinejoin="round"
+                                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </ActionCardIcon>
+                                <ActionCardBody>
+                                    <ActionCardTitle $variant="secondary">Notatka</ActionCardTitle>
+                                    <ActionCardSub $variant="secondary">Szybka notatka głosowa</ActionCardSub>
+                                </ActionCardBody>
+                                <ActionCardChevron $variant="secondary" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
+                                    </svg>
+                                </ActionCardChevron>
+                            </ActionCard>
+                        </ActionList>
+                    </HomeArea>
                 </ScreenBody>
             )}
 
-            {/* ── Screen 2: Phone number (lead only) ──────────────────────── */}
+            {/* ── Screen 2: Phone number ───────────────────────────────────── */}
             {screen === 'phone' && (
                 <ScreenBody>
                     <ScreenHeader>
                         <BackBtn onClick={logic.goBackFromPhone} type="button" aria-label="Wróć">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                             </svg>
                             Wróć
                         </BackBtn>
                     </ScreenHeader>
                     <ScreenContent>
-                        <ScreenTitle>Numer telefonu klienta</ScreenTitle>
+                        <ScreenTitle>Numer telefonu</ScreenTitle>
                         <FormField>
-                            <FormLabel htmlFor="voice-phone">Numer telefonu</FormLabel>
+                            <FormLabel htmlFor="voice-phone">Numer klienta</FormLabel>
                             <PhoneInput
                                 id="voice-phone"
                                 type="tel"
                                 inputMode="tel"
                                 autoComplete="tel"
-                                placeholder="+48 ..."
+                                placeholder="+48 000 000 000"
                                 value={logic.phoneNumber}
                                 onChange={e => logic.setPhoneNumber(e.target.value)}
                                 autoFocus
@@ -163,10 +195,10 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
                             disabled={!logic.phoneNumber.trim()}
                             onClick={logic.nextPhone}
                         >
-                            DALEJ
+                            Dalej
                         </PrimaryBtn>
                         <SecondaryBtn type="button" onClick={logic.skipPhone}>
-                            POMIŃ
+                            Pomiń
                         </SecondaryBtn>
                     </BottomBar>
                 </ScreenBody>
@@ -177,7 +209,7 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
                 <ScreenBody>
                     <ScreenHeader>
                         <BackBtn onClick={logic.goBackFromDictate} type="button" aria-label="Wróć">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                             </svg>
                             Wróć
@@ -186,23 +218,46 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
                             {mode === 'lead' ? 'Lead' : 'Notatka'}
                         </ModeBadge>
                     </ScreenHeader>
-                    <ScreenContent>
-                        <ScreenTitle $recording={logic.dictateState === 'recording'}>
-                            {logic.dictateState === 'recording' ? 'Mów teraz...' : 'Sprawdź i wyślij'}
-                        </ScreenTitle>
 
-                        {logic.hasPermissionError && (
+                    {/* Microphone hero — shown only in recording mode */}
+                    {logic.dictateState === 'recording' && (
+                        <MicArea>
+                            <MicRingWrap>
+                                {!logic.hasPermissionError && (
+                                    <>
+                                        <MicRing />
+                                        <MicRingOuter />
+                                    </>
+                                )}
+                                <MicCircle $active={!logic.hasPermissionError}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                                        <path strokeLinecap="round" strokeLinejoin="round"
+                                              d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round"
+                                              d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                                        <line x1="12" y1="19" x2="12" y2="23" strokeLinecap="round" />
+                                        <line x1="8" y1="23" x2="16" y2="23" strokeLinecap="round" />
+                                    </svg>
+                                </MicCircle>
+                            </MicRingWrap>
+                            <MicStatus $active={!logic.hasPermissionError}>
+                                {logic.hasPermissionError ? 'Brak dostępu do mikrofonu' : 'Słucham...'}
+                            </MicStatus>
+                        </MicArea>
+                    )}
+
+                    <ScreenContent>
+                        {logic.hasPermissionError && logic.dictateState === 'recording' && (
                             <PermissionError role="alert">
-                                Brak dostępu do mikrofonu. Zezwól na mikrofon w ustawieniach
-                                przeglądarki i spróbuj ponownie.
+                                Zezwól na dostęp do mikrofonu w ustawieniach przeglądarki i odśwież stronę.
                             </PermissionError>
                         )}
 
-                        {/* Recording mode: read-only display with interim text */}
+                        {/* Recording mode: live transcript */}
                         {logic.dictateState === 'recording' && (
                             <TranscriptDisplay aria-live="polite" aria-label="Transkrypcja">
                                 {!logic.finalText && !logic.interimText && (
-                                    <Placeholder>Słucham...</Placeholder>
+                                    <Placeholder>Zacznij mówić — tekst pojawi się tutaj...</Placeholder>
                                 )}
                                 {logic.finalText}
                                 {logic.interimText && (
@@ -213,34 +268,35 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
                             </TranscriptDisplay>
                         )}
 
-                        {/* Editing mode: editable textarea */}
+                        {/* Editing mode */}
                         {logic.dictateState === 'editing' && (
-                            <TranscriptTextarea
-                                value={logic.editableText}
-                                onChange={e => logic.setEditableText(e.target.value)}
-                                placeholder={
-                                    logic.hasSpeechSupport
-                                        ? 'Napisz lub edytuj tekst...'
-                                        : 'Wpisz tekst lub użyj dyktowania z klawiatury'
-                                }
-                                aria-label="Treść"
-                                autoFocus
-                            />
-                        )}
-
-                        {logic.dictateState === 'editing' && (
-                            <LinkBtn onClick={logic.restartDictation} type="button">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path strokeLinecap="round" strokeLinejoin="round"
-                                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                                Dyktuj ponownie
-                            </LinkBtn>
+                            <>
+                                <ScreenTitle>Sprawdź i wyślij</ScreenTitle>
+                                <TranscriptTextarea
+                                    value={logic.editableText}
+                                    onChange={e => logic.setEditableText(e.target.value)}
+                                    placeholder={
+                                        logic.hasSpeechSupport
+                                            ? 'Edytuj lub wpisz tekst...'
+                                            : 'Wpisz tekst lub użyj dyktowania z klawiatury'
+                                    }
+                                    aria-label="Treść"
+                                    autoFocus
+                                />
+                                <LinkBtn onClick={logic.restartDictation} type="button">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path strokeLinecap="round" strokeLinejoin="round"
+                                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    Dyktuj ponownie
+                                </LinkBtn>
+                            </>
                         )}
                     </ScreenContent>
+
                     <BottomBar>
                         <PrimaryBtn type="button" onClick={handleSubmitDictate}>
-                            GOTOWE
+                            Gotowe
                         </PrimaryBtn>
                     </BottomBar>
                 </ScreenBody>
@@ -251,8 +307,8 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
                 <ScreenBody>
                     {logic.sendStatus === 'error' && (
                         <ScreenHeader>
-                            <BackBtn onClick={logic.goBackFromSend} type="button" aria-label="Wróć do dyktowania">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <BackBtn onClick={logic.goBackFromSend} type="button" aria-label="Wróć">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                                 </svg>
                                 Wróć
@@ -260,7 +316,6 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
                         </ScreenHeader>
                     )}
 
-                    {/* Sending */}
                     {logic.sendStatus === 'sending' && (
                         <SendBody>
                             <SpinnerSm />
@@ -268,16 +323,16 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
                         </SendBody>
                     )}
 
-                    {/* Success */}
                     {logic.sendStatus === 'success' && (
                         <>
                             <SendBody>
                                 <SendIconWrap $type="success" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                     </svg>
                                 </SendIconWrap>
-                                <SendTitle>Wysłano!</SendTitle>
+                                <SendTitle>Zapisano!</SendTitle>
+                                <SendMessage>Dane zostały dodane do systemu.</SendMessage>
                             </SendBody>
                             <BottomBar>
                                 <PrimaryBtn type="button" onClick={logic.addAnother}>
@@ -287,16 +342,15 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
                         </>
                     )}
 
-                    {/* Error */}
                     {logic.sendStatus === 'error' && (
                         <>
                             <SendBody>
                                 <SendIconWrap $type="error" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </SendIconWrap>
-                                <SendTitle>Nie udało się wysłać.</SendTitle>
+                                <SendTitle>Nie udało się wysłać</SendTitle>
                                 <SendMessage>Sprawdź połączenie i spróbuj ponownie.</SendMessage>
                             </SendBody>
                             <BottomBar>
@@ -312,7 +366,6 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
                 </ScreenBody>
             )}
 
-            {/* ── Toast ───────────────────────────────────────────────────── */}
             <Toast $visible={toastVisible} role="status" aria-live="polite">
                 {toastText}
             </Toast>
