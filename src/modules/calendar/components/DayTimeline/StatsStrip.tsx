@@ -5,8 +5,9 @@ function formatCurrency(amount: number, currency: string): string {
     return new Intl.NumberFormat('pl-PL', {
         style: 'currency',
         currency,
-        maximumFractionDigits: 0,
-    }).format(amount);
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+    }).format(amount / 100);
 }
 
 interface StatsStripProps {

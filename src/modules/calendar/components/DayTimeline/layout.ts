@@ -8,8 +8,8 @@ export function formatTime(isoStr: string | undefined): string {
 }
 
 export function formatPrice(amount: number, currency: string): string {
-    return new Intl.NumberFormat('pl-PL', { style: 'currency', currency, maximumFractionDigits: 0 })
-        .format(amount);
+    return new Intl.NumberFormat('pl-PL', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 2 })
+        .format(amount / 100);
 }
 
 export function computeDayStats(events: CalendarEvent[]): DayStats {
