@@ -20,6 +20,7 @@ import {
     LogOut,
     Search,
     Inbox,
+    Smartphone,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from './context/SidebarContext';
@@ -88,6 +89,12 @@ const buildMenuSections = (newLeadsCount: number): MenuSection[] => [
             { path: '/sms-campaigns',  label: 'Kampanie SMS',   icon: MessageSquare },
             { path: '/instagram',      label: 'Instagram',      icon: Camera },
             { path: '/google-reviews', label: 'Google Reviews', icon: Search },
+        ],
+    },
+    {
+        title: 'Mobilne',
+        items: [
+            { path: '/mobile-shortcuts', label: 'Skróty mobilne', icon: Smartphone },
         ],
     },
 ];

@@ -10,7 +10,7 @@ import { VisitDetailView } from '@/modules/visits';
 import { CheckInWizardWrapper } from '@/modules/checkin/views/CheckInWizardWrapper';
 import { WalkInCheckInWrapper } from '@/modules/checkin/views/WalkInCheckInWrapper';
 import { MobilePhotoUploadWrapper } from '@/modules/checkin/views/MobilePhotoUploadWrapper';
-import { MobileVoiceCommandsWrapper } from '@/modules/voice-commands';
+import { MobileVoiceCommandsWrapper, MobileShortcutsView } from '@/modules/voice-commands';
 import { LoginView, SignupView } from '@/modules/auth';
 import { AppointmentColorListView } from "@/modules/appointment-colors";
 import { ConsentSettingsView } from "@/modules/consents";
@@ -151,6 +151,14 @@ export const router = createBrowserRouter([
         // Public voice intake route — no auth required, token via ?token=
         path: '/m/voice',
         element: <MobileVoiceCommandsWrapper />,
+    },
+    {
+        path: '/mobile-shortcuts',
+        element: (
+            <ProtectedRoute>
+                <Layout><MobileShortcutsView /></Layout>
+            </ProtectedRoute>
+        ),
     },
     {
         path: '/appointment-colors',

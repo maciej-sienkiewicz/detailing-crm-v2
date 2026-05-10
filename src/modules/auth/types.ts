@@ -42,6 +42,7 @@ export interface User {
     role: string;
     subscriptionStatus: string;
     trialDaysRemaining: number;
+    mobileToken?: string | null;
 }
 
 export interface CheckAuthResponse {
