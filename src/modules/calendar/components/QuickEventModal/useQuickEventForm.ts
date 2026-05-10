@@ -8,6 +8,9 @@ import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/t
 import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
 import { useDebounce } from '@/common/hooks';
 import { formatDateTimeLocal, formatDate, roundTo2 } from './helpers';
+
+const capitalizeWords = (value: string): string =>
+    value.replace(/\S+/g, word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
 import type {
     Service,
     AppointmentColor,
@@ -457,6 +460,8 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     };
 
     const handleCustomerFieldBlur = () => {
+        setCustomerFirstName(v => capitalizeWords(v));
+        setCustomerLastName(v => capitalizeWords(v));
         customerBlurTimerRef.current = setTimeout(() => {
             customerBlurTimerRef.current = null;
             if (customerJustSelectedRef.current) {
