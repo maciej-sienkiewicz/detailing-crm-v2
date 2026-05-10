@@ -64,6 +64,7 @@ import {
   formatPLN,
   formatWaitingTime,
   formatRelativeTime,
+  formatDateTime,
   formatPhoneNumber,
   truncateEmail,
   parseCurrencyToGrosze,
@@ -3079,7 +3080,10 @@ export const LeadListView: React.FC = () => {
           </Td>
 
           <Td>
-            <CellSub>{formatRelativeTime(lead.updatedAt || lead.createdAt)}</CellSub>
+            <CellStack>
+              <CellMain>{formatDateTime(lead.createdAt)}</CellMain>
+              <CellSub>Ostatnia aktualizacja: {formatRelativeTime(lead.updatedAt || lead.createdAt)}</CellSub>
+            </CellStack>
           </Td>
 
           <StatusTd onClick={e => e.stopPropagation()}>
