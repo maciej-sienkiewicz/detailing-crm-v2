@@ -9,13 +9,15 @@ export interface VoiceContext {
 
 export interface CreateLeadRequest {
     token: string;
+    audioBlob: Blob;
+    mimeType: string;
     phoneNumber: string | null;
-    text: string;
 }
 
 export interface CreateNoteRequest {
     token: string;
-    text: string;
+    audioBlob: Blob;
+    mimeType: string;
 }
 
 export interface CreateVoiceItemResponse {
@@ -31,6 +33,6 @@ export type SessionState = 'loading' | 'error' | 'active';
 
 export type VoiceScreen = 'home' | 'phone' | 'dictate' | 'send';
 
-export type DictateState = 'recording' | 'editing';
+export type RecordingState = 'requesting' | 'recording' | 'error';
 
 export type SendStatus = 'sending' | 'success' | 'error';

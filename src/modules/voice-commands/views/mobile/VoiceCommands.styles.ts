@@ -463,6 +463,18 @@ export const TranscriptTextarea = styled.textarea`
     }
 `;
 
+// ─── Recording timer ──────────────────────────────────────────────────────────
+
+export const RecordingTimer = styled.p`
+    margin: 0;
+    font-size: 44px;
+    font-weight: 300;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -1px;
+    color: ${c.text};
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+`;
+
 // ─── Permission error ─────────────────────────────────────────────────────────
 
 export const PermissionError = styled.div`

@@ -1,6 +1,5 @@
 // src/modules/voice-commands/views/MobileVoiceCommandsView.tsx
 
-import { useState, useRef, useEffect, useCallback } from 'react';
 import { useVoiceCommandsLogic } from '../hooks/useVoiceCommandsLogic';
 import {
     Container,
@@ -11,9 +10,9 @@ import {
     ScreenTitle,
     FormLabel, FormField, PhoneInput,
     MicArea, MicRingWrap, MicRing, MicRingOuter, MicCircle, MicStatus,
-    TranscriptDisplay, Placeholder, InterimText, TranscriptTextarea,
+    RecordingTimer,
     PermissionError,
-    PrimaryBtn, SecondaryBtn, LinkBtn,
+    PrimaryBtn, SecondaryBtn,
     BottomBar,
     SendBody, SendIconWrap, SendTitle, SendMessage,
     Toast,
@@ -23,37 +22,14 @@ interface Props {
     token: string;
 }
 
+function formatSeconds(s: number): string {
+    const m = Math.floor(s / 60).toString().padStart(2, '0');
+    const sec = (s % 60).toString().padStart(2, '0');
+    return `${m}:${sec}`;
+}
+
 export const MobileVoiceCommandsView = ({ token }: Props) => {
     const logic = useVoiceCommandsLogic(token);
-
-    const [toastText, setToastText] = useState('');
-    const [toastVisible, setToastVisible] = useState(false);
-    const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    useEffect(() => {
-        return () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); };
-    }, []);
-
-    const showToast = useCallback((msg: string) => {
-        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-        setToastText(msg);
-        setToastVisible(true);
-        toastTimerRef.current = setTimeout(() => {
-            setToastVisible(false);
-            toastTimerRef.current = null;
-        }, 2500);
-    }, []);
-
-    const handleSubmitDictate = useCallback(() => {
-        const text = logic.dictateState === 'editing'
-            ? logic.editableText.trim()
-            : (logic.finalText + (logic.interimText ? ' ' + logic.interimText : '')).trim();
-        if (!text) {
-            showToast('Podyktuj lub wpisz treść');
-            return;
-        }
-        logic.submitDictate();
-    }, [logic, showToast]);
 
     // ─── Loading ──────────────────────────────────────────────────────────────
 
@@ -95,7 +71,6 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
             {/* ── Screen 1: Home ──────────────────────────────────────────── */}
             {screen === 'home' && (
                 <FloatLayout>
-                    {/* Filled person icon — Lead */}
                     <FloatCard $accent="blue" onClick={logic.goToLead} type="button" aria-label="Nowy lead">
                         <FloatIcon $accent="blue" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="currentColor">
@@ -106,7 +81,6 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
                         <FloatLabel>Nowy Lead</FloatLabel>
                     </FloatCard>
 
-                    {/* Filled mic icon — Note */}
                     <FloatCard $accent="violet" onClick={logic.goToNote} type="button" aria-label="Notatka głosowa">
                         <FloatIcon $accent="violet" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="currentColor">
@@ -163,7 +137,7 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
                 </ScreenBody>
             )}
 
-            {/* ── Screen 3: Dictation ─────────────────────────────────────── */}
+            {/* ── Screen 3: Recording ─────────────────────────────────────── */}
             {screen === 'dictate' && mode && (
                 <ScreenBody>
                     <ScreenHeader>
@@ -178,83 +152,51 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
                         </ModeBadge>
                     </ScreenHeader>
 
-                    {/* Microphone hero — shown only in recording mode */}
-                    {logic.dictateState === 'recording' && (
-                        <MicArea>
-                            <MicRingWrap>
-                                {!logic.hasPermissionError && (
-                                    <>
-                                        <MicRing />
-                                        <MicRingOuter />
-                                    </>
-                                )}
-                                <MicCircle $active={!logic.hasPermissionError}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                                        <path strokeLinecap="round" strokeLinejoin="round"
-                                              d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round"
-                                              d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                                        <line x1="12" y1="19" x2="12" y2="23" strokeLinecap="round" />
-                                        <line x1="8" y1="23" x2="16" y2="23" strokeLinecap="round" />
-                                    </svg>
-                                </MicCircle>
-                            </MicRingWrap>
-                            <MicStatus $active={!logic.hasPermissionError}>
-                                {logic.hasPermissionError ? 'Brak dostępu do mikrofonu' : 'Słucham...'}
-                            </MicStatus>
-                        </MicArea>
-                    )}
+                    <MicArea>
+                        <MicRingWrap>
+                            {logic.recordingState === 'recording' && (
+                                <>
+                                    <MicRing />
+                                    <MicRingOuter />
+                                </>
+                            )}
+                            <MicCircle $active={logic.recordingState === 'recording'}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                                    <path strokeLinecap="round" strokeLinejoin="round"
+                                          d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round"
+                                          d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                                    <line x1="12" y1="19" x2="12" y2="23" strokeLinecap="round" />
+                                    <line x1="8" y1="23" x2="16" y2="23" strokeLinecap="round" />
+                                </svg>
+                            </MicCircle>
+                        </MicRingWrap>
+
+                        <RecordingTimer aria-live="polite" aria-label="Czas nagrania">
+                            {formatSeconds(logic.recordingSeconds)}
+                        </RecordingTimer>
+
+                        <MicStatus $active={logic.recordingState === 'recording'}>
+                            {logic.recordingState === 'requesting' && 'Oczekiwanie na mikrofon...'}
+                            {logic.recordingState === 'recording' && 'Nagrywanie...'}
+                            {logic.recordingState === 'error' && 'Brak dostępu do mikrofonu'}
+                        </MicStatus>
+                    </MicArea>
 
                     <ScreenContent>
-                        {logic.hasPermissionError && logic.dictateState === 'recording' && (
+                        {logic.recordingState === 'error' && (
                             <PermissionError role="alert">
                                 Zezwól na dostęp do mikrofonu w ustawieniach przeglądarki i odśwież stronę.
                             </PermissionError>
                         )}
-
-                        {/* Recording mode: live transcript */}
-                        {logic.dictateState === 'recording' && (
-                            <TranscriptDisplay aria-live="polite" aria-label="Transkrypcja">
-                                {!logic.finalText && !logic.interimText && (
-                                    <Placeholder>Zacznij mówić — tekst pojawi się tutaj...</Placeholder>
-                                )}
-                                {logic.finalText}
-                                {logic.interimText && (
-                                    <InterimText>
-                                        {logic.finalText ? ' ' : ''}{logic.interimText}
-                                    </InterimText>
-                                )}
-                            </TranscriptDisplay>
-                        )}
-
-                        {/* Editing mode */}
-                        {logic.dictateState === 'editing' && (
-                            <>
-                                <ScreenTitle>Sprawdź i wyślij</ScreenTitle>
-                                <TranscriptTextarea
-                                    value={logic.editableText}
-                                    onChange={e => logic.setEditableText(e.target.value)}
-                                    placeholder={
-                                        logic.hasSpeechSupport
-                                            ? 'Edytuj lub wpisz tekst...'
-                                            : 'Wpisz tekst lub użyj dyktowania z klawiatury'
-                                    }
-                                    aria-label="Treść"
-                                    autoFocus
-                                />
-                                <LinkBtn onClick={logic.restartDictation} type="button">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path strokeLinecap="round" strokeLinejoin="round"
-                                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                    </svg>
-                                    Dyktuj ponownie
-                                </LinkBtn>
-                            </>
-                        )}
                     </ScreenContent>
 
                     <BottomBar>
-                        <PrimaryBtn type="button" onClick={handleSubmitDictate}>
+                        <PrimaryBtn
+                            type="button"
+                            disabled={logic.recordingState !== 'recording'}
+                            onClick={logic.stopAndSend}
+                        >
                             Gotowe
                         </PrimaryBtn>
                     </BottomBar>
@@ -325,9 +267,8 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
                 </ScreenBody>
             )}
 
-            <Toast $visible={toastVisible} role="status" aria-live="polite">
-                {toastText}
-            </Toast>
+            {/* Toast is kept for potential future use but currently unused */}
+            <Toast $visible={false} role="status" aria-live="polite" />
 
         </Container>
     );
