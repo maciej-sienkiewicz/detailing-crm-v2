@@ -492,7 +492,11 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     const handleCustomerFieldBlur = () => {
         setCustomerFirstName(v => capitalizeWords(v));
         setCustomerLastName(v => capitalizeWords(v));
-        setCustomerPhone(v => formatMainPhone(v));
+        // prefix cleanup on blur: ensure it starts with +
+        setCustomerPhonePrefix(v => {
+            const t = v.trim();
+            return t ? (t.startsWith('+') ? t : `+${t}`) : '+48';
+        });
         customerBlurTimerRef.current = setTimeout(() => {
             customerBlurTimerRef.current = null;
             if (customerJustSelectedRef.current) {
@@ -790,6 +794,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         customerEditMode,
         handleCustomerFieldFocus,
         handleCustomerFieldBlur,
+        formatPhone: formatMainPhone,
         handleAddNewCustomerDirectly,
         handleEnterEditMode,
         handleConfirmEdit,

@@ -143,7 +143,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     }
                                     if (target === form.customerLastNameInputRef.current) {
                                         e.preventDefault();
-                                        form.customerPhonePrefixRef.current?.focus();
+                                        form.customerPhoneInputRef.current?.focus();
                                         return;
                                     }
                                     if (target === form.customerPhonePrefixRef.current) {
@@ -321,7 +321,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                 type="tel"
                                                                 placeholder="123 456 789"
                                                                 value={form.customerPhone}
-                                                                onChange={(e) => form.setCustomerPhone(e.target.value)}
+                                                                onChange={(e) => form.setCustomerPhone(form.formatPhone(e.target.value))}
                                                                 onFocus={form.handleCustomerFieldFocus}
                                                                 onBlur={form.handleCustomerFieldBlur}
                                                                 autoComplete="new-password"
@@ -474,7 +474,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                     placeholder="123 456 789"
                                                                     value={form.customerPhone}
                                                                     onChange={(e) => {
-                                                                        form.setCustomerPhone(e.target.value);
+                                                                        form.setCustomerPhone(form.formatPhone(e.target.value));
                                                                         form.setShowCustomerDropdown(true);
                                                                     }}
                                                                     onFocus={form.handleCustomerFieldFocus}
