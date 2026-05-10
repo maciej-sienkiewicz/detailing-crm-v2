@@ -11,6 +11,28 @@ import { formatDateTimeLocal, formatDate, roundTo2 } from './helpers';
 
 const capitalizeWords = (value: string): string =>
     value.replace(/\S+/g, word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+
+const formatMainPhone = (value: string): string => {
+    const digits = value.replace(/\D/g, '').slice(0, 12);
+    return digits.replace(/(\d{3})(?=\d)/g, '$1 ');
+};
+
+const parsePhone = (full: string): { prefix: string; main: string } => {
+    const trimmed = full.trim();
+    if (!trimmed) return { prefix: '+48', main: '' };
+    if (trimmed.startsWith('+')) {
+        const spaceIdx = trimmed.indexOf(' ');
+        if (spaceIdx > 0) {
+            return { prefix: trimmed.slice(0, spaceIdx), main: formatMainPhone(trimmed.slice(spaceIdx + 1)) };
+        }
+        // No space — assume 3-char country code (+48, +44, …) if long enough
+        if (trimmed.length > 3) {
+            return { prefix: trimmed.slice(0, 3), main: formatMainPhone(trimmed.slice(3)) };
+        }
+        return { prefix: trimmed, main: '' };
+    }
+    return { prefix: '+48', main: formatMainPhone(trimmed) };
+};
 import type {
     Service,
     AppointmentColor,
@@ -43,12 +65,16 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     const [selectedCustomer, setSelectedCustomer] = useState<SelectedCustomer | null>(null);
     const [customerFirstName, setCustomerFirstName] = useState('');
     const [customerLastName, setCustomerLastName] = useState('');
+    const [customerPhonePrefix, setCustomerPhonePrefix] = useState('+48');
     const [customerPhone, setCustomerPhone] = useState('');
     const [customerEmail, setCustomerEmail] = useState('');
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const customerJustSelectedRef = useRef(false);
     const customerBlurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const customerSearchQuery = [customerFirstName, customerLastName, customerPhone, customerEmail]
+    const customerFullPhone = customerPhone.trim()
+        ? `${customerPhonePrefix.trim()} ${customerPhone.trim()}`
+        : '';
+    const customerSearchQuery = [customerFirstName, customerLastName, customerFullPhone, customerEmail]
         .filter(s => s.trim().length > 0).join(' ').trim();
     const debouncedCustomerSearch = useDebounce(customerSearchQuery, 300);
     const { data: foundCustomers = [] } = useAppointmentCustomerSearch(debouncedCustomerSearch);
@@ -102,6 +128,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     const endInputRef = useRef<HTMLDivElement>(null);
     const customerInputRef = useRef<HTMLInputElement>(null);
     const customerLastNameInputRef = useRef<HTMLInputElement>(null);
+    const customerPhonePrefixRef = useRef<HTMLInputElement>(null);
     const customerPhoneInputRef = useRef<HTMLInputElement>(null);
     const customerEmailInputRef = useRef<HTMLInputElement>(null);
     const vehicleBrandInputRef = useRef<HTMLInputElement>(null);
@@ -264,6 +291,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         setServiceSearch('');
         setCustomerFirstName('');
         setCustomerLastName('');
+        setCustomerPhonePrefix('+48');
         setCustomerPhone('');
         setCustomerEmail('');
         setCustomerEditMode(false);
@@ -303,7 +331,9 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             setSelectedCustomerId(c.id);
             setCustomerFirstName(c.firstName || '');
             setCustomerLastName(c.lastName || '');
-            setCustomerPhone(c.phone || '');
+            const parsedInitial = parsePhone(c.phone || '');
+            setCustomerPhonePrefix(parsedInitial.prefix);
+            setCustomerPhone(parsedInitial.main);
             setCustomerEmail(c.email || '');
         }
         if (initialData.vehicle) {
@@ -462,6 +492,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     const handleCustomerFieldBlur = () => {
         setCustomerFirstName(v => capitalizeWords(v));
         setCustomerLastName(v => capitalizeWords(v));
+        setCustomerPhone(v => formatMainPhone(v));
         customerBlurTimerRef.current = setTimeout(() => {
             customerBlurTimerRef.current = null;
             if (customerJustSelectedRef.current) {
@@ -490,7 +521,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     const handleAddNewCustomerDirectly = (options?: { silent?: boolean }): boolean => {
         const fn = customerFirstName.trim();
         const ln = customerLastName.trim();
-        const ph = customerPhone.trim();
+        const ph = customerFullPhone;
         const em = customerEmail.trim();
         if (!fn && !ln && !ph && !em) return false;
         const fieldErrors = getCustomerFieldErrors(fn, ln, ph, em);
@@ -529,7 +560,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         if (!selectedCustomer) return;
         const fn = customerFirstName.trim();
         const ln = customerLastName.trim();
-        const ph = customerPhone.trim();
+        const ph = customerFullPhone;
         const em = customerEmail.trim();
         if (selectedCustomer.isNew) {
             const fieldErrors = getCustomerFieldErrors(fn, ln, ph, em);
@@ -567,7 +598,9 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         if (selectedCustomer) {
             setCustomerFirstName(selectedCustomer.firstName ?? '');
             setCustomerLastName(selectedCustomer.lastName ?? '');
-            setCustomerPhone(selectedCustomer.phone ?? '');
+            const parsedCancel = parsePhone(selectedCustomer.phone ?? '');
+            setCustomerPhonePrefix(parsedCancel.prefix);
+            setCustomerPhone(parsedCancel.main);
             setCustomerEmail(selectedCustomer.email ?? '');
         }
         setCustomerEditMode(false);
@@ -648,7 +681,9 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         vehicleAutoOpenRef.current = true;
         setCustomerFirstName(customer.firstName ?? '');
         setCustomerLastName(customer.lastName ?? '');
-        setCustomerPhone(customer.phone ?? '');
+        const parsedPicked = parsePhone(customer.phone ?? '');
+        setCustomerPhonePrefix(parsedPicked.prefix);
+        setCustomerPhone(parsedPicked.main);
         setCustomerEmail(customer.email ?? '');
     };
 
@@ -745,6 +780,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         selectedCustomerId, setSelectedCustomerId,
         customerFirstName, setCustomerFirstName,
         customerLastName, setCustomerLastName,
+        customerPhonePrefix, setCustomerPhonePrefix,
         customerPhone, setCustomerPhone,
         customerEmail, setCustomerEmail,
         showCustomerDropdown, setShowCustomerDropdown,
@@ -811,6 +847,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         endInputRef,
         customerInputRef,
         customerLastNameInputRef,
+        customerPhonePrefixRef,
         customerPhoneInputRef,
         customerEmailInputRef,
         vehicleBrandInputRef,

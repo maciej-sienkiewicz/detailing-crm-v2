@@ -897,6 +897,30 @@ export const CustomerFieldInput = styled.input<{ $hasError?: boolean }>`
     transition: color 150ms ease;
 `;
 
+export const PhoneInputRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 0;
+`;
+
+export const PhonePrefixInput = styled.input<{ $hasError?: boolean }>`
+    width: 44px;
+    flex-shrink: 0;
+    font-size: 14px;
+    color: ${p => p.$hasError ? '#ef4444' : '#94a3b8'};
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-feature-settings: 'tnum';
+    padding: 0 8px 0 0;
+    margin-right: 8px;
+    border-right: 1px solid #e2e8f0;
+    line-height: 1.4;
+
+    &::placeholder { color: #c8d4e0; }
+`;
+
 export const CustomerHint = styled.div`
     font-size: 12px;
     color: #94a3b8;
