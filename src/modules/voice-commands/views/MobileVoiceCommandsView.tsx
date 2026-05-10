@@ -47,7 +47,8 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
     const handleSubmitDictate = useCallback(() => {
         const text = logic.dictateState === 'editing'
             ? logic.editableText.trim()
-            : logic.finalText.trim();
+            // Include interim: user may tap DONE before the last phrase is committed as final
+            : (logic.finalText + (logic.interimText ? ' ' + logic.interimText : '')).trim();
         if (!text) {
             showToast('Podyktuj lub wpisz treść');
             return;

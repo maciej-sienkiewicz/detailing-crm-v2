@@ -77,7 +77,8 @@ export function useVoiceCommandsLogic(token: string): VoiceCommandsLogic {
     // Accumulated text from completed sessions (survives session restarts)
     const accumulatedTextRef = useRef('');
     // Mirrors of state values for safe access inside SR callbacks
-    const finalTextRef = useRef('');
+    const finalTextRef = useRef('');       // accumulated + this session's finals
+    const interimTextRef = useRef('');     // current unconfirmed interim text
     const editableTextRef = useRef('');
     const modeRef = useRef<VoiceMode | null>(null);
     const phoneRef = useRef<string | null>(null);
@@ -155,9 +156,13 @@ export function useVoiceCommandsLogic(token: string): VoiceCommandsLogic {
 
         dictateStateRef.current = 'editing';
         setDictateState('editing');
+        interimTextRef.current = '';
         setInterimText('');
-        editableTextRef.current = finalTextRef.current;
-        setEditableText(finalTextRef.current);
+        // finalTextRef already includes accumulated, but if the session ended
+        // while speech was only interim, fall back to what accumulatedTextRef has.
+        const textToEdit = finalTextRef.current || accumulatedTextRef.current;
+        editableTextRef.current = textToEdit;
+        setEditableText(textToEdit);
     }
 
     // Resets the 3-second silence timer. Called on every speech event.
@@ -201,6 +206,7 @@ export function useVoiceCommandsLogic(token: string): VoiceCommandsLogic {
 
             const total = joinText(accumulatedTextRef.current, sessionFinal);
             finalTextRef.current = total;
+            interimTextRef.current = interim;
             setFinalText(total);
             setInterimText(interim);
 
@@ -216,9 +222,13 @@ export function useVoiceCommandsLogic(token: string): VoiceCommandsLogic {
             if (recognitionRef.current !== recognition) return;
             if (!activeRef.current) return;
 
-            // Snapshot current text so it survives the session restart.
-            // New session's onresult will prepend this via accumulatedTextRef.
-            accumulatedTextRef.current = finalTextRef.current;
+            // Snapshot the best text available before restarting.
+            // If the session ended while speech was still interim (not yet committed
+            // as final), finalTextRef equals the previous accumulated value and
+            // interimTextRef holds the unconfirmed text — include it so it's not lost.
+            const snapshot = joinText(finalTextRef.current, interimTextRef.current);
+            if (snapshot) accumulatedTextRef.current = snapshot;
+            interimTextRef.current = '';
 
             restartCountRef.current++;
             if (restartCountRef.current > MAX_AUTO_RESTARTS) {
@@ -282,6 +292,7 @@ export function useVoiceCommandsLogic(token: string): VoiceCommandsLogic {
         // Reset all transcription state
         accumulatedTextRef.current = '';
         finalTextRef.current = '';
+        interimTextRef.current = '';
         editableTextRef.current = '';
         dictateStateRef.current = 'recording';
         restartCountRef.current = 0;
@@ -362,14 +373,20 @@ export function useVoiceCommandsLogic(token: string): VoiceCommandsLogic {
     }, []);
 
     const submitDictate = useCallback(() => {
-        const text = dictateStateRef.current === 'editing'
-            ? editableTextRef.current.trim()
-            : finalTextRef.current.trim();
+        let text: string;
+        if (dictateStateRef.current === 'editing') {
+            text = editableTextRef.current.trim();
+        } else {
+            // In recording mode, include interim text in case user taps DONE
+            // before the browser commits the last phrase as final.
+            text = joinText(finalTextRef.current, interimTextRef.current).trim()
+                || accumulatedTextRef.current.trim();
+        }
         if (!text) return;
         stopCurrentRecognition(); // eslint-disable-line react-hooks/exhaustive-deps
         setScreen('send');
         doSend(text);
-    }, [doSend]);
+    }, [doSend]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const restartDictation = useCallback(() => {
         startRecognition(); // user-gesture context ✓
@@ -387,6 +404,7 @@ export function useVoiceCommandsLogic(token: string): VoiceCommandsLogic {
         modeRef.current = null;
         phoneRef.current = null;
         finalTextRef.current = '';
+        interimTextRef.current = '';
         editableTextRef.current = '';
         accumulatedTextRef.current = '';
         submittedTextRef.current = '';
