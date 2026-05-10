@@ -466,6 +466,32 @@ const ReminderActionBtn = styled.button<{ $danger?: boolean }>`
     svg { width: 11px; height: 11px; }
 `;
 
+const ScheduleSmsBtn = styled.button`
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: ${st.radius};
+    border: 1.5px dashed #cbd5e1;
+    background: transparent;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: ${st.textSecondary};
+    cursor: pointer;
+    transition: all ${st.transition};
+
+    svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+    &:hover {
+        border-color: #0ea5e9;
+        color: #0369a1;
+        background: #f0f9ff;
+    }
+`;
+
 // ─── View ─────────────────────────────────────────────────────────────────────
 
 export const VisitDetailView = () => {
@@ -558,8 +584,6 @@ export const VisitDetailView = () => {
     const handleReadyTransitionSuccess = () => {
         setIsTransitionWizardOpen(false);
         setTransitionType(null);
-        setSmsReminderForEdit(null);
-        setIsSmsReminderOpen(true);
     };
 
     const handlePrintProtocol = () => { showInfo('To jeszcze nie działa, trzeba obgadać'); };
@@ -849,6 +873,16 @@ export const VisitDetailView = () => {
                                     </ReminderActionBtn>
                                 </ReminderCardActions>
                             </ReminderCard>
+                        )}
+                        {!pendingReminder && visit.status === 'READY_FOR_PICKUP' && (
+                            <ScheduleSmsBtn
+                                onClick={() => { setSmsReminderForEdit(null); setIsSmsReminderOpen(true); }}
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                </svg>
+                                Zaplanuj SMS przypominający
+                            </ScheduleSmsBtn>
                         )}
                         <CustomerInfoCard
                             customer={visit.customer}
