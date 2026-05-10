@@ -217,7 +217,7 @@ export const SigningRequirementModal = ({
 
             <SkipSigningConfirmDialog
                 isOpen={showSkipConfirmDialog}
-                onConfirm={() => { setShowSkipConfirmDialog(false); onConfirm(); }}
+                onConfirm={() => { setShowSkipConfirmDialog(false); confirmVisitMutation.mutate(); }}
                 onCancel={() => setShowSkipConfirmDialog(false)}
             />
         </>
