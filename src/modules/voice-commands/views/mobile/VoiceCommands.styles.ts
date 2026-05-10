@@ -216,66 +216,73 @@ export const ModeBadge = styled.span<{ $mode: 'lead' | 'note' }>`
     `}
 `;
 
-// ─── Screen 1: Home — two full-height split buttons ──────────────────────────
+// ─── Screen 1: Home — two floating squircle cards ────────────────────────────
 
-export const SplitLayout = styled.div`
+export const FloatLayout = styled.div`
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: 0;
+    gap: 14px;
+    padding: max(24px, env(safe-area-inset-top, 24px)) 20px max(24px, env(safe-area-inset-bottom, 24px));
+    background: #ECEAE6;
 `;
 
-export const SplitBtn = styled.button<{ $variant: 'dark' | 'light' }>`
+export const FloatCard = styled.button<{ $accent: 'blue' | 'violet' }>`
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 16px;
+    gap: 20px;
+    background: #FFFFFF;
     border: none;
+    border-radius: 28px;
     cursor: pointer;
     font-family: inherit;
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.04),
+        0 8px 24px rgba(0, 0, 0, 0.08),
+        0 28px 52px rgba(0, 0, 0, 0.06);
+    transition:
+        transform 0.18s cubic-bezier(0.34, 1.4, 0.64, 1),
+        box-shadow 0.18s ease;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     user-select: none;
-    transition: opacity 0.12s ease;
 
-    ${p => p.$variant === 'dark' && css`
-        background: #0F172A;
-    `}
-    ${p => p.$variant === 'light' && css`
-        background: #FFFFFF;
-        border-top: 1px solid ${c.border};
-    `}
-
-    &:active { opacity: 0.75; }
+    &:active {
+        transform: scale(0.965);
+        box-shadow:
+            0 1px 2px rgba(0, 0, 0, 0.04),
+            0 4px 10px rgba(0, 0, 0, 0.07);
+    }
 `;
 
-export const SplitIcon = styled.div<{ $variant: 'dark' | 'light' }>`
-    width: 52px;
-    height: 52px;
-    border-radius: 16px;
+export const FloatIcon = styled.div<{ $accent: 'blue' | 'violet' }>`
+    width: 76px;
+    height: 76px;
+    border-radius: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
 
-    svg { width: 26px; height: 26px; }
+    svg { width: 36px; height: 36px; }
 
-    ${p => p.$variant === 'dark' && css`
-        background: rgba(255, 255, 255, 0.08);
-        color: rgba(255, 255, 255, 0.85);
+    ${p => p.$accent === 'blue' && css`
+        background: #EFF8FF;
+        color: #0369A1;
     `}
-    ${p => p.$variant === 'light' && css`
-        background: ${c.accentLight};
-        color: ${c.accent};
+    ${p => p.$accent === 'violet' && css`
+        background: #F5F3FF;
+        color: #6D28D9;
     `}
 `;
 
-export const SplitLabel = styled.span<{ $variant: 'dark' | 'light' }>`
-    font-size: 20px;
+export const FloatLabel = styled.span`
+    font-size: 22px;
     font-weight: 700;
-    letter-spacing: -0.3px;
-    color: ${p => p.$variant === 'dark' ? '#FFFFFF' : c.text};
+    letter-spacing: -0.4px;
+    color: #0F172A;
 `;
 
 // ─── Screen title (phone / edit screens) ──────────────────────────────────────

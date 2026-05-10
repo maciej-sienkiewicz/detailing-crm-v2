@@ -7,7 +7,7 @@ import {
     LoadingWrap, Spinner, SpinnerSm, LoadingText,
     ErrorWrap, ErrorIconWrap, ErrorTitle, ErrorMessage,
     ScreenBody, ScreenContent, ScreenHeader, BackBtn, ModeBadge,
-    SplitLayout, SplitBtn, SplitIcon, SplitLabel,
+    FloatLayout, FloatCard, FloatIcon, FloatLabel,
     ScreenTitle,
     FormLabel, FormField, PhoneInput,
     MicArea, MicRingWrap, MicRing, MicRingOuter, MicCircle, MicStatus,
@@ -94,27 +94,31 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
 
             {/* ── Screen 1: Home ──────────────────────────────────────────── */}
             {screen === 'home' && (
-                <SplitLayout>
-                    <SplitBtn $variant="dark" onClick={logic.goToLead} type="button" aria-label="Nowy lead">
-                        <SplitIcon $variant="dark" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                                <path strokeLinecap="round" strokeLinejoin="round"
-                                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                <FloatLayout>
+                    {/* Filled person icon — Lead */}
+                    <FloatCard $accent="blue" onClick={logic.goToLead} type="button" aria-label="Nowy lead">
+                        <FloatIcon $accent="blue" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <circle cx="12" cy="7" r="4" />
+                                <path d="M4 21c0-4.418 3.582-8 8-8s8 3.582 8 8H4z" />
                             </svg>
-                        </SplitIcon>
-                        <SplitLabel $variant="dark">Nowy Lead</SplitLabel>
-                    </SplitBtn>
+                        </FloatIcon>
+                        <FloatLabel>Nowy Lead</FloatLabel>
+                    </FloatCard>
 
-                    <SplitBtn $variant="light" onClick={logic.goToNote} type="button" aria-label="Notatka głosowa">
-                        <SplitIcon $variant="light" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                                <path strokeLinecap="round" strokeLinejoin="round"
-                                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    {/* Filled mic icon — Note */}
+                    <FloatCard $accent="violet" onClick={logic.goToNote} type="button" aria-label="Notatka głosowa">
+                        <FloatIcon $accent="violet" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="9" y="2" width="6" height="12" rx="3" />
+                                <path d="M5 11a7 7 0 0014 0h-2a5 5 0 01-10 0H5z" />
+                                <rect x="11" y="19" width="2" height="3" />
+                                <rect x="8" y="22" width="8" height="2" rx="1" />
                             </svg>
-                        </SplitIcon>
-                        <SplitLabel $variant="light">Notatka</SplitLabel>
-                    </SplitBtn>
-                </SplitLayout>
+                        </FloatIcon>
+                        <FloatLabel>Notatka</FloatLabel>
+                    </FloatCard>
+                </FloatLayout>
             )}
 
             {/* ── Screen 2: Phone number ───────────────────────────────────── */}
