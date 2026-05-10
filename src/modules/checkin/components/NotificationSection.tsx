@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useVisitPhotos } from '@/modules/visits/hooks';
 import type { ConfirmVisitOptions } from '@/modules/visits/types';
 import {
@@ -219,19 +221,24 @@ interface NotifCardToggleProps {
     label: string;
     description: string;
     active: boolean;
+    disabled?: boolean;
+    disabledHint?: string;
     onToggle: () => void;
     children?: ReactNode;
 }
 
-const NotifCardToggle = ({ icon, label, description, active, onToggle, children }: NotifCardToggleProps) => (
-    <NotifCard $active={active}>
-        <NotifCardHeader onClick={onToggle}>
-            <NotifIconWrap $active={active}>{icon}</NotifIconWrap>
+const NotifCardToggle = ({ icon, label, description, active, disabled, disabledHint, onToggle, children }: NotifCardToggleProps) => (
+    <NotifCard $active={active && !disabled}>
+        <NotifCardHeader
+            onClick={disabled ? undefined : onToggle}
+            style={disabled ? { cursor: 'not-allowed', opacity: 0.6 } : undefined}
+        >
+            <NotifIconWrap $active={active && !disabled}>{icon}</NotifIconWrap>
             <NotifLabelGroup>
-                <NotifLabel $active={active}>{label}</NotifLabel>
-                <NotifDescription>{description}</NotifDescription>
+                <NotifLabel $active={active && !disabled}>{label}</NotifLabel>
+                <NotifDescription>{disabled && disabledHint ? disabledHint : description}</NotifDescription>
             </NotifLabelGroup>
-            <ToggleTrack $on={active} />
+            <ToggleTrack $on={active && !disabled} />
         </NotifCardHeader>
         {children}
     </NotifCard>
@@ -249,6 +256,19 @@ interface NotificationSectionProps {
 export const NotificationSection = ({ visitId, hasProtocol, options, onChange }: NotificationSectionProps) => {
     const { sendEmail, emailOptions } = options;
     const { attachProtocol, attachPhotos, selectedPhotoIds, attachDamageMap } = emailOptions;
+
+    const { data: emailAutomationConfig } = useQuery({
+        queryKey: ['email-automation-config'],
+        queryFn: () => import('@/modules/email-campaigns/api/emailCampaignsApi').then(m => m.fetchEmailAutomationConfig()),
+        staleTime: 120_000,
+    });
+    const visitWelcomeEnabled = emailAutomationConfig?.visitWelcome?.enabled ?? true;
+
+    useEffect(() => {
+        if (!visitWelcomeEnabled && options.sendEmail) {
+            onChange({ ...options, sendEmail: false });
+        }
+    }, [visitWelcomeEnabled]);
 
     const updateEmailOptions = (patch: Partial<typeof emailOptions>) =>
         onChange({ ...options, emailOptions: { ...emailOptions, ...patch } });
@@ -272,6 +292,8 @@ export const NotificationSection = ({ visitId, hasProtocol, options, onChange }:
                 label="Wyślij e-mail potwierdzający"
                 description="Szczegółowe potwierdzenie z danymi wizyty"
                 active={sendEmail}
+                disabled={!visitWelcomeEnabled}
+                disabledHint="Wyłączone globalnie w konfiguracji e-mail"
                 onToggle={() => onChange({ ...options, sendEmail: !sendEmail })}
             >
                 <EmailBody $visible={sendEmail}>
