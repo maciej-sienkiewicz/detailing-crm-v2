@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Modal } from '@/common/components/Modal';
 import { visitApi } from '@/modules/visits/api/visitApi';
 import { DocumentPreview } from './DocumentPreview';
@@ -82,7 +82,16 @@ export const SigningRequirementModal = ({
 }: SigningRequirementModalProps) => {
     const [previewProtocolId, setPreviewProtocolId] = useState<string | null>(null);
     const [showSkipConfirmDialog, setShowSkipConfirmDialog] = useState(false);
-    const [notifOptions, setNotifOptions] = useState<NotificationOptions>(defaultNotificationOptions);
+
+    const { data: emailConfig, isPending: emailConfigPending } = useQuery({
+        queryKey: ['email-automation-config'],
+        queryFn: () => import('@/modules/email-campaigns/api/emailCampaignsApi').then(m => m.fetchEmailAutomationConfig()),
+        staleTime: 120_000,
+    });
+    // Default to false while loading to avoid "on → off" flicker on first open
+    const visitWelcomeEnabled = emailConfigPending ? false : (emailConfig?.visitWelcome?.enabled ?? true);
+
+    const [notifOptions, setNotifOptions] = useState<NotificationOptions>(() => defaultNotificationOptions(true, visitWelcomeEnabled));
 
     const cancelVisitMutation = useMutation({
         mutationFn: () => {
@@ -112,9 +121,9 @@ export const SigningRequirementModal = ({
         if (isOpen) {
             setPreviewProtocolId(null);
             setShowSkipConfirmDialog(false);
-            setNotifOptions(defaultNotificationOptions(hasProtocol));
+            setNotifOptions(defaultNotificationOptions(hasProtocol, visitWelcomeEnabled));
         }
-    }, [isOpen, hasProtocol]);
+    }, [isOpen, hasProtocol, visitWelcomeEnabled]);
 
     const handlePrint = (protocolId: string) => {
         const pdfUrl = protocols.find(p => p.id === protocolId)?.filledPdfUrl;
@@ -176,6 +185,7 @@ export const SigningRequirementModal = ({
                         <NotificationSection
                             visitId={visitId}
                             hasProtocol={hasProtocol}
+                            visitWelcomeEnabled={visitWelcomeEnabled}
                             options={notifOptions}
                             onChange={setNotifOptions}
                         />

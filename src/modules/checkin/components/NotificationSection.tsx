@@ -1,6 +1,4 @@
 import type { ReactNode } from 'react';
-import { useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useVisitPhotos } from '@/modules/visits/hooks';
 import type { ConfirmVisitOptions } from '@/modules/visits/types';
 import {
@@ -49,8 +47,8 @@ export interface NotificationOptions {
     };
 }
 
-export const defaultNotificationOptions = (hasProtocol = true): NotificationOptions => ({
-    sendEmail: true,
+export const defaultNotificationOptions = (hasProtocol = true, visitWelcomeEnabled = true): NotificationOptions => ({
+    sendEmail: visitWelcomeEnabled,
     emailOptions: {
         attachProtocol: hasProtocol,
         attachPhotos: false,
@@ -249,26 +247,14 @@ const NotifCardToggle = ({ icon, label, description, active, disabled, disabledH
 interface NotificationSectionProps {
     visitId: string;
     hasProtocol: boolean;
+    visitWelcomeEnabled: boolean;
     options: NotificationOptions;
     onChange: (options: NotificationOptions) => void;
 }
 
-export const NotificationSection = ({ visitId, hasProtocol, options, onChange }: NotificationSectionProps) => {
+export const NotificationSection = ({ visitId, hasProtocol, visitWelcomeEnabled, options, onChange }: NotificationSectionProps) => {
     const { sendEmail, emailOptions } = options;
     const { attachProtocol, attachPhotos, selectedPhotoIds, attachDamageMap } = emailOptions;
-
-    const { data: emailAutomationConfig } = useQuery({
-        queryKey: ['email-automation-config'],
-        queryFn: () => import('@/modules/email-campaigns/api/emailCampaignsApi').then(m => m.fetchEmailAutomationConfig()),
-        staleTime: 120_000,
-    });
-    const visitWelcomeEnabled = emailAutomationConfig?.visitWelcome?.enabled ?? true;
-
-    useEffect(() => {
-        if (!visitWelcomeEnabled && options.sendEmail) {
-            onChange({ ...options, sendEmail: false });
-        }
-    }, [visitWelcomeEnabled]);
 
     const updateEmailOptions = (patch: Partial<typeof emailOptions>) =>
         onChange({ ...options, emailOptions: { ...emailOptions, ...patch } });
