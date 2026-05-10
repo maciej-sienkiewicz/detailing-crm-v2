@@ -3348,9 +3348,9 @@ export const LeadListView: React.FC = () => {
             <thead>
               <tr>
                 <ThIcon />
-                <Th>Kontakt</Th>
-                <Th>Uzasadnienie</Th>
-                <Th>Aktywność</Th>
+                <Th>Klient</Th>
+                <Th>Kontekst</Th>
+                <Th>Utworzono</Th>
                 <Th>Status</Th>
                 <Th>Wartość</Th>
                 <ThActions />
