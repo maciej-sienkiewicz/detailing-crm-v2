@@ -1070,12 +1070,18 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 </S.IconWrapper>
                                 <S.RowContent>
                                     <SmsCheckList>
-                                        <SmsCheckItem>
+                                        <SmsCheckItem $disabled={!form.bookingConfirmationEnabled}>
                                             <SmsCheckbox
-                                                checked={form.sendConfirmationSms}
+                                                checked={form.sendConfirmationSms && form.bookingConfirmationEnabled}
                                                 onChange={e => form.setSendConfirmationSms(e.target.checked)}
+                                                disabled={!form.bookingConfirmationEnabled}
                                             />
-                                            <SmsCheckText>Wyślij SMS z potwierdzeniem rezerwacji</SmsCheckText>
+                                            <SmsCheckText>
+                                                Wyślij SMS z potwierdzeniem rezerwacji
+                                                {!form.bookingConfirmationEnabled && (
+                                                    <SmsDisabledHint>Wyłączone globalnie w konfiguracji SMS</SmsDisabledHint>
+                                                )}
+                                            </SmsCheckText>
                                         </SmsCheckItem>
                                         <SmsCheckItem $disabled={!form.preVisitEnabled}>
                                             <SmsCheckbox

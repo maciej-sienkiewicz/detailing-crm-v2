@@ -170,6 +170,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         staleTime: 120_000,
     });
     const preVisitEnabled = automationConfig?.preVisit?.enabled ?? true;
+    const bookingConfirmationEnabled = automationConfig?.bookingConfirmation?.enabled ?? true;
 
     // ─── Computed values ───────────────────────────────────────────────────────
     const selectedColor = appointmentColors.find((c: AppointmentColor) => c.id === selectedColorId);
@@ -463,7 +464,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
                 tempServices,
                 colorId: selectedColorId,
                 notes,
-                sendConfirmationSms,
+                sendConfirmationSms: bookingConfirmationEnabled && sendConfirmationSms,
                 sendReminderSms: preVisitEnabled && sendReminderSms,
             }));
         } catch (err: any) {
@@ -866,6 +867,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         sendConfirmationSms, setSendConfirmationSms,
         sendReminderSms, setSendReminderSms,
         preVisitEnabled,
+        bookingConfirmationEnabled,
 
         // Handlers
         handleAllDayToggle,
