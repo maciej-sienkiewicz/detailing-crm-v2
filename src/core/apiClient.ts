@@ -38,7 +38,7 @@ apiClient.interceptors.response.use(
             // Unikaj przekierowania na /login jeśli już jesteśmy na publicznej stronie
             // aby zapobiec nieskończonej pętli wywołań /me endpoint
             const currentPath = window.location.pathname;
-            const publicPaths = ['/login', '/signup', '/forgot-password', '/m/upload'];
+            const publicPaths = ['/login', '/signup', '/forgot-password', '/m/upload', '/m/voice'];
 
             if (!publicPaths.includes(currentPath)) {
                 console.warn('[apiClient] Przekierowanie na /login');
