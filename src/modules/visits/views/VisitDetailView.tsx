@@ -874,7 +874,7 @@ export const VisitDetailView = () => {
                                 </ReminderCardActions>
                             </ReminderCard>
                         )}
-                        {!pendingReminder && visit.status === 'READY_FOR_PICKUP' && (
+                        {!pendingReminder && visit.status === 'COMPLETED' && (
                             <ScheduleSmsBtn
                                 onClick={() => { setSmsReminderForEdit(null); setIsSmsReminderOpen(true); }}
                             >
