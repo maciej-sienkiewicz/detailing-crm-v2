@@ -1,10 +1,24 @@
 // src/modules/voice-commands/views/MobileShortcutsView.tsx
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '@/core/context/AuthContext';
 import { usePWAInstall } from '../hooks/usePWAInstall';
+
+const useIsMobile = () => {
+    const [isMobile, setIsMobile] = useState(() =>
+        window.matchMedia('(max-width: 768px)').matches
+    );
+    useEffect(() => {
+        const mq = window.matchMedia('(max-width: 768px)');
+        const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+        mq.addEventListener('change', handler);
+        return () => mq.removeEventListener('change', handler);
+    }, []);
+    return isMobile;
+};
 
 // ─── Styled components (desktop light theme — consistent with SettingsView) ───
 
@@ -201,7 +215,47 @@ const InstalledBadge = styled.div`
     svg { width: 15px; height: 15px; }
 `;
 
-// ─── No token ─────────────────────────────────────────────────────────────────
+// ─── Mobile no-token screen ───────────────────────────────────────────────────
+
+const MobileNoToken = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100dvh;
+    padding: 32px 24px;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    text-align: center;
+    gap: 16px;
+`;
+
+const MobileNoTokenIcon = styled.div`
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+    background: rgba(234, 179, 8, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    svg { width: 32px; height: 32px; color: #fbbf24; }
+`;
+
+const MobileNoTokenTitle = styled.p`
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #f1f5f9;
+`;
+
+const MobileNoTokenMsg = styled.p`
+    margin: 0;
+    font-size: 14px;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.6;
+    max-width: 300px;
+`;
+
+// ─── No token (desktop) ───────────────────────────────────────────────────────
 
 const NoTokenCard = styled.div`
     padding: 28px 24px;
@@ -287,6 +341,7 @@ const PlatformTab = styled.button<{ $active: boolean }>`
 
 export const MobileShortcutsView = () => {
     const { user } = useAuth();
+    const isMobile = useIsMobile();
     const pwa = usePWAInstall();
     const [copied, setCopied] = useState(false);
     const [platform, setPlatform] = useState<'android' | 'ios'>('android');
@@ -295,6 +350,27 @@ export const MobileShortcutsView = () => {
     const voiceUrl = mobileToken
         ? `${window.location.origin}/m/voice?token=${mobileToken}`
         : null;
+
+    // ── Mobile branch ─────────────────────────────────────────────────────────
+    if (isMobile) {
+        if (!mobileToken) {
+            return (
+                <MobileNoToken>
+                    <MobileNoTokenIcon>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round"
+                                  d="M12 9v3m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                        </svg>
+                    </MobileNoTokenIcon>
+                    <MobileNoTokenTitle>Token mobilny nie jest skonfigurowany</MobileNoTokenTitle>
+                    <MobileNoTokenMsg>
+                        Skontaktuj się z administratorem lub wejdź w ustawienia konta, żeby wygenerować token dostępu.
+                    </MobileNoTokenMsg>
+                </MobileNoToken>
+            );
+        }
+        return <Navigate to={`/m/voice?token=${mobileToken}`} replace />;
+    }
 
     const handleCopy = async () => {
         if (!voiceUrl) return;
