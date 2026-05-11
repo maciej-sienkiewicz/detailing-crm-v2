@@ -3278,8 +3278,8 @@ export const LeadListView: React.FC = () => {
           </Td>
 
           <Td>
-            {lead.reasoning
-              ? <CellNote title={lead.reasoning}>{lead.reasoning}</CellNote>
+            {lead.summary
+              ? <CellNote title={lead.summary}>{lead.summary}</CellNote>
               : lead.initialMessage
                 ? <CellNote title={lead.initialMessage}>{lead.initialMessage}</CellNote>
                 : <CellSub style={{ fontStyle: 'italic' }}>—</CellSub>

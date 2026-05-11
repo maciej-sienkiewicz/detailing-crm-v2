@@ -29,7 +29,7 @@ const mockLeads: Lead[] = [
     contactIdentifier: '+48 123 456 789',
     customerName: 'Jan Kowalski',
     initialMessage: 'Zainteresowany polerowaniam całego auta, może też folia?',
-    reasoning: 'Klient pyta o polerowanie i folię PPF — prawdopodobnie chce kompleksowej ochrony lakieru przed sprzedażą lub długoterminowego użytkowania. Wysoka wartość transakcji.',
+    summary: 'Klient pyta o polerowanie i folię PPF — prawdopodobnie chce kompleksowej ochrony lakieru przed sprzedażą lub długoterminowego użytkowania. Wysoka wartość transakcji.',
     vehicleBrand: 'BMW',
     vehicleModel: 'M3 Competition',
     relatedVisits: [
@@ -49,7 +49,7 @@ const mockLeads: Lead[] = [
 
     customerName: 'Anna Nowak',
     initialMessage: 'Chciałabym zamówić powłokę ceramiczną na moje auto. Macie w ofercie korekta lakieru przed nałożeniem?',
-    reasoning: 'Klientka zainteresowana pakietem ceramika + korekta. Świadoma procesu — wymagający klient premium. Duże prawdopodobieństwo konwersji.',
+    summary: 'Klientka zainteresowana pakietem ceramika + korekta. Świadoma procesu — wymagający klient premium. Duże prawdopodobieństwo konwersji.',
     vehicleBrand: 'Porsche',
     vehicleModel: 'Macan S',
     relatedVisits: [
@@ -68,7 +68,7 @@ const mockLeads: Lead[] = [
 
     customerName: 'Piotr Wiśniewski',
     initialMessage: 'Folia PPF na maskę i błotniki przednie. Proszę o wycenę.',
-    reasoning: 'Standardowe zapytanie o częściowe PPF. Klient wie czego chce — wystarczy wycena na konkretny zakres.',
+    summary: 'Standardowe zapytanie o częściowe PPF. Klient wie czego chce — wystarczy wycena na konkretny zakres.',
     vehicleBrand: 'Audi',
     vehicleModel: 'RS6 Avant',
     relatedVisits: [],
@@ -83,7 +83,7 @@ const mockLeads: Lead[] = [
     contactIdentifier: '+48 555 666 777',
     customerName: 'Maria Dąbrowska',
     initialMessage: 'Detailing kompletny przed sprzedażą auta, chcę żeby wyglądało jak nowe.',
-    reasoning: 'Przygotowanie do sprzedaży — klientka szuka kompleksowego odświeżenia. Priorytet: wygląd i zapach wnętrza.',
+    summary: 'Przygotowanie do sprzedaży — klientka szuka kompleksowego odświeżenia. Priorytet: wygląd i zapach wnętrza.',
     vehicleBrand: 'Volkswagen',
     vehicleModel: 'Tiguan',
     relatedVisits: [
@@ -101,7 +101,7 @@ const mockLeads: Lead[] = [
     contactIdentifier: 'tomasz.lewandowski@business.pl',
     customerName: 'Tomasz Lewandowski',
     initialMessage: 'Proszę o wycenę flotową dla 10 samochodów firmowych — corocznie.',
-    reasoning: 'Zapytanie flotowe B2B z potencjałem cyklicznym. Wymaga dedykowanej oferty i negocjacji cenowych.',
+    summary: 'Zapytanie flotowe B2B z potencjałem cyklicznym. Wymaga dedykowanej oferty i negocjacji cenowych.',
     vehicleBrand: undefined,
     vehicleModel: undefined,
     relatedVisits: [],
@@ -290,7 +290,7 @@ const mockEstimations: Record<string, LeadEstimation> = {
       { id: '95ddeec4-4420-4153-9058-e3c95524ee6d', title: 'Detailing + PPF BMW 5 Series' },
       { id: 'b12c3d4e-5678-90ab-cdef-1234567890ab', title: 'Full PPF BMW M4' },
     ],
-    aiReasoning: 'Na podstawie podobnych realizacji dla BMW wyceniono pełne PPF oraz detailing wnętrza. Mycie felg nie jest w cenniku — do wyceny indywidualnej.',
+    aiSummary: 'Na podstawie podobnych realizacji dla BMW wyceniono pełne PPF oraz detailing wnętrza. Mycie felg nie jest w cenniku — do wyceny indywidualnej.',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -320,7 +320,7 @@ const mockEstimations: Record<string, LeadEstimation> = {
     relatedVisits: [
       { id: 'c23d4e5f-6789-01bc-defa-234567890bcd', title: 'Powłoka ceramiczna Porsche 911' },
     ],
-    aiReasoning: 'Klientka wskazała jasno na ceramikę + korektę. Wycena bazuje na standardowym pakiecie dla SUV premium. Wszystkie pozycje dopasowane z cennika.',
+    aiSummary: 'Klientka wskazała jasno na ceramikę + korektę. Wycena bazuje na standardowym pakiecie dla SUV premium. Wszystkie pozycje dopasowane z cennika.',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },

@@ -51,8 +51,8 @@ export interface Lead {
   /** Initial message or note from the inquiry */
   initialMessage?: string;
 
-  /** System-generated reasoning / analysis summary for this lead */
-  reasoning?: string;
+  /** System-generated summary for this lead */
+  summary?: string;
 
   /** Vehicle brand extracted from the inquiry */
   vehicleBrand?: string;
@@ -249,8 +249,8 @@ export interface LeadEstimation {
   totalGross: number;
   /** Visits that contributed to building this estimation */
   relatedVisits: RelatedVisit[];
-  /** System-generated reasoning used to produce the estimation */
-  aiReasoning?: string;
+  /** System-generated summary used to produce the estimation */
+  aiSummary?: string;
   createdAt: string;
   updatedAt: string;
 }
