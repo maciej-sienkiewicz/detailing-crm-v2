@@ -1,21 +1,21 @@
 import styled, { keyframes } from 'styled-components';
 
 // ─── Spring expand animation ──────────────────────────────────────────────────
-// Simulates a sitcom/macOS-style window popping open from bottom-right
+// translate(-50%,-50%) is baked in so it combines with center positioning
 
 export const springOpen = keyframes`
-  0%   { transform: scale(0.05) translate(45%, 45%); opacity: 0; }
-  40%  { transform: scale(1.06) translate(0, 0);    opacity: 1; }
-  60%  { transform: scale(0.97) translate(0, 0);    opacity: 1; }
-  75%  { transform: scale(1.02) translate(0, 0);    opacity: 1; }
-  88%  { transform: scale(0.99) translate(0, 0);    opacity: 1; }
-  100% { transform: scale(1)    translate(0, 0);    opacity: 1; }
+  0%   { transform: translate(-50%, -50%) scale(0.04); opacity: 0; }
+  38%  { transform: translate(-50%, -50%) scale(1.07); opacity: 1; }
+  58%  { transform: translate(-50%, -50%) scale(0.96); opacity: 1; }
+  74%  { transform: translate(-50%, -50%) scale(1.03); opacity: 1; }
+  88%  { transform: translate(-50%, -50%) scale(0.99); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1);    opacity: 1; }
 `;
 
 export const springClose = keyframes`
-  0%   { transform: scale(1)    translate(0, 0);    opacity: 1; }
-  30%  { transform: scale(1.03) translate(0, 0);    opacity: 1; }
-  100% { transform: scale(0.05) translate(45%, 45%); opacity: 0; }
+  0%   { transform: translate(-50%, -50%) scale(1);    opacity: 1; }
+  25%  { transform: translate(-50%, -50%) scale(1.04); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.04); opacity: 0; }
 `;
 
 // ─── Typewriter cursor blink ──────────────────────────────────────────────────
@@ -28,8 +28,8 @@ export const blink = keyframes`
 // ─── Blur reveal ─────────────────────────────────────────────────────────────
 
 export const unblur = keyframes`
-  from { filter: blur(6px); opacity: 0.5; }
-  to   { filter: blur(0);   opacity: 1;   }
+  from { filter: blur(6px); opacity: 0.55; }
+  to   { filter: blur(0);   opacity: 1;    }
 `;
 
 // ─── Compose window overlay ───────────────────────────────────────────────────
@@ -38,29 +38,35 @@ export const Overlay = styled.div<{ $closing: boolean }>`
   position: fixed;
   inset: 0;
   z-index: 1000;
-  pointer-events: none; /* allow clicks through to page */
+  pointer-events: all;
+  /* subtle dimming behind the window */
+  background: rgba(0, 0, 0, ${({ $closing }) => ($closing ? 0 : 0.25)});
+  transition: background 0.3s ease;
 `;
 
 export const ComposeWindow = styled.div<{ $closing: boolean }>`
   position: fixed;
-  bottom: 24px;
-  right: 32px;
-  width: 520px;
-  max-height: 600px;
+  left: 50%;
+  top: 50%;
+  /* translate is part of the keyframe so we don't set it here */
+  width: 620px;
+  height: 680px;
   display: flex;
   flex-direction: column;
-  background: rgba(240, 242, 245, 0.96);
-  backdrop-filter: blur(20px) saturate(180%);
-  border-radius: 12px;
+  background: rgba(240, 242, 245, 0.97);
+  backdrop-filter: blur(24px) saturate(180%);
+  border-radius: 14px;
   box-shadow:
     0 0 0 0.5px rgba(0, 0, 0, 0.18),
-    0 8px 32px rgba(0, 0, 0, 0.28),
-    0 2px 6px rgba(0, 0, 0, 0.12);
+    0 24px 64px rgba(0, 0, 0, 0.36),
+    0 4px 12px rgba(0, 0, 0, 0.14);
   overflow: hidden;
-  transform-origin: bottom right;
+  transform-origin: center center;
   pointer-events: all;
 
-  animation: ${({ $closing }) => ($closing ? springClose : springOpen)} ${({ $closing }) => ($closing ? '220ms' : '480ms')} cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: ${({ $closing }) => ($closing ? springClose : springOpen)}
+    ${({ $closing }) => ($closing ? '200ms' : '500ms')}
+    cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 `;
 
 // ─── Title bar ────────────────────────────────────────────────────────────────
@@ -69,8 +75,8 @@ export const TitleBar = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
-  background: rgba(220, 223, 228, 0.8);
+  padding: 11px 16px;
+  background: rgba(215, 218, 224, 0.85);
   border-bottom: 0.5px solid rgba(0, 0, 0, 0.12);
   user-select: none;
   flex-shrink: 0;
@@ -79,13 +85,13 @@ export const TitleBar = styled.div`
 
 export const TrafficLights = styled.div`
   display: flex;
-  gap: 6px;
+  gap: 7px;
   flex-shrink: 0;
 `;
 
 export const TrafficLight = styled.button<{ $color: 'red' | 'yellow' | 'green' }>`
-  width: 12px;
-  height: 12px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
   border: none;
   padding: 0;
@@ -99,6 +105,8 @@ export const TrafficLight = styled.button<{ $color: 'red' | 'yellow' | 'green' }
       ? '#febc2e'
       : '#28c840'};
 
+  box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.3);
+
   border: 0.5px solid ${({ $color }) =>
     $color === 'red'
       ? 'rgba(200,40,30,0.3)'
@@ -106,9 +114,7 @@ export const TrafficLight = styled.button<{ $color: 'red' | 'yellow' | 'green' }
       ? 'rgba(180,120,0,0.3)'
       : 'rgba(20,150,40,0.3)'};
 
-  &:hover {
-    filter: brightness(0.9);
-  }
+  &:hover { filter: brightness(0.88); }
 `;
 
 export const TitleBarText = styled.span`
@@ -116,7 +122,7 @@ export const TitleBarText = styled.span`
   text-align: center;
   font-size: 13px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: #3a3a3a;
   letter-spacing: -0.01em;
 `;
 
@@ -133,10 +139,10 @@ export const FormArea = styled.div`
 export const FieldRow = styled.div`
   display: flex;
   align-items: center;
-  padding: 0 14px;
-  min-height: 32px;
+  padding: 0 16px;
+  min-height: 36px;
   border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
 `;
 
@@ -144,7 +150,7 @@ export const FieldLabel = styled.span`
   font-size: 12px;
   font-weight: 600;
   color: #888;
-  width: 44px;
+  width: 48px;
   flex-shrink: 0;
 `;
 
@@ -154,13 +160,11 @@ export const FieldInput = styled.input`
   background: transparent;
   outline: none;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 13.5px;
   color: #1c1c1e;
   padding: 4px 0;
 
-  &::placeholder {
-    color: #bbb;
-  }
+  &::placeholder { color: #bbb; }
 `;
 
 export const BodyWrapper = styled.div`
@@ -177,29 +181,31 @@ export const BodyTextarea = styled.textarea<{ $blurred: boolean; $revealed: bool
   background: white;
   outline: none;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 13.5px;
+  line-height: 1.65;
   color: #1c1c1e;
-  padding: 12px 14px;
+  padding: 14px 16px;
   resize: none;
   box-sizing: border-box;
-  transition: filter 0.6s ease, opacity 0.6s ease;
 
   filter: ${({ $blurred }) => ($blurred ? 'blur(5px)' : 'blur(0)')};
-  opacity: ${({ $blurred }) => ($blurred ? 0.6 : 1)};
+  opacity: ${({ $blurred }) => ($blurred ? 0.65 : 1)};
 
-  animation: ${({ $revealed }) => ($revealed ? unblur : 'none')} 0.7s ease forwards;
+  /* unblur animation fires once on reveal */
+  animation: ${({ $revealed }) => ($revealed ? unblur : 'none')} 0.75s ease forwards;
 `;
 
 export const TypewriterCursor = styled.span<{ $visible: boolean }>`
-  display: ${({ $visible }) => ($visible ? 'inline-block' : 'none')};
+  display: ${({ $visible }) => ($visible ? 'block' : 'none')};
   position: absolute;
-  bottom: 16px;
-  left: 14px;
+  /* tracks last typed line — positioned at top-left so it floats while text grows */
+  bottom: 18px;
+  left: 16px;
   width: 2px;
-  height: 16px;
-  background: #1c1c1e;
-  animation: ${blink} 0.8s step-end infinite;
+  height: 17px;
+  background: rgba(28, 28, 30, 0.75);
+  border-radius: 1px;
+  animation: ${blink} 0.75s step-end infinite;
   pointer-events: none;
 `;
 
@@ -209,10 +215,10 @@ export const Footer = styled.div`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: 10px 14px;
-  background: rgba(220, 223, 228, 0.7);
+  padding: 11px 16px;
+  background: rgba(215, 218, 224, 0.75);
   border-top: 0.5px solid rgba(0, 0, 0, 0.1);
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
 `;
 
@@ -220,19 +226,20 @@ export const CopyBtn = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
+  padding: 7px 16px;
   border: none;
-  border-radius: 6px;
+  border-radius: 7px;
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
   color: white;
   background: #007aff;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.15s, transform 0.1s, opacity 0.2s;
 
-  &:hover { background: #0062cc; }
-  &:active { transform: scale(0.97); }
+  &:hover:not(:disabled) { background: #0062cc; }
+  &:active:not(:disabled) { transform: scale(0.97); }
+  &:disabled { opacity: 0.4; cursor: default; }
 
   svg { width: 14px; height: 14px; }
 `;
@@ -241,6 +248,7 @@ export const LoadingDots = styled.span`
   font-size: 12px;
   color: #888;
   font-style: italic;
+  margin-right: auto;
 `;
 
 // ─── Trigger button ───────────────────────────────────────────────────────────

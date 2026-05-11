@@ -3,11 +3,8 @@ import type { Lead } from '../../types';
 
 export type OfferPhase = 'typing' | 'revealed';
 
-interface OfferContent {
-  to: string;
-  subject: string;
-  body: string;
-}
+// Target duration for the typing animation
+const TYPING_DURATION_MS = 3200;
 
 function buildMockBody(lead: Lead): string {
   const name = lead.customerName ?? 'Szanowna/y Pani/Panie';
@@ -20,45 +17,42 @@ function buildMockBody(lead: Lead): string {
     ? `\nSzacunkowy koszt wykonania usługi wynosi ${value}.\n`
     : '';
 
-  return `Dzień dobry ${name},\n\nDziękujemy za kontakt z naszym serwisem. W odpowiedzi na Państwa zapytanie dotyczące ${vehicle} przygotowaliśmy dla Państwa wstępną ofertę.\n${priceSection}\nW ramach naszych usług oferujemy profesjonalne detailingowe przygotowanie pojazdu z wykorzystaniem najwyższej jakości produktów oraz technik. Gwarantujemy dbałość o każdy detal i pełne zadowolenie z efektów.\n\nZapraszamy do kontaktu w celu umówienia terminu wizyty lub zadania dodatkowych pytań.\n\nZ poważaniem,\nZespół Studio Detailingu`;
+  return `Dzień dobry ${name},\n\nDziękujemy za kontakt z naszym serwisem. W odpowiedzi na Państwa zapytanie dotyczące ${vehicle} przygotowaliśmy wstępną ofertę.\n${priceSection}\nW ramach naszych usług oferujemy profesjonalne detailingowe przygotowanie pojazdu z wykorzystaniem najwyższej jakości produktów oraz technik. Gwarantujemy dbałość o każdy detal i pełne zadowolenie z efektów.\n\nZapraszamy do kontaktu w celu umówienia terminu wizyty lub zadania dodatkowych pytań.\n\nZ poważaniem,\nZespół Studio Detailingu`;
 }
 
 export function useOfferContent(lead: Lead) {
   const [phase, setPhase] = useState<OfferPhase>('typing');
   const [displayedBody, setDisplayedBody] = useState('');
-  const [finalBody, setFinalBody] = useState('');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const content: OfferContent = {
-    to: lead.contactIdentifier,
-    subject: `Oferta detailingu – ${[lead.vehicleBrand, lead.vehicleModel].filter(Boolean).join(' ') || 'Państwa pojazd'}`,
-    body: finalBody,
-  };
+  const charIndexRef = useRef(0);
 
   useEffect(() => {
     const full = buildMockBody(lead);
-    setFinalBody(full);
+
+    // Reset state
+    charIndexRef.current = 0;
     setDisplayedBody('');
     setPhase('typing');
 
-    let charIndex = 0;
-    // Typewrite fast (chars appear quickly while blurred)
-    const msPerChar = 2800 / full.length; // finish in ~2.8s
+    // One character per tick; interval adjusts to hit TYPING_DURATION_MS total.
+    // Browser minimum is ~4ms; we floor at 4 to avoid unreliable sub-4ms intervals.
+    const msPerChar = Math.max(4, TYPING_DURATION_MS / full.length);
 
     intervalRef.current = setInterval(() => {
-      charIndex += Math.ceil(full.length / 80); // batch chunks for speed
-      const slice = full.slice(0, charIndex);
-      setDisplayedBody(slice);
-      if (charIndex >= full.length) {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        // Small pause then reveal
+      charIndexRef.current += 1;
+      const idx = charIndexRef.current;
+      setDisplayedBody(full.slice(0, idx));
+
+      if (idx >= full.length) {
+        clearInterval(intervalRef.current!);
+        // Brief pause so the cursor blink is visible one last time
         timerRef.current = setTimeout(() => {
           setDisplayedBody(full);
           setPhase('revealed');
-        }, 200);
+        }, 320);
       }
-    }, msPerChar * Math.ceil(full.length / 80));
+    }, msPerChar);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -67,5 +61,5 @@ export function useOfferContent(lead: Lead) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead.id]);
 
-  return { phase, displayedBody, content };
+  return { phase, displayedBody };
 }

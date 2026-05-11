@@ -59,8 +59,8 @@ export function OfferComposerModal({ lead, onClose }: Props) {
   const isTyping = phase === 'typing';
 
   return createPortal(
-    <Overlay $closing={closing}>
-      <ComposeWindow $closing={closing}>
+    <Overlay $closing={closing} onClick={handleClose}>
+      <ComposeWindow $closing={closing} onClick={e => e.stopPropagation()}>
         <TitleBar>
           <TrafficLights>
             <TrafficLight $color="red" onClick={handleClose} title="Zamknij" />
