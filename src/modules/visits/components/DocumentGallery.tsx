@@ -348,6 +348,8 @@ const SectionDivider = styled.div`
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+const isPdfFile = (fileName: string) => fileName.toLowerCase().endsWith('.pdf');
+
 /** Collect all unique tags from all photos */
 function collectAllTags(photos: NormalisedPhoto[]): string[] {
     const set = new Set<string>();
@@ -405,7 +407,9 @@ export const DocumentGallery = ({
         },
     });
 
-    const documentPhotos = documents.filter(doc => doc.type === 'PHOTO' || doc.type === 'DAMAGE_MAP');
+    const documentPhotos = documents.filter(doc =>
+        (doc.type === 'PHOTO' || doc.type === 'DAMAGE_MAP') && !isPdfFile(doc.fileName)
+    );
 
     // Build normalised list, merging local tag overrides
     const allPhotos: NormalisedPhoto[] = useMemo(() => [
@@ -445,7 +449,8 @@ export const DocumentGallery = ({
         doc.type === 'PROTOCOL' ||
         doc.type === 'INTAKE' ||
         doc.type === 'OUTTAKE' ||
-        doc.type === 'OTHER'
+        doc.type === 'OTHER' ||
+        ((doc.type === 'PHOTO' || doc.type === 'DAMAGE_MAP') && isPdfFile(doc.fileName))
     );
 
     const handleDownload = (fileUrl: string, fileName: string) => {
@@ -643,8 +648,9 @@ export const DocumentGallery = ({
                                 <DocumentCard key={doc.id}>
                                     <DocumentIcon>📄</DocumentIcon>
                                     <DocumentInfo>
-                                        <DocumentName>{doc.fileName}</DocumentName>
+                                        <DocumentName>{doc.name || doc.fileName}</DocumentName>
                                         <DocumentMeta>
+                                            {doc.name && doc.name !== doc.fileName && `${doc.fileName} · `}
                                             Dodano: {formatDateTime(doc.uploadedAt)} · {doc.uploadedByName}
                                         </DocumentMeta>
                                     </DocumentInfo>
