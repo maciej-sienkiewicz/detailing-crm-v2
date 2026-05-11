@@ -2671,6 +2671,48 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
     }));
   };
 
+  const limitDecimals = (raw: string): string => {
+    const sepIdx = Math.max(raw.indexOf('.'), raw.indexOf(','));
+    return sepIdx === -1 ? raw : raw.slice(0, sepIdx + 3);
+  };
+
+  const syncFromGross = (key: string, rawGross: string) => {
+    const limited = limitDecimals(rawGross);
+    const num = parseFloat(limited.replace(',', '.'));
+    setItems(prev => prev.map(item => {
+      if (item._key !== key) return item;
+      if (!isNaN(num)) {
+        return { ...item, priceGross: limited, priceNet: (num / (1 + item.vatRate / 100)).toFixed(2) };
+      }
+      return { ...item, priceGross: limited };
+    }));
+  };
+
+  const syncFromNet = (key: string, rawNet: string) => {
+    const limited = limitDecimals(rawNet);
+    const num = parseFloat(limited.replace(',', '.'));
+    setItems(prev => prev.map(item => {
+      if (item._key !== key) return item;
+      if (!isNaN(num)) {
+        return { ...item, priceNet: limited, priceGross: (num * (1 + item.vatRate / 100)).toFixed(2) };
+      }
+      return { ...item, priceNet: limited };
+    }));
+  };
+
+  const normalizeItem = (key: string) => {
+    setItems(prev => prev.map(item => {
+      if (item._key !== key) return item;
+      const gross = parseFloat(item.priceGross.replace(',', '.'));
+      if (isNaN(gross)) return item;
+      return {
+        ...item,
+        priceGross: gross.toFixed(2),
+        priceNet: (gross / (1 + item.vatRate / 100)).toFixed(2),
+      };
+    }));
+  };
+
   const handleSave = () => {
     const validItems: SaveUserQuoteItemRequest[] = items
       .filter(i => i.serviceName.trim() && i.priceNet)
@@ -2718,30 +2760,38 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
                 updateItem(item._key, patch);
               }}
             />
-            {/* Price — right side, same layout as EstPrice */}
+            {/* Price — netto and brutto both editable */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <InlinePriceInput
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={item.priceNet}
+                  onChange={e => syncFromNet(item._key, e.target.value)}
+                  onBlur={() => normalizeItem(item._key)}
+                  title="Cena netto (PLN)"
+                />
+                <span style={{ fontSize: st.fontSm, fontWeight: 500, color: st.textSecondary, whiteSpace: 'nowrap' }}>netto</span>
+                <span style={{ fontSize: 10, color: st.textMuted }}>/</span>
+                <InlinePriceInput
+                  type="text"
+                  inputMode="decimal"
                   placeholder="0.00"
                   value={item.priceGross}
-                  onChange={e => {
-                    const gross = e.target.value;
-                    const net = gross ? (parseFloat(gross.replace(',', '.')) / (1 + item.vatRate / 100)).toFixed(2) : '';
-                    updateItem(item._key, { priceGross: gross, priceNet: net });
-                  }}
+                  onChange={e => syncFromGross(item._key, e.target.value)}
+                  onBlur={() => normalizeItem(item._key)}
                   title="Cena brutto (PLN)"
+                  style={{ fontWeight: 600, color: st.text }}
                 />
-                <span style={{ fontSize: st.fontSm, fontWeight: 500, color: st.textSecondary, whiteSpace: 'nowrap' }}>brutto</span>
-                <QuoteRemoveBtn onClick={() => removeItem(item._key)} title="Usuń pozycję" style={{ marginLeft: 2 }}>
+                <span style={{ fontSize: st.fontSm, fontWeight: 600, color: st.text, whiteSpace: 'nowrap' }}>brutto</span>
+                <QuoteRemoveBtn onClick={() => removeItem(item._key)} title="Usuń pozycję">
                   <X />
                 </QuoteRemoveBtn>
               </div>
-              {item.priceNet && (
-                <span style={{ fontSize: 10, color: st.textMuted, fontVariantNumeric: 'tabular-nums' }}>
-                  {parseFloat(item.priceNet).toFixed(2)} PLN netto · VAT {item.vatRate}%
+              {item.vatRate > 0 && (
+                <span style={{ fontSize: 10, color: st.textMuted }}>
+                  VAT {item.vatRate}%
                 </span>
               )}
             </div>
