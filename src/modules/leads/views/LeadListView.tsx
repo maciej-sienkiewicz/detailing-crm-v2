@@ -26,6 +26,8 @@ import {
   X,
   FileText,
   Edit3,
+  CalendarDays,
+  Check,
 } from 'lucide-react';
 import { customerApi } from '@/modules/customers/api/customerApi';
 import type { Customer } from '@/modules/customers/types';
@@ -69,6 +71,32 @@ import {
   truncateEmail,
   parseCurrencyToGrosze,
 } from '../utils/formatters';
+
+// ─── Date range types & helpers ───────────────────────────────────────────────
+
+type DatePreset = 'week' | 'month' | 'quarter' | 'all' | 'custom';
+
+const toISODate = (d: Date) => d.toISOString().slice(0, 10);
+
+const getPresetRange = (preset: DatePreset): { dateFrom?: string; dateTo?: string } => {
+  if (preset === 'all') return {};
+  const today = new Date();
+  const days = preset === 'week' ? 7 : preset === 'month' ? 30 : 90;
+  const from = new Date(today);
+  from.setDate(today.getDate() - days);
+  return { dateFrom: toISODate(from), dateTo: toISODate(today) };
+};
+
+const formatPresetLabel = (preset: DatePreset, customFrom?: string, customTo?: string): string => {
+  if (preset === 'all') return 'Cały czas';
+  if (preset === 'week') return 'Ostatni tydzień';
+  if (preset === 'month') return 'Ostatni miesiąc';
+  if (preset === 'quarter') return 'Ostatni kwartał';
+  if (customFrom && customTo) return `${customFrom} – ${customTo}`;
+  if (customFrom) return `Od ${customFrom}`;
+  if (customTo) return `Do ${customTo}`;
+  return 'Zakres dat';
+};
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -226,6 +254,149 @@ const SecondaryBtn = styled.button`
 
   &:hover { background: #e2e8f0; color: #0f172a; }
   svg { width: 15px; height: 15px; flex-shrink: 0; }
+`;
+
+// ─── Date range picker ────────────────────────────────────────────────────────
+
+const DatePickerWrap = styled.div`
+  position: relative;
+  flex-shrink: 0;
+`;
+
+const DatePickerTrigger = styled.button<{ $active: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: ${p => p.$active ? '#eff6ff' : '#f1f5f9'};
+  color: ${p => p.$active ? '#0ea5e9' : '#475569'};
+  border: 1.5px solid ${p => p.$active ? '#bae6fd' : '#e2e8f0'};
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: ${st.fontSm};
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all ${st.transition};
+
+  &:hover {
+    background: ${p => p.$active ? '#dbeafe' : '#e2e8f0'};
+    color: ${p => p.$active ? '#0284c7' : '#0f172a'};
+  }
+  svg { width: 14px; height: 14px; flex-shrink: 0; }
+`;
+
+const DatePickerPanel = styled.div`
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 200;
+  background: ${st.bgCard};
+  border: 1px solid ${st.border};
+  border-radius: ${st.radius};
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  min-width: 260px;
+  padding: 8px;
+  animation: ${fadeIn} 0.12s ease;
+`;
+
+const DatePresetGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+
+const DatePresetBtn = styled.button<{ $active: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  background: ${p => p.$active ? '#eff6ff' : 'transparent'};
+  color: ${p => p.$active ? '#0ea5e9' : st.text};
+  border: none;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: ${st.fontSm};
+  font-weight: ${p => p.$active ? '600' : '500'};
+  text-align: left;
+  cursor: pointer;
+  transition: background ${st.transition}, color ${st.transition};
+
+  &:hover {
+    background: ${p => p.$active ? '#dbeafe' : st.hover};
+  }
+
+  span.range-label {
+    font-size: 11px;
+    color: ${p => p.$active ? '#7dd3fc' : st.textMuted};
+    font-weight: 400;
+  }
+`;
+
+const DatePanelDivider = styled.div`
+  height: 1px;
+  background: ${st.border};
+  margin: 8px 0;
+`;
+
+const DatePanelLabel = styled.div`
+  padding: 4px 12px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: ${st.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const CustomRangeRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+`;
+
+const DateInput = styled.input`
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  background: ${st.bg};
+  color: ${st.text};
+  border: 1.5px solid ${st.border};
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color ${st.transition};
+
+  &:focus {
+    outline: none;
+    border-color: #0ea5e9;
+  }
+`;
+
+const DateInputSep = styled.span`
+  font-size: 12px;
+  color: ${st.textMuted};
+  flex-shrink: 0;
+`;
+
+const ApplyBtn = styled.button`
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #0ea5e9;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: ${st.fontSm};
+  font-weight: 600;
+  cursor: pointer;
+  transition: background ${st.transition};
+
+  &:hover { background: #0284c7; }
+  &:disabled { background: #94a3b8; cursor: not-allowed; }
 `;
 
 // ─── Stats grid ───────────────────────────────────────────────────────────────
@@ -2905,6 +3076,21 @@ export const LeadListView: React.FC = () => {
     },
   });
 
+  // ─── Date range state ─────────────────────────────────────────────────────
+  const [datePreset, setDatePreset]             = useState<DatePreset>('all');
+  const [customDateFrom, setCustomDateFrom]     = useState('');
+  const [customDateTo, setCustomDateTo]         = useState('');
+  const [pendingCustomFrom, setPendingCustomFrom] = useState('');
+  const [pendingCustomTo, setPendingCustomTo]   = useState('');
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const datePickerRef = useRef<HTMLDivElement>(null);
+
+  const activeDateRange = datePreset === 'all'
+    ? { dateFrom: undefined, dateTo: undefined }
+    : datePreset === 'custom'
+      ? { dateFrom: customDateFrom || undefined, dateTo: customDateTo || undefined }
+      : getPresetRange(datePreset);
+
   const [filters, setFilters] = useState<LeadListFilters>({
     search: '',
     status: [],
@@ -2915,8 +3101,18 @@ export const LeadListView: React.FC = () => {
     sortDirection: 'desc',
   });
 
-  const { leads, pagination, isLoading, isError, refetch } = useLeads(filters);
-  const { summary, isLoading: isSummaryLoading } = useLeadPipelineSummary();
+  const filtersWithDate: LeadListFilters = {
+    ...filters,
+    dateFrom: activeDateRange.dateFrom,
+    dateTo: activeDateRange.dateTo,
+  };
+
+  const { leads, pagination, isLoading, isError, refetch } = useLeads(filtersWithDate);
+  const { summary, isLoading: isSummaryLoading } = useLeadPipelineSummary(
+    undefined,
+    activeDateRange.dateFrom,
+    activeDateRange.dateTo,
+  );
 
   const newLeadsCount = leads.filter(l => l.requiresVerification).length;
 
@@ -2952,6 +3148,17 @@ export const LeadListView: React.FC = () => {
     document.addEventListener('mousedown', handle);
     return () => document.removeEventListener('mousedown', handle);
   }, [isStatusDropdownOpen]);
+
+  useEffect(() => {
+    if (!isDatePickerOpen) return;
+    const handle = (e: MouseEvent) => {
+      if (datePickerRef.current && !datePickerRef.current.contains(e.target as Node)) {
+        setIsDatePickerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [isDatePickerOpen]);
 
   const handleSource = useCallback((v: SourceTab) => {
     setActiveSource(v);
@@ -3170,10 +3377,85 @@ export const LeadListView: React.FC = () => {
         </TitleSection>
 
         <HeaderBtns>
-          <SecondaryBtn onClick={() => refetch()}>
-            <RefreshCw />
-            Odśwież
-          </SecondaryBtn>
+          {/* Date range picker */}
+          <DatePickerWrap ref={datePickerRef}>
+            <DatePickerTrigger
+              $active={datePreset !== 'all'}
+              onClick={() => {
+                setIsDatePickerOpen(p => !p);
+                setPendingCustomFrom(customDateFrom);
+                setPendingCustomTo(customDateTo);
+              }}
+            >
+              <CalendarDays />
+              {formatPresetLabel(
+                datePreset,
+                datePreset === 'custom' ? customDateFrom : undefined,
+                datePreset === 'custom' ? customDateTo : undefined,
+              )}
+              <ChevronDown style={{ opacity: 0.6 }} />
+            </DatePickerTrigger>
+
+            {isDatePickerOpen && (
+              <DatePickerPanel>
+                <DatePresetGroup>
+                  {([
+                    ['all',     'Cały czas',        ''],
+                    ['week',    'Ostatni tydzień',   '7 dni'],
+                    ['month',   'Ostatni miesiąc',   '30 dni'],
+                    ['quarter', 'Ostatni kwartał',   '90 dni'],
+                  ] as const).map(([id, label, hint]) => (
+                    <DatePresetBtn
+                      key={id}
+                      $active={datePreset === id}
+                      onClick={() => {
+                        setDatePreset(id);
+                        setIsDatePickerOpen(false);
+                        setFilters(p => ({ ...p, page: 1 }));
+                      }}
+                    >
+                      {label}
+                      {hint && <span className="range-label">{hint}</span>}
+                      {datePreset === id && <Check size={13} />}
+                    </DatePresetBtn>
+                  ))}
+                </DatePresetGroup>
+
+                <DatePanelDivider />
+                <DatePanelLabel>Niestandardowy zakres</DatePanelLabel>
+
+                <CustomRangeRow>
+                  <DateInput
+                    type="date"
+                    value={pendingCustomFrom}
+                    max={pendingCustomTo || undefined}
+                    onChange={e => setPendingCustomFrom(e.target.value)}
+                  />
+                  <DateInputSep>–</DateInputSep>
+                  <DateInput
+                    type="date"
+                    value={pendingCustomTo}
+                    min={pendingCustomFrom || undefined}
+                    onChange={e => setPendingCustomTo(e.target.value)}
+                  />
+                </CustomRangeRow>
+
+                <ApplyBtn
+                  disabled={!pendingCustomFrom && !pendingCustomTo}
+                  onClick={() => {
+                    setCustomDateFrom(pendingCustomFrom);
+                    setCustomDateTo(pendingCustomTo);
+                    setDatePreset('custom');
+                    setIsDatePickerOpen(false);
+                    setFilters(p => ({ ...p, page: 1 }));
+                  }}
+                >
+                  Zastosuj zakres
+                </ApplyBtn>
+              </DatePickerPanel>
+            )}
+          </DatePickerWrap>
+
           <AddButton onClick={() => setIsFormOpen(true)}>
             <Plus />
             Dodaj lead

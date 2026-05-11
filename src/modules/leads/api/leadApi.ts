@@ -445,6 +445,8 @@ export const leadApi = {
     if (filters.source?.length) params.append('source', filters.source.join(','));
     if (filters.sortBy) params.append('sortBy', filters.sortBy);
     if (filters.sortDirection) params.append('sortDirection', filters.sortDirection);
+    if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters.dateTo) params.append('dateTo', filters.dateTo);
 
     const response = await apiClient.get(`${BASE_PATH}?${params}`);
     return response.data;
@@ -501,7 +503,7 @@ export const leadApi = {
    * Get pipeline summary for dashboard widget
    * @param sourceFilter - Optional array of sources to filter by
    */
-  getPipelineSummary: async (sourceFilter?: LeadSource[]): Promise<LeadPipelineSummary> => {
+  getPipelineSummary: async (sourceFilter?: LeadSource[], dateFrom?: string, dateTo?: string): Promise<LeadPipelineSummary> => {
     if (USE_MOCKS) {
       return mockGetPipelineSummary(sourceFilter);
     }
@@ -510,6 +512,8 @@ export const leadApi = {
     if (sourceFilter?.length) {
       params.append('source', sourceFilter.join(','));
     }
+    if (dateFrom) params.append('dateFrom', dateFrom);
+    if (dateTo) params.append('dateTo', dateTo);
 
     const queryString = params.toString();
     const url = queryString ? `${BASE_PATH}/pipeline-summary?${queryString}` : `${BASE_PATH}/pipeline-summary`;

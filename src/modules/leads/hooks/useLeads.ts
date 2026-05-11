@@ -89,15 +89,18 @@ export const useNewLeadsCount = (): number => {
 /**
  * Hook for fetching pipeline summary
  * @param sourceFilter - Optional array of sources to filter by
+ * @param dateFrom - Optional start date (YYYY-MM-DD)
+ * @param dateTo - Optional end date (YYYY-MM-DD)
  */
-export const useLeadPipelineSummary = (sourceFilter?: LeadSource[]) => {
-  const queryKey = sourceFilter?.length
-    ? [...LEAD_PIPELINE_KEY, { source: sourceFilter }]
+export const useLeadPipelineSummary = (sourceFilter?: LeadSource[], dateFrom?: string, dateTo?: string) => {
+  const hasFilter = (sourceFilter?.length ?? 0) > 0 || !!dateFrom || !!dateTo;
+  const queryKey = hasFilter
+    ? [...LEAD_PIPELINE_KEY, { source: sourceFilter, dateFrom, dateTo }]
     : LEAD_PIPELINE_KEY;
 
   const { data, isLoading, isError, error, refetch } = useQuery<LeadPipelineSummary>({
     queryKey,
-    queryFn: () => leadApi.getPipelineSummary(sourceFilter),
+    queryFn: () => leadApi.getPipelineSummary(sourceFilter, dateFrom, dateTo),
     staleTime: 30_000, // 30 seconds
   });
 

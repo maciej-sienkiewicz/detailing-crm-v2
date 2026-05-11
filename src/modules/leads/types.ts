@@ -118,6 +118,10 @@ export interface LeadListFilters {
   search?: string;
   status?: LeadStatus[];
   source?: LeadSource[];
+  /** Start of date range, inclusive (YYYY-MM-DD, interpreted as 00:00 Europe/Warsaw) */
+  dateFrom?: string;
+  /** End of date range, inclusive (YYYY-MM-DD, exclusive boundary = next day 00:00) */
+  dateTo?: string;
   page: number;
   limit: number;
   sortBy?: keyof Lead;
