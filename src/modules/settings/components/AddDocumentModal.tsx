@@ -233,54 +233,6 @@ const StageDesc = styled.div`
     margin-top: 2px;
 `;
 
-const MandatoryRow = styled.label`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 14px;
-    background: #f8fafc;
-    border-radius: 10px;
-    cursor: pointer;
-`;
-
-const MandatoryText = styled.div``;
-const MandatoryLabel = styled.div`
-    font-size: 13px;
-    font-weight: 600;
-    color: #0f172a;
-`;
-const MandatoryDesc = styled.div`
-    font-size: 12px;
-    color: #64748b;
-    margin-top: 2px;
-`;
-
-const ToggleBtn = styled.button<{ $on: boolean }>`
-    position: relative;
-    width: 36px;
-    height: 20px;
-    border-radius: 9999px;
-    background: ${props => props.$on ? '#0ea5e9' : '#cbd5e1'};
-    border: none;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: background 180ms;
-    padding: 0;
-
-    &::after {
-        content: '';
-        position: absolute;
-        top: 2px;
-        left: ${props => props.$on ? '18px' : '2px'};
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background: white;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-        transition: left 180ms ease;
-    }
-`;
-
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
 const UploadCloudIcon = () => (
@@ -337,7 +289,6 @@ export function AddDocumentModal({ isOpen, onClose, initialStage = 'CHECK_IN', o
     const [description, setDescription] = useState('');
     const [file, setFile] = useState<File | undefined>();
     const [stage, setStage] = useState<ProtocolStage>(initialStage);
-    const [isMandatory, setIsMandatory] = useState(true);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -351,7 +302,6 @@ export function AddDocumentModal({ isOpen, onClose, initialStage = 'CHECK_IN', o
         setDescription('');
         setFile(undefined);
         setStage(initialStage);
-        setIsMandatory(true);
         setErrors({});
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
@@ -412,7 +362,6 @@ export function AddDocumentModal({ isOpen, onClose, initialStage = 'CHECK_IN', o
                 protocolTemplateId: template.id,
                 triggerType: 'GLOBAL_ALWAYS',
                 stage,
-                isMandatory,
                 displayOrder: 999,
             });
 
@@ -513,21 +462,6 @@ export function AddDocumentModal({ isOpen, onClose, initialStage = 'CHECK_IN', o
                         </StageCard>
                     </StageRow>
                 </Field>
-
-                {/* Mandatory */}
-                <MandatoryRow>
-                    <MandatoryText>
-                        <MandatoryLabel>Obowiązkowy</MandatoryLabel>
-                        <MandatoryDesc>Wizyta nie może być zakończona bez podpisu</MandatoryDesc>
-                    </MandatoryText>
-                    <ToggleBtn
-                        type="button"
-                        $on={isMandatory}
-                        onClick={() => setIsMandatory(v => !v)}
-                        aria-checked={isMandatory}
-                        role="switch"
-                    />
-                </MandatoryRow>
 
                 {errors.submit && <ErrorMessage>{errors.submit}</ErrorMessage>}
 

@@ -41,11 +41,6 @@ const DocumentName = styled.h3`
     letter-spacing: -0.01em;
 `;
 
-const MandatoryIcon = styled.span`
-    color: rgb(239, 68, 68);
-    font-weight: 700;
-    font-size: 1.125rem;
-`;
 
 const Description = styled.p`
     margin: 0 0 0.75rem 0;
@@ -60,7 +55,7 @@ const BadgeGroup = styled.div`
     flex-wrap: wrap;
 `;
 
-const Badge = styled.span<{ $variant: 'global' | 'service' | 'mandatory' | 'optional' }>`
+const Badge = styled.span<{ $variant: 'global' | 'service' }>`
     display: inline-flex;
     align-items: center;
     gap: 0.375rem;
@@ -80,16 +75,6 @@ const Badge = styled.span<{ $variant: 'global' | 'service' | 'mandatory' | 'opti
                 return `
                     background: rgb(243, 232, 255);
                     color: rgb(147, 51, 234);
-                `;
-            case 'mandatory':
-                return `
-                    background: rgb(254, 242, 242);
-                    color: rgb(220, 38, 38);
-                `;
-            case 'optional':
-                return `
-                    background: rgb(243, 244, 246);
-                    color: rgb(75, 85, 99);
                 `;
         }
     }}
@@ -215,11 +200,6 @@ const DetailValue = styled.span`
 `;
 
 // Icons
-const ShieldCheckIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-    </svg>
-);
 
 const GlobeIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -289,7 +269,6 @@ export const ProtocolRuleCard = ({ rule, onEdit, onRefresh }: ProtocolRuleCardPr
             <CardHeader>
                 <TitleSection>
                     <DocumentName>
-                        {rule.isMandatory && <MandatoryIcon>*</MandatoryIcon>}
                         {rule.protocolTemplate?.name || 'Nieznany protokół'}
                     </DocumentName>
                     {rule.protocolTemplate?.description && (
@@ -318,10 +297,6 @@ export const ProtocolRuleCard = ({ rule, onEdit, onRefresh }: ProtocolRuleCardPr
                                 )}
                             </>
                         )}
-                        <Badge $variant={rule.isMandatory ? 'mandatory' : 'optional'}>
-                            {rule.isMandatory ? <ShieldCheckIcon /> : null}
-                            {rule.isMandatory ? 'Obowiązkowy' : 'Opcjonalny'}
-                        </Badge>
                     </BadgeGroup>
                 </TitleSection>
                 <Actions>
@@ -369,10 +344,6 @@ export const ProtocolRuleCard = ({ rule, onEdit, onRefresh }: ProtocolRuleCardPr
                             </DetailValue>
                         </DetailRow>
                     )}
-                    <DetailRow>
-                        <DetailLabel>Obowiązkowy:</DetailLabel>
-                        <DetailValue>{rule.isMandatory ? 'Tak' : 'Nie'}</DetailValue>
-                    </DetailRow>
                     <DetailRow>
                         <DetailLabel>Kolejność wyświetlania:</DetailLabel>
                         <DetailValue>{rule.displayOrder}</DetailValue>

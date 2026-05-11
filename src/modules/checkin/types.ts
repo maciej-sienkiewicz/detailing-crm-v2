@@ -349,7 +349,6 @@ export interface ProtocolResponse {
     templateId: string | null;
     templateName: string;
     stage: 'CHECK_IN' | 'CHECK_OUT';
-    isMandatory: boolean;
     status: 'READY_FOR_SIGNATURE' | 'PENDING';
     filledPdfUrl?: string; // Presigned URL (10 min)
 }

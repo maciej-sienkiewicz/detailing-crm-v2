@@ -42,7 +42,6 @@ const mockCreateVisitFromReservation = async (
                 templateId: 'template_1',
                 templateName: 'Protokół przyjęcia pojazdu',
                 stage: 'CHECK_IN',
-                isMandatory: true,
                 status: 'READY_FOR_SIGNATURE',
                 filledPdfUrl: 'https://example.com/protocol1.pdf'
             },
@@ -51,7 +50,6 @@ const mockCreateVisitFromReservation = async (
                 templateId: 'template_2',
                 templateName: 'Warunki świadczenia usług',
                 stage: 'CHECK_IN',
-                isMandatory: true,
                 status: 'READY_FOR_SIGNATURE',
                 filledPdfUrl: 'https://example.com/protocol2.pdf'
             }

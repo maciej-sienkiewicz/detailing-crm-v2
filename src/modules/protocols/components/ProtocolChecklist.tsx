@@ -57,7 +57,7 @@ const StepItem = styled.div<{ $isLast: boolean; $isSigned: boolean }>`
     `}
 `;
 
-const StepIcon = styled.div<{ $isMandatory: boolean; $isSigned: boolean }>`
+const StepIcon = styled.div<{ $isSigned: boolean }>`
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -68,27 +68,15 @@ const StepIcon = styled.div<{ $isMandatory: boolean; $isSigned: boolean }>`
     z-index: 1;
     transition: all ${props => props.theme.transitions.fast};
 
-    ${props => {
-        if (props.$isSigned) {
-            return `
-                background: rgb(34, 197, 94); // green-500
-                color: white;
-                border: 2px solid rgb(34, 197, 94);
-            `;
-        }
-        if (props.$isMandatory) {
-            return `
-                background: white;
-                color: rgb(239, 68, 68); // red-500
-                border: 2px solid rgb(239, 68, 68);
-            `;
-        }
-        return `
-            background: white;
-            color: rgb(156, 163, 175); // gray-400
-            border: 2px solid rgb(209, 213, 219); // gray-300
-        `;
-    }}
+    ${props => props.$isSigned ? `
+        background: rgb(34, 197, 94);
+        color: white;
+        border: 2px solid rgb(34, 197, 94);
+    ` : `
+        background: white;
+        color: rgb(156, 163, 175);
+        border: 2px solid rgb(209, 213, 219);
+    `}
 
     svg {
         width: 16px;
@@ -127,7 +115,7 @@ const StepMeta = styled.div`
     margin-top: ${props => props.theme.spacing.sm};
 `;
 
-const Badge = styled.span<{ $variant: 'mandatory' | 'optional' | 'signed' | 'global' | 'service' }>`
+const Badge = styled.span<{ $variant: 'signed' | 'global' | 'service' }>`
     display: inline-flex;
     align-items: center;
     gap: ${props => props.theme.spacing.xs};
@@ -139,16 +127,6 @@ const Badge = styled.span<{ $variant: 'mandatory' | 'optional' | 'signed' | 'glo
 
     ${props => {
         switch (props.$variant) {
-            case 'mandatory':
-                return `
-                    background: rgb(254, 242, 242); // red-50
-                    color: rgb(220, 38, 38); // red-600
-                `;
-            case 'optional':
-                return `
-                    background: rgb(243, 244, 246); // gray-50
-                    color: rgb(107, 114, 128); // gray-500
-                `;
             case 'signed':
                 return `
                     background: rgb(220, 252, 231); // green-100
@@ -268,11 +246,6 @@ const CheckIcon = () => (
     </svg>
 );
 
-const AlertIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-    </svg>
-);
 
 const CircleIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -302,10 +275,7 @@ export const ProtocolChecklist = ({ visitId, stage }: ProtocolChecklistProps) =>
     // Calculate progress
     const totalProtocols = stageProtocols.length;
     const signedProtocols = stageProtocols.filter(p => p.isSigned).length;
-    const mandatoryProtocols = stageProtocols.filter(p => p.isMandatory);
-    const signedMandatory = mandatoryProtocols.filter(p => p.isSigned).length;
     const progressPercent = totalProtocols > 0 ? (signedProtocols / totalProtocols) * 100 : 0;
-    const canProceed = mandatoryProtocols.length === signedMandatory;
 
     const handleSignProtocol = async (protocolId: string) => {
         setSigningProtocol(protocolId);
@@ -371,34 +341,19 @@ export const ProtocolChecklist = ({ visitId, stage }: ProtocolChecklistProps) =>
             <ChecklistContainer>
                 <StepperList>
                     {stageProtocols
-                        .sort((a, b) => {
-                            // Mandatory first, then by creation date
-                            if (a.isMandatory && !b.isMandatory) return -1;
-                            if (!a.isMandatory && b.isMandatory) return 1;
-                            return 0;
-                        })
                         .map((protocol, index) => (
                             <StepItem
                                 key={protocol.id}
                                 $isLast={index === stageProtocols.length - 1}
                                 $isSigned={protocol.isSigned}
                             >
-                                <StepIcon $isMandatory={protocol.isMandatory} $isSigned={protocol.isSigned}>
-                                    {protocol.isSigned ? (
-                                        <CheckIcon />
-                                    ) : protocol.isMandatory ? (
-                                        <AlertIcon />
-                                    ) : (
-                                        <CircleIcon />
-                                    )}
+                                <StepIcon $isSigned={protocol.isSigned}>
+                                    {protocol.isSigned ? <CheckIcon /> : <CircleIcon />}
                                 </StepIcon>
 
                                 <StepContent $isSigned={protocol.isSigned}>
                                     <StepTitle>
                                         {protocol.protocolTemplate?.name || 'Nieznany protokół'}
-                                        {protocol.isMandatory && !protocol.isSigned && (
-                                            <span style={{ color: 'rgb(239, 68, 68)' }}>*</span>
-                                        )}
                                     </StepTitle>
 
                                     {protocol.protocolTemplate?.description && (
@@ -408,16 +363,8 @@ export const ProtocolChecklist = ({ visitId, stage }: ProtocolChecklistProps) =>
                                     )}
 
                                     <StepMeta>
-                                        {protocol.isSigned ? (
+                                        {protocol.isSigned && (
                                             <Badge $variant="signed">✓ Podpisano</Badge>
-                                        ) : (
-                                            <>
-                                                {protocol.isMandatory ? (
-                                                    <Badge $variant="mandatory">Obowiązkowy</Badge>
-                                                ) : (
-                                                    <Badge $variant="optional">Opcjonalny</Badge>
-                                                )}
-                                            </>
                                         )}
                                     </StepMeta>
 
@@ -456,11 +403,10 @@ export const ProtocolChecklist = ({ visitId, stage }: ProtocolChecklistProps) =>
                     </ProgressText>
                 </div>
 
-                {!canProceed && (
+                {signedProtocols < totalProtocols && (
                     <ActionButton
                         $variant="primary"
                         onClick={handleSignAll}
-                        disabled={signedProtocols === totalProtocols}
                     >
                         <PenIcon />
                         Otwórz arkusz podpisu dla wszystkich

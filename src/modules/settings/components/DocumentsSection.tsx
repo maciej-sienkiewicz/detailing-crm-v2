@@ -560,10 +560,6 @@ function StageSection({ stage, rules, templatesMap, onAdd, onRefresh }: StageSec
                                             <PillBadge $variant={rule.triggerType === 'GLOBAL_ALWAYS' ? 'global' : 'service'}>
                                                 {rule.triggerType === 'GLOBAL_ALWAYS' ? 'Zawsze' : 'Dla usług'}
                                             </PillBadge>
-                                            <MetaDot>·</MetaDot>
-                                            <PillBadge $variant={rule.isMandatory ? 'mandatory' : 'optional'}>
-                                                {rule.isMandatory ? 'Obowiązkowy' : 'Opcjonalny'}
-                                            </PillBadge>
                                             {rule.triggerType === 'SERVICE_SPECIFIC' && rule.serviceNames.length > 0 && (
                                                 <>
                                                     <MetaDot>·</MetaDot>

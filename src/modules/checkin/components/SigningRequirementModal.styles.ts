@@ -65,18 +65,6 @@ export const DocumentName = styled.div`
     text-overflow: ellipsis;
 `;
 
-export const StatusBadge = styled.span<{ $mandatory: boolean }>`
-    padding: 3px 9px;
-    border-radius: ${st.radiusFull};
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.45px;
-    white-space: nowrap;
-    flex-shrink: 0;
-    background: ${props => props.$mandatory ? st.accentRedDim : st.bgCardAlt};
-    color: ${props => props.$mandatory ? st.accentRed : st.textMuted};
-`;
 
 export const ActionButtons = styled.div`
     display: flex;
@@ -127,11 +115,6 @@ export const PrimaryActionGroup = styled.div`
     display: flex;
     gap: ${props => props.theme.spacing.sm};
     justify-content: flex-end;
-`;
-
-export const SecondaryActionGroup = styled.div`
-    display: flex;
-    justify-content: center;
 `;
 
 export const CancelBtn = styled.button`
@@ -191,24 +174,6 @@ export const ConfirmBtn = styled.button`
     }
 `;
 
-export const SkipLink = styled.button`
-    background: none;
-    border: none;
-    padding: 6px 12px;
-    font-size: ${st.fontSm};
-    font-weight: 500;
-    color: ${st.textMuted};
-    cursor: pointer;
-    transition: color ${st.transition};
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    text-decoration-color: transparent;
-
-    &:hover {
-        color: ${st.textSecondary};
-        text-decoration-color: ${st.textMuted};
-    }
-`;
 
 const spin = keyframes`
     from { transform: rotate(0deg); }

@@ -85,7 +85,6 @@ export const mockProtocolRules: ProtocolRule[] = [
     stage: 'CHECK_IN',
     serviceIds: [],
     serviceNames: [],
-    isMandatory: true,
     displayOrder: 1,
     createdAt: '2024-01-10T10:00:00Z',
     updatedAt: '2024-01-10T10:00:00Z',
@@ -98,7 +97,6 @@ export const mockProtocolRules: ProtocolRule[] = [
     stage: 'CHECK_IN',
     serviceIds: [],
     serviceNames: [],
-    isMandatory: true,
     displayOrder: 2,
     createdAt: '2024-01-10T10:00:00Z',
     updatedAt: '2024-01-10T10:00:00Z',
@@ -112,7 +110,6 @@ export const mockProtocolRules: ProtocolRule[] = [
     stage: 'CHECK_OUT',
     serviceIds: [],
     serviceNames: [],
-    isMandatory: true,
     displayOrder: 1,
     createdAt: '2024-01-10T10:00:00Z',
     updatedAt: '2024-01-10T10:00:00Z',
@@ -125,7 +122,6 @@ export const mockProtocolRules: ProtocolRule[] = [
     stage: 'CHECK_OUT',
     serviceIds: [],
     serviceNames: [],
-    isMandatory: false,
     displayOrder: 2,
     createdAt: '2024-01-10T10:00:00Z',
     updatedAt: '2024-01-10T10:00:00Z',
@@ -139,7 +135,6 @@ export const mockProtocolRules: ProtocolRule[] = [
     stage: 'CHECK_IN',
     serviceIds: ['service-1', 'service-3'], // Korekta lakieru, Detailing kompleksowy
     serviceNames: ['Korekta lakieru', 'Detailing kompleksowy'],
-    isMandatory: true,
     displayOrder: 3,
     createdAt: '2024-01-10T10:00:00Z',
     updatedAt: '2024-01-10T10:00:00Z',
@@ -152,7 +147,6 @@ export const mockProtocolRules: ProtocolRule[] = [
     stage: 'CHECK_OUT',
     serviceIds: ['service-1'], // Korekta lakieru
     serviceNames: ['Korekta lakieru'],
-    isMandatory: true,
     displayOrder: 3,
     createdAt: '2024-01-10T10:00:00Z',
     updatedAt: '2024-01-10T10:00:00Z',
@@ -166,7 +160,6 @@ export const mockProtocolRules: ProtocolRule[] = [
     stage: 'CHECK_IN',
     serviceIds: ['service-2'], // Powłoka ceramiczna
     serviceNames: ['Powłoka ceramiczna'],
-    isMandatory: true,
     displayOrder: 4,
     createdAt: '2024-01-10T10:00:00Z',
     updatedAt: '2024-01-10T10:00:00Z',
@@ -179,7 +172,6 @@ export const mockProtocolRules: ProtocolRule[] = [
     stage: 'CHECK_OUT',
     serviceIds: ['service-2'], // Powłoka ceramiczna
     serviceNames: ['Powłoka ceramiczna'],
-    isMandatory: true,
     displayOrder: 4,
     createdAt: '2024-01-10T10:00:00Z',
     updatedAt: '2024-01-10T10:00:00Z',

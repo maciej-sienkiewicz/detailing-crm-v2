@@ -20,7 +20,6 @@ export interface ProtocolRule {
   serviceIds: string[]; // List of service IDs (only if triggerType is SERVICE_SPECIFIC)
   serviceNames: string[]; // Populated in responses with service names
   consentDefinitionId?: string; // Only for CUSTOMER_CONSENT_REQUIRED rules
-  isMandatory: boolean;
   displayOrder: number;
   createdAt: string;
   updatedAt: string;
@@ -32,7 +31,6 @@ export interface VisitProtocol {
   protocolTemplateId: string;
   protocolTemplate?: ProtocolTemplate;
   stage: ProtocolStage;
-  isMandatory: boolean;
   isSigned: boolean;
   signedAt?: string;
   signedBy?: string;
@@ -60,7 +58,6 @@ export interface CreateProtocolRuleDto {
   stage: ProtocolStage;
   serviceIds?: string[]; // List of service IDs (only if triggerType is SERVICE_SPECIFIC)
   consentDefinitionId?: string; // Only for CUSTOMER_CONSENT_REQUIRED rules
-  isMandatory: boolean;
   displayOrder?: number;
 }
 

@@ -3,7 +3,6 @@ import styled from 'styled-components';
 import { Modal } from '@/common/components/Modal';
 import { Button, ButtonGroup } from '@/common/components/Button';
 import { Label, FieldGroup, ErrorMessage, Select } from '@/common/components/Form';
-import { Toggle } from '@/common/components/Toggle';
 import { useCreateProtocolRule, useUpdateProtocolRule } from '../api/useProtocols';
 import { useServices } from '@/modules/services/hooks/useServices';
 import type { ProtocolTemplate, ProtocolStage, ProtocolRule } from '../types';
@@ -124,29 +123,6 @@ const RadioDescription = styled.div`
     color: ${props => props.theme.colors.textMuted};
 `;
 
-const ToggleRow = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: ${props => props.theme.spacing.md};
-    background: rgb(249, 250, 251);
-    border-radius: ${props => props.theme.radii.md};
-`;
-
-const ToggleLabel = styled.div``;
-
-const ToggleLabelText = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 600;
-    color: ${props => props.theme.colors.text};
-    margin-bottom: 2px;
-`;
-
-const ToggleDescription = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
-`;
-
 // Icons
 const InfoIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -174,7 +150,6 @@ export const ProtocolRuleModal = ({
     const [protocolTemplateId, setProtocolTemplateId] = useState('');
     const [triggerType, setTriggerType] = useState<'GLOBAL_ALWAYS' | 'SERVICE_SPECIFIC'>('GLOBAL_ALWAYS');
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
-    const [isMandatory, setIsMandatory] = useState(true);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const createMutation = useCreateProtocolRule();
@@ -195,13 +170,11 @@ export const ProtocolRuleModal = ({
                 setProtocolTemplateId(editingRule.protocolTemplateId);
                 setTriggerType(editingRule.triggerType);
                 setSelectedServiceIds(editingRule.serviceIds || []);
-                setIsMandatory(editingRule.isMandatory);
             } else {
                 // Reset form when modal opens for creating new rule
                 setProtocolTemplateId('');
                 setTriggerType('GLOBAL_ALWAYS');
                 setSelectedServiceIds([]);
-                setIsMandatory(true);
             }
             setErrors({});
         }
@@ -235,7 +208,6 @@ export const ProtocolRuleModal = ({
                 triggerType,
                 stage,
                 serviceIds: triggerType === 'SERVICE_SPECIFIC' ? selectedServiceIds : undefined,
-                isMandatory,
                 displayOrder: editingRule?.displayOrder ?? 999, // Keep order for edits, default for new
             };
 
@@ -364,20 +336,6 @@ export const ProtocolRuleModal = ({
                         )}
                     </FieldGroup>
                 )}
-
-                <ToggleRow>
-                    <ToggleLabel>
-                        <ToggleLabelText>Obowiązkowy</ToggleLabelText>
-                        <ToggleDescription>
-                            Jeśli włączone, wizyta nie może być zakończona bez podpisu tego protokołu
-                        </ToggleDescription>
-                    </ToggleLabel>
-                    <Toggle
-                        checked={isMandatory}
-                        onChange={setIsMandatory}
-                        label=""
-                    />
-                </ToggleRow>
 
                 {errors.submit && (
                     <ErrorMessage>{errors.submit}</ErrorMessage>

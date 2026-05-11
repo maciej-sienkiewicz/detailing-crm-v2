@@ -3,7 +3,6 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { Modal } from '@/common/components/Modal';
 import { visitApi } from '@/modules/visits/api/visitApi';
 import { DocumentPreview } from './DocumentPreview';
-import { SkipSigningConfirmDialog } from './SkipSigningConfirmDialog';
 import { NotificationSection, defaultNotificationOptions, toConfirmVisitOptions } from './NotificationSection';
 import type { NotificationOptions } from './NotificationSection';
 import type { ProtocolResponse } from '../types';
@@ -14,15 +13,12 @@ import {
     DocumentIcon,
     DocumentInfo,
     DocumentName,
-    StatusBadge,
     ActionButtons,
     IconButton,
     FooterActions,
     PrimaryActionGroup,
-    SecondaryActionGroup,
     CancelBtn,
     ConfirmBtn,
-    SkipLink,
     Spinner,
     LoadingContainer,
     EmptyState,
@@ -81,7 +77,6 @@ export const SigningRequirementModal = ({
     onConfirm,
 }: SigningRequirementModalProps) => {
     const [previewProtocolId, setPreviewProtocolId] = useState<string | null>(null);
-    const [showSkipConfirmDialog, setShowSkipConfirmDialog] = useState(false);
 
     const { data: emailConfig, isPending: emailConfigPending } = useQuery({
         queryKey: ['email-automation-config'],
@@ -120,7 +115,6 @@ export const SigningRequirementModal = ({
     useEffect(() => {
         if (isOpen) {
             setPreviewProtocolId(null);
-            setShowSkipConfirmDialog(false);
             setNotifOptions(defaultNotificationOptions(hasProtocol, visitWelcomeEnabled));
         }
     }, [isOpen, hasProtocol, visitWelcomeEnabled]);
@@ -129,9 +123,6 @@ export const SigningRequirementModal = ({
         const pdfUrl = protocols.find(p => p.id === protocolId)?.filledPdfUrl;
         if (pdfUrl) window.open(pdfUrl, '_blank');
     };
-    const mandatoryProtocols = protocols?.filter(p => p.isMandatory) ?? [];
-    const allMandatoryReady = mandatoryProtocols.every(p => p.status === 'READY_FOR_SIGNATURE');
-    const canProceed = allMandatoryReady || mandatoryProtocols.length === 0;
     const isProcessing = cancelVisitMutation.isPending || confirmVisitMutation.isPending;
     const canInteract = !isCreating && visitId !== null;
 
@@ -160,10 +151,6 @@ export const SigningRequirementModal = ({
                                             {protocol.templateName || 'Protokół'}
                                         </DocumentName>
                                     </DocumentInfo>
-
-                                    <StatusBadge $mandatory={protocol.isMandatory}>
-                                        {protocol.isMandatory ? 'Wymagany' : 'Opcjonalny'}
-                                    </StatusBadge>
 
                                     <ActionButtons>
                                         <IconButton onClick={() => setPreviewProtocolId(protocol.id)} title="Podgląd">
@@ -198,19 +185,12 @@ export const SigningRequirementModal = ({
                             </CancelBtn>
                             <ConfirmBtn
                                 onClick={() => confirmVisitMutation.mutate()}
-                                disabled={!canInteract || !canProceed || isProcessing}
+                                disabled={!canInteract || isProcessing}
                             >
                                 {isProcessing ? 'Przetwarzanie...' : 'Zatwierdź i rozpocznij wizytę'}
                             </ConfirmBtn>
                         </PrimaryActionGroup>
 
-                        {!canProceed && !isProcessing && canInteract && (
-                            <SecondaryActionGroup>
-                                <SkipLink onClick={() => setShowSkipConfirmDialog(true)}>
-                                    Rozpocznij bez podpisów
-                                </SkipLink>
-                            </SecondaryActionGroup>
-                        )}
                     </FooterActions>
 
                 </ModalContent>
@@ -225,11 +205,6 @@ export const SigningRequirementModal = ({
                 />
             )}
 
-            <SkipSigningConfirmDialog
-                isOpen={showSkipConfirmDialog}
-                onConfirm={() => { setShowSkipConfirmDialog(false); confirmVisitMutation.mutate(); }}
-                onCancel={() => setShowSkipConfirmDialog(false)}
-            />
         </>
     );
 };
