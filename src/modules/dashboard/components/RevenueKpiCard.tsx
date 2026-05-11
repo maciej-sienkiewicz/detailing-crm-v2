@@ -123,7 +123,7 @@ export const RevenueKpiCard = () => {
       const d = new Date(b.weekStart);
       return {
         weekLabel: d.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' }),
-        value: b.grossAmount,
+        value: b.grossAmount / 100,
       };
     });
   }, [data]);
@@ -149,7 +149,7 @@ export const RevenueKpiCard = () => {
     >
       <Card>
         <Eyebrow>Przychód · tydzień</Eyebrow>
-        <Number>{formatCurrency(data.currentWeek.grossAmount, currency)}</Number>
+        <Number>{formatCurrency(data.currentWeek.grossAmount / 100, currency)}</Number>
         <Delta $positive={positive}>
           {positive ? <TrendingUp /> : <TrendingDown />}
           {positive ? '+' : ''}{data.deltaPercentage.toFixed(1)}% vs. poprzedni tydzień
@@ -178,7 +178,7 @@ export const RevenueKpiCard = () => {
                 tick={{ fill: '#475569', fontSize: 10 }}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={v => `${(v / 100000).toFixed(0)}k`}
+                tickFormatter={v => `${(v / 1000).toFixed(0)}k`}
               />
               <Tooltip
                 content={({ active, payload, label }) =>
