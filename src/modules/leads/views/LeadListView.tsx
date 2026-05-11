@@ -1523,6 +1523,32 @@ const InlinePriceInput = styled.input`
   &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 `;
 
+const InlineNetInput = styled.input`
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 10px;
+  font-weight: 400;
+  color: ${st.textMuted};
+  font-variant-numeric: tabular-nums;
+  font-family: inherit;
+  text-align: right;
+  width: 52px;
+  padding: 0;
+  cursor: text;
+  border-radius: 3px;
+  transition: background ${st.transition}, color ${st.transition};
+
+  &:focus {
+    background: rgba(14, 165, 233, 0.07);
+    color: ${st.text};
+  }
+  &::placeholder { color: #c0cad8; }
+  -moz-appearance: textfield;
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+`;
+
 // EstCard without overflow:hidden so autocomplete dropdown isn't clipped
 const UserQuoteCard = styled.div`
   background: #fff;
@@ -2760,20 +2786,9 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
                 updateItem(item._key, patch);
               }}
             />
-            {/* Price — netto and brutto both editable */}
+            {/* Price — brutto prominent, netto as editable ghost below */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <InlinePriceInput
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="0.00"
-                  value={item.priceNet}
-                  onChange={e => syncFromNet(item._key, e.target.value)}
-                  onBlur={() => normalizeItem(item._key)}
-                  title="Cena netto (PLN)"
-                />
-                <span style={{ fontSize: st.fontSm, fontWeight: 500, color: st.textSecondary, whiteSpace: 'nowrap' }}>netto</span>
-                <span style={{ fontSize: 10, color: st.textMuted }}>/</span>
                 <InlinePriceInput
                   type="text"
                   inputMode="decimal"
@@ -2782,18 +2797,24 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
                   onChange={e => syncFromGross(item._key, e.target.value)}
                   onBlur={() => normalizeItem(item._key)}
                   title="Cena brutto (PLN)"
-                  style={{ fontWeight: 600, color: st.text }}
                 />
-                <span style={{ fontSize: st.fontSm, fontWeight: 600, color: st.text, whiteSpace: 'nowrap' }}>brutto</span>
-                <QuoteRemoveBtn onClick={() => removeItem(item._key)} title="Usuń pozycję">
+                <span style={{ fontSize: st.fontSm, fontWeight: 500, color: st.textSecondary, whiteSpace: 'nowrap' }}>brutto</span>
+                <QuoteRemoveBtn onClick={() => removeItem(item._key)} title="Usuń pozycję" style={{ marginLeft: 2 }}>
                   <X />
                 </QuoteRemoveBtn>
               </div>
-              {item.vatRate > 0 && (
-                <span style={{ fontSize: 10, color: st.textMuted }}>
-                  VAT {item.vatRate}%
-                </span>
-              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontVariantNumeric: 'tabular-nums' }}>
+                <InlineNetInput
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={item.priceNet}
+                  onChange={e => syncFromNet(item._key, e.target.value)}
+                  onBlur={() => normalizeItem(item._key)}
+                  title="Cena netto — kliknij aby edytować"
+                />
+                <span style={{ fontSize: 10, color: st.textMuted }}>PLN netto · VAT {item.vatRate}%</span>
+              </div>
             </div>
           </EstRow>
         ))}
