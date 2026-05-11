@@ -44,6 +44,7 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { StatTile, StatTileSkeleton } from '@/common/components/StatTile';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal/ConfirmationModal';
 import { LeadForm } from '../components/LeadForm';
+import { OfferComposer } from '../components/OfferComposer';
 import {
   useLeads,
   useLead,
@@ -3020,6 +3021,11 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
                 </RelatedVisitsCard>
               </PanelSection>
             )}
+
+            {/* Offer composer — EMAIL leads only */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 4 }}>
+              <OfferComposer lead={lead} />
+            </div>
 
           </ExpandedPanel>
         </ExpandedTd>
