@@ -167,8 +167,8 @@ export const mapBackendVisitToVisit = (backendVisit: BackendVisit): Visit => {
         vehicleName: backendVisit.vehicleName,
         description: backendVisit.description,
         totalCost: {
-            netAmount: backendVisit.totalCost.netAmount,
-            grossAmount: backendVisit.totalCost.grossAmount,
+            netAmount: backendVisit.totalCost.netAmount / 100,
+            grossAmount: backendVisit.totalCost.grossAmount / 100,
             currency: backendVisit.totalCost.currency,
         },
         status: visitStatus,

@@ -436,7 +436,15 @@ export const customerDetailApi = {
         const response = await apiClient.get<CustomerDetailData>(
             `${CUSTOMERS_BASE_PATH}/${customerId}/detail`
         );
-        return response.data;
+        const raw = response.data;
+        return {
+            ...raw,
+            lifetimeValue: {
+                ...raw.lifetimeValue,
+                netAmount: raw.lifetimeValue.netAmount / 100,
+                grossAmount: raw.lifetimeValue.grossAmount / 100,
+            },
+        };
     },
 
     getCustomerVehicles: async (customerId: string): Promise<CustomerVehiclesResponse> => {
@@ -471,7 +479,12 @@ export const customerDetailApi = {
             `${CUSTOMERS_BASE_PATH}/${customerId}/revenue-summary`,
             { params: { months } },
         );
-        return response.data;
+        const raw = response.data;
+        return {
+            ...raw,
+            buckets: raw.buckets.map(b => ({ ...b, grossAmount: b.grossAmount / 100 })),
+            total: { ...raw.total, grossAmount: raw.total.grossAmount / 100, netAmount: raw.total.netAmount / 100 },
+        };
     },
 
     updateConsent: async (
