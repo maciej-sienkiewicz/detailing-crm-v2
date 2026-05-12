@@ -241,34 +241,31 @@ const GusBtn = styled.button`
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 0 16px;
+    padding: 0 14px;
     align-self: stretch;
     border: none;
-    border-left: 1.5px solid rgba(59, 130, 246, 0.25);
-    background: ${st.gradientBlue};
-    color: #fff;
+    border-left: 1.5px solid ${st.border};
+    background: ${st.accentBlueDim};
+    color: ${st.accentBlue};
     font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.02em;
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
-    transition: filter ${st.transition}, opacity ${st.transition}, transform 80ms ease;
+    transition: background ${st.transition}, color ${st.transition};
 
     &:hover:not(:disabled) {
-        filter: brightness(1.1);
+        background: rgba(59, 130, 246, 0.2);
     }
 
     &:active:not(:disabled) {
-        transform: scale(0.97);
-        filter: brightness(0.95);
+        background: rgba(59, 130, 246, 0.28);
     }
 
     &:disabled {
-        opacity: 0.55;
+        opacity: 0.5;
         cursor: not-allowed;
-        filter: grayscale(0.25);
     }
 `;
 
