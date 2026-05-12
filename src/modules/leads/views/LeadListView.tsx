@@ -686,7 +686,7 @@ const ThIcon = styled(Th)`
 `;
 
 const ThActions = styled(Th)`
-  width: 76px;
+  width: 150px;
   padding-left: 0;
 `;
 
@@ -713,7 +713,6 @@ const Td = styled.td`
   font-size: 13px;
   color: ${st.text};
   vertical-align: middle;
-  overflow: hidden;
 `;
 
 const TdIcon = styled(Td)`
@@ -723,7 +722,7 @@ const TdIcon = styled(Td)`
 
 const TdActions = styled(Td)`
   padding-left: 0;
-  width: 76px;
+  width: 150px;
 `;
 
 // ─── Source icon ──────────────────────────────────────────────────────────────
