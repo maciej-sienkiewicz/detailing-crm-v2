@@ -198,10 +198,35 @@ const CollapsibleContent = styled.div<{ $open: boolean }>`
     border-top: ${props => props.$open ? `1px solid ${st.border}` : 'none'};
 `;
 
-const NipRow = styled.div`
+const NipInputWrap = styled.div`
     display: flex;
-    gap: 8px;
     align-items: center;
+    border: 1px solid ${st.border};
+    border-radius: 6px;
+    background: #F8FAFC;
+    overflow: hidden;
+    transition: border-color 200ms, box-shadow 200ms;
+
+    &:focus-within {
+        border-color: ${st.borderFocus};
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        background: #fff;
+    }
+`;
+
+const NipBareInput = styled.input`
+    flex: 1;
+    min-width: 0;
+    padding: 9px 12px;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    color: ${st.text};
+    outline: none;
+
+    &::placeholder {
+        color: ${st.textMuted};
+    }
 `;
 
 const GusBtn = styled.button`
@@ -209,9 +234,9 @@ const GusBtn = styled.button`
     align-items: center;
     gap: 5px;
     padding: 0 12px;
-    height: 36px;
-    border: 1.5px solid ${st.accentBlue};
-    border-radius: ${st.radiusSm};
+    align-self: stretch;
+    border: none;
+    border-left: 1px solid ${st.border};
     background: ${st.accentBlueDim};
     color: ${st.accentBlue};
     font-size: 12px;
@@ -219,7 +244,7 @@ const GusBtn = styled.button`
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
-    transition: all ${st.transition};
+    transition: background 150ms, color 150ms;
 
     &:hover:not(:disabled) {
         background: ${st.accentBlue};
@@ -1165,24 +1190,23 @@ export const VerificationStep = ({
                                 </FieldGroup>
                                 <FieldGroup>
                                     <Label>NIP</Label>
-                                    <NipRow>
-                                        <Input
+                                    <NipInputWrap>
+                                        <NipBareInput
                                             value={formData.company?.nip || ''}
                                             onChange={(e) => {
                                                 setGusError(null);
                                                 onChange({ company: { name: formData.company?.name || '', nip: e.target.value, regon: formData.company?.regon || '', address: { street: formData.company?.address.street || '', city: formData.company?.address.city || '', postalCode: formData.company?.address.postalCode || '', country: formData.company?.address.country || 'Polska' } } });
                                             }}
                                             placeholder="np. 1234567890"
-                                            style={{ flex: 1 }}
                                         />
                                         <GusBtn
                                             type="button"
                                             disabled={isGusLoading}
                                             onClick={handleFetchGusData}
                                         >
-                                            {isGusLoading ? 'Pobieranie…' : 'Pobierz pełne dane'}
+                                            {isGusLoading ? 'Pobieranie…' : 'Pobierz z GUS'}
                                         </GusBtn>
-                                    </NipRow>
+                                    </NipInputWrap>
                                     {gusError && <GusErrorMsg>{gusError}</GusErrorMsg>}
                                 </FieldGroup>
                                 <FieldGroup>
