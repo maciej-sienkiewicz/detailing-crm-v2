@@ -200,67 +200,86 @@ const CollapsibleContent = styled.div<{ $open: boolean }>`
 
 const NipInputWrap = styled.div`
     display: flex;
-    align-items: center;
-    border: 1px solid ${st.border};
-    border-radius: 6px;
-    background: #F8FAFC;
+    align-items: stretch;
+    border: 1.5px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    background: ${st.bgCard};
     overflow: hidden;
-    transition: border-color 200ms, box-shadow 200ms;
+    box-shadow: ${st.shadowXs};
+    transition: border-color ${st.transition}, box-shadow ${st.transition};
 
     &:focus-within {
         border-color: ${st.borderFocus};
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        background: #fff;
+        box-shadow: ${st.shadowBlue};
     }
 `;
 
 const NipBareInput = styled.input`
     flex: 1;
     min-width: 0;
-    padding: 9px 12px;
+    padding: 10px 13px;
     border: none;
     background: transparent;
-    font-size: 13px;
+    font-size: ${st.fontSm};
     color: ${st.text};
     outline: none;
+    letter-spacing: 0.02em;
 
     &::placeholder {
         color: ${st.textMuted};
     }
 `;
 
+const GusBtnSpinner = styled.svg`
+    @keyframes gus-spin { to { transform: rotate(360deg); } }
+    animation: gus-spin 0.7s linear infinite;
+    flex-shrink: 0;
+`;
+
 const GusBtn = styled.button`
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 0 12px;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 16px;
     align-self: stretch;
     border: none;
-    border-left: 1px solid ${st.border};
-    background: ${st.accentBlueDim};
-    color: ${st.accentBlue};
+    border-left: 1.5px solid rgba(59, 130, 246, 0.25);
+    background: ${st.gradientBlue};
+    color: #fff;
     font-size: 12px;
     font-weight: 600;
+    letter-spacing: 0.03em;
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
-    transition: background 150ms, color 150ms;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+    transition: filter ${st.transition}, opacity ${st.transition}, transform 80ms ease;
 
     &:hover:not(:disabled) {
-        background: ${st.accentBlue};
-        color: #fff;
+        filter: brightness(1.1);
+    }
+
+    &:active:not(:disabled) {
+        transform: scale(0.97);
+        filter: brightness(0.95);
     }
 
     &:disabled {
-        opacity: 0.45;
+        opacity: 0.55;
         cursor: not-allowed;
+        filter: grayscale(0.25);
     }
 `;
 
 const GusErrorMsg = styled.p`
-    margin: 4px 0 0;
-    font-size: 11px;
-    color: #e53e3e;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin: 5px 0 0;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: ${st.accentRed};
 `;
 
 const FilledBadge = styled.span`
@@ -1204,7 +1223,21 @@ export const VerificationStep = ({
                                             disabled={isGusLoading}
                                             onClick={handleFetchGusData}
                                         >
-                                            {isGusLoading ? 'Pobieranie…' : 'Pobierz z GUS'}
+                                            {isGusLoading ? (
+                                                <>
+                                                    <GusBtnSpinner xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                                        <path d="M12 2a10 10 0 0 1 10 10" />
+                                                    </GusBtnSpinner>
+                                                    Pobieranie…
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M12 5v14M5 12l7 7 7-7" />
+                                                    </svg>
+                                                    Pobierz z GUS
+                                                </>
+                                            )}
                                         </GusBtn>
                                     </NipInputWrap>
                                     {gusError && <GusErrorMsg>{gusError}</GusErrorMsg>}
