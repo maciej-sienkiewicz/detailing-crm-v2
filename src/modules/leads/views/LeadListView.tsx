@@ -3709,11 +3709,11 @@ export const LeadListView: React.FC = () => {
             <thead>
               <tr>
                 <ThIcon />
-                <Th style={{ width: '22%' }}>Klient</Th>
-                <Th style={{ width: '26%' }}>Kontekst</Th>
-                <Th style={{ width: '18%' }}>Utworzono</Th>
-                <Th style={{ width: '14%' }}>Status</Th>
-                <Th style={{ width: '12%' }}>Wartość</Th>
+                <Th>Klient</Th>
+                <Th>Kontekst</Th>
+                <Th>Utworzono</Th>
+                <Th style={{ width: '130px' }}>Status</Th>
+                <Th style={{ width: '120px' }}>Wartość</Th>
                 <ThActions />
               </tr>
             </thead>
