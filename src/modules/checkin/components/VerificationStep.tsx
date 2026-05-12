@@ -18,6 +18,7 @@ import { Modal } from '@/common/components/Modal';
 import { PhoneInput } from '@/common/components/PhoneInput';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { customerDetailApi } from '@/modules/customers/api/customerDetailApi';
+import { gusApi } from '@/modules/gus/api/gusApi';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
 // ─── Section Card ─────────────────────────────────────────────────────────────
@@ -195,6 +196,46 @@ const CollapsibleContent = styled.div<{ $open: boolean }>`
     transition: max-height 250ms ease;
     padding: ${props => props.$open ? '16px' : '0 16px'};
     border-top: ${props => props.$open ? `1px solid ${st.border}` : 'none'};
+`;
+
+const NipRow = styled.div`
+    display: flex;
+    gap: 8px;
+    align-items: center;
+`;
+
+const GusBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0 12px;
+    height: 36px;
+    border: 1.5px solid ${st.accentBlue};
+    border-radius: ${st.radiusSm};
+    background: ${st.accentBlueDim};
+    color: ${st.accentBlue};
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all ${st.transition};
+
+    &:hover:not(:disabled) {
+        background: ${st.accentBlue};
+        color: #fff;
+    }
+
+    &:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+`;
+
+const GusErrorMsg = styled.p`
+    margin: 4px 0 0;
+    font-size: 11px;
+    color: #e53e3e;
 `;
 
 const FilledBadge = styled.span`
@@ -470,6 +511,41 @@ export const VerificationStep = ({
 
     const [isHomeAddressOpen, setIsHomeAddressOpen] = useState(false);
     const [isCompanyOpen, setIsCompanyOpen] = useState(false);
+    const [isGusLoading, setIsGusLoading] = useState(false);
+    const [gusError, setGusError] = useState<string | null>(null);
+
+    const handleFetchGusData = useCallback(async () => {
+        const nip = formData.company?.nip?.replace(/[^0-9]/g, '') || '';
+        if (nip.length !== 10) {
+            setGusError('Wprowadź poprawny NIP (10 cyfr)');
+            return;
+        }
+        setIsGusLoading(true);
+        setGusError(null);
+        try {
+            const data = await gusApi.getCompanyByNip(nip);
+            const streetParts = [data.address.street, data.address.buildingNumber, data.address.apartmentNumber]
+                .filter(Boolean)
+                .join(' ');
+            onChange({
+                company: {
+                    name: data.name || formData.company?.name || '',
+                    nip: data.nip || formData.company?.nip || '',
+                    regon: data.regon || formData.company?.regon || '',
+                    address: {
+                        street: streetParts || formData.company?.address.street || '',
+                        city: data.address.city || formData.company?.address.city || '',
+                        postalCode: data.address.postalCode || formData.company?.address.postalCode || '',
+                        country: data.address.country || formData.company?.address.country || 'Polska',
+                    },
+                },
+            });
+        } catch {
+            setGusError('Nie znaleziono firmy o podanym NIP lub wystąpił błąd połączenia z GUS.');
+        } finally {
+            setIsGusLoading(false);
+        }
+    }, [formData.company, onChange]);
 
     useEffect(() => {
         console.log('[DEBUG VerificationStep] formData.homeAddress changed:', formData.homeAddress);
@@ -1089,7 +1165,25 @@ export const VerificationStep = ({
                                 </FieldGroup>
                                 <FieldGroup>
                                     <Label>NIP</Label>
-                                    <Input value={formData.company?.nip || ''} onChange={(e) => onChange({ company: { name: formData.company?.name || '', nip: e.target.value, regon: formData.company?.regon || '', address: { street: formData.company?.address.street || '', city: formData.company?.address.city || '', postalCode: formData.company?.address.postalCode || '', country: formData.company?.address.country || 'Polska' } } })} placeholder="np. 1234567890" />
+                                    <NipRow>
+                                        <Input
+                                            value={formData.company?.nip || ''}
+                                            onChange={(e) => {
+                                                setGusError(null);
+                                                onChange({ company: { name: formData.company?.name || '', nip: e.target.value, regon: formData.company?.regon || '', address: { street: formData.company?.address.street || '', city: formData.company?.address.city || '', postalCode: formData.company?.address.postalCode || '', country: formData.company?.address.country || 'Polska' } } });
+                                            }}
+                                            placeholder="np. 1234567890"
+                                            style={{ flex: 1 }}
+                                        />
+                                        <GusBtn
+                                            type="button"
+                                            disabled={isGusLoading}
+                                            onClick={handleFetchGusData}
+                                        >
+                                            {isGusLoading ? 'Pobieranie…' : 'Pobierz pełne dane'}
+                                        </GusBtn>
+                                    </NipRow>
+                                    {gusError && <GusErrorMsg>{gusError}</GusErrorMsg>}
                                 </FieldGroup>
                                 <FieldGroup>
                                     <Label>REGON</Label>
