@@ -662,6 +662,7 @@ const TableWrapper = styled.div`
 const Table = styled.table`
   width: 100%;
   min-width: 800px;
+  table-layout: fixed;
   border-collapse: collapse;
   background: ${st.bgCard};
 `;
@@ -712,6 +713,7 @@ const Td = styled.td`
   font-size: 13px;
   color: ${st.text};
   vertical-align: middle;
+  overflow: hidden;
 `;
 
 const TdIcon = styled(Td)`
@@ -790,7 +792,6 @@ const CellNote = styled.div`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 260px;
 `;
 
 const CellMono = styled.div`
@@ -949,6 +950,7 @@ const ExpandedPanel = styled.div`
   flex-direction: column;
   gap: 16px;
   border-top: 1px solid #dbeafe;
+  overflow-x: hidden;
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     padding: 16px;
@@ -3707,11 +3709,11 @@ export const LeadListView: React.FC = () => {
             <thead>
               <tr>
                 <ThIcon />
-                <Th>Klient</Th>
-                <Th>Kontekst</Th>
-                <Th>Utworzono</Th>
-                <Th>Status</Th>
-                <Th>Wartość</Th>
+                <Th style={{ width: '22%' }}>Klient</Th>
+                <Th style={{ width: '26%' }}>Kontekst</Th>
+                <Th style={{ width: '18%' }}>Utworzono</Th>
+                <Th style={{ width: '14%' }}>Status</Th>
+                <Th style={{ width: '12%' }}>Wartość</Th>
                 <ThActions />
               </tr>
             </thead>
