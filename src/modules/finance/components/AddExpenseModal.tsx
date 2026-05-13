@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
-import { DocumentType, PaymentMethod, DocumentDirection } from '../types';
-import { useCreateDocument } from '../hooks/useFinance';
-import { inputValueToGrosze } from '../utils/formatters';
+import { useCreateExpense } from '../hooks/useKsef';
+
+// ─── Overlay / Modal ──────────────────────────────────────────────────────────
 
 const Overlay = styled.div<{ $open: boolean }>`
   position: fixed;
@@ -21,7 +21,7 @@ const Modal = styled.div`
   border-radius: ${(p) => p.theme.radii.xl};
   padding: ${(p) => p.theme.spacing.xl};
   width: 100%;
-  max-width: 560px;
+  max-width: 540px;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: ${(p) => p.theme.shadows.xl};
@@ -56,6 +56,8 @@ const CloseBtn = styled.button`
   &:hover { background: ${(p) => p.theme.colors.surfaceHover}; }
 `;
 
+// ─── Form ─────────────────────────────────────────────────────────────────────
+
 const Form = styled.form`
   display: flex;
   flex-direction: column;
@@ -80,6 +82,13 @@ const Label = styled.label`
   color: ${(p) => p.theme.colors.text};
 `;
 
+const OptionalTag = styled.span`
+  font-size: 11px;
+  font-weight: 400;
+  color: ${(p) => p.theme.colors.textMuted};
+  margin-left: 6px;
+`;
+
 const Input = styled.input`
   padding: 10px 12px;
   font-size: 14px;
@@ -91,31 +100,11 @@ const Input = styled.input`
   width: 100%;
   box-sizing: border-box;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
-
   &:focus {
     border-color: var(--brand-primary);
     box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
   }
-`;
-
-const Textarea = styled.textarea`
-  padding: 10px 12px;
-  font-size: 14px;
-  border: 1px solid ${(p) => p.theme.colors.border};
-  border-radius: 8px;
-  background: ${(p) => p.theme.colors.surface};
-  color: ${(p) => p.theme.colors.text};
-  outline: none;
-  width: 100%;
-  box-sizing: border-box;
-  resize: vertical;
-  min-height: 72px;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-
-  &:focus {
-    border-color: var(--brand-primary);
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
-  }
+  &::placeholder { color: ${(p) => p.theme.colors.textMuted}; }
 `;
 
 // ─── Custom Select ─────────────────────────────────────────────────────────────
@@ -151,7 +140,6 @@ const SelectBackdrop = styled.div`
 
 const SelectPanel = styled.div`
   position: fixed;
-  min-width: 200px;
   background: #ffffff;
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
@@ -172,14 +160,14 @@ const SelectOption = styled.button<{ $active: boolean }>`
   text-align: left;
   font-size: 14px;
   font-weight: ${(p) => (p.$active ? 600 : 400)};
-  border: 1px solid ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.2)' : 'transparent')};
+  border: 1px solid ${(p) => (p.$active ? 'rgba(99,102,241,0.2)' : 'transparent')};
   border-radius: 10px;
-  background: ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.06)' : 'transparent')};
+  background: ${(p) => (p.$active ? 'rgba(99,102,241,0.06)' : 'transparent')};
   color: ${(p) => (p.$active ? '#0f172a' : '#64748b')};
   cursor: pointer;
   transition: all 0.15s ease;
   &:hover {
-    background: ${(p) => (p.$active ? 'rgba(99, 102, 241, 0.08)' : 'rgba(0, 0, 0, 0.02)')};
+    background: ${(p) => (p.$active ? 'rgba(99,102,241,0.08)' : 'rgba(0,0,0,0.02)')};
     color: #0f172a;
   }
 `;
@@ -194,14 +182,14 @@ interface ModalSelectProps {
   value: string;
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
+  placeholder?: string;
 }
 
-const ModalSelect: React.FC<ModalSelectProps> = ({ value, onChange, options }) => {
+const ModalSelect: React.FC<ModalSelectProps> = ({ value, onChange, options, placeholder }) => {
   const [isOpen, setIsOpen]   = useState(false);
   const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-
-  const selectedLabel = options.find((o) => o.value === value)?.label ?? '';
+  const selectedLabel = options.find((o) => o.value === value)?.label ?? placeholder ?? '';
 
   const handleToggle = () => {
     if (!isOpen && triggerRef.current) {
@@ -216,13 +204,23 @@ const ModalSelect: React.FC<ModalSelectProps> = ({ value, onChange, options }) =
   return (
     <>
       {isOpen && <SelectBackdrop onClick={() => setIsOpen(false)} />}
-      <SelectTrigger ref={triggerRef} type="button" onClick={handleToggle}>
+      <SelectTrigger
+        ref={triggerRef}
+        type="button"
+        onClick={handleToggle}
+        style={{ color: !value && placeholder ? '#94a3b8' : undefined }}
+      >
         <span>{selectedLabel}</span>
         <ChevronIcon />
       </SelectTrigger>
       {isOpen && panelPos && createPortal(
         <SelectPanel style={{ top: panelPos.top, left: panelPos.left, minWidth: panelPos.width }}>
           <SelectBody>
+            {placeholder && (
+              <SelectOption $active={value === ''} onClick={() => handleSelect('')}>
+                <span style={{ color: '#94a3b8' }}>{placeholder}</span>
+              </SelectOption>
+            )}
             {options.map((opt) => (
               <SelectOption key={opt.value} $active={value === opt.value} onClick={() => handleSelect(opt.value)}>
                 {opt.label}
@@ -236,7 +234,27 @@ const ModalSelect: React.FC<ModalSelectProps> = ({ value, onChange, options }) =
   );
 };
 
-// ─── Footer ────────────────────────────────────────────────────────────────────
+// ─── Section title / Footer / Buttons ─────────────────────────────────────────
+
+const SectionTitle = styled.div`
+  font-size: ${(p) => p.theme.fontSizes.xs};
+  font-weight: ${(p) => p.theme.fontWeights.semibold};
+  color: ${(p) => p.theme.colors.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-bottom: ${(p) => p.theme.spacing.xs};
+  border-bottom: 1px solid ${(p) => p.theme.colors.border};
+`;
+
+const InfoBox = styled.div`
+  padding: 10px 14px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #1e40af;
+  line-height: 1.5;
+`;
 
 const Footer = styled.div`
   display: flex;
@@ -254,7 +272,6 @@ const CancelBtn = styled.button`
   color: ${(p) => p.theme.colors.text};
   border-radius: ${(p) => p.theme.radii.md};
   cursor: pointer;
-  transition: background 0.15s ease;
   &:hover { background: ${(p) => p.theme.colors.surfaceHover}; }
 `;
 
@@ -272,16 +289,6 @@ const SubmitBtn = styled.button<{ $loading?: boolean }>`
   &:hover:not(:disabled) { filter: brightness(1.08); }
 `;
 
-const SectionTitle = styled.div`
-  font-size: ${(p) => p.theme.fontSizes.xs};
-  font-weight: ${(p) => p.theme.fontWeights.semibold};
-  color: ${(p) => p.theme.colors.textMuted};
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding-bottom: ${(p) => p.theme.spacing.xs};
-  border-bottom: 1px solid ${(p) => p.theme.colors.border};
-`;
-
 const ErrorMsg = styled.p`
   font-size: ${(p) => p.theme.fontSizes.sm};
   color: ${(p) => p.theme.colors.error};
@@ -291,64 +298,60 @@ const ErrorMsg = styled.p`
   border-radius: ${(p) => p.theme.radii.md};
 `;
 
+// ─── KSeF payment method codes ────────────────────────────────────────────────
+
+const PAYMENT_METHODS = [
+  { value: 'GOTOWKA',  label: 'Gotówka' },
+  { value: 'KARTA',    label: 'Karta' },
+  { value: 'PRZELEW',  label: 'Przelew' },
+  { value: 'CZEK',     label: 'Czek' },
+  { value: 'BON',      label: 'Bon / voucher' },
+  { value: 'KREDYT',   label: 'Kredyt' },
+  { value: 'MOBILNA',  label: 'Mobilna' },
+];
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
-  isOpen:   boolean;
-  onClose:  () => void;
+  isOpen:  boolean;
+  onClose: () => void;
 }
 
 interface FormState {
-  documentType:     string;
-  paymentMethod:    string;
-  totalNetDisplay:  string;
-  totalVatDisplay:  string;
-  currency:         string;
-  issueDate:        string;
-  dueDate:          string;
-  description:      string;
-  counterpartyName: string;
-  counterpartyNip:  string;
+  saleDate:       string;
+  documentNumber: string;
+  sellerName:     string;
+  sellerNip:      string;
+  netAmount:      string;
+  grossAmount:    string;
+  paymentMethod:  string;
 }
 
-const today    = new Date().toISOString().split('T')[0];
-const VAT_RATE = 0.23;
+const today = new Date().toISOString().split('T')[0];
 
 const EMPTY_FORM: FormState = {
-  documentType:     DocumentType.INVOICE,
-  paymentMethod:    PaymentMethod.TRANSFER,
-  totalNetDisplay:  '',
-  totalVatDisplay:  '',
-  currency:         'PLN',
-  issueDate:        today,
-  dueDate:          '',
-  description:      '',
-  counterpartyName: '',
-  counterpartyNip:  '',
+  saleDate:       today,
+  documentNumber: '',
+  sellerName:     '',
+  sellerNip:      '',
+  netAmount:      '',
+  grossAmount:    '',
+  paymentMethod:  '',
 };
 
-export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) => {
-  const createDoc = useCreateDocument();
+export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
+  const createExpense = useCreateExpense();
   const [error, setError] = useState<string | null>(null);
   const [form, setForm]   = useState<FormState>(EMPTY_FORM);
 
   useEffect(() => {
     if (!isOpen) {
-      setForm({ ...EMPTY_FORM, issueDate: new Date().toISOString().split('T')[0] });
+      setForm({ ...EMPTY_FORM, saleDate: new Date().toISOString().split('T')[0] });
       setError(null);
     }
   }, [isOpen]);
 
-  const handleNetChange = (value: string) => {
-    const net = parseFloat(value.replace(',', '.'));
-    setForm((prev) => ({
-      ...prev,
-      totalNetDisplay: value,
-      totalVatDisplay: isNaN(net) ? '' : (net * VAT_RATE).toFixed(2),
-    }));
-  };
-
-  const set = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  const set = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
   const setField = (key: keyof FormState) => (value: string) =>
@@ -358,37 +361,32 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) => {
     e.preventDefault();
     setError(null);
 
-    const totalNet   = inputValueToGrosze(form.totalNetDisplay);
-    const totalVat   = inputValueToGrosze(form.totalVatDisplay);
-    const totalGross = totalNet + totalVat;
+    const grossAmount = form.grossAmount
+      ? parseFloat(form.grossAmount.replace(',', '.'))
+      : undefined;
 
-    if (totalNet <= 0) {
-      setError('Kwota netto musi być większa od zera.');
-      return;
-    }
-    if (form.paymentMethod === PaymentMethod.TRANSFER && !form.dueDate) {
-      setError('Termin płatności jest wymagany dla przelewów.');
+    const netAmount = form.netAmount
+      ? parseFloat(form.netAmount.replace(',', '.'))
+      : undefined;
+
+    if (grossAmount !== undefined && grossAmount < 0) {
+      setError('Kwota brutto nie może być ujemna.');
       return;
     }
 
     try {
-      await createDoc.mutateAsync({
-        documentType:    form.documentType,
-        direction:       DocumentDirection.INCOME,
-        paymentMethod:   form.paymentMethod,
-        totalNet,
-        totalVat,
-        totalGross,
-        currency:        form.currency || 'PLN',
-        issueDate:       form.issueDate,
-        dueDate:         form.dueDate || null,
-        description:     form.description || null,
-        counterpartyName: form.counterpartyName || null,
-        counterpartyNip:  form.counterpartyNip  || null,
+      await createExpense.mutateAsync({
+        saleDate:       form.saleDate ? `${form.saleDate}T00:00:00+01:00` : undefined,
+        documentNumber: form.documentNumber || undefined,
+        sellerName:     form.sellerName     || undefined,
+        sellerNip:      form.sellerNip      || undefined,
+        netAmount,
+        grossAmount,
+        paymentMethod:  form.paymentMethod  || undefined,
       });
       onClose();
     } catch {
-      setError('Nie udało się zapisać dokumentu. Spróbuj ponownie.');
+      setError('Nie udało się zapisać faktury. Spróbuj ponownie.');
     }
   };
 
@@ -396,120 +394,96 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) => {
     <Overlay $open={isOpen} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <Modal>
         <ModalHeader>
-          <ModalTitle>Nowy dokument przychodowy</ModalTitle>
+          <ModalTitle>Dodaj fakturę kosztową ręcznie</ModalTitle>
           <CloseBtn onClick={onClose}>✕</CloseBtn>
         </ModalHeader>
 
         <Form onSubmit={handleSubmit}>
-          <SectionTitle>Rodzaj dokumentu</SectionTitle>
+          <InfoBox>
+            Użyj tego formularza dla dostawców, którzy <strong>nie wystawiają faktur w KSeF</strong> (np. małe firmy,
+            zagraniczne usługi, faktury gotówkowe). Faktury z KSeF są pobierane automatycznie.
+          </InfoBox>
+
+          <SectionTitle>Faktura</SectionTitle>
 
           <FieldRow>
             <Field>
-              <Label>Typ dokumentu</Label>
-              <ModalSelect
-                value={form.documentType}
-                onChange={setField('documentType')}
-                options={[
-                  { value: DocumentType.INVOICE, label: 'Faktura' },
-                  { value: DocumentType.RECEIPT, label: 'Paragon' },
-                  { value: DocumentType.OTHER,   label: 'Inny' },
-                ]}
-              />
+              <Label>Data sprzedaży<OptionalTag>opcjonalne</OptionalTag></Label>
+              <Input type="date" value={form.saleDate} onChange={set('saleDate')} />
             </Field>
             <Field>
-              <Label>Metoda płatności</Label>
-              <ModalSelect
-                value={form.paymentMethod}
-                onChange={setField('paymentMethod')}
-                options={[
-                  { value: PaymentMethod.CASH,     label: 'Gotówka' },
-                  { value: PaymentMethod.CARD,     label: 'Karta' },
-                  { value: PaymentMethod.TRANSFER, label: 'Przelew' },
-                  { value: PaymentMethod.OTHER,    label: 'Inne' },
-                ]}
+              <Label>Numer dokumentu<OptionalTag>opcjonalne</OptionalTag></Label>
+              <Input
+                type="text"
+                placeholder="FV/2024/0001"
+                value={form.documentNumber}
+                onChange={set('documentNumber')}
               />
             </Field>
           </FieldRow>
 
-          <SectionTitle>Kwoty</SectionTitle>
-
-          <FieldRow>
-            <Field>
-              <Label>Kwota netto (PLN)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                value={form.totalNetDisplay}
-                onChange={(e) => handleNetChange(e.target.value)}
-                required
-              />
-            </Field>
-            <Field>
-              <Label>VAT (23%)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                value={form.totalVatDisplay}
-                onChange={set('totalVatDisplay')}
-              />
-            </Field>
-          </FieldRow>
-
-          <SectionTitle>Daty</SectionTitle>
-
-          <FieldRow>
-            <Field>
-              <Label>Data wystawienia</Label>
-              <Input type="date" value={form.issueDate} onChange={set('issueDate')} required />
-            </Field>
-            <Field>
-              <Label>
-                Termin płatności
-                {form.paymentMethod === PaymentMethod.TRANSFER && (
-                  <span style={{ color: '#ef4444', marginLeft: 4 }}>*</span>
-                )}
-              </Label>
-              <Input
-                type="date"
-                value={form.dueDate}
-                onChange={set('dueDate')}
-                required={form.paymentMethod === PaymentMethod.TRANSFER}
-              />
-            </Field>
-          </FieldRow>
-
-          <SectionTitle>Kontrahent</SectionTitle>
+          <SectionTitle>Sprzedawca</SectionTitle>
 
           <Field>
-            <Label>Nazwa kontrahenta</Label>
+            <Label>Nazwa sprzedawcy<OptionalTag>opcjonalne</OptionalTag></Label>
             <Input
               type="text"
-              placeholder="Jan Kowalski / Firma Sp. z o.o."
-              value={form.counterpartyName}
-              onChange={set('counterpartyName')}
+              placeholder="Firma Sp. z o.o."
+              value={form.sellerName}
+              onChange={set('sellerName')}
             />
           </Field>
 
           <FieldRow>
             <Field>
-              <Label>NIP</Label>
-              <Input type="text" placeholder="1234567890" value={form.counterpartyNip} onChange={set('counterpartyNip')} />
+              <Label>NIP sprzedawcy<OptionalTag>opcjonalne</OptionalTag></Label>
+              <Input
+                type="text"
+                placeholder="1234567890"
+                value={form.sellerNip}
+                onChange={set('sellerNip')}
+                maxLength={10}
+              />
             </Field>
             <div />
           </FieldRow>
 
-          <SectionTitle>Opis</SectionTitle>
+          <SectionTitle>Kwoty (PLN)</SectionTitle>
+
+          <FieldRow>
+            <Field>
+              <Label>Kwota netto<OptionalTag>opcjonalne</OptionalTag></Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={form.netAmount}
+                onChange={set('netAmount')}
+              />
+            </Field>
+            <Field>
+              <Label>Kwota brutto<OptionalTag>opcjonalne</OptionalTag></Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={form.grossAmount}
+                onChange={set('grossAmount')}
+              />
+            </Field>
+          </FieldRow>
+
+          <SectionTitle>Płatność</SectionTitle>
 
           <Field>
-            <Label>Opis / tytuł</Label>
-            <Textarea
-              placeholder="Np. Detailing kompletny + powłoka ceramiczna"
-              value={form.description}
-              onChange={set('description')}
+            <Label>Forma płatności<OptionalTag>opcjonalne</OptionalTag></Label>
+            <ModalSelect
+              value={form.paymentMethod}
+              onChange={setField('paymentMethod')}
+              options={PAYMENT_METHODS}
+              placeholder="— Wybierz formę płatności —"
             />
           </Field>
 
@@ -517,8 +491,8 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
           <Footer>
             <CancelBtn type="button" onClick={onClose}>Anuluj</CancelBtn>
-            <SubmitBtn type="submit" $loading={createDoc.isPending} disabled={createDoc.isPending}>
-              {createDoc.isPending ? 'Zapisywanie…' : 'Zapisz dokument'}
+            <SubmitBtn type="submit" $loading={createExpense.isPending} disabled={createExpense.isPending}>
+              {createExpense.isPending ? 'Zapisywanie…' : 'Zapisz fakturę'}
             </SubmitBtn>
           </Footer>
         </Form>

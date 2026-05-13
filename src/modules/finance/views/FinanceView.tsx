@@ -2,46 +2,22 @@ import React, { useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import type { FinanceTab } from '../types';
-import { DocumentDirection, DocumentStatus } from '../types';
+import { DocumentStatus } from '../types';
+import type { ExpenseSource, ExpensePaymentStatus } from '../types';
 import { useFinanceDocuments } from '../hooks/useFinance';
+import { useKsefExpenses } from '../hooks/useKsef';
 import {
   FinanceSummaryCards,
   DocumentsTable,
   CreateDocumentModal,
   CashRegisterPanel,
-  InvoicingCredentialsPanel,
   PaymentSummaryTab,
+  KsefExpensesTable,
+  KsefSyncWidget,
+  KsefCredentialsPanel,
+  AddExpenseModal,
 } from '../components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-
-// ─── Icons ────────────────────────────────────────────────────────────────────
-
-const PlusIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <line x1="12" y1="5" x2="12" y2="19" />
-    <line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-);
-
-const RefreshIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="23 4 23 10 17 10" />
-    <polyline points="1 20 1 14 7 14" />
-    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-  </svg>
-);
-
-const ChevronLeftIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <polyline points="15 18 9 12 15 6" />
-  </svg>
-);
-
-const ChevronRightIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <polyline points="9 18 15 12 9 6" />
-  </svg>
-);
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -85,10 +61,8 @@ const HeroCard = styled.div`
   &::before {
     content: '';
     position: absolute;
-    top: -80px;
-    right: -60px;
-    width: 320px;
-    height: 320px;
+    top: -80px; right: -60px;
+    width: 320px; height: 320px;
     background: radial-gradient(circle, rgba(14, 165, 233, 0.14) 0%, transparent 65%);
     pointer-events: none;
   }
@@ -135,7 +109,7 @@ const HeroActions = styled.div`
   align-items: center;
 `;
 
-// ─── Section Divider ──────────────────────────────────────────────────────────
+// ─── Section divider ──────────────────────────────────────────────────────────
 
 const SectionLabel = styled.div`
   display: flex;
@@ -159,7 +133,7 @@ const SectionLabelLine = styled.div`
   background: ${(p) => p.theme.colors.border};
 `;
 
-// ─── Hero buttons ─────────────────────────────────────────────────────────────
+// ─── Hero button ──────────────────────────────────────────────────────────────
 
 const AddButton = styled.button`
   display: flex;
@@ -176,16 +150,11 @@ const AddButton = styled.button`
   box-shadow: ${st.shadowXs};
   transition: all ${st.transition};
 
-  &:hover {
-    background: #2563EB;
-    box-shadow: ${st.shadowSm};
-    transform: translateY(-1px);
-  }
-
+  &:hover { background: #2563EB; box-shadow: ${st.shadowSm}; transform: translateY(-1px); }
   &:active { transform: translateY(0); }
 `;
 
-// ─── Panel Card (unified tabs + filters + table) ──────────────────────────────
+// ─── Panel card (tabs + content) ──────────────────────────────────────────────
 
 const PanelCard = styled.div`
   background: ${(p) => p.theme.colors.surface};
@@ -196,7 +165,7 @@ const PanelCard = styled.div`
   margin-top: ${(p) => p.theme.spacing.md};
 `;
 
-// ─── Tab Bar ──────────────────────────────────────────────────────────────────
+// ─── Tab bar ──────────────────────────────────────────────────────────────────
 
 const TabBar = styled.div`
   display: flex;
@@ -229,7 +198,7 @@ const TabItem = styled.button<{ $active: boolean }>`
   }
 `;
 
-// ─── Filters Strip ────────────────────────────────────────────────────────────
+// ─── Filters strip ────────────────────────────────────────────────────────────
 
 const FiltersStrip = styled.div`
   display: flex;
@@ -241,7 +210,11 @@ const FiltersStrip = styled.div`
   border-bottom: 1px solid ${(p) => p.theme.colors.border};
 `;
 
-// ─── Custom Select Dropdown ───────────────────────────────────────────────────
+const FilterSeparator = styled.div`
+  flex: 1;
+`;
+
+// ─── Custom Select for filters ────────────────────────────────────────────────
 
 const SelectTrigger = styled.button<{ $active: boolean }>`
   display: flex;
@@ -314,14 +287,14 @@ const ChevronDownIcon = () => (
 );
 
 interface SelectOptionItem { value: string; label: string; }
-interface FinanceSelectProps {
-  value: string;
-  onChange: (value: string) => void;
-  options: SelectOptionItem[];
+interface FilterSelectProps {
+  value:       string;
+  onChange:    (value: string) => void;
+  options:     SelectOptionItem[];
   placeholder: string;
 }
 
-const FinanceFilterSelect: React.FC<FinanceSelectProps> = ({ value, onChange, options, placeholder }) => {
+const FilterSelect: React.FC<FilterSelectProps> = ({ value, onChange, options, placeholder }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -339,8 +312,6 @@ const FinanceFilterSelect: React.FC<FinanceSelectProps> = ({ value, onChange, op
     setIsOpen((prev) => !prev);
   };
 
-  const handleSelect = (val: string) => { onChange(val); setIsOpen(false); };
-
   return (
     <>
       {isOpen && <SelectBackdrop onClick={() => setIsOpen(false)} />}
@@ -351,11 +322,15 @@ const FinanceFilterSelect: React.FC<FinanceSelectProps> = ({ value, onChange, op
       {isOpen && panelPos && createPortal(
         <SelectPanel style={{ top: panelPos.top, left: panelPos.left }}>
           <SelectPanelBody>
-            <SelectPanelOption $active={value === ''} onClick={() => handleSelect('')}>
+            <SelectPanelOption $active={value === ''} onClick={() => { onChange(''); setIsOpen(false); }}>
               {placeholder}
             </SelectPanelOption>
             {options.map((opt) => (
-              <SelectPanelOption key={opt.value} $active={value === opt.value} onClick={() => handleSelect(opt.value)}>
+              <SelectPanelOption
+                key={opt.value}
+                $active={value === opt.value}
+                onClick={() => { onChange(opt.value); setIsOpen(false); }}
+              >
                 {opt.label}
               </SelectPanelOption>
             ))}
@@ -377,20 +352,14 @@ const StyledDateInput = styled.input`
   outline: none;
   cursor: pointer;
   transition: border-color ${st.transition}, box-shadow ${st.transition};
-
-  &:focus {
-    border-color: ${st.accentBlue};
-    box-shadow: ${st.shadowBlue};
-  }
+  &:focus { border-color: ${st.accentBlue}; box-shadow: ${st.shadowBlue}; }
 `;
 
-interface DateInputProps {
+const DateInput: React.FC<{
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   title?: string;
-}
-
-const DateInput: React.FC<DateInputProps> = ({ value, onChange, title }) => {
+}> = ({ value, onChange, title }) => {
   const ref = useRef<HTMLInputElement>(null);
   return (
     <StyledDateInput
@@ -404,11 +373,7 @@ const DateInput: React.FC<DateInputProps> = ({ value, onChange, title }) => {
   );
 };
 
-const FilterSeparator = styled.div`
-  flex: 1;
-`;
-
-// ─── Toggle Switch ────────────────────────────────────────────────────────────
+// ─── Toggle switch ────────────────────────────────────────────────────────────
 
 const ToggleLabel = styled.label`
   display: flex;
@@ -422,20 +387,16 @@ const ToggleLabel = styled.label`
 const ToggleTrack = styled.span<{ $on: boolean }>`
   position: relative;
   display: inline-block;
-  width: 30px;
-  height: 17px;
+  width: 30px; height: 17px;
   border-radius: 999px;
   background: ${(p) => (p.$on ? st.accentBlue : p.theme.colors.border)};
   transition: background 0.18s ease;
   flex-shrink: 0;
-
   &::after {
     content: '';
     position: absolute;
-    top: 2px;
-    left: ${(p) => (p.$on ? '15px' : '2px')};
-    width: 13px;
-    height: 13px;
+    top: 2px; left: ${(p) => (p.$on ? '15px' : '2px')};
+    width: 13px; height: 13px;
     border-radius: 50%;
     background: #fff;
     box-shadow: 0 1px 3px rgba(0,0,0,0.18);
@@ -450,6 +411,8 @@ const ToggleText = styled.span`
   white-space: nowrap;
 `;
 
+// ─── Other filter elements ────────────────────────────────────────────────────
+
 const ClearFiltersBtn = styled.button`
   padding: 5px 11px;
   font-size: ${st.fontSm};
@@ -460,20 +423,14 @@ const ClearFiltersBtn = styled.button`
   border-radius: ${st.radiusFull};
   cursor: pointer;
   transition: all ${st.transition};
-
-  &:hover {
-    background: ${(p) => p.theme.colors.surfaceHover};
-    color: ${st.text};
-    border-color: ${st.borderHover};
-  }
+  &:hover { background: ${(p) => p.theme.colors.surfaceHover}; color: ${st.text}; border-color: ${st.borderHover}; }
 `;
 
 const RefreshBtn = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 28px; height: 28px;
   background: transparent;
   color: ${st.textSecondary};
   border: 1px solid ${(p) => p.theme.colors.border};
@@ -481,15 +438,18 @@ const RefreshBtn = styled.button`
   cursor: pointer;
   transition: all ${st.transition};
   flex-shrink: 0;
-
-  &:hover {
-    background: ${(p) => p.theme.colors.surfaceHover};
-    color: ${st.text};
-    border-color: ${st.borderHover};
-  }
+  &:hover { background: ${(p) => p.theme.colors.surfaceHover}; color: ${st.text}; border-color: ${st.borderHover}; }
 `;
 
-// ─── Error State ──────────────────────────────────────────────────────────────
+const RefreshIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polyline points="23 4 23 10 17 10" />
+    <polyline points="1 20 1 14 7 14" />
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+  </svg>
+);
+
+// ─── Error / Pagination ───────────────────────────────────────────────────────
 
 const InlineError = styled.div`
   padding: 40px 24px;
@@ -510,8 +470,6 @@ const InlineError = styled.div`
     padding: 0;
   }
 `;
-
-// ─── Pagination Footer ────────────────────────────────────────────────────────
 
 const PaginationFooter = styled.div`
   display: flex;
@@ -550,99 +508,109 @@ const PageBtn = styled.button<{ $disabled?: boolean }>`
   color: ${(p) => (p.$disabled ? st.textMuted : st.text)};
   cursor: ${(p) => (p.$disabled ? 'not-allowed' : 'pointer')};
   opacity: ${(p) => (p.$disabled ? 0.5 : 1)};
-  transition: background ${st.transition}, color ${st.transition};
-
+  transition: background ${st.transition};
   &:last-child { border-right: none; }
-
-  &:hover:not(:disabled) {
-    background: ${(p) => p.theme.colors.surfaceAlt};
-  }
+  &:hover:not(:disabled) { background: ${(p) => p.theme.colors.surfaceAlt}; }
 `;
 
-// ─── Filters state ────────────────────────────────────────────────────────────
+const ChevronLeft = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <polyline points="15 18 9 12 15 6" />
+  </svg>
+);
 
-interface Filters {
-  status: string;
-  dateFrom: string;
-  dateTo: string;
-  documentType: string;
-  page: number;
-}
+const ChevronRight = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+
+const PlusIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+
+// ─── Expenses settings panel ──────────────────────────────────────────────────
+
+const ExpensesSettingsWrap = styled.div`
+  padding: 24px;
+`;
+
+// ─── Income documents tab ─────────────────────────────────────────────────────
 
 const PAGE_SIZE = 20;
 
-// ─── Documents tab content (filters + table + pagination — no outer wrapper) ──
+interface IncomeFilters {
+  status:       string;
+  dateFrom:     string;
+  dateTo:       string;
+  documentType: string;
+  page:         number;
+}
 
-const DocumentsTabContent: React.FC<{
-  direction: DocumentDirection;
-}> = ({ direction }) => {
-  const [filters, setFilters] = useState<Filters>({
-    status: '',
-    dateFrom: '',
-    dateTo: '',
-    documentType: '',
-    page: 1,
+const IncomeTabContent: React.FC = () => {
+  const [filters, setFilters] = useState<IncomeFilters>({
+    status: '', dateFrom: '', dateTo: '', documentType: '', page: 1,
   });
   const [showDeleted, setShowDeleted] = useState(false);
 
   const { documents, total, isLoading, isError, refetch } = useFinanceDocuments({
-    direction,
-    status: filters.status || undefined,
-    dateFrom: filters.dateFrom || undefined,
-    dateTo: filters.dateTo || undefined,
-    documentType: filters.documentType || undefined,
-    includeDeleted: showDeleted || undefined,
-    page: filters.page,
-    pageSize: PAGE_SIZE,
+    direction:      'INCOME',
+    status:         filters.status        || undefined,
+    dateFrom:       filters.dateFrom      || undefined,
+    dateTo:         filters.dateTo        || undefined,
+    documentType:   filters.documentType  || undefined,
+    includeDeleted: showDeleted           || undefined,
+    page:           filters.page,
+    pageSize:       PAGE_SIZE,
   });
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const hasFilters = !!(filters.status || filters.dateFrom || filters.dateTo || filters.documentType);
-
-  const setFilter = <K extends keyof Filters>(key: K, value: Filters[K]) =>
+  const setFilter  = <K extends keyof IncomeFilters>(key: K, value: IncomeFilters[K]) =>
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
-
-  const clearFilters = () =>
-    setFilters({ status: '', dateFrom: '', dateTo: '', documentType: '', page: 1 });
 
   return (
     <>
       <FiltersStrip>
-        <FinanceFilterSelect
+        <FilterSelect
           value={filters.documentType}
           onChange={(val) => setFilter('documentType', val)}
           options={[
             { value: 'INVOICE', label: 'Faktura' },
             { value: 'RECEIPT', label: 'Paragon' },
-            { value: 'OTHER', label: 'Inny' },
+            { value: 'OTHER',   label: 'Inny' },
           ]}
           placeholder="Wszystkie typy"
         />
-        <FinanceFilterSelect
+        <FilterSelect
           value={filters.status}
           onChange={(val) => setFilter('status', val)}
           options={[
-            { value: DocumentStatus.PAID, label: 'Opłacona' },
+            { value: DocumentStatus.PAID,    label: 'Opłacona' },
             { value: DocumentStatus.PENDING, label: 'Oczekująca' },
             { value: DocumentStatus.OVERDUE, label: 'Przeterminowana' },
           ]}
           placeholder="Wszystkie statusy"
         />
         <DateInput
-          type="date"
           value={filters.dateFrom}
           onChange={(e) => setFilter('dateFrom', e.target.value)}
-          title="Data od"
+          title="Data wystawienia od"
         />
         <DateInput
-          type="date"
           value={filters.dateTo}
           onChange={(e) => setFilter('dateTo', e.target.value)}
-          title="Data do"
+          title="Data wystawienia do"
         />
         <FilterSeparator />
         {hasFilters && (
-          <ClearFiltersBtn onClick={clearFilters}>Wyczyść filtry</ClearFiltersBtn>
+          <ClearFiltersBtn
+            onClick={() => setFilters({ status: '', dateFrom: '', dateTo: '', documentType: '', page: 1 })}
+          >
+            Wyczyść filtry
+          </ClearFiltersBtn>
         )}
         <ToggleLabel>
           <ToggleTrack $on={showDeleted} />
@@ -680,14 +648,142 @@ const DocumentsTabContent: React.FC<{
               disabled={filters.page === 1}
               onClick={() => setFilters((p) => ({ ...p, page: p.page - 1 }))}
             >
-              <ChevronLeftIcon /> Poprzednia
+              <ChevronLeft /> Poprzednia
             </PageBtn>
             <PageBtn
               $disabled={filters.page >= totalPages}
               disabled={filters.page >= totalPages}
               onClick={() => setFilters((p) => ({ ...p, page: p.page + 1 }))}
             >
-              Następna <ChevronRightIcon />
+              Następna <ChevronRight />
+            </PageBtn>
+          </PaginationBtns>
+        </PaginationFooter>
+      )}
+    </>
+  );
+};
+
+// ─── Expenses (KSeF) tab ──────────────────────────────────────────────────────
+
+interface ExpenseFilters {
+  source:        string;
+  paymentStatus: string;
+  dateFrom:      string;
+  dateTo:        string;
+  page:          number;
+}
+
+const ExpensesTabContent: React.FC<{ onAddExpense: () => void }> = ({ onAddExpense }) => {
+  const [filters, setFilters] = useState<ExpenseFilters>({
+    source: '', paymentStatus: '', dateFrom: '', dateTo: '', page: 1,
+  });
+  const [showExcluded, setShowExcluded] = useState(false);
+
+  const { expenses, total, isLoading, isError, refetch } = useKsefExpenses({
+    source:          (filters.source        as ExpenseSource)        || undefined,
+    paymentStatus:   (filters.paymentStatus as ExpensePaymentStatus) || undefined,
+    dateFrom:        filters.dateFrom  || undefined,
+    dateTo:          filters.dateTo    || undefined,
+    includeExcluded: showExcluded      || undefined,
+    page:            filters.page,
+    pageSize:        PAGE_SIZE,
+  });
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const hasFilters = !!(filters.source || filters.paymentStatus || filters.dateFrom || filters.dateTo);
+  const setFilter  = <K extends keyof ExpenseFilters>(key: K, value: ExpenseFilters[K]) =>
+    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+
+  return (
+    <>
+      <KsefSyncWidget />
+
+      <FiltersStrip>
+        <FilterSelect
+          value={filters.source}
+          onChange={(val) => setFilter('source', val)}
+          options={[
+            { value: 'KSEF',   label: 'Z KSeF' },
+            { value: 'MANUAL', label: 'Ręczna' },
+          ]}
+          placeholder="Wszystkie źródła"
+        />
+        <FilterSelect
+          value={filters.paymentStatus}
+          onChange={(val) => setFilter('paymentStatus', val)}
+          options={[
+            { value: 'PAID',    label: 'Opłacone' },
+            { value: 'PENDING', label: 'Oczekujące' },
+          ]}
+          placeholder="Wszystkie statusy"
+        />
+        <DateInput
+          value={filters.dateFrom}
+          onChange={(e) => setFilter('dateFrom', e.target.value)}
+          title="Data sprzedaży od"
+        />
+        <DateInput
+          value={filters.dateTo}
+          onChange={(e) => setFilter('dateTo', e.target.value)}
+          title="Data sprzedaży do"
+        />
+        <FilterSeparator />
+        {hasFilters && (
+          <ClearFiltersBtn
+            onClick={() => setFilters({ source: '', paymentStatus: '', dateFrom: '', dateTo: '', page: 1 })}
+          >
+            Wyczyść filtry
+          </ClearFiltersBtn>
+        )}
+        <ToggleLabel>
+          <ToggleTrack $on={showExcluded} />
+          <ToggleText>Pokaż ukryte</ToggleText>
+          <input
+            type="checkbox"
+            checked={showExcluded}
+            onChange={(e) => setShowExcluded(e.target.checked)}
+            style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+          />
+        </ToggleLabel>
+        <RefreshBtn onClick={() => refetch()} title="Odśwież">
+          <RefreshIcon />
+        </RefreshBtn>
+        <AddButton onClick={onAddExpense} style={{ padding: '5px 14px', fontSize: '12px' }}>
+          <PlusIcon />
+          Dodaj fakturę ręcznie
+        </AddButton>
+      </FiltersStrip>
+
+      {isError ? (
+        <InlineError>
+          Nie udało się załadować faktur kosztowych.
+          <br />
+          <button onClick={() => refetch()}>Spróbuj ponownie</button>
+        </InlineError>
+      ) : (
+        <KsefExpensesTable expenses={expenses} isLoading={isLoading} />
+      )}
+
+      {totalPages > 1 && (
+        <PaginationFooter>
+          <PaginationInfo>
+            Wyświetlanie {(filters.page - 1) * PAGE_SIZE + 1}–{Math.min(filters.page * PAGE_SIZE, total)} z {total}
+          </PaginationInfo>
+          <PaginationBtns>
+            <PageBtn
+              $disabled={filters.page === 1}
+              disabled={filters.page === 1}
+              onClick={() => setFilters((p) => ({ ...p, page: p.page - 1 }))}
+            >
+              <ChevronLeft /> Poprzednia
+            </PageBtn>
+            <PageBtn
+              $disabled={filters.page >= totalPages}
+              disabled={filters.page >= totalPages}
+              onClick={() => setFilters((p) => ({ ...p, page: p.page + 1 }))}
+            >
+              Następna <ChevronRight />
             </PageBtn>
           </PaginationBtns>
         </PaginationFooter>
@@ -699,26 +795,27 @@ const DocumentsTabContent: React.FC<{
 // ─── Main View ────────────────────────────────────────────────────────────────
 
 export const FinanceView: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<FinanceTab>('income');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab]         = useState<FinanceTab>('income');
+  const [isIncomeModalOpen, setIncomeModalOpen] = useState(false);
+  const [isExpenseModalOpen, setExpenseModalOpen] = useState(false);
 
-  const handleAddDoc = useCallback(() => setIsModalOpen(true), []);
-  const handleModalClose = useCallback(() => setIsModalOpen(false), []);
-
-  const showAddButton = activeTab === 'income' || activeTab === 'expense';
+  const openIncomeModal  = useCallback(() => setIncomeModalOpen(true),  []);
+  const closeIncomeModal = useCallback(() => setIncomeModalOpen(false), []);
+  const openExpenseModal  = useCallback(() => setExpenseModalOpen(true),  []);
+  const closeExpenseModal = useCallback(() => setExpenseModalOpen(false), []);
 
   return (
     <ViewContainer>
       <HeroCard>
         <HeroText>
           <HeroHeading>Finanse</HeroHeading>
-          <HeroSubtitle>Dokumenty finansowe, kasa i raporty</HeroSubtitle>
+          <HeroSubtitle>Dokumenty przychodowe, koszty KSeF i raporty</HeroSubtitle>
         </HeroText>
         <HeroActions>
-          {showAddButton && (
-            <AddButton onClick={handleAddDoc}>
+          {activeTab === 'income' && (
+            <AddButton onClick={openIncomeModal}>
               <PlusIcon />
-              Dodaj dokument
+              Dodaj dokument przychodowy
             </AddButton>
           )}
         </HeroActions>
@@ -743,14 +840,11 @@ export const FinanceView: React.FC = () => {
             <TabItem $active={activeTab === 'income'} onClick={() => setActiveTab('income')}>
               Dokumenty przychodowe
             </TabItem>
-            <TabItem $active={activeTab === 'expense'} onClick={() => setActiveTab('expense')}>
+            <TabItem $active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')}>
               Dokumenty kosztowe
             </TabItem>
             <TabItem $active={activeTab === 'cash'} onClick={() => setActiveTab('cash')}>
               Kasa
-            </TabItem>
-            <TabItem $active={activeTab === 'invoicing'} onClick={() => setActiveTab('invoicing')}>
-              Faktury zewnętrzne
             </TabItem>
             <TabItem $active={activeTab === 'payment-summary'} onClick={() => setActiveTab('payment-summary')}>
               Podsumowanie płatności
@@ -758,24 +852,31 @@ export const FinanceView: React.FC = () => {
           </TabBar>
 
           {activeTab === 'income' && (
-            <DocumentsTabContent direction={DocumentDirection.INCOME} />
+            <IncomeTabContent />
           )}
-          {activeTab === 'expense' && (
-            <DocumentsTabContent direction={DocumentDirection.EXPENSE} />
+          {activeTab === 'expenses' && (
+            <ExpensesTabContent onAddExpense={openExpenseModal} />
           )}
           {activeTab === 'cash' && <CashRegisterPanel />}
-          {activeTab === 'invoicing' && <InvoicingCredentialsPanel />}
           {activeTab === 'payment-summary' && <PaymentSummaryTab />}
         </PanelCard>
       </div>
 
-      <CreateDocumentModal
-        isOpen={isModalOpen}
-        onClose={handleModalClose}
-        defaultDirection={
-          activeTab === 'expense' ? DocumentDirection.EXPENSE : DocumentDirection.INCOME
-        }
-      />
+      {/* Konfiguracja KSeF — poniżej panelu, widoczna tylko w zakładce kosztów */}
+      {activeTab === 'expenses' && (
+        <div>
+          <SectionLabel>
+            <SectionLabelText>Konfiguracja KSeF</SectionLabelText>
+            <SectionLabelLine />
+          </SectionLabel>
+          <ExpensesSettingsWrap>
+            <KsefCredentialsPanel />
+          </ExpensesSettingsWrap>
+        </div>
+      )}
+
+      <CreateDocumentModal isOpen={isIncomeModalOpen} onClose={closeIncomeModal} />
+      <AddExpenseModal     isOpen={isExpenseModalOpen} onClose={closeExpenseModal} />
     </ViewContainer>
   );
 };

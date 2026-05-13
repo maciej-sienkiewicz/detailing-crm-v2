@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
 import styled, { css, keyframes } from 'styled-components';
 import type { FinancialDocument } from '../types';
 import { DocumentStatus } from '../types';
@@ -24,20 +23,17 @@ const fadeIn = keyframes`
   to   { opacity: 1; transform: translateY(0); }
 `;
 
-// ─── Layout ──────────────────────────────────────────────────────────────────
+// ─── Table layout ─────────────────────────────────────────────────────────────
 
 const Wrapper = styled.div`
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  border-radius: ${(p) => p.theme.radii.lg};
-  border: 1px solid ${(p) => p.theme.colors.border};
-  background: ${(p) => p.theme.colors.surface};
 `;
 
 const Table = styled.table`
   width: 100%;
-  min-width: 980px;
+  min-width: 860px;
   border-collapse: collapse;
 `;
 
@@ -60,14 +56,11 @@ const Th = styled.th<{ $align?: 'left' | 'right' | 'center'; $width?: string }>`
   &:last-child  { padding-right: 20px; }
 `;
 
-const Tbody = styled.tbody``;
-
 const Tr = styled.tr<{ $deleted?: boolean }>`
   border-bottom: 1px solid ${(p) => p.theme.colors.border};
   transition: background 0.12s ease;
   animation: ${fadeIn} 0.18s ease-out;
   cursor: pointer;
-  position: relative;
 
   &:last-child { border-bottom: none; }
 
@@ -88,18 +81,9 @@ const Tr = styled.tr<{ $deleted?: boolean }>`
   `}
 `;
 
-// ─── Unified cell typography ─────────────────────────────────────────────────
-//
-//  Every cell follows the same two-level anatomy:
-//    CellPrimary  — 13px / weight 500 / text color   (main value)
-//    CellSecondary — 12px / weight 400 / muted color  (metadata, always margin-top 3px)
-//
-// ─────────────────────────────────────────────────────────────────────────────
-
 const Td = styled.td<{ $align?: 'left' | 'right' | 'center' }>`
   padding: 13px 16px;
   font-size: 13px;
-  font-weight: 400;
   color: ${(p) => p.theme.colors.text};
   vertical-align: middle;
   text-align: ${(p) => p.$align || 'left'};
@@ -125,21 +109,7 @@ const CellSecondary = styled.span<{ $danger?: boolean }>`
   white-space: nowrap;
 `;
 
-// ─── Unified badge system ─────────────────────────────────────────────────────
-//
-//  One badge anatomy for the entire table.
-//  Variant controls colour only; shape, size, weight are always identical.
-//
-//  Variants:
-//    blue   → Invoice / App source
-//    teal   → Receipt
-//    purple → Other doc type / External source
-//    green  → Paid / Synced
-//    amber  → Pending / Sync-pending
-//    red    → Overdue / Sync-failed
-//    slate  → Neutral fallback
-//
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Badges ──────────────────────────────────────────────────────────────────
 
 type BadgeVariant = 'blue' | 'teal' | 'purple' | 'green' | 'amber' | 'red' | 'slate';
 
@@ -166,11 +136,8 @@ const Badge = styled.span<{ $variant: BadgeVariant }>`
   background: ${(p) => BADGE_COLORS[p.$variant].bg};
   color: ${(p) => BADGE_COLORS[p.$variant].color};
   border: 1px solid ${(p) => BADGE_COLORS[p.$variant].border};
-
-  svg { flex-shrink: 0; }
 `;
 
-// Status is interactive (button) but shares the same visual anatomy as Badge
 const StatusBadge = styled.button<{ $variant: BadgeVariant }>`
   display: inline-flex;
   align-items: center;
@@ -179,14 +146,12 @@ const StatusBadge = styled.button<{ $variant: BadgeVariant }>`
   border-radius: 5px;
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.05px;
   white-space: nowrap;
   background: ${(p) => BADGE_COLORS[p.$variant].bg};
   color: ${(p) => BADGE_COLORS[p.$variant].color};
   border: 1px solid ${(p) => BADGE_COLORS[p.$variant].border};
   cursor: pointer;
   transition: filter 0.12s ease;
-
   &:hover { filter: brightness(0.93); }
 `;
 
@@ -196,10 +161,7 @@ const docTypeVariant = (type: string): BadgeVariant =>
 const statusVariant = (status: string): BadgeVariant =>
   status === 'PAID' ? 'green' : status === 'OVERDUE' ? 'red' : 'amber';
 
-const syncVariant = (s: Exclude<SyncStatus, 'na'>): BadgeVariant =>
-  s === 'synced' ? 'green' : s === 'failed' ? 'red' : 'amber';
-
-// ─── Document number (inline edit) ───────────────────────────────────────────
+// ─── Inline document number edit ─────────────────────────────────────────────
 
 const DocNumberWrap = styled.div`
   display: flex;
@@ -229,13 +191,7 @@ const DocEditBtn = styled.button`
   color: ${(p) => p.theme.colors.textMuted};
   opacity: 0;
   transition: all 0.12s ease;
-
-  &:hover {
-    background: rgba(14, 165, 233, 0.1);
-    color: var(--brand-primary);
-    opacity: 1 !important;
-  }
-
+  &:hover { background: rgba(14, 165, 233, 0.1); color: #0ea5e9; opacity: 1 !important; }
   svg { width: 12px; height: 12px; }
 `;
 
@@ -256,10 +212,7 @@ const NumberInput = styled.input`
   outline: none;
   min-width: 100px;
   max-width: 160px;
-
-  &:focus {
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
-  }
+  &:focus { box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15); }
 `;
 
 const IconBtn = styled.button<{ $variant?: 'save' | 'cancel' }>`
@@ -275,29 +228,13 @@ const IconBtn = styled.button<{ $variant?: 'save' | 'cancel' }>`
 
   ${(p) =>
     p.$variant === 'save'
-      ? css`
-          border: none;
-          background: #0ea5e9;
-          color: white;
-          &:hover { background: #0284c7; }
-        `
-      : css`
-          border: 1px solid ${p.theme.colors.border};
-          background: transparent;
-          color: ${p.theme.colors.textMuted};
-          &:hover { background: #fee2e2; color: #ef4444; border-color: #fca5a5; }
-        `}
+      ? css`border: none; background: #0ea5e9; color: white; &:hover { background: #0284c7; }`
+      : css`border: 1px solid ${p.theme.colors.border}; background: transparent; color: ${p.theme.colors.textMuted}; &:hover { background: #fee2e2; color: #ef4444; border-color: #fca5a5; }`}
 
   svg { width: 12px; height: 12px; }
 `;
 
-// ─── Amount ──────────────────────────────────────────────────────────────────
-//
-//  Amounts retain tabular monospace font — this is correct premium practice
-//  for financial data (prevents column jitter, aids scannability).
-//  Only weight and size are normalised to the shared typographic scale.
-//
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Amount cells ─────────────────────────────────────────────────────────────
 
 const AmountPrimary = styled.span`
   display: block;
@@ -313,7 +250,6 @@ const AmountSecondary = styled.span`
   display: block;
   margin-top: 3px;
   font-size: 12px;
-  font-weight: 400;
   font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
   font-feature-settings: 'tnum';
   white-space: nowrap;
@@ -409,11 +345,7 @@ const DropdownItem = styled.button<{ $active?: boolean; $danger?: boolean }>`
 
   &:hover {
     background: ${(p) =>
-      p.$danger
-        ? 'rgba(239,68,68,0.06)'
-        : p.$active
-        ? 'rgba(99,102,241,0.08)'
-        : 'rgba(0,0,0,0.02)'};
+      p.$danger ? 'rgba(239,68,68,0.06)' : p.$active ? 'rgba(99,102,241,0.08)' : 'rgba(0,0,0,0.02)'};
     color: ${(p) => (p.$danger ? '#ef4444' : '#0f172a')};
   }
 `;
@@ -461,25 +393,6 @@ const IconRestore = () => (
   </svg>
 );
 
-const IconSyncOk = () => (
-  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-    <polyline points="20 6 9 17 4 12" />
-  </svg>
-);
-
-const IconSyncFail = () => (
-  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-);
-
-const IconSyncWait = () => (
-  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <circle cx="12" cy="12" r="10" />
-    <polyline points="12 6 12 12 16 14" />
-  </svg>
-);
-
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const ALL_STATUSES: DocumentStatus[] = [DocumentStatus.PAID, DocumentStatus.PENDING, DocumentStatus.OVERDUE];
@@ -490,49 +403,29 @@ const STATUS_LABELS: Record<DocumentStatus, string> = {
   [DocumentStatus.OVERDUE]: 'Przeterminowana',
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-type SyncStatus = 'synced' | 'failed' | 'pending' | 'na';
-
-const getSyncStatus = (doc: FinancialDocument): SyncStatus => {
-  if (doc.documentType !== 'INVOICE' || !doc.providerSyncStatus) return 'na';
-  if (doc.providerSyncStatus === 'SYNCED') return 'synced';
-  if (doc.providerSyncStatus === 'SYNC_FAILED') return 'failed';
-  return 'pending';
-};
-
-const SYNC_LABELS: Record<Exclude<SyncStatus, 'na'>, string> = {
-  synced:  'Zsynchronizowano',
-  failed:  'Błąd sync',
-  pending: 'Oczekuje',
-};
-
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
   documents: FinancialDocument[];
   isLoading?: boolean;
-  onDocumentClick?: (doc: FinancialDocument) => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocumentClick }) => {
-  const [openStatusId, setOpenStatusId]       = useState<string | null>(null);
-  const [dropdownPos, setDropdownPos]         = useState<{ top: number; left: number } | null>(null);
-  const [editingNumberId, setEditingNumberId] = useState<string | null>(null);
+export const DocumentsTable: React.FC<Props> = ({ documents, isLoading }) => {
+  const [openStatusId, setOpenStatusId]         = useState<string | null>(null);
+  const [dropdownPos, setDropdownPos]           = useState<{ top: number; left: number } | null>(null);
+  const [editingNumberId, setEditingNumberId]   = useState<string | null>(null);
   const [editingNumberVal, setEditingNumberVal] = useState('');
 
-  const dropdownRef   = useRef<HTMLDivElement>(null);
+  const dropdownRef    = useRef<HTMLDivElement>(null);
   const numberInputRef = useRef<HTMLInputElement>(null);
-  const navigate      = useNavigate();
 
-  const updateStatus  = useUpdateDocumentStatus();
-  const deleteDoc     = useDeleteDocument();
-  const restoreDoc    = useRestoreDocument();
-  const updateNumber  = useUpdateDocumentNumber();
+  const updateStatus = useUpdateDocumentStatus();
+  const deleteDoc    = useDeleteDocument();
+  const restoreDoc   = useRestoreDocument();
+  const updateNumber = useUpdateDocumentNumber();
 
-  // Close status dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -543,7 +436,6 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Auto-focus & select when editing starts
   useEffect(() => {
     if (editingNumberId && numberInputRef.current) {
       numberInputRef.current.focus();
@@ -600,18 +492,12 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
     setEditingNumberId(null);
   };
 
-  const cancelEdit = () => {
-    setEditingNumberId(null);
-    setEditingNumberVal('');
-  };
+  const cancelEdit = () => { setEditingNumberId(null); setEditingNumberVal(''); };
 
   const handleNumberKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter')  saveNumber();
     if (e.key === 'Escape') cancelEdit();
   };
-
-  const canEditNumber = (doc: FinancialDocument) =>
-    doc.source === 'MANUAL' || !doc.externalId;
 
   // ── Loading skeleton ───────────────────────────────────────────────────────
 
@@ -621,15 +507,15 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
         <Table>
           <Thead>
             <tr>
-              <Th>Data sprzedaży</Th><Th>Nazwa dokumentu</Th><Th>Numer dokumentu</Th>
+              <Th>Data wystawienia</Th><Th>Typ dokumentu</Th><Th>Numer</Th>
               <Th>Klient</Th><Th $align="right">Kwota</Th><Th>Płatność</Th>
-              <Th>Źródło</Th><Th>Sync</Th><Th $width="44px" />
+              <Th $width="44px" />
             </tr>
           </Thead>
           <tbody>
             {[1, 2, 3, 4, 5].map((i) => (
               <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                {[70, 100, 110, 130, 80, 110, 90, 90].map((w, j) => (
+                {[70, 80, 110, 130, 80, 110].map((w, j) => (
                   <td key={j} style={{ padding: '13px 16px' }}>
                     <Skeleton $w={`${w}px`} />
                   </td>
@@ -646,12 +532,10 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
   if (documents.length === 0) {
     return (
       <Wrapper>
-        <EmptyState>Brak dokumentów finansowych dla wybranych filtrów</EmptyState>
+        <EmptyState>Brak dokumentów przychodowych dla wybranych filtrów</EmptyState>
       </Wrapper>
     );
   }
-
-  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <>
@@ -659,18 +543,16 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
         <Table>
           <Thead>
             <tr>
-              <Th>Data sprzedaży</Th>
-              <Th>Nazwa dokumentu</Th>
+              <Th>Data wystawienia</Th>
+              <Th>Typ dokumentu</Th>
               <Th>Numer dokumentu</Th>
               <Th>Klient</Th>
               <Th $align="right">Kwota</Th>
               <Th>Płatność</Th>
-              <Th>Źródło</Th>
-              <Th>Sync</Th>
               <Th $width="44px" />
             </tr>
           </Thead>
-          <Tbody>
+          <tbody>
             {documents.map((doc) => {
               const isEditingNum = editingNumberId === doc.id;
               const isOverdue =
@@ -678,24 +560,17 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                 (doc.status === 'PENDING' &&
                   !!doc.dueDate &&
                   doc.dueDate <= new Date().toISOString().split('T')[0]);
-              const syncStatus = getSyncStatus(doc);
-              const isExternal = doc.source !== 'MANUAL';
               const clientName =
                 doc.counterpartyName ??
                 (doc.customerFirstName || doc.customerLastName
                   ? `${doc.customerFirstName ?? ''} ${doc.customerLastName ?? ''}`.trim()
                   : null);
-
               const isDeleted = !!doc.deletedAt;
 
               return (
-                <Tr
-                  key={doc.id}
-                  $deleted={isDeleted}
-                  onClick={() => !isDeleted && onDocumentClick?.(doc)}
-                >
+                <Tr key={doc.id} $deleted={isDeleted}>
 
-                  {/* Data sprzedaży */}
+                  {/* Data wystawienia */}
                   <Td>
                     <CellPrimary>{formatDate(doc.issueDate)}</CellPrimary>
                     {doc.dueDate && (
@@ -705,7 +580,7 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                     )}
                   </Td>
 
-                  {/* Nazwa dokumentu */}
+                  {/* Typ dokumentu */}
                   <Td>
                     <Badge $variant={docTypeVariant(doc.documentType)}>
                       {doc.documentTypeLabel}
@@ -714,7 +589,7 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                       <CellSecondary
                         as="span"
                         title={doc.description}
-                        style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}
+                        style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}
                       >
                         {doc.description}
                       </CellSecondary>
@@ -732,25 +607,17 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                           onKeyDown={handleNumberKeyDown}
                           onBlur={saveNumber}
                         />
-                        <IconBtn
-                          $variant="save"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={saveNumber}
-                          title="Zapisz (Enter)"
-                        >
+                        <IconBtn $variant="save" onMouseDown={(e) => e.preventDefault()} onClick={saveNumber} title="Zapisz (Enter)">
                           <IconCheck />
                         </IconBtn>
-                        <IconBtn
-                          onMouseDown={(e) => { e.preventDefault(); cancelEdit(); }}
-                          title="Anuluj (Esc)"
-                        >
+                        <IconBtn onMouseDown={(e) => { e.preventDefault(); cancelEdit(); }} title="Anuluj (Esc)">
                           <IconX />
                         </IconBtn>
                       </NumberEditWrap>
                     ) : (
                       <DocNumberWrap>
                         <DocNumberValue>{doc.documentNumber}</DocNumberValue>
-                        {canEditNumber(doc) && (
+                        {!isDeleted && (
                           <DocEditBtn
                             type="button"
                             className="doc-edit-btn"
@@ -771,7 +638,7 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                         <CellPrimary
                           as="span"
                           title={clientName}
-                          style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}
+                          style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}
                         >
                           {clientName}
                         </CellPrimary>
@@ -790,58 +657,30 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                     <AmountSecondary>{formatMoney(doc.totalNet)} netto</AmountSecondary>
                   </Td>
 
-                  {/* Płatność: metoda + status */}
+                  {/* Płatność: status + metoda */}
                   <Td onClick={(e) => e.stopPropagation()}>
-                    <StatusBadge
-                      $variant={statusVariant(doc.status)}
-                      onClick={(e) => handleStatusClick(doc.id, e)}
-                    >
-                      {doc.statusLabel}
-                      <IconChevron />
-                    </StatusBadge>
-                    <CellSecondary style={{ marginTop: 4 }}>{doc.paymentMethodLabel}</CellSecondary>
-                  </Td>
-
-                  {/* Źródło */}
-                  <Td>
-                    <Badge $variant={isExternal ? 'purple' : 'blue'}>
-                      {isExternal ? (doc.providerLabel ?? doc.sourceLabel) : 'Aplikacja'}
-                    </Badge>
-                  </Td>
-
-                  {/* Synchronizacja */}
-                  <Td>
-                    {syncStatus === 'na' ? (
-                      <EmDash>—</EmDash>
+                    {isDeleted ? (
+                      <Badge $variant={statusVariant(doc.status)}>{doc.statusLabel}</Badge>
                     ) : (
-                      <Badge
-                        $variant={syncVariant(syncStatus)}
-                        title={doc.providerSyncError ?? doc.providerSyncStatusLabel ?? undefined}
+                      <StatusBadge
+                        $variant={statusVariant(doc.status)}
+                        onClick={(e) => handleStatusClick(doc.id, e)}
                       >
-                        {syncStatus === 'synced'  && <IconSyncOk />}
-                        {syncStatus === 'failed'  && <IconSyncFail />}
-                        {syncStatus === 'pending' && <IconSyncWait />}
-                        {SYNC_LABELS[syncStatus]}
-                      </Badge>
+                        {doc.statusLabel}
+                        <IconChevron />
+                      </StatusBadge>
                     )}
+                    <CellSecondary style={{ marginTop: 4 }}>{doc.paymentMethodLabel}</CellSecondary>
                   </Td>
 
                   {/* Akcje */}
                   <Td onClick={(e) => e.stopPropagation()}>
                     {isDeleted ? (
-                      <ActionBtn
-                        $variant="restore"
-                        onClick={(e) => handleRestore(doc.id, e)}
-                        title="Przywróć dokument"
-                      >
+                      <ActionBtn $variant="restore" onClick={(e) => handleRestore(doc.id, e)} title="Przywróć dokument">
                         <IconRestore />
                       </ActionBtn>
                     ) : (
-                      <ActionBtn
-                        $variant="delete"
-                        onClick={(e) => handleDelete(doc.id, e)}
-                        title="Usuń dokument"
-                      >
+                      <ActionBtn $variant="delete" onClick={(e) => handleDelete(doc.id, e)} title="Usuń dokument">
                         <IconTrash />
                       </ActionBtn>
                     )}
@@ -850,19 +689,15 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                 </Tr>
               );
             })}
-          </Tbody>
+          </tbody>
         </Table>
       </Wrapper>
 
-      {/* Status dropdown portal */}
       {openStatusId && dropdownPos &&
         createPortal(
           <>
             <Backdrop onClick={() => setOpenStatusId(null)} />
-            <Dropdown
-              ref={dropdownRef}
-              style={{ top: dropdownPos.top, left: dropdownPos.left }}
-            >
+            <Dropdown ref={dropdownRef} style={{ top: dropdownPos.top, left: dropdownPos.left }}>
               <DropdownBody>
                 {ALL_STATUSES.map((s) => (
                   <DropdownItem
@@ -873,20 +708,6 @@ export const DocumentsTable: React.FC<Props> = ({ documents, isLoading, onDocume
                     {STATUS_LABELS[s]}
                   </DropdownItem>
                 ))}
-                {!documents.find((d) => d.id === openStatusId)?.deletedAt && (
-                  <>
-                    <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', margin: '4px 0' }} />
-                    <DropdownItem
-                      $danger
-                      onClick={(e) => {
-                        handleDelete(openStatusId, e);
-                        setOpenStatusId(null);
-                      }}
-                    >
-                      Usuń dokument
-                    </DropdownItem>
-                  </>
-                )}
               </DropdownBody>
             </Dropdown>
           </>,

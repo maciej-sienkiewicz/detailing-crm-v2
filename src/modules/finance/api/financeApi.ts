@@ -8,8 +8,6 @@ import type {
   CashHistoryResponse,
   CashAdjustRequest,
   FinanceSummary,
-  SyncInvoicesResult,
-  ImportInvoicesResult,
   PaymentMethodReport,
   PaymentMethodReportParams,
 } from '../types';
@@ -24,12 +22,12 @@ export const financeApi = {
       page: String(filters.page),
       size: String(filters.pageSize),
     });
-    if (filters.direction)    params.append('direction',    filters.direction);
-    if (filters.documentType) params.append('documentType', filters.documentType);
-    if (filters.status)       params.append('status',       filters.status);
-    if (filters.visitId)      params.append('visitId',      filters.visitId);
-    if (filters.dateFrom)       params.append('dateFrom',       filters.dateFrom);
-    if (filters.dateTo)         params.append('dateTo',         filters.dateTo);
+    if (filters.direction)    params.append('direction',      filters.direction);
+    if (filters.documentType) params.append('documentType',   filters.documentType);
+    if (filters.status)       params.append('status',         filters.status);
+    if (filters.visitId)      params.append('visitId',        filters.visitId);
+    if (filters.dateFrom)     params.append('dateFrom',       filters.dateFrom);
+    if (filters.dateTo)       params.append('dateTo',         filters.dateTo);
     if (filters.includeDeleted) params.append('includeDeleted', 'true');
     const response = await apiClient.get(`${BASE}/documents?${params}`);
     return response.data;
@@ -91,33 +89,6 @@ export const financeApi = {
     const qs = params.toString();
     const response = await apiClient.get(`${BASE}/summary${qs ? '?' + qs : ''}`);
     return response.data;
-  },
-
-  // ── Invoice provider integration ───────────────────────────────────────────
-
-  syncAllInvoices: async (): Promise<SyncInvoicesResult> => {
-    const response = await apiClient.post(`${BASE}/invoices/sync`);
-    return response.data;
-  },
-
-  syncSingleInvoice: async (id: string): Promise<FinancialDocument> => {
-    const response = await apiClient.post(`${BASE}/invoices/${id}/sync`);
-    return response.data;
-  },
-
-  importInvoices: async (): Promise<ImportInvoicesResult> => {
-    const response = await apiClient.post(`${BASE}/invoices/import`);
-    return response.data;
-  },
-
-  retrySyncInvoice: async (id: string): Promise<FinancialDocument> => {
-    const response = await apiClient.post(`${BASE}/invoices/${id}/retry-sync`);
-    return response.data;
-  },
-
-  getInvoicePortalUrl: async (id: string): Promise<string> => {
-    const response = await apiClient.get(`${BASE}/invoices/${id}/portal-url`);
-    return response.data.url;
   },
 
   // ── Payment method report ──────────────────────────────────────────────────

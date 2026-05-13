@@ -7,25 +7,25 @@ import type {
   CashAdjustRequest,
 } from '../types';
 
-export const FINANCE_DOCS_KEY = ['finance', 'documents'];
-export const FINANCE_CASH_KEY = ['finance', 'cash'];
-export const FINANCE_SUMMARY_KEY = ['finance', 'summary'];
-export const FINANCE_INVOICES_KEY = ['finance', 'invoices'];
+export const FINANCE_DOCS_KEY     = ['finance', 'documents'] as const;
+export const FINANCE_CASH_KEY     = ['finance', 'cash']      as const;
+export const FINANCE_SUMMARY_KEY  = ['finance', 'summary']   as const;
+export const FINANCE_REPORT_KEY   = ['finance', 'payment-method-report'] as const;
+
+// ── Documents ─────────────────────────────────────────────────────────────────
 
 export const useFinanceDocuments = (filters: DocumentListFilters) => {
-  const queryKey = [...FINANCE_DOCS_KEY, filters];
-
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey,
-    queryFn: () => financeApi.getDocuments(filters),
+    queryKey: [...FINANCE_DOCS_KEY, filters],
+    queryFn:  () => financeApi.getDocuments(filters),
     staleTime: 30_000,
   });
 
   return {
     documents: data?.documents ?? [],
-    total: data?.total ?? 0,
-    page: data?.page ?? 1,
-    pageSize: data?.pageSize ?? 20,
+    total:     data?.total     ?? 0,
+    page:      data?.page      ?? 1,
+    pageSize:  data?.pageSize  ?? 20,
     isLoading,
     isError,
     refetch,
@@ -35,8 +35,8 @@ export const useFinanceDocuments = (filters: DocumentListFilters) => {
 export const useFinanceDocument = (id: string | undefined) => {
   const { data, isLoading, isError } = useQuery({
     queryKey: [...FINANCE_DOCS_KEY, 'detail', id],
-    queryFn: () => financeApi.getDocument(id!),
-    enabled: !!id,
+    queryFn:  () => financeApi.getDocument(id!),
+    enabled:  !!id,
     staleTime: 60_000,
   });
 
@@ -71,6 +71,7 @@ export const useUpdateDocumentStatus = () => {
 
 export const useUpdateDocumentNumber = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({ id, documentNumber }: { id: string; documentNumber: string }) =>
       financeApi.updateDocumentNumber(id, documentNumber),
@@ -104,10 +105,12 @@ export const useRestoreDocument = () => {
   });
 };
 
+// ── Cash register ─────────────────────────────────────────────────────────────
+
 export const useCashRegister = () => {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: FINANCE_CASH_KEY,
-    queryFn: () => financeApi.getCashRegister(),
+    queryFn:  () => financeApi.getCashRegister(),
     staleTime: 15_000,
   });
 
@@ -117,13 +120,13 @@ export const useCashRegister = () => {
 export const useCashHistory = (page: number, pageSize: number) => {
   const { data, isLoading, isError } = useQuery({
     queryKey: [...FINANCE_CASH_KEY, 'history', page, pageSize],
-    queryFn: () => financeApi.getCashHistory(page, pageSize),
+    queryFn:  () => financeApi.getCashHistory(page, pageSize),
     staleTime: 15_000,
   });
 
   return {
     operations: data?.operations ?? [],
-    total: data?.total ?? 0,
+    total:      data?.total      ?? 0,
     isLoading,
     isError,
   };
@@ -140,40 +143,22 @@ export const useAdjustCash = () => {
   });
 };
 
-export const useFinanceInvoices = (page: number, pageSize: number) => {
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: [...FINANCE_INVOICES_KEY, page, pageSize],
-    queryFn: () => financeApi.getDocuments({ page, pageSize, documentType: 'INVOICE' }),
-    staleTime: 30_000,
-  });
-
-  return {
-    invoices: data?.documents ?? [],
-    total: data?.total ?? 0,
-    isLoading,
-    isError,
-    refetch,
-  };
-};
+// ── Summary & reports ─────────────────────────────────────────────────────────
 
 export const useFinanceSummary = (dateFrom?: string, dateTo?: string) => {
-  const queryKey = [...FINANCE_SUMMARY_KEY, dateFrom, dateTo];
-
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey,
-    queryFn: () => financeApi.getSummary(dateFrom, dateTo),
+    queryKey: [...FINANCE_SUMMARY_KEY, dateFrom, dateTo],
+    queryFn:  () => financeApi.getSummary(dateFrom, dateTo),
     staleTime: 60_000,
   });
 
   return { summary: data, isLoading, isError, refetch };
 };
 
-export const FINANCE_PAYMENT_REPORT_KEY = ['finance', 'payment-method-report'];
-
 export const usePaymentMethodReport = (params: PaymentMethodReportParams) => {
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: [...FINANCE_PAYMENT_REPORT_KEY, params],
-    queryFn: () => financeApi.getPaymentMethodReport(params),
+    queryKey: [...FINANCE_REPORT_KEY, params],
+    queryFn:  () => financeApi.getPaymentMethodReport(params),
     staleTime: 2 * 60_000,
   });
 
