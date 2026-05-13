@@ -11,6 +11,7 @@ import {
   CashRegisterPanel,
   InvoicingCredentialsPanel,
   PaymentSummaryTab,
+  KsefInvoicesSection,
 } from '../components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
@@ -761,7 +762,10 @@ export const FinanceView: React.FC = () => {
             <DocumentsTabContent direction={DocumentDirection.INCOME} />
           )}
           {activeTab === 'expense' && (
-            <DocumentsTabContent direction={DocumentDirection.EXPENSE} />
+            <>
+              <DocumentsTabContent direction={DocumentDirection.EXPENSE} />
+              <KsefInvoicesSection />
+            </>
           )}
           {activeTab === 'cash' && <CashRegisterPanel />}
           {activeTab === 'invoicing' && <InvoicingCredentialsPanel />}

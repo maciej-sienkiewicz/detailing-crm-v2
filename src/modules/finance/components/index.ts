@@ -6,3 +6,4 @@ export { FinanceSummaryReport } from './FinanceSummaryReport';
 export { InvoicingCredentialsPanel } from './InvoicingCredentialsPanel';
 export { ExternalInvoicesTable } from './ExternalInvoicesTable';
 export { PaymentSummaryTab } from './PaymentSummaryTab';
+export { KsefInvoicesSection } from './KsefInvoicesSection';

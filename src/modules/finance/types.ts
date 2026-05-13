@@ -212,6 +212,108 @@ export interface SyncResult {
   errors: string[];
 }
 
+// ─── KSeF Integration ─────────────────────────────────────────────────────────
+
+export type KsefInvoiceStatus = 'ACTIVE' | 'CORRECTED' | 'CANCELLED' | 'EXCLUDED';
+export type KsefInvoiceDirection = 'INCOME' | 'EXPENSE';
+export type KsefSyncStatus = 'IDLE' | 'RUNNING' | 'ERROR' | 'NEVER_SYNCED';
+export type KsefPaymentFormKey = 'GOTOWKA' | 'KARTA' | 'CZEK' | 'BON' | 'KREDYT' | 'PRZELEW' | 'MOBILNA';
+
+export interface KsefInvoice {
+  id: string;
+  ksefNumber: string;
+  invoiceNumber: string | null;
+  invoicingDate: string | null;
+  issueDate: string | null;
+  sellerNip: string | null;
+  sellerName: string | null;
+  buyerNip: string | null;
+  buyerName: string | null;
+  netAmount: number | null;
+  grossAmount: number | null;
+  vatAmount: number | null;
+  currency: string | null;
+  invoiceType: 'FA' | 'FA_KOR' | string | null;
+  fetchedAt: string;
+  direction: KsefInvoiceDirection;
+  isCorrection: boolean;
+  status: KsefInvoiceStatus;
+  paymentForm: KsefPaymentFormKey | null;
+  paymentFormLabel: string | null;
+}
+
+export interface KsefInvoiceListResponse {
+  invoices: KsefInvoice[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface KsefSyncStatusResponse {
+  syncStatus: KsefSyncStatus;
+  lastIncomeSync: string | null;
+  lastExpenseSync: string | null;
+  lastError: string | null;
+  updatedAt: string | null;
+}
+
+export interface KsefStatsTotals {
+  revenueGross: number;
+  revenueNet: number;
+  revenueVat: number;
+  costsGross: number;
+  costsNet: number;
+  costsVat: number;
+  profitGross: number;
+  profitNet: number;
+  incomeCount: number;
+  expenseCount: number;
+  correctionCount: number;
+}
+
+export interface KsefMonthlyBreakdown extends KsefStatsTotals {
+  monthLabel: string;
+}
+
+export interface KsefStatisticsResponse {
+  year: number;
+  syncStatus: KsefSyncStatus;
+  dataAsOf: string | null;
+  totals: KsefStatsTotals;
+  monthly: KsefMonthlyBreakdown[];
+}
+
+export interface KsefCredentials {
+  nip: string;
+  tokenMasked: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SaveKsefCredentialsRequest {
+  nip: string;
+  ksefToken: string;
+}
+
+export interface KsefSessionResponse {
+  authenticated: boolean;
+  accessTokenValidUntil: string;
+}
+
+export interface FetchKsefInvoicesRequest {
+  dateFrom: string;
+  dateTo: string;
+  dateType?: 'INVOICING' | 'ISSUE' | 'PERMANENTSTORAGE';
+  subjectType?: 'SUBJECT1' | 'SUBJECT2';
+  pageSize?: number;
+}
+
+export interface FetchKsefInvoicesResult {
+  fetched: number;
+  skipped: number;
+  total: number;
+}
+
 // ─── Payment Method Report ─────────────────────────────────────────────────────
 
 export type ReportGranularity = 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
