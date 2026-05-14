@@ -1,6 +1,6 @@
 import { apiClient } from '@/core';
 
-export type SubscriptionStatus = 'TRIAL' | 'ACTIVE' | 'EXPIRED' | 'NONE';
+export type SubscriptionStatus = 'TRIAL' | 'ACTIVE' | 'EXPIRED' | 'NONE' | 'NO_PLAN';
 export type SubscriptionPlanType = 'MONTHLY' | 'YEARLY';
 
 export interface SubscriptionStatusResponse {

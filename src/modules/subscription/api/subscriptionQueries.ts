@@ -55,10 +55,22 @@ export const usePaymentHistory = (page = 0) => {
 
 // ─── Mutations ────────────────────────────────────────────────────────────────
 
+// Key used by the old SubscriptionGate — must be invalidated so the gate re-evaluates
+const OLD_STATUS_KEY = ['subscription', 'status'] as const;
+
 const invalidateAfterMutation = (queryClient: ReturnType<typeof useQueryClient>) => {
     queryClient.invalidateQueries({ queryKey: ENTITLEMENTS_KEY });
     queryClient.invalidateQueries({ queryKey: MY_PLAN_KEY });
     queryClient.invalidateQueries({ queryKey: PAYMENT_HISTORY_KEY });
+    queryClient.invalidateQueries({ queryKey: OLD_STATUS_KEY });
+};
+
+export const useStartTrial = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: () => newSubscriptionApi.startTrial(),
+        onSuccess: () => invalidateAfterMutation(queryClient),
+    });
 };
 
 export const useChangePlan = () => {

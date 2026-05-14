@@ -7,6 +7,7 @@ import {
     useSubscriptionPlans,
     usePurchaseSubscription,
 } from '@/modules/settings/hooks/useSubscription';
+import { FirstLoginModal } from '@/modules/subscription/components/FirstLoginModal';
 import type { SubscriptionPlanType } from '@/modules/settings/api/subscriptionApi';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -292,10 +293,22 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
         return <>{children}</>;
     }
 
+    // First-time user with no plan — force plan selection before anything else
+    if (status.status === 'NO_PLAN') {
+        return (
+            <>
+                {children}
+                <FirstLoginModal trialUsed={status.trialUsed} />
+            </>
+        );
+    }
+
+    // Access allowed — render normally
     if (status.isAccessible) {
         return <>{children}</>;
     }
 
+    // Expired / blocked — renewal modal
     return (
         <>
             {children}

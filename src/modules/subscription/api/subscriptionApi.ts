@@ -72,6 +72,10 @@ export const newSubscriptionApi = {
         return res.data;
     },
 
+    startTrial: async (): Promise<void> => {
+        await apiClient.post(`${BASE}/start-trial`);
+    },
+
     cancelPendingPlanChange: async (): Promise<void> => {
         await apiClient.delete(`${BASE}/pending-plan-change`);
     },
