@@ -8,6 +8,7 @@ import { SubscriptionSection } from '../components/SubscriptionSection';
 import { AutomationSettings } from '@/modules/sms-campaigns/components/AutomationSettings';
 import { EmailAutomationSettings } from '@/modules/email-campaigns/components/EmailAutomationSettings';
 import { SmsCreditSection } from '../components/SmsCreditSection';
+import { InvoicesSection } from '../components/InvoicesSection';
 
 // ─── Nav definition ──────────────────────────────────────────────────────────
 
@@ -281,6 +282,8 @@ export function SettingsView() {
         content = <SubscriptionSection />;
     } else if (section === 'credits') {
         content = <SmsCreditSection />;
+    } else if (section === 'invoices') {
+        content = <InvoicesSection />;
     } else {
         content = <ComingSoonSection label={activeLabel} />;
     }

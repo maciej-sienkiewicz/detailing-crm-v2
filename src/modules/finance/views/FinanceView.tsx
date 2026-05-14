@@ -14,7 +14,6 @@ import {
   PaymentSummaryTab,
   KsefExpensesTable,
   KsefSyncWidget,
-  KsefCredentialsPanel,
   AddExpenseModal,
 } from '../components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -531,12 +530,6 @@ const PlusIcon = () => (
   </svg>
 );
 
-// ─── Expenses settings panel ──────────────────────────────────────────────────
-
-const ExpensesSettingsWrap = styled.div`
-  padding: 24px;
-`;
-
 // ─── Income documents tab ─────────────────────────────────────────────────────
 
 const PAGE_SIZE = 20;
@@ -861,19 +854,6 @@ export const FinanceView: React.FC = () => {
           {activeTab === 'payment-summary' && <PaymentSummaryTab />}
         </PanelCard>
       </div>
-
-      {/* Konfiguracja KSeF — poniżej panelu, widoczna tylko w zakładce kosztów */}
-      {activeTab === 'expenses' && (
-        <div>
-          <SectionLabel>
-            <SectionLabelText>Konfiguracja KSeF</SectionLabelText>
-            <SectionLabelLine />
-          </SectionLabel>
-          <ExpensesSettingsWrap>
-            <KsefCredentialsPanel />
-          </ExpensesSettingsWrap>
-        </div>
-      )}
 
       <CreateDocumentModal isOpen={isIncomeModalOpen} onClose={closeIncomeModal} />
       <AddExpenseModal     isOpen={isExpenseModalOpen} onClose={closeExpenseModal} />
