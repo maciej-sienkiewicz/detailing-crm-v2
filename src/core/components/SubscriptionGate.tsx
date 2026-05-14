@@ -20,6 +20,27 @@ function formatPrice(amount: number, currency: string): string {
 
 const spin = keyframes`from { transform: rotate(0deg); } to { transform: rotate(360deg); }`;
 
+const GateSpinner = styled.div`
+    width: 28px;
+    height: 28px;
+    border: 3px solid #e2e8f0;
+    border-top-color: #0ea5e9;
+    border-radius: 50%;
+    animation: ${spin} 0.7s linear infinite;
+`;
+
+// Full-screen loading used while subscription status is being fetched.
+// Rendered instead of children so no protected API calls fire prematurely.
+const GateLoadingScreen = styled.div`
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef2f7;
+    z-index: 1;
+`;
+
 const Overlay = styled.div`
     position: fixed;
     inset: 0;
@@ -187,7 +208,7 @@ const BtnSpinner = styled.div`
     animation: ${spin} 0.7s linear infinite;
 `;
 
-// ─── ExpiredModal — fetches plans only when actually shown ───────────────────
+// ─── ExpiredModal ─────────────────────────────────────────────────────────────
 
 function ExpiredModal() {
     const { user } = useAuth();
@@ -279,7 +300,7 @@ function ExpiredModal() {
     );
 }
 
-// ─── Gate — only fetches status; renders modal when access is blocked ─────────
+// ─── Gate ─────────────────────────────────────────────────────────────────────
 
 interface SubscriptionGateProps {
     children: ReactNode;
@@ -289,26 +310,31 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     const { isLoading: authLoading } = useAuth();
     const { status, isLoading: statusLoading } = useSubscriptionStatus();
 
-    if (authLoading || statusLoading || !status) {
-        return <>{children}</>;
-    }
-
-    // First-time user with no plan — force plan selection before anything else
-    if (status.status === 'NO_PLAN') {
+    // While auth or subscription status is loading, block rendering children.
+    // Rendering children here would cause every mounted component to fire its
+    // API queries immediately — all returning 403 for NO_PLAN/EXPIRED studios.
+    if (authLoading || statusLoading) {
         return (
-            <>
-                {children}
-                <FirstLoginModal trialUsed={status.trialUsed} />
-            </>
+            <GateLoadingScreen>
+                <GateSpinner />
+            </GateLoadingScreen>
         );
     }
 
-    // Access allowed — render normally
+    // No plan yet — new studio on first login.
+    // Block children entirely: the modal handles everything from here.
+    // No children = no protected API calls fire.
+    if (!status || status.status === 'NO_PLAN') {
+        return <FirstLoginModal trialUsed={status?.trialUsed ?? false} />;
+    }
+
+    // Active plan — normal render.
     if (status.isAccessible) {
         return <>{children}</>;
     }
 
-    // Expired / blocked — renewal modal
+    // Expired / blocked — show renewal overlay on top of the (blurred) app shell
+    // so users still see their data context while being prompted to renew.
     return (
         <>
             {children}

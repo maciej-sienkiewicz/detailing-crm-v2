@@ -289,6 +289,187 @@ export const ErrorNote = styled.div`
     color: #dc2626;
 `;
 
+// ─── Custom plan builder ──────────────────────────────────────────────────────
+
+export const CustomToggle = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1.5px dashed #cbd5e1;
+    background: transparent;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 160ms;
+    text-align: left;
+    justify-content: space-between;
+
+    &:hover {
+        border-color: #94a3b8;
+        color: #334155;
+        background: #f8fafc;
+    }
+`;
+
+export const CustomPanel = styled.div`
+    border: 1.5px solid #e2e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #fafbfc;
+`;
+
+export const CustomPanelHeader = styled.div`
+    padding: 14px 18px;
+    background: white;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #94a3b8;
+`;
+
+export const AddOnRow = styled.label<{ $disabled: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: ${p => p.$disabled ? 'not-allowed' : 'pointer'};
+    opacity: ${p => p.$disabled ? 0.5 : 1};
+    transition: background 120ms;
+    user-select: none;
+
+    &:last-of-type { border-bottom: none; }
+
+    &:hover:not([data-disabled='true']) {
+        background: white;
+    }
+`;
+
+export const AddOnCheckbox = styled.input`
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    accent-color: #0ea5e9;
+    cursor: inherit;
+    flex-shrink: 0;
+`;
+
+export const AddOnMeta = styled.div`
+    flex: 1;
+    min-width: 0;
+`;
+
+export const AddOnName = styled.div`
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #0f172a;
+`;
+
+export const AddOnDesc = styled.div`
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 1px;
+`;
+
+export const AddOnPrice = styled.div`
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    white-space: nowrap;
+`;
+
+export const AddOnSoonBadge = styled.span`
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    padding: 2px 7px;
+    border-radius: 9999px;
+    background: #f1f5f9;
+    color: #64748b;
+`;
+
+export const CustomSummary = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 18px;
+    background: white;
+    border-top: 2px solid #e2e8f0;
+`;
+
+export const SummaryPrice = styled.div`
+    display: flex;
+    flex-direction: column;
+`;
+
+export const SummaryLabel = styled.div`
+    font-size: 11px;
+    color: #94a3b8;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 2px;
+`;
+
+export const SummaryAmount = styled.div`
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #0f172a;
+`;
+
+export const CustomConfirmBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 22px;
+    border-radius: 10px;
+    border: none;
+    background: #0ea5e9;
+    color: white;
+    font-size: 13.5px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 150ms;
+    white-space: nowrap;
+
+    &:hover:not(:disabled) { background: #0284c7; }
+    &:disabled { opacity: 0.6; cursor: not-allowed; }
+`;
+
+// ─── Base plan line ───────────────────────────────────────────────────────────
+
+export const BasePlanRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-bottom: 1px solid #f1f5f9;
+    background: #f0f9ff;
+`;
+
+export const BasePlanCheck = styled.div`
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background: #0ea5e9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: white;
+`;
+
 // ─── Footer ───────────────────────────────────────────────────────────────────
 
 export const CardFooter = styled.div`
