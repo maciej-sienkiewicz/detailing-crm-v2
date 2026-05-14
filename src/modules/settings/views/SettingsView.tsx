@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { CompanySection } from '../components/CompanySection';
 import { DocumentsSection } from '../components/DocumentsSection';
 import { ServicesSection } from '../components/ServicesSection';
-import { SubscriptionSection } from '../components/SubscriptionSection';
+import { SubscriptionSettingsPage } from '@/modules/subscription';
 import { AutomationSettings } from '@/modules/sms-campaigns/components/AutomationSettings';
 import { EmailAutomationSettings } from '@/modules/email-campaigns/components/EmailAutomationSettings';
 import { SmsCreditSection } from '../components/SmsCreditSection';
@@ -279,7 +279,7 @@ export function SettingsView() {
     } else if (section === 'services') {
         content = <ServicesSection />;
     } else if (section === 'plan') {
-        content = <SubscriptionSection />;
+        content = <SubscriptionSettingsPage />;
     } else if (section === 'credits') {
         content = <SmsCreditSection />;
     } else if (section === 'invoices') {
