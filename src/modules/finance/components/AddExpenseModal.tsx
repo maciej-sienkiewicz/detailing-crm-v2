@@ -107,6 +107,12 @@ const Input = styled.input`
   &::placeholder { color: ${(p) => p.theme.colors.textMuted}; }
 `;
 
+const HelpText = styled.p`
+  font-size: 11px;
+  color: ${(p) => p.theme.colors.textMuted};
+  margin: 0;
+`;
+
 // ─── Custom Select ─────────────────────────────────────────────────────────────
 
 const SelectTrigger = styled.button`
@@ -135,7 +141,7 @@ const SelectTrigger = styled.button`
 const SelectBackdrop = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 1199;
+  z-index: 2100;
 `;
 
 const SelectPanel = styled.div`
@@ -143,13 +149,14 @@ const SelectPanel = styled.div`
   background: #ffffff;
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
-  z-index: 1200;
-  overflow: hidden;
+  z-index: 2200;
   border: 1px solid rgba(0, 0, 0, 0.08);
+  overflow: hidden;
 `;
 
 const SelectBody = styled.div`
   padding: 8px;
+  overflow-y: auto;
 `;
 
 const SelectOption = styled.button<{ $active: boolean }>`
@@ -185,16 +192,38 @@ interface ModalSelectProps {
   placeholder?: string;
 }
 
+const ITEM_HEIGHT = 42;
+const PANEL_PADDING = 16;
+
 const ModalSelect: React.FC<ModalSelectProps> = ({ value, onChange, options, placeholder }) => {
-  const [isOpen, setIsOpen]   = useState(false);
-  const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [panelStyle, setPanelStyle] = useState<React.CSSProperties>({});
   const triggerRef = useRef<HTMLButtonElement>(null);
   const selectedLabel = options.find((o) => o.value === value)?.label ?? placeholder ?? '';
 
   const handleToggle = () => {
     if (!isOpen && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      setPanelPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+      const itemCount = (placeholder ? 1 : 0) + options.length;
+      const estimatedHeight = itemCount * ITEM_HEIGHT + PANEL_PADDING;
+      const spaceBelow = window.innerHeight - rect.bottom - 8;
+      const spaceAbove = rect.top - 8;
+      const maxH = Math.min(estimatedHeight, 320);
+
+      const style: React.CSSProperties = {
+        left: rect.left,
+        minWidth: rect.width,
+      };
+
+      if (spaceBelow >= maxH || spaceBelow >= spaceAbove) {
+        style.top = rect.bottom + 4;
+        style.maxHeight = Math.min(maxH, spaceBelow - 4);
+      } else {
+        style.bottom = window.innerHeight - rect.top + 4;
+        style.maxHeight = Math.min(maxH, spaceAbove - 4);
+      }
+
+      setPanelStyle(style);
     }
     setIsOpen((prev) => !prev);
   };
@@ -213,9 +242,9 @@ const ModalSelect: React.FC<ModalSelectProps> = ({ value, onChange, options, pla
         <span>{selectedLabel}</span>
         <ChevronIcon />
       </SelectTrigger>
-      {isOpen && panelPos && createPortal(
-        <SelectPanel style={{ top: panelPos.top, left: panelPos.left, minWidth: panelPos.width }}>
-          <SelectBody>
+      {isOpen && createPortal(
+        <SelectPanel style={panelStyle}>
+          <SelectBody style={{ maxHeight: panelStyle.maxHeight }}>
             {placeholder && (
               <SelectOption $active={value === ''} onClick={() => handleSelect('')}>
                 <span style={{ color: '#94a3b8' }}>{placeholder}</span>
@@ -310,6 +339,28 @@ const PAYMENT_METHODS = [
   { value: 'MOBILNA',  label: 'Mobilna' },
 ];
 
+const VAT_RATES = [
+  { value: '23', label: '23%' },
+  { value: '8',  label: '8%' },
+  { value: '5',  label: '5%' },
+  { value: '0',  label: '0%' },
+  { value: 'zw', label: 'zw.' },
+];
+
+// ─── Amount helpers ───────────────────────────────────────────────────────────
+
+const MAX_2_DECIMALS = /^\d*\.?\d{0,2}$/;
+
+const roundTo2 = (n: number): string => {
+  if (!isFinite(n) || isNaN(n)) return '';
+  return (Math.round(n * 100) / 100).toFixed(2);
+};
+
+const parseAmount = (s: string): number | null => {
+  const n = parseFloat(s.replace(',', '.'));
+  return isFinite(n) ? n : null;
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -324,6 +375,7 @@ interface FormState {
   sellerNip:      string;
   netAmount:      string;
   grossAmount:    string;
+  vatRate:        string;
   paymentMethod:  string;
 }
 
@@ -336,6 +388,7 @@ const EMPTY_FORM: FormState = {
   sellerNip:      '',
   netAmount:      '',
   grossAmount:    '',
+  vatRate:        '23',
   paymentMethod:  '',
 };
 
@@ -357,17 +410,43 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const setField = (key: keyof FormState) => (value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  const getMultiplier = (vatRate: string): number | null => {
+    if (vatRate === 'zw') return 1;
+    const r = parseFloat(vatRate);
+    return isFinite(r) ? 1 + r / 100 : null;
+  };
+
+  const handleNetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    if (!MAX_2_DECIMALS.test(raw)) return;
+    const net = parseAmount(raw);
+    const multiplier = getMultiplier(form.vatRate);
+    const gross = net !== null && multiplier !== null ? roundTo2(net * multiplier) : '';
+    setForm((prev) => ({ ...prev, netAmount: raw, grossAmount: gross }));
+  };
+
+  const handleGrossChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    if (!MAX_2_DECIMALS.test(raw)) return;
+    const gross = parseAmount(raw);
+    const multiplier = getMultiplier(form.vatRate);
+    const net = gross !== null && multiplier !== null ? roundTo2(gross / multiplier) : '';
+    setForm((prev) => ({ ...prev, grossAmount: raw, netAmount: net }));
+  };
+
+  const handleVatChange = (vatRate: string) => {
+    const multiplier = getMultiplier(vatRate);
+    const net = parseAmount(form.netAmount);
+    const gross = net !== null && multiplier !== null ? roundTo2(net * multiplier) : form.grossAmount;
+    setForm((prev) => ({ ...prev, vatRate, grossAmount: gross }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    const grossAmount = form.grossAmount
-      ? parseFloat(form.grossAmount.replace(',', '.'))
-      : undefined;
-
-    const netAmount = form.netAmount
-      ? parseFloat(form.netAmount.replace(',', '.'))
-      : undefined;
+    const grossAmount = form.grossAmount ? parseAmount(form.grossAmount) ?? undefined : undefined;
+    const netAmount   = form.netAmount   ? parseAmount(form.netAmount)   ?? undefined : undefined;
 
     if (grossAmount !== undefined && grossAmount < 0) {
       setError('Kwota brutto nie może być ujemna.');
@@ -452,26 +531,38 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
           <FieldRow>
             <Field>
+              <Label>Stawka VAT</Label>
+              <ModalSelect
+                value={form.vatRate}
+                onChange={handleVatChange}
+                options={VAT_RATES}
+              />
+            </Field>
+            <div />
+          </FieldRow>
+
+          <FieldRow>
+            <Field>
               <Label>Kwota netto<OptionalTag>opcjonalne</OptionalTag></Label>
               <Input
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
+                inputMode="decimal"
                 placeholder="0.00"
                 value={form.netAmount}
-                onChange={set('netAmount')}
+                onChange={handleNetChange}
               />
+              <HelpText>Zmiana przelicza brutto automatycznie.</HelpText>
             </Field>
             <Field>
               <Label>Kwota brutto<OptionalTag>opcjonalne</OptionalTag></Label>
               <Input
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
+                inputMode="decimal"
                 placeholder="0.00"
                 value={form.grossAmount}
-                onChange={set('grossAmount')}
+                onChange={handleGrossChange}
               />
+              <HelpText>Zmiana przelicza netto automatycznie.</HelpText>
             </Field>
           </FieldRow>
 
