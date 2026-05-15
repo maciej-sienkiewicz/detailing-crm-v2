@@ -12,7 +12,7 @@ export const Wrap = styled.div`
 `;
 
 export const Blurred = styled.div`
-    filter: blur(3px) brightness(0.93) saturate(0.7);
+    filter: blur(3px) brightness(0.97);
     pointer-events: none;
     user-select: none;
 `;
@@ -20,13 +20,8 @@ export const Blurred = styled.div`
 export const Overlay = styled.div`
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-        135deg,
-        rgba(255, 251, 235, 0.93) 0%,
-        rgba(255, 248, 220, 0.96) 50%,
-        rgba(255, 251, 235, 0.93) 100%
-    );
-    backdrop-filter: blur(2px);
+    background: rgba(248, 250, 252, 0.82);
+    backdrop-filter: blur(1px);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -34,10 +29,7 @@ export const Overlay = styled.div`
     gap: 8px;
     padding: 12px 20px;
     border-radius: 8px;
-    border: 1.5px solid rgba(212, 160, 23, 0.35);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 220, 80, 0.4),
-        0 2px 12px rgba(180, 130, 10, 0.08);
+    border: 1.5px solid #e2e8f0;
 `;
 
 export const LockBadge = styled.div`
