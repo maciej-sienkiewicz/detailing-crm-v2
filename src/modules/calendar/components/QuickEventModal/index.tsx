@@ -8,6 +8,7 @@ import { QuickServiceModal } from '../QuickServiceModal';
 import { PriceInputModal } from '../PriceInputModal';
 import { QuickColorModal } from '../QuickColorModal';
 import { Toggle } from '@/common/components/Toggle';
+import { LockedSection } from '@/common/components/LockedSection';
 import * as S from '../QuickEventModalStyles';
 import { useQuickEventForm } from './useQuickEventForm';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
@@ -16,6 +17,7 @@ import {
     IconClock, IconUser, IconCar, IconSettings, IconNote,
     IconTrash, IconX, IconPalette, IconMessageSquare, IconPlus, IconPencil, IconCheck,
 } from './icons';
+import { useFeature } from '@/modules/subscription';
 import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Service } from './types';
 
 export type { QuickEventFormData, QuickEventInitialData } from './types';
@@ -94,6 +96,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     initialData,
 }, ref) => {
     const form = useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, initialData });
+    const smsFeature = useFeature('SMS_EMAIL');
 
     const [serviceDropdownPos, setServiceDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
     const [autoOpenModel, setAutoOpenModel] = useState(false);
@@ -1069,34 +1072,39 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <IconMessageSquare />
                                 </S.IconWrapper>
                                 <S.RowContent>
-                                    <SmsCheckList>
-                                        <SmsCheckItem $disabled={!form.bookingConfirmationEnabled}>
-                                            <SmsCheckbox
-                                                checked={form.sendConfirmationSms && form.bookingConfirmationEnabled}
-                                                onChange={e => form.setSendConfirmationSms(e.target.checked)}
-                                                disabled={!form.bookingConfirmationEnabled}
-                                            />
-                                            <SmsCheckText>
-                                                Wyślij SMS z potwierdzeniem rezerwacji
-                                                {!form.bookingConfirmationEnabled && (
-                                                    <SmsDisabledHint>Wyłączone globalnie w konfiguracji SMS</SmsDisabledHint>
-                                                )}
-                                            </SmsCheckText>
-                                        </SmsCheckItem>
-                                        <SmsCheckItem $disabled={!form.preVisitEnabled}>
-                                            <SmsCheckbox
-                                                checked={form.sendReminderSms && form.preVisitEnabled}
-                                                onChange={e => form.setSendReminderSms(e.target.checked)}
-                                                disabled={!form.preVisitEnabled}
-                                            />
-                                            <SmsCheckText>
-                                                Wyślij SMS przypominający przed wizytą
-                                                {!form.preVisitEnabled && (
-                                                    <SmsDisabledHint>Wyłączone globalnie w konfiguracji SMS</SmsDisabledHint>
-                                                )}
-                                            </SmsCheckText>
-                                        </SmsCheckItem>
-                                    </SmsCheckList>
+                                    <LockedSection
+                                        locked={!smsFeature.enabled}
+                                        message="Twój abonament nie obsługuje powiadomień SMS."
+                                    >
+                                        <SmsCheckList>
+                                            <SmsCheckItem $disabled={!form.bookingConfirmationEnabled}>
+                                                <SmsCheckbox
+                                                    checked={form.sendConfirmationSms && form.bookingConfirmationEnabled}
+                                                    onChange={e => form.setSendConfirmationSms(e.target.checked)}
+                                                    disabled={!form.bookingConfirmationEnabled}
+                                                />
+                                                <SmsCheckText>
+                                                    Wyślij SMS z potwierdzeniem rezerwacji
+                                                    {!form.bookingConfirmationEnabled && (
+                                                        <SmsDisabledHint>Wyłączone globalnie w konfiguracji SMS</SmsDisabledHint>
+                                                    )}
+                                                </SmsCheckText>
+                                            </SmsCheckItem>
+                                            <SmsCheckItem $disabled={!form.preVisitEnabled}>
+                                                <SmsCheckbox
+                                                    checked={form.sendReminderSms && form.preVisitEnabled}
+                                                    onChange={e => form.setSendReminderSms(e.target.checked)}
+                                                    disabled={!form.preVisitEnabled}
+                                                />
+                                                <SmsCheckText>
+                                                    Wyślij SMS przypominający przed wizytą
+                                                    {!form.preVisitEnabled && (
+                                                        <SmsDisabledHint>Wyłączone globalnie w konfiguracji SMS</SmsDisabledHint>
+                                                    )}
+                                                </SmsCheckText>
+                                            </SmsCheckItem>
+                                        </SmsCheckList>
+                                    </LockedSection>
                                 </S.RowContent>
                             </S.Row>
                         </S.ScrollableContent>
