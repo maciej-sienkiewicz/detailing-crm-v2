@@ -4,6 +4,8 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { SmsAutomationConfig, SmsAutomationRule } from '../types';
 import { useAutomationConfig, useUpdateAutomationConfig } from '../hooks';
 import { SmsSelect } from './SmsSelect';
+import { LockedSection } from '@/common/components/LockedSection';
+import { useFeature } from '@/modules/subscription';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -590,6 +592,7 @@ function mergeWithDefaults(config: Partial<SmsAutomationConfig>): SmsAutomationC
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export const AutomationSettings: React.FC = () => {
+  const smsFeature = useFeature('SMS_EMAIL');
   const { config, isLoading } = useAutomationConfig();
   const updateMutation = useUpdateAutomationConfig();
 
@@ -638,6 +641,10 @@ export const AutomationSettings: React.FC = () => {
   }
 
   return (
+    <LockedSection
+      locked={!smsFeature.enabled}
+      message="Twój abonament nie obsługuje automatycznych wiadomości SMS."
+    >
     <Container>
       {/* ── Intro ── */}
       <IntroBanner>
@@ -869,5 +876,6 @@ export const AutomationSettings: React.FC = () => {
         </SaveBarActions>
       </SaveBar>
     </Container>
+    </LockedSection>
   );
 };

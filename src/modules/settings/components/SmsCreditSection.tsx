@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '@/core/context/AuthContext';
+import { LockedSection } from '@/common/components/LockedSection';
+import { useFeature } from '@/modules/subscription';
 import {
     useSmsCreditBalance,
     useSmsCreditPackages,
@@ -545,13 +547,19 @@ const CheckSvg = () => (
 
 export function SmsCreditSection() {
     const { user } = useAuth();
+    const smsFeature = useFeature('SMS_EMAIL');
     const isOwner = user?.role?.toLowerCase() === 'owner';
 
     return (
-        <>
-            <BalanceCard />
-            <PackagesCard isOwner={isOwner} />
-            <TransactionsCard />
-        </>
+        <LockedSection
+            locked={!smsFeature.enabled}
+            message="Twój abonament nie obsługuje powiadomień SMS."
+        >
+            <>
+                <BalanceCard />
+                <PackagesCard isOwner={isOwner} />
+                <TransactionsCard />
+            </>
+        </LockedSection>
     );
 }

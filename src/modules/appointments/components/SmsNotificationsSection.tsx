@@ -1,6 +1,8 @@
 // src/modules/appointments/components/SmsNotificationsSection.tsx
 import styled from 'styled-components';
 import { Card, CardHeader, CardTitle } from '@/common/components/Card';
+import { LockedSection } from '@/common/components/LockedSection';
+import { useFeature } from '@/modules/subscription';
 
 const CheckboxList = styled.div`
     display: flex;
@@ -60,12 +62,18 @@ export const SmsNotificationsSection = ({
     sendReminderSms,
     onSendReminderSmsChange,
 }: SmsNotificationsSectionProps) => {
+    const smsFeature = useFeature('SMS_EMAIL');
+
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Powiadomienia SMS</CardTitle>
             </CardHeader>
 
+            <LockedSection
+                locked={!smsFeature.enabled}
+                message="Twój abonament nie obsługuje powiadomień SMS."
+            >
             <CheckboxList>
                 <CheckboxRow>
                     <Checkbox
@@ -90,6 +98,7 @@ export const SmsNotificationsSection = ({
                     </CheckboxLabel>
                 </CheckboxRow>
             </CheckboxList>
+            </LockedSection>
         </Card>
     );
 };

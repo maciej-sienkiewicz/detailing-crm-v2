@@ -5,6 +5,8 @@ import { CampaignList } from '../components/CampaignList';
 import { AiCampaignCreator } from '../components/AiCampaignCreator';
 import { useCampaigns, useDeleteCampaign, useSendCampaign } from '../hooks';
 import type { SmsCampaign } from '../types';
+import { LockedSection } from '@/common/components/LockedSection';
+import { useFeature } from '@/modules/subscription';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -239,6 +241,7 @@ interface ConfirmState {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const SmsCampaignsView: React.FC = () => {
+  const smsFeature = useFeature('SMS_EMAIL');
   const [isCreatorOpen, setIsCreatorOpen] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [sendingId, setSendingId] = useState<string | undefined>();
@@ -268,6 +271,10 @@ export const SmsCampaignsView: React.FC = () => {
   }, [refetch]);
 
   return (
+    <LockedSection
+      locked={!smsFeature.enabled}
+      message="Twój abonament nie obsługuje kampanii SMS."
+    >
     <Page>
       {/* ── Header ── */}
       <Header>
@@ -353,5 +360,6 @@ export const SmsCampaignsView: React.FC = () => {
         </Overlay>
       )}
     </Page>
+    </LockedSection>
   );
 };

@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { LockedSection } from '@/common/components/LockedSection';
+import { useFeature } from '@/modules/subscription';
 import { appointmentApi } from '../api/appointmentApi';
 import { fetchAutomationConfig } from '@/modules/sms-campaigns/api/smsCampaignsApi';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -248,6 +250,7 @@ export const SmsReminderEditSection = ({
     stepNumber,
 }: SmsReminderEditSectionProps) => {
     const queryClient = useQueryClient();
+    const smsFeature = useFeature('SMS_EMAIL');
     const { confirmationSms, reminderSms } = smsInfo;
 
     const { data: automation } = useQuery({
@@ -287,6 +290,10 @@ export const SmsReminderEditSection = ({
             </SectionHead>
 
             <SectionBody>
+            <LockedSection
+                locked={!smsFeature.enabled}
+                message="Twój abonament nie obsługuje powiadomień SMS."
+            >
                 {!preVisitEnabled && (
                     <Banner>
                         <BannerText>
@@ -359,6 +366,7 @@ export const SmsReminderEditSection = ({
                         )}
                     </RowRight>
                 </Row>
+            </LockedSection>
             </SectionBody>
         </SectionCard>
     );

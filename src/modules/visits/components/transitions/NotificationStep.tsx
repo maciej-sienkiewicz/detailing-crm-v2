@@ -3,6 +3,8 @@ import styled from 'styled-components';
 import type { NotificationChannels } from '../../hooks/useStateTransition';
 import type { CustomerInfo } from '../../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { LockedSection } from '@/common/components/LockedSection';
+import { useFeature } from '@/modules/subscription';
 
 const Container = styled.div`
     display: flex;
@@ -131,6 +133,7 @@ interface NotificationStepProps {
 }
 
 export const NotificationStep = ({ customer, onChannelsChange }: NotificationStepProps) => {
+    const smsFeature = useFeature('SMS_EMAIL');
     const [channels, setChannels] = useState<NotificationChannels>({
         sms: true,
         email: !!customer.email,
@@ -164,6 +167,10 @@ export const NotificationStep = ({ customer, onChannelsChange }: NotificationSte
             <SectionLabel>Kanały powiadomień</SectionLabel>
 
             <ChannelList>
+                <LockedSection
+                    locked={!smsFeature.enabled}
+                    message="Twój abonament nie obsługuje powiadomień SMS."
+                >
                 <ChannelItem $checked={channels.sms}>
                     <Checkbox
                         type="checkbox"
@@ -180,6 +187,7 @@ export const NotificationStep = ({ customer, onChannelsChange }: NotificationSte
                         <ChannelDetail>{customer.phone}</ChannelDetail>
                     </ChannelText>
                 </ChannelItem>
+                </LockedSection>
 
                 <ChannelItem $checked={channels.email} $disabled={!customer.email} data-disabled={!customer.email || undefined}>
                     <Checkbox
