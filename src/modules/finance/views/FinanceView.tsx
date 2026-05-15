@@ -1,8 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
-import { LockedSection } from '@/common/components/LockedSection';
-import { useFeature } from '@/modules/subscription';
 import type { FinanceTab } from '../types';
 import { DocumentStatus } from '../types';
 import type { ExpenseSource, ExpensePaymentStatus } from '../types';
@@ -790,7 +788,6 @@ const ExpensesTabContent: React.FC<{ onAddExpense: () => void }> = ({ onAddExpen
 // ─── Main View ────────────────────────────────────────────────────────────────
 
 export const FinanceView: React.FC = () => {
-  const financeFeature = useFeature('FINANCE');
   const [activeTab, setActiveTab]         = useState<FinanceTab>('income');
   const [isIncomeModalOpen, setIncomeModalOpen] = useState(false);
   const [isExpenseModalOpen, setExpenseModalOpen] = useState(false);
@@ -801,10 +798,6 @@ export const FinanceView: React.FC = () => {
   const closeExpenseModal = useCallback(() => setExpenseModalOpen(false), []);
 
   return (
-    <LockedSection
-      locked={!financeFeature.enabled}
-      message="Twój abonament nie obsługuje modułu Finanse."
-    >
     <ViewContainer>
       <HeroCard>
         <HeroText>
@@ -865,6 +858,5 @@ export const FinanceView: React.FC = () => {
       <CreateDocumentModal isOpen={isIncomeModalOpen} onClose={closeIncomeModal} />
       <AddExpenseModal     isOpen={isExpenseModalOpen} onClose={closeExpenseModal} />
     </ViewContainer>
-    </LockedSection>
   );
 };

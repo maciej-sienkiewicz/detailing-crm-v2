@@ -1,8 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
 import { KsefCredentialsPanel } from '@/modules/finance/components';
-import { LockedSection } from '@/common/components/LockedSection';
-import { useFeature } from '@/modules/subscription';
 
 const Wrap = styled.div`
     display: flex;
@@ -31,8 +29,6 @@ const SectionDesc = styled.p`
 `;
 
 export function InvoicesSection() {
-    const financeFeature = useFeature('FINANCE');
-
     return (
         <Wrap>
             <SectionHead>
@@ -42,12 +38,7 @@ export function InvoicesSection() {
                 </SectionDesc>
             </SectionHead>
 
-            <LockedSection
-                locked={!financeFeature.enabled}
-                message="Połączenie z KSeF wymaga modułu Finanse."
-            >
-                <KsefCredentialsPanel />
-            </LockedSection>
+            <KsefCredentialsPanel />
         </Wrap>
     );
 }
