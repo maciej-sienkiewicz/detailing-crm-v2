@@ -1,9 +1,4 @@
-import styled, { keyframes } from 'styled-components';
-
-const shimmer = keyframes`
-    0%   { background-position: -200% center; }
-    100% { background-position:  200% center; }
-`;
+import styled from 'styled-components';
 
 export const Wrap = styled.div<{ $locked: boolean }>`
     position: relative;
@@ -33,48 +28,73 @@ export const Overlay = styled.div`
     border: 1.5px solid #e2e8f0;
 `;
 
-export const LockBadge = styled.div`
+export const LockBadge = styled.button`
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: linear-gradient(145deg, #fef3c7, #fde68a);
-    box-shadow:
-        0 0 0 2px rgba(212, 160, 23, 0.45),
-        0 2px 8px rgba(180, 130, 10, 0.25),
-        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    background: #f1f5f9;
+    border: 1.5px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #92400e;
+    color: #64748b;
     flex-shrink: 0;
+    cursor: pointer;
+    padding: 0;
+    position: relative;
+    transition: background 180ms, border-color 180ms, color 180ms, box-shadow 180ms;
+
+    &:hover {
+        background: #e2e8f0;
+        border-color: #cbd5e1;
+        color: #334155;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.11);
+    }
+`;
+
+export const IconClosed = styled.span`
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 220ms, transform 220ms;
+    opacity: 1;
+    transform: translateY(0);
+
+    ${LockBadge}:hover & {
+        opacity: 0;
+        transform: translateY(-3px);
+    }
+`;
+
+export const IconOpen = styled.span`
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 220ms, transform 220ms;
+    opacity: 0;
+    transform: translateY(3px);
+
+    ${LockBadge}:hover & {
+        opacity: 1;
+        transform: translateY(0);
+    }
 `;
 
 export const Message = styled.span`
     font-size: 12px;
-    font-weight: 600;
-    color: #78350f;
+    font-weight: 500;
+    color: #64748b;
     text-align: center;
     line-height: 1.45;
-    letter-spacing: 0.01em;
 `;
 
 export const UpgradeHint = styled.span`
     font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    background: linear-gradient(
-        90deg,
-        #b45309 0%,
-        #d97706 30%,
-        #f59e0b 50%,
-        #d97706 70%,
-        #b45309 100%
-    );
-    background-size: 200% auto;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: ${shimmer} 3s linear infinite;
-    cursor: default;
+    font-weight: 500;
+    color: #94a3b8;
+    text-align: center;
+    letter-spacing: 0.01em;
 `;
