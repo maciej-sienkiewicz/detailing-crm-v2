@@ -5,10 +5,11 @@ const shimmer = keyframes`
     100% { background-position:  200% center; }
 `;
 
-export const Wrap = styled.div`
+export const Wrap = styled.div<{ $locked: boolean }>`
     position: relative;
     border-radius: 8px;
     overflow: hidden;
+    ${p => p.$locked && 'min-height: 76px;'}
 `;
 
 export const Blurred = styled.div`
@@ -26,8 +27,8 @@ export const Overlay = styled.div`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 12px 20px;
+    gap: 7px;
+    padding: 8px 16px;
     border-radius: 8px;
     border: 1.5px solid #e2e8f0;
 `;
@@ -37,8 +38,6 @@ export const LockBadge = styled.div`
     height: 36px;
     border-radius: 50%;
     background: linear-gradient(145deg, #fef3c7, #fde68a);
-    border: 2px solid transparent;
-    background-clip: padding-box;
     box-shadow:
         0 0 0 2px rgba(212, 160, 23, 0.45),
         0 2px 8px rgba(180, 130, 10, 0.25),

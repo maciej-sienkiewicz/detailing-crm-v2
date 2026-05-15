@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState, useLayoutEffect } from 'react';
 import { Wrap, Blurred, Overlay, LockBadge, Message, UpgradeHint } from './LockedSection.styles';
 
 const LockIcon = () => (
@@ -9,6 +9,9 @@ const LockIcon = () => (
     </svg>
 );
 
+// badge(36) + gap(7) + message(~16) + gap(7) + hint(~15) + padding(8+8) = ~97
+const HINT_MIN_HEIGHT = 98;
+
 interface Props {
     locked: boolean;
     message: string;
@@ -17,15 +20,30 @@ interface Props {
 }
 
 export function LockedSection({ locked, message, upgradeHint = 'Rozszerz abonament', children }: Props) {
+    const wrapRef = useRef<HTMLDivElement>(null);
+    const [showHint, setShowHint] = useState(false);
+
+    useLayoutEffect(() => {
+        if (!locked) return;
+        const el = wrapRef.current;
+        if (!el) return;
+
+        const ro = new ResizeObserver(([entry]) => {
+            setShowHint(entry.contentRect.height >= HINT_MIN_HEIGHT);
+        });
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, [locked]);
+
     if (!locked) return <>{children}</>;
 
     return (
-        <Wrap>
+        <Wrap ref={wrapRef} $locked>
             <Blurred>{children}</Blurred>
             <Overlay>
                 <LockBadge><LockIcon /></LockBadge>
                 <Message>{message}</Message>
-                <UpgradeHint>{upgradeHint}</UpgradeHint>
+                {showHint && <UpgradeHint>{upgradeHint}</UpgradeHint>}
             </Overlay>
         </Wrap>
     );
