@@ -1,15 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
-import { useFeaturePlans, useAddOns, useStartTrial } from '../api/subscriptionQueries';
-import {
-    ENTITLEMENTS_KEY,
-    MY_PLAN_KEY,
-    PAYMENT_HISTORY_KEY,
-} from '../api/subscriptionQueries';
+import { useFeaturePlans, useAddOns, useStartTrial, useActivatePackage } from '../api/subscriptionQueries';
 import { newSubscriptionApi } from '../api/subscriptionApi';
-import type { FeaturePlan, AddOnDto, AddOnKey, CalculatePriceResponse } from '../types';
+import type { FeaturePlan, AddOnDto, AddOnKey, PlanKey, CalculatePriceResponse } from '../types';
 import { formatCents, featureLabel } from '../utils/formatters';
 import {
     Overlay,
@@ -115,8 +109,6 @@ function planFeatureSummary(plan: FeaturePlan): string {
     return `${labels.slice(0, 3).join(', ')} +${labels.length - 3} więcej`;
 }
 
-const OLD_STATUS_KEY = ['subscription', 'status'] as const;
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -127,11 +119,11 @@ type Phase = 'idle' | 'pending-trial' | 'pending-plan' | 'pending-custom';
 
 export function FirstLoginModal({ trialUsed }: Props) {
     const { showError } = useToast();
-    const queryClient = useQueryClient();
 
     const { data: plans, isLoading: plansLoading } = useFeaturePlans();
     const { data: addOns } = useAddOns();
     const startTrial = useStartTrial();
+    const activatePackage = useActivatePackage();
 
     const [phase, setPhase] = useState<Phase>('idle');
     const [error, setError] = useState<string | null>(null);
@@ -174,14 +166,6 @@ export function FirstLoginModal({ trialUsed }: Props) {
         }
     }, [customOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // ── Cache invalidation helper ─────────────────────────────────────────────
-    const invalidateAll = () => {
-        queryClient.invalidateQueries({ queryKey: OLD_STATUS_KEY });
-        queryClient.invalidateQueries({ queryKey: ENTITLEMENTS_KEY });
-        queryClient.invalidateQueries({ queryKey: MY_PLAN_KEY });
-        queryClient.invalidateQueries({ queryKey: PAYMENT_HISTORY_KEY });
-    };
-
     // ── Trial ─────────────────────────────────────────────────────────────────
     const handleStartTrial = async () => {
         if (isPending) return;
@@ -203,9 +187,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
         setError(null);
         setPhase('pending-plan');
         try {
-            // Direct API call — no intermediate cache invalidation
-            await newSubscriptionApi.changePlan(planKey as 'BASIC' | 'EVERYTHING');
-            invalidateAll();
+            await activatePackage.mutateAsync({ planKey: planKey as PlanKey, addOnKeys: [] });
         } catch (err: unknown) {
             const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
             setError(msg ?? 'Nie udało się aktywować planu. Spróbuj ponownie.');
@@ -220,17 +202,10 @@ export function FirstLoginModal({ trialUsed }: Props) {
         setError(null);
         setPhase('pending-custom');
         try {
-            // Step 1: activate BASIC (no cache invalidation yet)
-            await newSubscriptionApi.changePlan('BASIC');
-
-            // Step 2: activate each selected add-on sequentially
-            for (const key of Array.from(selectedAddOns)) {
-                await newSubscriptionApi.activateAddOn(key);
-            }
-
-            // Step 3: invalidate caches AFTER everything is done
-            // so the gate lifts only once, with the full state
-            invalidateAll();
+            await activatePackage.mutateAsync({
+                planKey: 'BASIC',
+                addOnKeys: Array.from(selectedAddOns),
+            });
         } catch (err: unknown) {
             const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
             setError(msg ?? 'Nie udało się aktywować planu. Spróbuj ponownie.');

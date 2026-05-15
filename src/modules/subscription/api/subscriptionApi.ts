@@ -13,6 +13,11 @@ import type {
     PaymentHistoryResponse,
 } from '../types';
 
+export interface ActivatePackageRequest {
+    planKey: PlanKey;
+    addOnKeys?: AddOnKey[];
+}
+
 const BASE = '/v1/subscription';
 
 export const newSubscriptionApi = {
@@ -57,6 +62,11 @@ export const newSubscriptionApi = {
     },
 
     // ── Mutacje ──────────────────────────────────────────────────────────────────
+    activatePackage: async (body: ActivatePackageRequest): Promise<EntitlementsResponse> => {
+        const res = await apiClient.post<EntitlementsResponse>(`${BASE}/activate-package`, body);
+        return res.data;
+    },
+
     changePlan: async (planKey: PlanKey): Promise<EntitlementsResponse> => {
         const res = await apiClient.post<EntitlementsResponse>(`${BASE}/change-plan`, { planKey });
         return res.data;

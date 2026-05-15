@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { newSubscriptionApi } from './subscriptionApi';
+import type { ActivatePackageRequest } from './subscriptionApi';
 import type { AddOnKey, PlanKey } from '../types';
 
 // ─── Query keys ───────────────────────────────────────────────────────────────
@@ -63,6 +64,14 @@ const invalidateAfterMutation = (queryClient: ReturnType<typeof useQueryClient>)
     queryClient.invalidateQueries({ queryKey: MY_PLAN_KEY });
     queryClient.invalidateQueries({ queryKey: PAYMENT_HISTORY_KEY });
     queryClient.invalidateQueries({ queryKey: OLD_STATUS_KEY });
+};
+
+export const useActivatePackage = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (body: ActivatePackageRequest) => newSubscriptionApi.activatePackage(body),
+        onSuccess: () => invalidateAfterMutation(queryClient),
+    });
 };
 
 export const useStartTrial = () => {
