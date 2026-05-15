@@ -240,8 +240,31 @@ interface ConfirmState {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const SmsCampaignsView: React.FC = () => {
-  const smsFeature = useFeature('SMS_EMAIL');
+const SmsCampaignsMock: React.FC = () => (
+  <Page>
+    <Header>
+      <TitleBlock>
+        <PageTitle>Kampanie SMS</PageTitle>
+        <PageSubtitle>Zarządzaj wiadomościami do klientów</PageSubtitle>
+      </TitleBlock>
+    </Header>
+    {([
+      ['Kampania wiosenna 2024', '1 243 odbiorców', '98,2%'],
+      ['Promocja — zmiana oleju',  '876 odbiorców',  '96,7%'],
+      ['Przypomnienie — sezon',    '2 105 odbiorców', '99,1%'],
+    ] as const).map(([name, audience, rate]) => (
+      <div key={name} style={{ padding: '14px 18px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>{name}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{audience}</div>
+        </div>
+        <div style={{ fontSize: 12, color: '#10b981', fontWeight: 600 }}>{rate} dostarczonych</div>
+      </div>
+    ))}
+  </Page>
+);
+
+const SmsCampaignsViewInner: React.FC = () => {
   const [isCreatorOpen, setIsCreatorOpen] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [sendingId, setSendingId] = useState<string | undefined>();
@@ -271,10 +294,6 @@ export const SmsCampaignsView: React.FC = () => {
   }, [refetch]);
 
   return (
-    <LockedSection
-      locked={!smsFeature.enabled}
-      message="Twój abonament nie obsługuje kampanii SMS."
-    >
     <Page>
       {/* ── Header ── */}
       <Header>
@@ -360,6 +379,17 @@ export const SmsCampaignsView: React.FC = () => {
         </Overlay>
       )}
     </Page>
-    </LockedSection>
   );
+};
+
+export const SmsCampaignsView: React.FC = () => {
+  const smsFeature = useFeature('SMS_EMAIL');
+  if (!smsFeature.enabled) {
+    return (
+      <LockedSection locked message="Twój abonament nie obsługuje kampanii SMS.">
+        <SmsCampaignsMock />
+      </LockedSection>
+    );
+  }
+  return <SmsCampaignsViewInner />;
 };

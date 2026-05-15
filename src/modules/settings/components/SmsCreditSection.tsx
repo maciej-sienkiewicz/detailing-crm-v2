@@ -543,23 +543,70 @@ const CheckSvg = () => (
     </svg>
 );
 
-// ─── Main export ──────────────────────────────────────────────────────────────
+// ─── Mock (no API calls) ──────────────────────────────────────────────────────
+
+function SmsCreditSectionMock() {
+    return (
+        <>
+            <Card>
+                <CardTitle><WalletSvg />Saldo kredytów SMS</CardTitle>
+                <BalanceGrid>
+                    <StatBox $accent="#0ea5e9"><StatValue>250</StatValue><StatLabel>Dostępne kredyty</StatLabel></StatBox>
+                    <StatBox $accent="#10b981"><StatValue>1 000</StatValue><StatLabel>Łącznie zakupiono</StatLabel></StatBox>
+                    <StatBox $accent="#f59e0b"><StatValue>750</StatValue><StatLabel>Łącznie wykorzystano</StatLabel></StatBox>
+                </BalanceGrid>
+            </Card>
+            <Card>
+                <CardTitle>Pakiety kredytów</CardTitle>
+                <PackageGrid>
+                    {([['100', '100 kredytów', '9,90 zł'], ['500', '500 kredytów', '39,90 zł'], ['1000', '1000 kredytów', '69,90 zł']] as const).map(([k, label, price]) => (
+                        <PackageCard key={k} $selected={false}>
+                            <PkgCredits>{k}<PkgCreditsLabel> kr.</PkgCreditsLabel></PkgCredits>
+                            <PkgName>{label}</PkgName>
+                            <PkgPrice>{price}</PkgPrice>
+                        </PackageCard>
+                    ))}
+                </PackageGrid>
+            </Card>
+            <Card>
+                <CardTitle>Historia transakcji</CardTitle>
+                <TxTable>
+                    <TxThead><tr><th>Data</th><th>Typ</th><th>Kredyty</th><th>Kwota</th></tr></TxThead>
+                    <tbody>
+                        {(['2024-03-01', '2024-02-15', '2024-01-20'] as const).map(d => (
+                            <TxRow key={d}><td>{d}</td><td>Zakup</td><td>+500</td><td>39,90 zł</td></TxRow>
+                        ))}
+                    </tbody>
+                </TxTable>
+            </Card>
+        </>
+    );
+}
+
+// ─── Inner (mounts only when feature is enabled) ──────────────────────────────
+
+function SmsCreditSectionInner() {
+    const { user } = useAuth();
+    const isOwner = user?.role?.toLowerCase() === 'owner';
+    return (
+        <>
+            <BalanceCard />
+            <PackagesCard isOwner={isOwner} />
+            <TransactionsCard />
+        </>
+    );
+}
+
+// ─── Exported wrapper ─────────────────────────────────────────────────────────
 
 export function SmsCreditSection() {
-    const { user } = useAuth();
     const smsFeature = useFeature('SMS_EMAIL');
-    const isOwner = user?.role?.toLowerCase() === 'owner';
-
-    return (
-        <LockedSection
-            locked={!smsFeature.enabled}
-            message="Twój abonament nie obsługuje powiadomień SMS."
-        >
-            <>
-                <BalanceCard />
-                <PackagesCard isOwner={isOwner} />
-                <TransactionsCard />
-            </>
-        </LockedSection>
-    );
+    if (!smsFeature.enabled) {
+        return (
+            <LockedSection locked message="Twój abonament nie obsługuje powiadomień SMS.">
+                <SmsCreditSectionMock />
+            </LockedSection>
+        );
+    }
+    return <SmsCreditSectionInner />;
 }

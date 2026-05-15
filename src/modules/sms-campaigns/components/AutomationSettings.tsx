@@ -589,10 +589,50 @@ function mergeWithDefaults(config: Partial<SmsAutomationConfig>): SmsAutomationC
   };
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Mock (no API calls) ──────────────────────────────────────────────────────
 
-export const AutomationSettings: React.FC = () => {
-  const smsFeature = useFeature('SMS_EMAIL');
+const MOCK_CARDS = [
+  { icon: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0', title: 'Przypomnienie przed wizytą',       meta: '24h wcześniej' },
+  { icon: 'M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6', title: 'Potwierdzenie rezerwacji',         meta: 'Po zapisaniu wizyty' },
+  { icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z', title: 'Potwierdzenie zmiany terminu', meta: 'Przy przesunięciu' },
+  { icon: 'M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0', title: 'Podziękowanie po wizycie',           meta: '2h po zakończeniu' },
+] as const;
+
+const AutomationSettingsMock: React.FC = () => (
+  <Container>
+    <IntroBanner>
+      <IntroIconWrap>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
+      </IntroIconWrap>
+      <IntroContent>
+        <IntroTitle>Automatyczne wiadomości SMS</IntroTitle>
+        <IntroDesc>Skonfiguruj wiadomości wysyłane automatycznie do klientów — przypomnienie przed wizytą i podziękowanie po jej zakończeniu.</IntroDesc>
+      </IntroContent>
+    </IntroBanner>
+    {MOCK_CARDS.map(c => (
+      <Card key={c.title} $enabled={false}>
+        <CardHeader>
+          <CardIconWrap $enabled={false}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d={c.icon}/>
+            </svg>
+          </CardIconWrap>
+          <CardTitleGroup>
+            <CardTitle>{c.title}</CardTitle>
+            <CardMeta><InactiveLabel>Nieaktywne</InactiveLabel></CardMeta>
+          </CardTitleGroup>
+          <ToggleTrack $on={false}><ToggleThumb $on={false} /></ToggleTrack>
+        </CardHeader>
+      </Card>
+    ))}
+  </Container>
+);
+
+// ─── Inner (mounts only when feature is enabled) ──────────────────────────────
+
+const AutomationSettingsInner: React.FC = () => {
   const { config, isLoading } = useAutomationConfig();
   const updateMutation = useUpdateAutomationConfig();
 
@@ -641,10 +681,6 @@ export const AutomationSettings: React.FC = () => {
   }
 
   return (
-    <LockedSection
-      locked={!smsFeature.enabled}
-      message="Twój abonament nie obsługuje automatycznych wiadomości SMS."
-    >
     <Container>
       {/* ── Intro ── */}
       <IntroBanner>
@@ -876,6 +912,19 @@ export const AutomationSettings: React.FC = () => {
         </SaveBarActions>
       </SaveBar>
     </Container>
-    </LockedSection>
   );
+};
+
+// ─── Exported wrapper ─────────────────────────────────────────────────────────
+
+export const AutomationSettings: React.FC = () => {
+  const smsFeature = useFeature('SMS_EMAIL');
+  if (!smsFeature.enabled) {
+    return (
+      <LockedSection locked message="Twój abonament nie obsługuje automatycznych wiadomości SMS.">
+        <AutomationSettingsMock />
+      </LockedSection>
+    );
+  }
+  return <AutomationSettingsInner />;
 };

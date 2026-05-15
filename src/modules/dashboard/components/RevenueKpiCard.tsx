@@ -111,10 +111,21 @@ const CustomTooltipBox = styled.div`
   pointer-events: none;
 `;
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Mock (no API calls) ──────────────────────────────────────────────────────
 
-export const RevenueKpiCard = () => {
-  const financeFeature = useFeature('FINANCE');
+const RevenueKpiCardMock = () => (
+  <Wrapper>
+    <Card>
+      <Eyebrow>Przychód · tydzień</Eyebrow>
+      <Number>12 480,00 zł</Number>
+      <Delta $positive><TrendingUp size={12} /> +8,2% vs. poprzedni tydzień</Delta>
+    </Card>
+  </Wrapper>
+);
+
+// ─── Inner (mounts only when feature is enabled) ──────────────────────────────
+
+const RevenueKpiCardInner = () => {
   const { data } = useDashboardRevenue();
   const [hovered, setHovered] = useState(false);
   const [pos, setPos] = useState({ top: 0, right: 0 });
@@ -130,20 +141,6 @@ export const RevenueKpiCard = () => {
       };
     });
   }, [data]);
-
-  if (!financeFeature.enabled) {
-    return (
-      <LockedSection locked message="Moduł Finanse jest wymagany.">
-        <Wrapper>
-          <Card>
-            <Eyebrow>Przychód · tydzień</Eyebrow>
-            <Number>0,00 zł</Number>
-            <Delta $positive>— vs. poprzedni tydzień</Delta>
-          </Card>
-        </Wrapper>
-      </LockedSection>
-    );
-  }
 
   if (!data) return null;
 
@@ -223,4 +220,18 @@ export const RevenueKpiCard = () => {
       )}
     </Wrapper>
   );
+};
+
+// ─── Exported wrapper ─────────────────────────────────────────────────────────
+
+export const RevenueKpiCard = () => {
+  const financeFeature = useFeature('FINANCE');
+  if (!financeFeature.enabled) {
+    return (
+      <LockedSection locked message="Moduł Finanse jest wymagany.">
+        <RevenueKpiCardMock />
+      </LockedSection>
+    );
+  }
+  return <RevenueKpiCardInner />;
 };

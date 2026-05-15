@@ -30,6 +30,20 @@ const SectionDesc = styled.p`
     line-height: 1.5;
 `;
 
+const KsefPanelMock = () => (
+    <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>NIP podatnika</div>
+            <div style={{ height: '36px', background: '#e2e8f0', borderRadius: '6px' }} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>Token API KSeF</div>
+            <div style={{ height: '36px', background: '#e2e8f0', borderRadius: '6px' }} />
+        </div>
+        <div style={{ height: '36px', width: '140px', background: '#cbd5e1', borderRadius: '6px' }} />
+    </div>
+);
+
 export function InvoicesSection() {
     const financeFeature = useFeature('FINANCE');
 
@@ -42,12 +56,13 @@ export function InvoicesSection() {
                 </SectionDesc>
             </SectionHead>
 
-            <LockedSection
-                locked={!financeFeature.enabled}
-                message="Połączenie z KSeF wymaga modułu Finanse."
-            >
+            {financeFeature.enabled ? (
                 <KsefCredentialsPanel />
-            </LockedSection>
+            ) : (
+                <LockedSection locked message="Połączenie z KSeF wymaga modułu Finanse.">
+                    <KsefPanelMock />
+                </LockedSection>
+            )}
         </Wrap>
     );
 }

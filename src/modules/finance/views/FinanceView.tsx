@@ -787,10 +787,54 @@ const ExpensesTabContent: React.FC<{ onAddExpense: () => void }> = ({ onAddExpen
   );
 };
 
-// ─── Main View ────────────────────────────────────────────────────────────────
+// ─── Mock (no API calls) ──────────────────────────────────────────────────────
 
-export const FinanceView: React.FC = () => {
-  const financeFeature = useFeature('FINANCE');
+const MOCK_DOCS = [
+  ['FV/2024/03/042', 'Auto Detailing Sp. z o.o.', '1 230,00 zł', 'Opłacony'],
+  ['FV/2024/03/041', 'Moto Service Jan Kowalski', '  890,00 zł', 'Oczekuje'],
+  ['FV/2024/03/040', 'Lakiernia Nowak i Syn',      '2 460,00 zł', 'Opłacony'],
+  ['FV/2024/02/039', 'Fleet Cars Polska Sp. z o.o.', '3 120,00 zł', 'Opłacony'],
+] as const;
+
+const FinanceViewMock: React.FC = () => (
+  <ViewContainer>
+    <HeroCard>
+      <HeroText>
+        <HeroHeading>Finanse</HeroHeading>
+        <HeroSubtitle>Dokumenty przychodowe, koszty KSeF i raporty</HeroSubtitle>
+      </HeroText>
+    </HeroCard>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
+      {([['Przychód', '18 640,00 zł', '#0ea5e9'], ['Koszty', '4 210,00 zł', '#f59e0b'], ['Zysk', '14 430,00 zł', '#10b981'], ['Należności', '1 890,00 zł', '#8b5cf6']] as const).map(([label, val, color]) => (
+        <div key={label} style={{ padding: '16px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color, marginTop: '6px' }}>{val}</div>
+        </div>
+      ))}
+    </div>
+    <PanelCard>
+      <TabBar>
+        {(['Dokumenty przychodowe', 'Dokumenty kosztowe', 'Kasa', 'Podsumowanie płatności'] as const).map((t, i) => (
+          <TabItem key={t} $active={i === 0}>{t}</TabItem>
+        ))}
+      </TabBar>
+      <div style={{ padding: '0 16px' }}>
+        {MOCK_DOCS.map(([nr, name, amt, status]) => (
+          <div key={nr} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f1f5f9', fontSize: 13 }}>
+            <div style={{ color: '#64748b', width: 140 }}>{nr}</div>
+            <div style={{ flex: 1, color: '#0f172a', fontWeight: 500 }}>{name}</div>
+            <div style={{ fontWeight: 700, color: '#0f172a', width: 110, textAlign: 'right' }}>{amt}</div>
+            <div style={{ width: 90, textAlign: 'right', color: status === 'Opłacony' ? '#10b981' : '#f59e0b', fontWeight: 600 }}>{status}</div>
+          </div>
+        ))}
+      </div>
+    </PanelCard>
+  </ViewContainer>
+);
+
+// ─── Inner (mounts only when feature is enabled) ──────────────────────────────
+
+const FinanceViewInner: React.FC = () => {
   const [activeTab, setActiveTab]         = useState<FinanceTab>('income');
   const [isIncomeModalOpen, setIncomeModalOpen] = useState(false);
   const [isExpenseModalOpen, setExpenseModalOpen] = useState(false);
@@ -801,10 +845,6 @@ export const FinanceView: React.FC = () => {
   const closeExpenseModal = useCallback(() => setExpenseModalOpen(false), []);
 
   return (
-    <LockedSection
-      locked={!financeFeature.enabled}
-      message="Twój abonament nie obsługuje modułu Finanse."
-    >
     <ViewContainer>
       <HeroCard>
         <HeroText>
@@ -865,6 +905,19 @@ export const FinanceView: React.FC = () => {
       <CreateDocumentModal isOpen={isIncomeModalOpen} onClose={closeIncomeModal} />
       <AddExpenseModal     isOpen={isExpenseModalOpen} onClose={closeExpenseModal} />
     </ViewContainer>
-    </LockedSection>
   );
+};
+
+// ─── Exported wrapper ─────────────────────────────────────────────────────────
+
+export const FinanceView: React.FC = () => {
+  const financeFeature = useFeature('FINANCE');
+  if (!financeFeature.enabled) {
+    return (
+      <LockedSection locked message="Twój abonament nie obsługuje modułu Finanse.">
+        <FinanceViewMock />
+      </LockedSection>
+    );
+  }
+  return <FinanceViewInner />;
 };
