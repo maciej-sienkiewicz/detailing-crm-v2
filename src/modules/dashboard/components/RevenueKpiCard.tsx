@@ -6,6 +6,8 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { formatCurrency } from '@/common/utils/formatters';
 import { useDashboardRevenue } from '../hooks/useDashboardRevenue';
 import type { DashboardRevenueSummary } from '../types';
+import { LockedSection } from '@/common/components/LockedSection';
+import { useFeature } from '@/modules/subscription';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
@@ -112,6 +114,7 @@ const CustomTooltipBox = styled.div`
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const RevenueKpiCard = () => {
+  const financeFeature = useFeature('FINANCE');
   const { data } = useDashboardRevenue();
   const [hovered, setHovered] = useState(false);
   const [pos, setPos] = useState({ top: 0, right: 0 });
@@ -127,6 +130,20 @@ export const RevenueKpiCard = () => {
       };
     });
   }, [data]);
+
+  if (!financeFeature.enabled) {
+    return (
+      <LockedSection locked message="Moduł Finanse jest wymagany.">
+        <Wrapper>
+          <Card>
+            <Eyebrow>Przychód · tydzień</Eyebrow>
+            <Number>0,00 zł</Number>
+            <Delta $positive>— vs. poprzedni tydzień</Delta>
+          </Card>
+        </Wrapper>
+      </LockedSection>
+    );
+  }
 
   if (!data) return null;
 
