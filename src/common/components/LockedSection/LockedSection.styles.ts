@@ -55,31 +55,39 @@ export const LockBadge = styled.button`
 
 export const IconClosed = styled.span`
     position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 15px;
+    height: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: opacity 220ms, transform 220ms;
+    transition: opacity 200ms ease, transform 200ms ease;
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0px);
 
     ${LockBadge}:hover & {
         opacity: 0;
-        transform: translateY(-3px);
+        transform: translateY(-4px);
     }
 `;
 
 export const IconOpen = styled.span`
     position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 15px;
+    height: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: opacity 220ms, transform 220ms;
+    transition: opacity 200ms ease, transform 200ms ease;
     opacity: 0;
-    transform: translateY(3px);
+    transform: translateY(4px);
 
     ${LockBadge}:hover & {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0px);
     }
 `;
 
