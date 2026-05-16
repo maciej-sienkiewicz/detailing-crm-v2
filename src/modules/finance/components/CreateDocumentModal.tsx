@@ -388,7 +388,7 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) => {
                             </InputShell>
                         </FormField>
 
-                        <FormField>
+                        <FormField $fullWidth>
                             <FieldLabel htmlFor="cd-counterpartyNip">NIP</FieldLabel>
                             <NipInputWithGus
                                 id="cd-counterpartyNip"
