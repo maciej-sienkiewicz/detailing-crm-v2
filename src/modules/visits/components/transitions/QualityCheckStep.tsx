@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { XCircle, Check, CheckCircle2 } from 'lucide-react';
+import { Check } from 'lucide-react';
 import type { QualityCheckItem } from '../../hooks/useStateTransition';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { ModalSectionTitle } from '@/common/components/ModalKit';
@@ -59,75 +59,8 @@ const CheckMark = styled(Check)<{ $visible: boolean }>`
     flex-shrink: 0;
 `;
 
-const Divider = styled.div`
-    height: 1px;
-    background: ${st.border};
-`;
-
-const ActionRow = styled.div`
-    display: flex;
-    gap: 8px;
-`;
-
-const RejectBtn = styled.button`
-    flex: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 8px 14px;
-    background: transparent;
-    color: ${st.accentRed};
-    border: 1px solid ${st.accentRed}66;
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
-
-    &:hover {
-        background: rgba(220,38,38,0.06);
-        border-color: ${st.accentRed};
-    }
-
-    svg { width: 14px; height: 14px; }
-`;
-
-const ApproveBtn = styled.button`
-    flex: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 8px 14px;
-    background: ${st.accentGreen};
-    color: white;
-    border: none;
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
-    box-shadow: ${st.shadowXs};
-
-    &:hover:not(:disabled) {
-        background: #059669;
-        box-shadow: ${st.shadowSm};
-        transform: translateY(-1px);
-    }
-
-    &:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    svg { width: 14px; height: 14px; }
-`;
-
 interface QualityCheckStepProps {
-    onApprove: () => void;
-    onReject: () => void;
+    onAllCheckedChange: (allChecked: boolean) => void;
 }
 
 const defaultChecks: QualityCheckItem[] = [
@@ -136,13 +69,17 @@ const defaultChecks: QualityCheckItem[] = [
     { id: 'condition', label: 'Stan techniczny pojazdu',      checked: true },
 ];
 
-export const QualityCheckStep = ({ onApprove, onReject }: QualityCheckStepProps) => {
+export const QualityCheckStep = ({ onAllCheckedChange }: QualityCheckStepProps) => {
     const [checks, setChecks] = useState<QualityCheckItem[]>(defaultChecks);
 
     const toggle = (id: string) =>
         setChecks(prev => prev.map(c => c.id === id ? { ...c, checked: !c.checked } : c));
 
     const allChecked = checks.every(c => c.checked);
+
+    useEffect(() => {
+        onAllCheckedChange(allChecked);
+    }, [allChecked, onAllCheckedChange]);
 
     return (
         <Container>
@@ -161,19 +98,6 @@ export const QualityCheckStep = ({ onApprove, onReject }: QualityCheckStepProps)
                     </ChecklistItem>
                 ))}
             </ChecklistItems>
-
-            <Divider />
-
-            <ActionRow>
-                <RejectBtn onClick={onReject}>
-                    <XCircle size={14} />
-                    Wymaga poprawek
-                </RejectBtn>
-                <ApproveBtn onClick={onApprove} disabled={!allChecked}>
-                    <CheckCircle2 size={14} />
-                    Zatwierdź jakość
-                </ApproveBtn>
-            </ActionRow>
         </Container>
     );
 };

@@ -171,7 +171,7 @@ export const WizardLayout = ({
     };
 
     return (
-        <ModalShell isOpen={isOpen} onClose={onClose} size="sm">
+        <ModalShell isOpen={isOpen} onClose={onClose} size="md">
             <WizardHeader>
                 <HeaderTop>
                     {icon && <IconWrap>{icon}</IconWrap>}
@@ -197,7 +197,7 @@ export const WizardLayout = ({
 
             <ModalFooter>
                 <FooterLeft>
-                    {currentStep > 1 && onBack && (
+                    {onBack && (
                         <SharedButton $variant="secondary" type="button" onClick={onBack} disabled={isProcessing}>
                             {backLabel}
                         </SharedButton>
