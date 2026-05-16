@@ -95,7 +95,7 @@ export const AddCustomerModal = ({
                 <CloseBtn onClick={handleClose} />
             </ModalHeader>
 
-            <ModalContent>
+            <ModalContent style={{ paddingTop: '8px' }}>
                 {error && (
                     <FormAlertBanner>{t.customers.error.createFailed}</FormAlertBanner>
                 )}

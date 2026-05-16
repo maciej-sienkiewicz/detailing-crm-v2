@@ -111,7 +111,7 @@ export const EditCustomerModal = ({ isOpen, onClose, customer }: EditCustomerMod
                 <CloseBtn onClick={handleClose} />
             </ModalHeader>
 
-            <ModalContent>
+            <ModalContent style={{ paddingTop: '8px' }}>
                 {error && (
                     <FormAlertBanner>
                         Nie udało się zaktualizować danych klienta. Spróbuj ponownie.
