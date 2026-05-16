@@ -1,21 +1,14 @@
 import { useState } from 'react';
 import styled from 'styled-components';
+import { XCircle, Check, CheckCircle2 } from 'lucide-react';
 import type { QualityCheckItem } from '../../hooks/useStateTransition';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { ModalSectionTitle } from '@/common/components/ModalKit';
 
 const Container = styled.div`
     display: flex;
     flex-direction: column;
     gap: 16px;
-`;
-
-const SectionLabel = styled.p`
-    margin: 0;
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
 `;
 
 const ChecklistItems = styled.div`
@@ -57,7 +50,7 @@ const CheckLabel = styled.span<{ $checked: boolean }>`
     transition: color 140ms ease;
 `;
 
-const CheckMark = styled.svg<{ $visible: boolean }>`
+const CheckMark = styled(Check)<{ $visible: boolean }>`
     width: 14px;
     height: 14px;
     color: ${st.accentGreen};
@@ -153,7 +146,7 @@ export const QualityCheckStep = ({ onApprove, onReject }: QualityCheckStepProps)
 
     return (
         <Container>
-            <SectionLabel>Lista kontrolna</SectionLabel>
+            <ModalSectionTitle>Lista kontrolna</ModalSectionTitle>
 
             <ChecklistItems>
                 {checks.map(check => (
@@ -164,15 +157,7 @@ export const QualityCheckStep = ({ onApprove, onReject }: QualityCheckStepProps)
                             onChange={() => toggle(check.id)}
                         />
                         <CheckLabel $checked={check.checked}>{check.label}</CheckLabel>
-                        <CheckMark
-                            $visible={check.checked}
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
-                        >
-                            <polyline points="20 6 9 17 4 12"/>
-                        </CheckMark>
+                        <CheckMark $visible={check.checked} size={14} strokeWidth={2.5} />
                     </ChecklistItem>
                 ))}
             </ChecklistItems>
@@ -181,17 +166,11 @@ export const QualityCheckStep = ({ onApprove, onReject }: QualityCheckStepProps)
 
             <ActionRow>
                 <RejectBtn onClick={onReject}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="15" y1="9" x2="9" y2="15"/>
-                        <line x1="9" y1="9" x2="15" y2="15"/>
-                    </svg>
+                    <XCircle size={14} />
                     Wymaga poprawek
                 </RejectBtn>
                 <ApproveBtn onClick={onApprove} disabled={!allChecked}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <polyline points="20 6 9 17 4 12"/>
-                    </svg>
+                    <CheckCircle2 size={14} />
                     Zatwierdź jakość
                 </ApproveBtn>
             </ActionRow>

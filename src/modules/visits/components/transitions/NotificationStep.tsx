@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import styled from 'styled-components';
+import { User, MessageSquare, Mail } from 'lucide-react';
 import type { NotificationChannels } from '../../hooks/useStateTransition';
 import type { CustomerInfo } from '../../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { LockedSection } from '@/common/components/LockedSection';
 import { useFeature } from '@/modules/subscription';
+import { ModalSectionTitle } from '@/common/components/ModalKit';
 
 const Container = styled.div`
     display: flex;
@@ -54,14 +56,6 @@ const CustomerContact = styled.div`
     text-overflow: ellipsis;
 `;
 
-const SectionLabel = styled.p`
-    margin: 0;
-    font-size: ${st.fontXs};
-    font-weight: 700;
-    color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-`;
 
 const ChannelList = styled.div`
     display: flex;
@@ -149,10 +143,7 @@ export const NotificationStep = ({ customer, onChannelsChange }: NotificationSte
         <Container>
             <CustomerRow>
                 <CustomerAvatar>
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <circle cx="12" cy="8" r="4"/>
-                        <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6"/>
-                    </svg>
+                    <User size={15} />
                 </CustomerAvatar>
                 <CustomerDetails>
                     <CustomerName>
@@ -164,7 +155,7 @@ export const NotificationStep = ({ customer, onChannelsChange }: NotificationSte
                 </CustomerDetails>
             </CustomerRow>
 
-            <SectionLabel>Kanały powiadomień</SectionLabel>
+            <ModalSectionTitle>Kanały powiadomień</ModalSectionTitle>
 
             <ChannelList>
                 <LockedSection
@@ -178,9 +169,7 @@ export const NotificationStep = ({ customer, onChannelsChange }: NotificationSte
                         onChange={() => toggle('sms')}
                     />
                     <ChannelIcon>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                        </svg>
+                        <MessageSquare size={13} />
                     </ChannelIcon>
                     <ChannelText>
                         <ChannelLabel>SMS</ChannelLabel>
@@ -197,10 +186,7 @@ export const NotificationStep = ({ customer, onChannelsChange }: NotificationSte
                         disabled={!customer.email}
                     />
                     <ChannelIcon>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                            <polyline points="22,6 12,13 2,6"/>
-                        </svg>
+                        <Mail size={13} />
                     </ChannelIcon>
                     <ChannelText>
                         <ChannelLabel>Email</ChannelLabel>

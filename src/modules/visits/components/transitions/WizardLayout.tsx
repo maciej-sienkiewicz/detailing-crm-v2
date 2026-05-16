@@ -1,105 +1,85 @@
-import styled, { keyframes } from 'styled-components';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
+import styled from 'styled-components';
+import { X } from 'lucide-react';
+import {
+    ModalShell,
+    ModalContent,
+    ModalFooter,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 
-const fadeIn = keyframes`
-    from { opacity: 0; }
-    to   { opacity: 1; }
-`;
-
-const slideUp = keyframes`
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
-`;
-
-const Overlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(3px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 20px;
-    animation: ${fadeIn} 0.18s ease;
-`;
-
-const WizardContainer = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-    width: 100%;
-    max-width: 520px;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
-    animation: ${slideUp} 0.22s ease;
-`;
+// ─── Wizard-specific header (icon + title + progress bar) ─────────────────────
 
 const WizardHeader = styled.div`
-    padding: 16px 20px 14px;
-    border-bottom: 1px solid ${st.border};
-    background: ${st.bg};
+    padding: 20px 28px 16px;
+    border-bottom: 1px solid #f1f5f9;
     flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 `;
 
 const HeaderTop = styled.div`
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
+    gap: 12px;
 `;
 
 const IconWrap = styled.div`
-    width: 28px;
-    height: 28px;
-    border-radius: 7px;
-    background: ${st.gradientBlue};
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
 
-    svg { width: 14px; height: 14px; }
+    svg { width: 15px; height: 15px; }
 `;
 
-const HeaderText = styled.div`
+const TitleGroup = styled.div`
     flex: 1;
     min-width: 0;
 `;
 
 const WizardTitle = styled.h2`
     margin: 0;
-    font-size: ${st.fontMd};
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
     font-weight: 700;
-    color: ${st.text};
+    color: #0f172a;
+    letter-spacing: -0.2px;
     line-height: 1.2;
 `;
 
 const WizardSubtitle = styled.p`
     margin: 2px 0 0;
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 400;
 `;
 
-const CloseBtn = styled.button`
-    width: 28px;
-    height: 28px;
-    border: none;
-    border-radius: 7px;
-    background: transparent;
-    color: ${st.textMuted};
+const CloseButton = styled.button`
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 50%;
     cursor: pointer;
-    transition: all ${st.transition};
-    flex-shrink: 0;
+    color: #64748b;
+    transition: all 150ms ease;
 
-    &:hover { background: ${st.bgCardAlt}; color: ${st.text}; }
-    svg { width: 16px; height: 16px; }
+    &:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+        border-color: #cbd5e1;
+    }
 `;
 
 const ProgressRow = styled.div`
@@ -111,68 +91,35 @@ const ProgressRow = styled.div`
 const ProgressBar = styled.div`
     flex: 1;
     height: 3px;
-    background: ${st.border};
-    border-radius: ${st.radiusFull};
+    background: #e2e8f0;
+    border-radius: 999px;
     overflow: hidden;
 `;
 
 const ProgressFill = styled.div<{ $pct: number }>`
     height: 100%;
     width: ${p => p.$pct}%;
-    background: ${st.accentBlue};
+    background: #3b82f6;
     transition: width 0.3s ease;
 `;
 
 const StepLabel = styled.span`
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
-    color: ${st.textMuted};
+    color: #94a3b8;
     white-space: nowrap;
 `;
 
-const WizardBody = styled.div`
-    padding: 20px;
-    overflow-y: auto;
+// ─── Left-aligned back button wrapper ────────────────────────────────────────
+
+const FooterLeft = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
     flex: 1;
 `;
 
-const WizardFooter = styled.div`
-    padding: 12px 20px;
-    border-top: 1px solid ${st.border};
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
-    flex-shrink: 0;
-`;
-
-const FooterBtn = styled.button<{ $primary?: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 16px;
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ${st.transition};
-    white-space: nowrap;
-
-    ${p => p.$primary ? `
-        background: ${st.accentBlue};
-        color: white;
-        border: none;
-        box-shadow: ${st.shadowXs};
-        &:hover:not(:disabled) { background: #2563EB; box-shadow: ${st.shadowSm}; transform: translateY(-1px); }
-    ` : `
-        background: transparent;
-        color: ${st.textSecondary};
-        border: 1px solid ${st.border};
-        &:hover:not(:disabled) { border-color: ${st.accentBlue}; color: ${st.accentBlue}; background: ${st.accentBlueDim}; }
-    `}
-
-    &:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; }
-`;
+// ─── Component ────────────────────────────────────────────────────────────────
 
 interface WizardLayoutProps {
     isOpen: boolean;
@@ -215,8 +162,6 @@ export const WizardLayout = ({
     disableNext = false,
     children,
 }: WizardLayoutProps) => {
-    if (!isOpen) return null;
-
     const pct = (currentStep / totalSteps) * 100;
     const isLast = currentStep === totalSteps;
 
@@ -226,54 +171,54 @@ export const WizardLayout = ({
     };
 
     return (
-        <Overlay onClick={onClose}>
-            <WizardContainer onClick={e => e.stopPropagation()}>
-                <WizardHeader>
-                    <HeaderTop>
-                        {icon && <IconWrap>{icon}</IconWrap>}
-                        <HeaderText>
-                            <WizardTitle>{title}</WizardTitle>
-                            {subtitle && <WizardSubtitle>{subtitle}</WizardSubtitle>}
-                        </HeaderText>
-                        <CloseBtn onClick={onClose} title="Zamknij">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <line x1="18" y1="6" x2="6" y2="18"/>
-                                <line x1="6" y1="6" x2="18" y2="18"/>
-                            </svg>
-                        </CloseBtn>
-                    </HeaderTop>
-                    <ProgressRow>
-                        <ProgressBar>
-                            <ProgressFill $pct={pct} />
-                        </ProgressBar>
-                        <StepLabel>{currentStep} / {totalSteps}</StepLabel>
-                    </ProgressRow>
-                </WizardHeader>
+        <ModalShell isOpen={isOpen} onClose={onClose} size="sm">
+            <WizardHeader>
+                <HeaderTop>
+                    {icon && <IconWrap>{icon}</IconWrap>}
+                    <TitleGroup>
+                        <WizardTitle>{title}</WizardTitle>
+                        {subtitle && <WizardSubtitle>{subtitle}</WizardSubtitle>}
+                    </TitleGroup>
+                    <CloseButton onClick={onClose} title="Zamknij">
+                        <X size={15} strokeWidth={2.5} />
+                    </CloseButton>
+                </HeaderTop>
+                <ProgressRow>
+                    <ProgressBar>
+                        <ProgressFill $pct={pct} />
+                    </ProgressBar>
+                    <StepLabel>{currentStep} / {totalSteps}</StepLabel>
+                </ProgressRow>
+            </WizardHeader>
 
-                <WizardBody>{children}</WizardBody>
+            <ModalContent>
+                {children}
+            </ModalContent>
 
-                <WizardFooter>
+            <ModalFooter>
+                <FooterLeft>
                     {currentStep > 1 && onBack && (
-                        <FooterBtn onClick={onBack} disabled={isProcessing}>
+                        <SharedButton $variant="secondary" type="button" onClick={onBack} disabled={isProcessing}>
                             {backLabel}
-                        </FooterBtn>
+                        </SharedButton>
                     )}
                     {onSkip && (
-                        <FooterBtn onClick={onSkip} disabled={isProcessing}>
+                        <SharedButton $variant="ghost" type="button" onClick={onSkip} disabled={isProcessing}>
                             {skipLabel}
-                        </FooterBtn>
+                        </SharedButton>
                     )}
-                    {(onNext || onFinish) && (
-                        <FooterBtn
-                            $primary
-                            onClick={handlePrimary}
-                            disabled={disableNext || isProcessing}
-                        >
-                            {isProcessing ? 'Przetwarzanie...' : isLast ? finishLabel : nextLabel}
-                        </FooterBtn>
-                    )}
-                </WizardFooter>
-            </WizardContainer>
-        </Overlay>
+                </FooterLeft>
+                {(onNext || onFinish) && (
+                    <SharedButton
+                        $variant="primary"
+                        type="button"
+                        onClick={handlePrimary}
+                        disabled={disableNext || isProcessing}
+                    >
+                        {isProcessing ? 'Przetwarzanie…' : isLast ? finishLabel : nextLabel}
+                    </SharedButton>
+                )}
+            </ModalFooter>
+        </ModalShell>
     );
 };
