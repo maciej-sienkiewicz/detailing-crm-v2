@@ -13,6 +13,7 @@ import {
     ModalSubtitle,
     ModalContent,
     ModalFooter,
+    ModalSectionTitle,
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
@@ -25,9 +26,6 @@ import {
     BareInput,
     BareTextArea,
     FormAlertBanner,
-    FormTabBar,
-    FormTabBtn,
-    FormTabPanel,
 } from '@/common/components/Form';
 
 // ─── Custom Select (portal-based) ────────────────────────────────────────────
@@ -150,8 +148,6 @@ const ModalSelect: React.FC<ModalSelectProps> = ({ value, onChange, options }) =
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-type TabId = 'document' | 'amounts' | 'counterparty';
-
 interface Props {
     isOpen: boolean;
     onClose: () => void;
@@ -188,7 +184,6 @@ const EMPTY_FORM: FormState = {
 
 export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) => {
     const createDoc = useCreateDocument();
-    const [activeTab, setActiveTab] = useState<TabId>('document');
     const [error, setError] = useState<string | null>(null);
     const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
@@ -196,7 +191,6 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) => {
         if (!isOpen) {
             setForm({ ...EMPTY_FORM, issueDate: new Date().toISOString().split('T')[0] });
             setError(null);
-            setActiveTab('document');
         }
     }, [isOpen]);
 
@@ -263,170 +257,158 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
 
-            <ModalContent style={{ paddingTop: '8px' }}>
+            <ModalContent>
                 {error && <FormAlertBanner>{error}</FormAlertBanner>}
 
                 <form id="create-document-form" onSubmit={handleSubmit} autoComplete="off">
-                    <FormTabBar>
-                        <FormTabBtn type="button" $active={activeTab === 'document'} onClick={() => setActiveTab('document')}>
-                            Dokument
-                        </FormTabBtn>
-                        <FormTabBtn type="button" $active={activeTab === 'amounts'} onClick={() => setActiveTab('amounts')}>
-                            Kwoty
-                        </FormTabBtn>
-                        <FormTabBtn type="button" $active={activeTab === 'counterparty'} onClick={() => setActiveTab('counterparty')}>
-                            Kontrahent
-                        </FormTabBtn>
-                    </FormTabBar>
+                    <ModalSectionTitle>Rodzaj dokumentu</ModalSectionTitle>
+                    <FormGrid>
+                        <FormField>
+                            <FieldLabel>Typ dokumentu</FieldLabel>
+                            <ModalSelect
+                                value={form.documentType}
+                                onChange={setField('documentType')}
+                                options={[
+                                    { value: DocumentType.INVOICE, label: 'Faktura' },
+                                    { value: DocumentType.RECEIPT, label: 'Paragon' },
+                                    { value: DocumentType.OTHER,   label: 'Inny' },
+                                ]}
+                            />
+                        </FormField>
 
-                    {/* ── Dokument ── */}
-                    <FormTabPanel $active={activeTab === 'document'}>
-                        <FormGrid>
-                            <FormField>
-                                <FieldLabel>Typ dokumentu</FieldLabel>
-                                <ModalSelect
-                                    value={form.documentType}
-                                    onChange={setField('documentType')}
-                                    options={[
-                                        { value: DocumentType.INVOICE, label: 'Faktura' },
-                                        { value: DocumentType.RECEIPT, label: 'Paragon' },
-                                        { value: DocumentType.OTHER,   label: 'Inny' },
-                                    ]}
+                        <FormField>
+                            <FieldLabel>Metoda płatności</FieldLabel>
+                            <ModalSelect
+                                value={form.paymentMethod}
+                                onChange={setField('paymentMethod')}
+                                options={[
+                                    { value: PaymentMethod.CASH,     label: 'Gotówka' },
+                                    { value: PaymentMethod.CARD,     label: 'Karta' },
+                                    { value: PaymentMethod.TRANSFER, label: 'Przelew' },
+                                    { value: PaymentMethod.OTHER,    label: 'Inne' },
+                                ]}
+                            />
+                        </FormField>
+                    </FormGrid>
+
+                    <ModalSectionTitle>Kwoty</ModalSectionTitle>
+                    <FormGrid>
+                        <FormField>
+                            <FieldLabel htmlFor="cd-netAmount">Kwota netto (PLN)</FieldLabel>
+                            <InputShell>
+                                <BareInput
+                                    id="cd-netAmount"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="0.00"
+                                    value={form.totalNetDisplay}
+                                    onChange={e => handleNetChange(e.target.value)}
+                                    required
+                                    autoComplete="new-password"
                                 />
-                            </FormField>
+                            </InputShell>
+                        </FormField>
 
-                            <FormField>
-                                <FieldLabel>Metoda płatności</FieldLabel>
-                                <ModalSelect
-                                    value={form.paymentMethod}
-                                    onChange={setField('paymentMethod')}
-                                    options={[
-                                        { value: PaymentMethod.CASH,     label: 'Gotówka' },
-                                        { value: PaymentMethod.CARD,     label: 'Karta' },
-                                        { value: PaymentMethod.TRANSFER, label: 'Przelew' },
-                                        { value: PaymentMethod.OTHER,    label: 'Inne' },
-                                    ]}
+                        <FormField>
+                            <FieldLabel htmlFor="cd-vatAmount">VAT (23%)</FieldLabel>
+                            <InputShell>
+                                <BareInput
+                                    id="cd-vatAmount"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="0.00"
+                                    value={form.totalVatDisplay}
+                                    onChange={set('totalVatDisplay')}
+                                    autoComplete="new-password"
                                 />
-                            </FormField>
+                            </InputShell>
+                        </FormField>
+                    </FormGrid>
 
-                            <FormField>
-                                <FieldLabel htmlFor="cd-issueDate">Data wystawienia</FieldLabel>
-                                <InputShell>
-                                    <BareInput
-                                        id="cd-issueDate"
-                                        type="date"
-                                        value={form.issueDate}
-                                        onChange={set('issueDate')}
-                                        required
-                                        autoComplete="new-password"
-                                    />
-                                </InputShell>
-                            </FormField>
+                    <ModalSectionTitle>Daty</ModalSectionTitle>
+                    <FormGrid>
+                        <FormField>
+                            <FieldLabel htmlFor="cd-issueDate">Data wystawienia</FieldLabel>
+                            <InputShell>
+                                <BareInput
+                                    id="cd-issueDate"
+                                    type="date"
+                                    value={form.issueDate}
+                                    onChange={set('issueDate')}
+                                    required
+                                    autoComplete="new-password"
+                                />
+                            </InputShell>
+                        </FormField>
 
-                            <FormField>
-                                <FieldLabel htmlFor="cd-dueDate">
-                                    Termin płatności
-                                    {form.paymentMethod === PaymentMethod.TRANSFER && (
-                                        <span style={{ color: '#ef4444', marginLeft: 4 }}>*</span>
-                                    )}
-                                </FieldLabel>
-                                <InputShell>
-                                    <BareInput
-                                        id="cd-dueDate"
-                                        type="date"
-                                        value={form.dueDate}
-                                        onChange={set('dueDate')}
-                                        required={form.paymentMethod === PaymentMethod.TRANSFER}
-                                        autoComplete="new-password"
-                                    />
-                                </InputShell>
-                            </FormField>
-                        </FormGrid>
-                    </FormTabPanel>
+                        <FormField>
+                            <FieldLabel htmlFor="cd-dueDate">
+                                Termin płatności
+                                {form.paymentMethod === PaymentMethod.TRANSFER && (
+                                    <span style={{ color: '#ef4444', marginLeft: 4 }}>*</span>
+                                )}
+                            </FieldLabel>
+                            <InputShell>
+                                <BareInput
+                                    id="cd-dueDate"
+                                    type="date"
+                                    value={form.dueDate}
+                                    onChange={set('dueDate')}
+                                    required={form.paymentMethod === PaymentMethod.TRANSFER}
+                                    autoComplete="new-password"
+                                />
+                            </InputShell>
+                        </FormField>
+                    </FormGrid>
 
-                    {/* ── Kwoty ── */}
-                    <FormTabPanel $active={activeTab === 'amounts'}>
-                        <FormGrid>
-                            <FormField>
-                                <FieldLabel htmlFor="cd-netAmount">Kwota netto (PLN)</FieldLabel>
-                                <InputShell>
-                                    <BareInput
-                                        id="cd-netAmount"
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        placeholder="0.00"
-                                        value={form.totalNetDisplay}
-                                        onChange={e => handleNetChange(e.target.value)}
-                                        required
-                                        autoComplete="new-password"
-                                    />
-                                </InputShell>
-                            </FormField>
+                    <ModalSectionTitle>Kontrahent</ModalSectionTitle>
+                    <FormGrid>
+                        <FormField $fullWidth>
+                            <FieldLabel htmlFor="cd-counterpartyName">Nazwa kontrahenta</FieldLabel>
+                            <InputShell>
+                                <BareInput
+                                    id="cd-counterpartyName"
+                                    type="text"
+                                    placeholder="Jan Kowalski / Firma Sp. z o.o."
+                                    value={form.counterpartyName}
+                                    onChange={set('counterpartyName')}
+                                    autoComplete="new-password"
+                                />
+                            </InputShell>
+                        </FormField>
 
-                            <FormField>
-                                <FieldLabel htmlFor="cd-vatAmount">VAT (23%)</FieldLabel>
-                                <InputShell>
-                                    <BareInput
-                                        id="cd-vatAmount"
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        placeholder="0.00"
-                                        value={form.totalVatDisplay}
-                                        onChange={set('totalVatDisplay')}
-                                        autoComplete="new-password"
-                                    />
-                                </InputShell>
-                            </FormField>
-                        </FormGrid>
-                    </FormTabPanel>
+                        <FormField>
+                            <FieldLabel htmlFor="cd-counterpartyNip">NIP</FieldLabel>
+                            <InputShell>
+                                <BareInput
+                                    id="cd-counterpartyNip"
+                                    type="text"
+                                    placeholder="1234567890"
+                                    value={form.counterpartyNip}
+                                    onChange={set('counterpartyNip')}
+                                    autoComplete="new-password"
+                                />
+                            </InputShell>
+                        </FormField>
+                    </FormGrid>
 
-                    {/* ── Kontrahent ── */}
-                    <FormTabPanel $active={activeTab === 'counterparty'}>
-                        <FormGrid>
-                            <FormField $fullWidth>
-                                <FieldLabel htmlFor="cd-counterpartyName">Nazwa kontrahenta</FieldLabel>
-                                <InputShell>
-                                    <BareInput
-                                        id="cd-counterpartyName"
-                                        type="text"
-                                        placeholder="Jan Kowalski / Firma Sp. z o.o."
-                                        value={form.counterpartyName}
-                                        onChange={set('counterpartyName')}
-                                        autoComplete="new-password"
-                                    />
-                                </InputShell>
-                            </FormField>
-
-                            <FormField>
-                                <FieldLabel htmlFor="cd-counterpartyNip">NIP</FieldLabel>
-                                <InputShell>
-                                    <BareInput
-                                        id="cd-counterpartyNip"
-                                        type="text"
-                                        placeholder="1234567890"
-                                        value={form.counterpartyNip}
-                                        onChange={set('counterpartyNip')}
-                                        autoComplete="new-password"
-                                    />
-                                </InputShell>
-                            </FormField>
-
-                            <FormField $fullWidth>
-                                <FieldLabel htmlFor="cd-description">Opis / tytuł</FieldLabel>
-                                <InputShellTextArea>
-                                    <BareTextArea
-                                        id="cd-description"
-                                        placeholder="Np. Detailing kompletny + powłoka ceramiczna"
-                                        value={form.description}
-                                        onChange={set('description')}
-                                        autoComplete="new-password"
-                                    />
-                                </InputShellTextArea>
-                            </FormField>
-                        </FormGrid>
-                    </FormTabPanel>
+                    <ModalSectionTitle>Opis</ModalSectionTitle>
+                    <FormGrid>
+                        <FormField $fullWidth>
+                            <FieldLabel htmlFor="cd-description">Opis / tytuł</FieldLabel>
+                            <InputShellTextArea>
+                                <BareTextArea
+                                    id="cd-description"
+                                    placeholder="Np. Detailing kompletny + powłoka ceramiczna"
+                                    value={form.description}
+                                    onChange={set('description')}
+                                    autoComplete="new-password"
+                                />
+                            </InputShellTextArea>
+                        </FormField>
+                    </FormGrid>
                 </form>
             </ModalContent>
 
