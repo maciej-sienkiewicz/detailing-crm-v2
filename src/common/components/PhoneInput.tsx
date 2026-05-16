@@ -7,52 +7,50 @@ const Container = styled.div`
 `;
 
 const CountryCodeSelect = styled.select<{ $hasError?: boolean }>`
-    padding: 9px 12px;
-    border: 1px solid ${props => props.$hasError ? props.theme.colors.error : props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    background: #F8FAFC;
+    padding: 12px 10px;
+    border: 1.5px solid ${props => props.$hasError ? '#ef4444' : '#e2e8f0'};
+    border-radius: 10px;
+    font-size: 14px;
+    background: white;
     color: ${props => props.theme.colors.text};
     cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
     flex-shrink: 0;
     min-width: 90px;
 
     &:hover {
-        border-color: ${props => props.$hasError ? props.theme.colors.error : props.theme.colors.border};
+        border-color: ${props => props.$hasError ? '#ef4444' : '#cbd5e1'};
     }
 
     &:focus {
         outline: none;
-        background: #FFFFFF;
-        border-color: ${props => props.$hasError ? props.theme.colors.error : props.theme.colors.primary};
+        border-color: ${props => props.$hasError ? '#ef4444' : 'var(--brand-primary)'};
         box-shadow: 0 0 0 3px ${props => props.$hasError ? 'rgba(239, 68, 68, 0.1)' : 'rgba(14, 165, 233, 0.1)'};
     }
 `;
 
 const PhoneNumberInput = styled.input<{ $hasError?: boolean }>`
     flex: 1;
-    padding: 9px 12px;
-    border: 1px solid ${props => props.$hasError ? props.theme.colors.error : props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    background: #F8FAFC;
-    color: ${props => props.theme.colors.text};
-    transition: all ${props => props.theme.transitions.fast};
+    padding: 12px 14px;
+    border: 1.5px solid ${props => props.$hasError ? '#ef4444' : '#e2e8f0'};
+    border-radius: 10px;
+    font-size: 14px;
+    background: white;
+    color: #0f172a;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
     &:hover {
-        border-color: ${props => props.$hasError ? props.theme.colors.error : props.theme.colors.border};
+        border-color: ${props => props.$hasError ? '#ef4444' : '#cbd5e1'};
     }
 
     &:focus {
         outline: none;
-        background: #FFFFFF;
-        border-color: ${props => props.$hasError ? props.theme.colors.error : props.theme.colors.primary};
+        border-color: ${props => props.$hasError ? '#ef4444' : 'var(--brand-primary)'};
         box-shadow: 0 0 0 3px ${props => props.$hasError ? 'rgba(239, 68, 68, 0.1)' : 'rgba(14, 165, 233, 0.1)'};
     }
 
     &::placeholder {
-        color: ${props => props.theme.colors.textMuted};
+        color: #94a3b8;
     }
 `;
 
@@ -336,6 +334,7 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
                         }
                     }}
                     type="tel"
+                    autoComplete="off"
                     defaultValue={initialDisplayValue}
                     onChange={handleNumberChange}
                     onBlur={handleBlur}

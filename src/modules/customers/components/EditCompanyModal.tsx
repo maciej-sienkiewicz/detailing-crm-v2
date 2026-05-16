@@ -179,6 +179,7 @@ export const EditCompanyModal = ({
                                     <InputShell $hasError={!!methods.formState.errors.name}>
                                         <BareInput
                                             id="company-name"
+                                            autoComplete="off"
                                             {...methods.register('name')}
                                             placeholder={t.customers.form.company.namePlaceholder}
                                         />
@@ -197,6 +198,7 @@ export const EditCompanyModal = ({
                                     <InputShell $hasError={!!methods.formState.errors.nip}>
                                         <BareInput
                                             id="company-nip"
+                                            autoComplete="off"
                                             {...methods.register('nip')}
                                             placeholder={t.customers.form.company.nipPlaceholder}
                                         />
@@ -215,6 +217,7 @@ export const EditCompanyModal = ({
                                     <InputShell $hasError={!!methods.formState.errors.regon}>
                                         <BareInput
                                             id="company-regon"
+                                            autoComplete="off"
                                             {...methods.register('regon')}
                                             placeholder={t.customers.form.company.regonPlaceholder}
                                         />
@@ -233,6 +236,7 @@ export const EditCompanyModal = ({
                                     <InputShell $hasError={!!methods.formState.errors.street}>
                                         <BareInput
                                             id="company-street"
+                                            autoComplete="off"
                                             {...methods.register('street')}
                                             placeholder={t.customers.form.company.streetPlaceholder}
                                         />
@@ -251,6 +255,7 @@ export const EditCompanyModal = ({
                                     <InputShell $hasError={!!methods.formState.errors.city}>
                                         <BareInput
                                             id="company-city"
+                                            autoComplete="off"
                                             {...methods.register('city')}
                                             placeholder={t.customers.form.company.cityPlaceholder}
                                         />
@@ -269,6 +274,7 @@ export const EditCompanyModal = ({
                                     <InputShell $hasError={!!methods.formState.errors.postalCode}>
                                         <BareInput
                                             id="company-postalCode"
+                                            autoComplete="off"
                                             {...methods.register('postalCode')}
                                             placeholder={t.customers.form.company.postalCodePlaceholder}
                                         />

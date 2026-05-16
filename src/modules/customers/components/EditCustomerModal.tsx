@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { User, Home } from 'lucide-react';
+import { Home } from 'lucide-react';
 import { useUpdateCustomer } from '../hooks/useUpdateCustomer';
 import { createCustomerSchema, type CreateCustomerFormData } from '../utils/customerValidation';
 import { t } from '@/common/i18n';
@@ -129,13 +129,6 @@ export const EditCustomerModal = ({ isOpen, onClose, customer }: EditCustomerMod
                     <form id="edit-customer-form" onSubmit={handleSubmit}>
                         {/* ── Dane osobowe ──────────────────────────────────── */}
                         <FormSection>
-                            <SectionHeader
-                                icon={<User />}
-                                iconColor="#6366f1"
-                                title={t.customers.form.personalInfo}
-                                subtitle="Podstawowe dane kontaktowe klienta"
-                            />
-
                             <FormGrid>
                                 <FormField>
                                     <FieldLabel htmlFor="edit-firstName">
@@ -144,6 +137,7 @@ export const EditCustomerModal = ({ isOpen, onClose, customer }: EditCustomerMod
                                     <InputShell $hasError={!!methods.formState.errors.firstName}>
                                         <BareInput
                                             id="edit-firstName"
+                                            autoComplete="off"
                                             {...methods.register('firstName')}
                                             placeholder={t.customers.form.firstNamePlaceholder}
                                         />
@@ -162,6 +156,7 @@ export const EditCustomerModal = ({ isOpen, onClose, customer }: EditCustomerMod
                                     <InputShell $hasError={!!methods.formState.errors.lastName}>
                                         <BareInput
                                             id="edit-lastName"
+                                            autoComplete="off"
                                             {...methods.register('lastName')}
                                             placeholder={t.customers.form.lastNamePlaceholder}
                                         />
@@ -181,6 +176,7 @@ export const EditCustomerModal = ({ isOpen, onClose, customer }: EditCustomerMod
                                         <BareInput
                                             id="edit-email"
                                             type="email"
+                                            autoComplete="off"
                                             {...methods.register('email')}
                                             placeholder={t.customers.form.emailPlaceholder}
                                         />
@@ -241,6 +237,7 @@ export const EditCustomerModal = ({ isOpen, onClose, customer }: EditCustomerMod
                                             >
                                                 <BareInput
                                                     id="edit-homeAddress.street"
+                                                    autoComplete="off"
                                                     {...methods.register('homeAddress.street')}
                                                     placeholder={t.customers.form.homeAddress.streetPlaceholder}
                                                 />
@@ -261,6 +258,7 @@ export const EditCustomerModal = ({ isOpen, onClose, customer }: EditCustomerMod
                                             >
                                                 <BareInput
                                                     id="edit-homeAddress.city"
+                                                    autoComplete="off"
                                                     {...methods.register('homeAddress.city')}
                                                     placeholder={t.customers.form.homeAddress.cityPlaceholder}
                                                 />
@@ -281,6 +279,7 @@ export const EditCustomerModal = ({ isOpen, onClose, customer }: EditCustomerMod
                                             >
                                                 <BareInput
                                                     id="edit-homeAddress.postalCode"
+                                                    autoComplete="off"
                                                     {...methods.register('homeAddress.postalCode')}
                                                     placeholder={t.customers.form.homeAddress.postalCodePlaceholder}
                                                 />
@@ -301,6 +300,7 @@ export const EditCustomerModal = ({ isOpen, onClose, customer }: EditCustomerMod
                                             >
                                                 <BareInput
                                                     id="edit-homeAddress.country"
+                                                    autoComplete="off"
                                                     {...methods.register('homeAddress.country')}
                                                     placeholder={t.customers.form.homeAddress.countryPlaceholder}
                                                 />

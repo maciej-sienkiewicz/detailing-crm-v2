@@ -1,5 +1,5 @@
 import { useFormContext } from 'react-hook-form';
-import { User, Home, Building2, FileText } from 'lucide-react';
+import { Home, Building2 } from 'lucide-react';
 import type { CreateCustomerFormData } from '../utils/customerValidation';
 import { t } from '@/common/i18n';
 import { PhoneInputField } from '@/common/components/PhoneInputField';
@@ -46,19 +46,13 @@ export const CustomerForm = ({
         <>
             {/* ── Dane osobowe ─────────────────────────────────────────────── */}
             <FormSection>
-                <SectionHeader
-                    icon={<User />}
-                    iconColor="#6366f1"
-                    title={t.customers.form.personalInfo}
-                    subtitle="Podstawowe dane kontaktowe klienta"
-                />
-
                 <FormGrid>
                     <FormField>
                         <FieldLabel htmlFor="firstName">{t.customers.form.firstName}</FieldLabel>
                         <InputShell $hasError={!!errors.firstName}>
                             <BareInput
                                 id="firstName"
+                                autoComplete="off"
                                 {...register('firstName')}
                                 placeholder={t.customers.form.firstNamePlaceholder}
                             />
@@ -73,6 +67,7 @@ export const CustomerForm = ({
                         <InputShell $hasError={!!errors.lastName}>
                             <BareInput
                                 id="lastName"
+                                autoComplete="off"
                                 {...register('lastName')}
                                 placeholder={t.customers.form.lastNamePlaceholder}
                             />
@@ -88,6 +83,7 @@ export const CustomerForm = ({
                             <BareInput
                                 id="email"
                                 type="email"
+                                autoComplete="off"
                                 {...register('email')}
                                 placeholder={t.customers.form.emailPlaceholder}
                             />
@@ -140,6 +136,7 @@ export const CustomerForm = ({
                                 <InputShell $hasError={!!errors.homeAddress?.street}>
                                     <BareInput
                                         id="homeAddress.street"
+                                        autoComplete="off"
                                         {...register('homeAddress.street')}
                                         placeholder={t.customers.form.homeAddress.streetPlaceholder}
                                     />
@@ -156,6 +153,7 @@ export const CustomerForm = ({
                                 <InputShell $hasError={!!errors.homeAddress?.city}>
                                     <BareInput
                                         id="homeAddress.city"
+                                        autoComplete="off"
                                         {...register('homeAddress.city')}
                                         placeholder={t.customers.form.homeAddress.cityPlaceholder}
                                     />
@@ -172,6 +170,7 @@ export const CustomerForm = ({
                                 <InputShell $hasError={!!errors.homeAddress?.postalCode}>
                                     <BareInput
                                         id="homeAddress.postalCode"
+                                        autoComplete="off"
                                         {...register('homeAddress.postalCode')}
                                         placeholder={t.customers.form.homeAddress.postalCodePlaceholder}
                                     />
@@ -188,6 +187,7 @@ export const CustomerForm = ({
                                 <InputShell $hasError={!!errors.homeAddress?.country}>
                                     <BareInput
                                         id="homeAddress.country"
+                                        autoComplete="off"
                                         {...register('homeAddress.country')}
                                         placeholder={t.customers.form.homeAddress.countryPlaceholder}
                                     />
@@ -233,6 +233,7 @@ export const CustomerForm = ({
                                 <InputShell $hasError={!!errors.company?.name}>
                                     <BareInput
                                         id="company.name"
+                                        autoComplete="off"
                                         {...register('company.name')}
                                         placeholder={t.customers.form.company.namePlaceholder}
                                     />
@@ -249,6 +250,7 @@ export const CustomerForm = ({
                                 <InputShell $hasError={!!errors.company?.nip}>
                                     <BareInput
                                         id="company.nip"
+                                        autoComplete="off"
                                         {...register('company.nip')}
                                         placeholder={t.customers.form.company.nipPlaceholder}
                                     />
@@ -265,6 +267,7 @@ export const CustomerForm = ({
                                 <InputShell $hasError={!!errors.company?.regon}>
                                     <BareInput
                                         id="company.regon"
+                                        autoComplete="off"
                                         {...register('company.regon')}
                                         placeholder={t.customers.form.company.regonPlaceholder}
                                     />
@@ -281,6 +284,7 @@ export const CustomerForm = ({
                                 <InputShell $hasError={!!errors.company?.address?.street}>
                                     <BareInput
                                         id="company.address.street"
+                                        autoComplete="off"
                                         {...register('company.address.street')}
                                         placeholder={t.customers.form.company.streetPlaceholder}
                                     />
@@ -297,6 +301,7 @@ export const CustomerForm = ({
                                 <InputShell $hasError={!!errors.company?.address?.city}>
                                     <BareInput
                                         id="company.address.city"
+                                        autoComplete="off"
                                         {...register('company.address.city')}
                                         placeholder={t.customers.form.company.cityPlaceholder}
                                     />
@@ -313,6 +318,7 @@ export const CustomerForm = ({
                                 <InputShell $hasError={!!errors.company?.address?.postalCode}>
                                     <BareInput
                                         id="company.address.postalCode"
+                                        autoComplete="off"
                                         {...register('company.address.postalCode')}
                                         placeholder={t.customers.form.company.postalCodePlaceholder}
                                     />
@@ -329,6 +335,7 @@ export const CustomerForm = ({
                                 <InputShell $hasError={!!errors.company?.address?.country}>
                                     <BareInput
                                         id="company.address.country"
+                                        autoComplete="off"
                                         {...register('company.address.country')}
                                         placeholder={t.customers.form.company.countryPlaceholder}
                                     />
@@ -344,19 +351,13 @@ export const CustomerForm = ({
 
             {/* ── Notatki ──────────────────────────────────────────────────── */}
             <FormSection>
-                <SectionHeader
-                    icon={<FileText />}
-                    iconColor="#8b5cf6"
-                    title={t.customers.form.notes.title}
-                    subtitle="Dodatkowe uwagi i informacje"
-                />
-
                 <FormGrid>
                     <FormField $fullWidth>
                         <FieldLabel htmlFor="notes">{t.customers.form.notes.label}</FieldLabel>
                         <InputShellTextArea $hasError={!!errors.notes}>
                             <BareTextArea
                                 id="notes"
+                                autoComplete="off"
                                 {...register('notes')}
                                 placeholder={t.customers.form.notes.placeholder}
                             />
