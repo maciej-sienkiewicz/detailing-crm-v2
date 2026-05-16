@@ -20,6 +20,7 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
+import { FormAlertBanner } from '@/common/components/Form';
 
 import type { Customer } from '../types';
 
@@ -71,21 +72,14 @@ export const AddCustomerModal = ({
         onSuccess: handleSuccess,
     });
 
-    const handleSubmit = methods.handleSubmit(
-        (data) => {
-            console.log("Dane poprawne, wysyłam:", data);
-            const payload = mapFormDataToPayload({
-                ...data,
-                homeAddress: includeHomeAddress ? data.homeAddress : null,
-                company: includeCompany ? data.company : null,
-            });
-            createCustomer(payload);
-        },
-        (errors) => {
-            // Jeśli to się pojawi w konsoli, znaczy że formularz jest niepoprawny
-            console.error("Błędy walidacji:", errors);
-        }
-    );
+    const handleSubmit = methods.handleSubmit(data => {
+        const payload = mapFormDataToPayload({
+            ...data,
+            homeAddress: includeHomeAddress ? data.homeAddress : null,
+            company: includeCompany ? data.company : null,
+        });
+        createCustomer(payload);
+    });
 
     const handleClose = useCallback(() => {
         methods.reset();
@@ -107,17 +101,7 @@ export const AddCustomerModal = ({
 
             <ModalContent>
                 {error && (
-                    <div style={{
-                        padding: '12px 16px',
-                        background: '#fef2f2',
-                        border: '1px solid #fecaca',
-                        borderRadius: '10px',
-                        marginBottom: '24px',
-                        fontSize: '14px',
-                        color: '#b91c1c',
-                    }}>
-                        {t.customers.error.createFailed}
-                    </div>
+                    <FormAlertBanner>{t.customers.error.createFailed}</FormAlertBanner>
                 )}
 
                 <FormProvider {...methods}>

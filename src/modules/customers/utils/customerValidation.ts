@@ -55,7 +55,13 @@ export const createCustomerSchema = z.object({
     phone: z
         .string()
         .refine(
-            (val) => !val || val === '' || /^(\+48)?[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{3}$/.test(val),
+            (val) => {
+                if (!val || val === '') return true;
+                // PhoneInput outputs: "<code> <formatted>" e.g. "+48 123 456 789"
+                // Strip country code prefix and all whitespace/dashes, then check digit count
+                const digits = val.replace(/^[+\d]+\s/, '').replace(/[\s-]/g, '');
+                return digits.length >= 7 && digits.length <= 11 && /^\d+$/.test(digits);
+            },
             { message: t.customers.validation.phoneInvalid }
         )
         .optional()

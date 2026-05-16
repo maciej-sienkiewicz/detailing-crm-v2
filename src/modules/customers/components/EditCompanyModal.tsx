@@ -1,10 +1,8 @@
-// src/modules/customers/components/EditCompanyModal.tsx
-
 import { useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import styled from 'styled-components';
+import { Building2 } from 'lucide-react';
 import { useUpdateCompany } from '../hooks/useUpdateCompany';
 import { useDeleteCompany } from '../hooks/useDeleteCompany';
 import { validatePolishNip, validatePolishRegon } from '../utils/polishValidators';
@@ -21,75 +19,17 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
-
-const FormGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-
-    @media (min-width: ${props => props.theme.breakpoints.sm}) {
-        grid-template-columns: repeat(2, 1fr);
-    }
-`;
-
-const FormField = styled.div<{ $fullWidth?: boolean }>`
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-
-    ${props => props.$fullWidth && `
-        @media (min-width: ${props.theme.breakpoints.sm}) {
-            grid-column: span 2;
-        }
-    `}
-`;
-
-const Label = styled.label`
-    font-size: 13px;
-    font-weight: 600;
-    color: #374151;
-`;
-
-const InputWrapper = styled.div<{ $hasError?: boolean }>`
-    display: flex;
-    align-items: center;
-    background: white;
-    border: 1.5px solid ${props => props.$hasError ? '#ef4444' : '#e2e8f0'};
-    border-radius: 10px;
-    transition: all 0.2s ease;
-
-    &:focus-within {
-        border-color: ${props => props.$hasError ? '#ef4444' : 'var(--brand-primary)'};
-        box-shadow: 0 0 0 3px ${props => props.$hasError ? 'rgba(239, 68, 68, 0.1)' : 'rgba(14, 165, 233, 0.1)'};
-    }
-`;
-
-const Input = styled.input`
-    width: 100%;
-    padding: 12px 14px;
-    border: none;
-    border-radius: 10px;
-    font-size: 14px;
-    background: transparent;
-    color: #0f172a;
-
-    &:focus {
-        outline: none;
-    }
-
-    &::placeholder {
-        color: #94a3b8;
-    }
-`;
-
-const ErrorMessage = styled.span`
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    color: #ef4444;
-    font-weight: 500;
-`;
+import {
+    FormGrid,
+    FormField,
+    FieldLabel,
+    InputShell,
+    BareInput,
+    FormErrorMsg,
+    FormAlertBanner,
+    FormSection,
+    SectionHeader,
+} from '@/common/components/Form';
 
 const companySchema = z.object({
     name: z.string().min(2, t.customers.validation.companyNameMin),
@@ -167,18 +107,14 @@ export const EditCompanyModal = ({
         }
     }, [isOpen, company, methods]);
 
-    const { updateCompany, isUpdating } = useUpdateCompany({
+    const { updateCompany, isUpdating, error } = useUpdateCompany({
         customerId,
-        onSuccess: () => {
-            onClose();
-        },
+        onSuccess: () => { onClose(); },
     });
 
     const { deleteCompany, isDeleting } = useDeleteCompany({
         customerId,
-        onSuccess: () => {
-            onClose();
-        },
+        onSuccess: () => { onClose(); },
     });
 
     const handleSubmit = methods.handleSubmit(data => {
@@ -219,99 +155,132 @@ export const EditCompanyModal = ({
             </ModalHeader>
 
             <ModalContent>
+                {error && (
+                    <FormAlertBanner>
+                        Nie udało się zaktualizować danych firmy. Spróbuj ponownie.
+                    </FormAlertBanner>
+                )}
+
                 <FormProvider {...methods}>
                     <form id="edit-company-form" onSubmit={handleSubmit}>
-                        <FormGrid>
-                            <FormField $fullWidth>
-                                <Label>{t.customers.form.company.name}</Label>
-                                <InputWrapper $hasError={!!methods.formState.errors.name}>
-                                    <Input
-                                        {...methods.register('name')}
-                                        placeholder={t.customers.form.company.namePlaceholder}
-                                    />
-                                </InputWrapper>
-                                {methods.formState.errors.name && (
-                                    <ErrorMessage>
-                                        {methods.formState.errors.name.message}
-                                    </ErrorMessage>
-                                )}
-                            </FormField>
+                        <FormSection>
+                            <SectionHeader
+                                icon={<Building2 />}
+                                iconColor="#f59e0b"
+                                title={t.customers.form.company.title}
+                                subtitle="Dane rejestrowe firmy"
+                            />
 
-                            <FormField>
-                                <Label>{t.customers.form.company.nip}</Label>
-                                <InputWrapper $hasError={!!methods.formState.errors.nip}>
-                                    <Input
-                                        {...methods.register('nip')}
-                                        placeholder={t.customers.form.company.nipPlaceholder}
-                                    />
-                                </InputWrapper>
-                                {methods.formState.errors.nip && (
-                                    <ErrorMessage>
-                                        {methods.formState.errors.nip.message}
-                                    </ErrorMessage>
-                                )}
-                            </FormField>
+                            <FormGrid>
+                                <FormField $fullWidth>
+                                    <FieldLabel htmlFor="company-name">
+                                        {t.customers.form.company.name}
+                                    </FieldLabel>
+                                    <InputShell $hasError={!!methods.formState.errors.name}>
+                                        <BareInput
+                                            id="company-name"
+                                            {...methods.register('name')}
+                                            placeholder={t.customers.form.company.namePlaceholder}
+                                        />
+                                    </InputShell>
+                                    {methods.formState.errors.name && (
+                                        <FormErrorMsg>
+                                            {methods.formState.errors.name.message}
+                                        </FormErrorMsg>
+                                    )}
+                                </FormField>
 
-                            <FormField>
-                                <Label>{t.customers.form.company.regon}</Label>
-                                <InputWrapper $hasError={!!methods.formState.errors.regon}>
-                                    <Input
-                                        {...methods.register('regon')}
-                                        placeholder={t.customers.form.company.regonPlaceholder}
-                                    />
-                                </InputWrapper>
-                                {methods.formState.errors.regon && (
-                                    <ErrorMessage>
-                                        {methods.formState.errors.regon.message}
-                                    </ErrorMessage>
-                                )}
-                            </FormField>
+                                <FormField>
+                                    <FieldLabel htmlFor="company-nip">
+                                        {t.customers.form.company.nip}
+                                    </FieldLabel>
+                                    <InputShell $hasError={!!methods.formState.errors.nip}>
+                                        <BareInput
+                                            id="company-nip"
+                                            {...methods.register('nip')}
+                                            placeholder={t.customers.form.company.nipPlaceholder}
+                                        />
+                                    </InputShell>
+                                    {methods.formState.errors.nip && (
+                                        <FormErrorMsg>
+                                            {methods.formState.errors.nip.message}
+                                        </FormErrorMsg>
+                                    )}
+                                </FormField>
 
-                            <FormField $fullWidth>
-                                <Label>{t.customers.form.company.street}</Label>
-                                <InputWrapper $hasError={!!methods.formState.errors.street}>
-                                    <Input
-                                        {...methods.register('street')}
-                                        placeholder={t.customers.form.company.streetPlaceholder}
-                                    />
-                                </InputWrapper>
-                                {methods.formState.errors.street && (
-                                    <ErrorMessage>
-                                        {methods.formState.errors.street.message}
-                                    </ErrorMessage>
-                                )}
-                            </FormField>
+                                <FormField>
+                                    <FieldLabel htmlFor="company-regon">
+                                        {t.customers.form.company.regon}
+                                    </FieldLabel>
+                                    <InputShell $hasError={!!methods.formState.errors.regon}>
+                                        <BareInput
+                                            id="company-regon"
+                                            {...methods.register('regon')}
+                                            placeholder={t.customers.form.company.regonPlaceholder}
+                                        />
+                                    </InputShell>
+                                    {methods.formState.errors.regon && (
+                                        <FormErrorMsg>
+                                            {methods.formState.errors.regon.message}
+                                        </FormErrorMsg>
+                                    )}
+                                </FormField>
 
-                            <FormField>
-                                <Label>{t.customers.form.company.city}</Label>
-                                <InputWrapper $hasError={!!methods.formState.errors.city}>
-                                    <Input
-                                        {...methods.register('city')}
-                                        placeholder={t.customers.form.company.cityPlaceholder}
-                                    />
-                                </InputWrapper>
-                                {methods.formState.errors.city && (
-                                    <ErrorMessage>
-                                        {methods.formState.errors.city.message}
-                                    </ErrorMessage>
-                                )}
-                            </FormField>
+                                <FormField $fullWidth>
+                                    <FieldLabel htmlFor="company-street">
+                                        {t.customers.form.company.street}
+                                    </FieldLabel>
+                                    <InputShell $hasError={!!methods.formState.errors.street}>
+                                        <BareInput
+                                            id="company-street"
+                                            {...methods.register('street')}
+                                            placeholder={t.customers.form.company.streetPlaceholder}
+                                        />
+                                    </InputShell>
+                                    {methods.formState.errors.street && (
+                                        <FormErrorMsg>
+                                            {methods.formState.errors.street.message}
+                                        </FormErrorMsg>
+                                    )}
+                                </FormField>
 
-                            <FormField>
-                                <Label>{t.customers.form.company.postalCode}</Label>
-                                <InputWrapper $hasError={!!methods.formState.errors.postalCode}>
-                                    <Input
-                                        {...methods.register('postalCode')}
-                                        placeholder={t.customers.form.company.postalCodePlaceholder}
-                                    />
-                                </InputWrapper>
-                                {methods.formState.errors.postalCode && (
-                                    <ErrorMessage>
-                                        {methods.formState.errors.postalCode.message}
-                                    </ErrorMessage>
-                                )}
-                            </FormField>
-                        </FormGrid>
+                                <FormField>
+                                    <FieldLabel htmlFor="company-city">
+                                        {t.customers.form.company.city}
+                                    </FieldLabel>
+                                    <InputShell $hasError={!!methods.formState.errors.city}>
+                                        <BareInput
+                                            id="company-city"
+                                            {...methods.register('city')}
+                                            placeholder={t.customers.form.company.cityPlaceholder}
+                                        />
+                                    </InputShell>
+                                    {methods.formState.errors.city && (
+                                        <FormErrorMsg>
+                                            {methods.formState.errors.city.message}
+                                        </FormErrorMsg>
+                                    )}
+                                </FormField>
+
+                                <FormField>
+                                    <FieldLabel htmlFor="company-postalCode">
+                                        {t.customers.form.company.postalCode}
+                                    </FieldLabel>
+                                    <InputShell $hasError={!!methods.formState.errors.postalCode}>
+                                        <BareInput
+                                            id="company-postalCode"
+                                            {...methods.register('postalCode')}
+                                            placeholder={t.customers.form.company.postalCodePlaceholder}
+                                        />
+                                    </InputShell>
+                                    {methods.formState.errors.postalCode && (
+                                        <FormErrorMsg>
+                                            {methods.formState.errors.postalCode.message}
+                                        </FormErrorMsg>
+                                    )}
+                                </FormField>
+                            </FormGrid>
+                        </FormSection>
                     </form>
                 </FormProvider>
             </ModalContent>

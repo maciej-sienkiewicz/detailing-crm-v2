@@ -1,9 +1,7 @@
-// src/modules/customers/components/EditCustomerModal.tsx
-
-import { useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import styled from 'styled-components';
+import { User, Home } from 'lucide-react';
 import { useUpdateCustomer } from '../hooks/useUpdateCustomer';
 import { createCustomerSchema, type CreateCustomerFormData } from '../utils/customerValidation';
 import { t } from '@/common/i18n';
@@ -20,75 +18,25 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
-
-const FormGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-
-    @media (min-width: ${props => props.theme.breakpoints.sm}) {
-        grid-template-columns: repeat(2, 1fr);
-    }
-`;
-
-const FormField = styled.div<{ $fullWidth?: boolean }>`
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-
-    ${props => props.$fullWidth && `
-        @media (min-width: ${props.theme.breakpoints.sm}) {
-            grid-column: span 2;
-        }
-    `}
-`;
-
-const Label = styled.label`
-    font-size: 13px;
-    font-weight: 600;
-    color: #374151;
-`;
-
-const InputWrapper = styled.div<{ $hasError?: boolean }>`
-    display: flex;
-    align-items: center;
-    background: white;
-    border: 1.5px solid ${props => props.$hasError ? '#ef4444' : '#e2e8f0'};
-    border-radius: 10px;
-    transition: all 0.2s ease;
-
-    &:focus-within {
-        border-color: ${props => props.$hasError ? '#ef4444' : 'var(--brand-primary)'};
-        box-shadow: 0 0 0 3px ${props => props.$hasError ? 'rgba(239, 68, 68, 0.1)' : 'rgba(14, 165, 233, 0.1)'};
-    }
-`;
-
-const Input = styled.input`
-    width: 100%;
-    padding: 12px 14px;
-    border: none;
-    border-radius: 10px;
-    font-size: 14px;
-    background: transparent;
-    color: #0f172a;
-
-    &:focus {
-        outline: none;
-    }
-
-    &::placeholder {
-        color: #94a3b8;
-    }
-`;
-
-const ErrorMessage = styled.span`
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    color: #ef4444;
-    font-weight: 500;
-`;
+import {
+    FormGrid,
+    FormField,
+    FieldLabel,
+    InputShell,
+    BareInput,
+    FormErrorMsg,
+    FormAlertBanner,
+    FormSection,
+    SectionHeader,
+    ToggleCard,
+    ToggleSwitch,
+    ToggleContent,
+    ToggleTitle,
+    ToggleDescription,
+    HiddenCheckbox,
+    ExpandableSection,
+    ExpandableContent,
+} from '@/common/components/Form';
 
 interface EditCustomerModalProps {
     isOpen: boolean;
@@ -97,32 +45,45 @@ interface EditCustomerModalProps {
 }
 
 export const EditCustomerModal = ({ isOpen, onClose, customer }: EditCustomerModalProps) => {
+    const [includeHomeAddress, setIncludeHomeAddress] = useState(!!customer.homeAddress);
+
     const methods = useForm<CreateCustomerFormData>({
-        resolver: zodResolver(createCustomerSchema),
+        resolver: (values, context, options) => {
+            const dataToValidate = {
+                ...values,
+                homeAddress: includeHomeAddress ? values.homeAddress : null,
+                company: null,
+            };
+            return zodResolver(createCustomerSchema)(dataToValidate, context, options);
+        },
         defaultValues: {
-            firstName: customer.firstName,
-            lastName: customer.lastName,
-            email: customer.contact.email,
-            phone: customer.contact.phone,
-            homeAddress: customer.homeAddress,
+            firstName: customer.firstName ?? '',
+            lastName: customer.lastName ?? '',
+            email: customer.contact.email ?? '',
+            phone: customer.contact.phone ?? '',
+            homeAddress: customer.homeAddress ?? null,
             company: null,
+            notes: '',
         },
     });
 
     useEffect(() => {
         if (isOpen && customer) {
+            const hasAddress = !!customer.homeAddress;
+            setIncludeHomeAddress(hasAddress);
             methods.reset({
-                firstName: customer.firstName,
-                lastName: customer.lastName,
-                email: customer.contact.email,
-                phone: customer.contact.phone,
-                homeAddress: customer.homeAddress,
+                firstName: customer.firstName ?? '',
+                lastName: customer.lastName ?? '',
+                email: customer.contact.email ?? '',
+                phone: customer.contact.phone ?? '',
+                homeAddress: customer.homeAddress ?? null,
                 company: null,
+                notes: '',
             });
         }
     }, [isOpen, customer, methods]);
 
-    const { updateCustomer, isUpdating } = useUpdateCustomer({
+    const { updateCustomer, isUpdating, error, reset: resetMutation } = useUpdateCustomer({
         customerId: customer.id,
         onSuccess: () => {
             onClose();
@@ -131,124 +92,235 @@ export const EditCustomerModal = ({ isOpen, onClose, customer }: EditCustomerMod
 
     const handleSubmit = methods.handleSubmit(data => {
         updateCustomer({
-            firstName: data.firstName,
-            lastName: data.lastName,
+            firstName: data.firstName ?? null,
+            lastName: data.lastName ?? null,
             contact: {
-                email: data.email,
-                phone: data.phone,
+                email: data.email ?? null,
+                phone: data.phone ?? null,
             },
-            homeAddress: data.homeAddress,
+            homeAddress: includeHomeAddress ? (data.homeAddress ?? null) : null,
         });
     });
 
+    const handleClose = useCallback(() => {
+        methods.reset();
+        resetMutation();
+        onClose();
+    }, [methods, onClose, resetMutation]);
+
     return (
-        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="640px">
+        <ModalShell isOpen={isOpen} onClose={handleClose} maxWidth="640px">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Edytuj dane klienta</ModalTitle>
                     <ModalSubtitle>Zaktualizuj dane osobowe i kontaktowe</ModalSubtitle>
                 </ModalTitleGroup>
-                <CloseBtn onClick={onClose} />
+                <CloseBtn onClick={handleClose} />
             </ModalHeader>
 
             <ModalContent>
+                {error && (
+                    <FormAlertBanner>
+                        Nie udało się zaktualizować danych klienta. Spróbuj ponownie.
+                    </FormAlertBanner>
+                )}
+
                 <FormProvider {...methods}>
                     <form id="edit-customer-form" onSubmit={handleSubmit}>
-                        <FormGrid>
-                            <FormField>
-                                <Label>{t.customers.form.firstName}</Label>
-                                <InputWrapper $hasError={!!methods.formState.errors.firstName}>
-                                    <Input
-                                        {...methods.register('firstName')}
-                                        placeholder={t.customers.form.firstNamePlaceholder}
-                                    />
-                                </InputWrapper>
-                                {methods.formState.errors.firstName && (
-                                    <ErrorMessage>
-                                        {methods.formState.errors.firstName.message}
-                                    </ErrorMessage>
-                                )}
-                            </FormField>
+                        {/* ── Dane osobowe ──────────────────────────────────── */}
+                        <FormSection>
+                            <SectionHeader
+                                icon={<User />}
+                                iconColor="#6366f1"
+                                title={t.customers.form.personalInfo}
+                                subtitle="Podstawowe dane kontaktowe klienta"
+                            />
 
-                            <FormField>
-                                <Label>{t.customers.form.lastName}</Label>
-                                <InputWrapper $hasError={!!methods.formState.errors.lastName}>
-                                    <Input
-                                        {...methods.register('lastName')}
-                                        placeholder={t.customers.form.lastNamePlaceholder}
-                                    />
-                                </InputWrapper>
-                                {methods.formState.errors.lastName && (
-                                    <ErrorMessage>
-                                        {methods.formState.errors.lastName.message}
-                                    </ErrorMessage>
-                                )}
-                            </FormField>
+                            <FormGrid>
+                                <FormField>
+                                    <FieldLabel htmlFor="edit-firstName">
+                                        {t.customers.form.firstName}
+                                    </FieldLabel>
+                                    <InputShell $hasError={!!methods.formState.errors.firstName}>
+                                        <BareInput
+                                            id="edit-firstName"
+                                            {...methods.register('firstName')}
+                                            placeholder={t.customers.form.firstNamePlaceholder}
+                                        />
+                                    </InputShell>
+                                    {methods.formState.errors.firstName && (
+                                        <FormErrorMsg>
+                                            {methods.formState.errors.firstName.message}
+                                        </FormErrorMsg>
+                                    )}
+                                </FormField>
 
-                            <FormField>
-                                <Label>{t.customers.form.email}</Label>
-                                <InputWrapper $hasError={!!methods.formState.errors.email}>
-                                    <Input
-                                        {...methods.register('email')}
-                                        type="email"
-                                        placeholder={t.customers.form.emailPlaceholder}
-                                    />
-                                </InputWrapper>
-                                {methods.formState.errors.email && (
-                                    <ErrorMessage>
-                                        {methods.formState.errors.email.message}
-                                    </ErrorMessage>
-                                )}
-                            </FormField>
+                                <FormField>
+                                    <FieldLabel htmlFor="edit-lastName">
+                                        {t.customers.form.lastName}
+                                    </FieldLabel>
+                                    <InputShell $hasError={!!methods.formState.errors.lastName}>
+                                        <BareInput
+                                            id="edit-lastName"
+                                            {...methods.register('lastName')}
+                                            placeholder={t.customers.form.lastNamePlaceholder}
+                                        />
+                                    </InputShell>
+                                    {methods.formState.errors.lastName && (
+                                        <FormErrorMsg>
+                                            {methods.formState.errors.lastName.message}
+                                        </FormErrorMsg>
+                                    )}
+                                </FormField>
 
-                            <FormField>
-                                <Label>{t.customers.form.phone}</Label>
-                                <PhoneInputField
-                                    name="phone"
-                                    placeholder={t.customers.form.phonePlaceholder}
+                                <FormField>
+                                    <FieldLabel htmlFor="edit-email">
+                                        {t.customers.form.email}
+                                    </FieldLabel>
+                                    <InputShell $hasError={!!methods.formState.errors.email}>
+                                        <BareInput
+                                            id="edit-email"
+                                            type="email"
+                                            {...methods.register('email')}
+                                            placeholder={t.customers.form.emailPlaceholder}
+                                        />
+                                    </InputShell>
+                                    {methods.formState.errors.email && (
+                                        <FormErrorMsg>
+                                            {methods.formState.errors.email.message}
+                                        </FormErrorMsg>
+                                    )}
+                                </FormField>
+
+                                <FormField>
+                                    <FieldLabel htmlFor="edit-phone">
+                                        {t.customers.form.phone}
+                                    </FieldLabel>
+                                    <PhoneInputField
+                                        name="phone"
+                                        id="edit-phone"
+                                        placeholder={t.customers.form.phonePlaceholder}
+                                    />
+                                </FormField>
+                            </FormGrid>
+                        </FormSection>
+
+                        {/* ── Adres zamieszkania (opcjonalny) ───────────────── */}
+                        <FormSection>
+                            <ToggleCard $isActive={includeHomeAddress}>
+                                <HiddenCheckbox
+                                    type="checkbox"
+                                    checked={includeHomeAddress}
+                                    onChange={e => setIncludeHomeAddress(e.target.checked)}
                                 />
-                            </FormField>
+                                <ToggleSwitch $isActive={includeHomeAddress} />
+                                <ToggleContent>
+                                    <ToggleTitle>{t.customers.form.includeHomeAddress}</ToggleTitle>
+                                    <ToggleDescription>
+                                        Adres zamieszkania do korespondencji
+                                    </ToggleDescription>
+                                </ToggleContent>
+                            </ToggleCard>
 
-                            {customer.homeAddress && (
-                                <>
-                                    <FormField $fullWidth>
-                                        <Label>{t.customers.form.homeAddress.street}</Label>
-                                        <InputWrapper $hasError={!!methods.formState.errors.homeAddress?.street}>
-                                            <Input
-                                                {...methods.register('homeAddress.street')}
-                                                placeholder={t.customers.form.homeAddress.streetPlaceholder}
-                                            />
-                                        </InputWrapper>
-                                    </FormField>
+                            <ExpandableSection $isExpanded={includeHomeAddress}>
+                                <ExpandableContent>
+                                    <SectionHeader
+                                        icon={<Home />}
+                                        iconColor="#10b981"
+                                        title={t.customers.form.homeAddress.title}
+                                        subtitle="Dane adresowe klienta"
+                                    />
 
-                                    <FormField>
-                                        <Label>{t.customers.form.homeAddress.city}</Label>
-                                        <InputWrapper $hasError={!!methods.formState.errors.homeAddress?.city}>
-                                            <Input
-                                                {...methods.register('homeAddress.city')}
-                                                placeholder={t.customers.form.homeAddress.cityPlaceholder}
-                                            />
-                                        </InputWrapper>
-                                    </FormField>
+                                    <FormGrid>
+                                        <FormField $fullWidth>
+                                            <FieldLabel htmlFor="edit-homeAddress.street">
+                                                {t.customers.form.homeAddress.street}
+                                            </FieldLabel>
+                                            <InputShell
+                                                $hasError={!!methods.formState.errors.homeAddress?.street}
+                                            >
+                                                <BareInput
+                                                    id="edit-homeAddress.street"
+                                                    {...methods.register('homeAddress.street')}
+                                                    placeholder={t.customers.form.homeAddress.streetPlaceholder}
+                                                />
+                                            </InputShell>
+                                            {methods.formState.errors.homeAddress?.street && (
+                                                <FormErrorMsg>
+                                                    {methods.formState.errors.homeAddress.street.message}
+                                                </FormErrorMsg>
+                                            )}
+                                        </FormField>
 
-                                    <FormField>
-                                        <Label>{t.customers.form.homeAddress.postalCode}</Label>
-                                        <InputWrapper $hasError={!!methods.formState.errors.homeAddress?.postalCode}>
-                                            <Input
-                                                {...methods.register('homeAddress.postalCode')}
-                                                placeholder={t.customers.form.homeAddress.postalCodePlaceholder}
-                                            />
-                                        </InputWrapper>
-                                    </FormField>
-                                </>
-                            )}
-                        </FormGrid>
+                                        <FormField>
+                                            <FieldLabel htmlFor="edit-homeAddress.city">
+                                                {t.customers.form.homeAddress.city}
+                                            </FieldLabel>
+                                            <InputShell
+                                                $hasError={!!methods.formState.errors.homeAddress?.city}
+                                            >
+                                                <BareInput
+                                                    id="edit-homeAddress.city"
+                                                    {...methods.register('homeAddress.city')}
+                                                    placeholder={t.customers.form.homeAddress.cityPlaceholder}
+                                                />
+                                            </InputShell>
+                                            {methods.formState.errors.homeAddress?.city && (
+                                                <FormErrorMsg>
+                                                    {methods.formState.errors.homeAddress.city.message}
+                                                </FormErrorMsg>
+                                            )}
+                                        </FormField>
+
+                                        <FormField>
+                                            <FieldLabel htmlFor="edit-homeAddress.postalCode">
+                                                {t.customers.form.homeAddress.postalCode}
+                                            </FieldLabel>
+                                            <InputShell
+                                                $hasError={!!methods.formState.errors.homeAddress?.postalCode}
+                                            >
+                                                <BareInput
+                                                    id="edit-homeAddress.postalCode"
+                                                    {...methods.register('homeAddress.postalCode')}
+                                                    placeholder={t.customers.form.homeAddress.postalCodePlaceholder}
+                                                />
+                                            </InputShell>
+                                            {methods.formState.errors.homeAddress?.postalCode && (
+                                                <FormErrorMsg>
+                                                    {methods.formState.errors.homeAddress.postalCode.message}
+                                                </FormErrorMsg>
+                                            )}
+                                        </FormField>
+
+                                        <FormField>
+                                            <FieldLabel htmlFor="edit-homeAddress.country">
+                                                {t.customers.form.homeAddress.country}
+                                            </FieldLabel>
+                                            <InputShell
+                                                $hasError={!!methods.formState.errors.homeAddress?.country}
+                                            >
+                                                <BareInput
+                                                    id="edit-homeAddress.country"
+                                                    {...methods.register('homeAddress.country')}
+                                                    placeholder={t.customers.form.homeAddress.countryPlaceholder}
+                                                />
+                                            </InputShell>
+                                            {methods.formState.errors.homeAddress?.country && (
+                                                <FormErrorMsg>
+                                                    {methods.formState.errors.homeAddress.country.message}
+                                                </FormErrorMsg>
+                                            )}
+                                        </FormField>
+                                    </FormGrid>
+                                </ExpandableContent>
+                            </ExpandableSection>
+                        </FormSection>
                     </form>
                 </FormProvider>
             </ModalContent>
 
             <ModalFooter>
-                <SharedButton $variant="secondary" type="button" onClick={onClose}>
+                <SharedButton $variant="secondary" type="button" onClick={handleClose}>
                     {t.common.cancel}
                 </SharedButton>
                 <SharedButton
