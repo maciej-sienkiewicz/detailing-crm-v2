@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { SharedButton } from '@/common/styles';
 import type { CampaignFilters, ServiceFilter, AudienceCustomer } from '../types';
 import { CampaignFiltersPanel } from './CampaignFiltersPanel';
 import { AudiencePreview } from './AudiencePreview';
@@ -19,7 +20,7 @@ const drawerIn = keyframes`
   to   { transform: translateX(0);    opacity: 1; }
 `;
 
-// ─── Modal layout ─────────────────────────────────────────────────────────────
+// ─── Drawer layout ────────────────────────────────────────────────────────────
 
 const Overlay = styled.div`
   position: fixed;
@@ -66,7 +67,7 @@ const HeaderSubtitle = styled.p`
   color: ${st.textMuted};
 `;
 
-const CloseBtn = styled.button`
+const CloseIconBtn = styled.button`
   margin-left: auto;
   width: 34px;
   height: 34px;
@@ -76,7 +77,6 @@ const CloseBtn = styled.button`
   background: transparent;
   border: 1px solid ${st.border};
   border-radius: ${st.radiusSm};
-  font-size: 15px;
   color: ${st.textSecondary};
   cursor: pointer;
   transition: all ${st.transition};
@@ -133,8 +133,7 @@ const StepNumber = styled.div<{ $active: boolean; $done: boolean }>`
   justify-content: center;
   font-size: ${st.fontXs};
   font-weight: 700;
-  background: ${(p) =>
-    p.$done ? st.accentGreen : p.$active ? st.accentBlue : st.bgCardAlt};
+  background: ${(p) => p.$done ? st.accentGreen : p.$active ? st.accentBlue : st.bgCardAlt};
   color: ${(p) => (p.$done || p.$active ? '#fff' : st.textMuted)};
   transition: all ${st.transition};
   flex-shrink: 0;
@@ -169,50 +168,6 @@ const DrawerFooter = styled.div`
   gap: 12px;
 `;
 
-const BackBtn = styled.button`
-  padding: 9px 20px;
-  font-size: ${st.fontSm};
-  font-weight: 600;
-  background: transparent;
-  color: ${st.textSecondary};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radiusFull};
-  cursor: pointer;
-  transition: all ${st.transition};
-
-  &:hover {
-    background: ${st.bg};
-    color: ${st.text};
-    border-color: ${st.borderHover};
-  }
-`;
-
-const NextBtn = styled.button`
-  padding: 9px 24px;
-  font-size: ${st.fontSm};
-  font-weight: 700;
-  background: ${st.accentBlue};
-  color: #fff;
-  border: none;
-  border-radius: ${st.radiusFull};
-  cursor: pointer;
-  box-shadow: ${st.shadowXs};
-  transition: all ${st.transition};
-
-  &:hover:not(:disabled) {
-    background: #2563EB;
-    box-shadow: ${st.shadowSm};
-    transform: translateY(-1px);
-  }
-  &:active { transform: translateY(0); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-`;
-
-const SubmitBtn = styled(NextBtn)`
-  background: ${st.accentGreen};
-  &:hover:not(:disabled) { background: #059669; }
-`;
-
 // ─── Step 3 specific ─────────────────────────────────────────────────────────
 
 const FormGroup = styled.div`
@@ -221,7 +176,7 @@ const FormGroup = styled.div`
   gap: 6px;
 `;
 
-const Label = styled.label`
+const FieldLabel = styled.label`
   font-size: ${st.fontXs};
   font-weight: 700;
   color: ${st.textSecondary};
@@ -229,7 +184,7 @@ const Label = styled.label`
   letter-spacing: 0.5px;
 `;
 
-const Input = styled.input`
+const InputField = styled.input`
   padding: 10px 14px;
   font-size: ${st.fontSm};
   border: 1px solid ${st.border};
@@ -245,7 +200,7 @@ const Input = styled.input`
   }
 `;
 
-const Textarea = styled.textarea`
+const TextareaField = styled.textarea`
   padding: 10px 14px;
   font-size: ${st.fontSm};
   border: 1px solid ${st.border};
@@ -301,10 +256,7 @@ const VarChip = styled.button`
   font-family: monospace;
   transition: all ${st.transition};
 
-  &:hover {
-    background: ${st.accentBlueDim};
-    border-color: ${st.accentBlue}44;
-  }
+  &:hover { background: ${st.accentBlueDim}; border-color: ${st.accentBlue}44; }
 `;
 
 const AudienceSummaryCard = styled.div`
@@ -370,7 +322,6 @@ export const CreateCampaignModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { preview } = usePreviewAudience();
   const createMutation = useCreateCampaign();
 
-  // Reset on open
   useEffect(() => {
     if (isOpen) {
       setStep(1);
@@ -382,7 +333,6 @@ export const CreateCampaignModal: React.FC<Props> = ({ isOpen, onClose }) => {
     }
   }, [isOpen]);
 
-  // Load audience when moving to step 2
   const loadAudience = useCallback(async () => {
     setAudienceLoading(true);
     try {
@@ -414,9 +364,7 @@ export const CreateCampaignModal: React.FC<Props> = ({ isOpen, onClose }) => {
     onClose();
   };
 
-  const insertVar = (v: string) => {
-    setMessage((prev) => prev + v);
-  };
+  const insertVar = (v: string) => setMessage((prev) => prev + v);
 
   const effectiveCount = audienceCustomers.length - excludedIds.filter((id) =>
     audienceCustomers.some((c) => c.id === id)
@@ -436,9 +384,15 @@ export const CreateCampaignModal: React.FC<Props> = ({ isOpen, onClose }) => {
         <DrawerHeader>
           <div>
             <HeaderTitle>Nowa kampania SMS</HeaderTitle>
-            <HeaderSubtitle>Krok {step} z 3 — {['Filtry odbiorców', 'Podgląd odbiorców', 'Treść i wysyłka'][step - 1]}</HeaderSubtitle>
+            <HeaderSubtitle>
+              Krok {step} z 3 — {['Filtry odbiorców', 'Podgląd odbiorców', 'Treść i wysyłka'][step - 1]}
+            </HeaderSubtitle>
           </div>
-          <CloseBtn onClick={onClose} title="Zamknij">✕</CloseBtn>
+          <CloseIconBtn onClick={onClose} title="Zamknij">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </CloseIconBtn>
         </DrawerHeader>
 
         {/* Stepper */}
@@ -455,7 +409,11 @@ export const CreateCampaignModal: React.FC<Props> = ({ isOpen, onClose }) => {
               onClick={() => step > n && setStep(n)}
             >
               <StepNumber $active={step === n} $done={step > n}>
-                {step > n ? '✓' : n}
+                {step > n ? (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                ) : n}
               </StepNumber>
               <StepLabel $active={step === n}>{label}</StepLabel>
             </StepItem>
@@ -484,7 +442,6 @@ export const CreateCampaignModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
           {step === 3 && (
             <>
-              {/* Audience summary */}
               <AudienceSummaryCard>
                 <AudienceNumber>{effectiveCount}</AudienceNumber>
                 <div>
@@ -497,10 +454,9 @@ export const CreateCampaignModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 </div>
               </AudienceSummaryCard>
 
-              {/* Campaign name */}
               <FormGroup>
-                <Label>Nazwa kampanii</Label>
-                <Input
+                <FieldLabel>Nazwa kampanii</FieldLabel>
+                <InputField
                   type="text"
                   placeholder="np. Właściciele BMW – oferta PPF marzec 2026"
                   value={campaignName}
@@ -509,20 +465,17 @@ export const CreateCampaignModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 />
               </FormGroup>
 
-              {/* Message */}
               <FormGroup>
-                <Label>Treść wiadomości SMS</Label>
+                <FieldLabel>Treść wiadomości SMS</FieldLabel>
                 <HintBox>
                   Możesz użyć zmiennych dynamicznych — zostaną one zastąpione danymi klienta przy wysyłce.
                 </HintBox>
                 <VariableChips>
                   {TEMPLATE_VARS.map((v) => (
-                    <VarChip key={v} onClick={() => insertVar(v)} type="button">
-                      {v}
-                    </VarChip>
+                    <VarChip key={v} onClick={() => insertVar(v)} type="button">{v}</VarChip>
                   ))}
                 </VariableChips>
-                <Textarea
+                <TextareaField
                   placeholder="Treść SMS…"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
@@ -542,23 +495,27 @@ export const CreateCampaignModal: React.FC<Props> = ({ isOpen, onClose }) => {
         <DrawerFooter>
           <div>
             {step > 1 && (
-              <BackBtn onClick={() => setStep((s) => s - 1)}>← Wstecz</BackBtn>
+              <SharedButton $variant="secondary" $size="sm" onClick={() => setStep((s) => s - 1)}>
+                Wstecz
+              </SharedButton>
             )}
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <BackBtn onClick={onClose}>Anuluj</BackBtn>
+            <SharedButton $variant="secondary" $size="sm" onClick={onClose}>Anuluj</SharedButton>
             {step < 3 && (
-              <NextBtn onClick={() => (step === 1 ? goToStep2() : setStep(3))}>
-                Dalej →
-              </NextBtn>
+              <SharedButton $variant="primary" $size="sm" onClick={() => (step === 1 ? goToStep2() : setStep(3))}>
+                Dalej
+              </SharedButton>
             )}
             {step === 3 && (
-              <SubmitBtn
+              <SharedButton
+                $variant="primary"
+                $size="sm"
                 onClick={handleSubmit}
                 disabled={!canSubmit || createMutation.isPending}
               >
-                {createMutation.isPending ? 'Zapisywanie…' : '✓ Zapisz kampanię'}
-              </SubmitBtn>
+                {createMutation.isPending ? 'Zapisywanie…' : 'Zapisz kampanię'}
+              </SharedButton>
             )}
           </div>
         </DrawerFooter>

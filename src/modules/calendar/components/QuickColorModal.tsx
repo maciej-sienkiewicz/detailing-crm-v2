@@ -2,58 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-
-const Overlay = styled.div<{ $isOpen: boolean }>`
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    background-color: ${props => props.$isOpen ? 'rgba(15, 23, 42, 0.45)' : 'rgba(15, 23, 42, 0)'};
-    backdrop-filter: ${props => props.$isOpen ? 'blur(4px)' : 'none'};
-    opacity: ${props => props.$isOpen ? 1 : 0};
-    pointer-events: ${props => props.$isOpen ? 'auto' : 'none'};
-    transition: all 0.25s ease;
-`;
-
-const ModalContainer = styled.div<{ $isOpen: boolean }>`
-    background: ${props => props.theme.colors.surface};
-    border-radius: ${props => props.theme.radii.xl};
-    box-shadow:
-        0 0 0 1px rgba(0,0,0,0.06),
-        0 8px 16px -4px rgba(0,0,0,0.08),
-        0 24px 48px -12px rgba(0,0,0,0.14);
-    width: 90%;
-    max-width: 480px;
-    max-height: 90vh;
-    overflow: hidden;
-    transform: ${props => props.$isOpen ? 'scale(1) translateY(0)' : 'scale(0.97) translateY(4px)'};
-    opacity: ${props => props.$isOpen ? 1 : 0};
-    transition: all 0.25s cubic-bezier(0.32, 0.72, 0, 1);
-    display: flex;
-    flex-direction: column;
-`;
-
-const Header = styled.div`
-    padding: 20px 24px 16px;
-    border-bottom: 1px solid ${props => props.theme.colors.border};
-`;
-
-const Title = styled.h2`
-    font-size: 18px;
-    font-weight: 700;
-    color: ${props => props.theme.colors.text};
-    letter-spacing: -0.3px;
-    margin: 0;
-`;
-
-const Content = styled.div`
-    padding: 16px 24px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-`;
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalContent,
+    ModalFooter,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 
 const FieldGroup = styled.div`
     display: flex;
@@ -125,53 +82,6 @@ const ColorHexInput = styled(Input)`
 const ErrorMessage = styled.div`
     color: ${props => props.theme.colors.error};
     font-size: ${props => props.theme.fontSizes.sm};
-`;
-
-const Footer = styled.div`
-    padding: 14px 24px;
-    border-top: 1px solid ${props => props.theme.colors.border};
-    background: ${props => props.theme.colors.surface};
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-`;
-
-const Button = styled.button<{ $variant?: 'primary' | 'secondary' }>`
-    padding: 8px 20px;
-    border-radius: ${props => props.theme.radii.full};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
-    border: none;
-    white-space: nowrap;
-
-    ${props => props.$variant === 'primary' ? `
-        color: white;
-        background-color: var(--button-bg, ${props.theme.colors.primary});
-        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.28);
-
-        &:hover:not(:disabled) {
-            background-color: #0284c7;
-            box-shadow: 0 6px 16px rgba(14, 165, 233, 0.36);
-            transform: translateY(-1px);
-        }
-
-        &:active { transform: translateY(0); }
-
-        &:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-    ` : `
-        color: ${props.theme.colors.textSecondary};
-        background: transparent;
-
-        &:hover:not(:disabled) {
-            color: ${props.theme.colors.text};
-            background-color: ${props.theme.colors.surfaceAlt};
-        }
-    `}
 `;
 
 const PresetColors = styled.div`
@@ -264,73 +174,71 @@ export const QuickColorModal = ({ isOpen, onClose, onColorCreate }: QuickColorMo
         setHexColor(newColor);
     };
 
-    if (!isOpen) return null;
-
     return (
-        <Overlay $isOpen={isOpen} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-            <ModalContainer $isOpen={isOpen}>
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                    <Header>
-                        <Title>Dodaj nowy kolor wizyty</Title>
-                    </Header>
+        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="480px">
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <ModalHeader>
+                    <ModalTitleGroup>
+                        <ModalTitle>Dodaj nowy kolor wizyty</ModalTitle>
+                    </ModalTitleGroup>
+                </ModalHeader>
 
-                    <Content>
-                        <FieldGroup>
-                            <Label>Nazwa koloru</Label>
-                            <Input
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                placeholder="np. Oklejanie PPF, Pilne, Mechanika..."
-                                autoFocus
+                <ModalContent>
+                    <FieldGroup>
+                        <Label>Nazwa koloru</Label>
+                        <Input
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="np. Oklejanie PPF, Pilne, Mechanika..."
+                            autoFocus
+                        />
+                        {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
+                    </FieldGroup>
+
+                    <FieldGroup>
+                        <Label>Kolor (HEX)</Label>
+                        <ColorPickerWrapper>
+                            <ColorInput
+                                type="color"
+                                value={hexColor}
+                                onChange={(e) => handleColorChange(e.target.value)}
                             />
-                            {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
-                        </FieldGroup>
+                            <ColorHexInput
+                                type="text"
+                                value={hexColor}
+                                onChange={(e) => handleColorChange(e.target.value.toUpperCase())}
+                                placeholder="#3B82F6"
+                            />
+                        </ColorPickerWrapper>
+                        {errors.hexColor && <ErrorMessage>{errors.hexColor}</ErrorMessage>}
+                    </FieldGroup>
 
-                        <FieldGroup>
-                            <Label>Kolor (HEX)</Label>
-                            <ColorPickerWrapper>
-                                <ColorInput
-                                    type="color"
-                                    value={hexColor}
-                                    onChange={(e) => handleColorChange(e.target.value)}
+                    <FieldGroup>
+                        <Label>Predefiniowane kolory</Label>
+                        <PresetColors>
+                            {PRESET_COLORS.map((color) => (
+                                <PresetColorButton
+                                    key={color}
+                                    type="button"
+                                    $color={color}
+                                    onClick={() => handleColorChange(color)}
+                                    title={color}
                                 />
-                                <ColorHexInput
-                                    type="text"
-                                    value={hexColor}
-                                    onChange={(e) => handleColorChange(e.target.value.toUpperCase())}
-                                    placeholder="#3B82F6"
-                                />
-                            </ColorPickerWrapper>
-                            {errors.hexColor && <ErrorMessage>{errors.hexColor}</ErrorMessage>}
-                        </FieldGroup>
+                            ))}
+                        </PresetColors>
+                    </FieldGroup>
+                </ModalContent>
 
-                        <FieldGroup>
-                            <Label>Predefiniowane kolory</Label>
-                            <PresetColors>
-                                {PRESET_COLORS.map((color) => (
-                                    <PresetColorButton
-                                        key={color}
-                                        type="button"
-                                        $color={color}
-                                        onClick={() => handleColorChange(color)}
-                                        title={color}
-                                    />
-                                ))}
-                            </PresetColors>
-                        </FieldGroup>
-                    </Content>
-
-                    <Footer>
-                        <Button type="button" $variant="secondary" onClick={onClose}>
-                            Anuluj
-                        </Button>
-                        <Button type="submit" $variant="primary">
-                            Dodaj kolor
-                        </Button>
-                    </Footer>
-                </form>
-            </ModalContainer>
-        </Overlay>
+                <ModalFooter>
+                    <SharedButton type="button" $variant="secondary" onClick={onClose}>
+                        Anuluj
+                    </SharedButton>
+                    <SharedButton type="submit" $variant="primary">
+                        Dodaj kolor
+                    </SharedButton>
+                </ModalFooter>
+            </form>
+        </ModalShell>
     );
 };

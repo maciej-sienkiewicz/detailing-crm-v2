@@ -1,9 +1,10 @@
 /**
- * QuickServiceModal / QuickCustomerModal styles — Stitch-inspired design
+ * QuickServiceModal / QuickCustomerModal / PriceInputModal styles
  *
  * Shared by:
  *   - QuickServiceModal  ("Wprowadź nową usługę")
  *   - QuickCustomerModal ("Nowy klient")
+ *   - PriceInputModal    ("Wprowadź cenę")
  *
  * Modal/form primitives imported from @/common/styles.
  */
@@ -13,7 +14,12 @@ import {
     modalScaleIn,
     ModalOverlay,
     ModalBox,
+    ModalHeader as SharedModalHeader,
+    ModalTitleGroup as SharedModalTitleGroup,
+    ModalTitle as SharedModalTitle,
     ModalCloseButton,
+    ModalContent as SharedModalContent,
+    ModalFooter as SharedModalFooter,
     FormFieldGroup,
     FormLabel,
     FormInput,
@@ -49,14 +55,9 @@ export const Form = styled.form`
 
 // ─── Header ───────────────────────────────────────────────────────────────────
 
-export const Header = styled.div`
-    padding: 28px 28px 20px;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    flex-shrink: 0;
-`;
+export const Header = styled(SharedModalHeader)``;
+
+export const TitleGroup = styled(SharedModalTitleGroup)``;
 
 /** Invisible placeholder — kept so existing imports don't break */
 export const DragHandle = styled.div`display: none;`;
@@ -64,35 +65,13 @@ export const DragHandleBar = styled.div`display: none;`;
 
 export const CloseButton = styled(ModalCloseButton)``;
 
-export const Title = styled.h2`
-    margin: 0;
-    font-size: 22px;
-    font-weight: 700;
-    color: #0f172a;
-    letter-spacing: -0.4px;
-    line-height: 1.2;
+export const Title = styled(SharedModalTitle)`
     flex: 1;
 `;
 
 // ─── Scrollable content ───────────────────────────────────────────────────────
 
-export const Content = styled.div`
-    flex: 1;
-    overflow-y: auto;
-    padding: 0 28px 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    min-height: 0;
-
-    &::-webkit-scrollbar { width: 4px; }
-    &::-webkit-scrollbar-track { background: transparent; }
-    &::-webkit-scrollbar-thumb {
-        background: #e2e8f0;
-        border-radius: 2px;
-    }
-    &::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
-`;
+export const Content = styled(SharedModalContent)``;
 
 // ─── Form field group ─────────────────────────────────────────────────────────
 
@@ -124,16 +103,7 @@ export const SubmitError = styled(FormSubmitError)``;
 
 // ─── Footer ───────────────────────────────────────────────────────────────────
 
-export const Footer = styled.div`
-    padding: 16px 28px;
-    border-top: 1px solid #f1f5f9;
-    background: #fafbfd;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 10px;
-    flex-shrink: 0;
-`;
+export const Footer = styled(SharedModalFooter)``;
 
 // ─── Button ───────────────────────────────────────────────────────────────────
 

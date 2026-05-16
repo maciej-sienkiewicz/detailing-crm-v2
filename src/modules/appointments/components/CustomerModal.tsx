@@ -3,16 +3,23 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { useDebounce } from '@/common/hooks';
 import { useCustomerSearch } from '../hooks/useAppointmentForm';
-import { Modal } from '@/common/components/Modal';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalContent,
+    ModalFooter,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import { FormGrid, FieldGroup, Label, Input, ErrorMessage } from '@/common/components/Form';
-import { Button, ButtonGroup } from '@/common/components/Button';
 import { EmptyState } from '@/common/components/EmptyState';
 import { t } from '@/common/i18n';
 import type { Customer, SelectedCustomer } from '../types';
 import { PhoneInput } from '@/common/components/PhoneInput';
 
 const SearchInput = styled(Input)`
-    margin-bottom: ${props => props.theme.spacing.lg};
     font-size: ${props => props.theme.fontSizes.md};
     padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
     width: 100%;
@@ -24,7 +31,6 @@ const CustomerTable = styled.div`
     overflow: hidden;
     max-height: 400px;
     overflow-y: auto;
-    margin-bottom: ${props => props.theme.spacing.md};
 `;
 
 const CustomerRow = styled.div`
@@ -60,6 +66,9 @@ const CustomerHeader = styled(CustomerRow)`
 
     &:hover {
         background-color: ${props => props.theme.colors.surfaceAlt};
+        transform: none;
+        border-left: none;
+        padding-left: ${props => props.theme.spacing.lg};
     }
 `;
 
@@ -159,57 +168,58 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
         t.appointments.customerModal.titleSelect;
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={modalTitle}>
-            {mode === 'search' ? (
-                <>
-                    <SearchInput
-                        type="text"
-                        placeholder={t.appointments.customerModal.searchPlaceholder}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+        <ModalShell isOpen={isOpen} onClose={onClose}>
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>{modalTitle}</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
 
-                    {!searchQuery || searchQuery.trim() === '' ? (
-                        <EmptyState title="Zacznij wpisywać, żeby zobaczyć listę klientów" />
-                    ) : isLoading ? (
-                        <EmptyState title={t.appointments.customerModal.searching} />
-                    ) : customers && customers.length > 0 ? (
-                        <CustomerTable>
-                            <CustomerHeader>
-                                <div>{t.customers.table.customer}</div>
-                                <div>{t.customers.table.contact}</div>
-                                <div></div>
-                            </CustomerHeader>
-                            {customers.map((customer) => (
-                                <CustomerRow
-                                    key={customer.id}
-                                    onClick={() => handleCustomerClick(customer)}
-                                >
-                                    <CustomerCell>
-                                        <PrimaryText>
-                                            {customer.firstName} {customer.lastName}
-                                        </PrimaryText>
-                                    </CustomerCell>
-                                    <CustomerCell>
-                                        <SecondaryText>{customer.email}</SecondaryText>
-                                        <SecondaryText>{customer.phone}</SecondaryText>
-                                    </CustomerCell>
-                                    <CustomerCell></CustomerCell>
-                                </CustomerRow>
-                            ))}
-                        </CustomerTable>
-                    ) : (
-                        <EmptyState title={t.appointments.customerModal.noResults} />
-                    )}
+            <ModalContent>
+                {mode === 'search' ? (
+                    <>
+                        <SearchInput
+                            type="text"
+                            placeholder={t.appointments.customerModal.searchPlaceholder}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
 
-                    <ButtonGroup>
-                        <Button $variant="primary" onClick={() => setMode('new')}>
-                            {t.appointments.customerModal.addNewButton}
-                        </Button>
-                    </ButtonGroup>
-                </>
-            ) : (
-                <>
+                        {!searchQuery || searchQuery.trim() === '' ? (
+                            <EmptyState title="Zacznij wpisywać, żeby zobaczyć listę klientów" />
+                        ) : isLoading ? (
+                            <EmptyState title={t.appointments.customerModal.searching} />
+                        ) : customers && customers.length > 0 ? (
+                            <CustomerTable>
+                                <CustomerHeader>
+                                    <div>{t.customers.table.customer}</div>
+                                    <div>{t.customers.table.contact}</div>
+                                    <div></div>
+                                </CustomerHeader>
+                                {customers.map((customer) => (
+                                    <CustomerRow
+                                        key={customer.id}
+                                        onClick={() => handleCustomerClick(customer)}
+                                    >
+                                        <CustomerCell>
+                                            <PrimaryText>
+                                                {customer.firstName} {customer.lastName}
+                                            </PrimaryText>
+                                        </CustomerCell>
+                                        <CustomerCell>
+                                            <SecondaryText>{customer.email}</SecondaryText>
+                                            <SecondaryText>{customer.phone}</SecondaryText>
+                                        </CustomerCell>
+                                        <CustomerCell></CustomerCell>
+                                    </CustomerRow>
+                                ))}
+                            </CustomerTable>
+                        ) : (
+                            <EmptyState title={t.appointments.customerModal.noResults} />
+                        )}
+                    </>
+                ) : (
                     <FormGrid>
                         <FieldGroup>
                             <Label>{t.appointments.customerModal.firstName}</Label>
@@ -259,17 +269,25 @@ export const CustomerModal = ({ isOpen, onClose, onSelect }: CustomerModalProps)
                             {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
                         </FieldGroup>
                     </FormGrid>
+                )}
+            </ModalContent>
 
-                    <ButtonGroup>
-                        <Button $variant="secondary" onClick={() => setMode('search')}>
+            <ModalFooter>
+                {mode === 'search' ? (
+                    <SharedButton $variant="primary" onClick={() => setMode('new')}>
+                        {t.appointments.customerModal.addNewButton}
+                    </SharedButton>
+                ) : (
+                    <>
+                        <SharedButton $variant="secondary" onClick={() => setMode('search')}>
                             {t.appointments.customerModal.backToSearch}
-                        </Button>
-                        <Button $variant="primary" onClick={handleSubmitNew}>
+                        </SharedButton>
+                        <SharedButton $variant="primary" onClick={handleSubmitNew}>
                             {t.appointments.customerModal.confirmButton}
-                        </Button>
-                    </ButtonGroup>
-                </>
-            )}
-        </Modal>
+                        </SharedButton>
+                    </>
+                )}
+            </ModalFooter>
+        </ModalShell>
     );
 };

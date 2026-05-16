@@ -10,8 +10,7 @@ import {
     ModalContainer,
     Form,
     Header,
-    DragHandle,
-    DragHandleBar,
+    TitleGroup,
     CloseButton,
     Title,
     Content,
@@ -71,15 +70,12 @@ export const PriceInputModal: React.FC<PriceInputModalProps> = ({
             <ModalContainer $isOpen={isOpen}>
                 <Form onSubmit={handleSubmit}>
                     <Header>
-                        <DragHandle>
-                            <DragHandleBar />
-                        </DragHandle>
-
+                        <TitleGroup>
+                            <Title>Wprowadź cenę</Title>
+                        </TitleGroup>
                         <CloseButton type="button" onClick={onClose}>
                             <IconX />
                         </CloseButton>
-
-                        <Title>Wprowadź cenę</Title>
                     </Header>
 
                     <Content>

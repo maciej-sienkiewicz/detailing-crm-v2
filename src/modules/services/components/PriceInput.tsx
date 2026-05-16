@@ -6,13 +6,13 @@ import type { VatRate } from '../types';
 const Container = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.md};
+    gap: 12px;
 `;
 
 const PriceRow = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: ${props => props.theme.spacing.md};
+    gap: 12px;
 
     @media (max-width: ${props => props.theme.breakpoints.sm}) {
         grid-template-columns: 1fr;
@@ -22,76 +22,89 @@ const PriceRow = styled.div`
 const FieldGroup = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.sm};
+    gap: 6px;
 `;
 
 const Label = styled.label`
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.text};
+    font-size: 13px;
+    font-weight: 500;
+    color: #475569;
+    letter-spacing: 0.01em;
 `;
 
-const InputWrapper = styled.div<{ $hasError?: boolean }>`
+const InputWrapper = styled.div<{ $hasError?: boolean; $focused?: boolean }>`
     position: relative;
     display: flex;
     align-items: center;
-    background: white;
-    border: 2px solid ${props => props.$hasError ? props.theme.colors.error : props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    transition: all ${props => props.theme.transitions.fast};
+    background: #ffffff;
+    border: 1.5px solid ${p =>
+        p.$hasError ? '#ef4444' :
+        p.$focused ? '#0ea5e9' :
+        '#e2e8f0'};
+    border-radius: 12px;
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+    box-shadow: ${p =>
+        p.$hasError ? '0 0 0 3px rgba(239,68,68,0.12)' :
+        p.$focused ? '0 0 0 3px rgba(14,165,233,0.14)' :
+        'none'};
 
-    &:focus-within {
-        border-color: ${props => props.$hasError ? props.theme.colors.error : props.theme.colors.primary};
-        box-shadow: 0 0 0 3px ${props => props.$hasError ? 'rgba(220, 38, 38, 0.1)' : 'rgba(14, 165, 233, 0.1)'};
+    &:hover:not(:focus-within) {
+        border-color: ${p => p.$hasError ? '#ef4444' : '#cbd5e1'};
     }
 `;
 
 const Input = styled.input`
     width: 100%;
-    padding: ${props => props.theme.spacing.md};
+    padding: 11px 48px 11px 14px;
     border: none;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.md};
+    border-radius: 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 400;
     background: transparent;
-    color: ${props => props.theme.colors.text};
+    color: #0f172a;
     text-align: right;
     font-variant-numeric: tabular-nums;
 
-    &:focus {
-        outline: none;
-    }
-
-    &::placeholder {
-        color: ${props => props.theme.colors.textMuted};
-    }
+    &:focus { outline: none; }
+    &::placeholder { color: #94a3b8; }
 `;
 
 const Currency = styled.span`
-    padding-right: ${props => props.theme.spacing.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textMuted};
-    font-weight: ${props => props.theme.fontWeights.medium};
+    position: absolute;
+    right: 14px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: #94a3b8;
+    pointer-events: none;
+    user-select: none;
 `;
 
 const VatInfo = styled.div`
-    padding: ${props => props.theme.spacing.md};
-    background: ${props => props.theme.colors.surfaceAlt};
-    border-radius: ${props => props.theme.radii.md};
+    padding: 10px 14px;
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    border-radius: 10px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: ${props => props.theme.fontSizes.sm};
+    font-size: 13px;
 `;
 
 const VatLabel = styled.span`
-    color: ${props => props.theme.colors.textMuted};
+    color: #94a3b8;
+    font-weight: 400;
 `;
 
 const VatAmount = styled.span`
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    color: ${props => props.theme.colors.text};
+    font-weight: 600;
+    color: #0f172a;
     font-variant-numeric: tabular-nums;
 `;
+
+// Only allow digits, one separator (. or ,), max 2 decimal places
+const MAX_2_DECIMALS = /^\d*[.,]?\d{0,2}$/;
 
 interface PriceInputProps {
     netAmount: number;
@@ -104,57 +117,49 @@ interface PriceInputProps {
 }
 
 export const PriceInput = ({
-                               netAmount,
-                               vatRate,
-                               onChange,
-                               netLabel,
-                               grossLabel,
-                               vatLabel,
-                               hasError,
-                           }: PriceInputProps) => {
+    netAmount,
+    vatRate,
+    onChange,
+    netLabel,
+    grossLabel,
+    vatLabel,
+    hasError,
+}: PriceInputProps) => {
     const [netValue, setNetValue] = useState('');
     const [grossValue, setGrossValue] = useState('');
-    const [isNetFocused, setIsNetFocused] = useState(false);
-    const [isGrossFocused, setIsGrossFocused] = useState(false);
+    const [netFocused, setNetFocused] = useState(false);
+    const [grossFocused, setGrossFocused] = useState(false);
 
     useEffect(() => {
-        if (!isNetFocused && !isGrossFocused) {
+        if (!netFocused && !grossFocused) {
             const calc = calculateGrossFromNet(netAmount, vatRate);
             setNetValue(formatMoneyAmount(calc.priceNet));
             setGrossValue(formatMoneyAmount(calc.priceGross));
         }
-    }, [netAmount, vatRate, isNetFocused, isGrossFocused]);
+    }, [netAmount, vatRate, netFocused, grossFocused]);
 
     const handleNetChange = (value: string) => {
-        const sanitized = value.replace(',', '.');
-        setNetValue(sanitized);
-
-        const parsed = parseMoneyInput(sanitized);
-        if (!isNaN(parsed)) {
-            const calc = calculateGrossFromNet(parsed, vatRate);
-            // Dzielimy przez 100, aby wyświetlić 12.30 zamiast 1230
-            setGrossValue((calc.priceGross / 100).toFixed(2));
-            onChange(parsed);
-        }
+        if (!MAX_2_DECIMALS.test(value)) return;
+        setNetValue(value);
+        const parsed = parseMoneyInput(value.replace(',', '.'));
+        const calc = calculateGrossFromNet(parsed, vatRate);
+        setGrossValue((calc.priceGross / 100).toFixed(2));
+        onChange(parsed);
     };
 
     const handleGrossChange = (value: string) => {
-        const sanitized = value.replace(',', '.');
-        setGrossValue(sanitized);
-
-        const parsedGross = parseMoneyInput(sanitized);
-        if (!isNaN(parsedGross)) {
-            const calc = calculateNetFromGross(parsedGross, vatRate);
-            // Dzielimy przez 100, aby wyświetlić 8.13 zamiast 813
-            setNetValue((calc.priceNet / 100).toFixed(2));
-            onChange(calc.priceNet);
-        }
+        if (!MAX_2_DECIMALS.test(value)) return;
+        setGrossValue(value);
+        const parsedGross = parseMoneyInput(value.replace(',', '.'));
+        const calc = calculateNetFromGross(parsedGross, vatRate);
+        setNetValue((calc.priceNet / 100).toFixed(2));
+        onChange(calc.priceNet);
     };
 
     const handleBlur = () => {
-        setIsNetFocused(false);
-        setIsGrossFocused(false);
-        const currentNet = parseMoneyInput(netValue);
+        setNetFocused(false);
+        setGrossFocused(false);
+        const currentNet = parseMoneyInput(netValue.replace(',', '.'));
         const calc = calculateGrossFromNet(isNaN(currentNet) ? 0 : currentNet, vatRate);
         setNetValue(formatMoneyAmount(calc.priceNet));
         setGrossValue(formatMoneyAmount(calc.priceGross));
@@ -168,13 +173,13 @@ export const PriceInput = ({
             <PriceRow>
                 <FieldGroup>
                     <Label>{netLabel}</Label>
-                    <InputWrapper $hasError={hasError}>
+                    <InputWrapper $hasError={hasError} $focused={netFocused}>
                         <Input
                             type="text"
                             inputMode="decimal"
                             value={netValue}
                             onChange={(e) => handleNetChange(e.target.value)}
-                            onFocus={() => setIsNetFocused(true)}
+                            onFocus={() => setNetFocused(true)}
                             onBlur={handleBlur}
                             placeholder="0.00"
                         />
@@ -184,13 +189,13 @@ export const PriceInput = ({
 
                 <FieldGroup>
                     <Label>{grossLabel}</Label>
-                    <InputWrapper>
+                    <InputWrapper $focused={grossFocused}>
                         <Input
                             type="text"
                             inputMode="decimal"
                             value={grossValue}
                             onChange={(e) => handleGrossChange(e.target.value)}
-                            onFocus={() => setIsGrossFocused(true)}
+                            onFocus={() => setGrossFocused(true)}
                             onBlur={handleBlur}
                             placeholder="0.00"
                         />

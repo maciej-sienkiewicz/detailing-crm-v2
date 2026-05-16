@@ -1,6 +1,18 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalSubtitle,
+    ModalContent,
+    ModalFooter,
+    ModalSectionTitle,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import type { BenefitType } from '../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -56,73 +68,6 @@ const MONTH_NAMES_PL = [
 ];
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-
-const Overlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background: ${st.bgOverlay};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 16px;
-`;
-
-const ModalBox = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    box-shadow: ${st.shadowLg};
-    padding: 28px;
-    width: 100%;
-    max-width: 480px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    max-height: 90vh;
-    overflow-y: auto;
-`;
-
-const ModalHeader = styled.div`
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-`;
-
-const ModalTitle = styled.h3`
-    margin: 0;
-    font-size: ${st.fontLg};
-    font-weight: 700;
-    color: ${st.text};
-`;
-
-const ModalSubtitle = styled.p`
-    margin: 2px 0 0 0;
-    font-size: ${st.fontXs};
-    color: ${st.textMuted};
-`;
-
-const CloseBtn = styled.button`
-    background: none;
-    border: none;
-    color: ${st.textMuted};
-    font-size: 20px;
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
-    flex-shrink: 0;
-    &:hover { color: ${st.text}; }
-`;
-
-const SectionLabel = styled.p`
-    margin: 0 0 8px 0;
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: ${st.textSecondary};
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-`;
 
 const BenefitGrid = styled.div`
     display: flex;
@@ -198,41 +143,6 @@ const ExistingBadge = styled.span`
     flex-shrink: 0;
 `;
 
-const ModalActions = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    padding-top: 4px;
-    border-top: 1px solid ${st.border};
-`;
-
-const CancelBtn = styled.button`
-    padding: 8px 16px;
-    background: none;
-    border: 1px solid ${st.border};
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: ${st.textSecondary};
-    cursor: pointer;
-    transition: all ${st.transition};
-    &:hover { border-color: ${st.borderHover}; color: ${st.text}; }
-`;
-
-const AddBtn = styled.button`
-    padding: 8px 20px;
-    background: ${st.accentBlue};
-    border: none;
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontXs};
-    font-weight: 600;
-    color: #fff;
-    cursor: pointer;
-    transition: background ${st.transition};
-    &:hover { background: #2563EB; }
-    &:disabled { opacity: 0.6; cursor: not-allowed; }
-`;
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const AddBenefitModal = ({ period, existingTypes, onAdd, onClose }: Props) => {
@@ -252,20 +162,20 @@ export const AddBenefitModal = ({ period, existingTypes, onAdd, onClose }: Props
     const isSelectedExisting = existingTypes.includes(selectedType);
 
     return (
-        <Overlay onClick={onClose}>
-            <ModalBox onClick={e => e.stopPropagation()}>
-                <ModalHeader>
-                    <div>
-                        <ModalTitle>Dodaj nowe świadczenie</ModalTitle>
-                        <ModalSubtitle>
-                            Okres: {periodDisplayName} · Wybierz rodzaj — wiersz pojawi się w tabeli
-                        </ModalSubtitle>
-                    </div>
-                    <CloseBtn onClick={onClose} aria-label="Zamknij">×</CloseBtn>
-                </ModalHeader>
+        <ModalShell isOpen={true} onClose={onClose} maxWidth="480px">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Dodaj nowe świadczenie</ModalTitle>
+                    <ModalSubtitle>
+                        Okres: {periodDisplayName} · Wybierz rodzaj — wiersz pojawi się w tabeli
+                    </ModalSubtitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} aria-label="Zamknij" />
+            </ModalHeader>
 
+            <ModalContent>
                 <div>
-                    <SectionLabel>Typ świadczenia</SectionLabel>
+                    <ModalSectionTitle>Typ świadczenia</ModalSectionTitle>
                     <BenefitGrid>
                         {BENEFIT_OPTIONS.map(opt => {
                             const isExisting = existingTypes.includes(opt.value);
@@ -296,14 +206,14 @@ export const AddBenefitModal = ({ period, existingTypes, onAdd, onClose }: Props
                         })}
                     </BenefitGrid>
                 </div>
+            </ModalContent>
 
-                <ModalActions>
-                    <CancelBtn onClick={onClose}>Anuluj</CancelBtn>
-                    <AddBtn onClick={handleAdd} disabled={isSelectedExisting}>
-                        Dodaj wiersz
-                    </AddBtn>
-                </ModalActions>
-            </ModalBox>
-        </Overlay>
+            <ModalFooter>
+                <SharedButton $variant="secondary" type="button" onClick={onClose}>Anuluj</SharedButton>
+                <SharedButton $variant="primary" type="button" onClick={handleAdd} disabled={isSelectedExisting}>
+                    Dodaj wiersz
+                </SharedButton>
+            </ModalFooter>
+        </ModalShell>
     );
 };

@@ -3,16 +3,23 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { useDebounce } from '@/common/hooks';
 import { useQuery } from '@tanstack/react-query';
-import { Modal } from '@/common/components/Modal';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalContent,
+    ModalFooter,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import { FormGrid, FieldGroup, Label, Input, ErrorMessage, Select } from '@/common/components/Form';
-import { Button, ButtonGroup } from '@/common/components/Button';
 import { EmptyState } from '@/common/components/EmptyState';
 import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
 import type { VehicleListItem } from '@/modules/vehicles/types';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 
 const SearchInput = styled(Input)`
-    margin-bottom: ${props => props.theme.spacing.lg};
     font-size: ${props => props.theme.fontSizes.md};
     padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
 `;
@@ -23,7 +30,6 @@ const VehicleTable = styled.div`
     overflow: hidden;
     max-height: 400px;
     overflow-y: auto;
-    margin-bottom: ${props => props.theme.spacing.md};
 `;
 
 const VehicleRow = styled.div`
@@ -82,15 +88,15 @@ const SecondaryText = styled.span`
 `;
 
 const SectionDivider = styled.div`
-    margin: ${props => props.theme.spacing.lg} 0;
-    border-bottom: 1px solid ${props => props.theme.colors.border};
+    height: 1px;
+    background: ${props => props.theme.colors.border};
 `;
 
 const SectionTitle = styled.h3`
     font-size: ${props => props.theme.fontSizes.md};
     font-weight: ${props => props.theme.fontWeights.semibold};
     color: ${props => props.theme.colors.textSecondary};
-    margin-bottom: ${props => props.theme.spacing.md};
+    margin: 0 0 ${props => props.theme.spacing.md};
     text-transform: uppercase;
     letter-spacing: 0.5px;
 `;
@@ -202,158 +208,168 @@ export const VehicleSearchModal = ({ isOpen, onClose, onSelect }: VehicleSearchM
     };
 
     const modalTitle = mode === 'new' ? 'Dodaj nowy pojazd' : 'Wyszukaj lub dodaj pojazd';
-
     const vehicles = vehicleResponse?.data || [];
 
     return (
-        <Modal isOpen={isOpen} onClose={resetAndClose} title={modalTitle}>
-            {mode === 'search' ? (
-                <>
-                    <SearchInput
-                        type="text"
-                        placeholder="Wyszukaj po marce, modelu lub numerze rejestracyjnym..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+        <ModalShell isOpen={isOpen} onClose={resetAndClose}>
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>{modalTitle}</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={resetAndClose} />
+            </ModalHeader>
 
-                    {isLoading ? (
-                        <EmptyState title="Wyszukiwanie..." />
-                    ) : vehicles.length > 0 ? (
-                        <VehicleTable>
-                            <VehicleHeader>
-                                <div>Pojazd</div>
-                                <div>Rok</div>
-                                <div>Właściciel</div>
-                            </VehicleHeader>
-                            {vehicles.map((vehicle) => (
-                                <VehicleRow
-                                    key={vehicle.id}
-                                    onClick={() => handleVehicleClick(vehicle)}
-                                >
-                                    <VehicleCell>
-                                        <PrimaryText>
-                                            {vehicle.brand} {vehicle.model}
-                                        </PrimaryText>
-                                        <SecondaryText>{vehicle.licensePlate}</SecondaryText>
-                                    </VehicleCell>
-                                    <VehicleCell>
-                                        <SecondaryText>{vehicle.yearOfProduction}</SecondaryText>
-                                    </VehicleCell>
-                                    <VehicleCell>
-                                        {vehicle.owners.length > 0 && (
-                                            <SecondaryText>{vehicle.owners[0].customerName}</SecondaryText>
-                                        )}
-                                    </VehicleCell>
-                                </VehicleRow>
-                            ))}
-                        </VehicleTable>
-                    ) : (
-                        <EmptyState
-                            title={searchQuery
-                                ? 'Nie znaleziono pojazdów'
-                                : 'Wprowadź markę, model lub numer rejestracyjny'}
+            <ModalContent>
+                {mode === 'search' ? (
+                    <>
+                        <SearchInput
+                            type="text"
+                            placeholder="Wyszukaj po marce, modelu lub numerze rejestracyjnym..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                         />
-                    )}
 
-                    <ButtonGroup>
-                        <Button $variant="primary" onClick={() => setMode('new')}>
-                            Dodaj nowy pojazd
-                        </Button>
-                    </ButtonGroup>
-                </>
-            ) : (
-                <>
-                    <SectionTitle>Dane wymagane</SectionTitle>
-                    <FormGrid>
-                        <FieldGroup>
-                            <Label>Marka *</Label>
-                            <BrandSelect
-                                value={formData.brand}
-                                onChange={(val) =>
-                                    setFormData({ ...formData, brand: val, model: '' })
-                                }
-                                onBlur={() => {}}
-                            />
-                            {errors.brand && <ErrorMessage>{errors.brand}</ErrorMessage>}
-                        </FieldGroup>
-
-                        <FieldGroup>
-                            <Label>Model *</Label>
-                            <ModelSelect
-                                brand={formData.brand}
-                                value={formData.model}
-                                onChange={(val) =>
-                                    setFormData({ ...formData, model: val })
-                                }
-                                onBlur={() => {}}
-                            />
-                            {errors.model && <ErrorMessage>{errors.model}</ErrorMessage>}
-                        </FieldGroup>
-
-                        <FieldGroup>
-                            <Label>Rok produkcji *</Label>
-                            <Select
-                                value={formData.yearOfProduction}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, yearOfProduction: parseInt(e.target.value) })
-                                }
-                            >
-                                {YEARS.map(year => (
-                                    <option key={year} value={year}>{year}</option>
+                        {isLoading ? (
+                            <EmptyState title="Wyszukiwanie..." />
+                        ) : vehicles.length > 0 ? (
+                            <VehicleTable>
+                                <VehicleHeader>
+                                    <div>Pojazd</div>
+                                    <div>Rok</div>
+                                    <div>Właściciel</div>
+                                </VehicleHeader>
+                                {vehicles.map((vehicle) => (
+                                    <VehicleRow
+                                        key={vehicle.id}
+                                        onClick={() => handleVehicleClick(vehicle)}
+                                    >
+                                        <VehicleCell>
+                                            <PrimaryText>
+                                                {vehicle.brand} {vehicle.model}
+                                            </PrimaryText>
+                                            <SecondaryText>{vehicle.licensePlate}</SecondaryText>
+                                        </VehicleCell>
+                                        <VehicleCell>
+                                            <SecondaryText>{vehicle.yearOfProduction}</SecondaryText>
+                                        </VehicleCell>
+                                        <VehicleCell>
+                                            {vehicle.owners.length > 0 && (
+                                                <SecondaryText>{vehicle.owners[0].customerName}</SecondaryText>
+                                            )}
+                                        </VehicleCell>
+                                    </VehicleRow>
                                 ))}
-                            </Select>
-                            {errors.yearOfProduction && <ErrorMessage>{errors.yearOfProduction}</ErrorMessage>}
-                        </FieldGroup>
-                    </FormGrid>
-
-                    <SectionDivider />
-
-                    <SectionTitle>Dane opcjonalne</SectionTitle>
-                    <FormGrid>
-                        <FieldGroup>
-                            <Label>Numer rejestracyjny</Label>
-                            <Input
-                                value={formData.licensePlate}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, licensePlate: e.target.value })
-                                }
-                                placeholder="np. WA 12345"
+                            </VehicleTable>
+                        ) : (
+                            <EmptyState
+                                title={searchQuery
+                                    ? 'Nie znaleziono pojazdów'
+                                    : 'Wprowadź markę, model lub numer rejestracyjny'}
                             />
-                        </FieldGroup>
+                        )}
+                    </>
+                ) : (
+                    <>
+                        <SectionTitle>Dane wymagane</SectionTitle>
+                        <FormGrid>
+                            <FieldGroup>
+                                <Label>Marka *</Label>
+                                <BrandSelect
+                                    value={formData.brand}
+                                    onChange={(val) =>
+                                        setFormData({ ...formData, brand: val, model: '' })
+                                    }
+                                    onBlur={() => {}}
+                                />
+                                {errors.brand && <ErrorMessage>{errors.brand}</ErrorMessage>}
+                            </FieldGroup>
 
-                        <FieldGroup>
-                            <Label>Kolor</Label>
-                            <Input
-                                value={formData.color}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, color: e.target.value })
-                                }
-                                placeholder="np. Czarny metalik"
-                            />
-                        </FieldGroup>
+                            <FieldGroup>
+                                <Label>Model *</Label>
+                                <ModelSelect
+                                    brand={formData.brand}
+                                    value={formData.model}
+                                    onChange={(val) =>
+                                        setFormData({ ...formData, model: val })
+                                    }
+                                    onBlur={() => {}}
+                                />
+                                {errors.model && <ErrorMessage>{errors.model}</ErrorMessage>}
+                            </FieldGroup>
 
-                        <FieldGroup>
-                            <Label>Typ lakieru</Label>
-                            <Input
-                                value={formData.paintType}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, paintType: e.target.value })
-                                }
-                                placeholder="np. Lakier bazowy + lakier"
-                            />
-                        </FieldGroup>
-                    </FormGrid>
+                            <FieldGroup>
+                                <Label>Rok produkcji *</Label>
+                                <Select
+                                    value={formData.yearOfProduction}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, yearOfProduction: parseInt(e.target.value) })
+                                    }
+                                >
+                                    {YEARS.map(year => (
+                                        <option key={year} value={year}>{year}</option>
+                                    ))}
+                                </Select>
+                                {errors.yearOfProduction && <ErrorMessage>{errors.yearOfProduction}</ErrorMessage>}
+                            </FieldGroup>
+                        </FormGrid>
 
-                    <ButtonGroup>
-                        <Button $variant="secondary" onClick={() => setMode('search')}>
+                        <SectionDivider />
+
+                        <SectionTitle>Dane opcjonalne</SectionTitle>
+                        <FormGrid>
+                            <FieldGroup>
+                                <Label>Numer rejestracyjny</Label>
+                                <Input
+                                    value={formData.licensePlate}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, licensePlate: e.target.value })
+                                    }
+                                    placeholder="np. WA 12345"
+                                />
+                            </FieldGroup>
+
+                            <FieldGroup>
+                                <Label>Kolor</Label>
+                                <Input
+                                    value={formData.color}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, color: e.target.value })
+                                    }
+                                    placeholder="np. Czarny metalik"
+                                />
+                            </FieldGroup>
+
+                            <FieldGroup>
+                                <Label>Typ lakieru</Label>
+                                <Input
+                                    value={formData.paintType}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, paintType: e.target.value })
+                                    }
+                                    placeholder="np. Lakier bazowy + lakier"
+                                />
+                            </FieldGroup>
+                        </FormGrid>
+                    </>
+                )}
+            </ModalContent>
+
+            <ModalFooter>
+                {mode === 'search' ? (
+                    <SharedButton $variant="primary" onClick={() => setMode('new')}>
+                        Dodaj nowy pojazd
+                    </SharedButton>
+                ) : (
+                    <>
+                        <SharedButton $variant="secondary" onClick={() => setMode('search')}>
                             Wróć do wyszukiwania
-                        </Button>
-                        <Button $variant="primary" onClick={handleSubmitNew}>
+                        </SharedButton>
+                        <SharedButton $variant="primary" onClick={handleSubmitNew}>
                             Dodaj pojazd
-                        </Button>
-                    </ButtonGroup>
-                </>
-            )}
-        </Modal>
+                        </SharedButton>
+                    </>
+                )}
+            </ModalFooter>
+        </ModalShell>
     );
 };

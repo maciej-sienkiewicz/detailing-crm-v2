@@ -1,13 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Modal } from '@/common/components/Modal';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalContent,
+    CloseBtn,
+} from '@/common/components/ModalKit';
 import { visitApi } from '@/modules/visits/api/visitApi';
 import { DocumentPreview } from './DocumentPreview';
 import { NotificationSection, defaultNotificationOptions, toConfirmVisitOptions } from './NotificationSection';
 import type { NotificationOptions } from './NotificationSection';
 import type { ProtocolResponse } from '../types';
 import {
-    ModalContent,
+    ModalContent as StyledModalContent,
     DocumentList,
     DocumentRow,
     DocumentIcon,
@@ -128,73 +135,79 @@ export const SigningRequirementModal = ({
 
     return (
         <>
-            <Modal isOpen={isOpen} onClose={onClose} title="Dokumentacja i Podpisy" maxWidth="680px">
+            <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="680px">
+                <ModalHeader>
+                    <ModalTitleGroup>
+                        <ModalTitle>Dokumentacja i Podpisy</ModalTitle>
+                    </ModalTitleGroup>
+                    <CloseBtn onClick={onClose} />
+                </ModalHeader>
+
                 <ModalContent>
+                    <StyledModalContent>
+                        {isCreating ? (
+                            <LoadingContainer>
+                                <Spinner />
+                                <span>Uzupełniam dane na protokole...</span>
+                            </LoadingContainer>
+                        ) : !protocols || protocols.length === 0 ? (
+                            <EmptyState>Brak wymaganych protokołów dla tej wizyty</EmptyState>
+                        ) : (
+                            <DocumentList>
+                                {protocols.map(protocol => (
+                                    <DocumentRow key={protocol.id}>
+                                        <DocumentIcon>
+                                            <FileTextIcon />
+                                        </DocumentIcon>
 
-                    {isCreating ? (
-                        <LoadingContainer>
-                            <Spinner />
-                            <span>Uzupełniam dane na protokole...</span>
-                        </LoadingContainer>
-                    ) : !protocols || protocols.length === 0 ? (
-                        <EmptyState>Brak wymaganych protokołów dla tej wizyty</EmptyState>
-                    ) : (
-                        <DocumentList>
-                            {protocols.map(protocol => (
-                                <DocumentRow key={protocol.id}>
-                                    <DocumentIcon>
-                                        <FileTextIcon />
-                                    </DocumentIcon>
+                                        <DocumentInfo>
+                                            <DocumentName>
+                                                {protocol.templateName || 'Protokół'}
+                                            </DocumentName>
+                                        </DocumentInfo>
 
-                                    <DocumentInfo>
-                                        <DocumentName>
-                                            {protocol.templateName || 'Protokół'}
-                                        </DocumentName>
-                                    </DocumentInfo>
+                                        <ActionButtons>
+                                            <IconButton onClick={() => setPreviewProtocolId(protocol.id)} title="Podgląd">
+                                                <EyeIcon />
+                                            </IconButton>
+                                            <IconButton onClick={() => handlePrint(protocol.id)} title="Drukuj" disabled={!protocol.filledPdfUrl}>
+                                                <PrintIcon />
+                                            </IconButton>
+                                            <IconButton disabled title="Podpisz na tablecie">
+                                                <TabletIcon />
+                                            </IconButton>
+                                        </ActionButtons>
+                                    </DocumentRow>
+                                ))}
+                            </DocumentList>
+                        )}
 
-                                    <ActionButtons>
-                                        <IconButton onClick={() => setPreviewProtocolId(protocol.id)} title="Podgląd">
-                                            <EyeIcon />
-                                        </IconButton>
-                                        <IconButton onClick={() => handlePrint(protocol.id)} title="Drukuj" disabled={!protocol.filledPdfUrl}>
-                                            <PrintIcon />
-                                        </IconButton>
-                                        <IconButton disabled title="Podpisz na tablecie">
-                                            <TabletIcon />
-                                        </IconButton>
-                                    </ActionButtons>
-                                </DocumentRow>
-                            ))}
-                        </DocumentList>
-                    )}
+                        {canInteract && visitId && (
+                            <NotificationSection
+                                visitId={visitId}
+                                hasProtocol={hasProtocol}
+                                visitWelcomeEnabled={visitWelcomeEnabled}
+                                options={notifOptions}
+                                onChange={setNotifOptions}
+                            />
+                        )}
 
-                    {canInteract && visitId && (
-                        <NotificationSection
-                            visitId={visitId}
-                            hasProtocol={hasProtocol}
-                            visitWelcomeEnabled={visitWelcomeEnabled}
-                            options={notifOptions}
-                            onChange={setNotifOptions}
-                        />
-                    )}
-
-                    <FooterActions>
-                        <PrimaryActionGroup>
-                            <CancelBtn onClick={() => cancelVisitMutation.mutate()} disabled={!canInteract || isProcessing}>
-                                Anuluj wizytę
-                            </CancelBtn>
-                            <ConfirmBtn
-                                onClick={() => confirmVisitMutation.mutate()}
-                                disabled={!canInteract || isProcessing}
-                            >
-                                {isProcessing ? 'Przetwarzanie...' : 'Zatwierdź i rozpocznij wizytę'}
-                            </ConfirmBtn>
-                        </PrimaryActionGroup>
-
-                    </FooterActions>
-
+                        <FooterActions>
+                            <PrimaryActionGroup>
+                                <CancelBtn onClick={() => cancelVisitMutation.mutate()} disabled={!canInteract || isProcessing}>
+                                    Anuluj wizytę
+                                </CancelBtn>
+                                <ConfirmBtn
+                                    onClick={() => confirmVisitMutation.mutate()}
+                                    disabled={!canInteract || isProcessing}
+                                >
+                                    {isProcessing ? 'Przetwarzanie...' : 'Zatwierdź i rozpocznij wizytę'}
+                                </ConfirmBtn>
+                            </PrimaryActionGroup>
+                        </FooterActions>
+                    </StyledModalContent>
                 </ModalContent>
-            </Modal>
+            </ModalShell>
 
             {previewProtocolId && visitId && (
                 <DocumentPreview
@@ -204,7 +217,6 @@ export const SigningRequirementModal = ({
                     protocolId={previewProtocolId}
                 />
             )}
-
         </>
     );
 };

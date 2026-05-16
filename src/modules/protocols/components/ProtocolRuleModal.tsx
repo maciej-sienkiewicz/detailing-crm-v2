@@ -1,7 +1,16 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Modal } from '@/common/components/Modal';
-import { Button, ButtonGroup } from '@/common/components/Button';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalSubtitle,
+    ModalContent,
+    ModalFooter,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import { Label, FieldGroup, ErrorMessage, Select } from '@/common/components/Form';
 import { useCreateProtocolRule, useUpdateProtocolRule } from '../api/useProtocols';
 import { useServices } from '@/modules/services/hooks/useServices';
@@ -15,11 +24,11 @@ const Form = styled.form`
 
 const InfoBox = styled.div`
     padding: ${props => props.theme.spacing.md};
-    background: rgb(239, 246, 255); // blue-50
-    border: 1px solid rgb(191, 219, 254); // blue-200
+    background: rgb(239, 246, 255);
+    border: 1px solid rgb(191, 219, 254);
     border-radius: ${props => props.theme.radii.md};
     font-size: ${props => props.theme.fontSizes.sm};
-    color: rgb(30, 64, 175); // blue-800
+    color: rgb(30, 64, 175);
     display: flex;
     gap: ${props => props.theme.spacing.sm};
     align-items: flex-start;
@@ -95,11 +104,6 @@ const RadioOption = styled.label`
         border-color: var(--brand-primary);
         background: rgb(249, 250, 251);
     }
-
-    input:checked ~ & {
-        border-color: var(--brand-primary);
-        background: rgb(239, 246, 255);
-    }
 `;
 
 const RadioInput = styled.input`
@@ -123,7 +127,6 @@ const RadioDescription = styled.div`
     color: ${props => props.theme.colors.textMuted};
 `;
 
-// Icons
 const InfoIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -155,7 +158,6 @@ export const ProtocolRuleModal = ({
     const createMutation = useCreateProtocolRule();
     const updateMutation = useUpdateProtocolRule();
 
-    // Fetch active services for the service selector
     const { services, isLoading: isLoadingServices } = useServices({
         search: '',
         page: 1,
@@ -166,12 +168,10 @@ export const ProtocolRuleModal = ({
     useEffect(() => {
         if (isOpen) {
             if (editingRule) {
-                // Populate form with editing rule data
                 setProtocolTemplateId(editingRule.protocolTemplateId);
                 setTriggerType(editingRule.triggerType);
                 setSelectedServiceIds(editingRule.serviceIds || []);
             } else {
-                // Reset form when modal opens for creating new rule
                 setProtocolTemplateId('');
                 setTriggerType('GLOBAL_ALWAYS');
                 setSelectedServiceIds([]);
@@ -198,9 +198,7 @@ export const ProtocolRuleModal = ({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!validateForm()) {
-            return;
-        }
+        if (!validateForm()) return;
 
         try {
             const data = {
@@ -208,14 +206,11 @@ export const ProtocolRuleModal = ({
                 triggerType,
                 stage,
                 serviceIds: triggerType === 'SERVICE_SPECIFIC' ? selectedServiceIds : undefined,
-                displayOrder: editingRule?.displayOrder ?? 999, // Keep order for edits, default for new
+                displayOrder: editingRule?.displayOrder ?? 999,
             };
 
             if (editingRule) {
-                await updateMutation.mutateAsync({
-                    id: editingRule.id,
-                    data,
-                });
+                await updateMutation.mutateAsync({ id: editingRule.id, data });
             } else {
                 await createMutation.mutateAsync(data);
             }
@@ -229,129 +224,136 @@ export const ProtocolRuleModal = ({
     };
 
     const isSubmitting = createMutation.isPending || updateMutation.isPending;
+    const stageLabel = stage === 'CHECK_IN' ? 'Przyjęcie' : 'Wydanie';
 
     return (
-        <Modal
-            isOpen={isOpen}
-            onClose={onClose}
-            title={`${editingRule ? 'Edytuj' : 'Dodaj'} regułę protokołu (${stage === 'CHECK_IN' ? 'Przyjęcie' : 'Wydanie'})`}
-        >
-            <Form onSubmit={handleSubmit}>
-                <InfoBox>
-                    <InfoIcon />
-                    <div>
-                        Reguły określają, które protokoły są wymagane przy{' '}
-                        {stage === 'CHECK_IN' ? 'przyjęciu' : 'wydaniu'} pojazdu.
-                        Możesz ustawić protokoły globalne (zawsze wymagane) lub specyficzne dla konkretnych usług.
-                    </div>
-                </InfoBox>
+        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="560px">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>{editingRule ? 'Edytuj' : 'Dodaj'} regułę protokołu</ModalTitle>
+                    <ModalSubtitle>{stageLabel}</ModalSubtitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
 
-                <FieldGroup>
-                    <Label>Wybierz szablon protokołu *</Label>
-                    <Select
-                        value={protocolTemplateId}
-                        onChange={(e) => setProtocolTemplateId(e.target.value)}
-                    >
-                        <option value="">-- Wybierz szablon --</option>
-                        {templates
-                            .filter(t => t.isActive)
-                            .map(template => (
-                                <option key={template.id} value={template.id}>
-                                    {template.name}
-                                </option>
-                            ))}
-                    </Select>
-                    {errors.protocolTemplateId && (
-                        <ErrorMessage>{errors.protocolTemplateId}</ErrorMessage>
-                    )}
-                </FieldGroup>
+            <ModalContent>
+                <Form id="protocol-rule-form" onSubmit={handleSubmit}>
+                    <InfoBox>
+                        <InfoIcon />
+                        <div>
+                            Reguły określają, które protokoły są wymagane przy{' '}
+                            {stage === 'CHECK_IN' ? 'przyjęciu' : 'wydaniu'} pojazdu.
+                            Możesz ustawić protokoły globalne (zawsze wymagane) lub specyficzne dla konkretnych usług.
+                        </div>
+                    </InfoBox>
 
-                <FieldGroup>
-                    <Label>Typ wyzwalacza *</Label>
-                    <RadioGroup>
-                        <RadioOption>
-                            <RadioInput
-                                type="radio"
-                                name="triggerType"
-                                value="GLOBAL_ALWAYS"
-                                checked={triggerType === 'GLOBAL_ALWAYS'}
-                                onChange={() => setTriggerType('GLOBAL_ALWAYS')}
-                            />
-                            <RadioContent>
-                                <RadioTitle>Globalny - zawsze wymagany</RadioTitle>
-                                <RadioDescription>
-                                    Ten protokół będzie wymagany dla wszystkich wizyt przy{' '}
-                                    {stage === 'CHECK_IN' ? 'przyjęciu' : 'wydaniu'} pojazdu.
-                                </RadioDescription>
-                            </RadioContent>
-                        </RadioOption>
-
-                        <RadioOption>
-                            <RadioInput
-                                type="radio"
-                                name="triggerType"
-                                value="SERVICE_SPECIFIC"
-                                checked={triggerType === 'SERVICE_SPECIFIC'}
-                                onChange={() => setTriggerType('SERVICE_SPECIFIC')}
-                            />
-                            <RadioContent>
-                                <RadioTitle>Specyficzny dla usługi</RadioTitle>
-                                <RadioDescription>
-                                    Protokół będzie wymagany tylko gdy wybrana usługa zostanie dodana do wizyty.
-                                </RadioDescription>
-                            </RadioContent>
-                        </RadioOption>
-                    </RadioGroup>
-                </FieldGroup>
-
-                {triggerType === 'SERVICE_SPECIFIC' && (
                     <FieldGroup>
-                        <Label>Wybierz usługi *</Label>
-                        {isLoadingServices ? (
-                            <EmptyServices>Ładowanie usług...</EmptyServices>
-                        ) : services.length === 0 ? (
-                            <EmptyServices>Brak dostępnych usług</EmptyServices>
-                        ) : (
-                            <ServiceCheckboxList>
-                                {services.map(service => (
-                                    <ServiceCheckbox key={service.id}>
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedServiceIds.includes(service.id)}
-                                            onChange={(e) => {
-                                                if (e.target.checked) {
-                                                    setSelectedServiceIds([...selectedServiceIds, service.id]);
-                                                } else {
-                                                    setSelectedServiceIds(selectedServiceIds.filter(id => id !== service.id));
-                                                }
-                                            }}
-                                        />
-                                        <ServiceName>{service.name}</ServiceName>
-                                    </ServiceCheckbox>
+                        <Label>Wybierz szablon protokołu *</Label>
+                        <Select
+                            value={protocolTemplateId}
+                            onChange={(e) => setProtocolTemplateId(e.target.value)}
+                        >
+                            <option value="">-- Wybierz szablon --</option>
+                            {templates
+                                .filter(t => t.isActive)
+                                .map(template => (
+                                    <option key={template.id} value={template.id}>
+                                        {template.name}
+                                    </option>
                                 ))}
-                            </ServiceCheckboxList>
-                        )}
-                        {errors.serviceIds && (
-                            <ErrorMessage>{errors.serviceIds}</ErrorMessage>
+                        </Select>
+                        {errors.protocolTemplateId && (
+                            <ErrorMessage>{errors.protocolTemplateId}</ErrorMessage>
                         )}
                     </FieldGroup>
-                )}
 
-                {errors.submit && (
-                    <ErrorMessage>{errors.submit}</ErrorMessage>
-                )}
+                    <FieldGroup>
+                        <Label>Typ wyzwalacza *</Label>
+                        <RadioGroup>
+                            <RadioOption>
+                                <RadioInput
+                                    type="radio"
+                                    name="triggerType"
+                                    value="GLOBAL_ALWAYS"
+                                    checked={triggerType === 'GLOBAL_ALWAYS'}
+                                    onChange={() => setTriggerType('GLOBAL_ALWAYS')}
+                                />
+                                <RadioContent>
+                                    <RadioTitle>Globalny - zawsze wymagany</RadioTitle>
+                                    <RadioDescription>
+                                        Ten protokół będzie wymagany dla wszystkich wizyt przy{' '}
+                                        {stage === 'CHECK_IN' ? 'przyjęciu' : 'wydaniu'} pojazdu.
+                                    </RadioDescription>
+                                </RadioContent>
+                            </RadioOption>
 
-                <ButtonGroup>
-                    <Button type="button" $variant="secondary" onClick={onClose}>
-                        Anuluj
-                    </Button>
-                    <Button type="submit" $variant="primary" disabled={isSubmitting}>
-                        {isSubmitting
-                            ? (editingRule ? 'Zapisywanie...' : 'Dodawanie...')
-                            : (editingRule ? 'Zapisz zmiany' : 'Dodaj regułę')}
-                    </Button>
-                </ButtonGroup>
-            </Form>
-        </Modal>
+                            <RadioOption>
+                                <RadioInput
+                                    type="radio"
+                                    name="triggerType"
+                                    value="SERVICE_SPECIFIC"
+                                    checked={triggerType === 'SERVICE_SPECIFIC'}
+                                    onChange={() => setTriggerType('SERVICE_SPECIFIC')}
+                                />
+                                <RadioContent>
+                                    <RadioTitle>Specyficzny dla usługi</RadioTitle>
+                                    <RadioDescription>
+                                        Protokół będzie wymagany tylko gdy wybrana usługa zostanie dodana do wizyty.
+                                    </RadioDescription>
+                                </RadioContent>
+                            </RadioOption>
+                        </RadioGroup>
+                    </FieldGroup>
+
+                    {triggerType === 'SERVICE_SPECIFIC' && (
+                        <FieldGroup>
+                            <Label>Wybierz usługi *</Label>
+                            {isLoadingServices ? (
+                                <EmptyServices>Ładowanie usług...</EmptyServices>
+                            ) : services.length === 0 ? (
+                                <EmptyServices>Brak dostępnych usług</EmptyServices>
+                            ) : (
+                                <ServiceCheckboxList>
+                                    {services.map(service => (
+                                        <ServiceCheckbox key={service.id}>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedServiceIds.includes(service.id)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedServiceIds([...selectedServiceIds, service.id]);
+                                                    } else {
+                                                        setSelectedServiceIds(selectedServiceIds.filter(id => id !== service.id));
+                                                    }
+                                                }}
+                                            />
+                                            <ServiceName>{service.name}</ServiceName>
+                                        </ServiceCheckbox>
+                                    ))}
+                                </ServiceCheckboxList>
+                            )}
+                            {errors.serviceIds && (
+                                <ErrorMessage>{errors.serviceIds}</ErrorMessage>
+                            )}
+                        </FieldGroup>
+                    )}
+
+                    {errors.submit && (
+                        <ErrorMessage>{errors.submit}</ErrorMessage>
+                    )}
+                </Form>
+            </ModalContent>
+
+            <ModalFooter>
+                <SharedButton type="button" $variant="secondary" $size="sm" onClick={onClose}>
+                    Anuluj
+                </SharedButton>
+                <SharedButton type="submit" form="protocol-rule-form" $variant="primary" $size="sm" disabled={isSubmitting}>
+                    {isSubmitting
+                        ? (editingRule ? 'Zapisywanie...' : 'Dodawanie...')
+                        : (editingRule ? 'Zapisz zmiany' : 'Dodaj regułę')}
+                </SharedButton>
+            </ModalFooter>
+        </ModalShell>
     );
 };

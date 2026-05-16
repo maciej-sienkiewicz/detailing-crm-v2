@@ -1,8 +1,16 @@
 // src/modules/services/components/ServiceFormModal.tsx
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Modal } from '@/common/components/Modal';
-import { Button, ButtonGroup } from '@/common/components/Button';
+import {
+  ModalShell,
+  ModalHeader,
+  ModalTitleGroup,
+  ModalTitle,
+  ModalContent,
+  ModalFooter,
+  CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import { Input, Label, FieldGroup, ErrorMessage, Select } from '@/common/components/Form';
 import { Toggle } from '@/common/components/Toggle';
 import { PriceInput } from './PriceInput';
@@ -11,19 +19,6 @@ import { serviceSchema } from '../utils/validators';
 import { t } from '@/common/i18n';
 import { useProtocolTemplates, useProtocolRulesByService } from '@/modules/protocols/api/useProtocols';
 import type { Service, VatRate } from '../types';
-
-const Form = styled.form`
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
-`;
-
-const SectionTitle = styled.h3`
-    font-size: ${props => props.theme.fontSizes.lg};
-    font-weight: ${props => props.theme.fontWeights.semibold};
-    color: ${props => props.theme.colors.text};
-    margin: 0 0 ${props => props.theme.spacing.md} 0;
-`;
 
 const Toast = styled.div<{ $show: boolean }>`
     position: fixed;
@@ -67,6 +62,13 @@ const InfoBox = styled.div`
         flex-shrink: 0;
         margin-top: 2px;
     }
+`;
+
+const SectionTitle = styled.h3`
+    font-size: ${props => props.theme.fontSizes.lg};
+    font-weight: ${props => props.theme.fontWeights.semibold};
+    color: ${props => props.theme.colors.text};
+    margin: 0 0 ${props => props.theme.spacing.md} 0;
 `;
 
 const ProtocolCheckboxList = styled.div`
@@ -155,6 +157,12 @@ const ToggleLabelText = styled.div`
 const ToggleDescription = styled.div`
     font-size: ${props => props.theme.fontSizes.xs};
     color: ${props => props.theme.colors.textMuted};
+`;
+
+const FormInner = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: ${props => props.theme.spacing.lg};
 `;
 
 // Icons
@@ -269,170 +277,178 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
 
     return (
         <>
-            <Modal
-                isOpen={isOpen}
-                onClose={onClose}
-                title={service ? t.services.editService : t.services.addService}
-                maxWidth="600px"
-            >
-                <Form onSubmit={handleSubmit}>
-                    <div>
-                        <SectionTitle>{t.services.form.title}</SectionTitle>
+            <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="600px">
+                <ModalHeader>
+                    <ModalTitleGroup>
+                        <ModalTitle>
+                            {service ? t.services.editService : t.services.addService}
+                        </ModalTitle>
+                    </ModalTitleGroup>
+                    <CloseBtn onClick={onClose} />
+                </ModalHeader>
 
-                        <FieldGroup>
-                            <Label htmlFor="name">{t.services.form.nameLabel}</Label>
-                            <Input
-                                id="name"
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                placeholder={t.services.form.namePlaceholder}
-                            />
-                            {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
-                        </FieldGroup>
-                    </div>
-
-                    <FieldGroup>
-                        <Label htmlFor="vatRate">{t.services.form.vatLabel}</Label>
-                        <Select
-                            id="vatRate"
-                            value={vatRate}
-                            onChange={(e) => setVatRate(Number(e.target.value) as VatRate)}
-                        >
-                            <option value={23}>{t.services.vatRates[23]}</option>
-                            <option value={8}>{t.services.vatRates[8]}</option>
-                            <option value={5}>{t.services.vatRates[5]}</option>
-                            <option value={0}>{t.services.vatRates[0]}</option>
-                            <option value={-1}>{t.services.vatRates['-1']}</option>
-                        </Select>
-                        {errors.vatRate && <ErrorMessage>{errors.vatRate}</ErrorMessage>}
-                    </FieldGroup>
-
-                    <ToggleRow>
-                        <ToggleLabel>
-                            <ToggleLabelText>{t.services.form.requireManualPriceLabel}</ToggleLabelText>
-                            <ToggleDescription>
-                                {t.services.form.requireManualPriceDescription}
-                            </ToggleDescription>
-                        </ToggleLabel>
-                        <Toggle
-                            checked={requireManualPrice}
-                            onChange={(checked) => {
-                                setRequireManualPrice(checked);
-                                // Automatycznie wyzeruj cenę gdy checkbox jest zaznaczany
-                                if (checked) {
-                                    setBasePriceNet(0);
-                                }
-                            }}
-                            label=""
-                        />
-                    </ToggleRow>
-
-                    {!requireManualPrice && (
-                        <>
-                            <PriceInput
-                                netAmount={basePriceNet}
-                                vatRate={vatRate}
-                                onChange={setBasePriceNet}
-                                netLabel={t.services.form.priceNetLabel}
-                                grossLabel={t.services.form.priceGrossLabel}
-                                vatLabel={t.services.form.vatAmount}
-                                hasError={!!errors.basePriceNet}
-                            />
-                            {errors.basePriceNet && <ErrorMessage>{errors.basePriceNet}</ErrorMessage>}
-                        </>
-                    )}
-
-                    <Divider />
-
-                    <div>
-                        <ToggleRow>
-                            <ToggleLabel>
-                                <ToggleLabelText>Wymagane dokumenty dla tej usługi</ToggleLabelText>
-                                <ToggleDescription>
-                                    Gdy ta usługa zostanie dodana do wizyty, klient będzie musiał podpisać wybrane dokumenty
-                                </ToggleDescription>
-                            </ToggleLabel>
-                            <Toggle
-                                checked={showProtocolSection}
-                                onChange={setShowProtocolSection}
-                                label=""
-                            />
-                        </ToggleRow>
-
-                        {showProtocolSection && (
-                            <>
-                                <InfoBox>
-                                    <InfoIcon />
-                                    <div>
-                                        Wybierz protokoły, które będą automatycznie dodawane do wizyt z tą usługą.
-                                    </div>
-                                </InfoBox>
+                <form onSubmit={handleSubmit}>
+                    <ModalContent>
+                        <FormInner>
+                            <div>
+                                <SectionTitle>{t.services.form.title}</SectionTitle>
 
                                 <FieldGroup>
-                                    <Label>Wybierz protokoły</Label>
-                                    {protocolTemplates.length === 0 ? (
-                                        <EmptyProtocols>
-                                            Brak dostępnych protokołów. Dodaj szablony protokołów w Centrum Dokumentacji.
-                                        </EmptyProtocols>
-                                    ) : (
-                                        <ProtocolCheckboxList>
-                                            {protocolTemplates
-                                                .filter(template => template.isActive)
-                                                .map(template => {
-                                                    const isChecked = selectedProtocols.includes(template.id);
-                                                    // Check if this is used in existing rules to determine stage
-                                                    const existingRule = existingRules.find(r => r.protocolTemplateId === template.id);
-
-                                                    return (
-                                                        <ProtocolCheckbox key={template.id}>
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isChecked}
-                                                                onChange={(e) => {
-                                                                    if (e.target.checked) {
-                                                                        setSelectedProtocols([...selectedProtocols, template.id]);
-                                                                    } else {
-                                                                        setSelectedProtocols(selectedProtocols.filter(id => id !== template.id));
-                                                                    }
-                                                                }}
-                                                            />
-                                                            <ProtocolInfo>
-                                                                <ProtocolName>
-                                                                    {template.name}
-                                                                    {existingRule && (
-                                                                        <>
-                                                                            {' '}
-                                                                            <ProtocolBadge $stage={existingRule.stage}>
-                                                                                {existingRule.stage === 'CHECK_IN' ? 'Przyjęcie' : 'Wydanie'}
-                                                                            </ProtocolBadge>
-                                                                        </>
-                                                                    )}
-                                                                </ProtocolName>
-                                                                {template.description && (
-                                                                    <ProtocolDescription>{template.description}</ProtocolDescription>
-                                                                )}
-                                                            </ProtocolInfo>
-                                                        </ProtocolCheckbox>
-                                                    );
-                                                })}
-                                        </ProtocolCheckboxList>
-                                    )}
+                                    <Label htmlFor="name">{t.services.form.nameLabel}</Label>
+                                    <Input
+                                        id="name"
+                                        type="text"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        placeholder={t.services.form.namePlaceholder}
+                                    />
+                                    {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
                                 </FieldGroup>
-                            </>
-                        )}
-                    </div>
+                            </div>
 
-                    <ButtonGroup>
-                        <Button type="button" $variant="secondary" onClick={onClose} disabled={isSubmitting}>
+                            <FieldGroup>
+                                <Label htmlFor="vatRate">{t.services.form.vatLabel}</Label>
+                                <Select
+                                    id="vatRate"
+                                    value={vatRate}
+                                    onChange={(e) => setVatRate(Number(e.target.value) as VatRate)}
+                                >
+                                    <option value={23}>{t.services.vatRates[23]}</option>
+                                    <option value={8}>{t.services.vatRates[8]}</option>
+                                    <option value={5}>{t.services.vatRates[5]}</option>
+                                    <option value={0}>{t.services.vatRates[0]}</option>
+                                    <option value={-1}>{t.services.vatRates['-1']}</option>
+                                </Select>
+                                {errors.vatRate && <ErrorMessage>{errors.vatRate}</ErrorMessage>}
+                            </FieldGroup>
+
+                            <ToggleRow>
+                                <ToggleLabel>
+                                    <ToggleLabelText>{t.services.form.requireManualPriceLabel}</ToggleLabelText>
+                                    <ToggleDescription>
+                                        {t.services.form.requireManualPriceDescription}
+                                    </ToggleDescription>
+                                </ToggleLabel>
+                                <Toggle
+                                    checked={requireManualPrice}
+                                    onChange={(checked) => {
+                                        setRequireManualPrice(checked);
+                                        // Automatycznie wyzeruj cenę gdy checkbox jest zaznaczany
+                                        if (checked) {
+                                            setBasePriceNet(0);
+                                        }
+                                    }}
+                                    label=""
+                                />
+                            </ToggleRow>
+
+                            {!requireManualPrice && (
+                                <>
+                                    <PriceInput
+                                        netAmount={basePriceNet}
+                                        vatRate={vatRate}
+                                        onChange={setBasePriceNet}
+                                        netLabel={t.services.form.priceNetLabel}
+                                        grossLabel={t.services.form.priceGrossLabel}
+                                        vatLabel={t.services.form.vatAmount}
+                                        hasError={!!errors.basePriceNet}
+                                    />
+                                    {errors.basePriceNet && <ErrorMessage>{errors.basePriceNet}</ErrorMessage>}
+                                </>
+                            )}
+
+                            <Divider />
+
+                            <div>
+                                <ToggleRow>
+                                    <ToggleLabel>
+                                        <ToggleLabelText>Wymagane dokumenty dla tej usługi</ToggleLabelText>
+                                        <ToggleDescription>
+                                            Gdy ta usługa zostanie dodana do wizyty, klient będzie musiał podpisać wybrane dokumenty
+                                        </ToggleDescription>
+                                    </ToggleLabel>
+                                    <Toggle
+                                        checked={showProtocolSection}
+                                        onChange={setShowProtocolSection}
+                                        label=""
+                                    />
+                                </ToggleRow>
+
+                                {showProtocolSection && (
+                                    <>
+                                        <InfoBox>
+                                            <InfoIcon />
+                                            <div>
+                                                Wybierz protokoły, które będą automatycznie dodawane do wizyt z tą usługą.
+                                            </div>
+                                        </InfoBox>
+
+                                        <FieldGroup>
+                                            <Label>Wybierz protokoły</Label>
+                                            {protocolTemplates.length === 0 ? (
+                                                <EmptyProtocols>
+                                                    Brak dostępnych protokołów. Dodaj szablony protokołów w Centrum Dokumentacji.
+                                                </EmptyProtocols>
+                                            ) : (
+                                                <ProtocolCheckboxList>
+                                                    {protocolTemplates
+                                                        .filter(template => template.isActive)
+                                                        .map(template => {
+                                                            const isChecked = selectedProtocols.includes(template.id);
+                                                            // Check if this is used in existing rules to determine stage
+                                                            const existingRule = existingRules.find(r => r.protocolTemplateId === template.id);
+
+                                                            return (
+                                                                <ProtocolCheckbox key={template.id}>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={isChecked}
+                                                                        onChange={(e) => {
+                                                                            if (e.target.checked) {
+                                                                                setSelectedProtocols([...selectedProtocols, template.id]);
+                                                                            } else {
+                                                                                setSelectedProtocols(selectedProtocols.filter(id => id !== template.id));
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                    <ProtocolInfo>
+                                                                        <ProtocolName>
+                                                                            {template.name}
+                                                                            {existingRule && (
+                                                                                <>
+                                                                                    {' '}
+                                                                                    <ProtocolBadge $stage={existingRule.stage}>
+                                                                                        {existingRule.stage === 'CHECK_IN' ? 'Przyjęcie' : 'Wydanie'}
+                                                                                    </ProtocolBadge>
+                                                                                </>
+                                                                            )}
+                                                                        </ProtocolName>
+                                                                        {template.description && (
+                                                                            <ProtocolDescription>{template.description}</ProtocolDescription>
+                                                                        )}
+                                                                    </ProtocolInfo>
+                                                                </ProtocolCheckbox>
+                                                            );
+                                                        })}
+                                                </ProtocolCheckboxList>
+                                            )}
+                                        </FieldGroup>
+                                    </>
+                                )}
+                            </div>
+                        </FormInner>
+                    </ModalContent>
+
+                    <ModalFooter>
+                        <SharedButton $variant="secondary" type="button" onClick={onClose} disabled={isSubmitting}>
                             {t.services.form.cancel}
-                        </Button>
-                        <Button type="submit" $variant="primary" disabled={isSubmitting}>
+                        </SharedButton>
+                        <SharedButton $variant="primary" type="submit" disabled={isSubmitting}>
                             {isSubmitting ? t.services.form.submitting : t.services.form.submit}
-                        </Button>
-                    </ButtonGroup>
-                </Form>
-            </Modal>
+                        </SharedButton>
+                    </ModalFooter>
+                </form>
+            </ModalShell>
 
             <Toast $show={showToast}>
                 {t.services.success.updated}

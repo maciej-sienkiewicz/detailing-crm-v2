@@ -1,8 +1,8 @@
 /**
- * Shared modal primitives — Stitch-inspired design system
+ * Modal primitives — canonical design system
  *
- * Used by: QuickEventModal, QuickCustomerModal, QuickServiceModal,
- *          VehicleModal, PriceInputModal
+ * Every modal in the app imports from here (via @/common/components/ModalKit).
+ * Do not define local Overlay / ModalBox / Header / Footer / CloseButton — use these.
  */
 import styled, { keyframes } from 'styled-components';
 
@@ -70,6 +70,7 @@ export const ModalHeader = styled.div`
     justify-content: space-between;
     gap: 12px;
     flex-shrink: 0;
+    border-bottom: 1px solid #f1f5f9;
 `;
 
 export const ModalTitleGroup = styled.div`
@@ -82,19 +83,21 @@ export const ModalTitleGroup = styled.div`
 
 export const ModalTitle = styled.h2`
     margin: 0;
+    font-family: 'Inter', sans-serif;
     font-size: 22px;
     font-weight: 700;
     color: #0f172a;
-    letter-spacing: -0.4px;
+    letter-spacing: -0.3px;
     line-height: 1.2;
 `;
 
 export const ModalSubtitle = styled.p`
     margin: 0;
+    font-family: 'Inter', sans-serif;
     font-size: 14px;
     color: #64748b;
     font-weight: 400;
-    line-height: 1.4;
+    line-height: 1.5;
 `;
 
 export const ModalCloseButton = styled.button`
@@ -120,12 +123,26 @@ export const ModalCloseButton = styled.button`
     svg { width: 16px; height: 16px; }
 `;
 
+// ─── Section heading inside modal content ─────────────────────────────────────
+
+export const ModalSectionTitle = styled.p`
+    margin: 0 0 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f1f5f9;
+`;
+
 // ─── Scrollable content ───────────────────────────────────────────────────────
 
 export const ModalContent = styled.div`
     flex: 1;
     overflow-y: auto;
-    padding: 0 28px 24px;
+    padding: 24px 28px;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -140,7 +157,7 @@ export const ModalContent = styled.div`
     &::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
 `;
 
-// ─── Footer ───────────────────────────────────────────────────────────────────
+// ─── Footer — always visible above scrollable content ─────────────────────────
 
 export const ModalFooter = styled.div`
     padding: 16px 28px;
@@ -153,10 +170,13 @@ export const ModalFooter = styled.div`
     flex-shrink: 0;
 `;
 
-// ─── Section divider inside modal ─────────────────────────────────────────────
+// ─── Horizontal divider inside content ────────────────────────────────────────
 
-export const ModalSectionDivider = styled.div`
+export const ModalDivider = styled.div`
     height: 1px;
     background: #f1f5f9;
     margin: 4px 0;
 `;
+
+/** @deprecated Use ModalDivider */
+export { ModalDivider as ModalSectionDivider };

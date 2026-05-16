@@ -1,8 +1,16 @@
 // src/modules/appointment-colors/components/AppointmentColorFormModal.tsx
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Modal } from '@/common/components/Modal';
-import { Button, ButtonGroup } from '@/common/components/Button';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalContent,
+    ModalFooter,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import { Input, Label, FieldGroup, ErrorMessage } from '@/common/components/Form';
 import {
     useCreateAppointmentColor,
@@ -148,58 +156,68 @@ export const AppointmentColorFormModal = ({
 
     return (
         <>
-            <Modal
-                isOpen={isOpen}
-                onClose={onClose}
-                title={color ? 'Edytuj kolor wizyty' : 'Dodaj nowy kolor wizyty'}
-            >
-                <Form onSubmit={handleSubmit}>
-                    <FieldGroup>
-                        <Label>Nazwa koloru</Label>
-                        <Input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="np. Oklejanie PPF, Pilne, Mechanika..."
-                        />
-                        {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
-                    </FieldGroup>
+            <ModalShell isOpen={isOpen} onClose={onClose}>
+                <ModalHeader>
+                    <ModalTitleGroup>
+                        <ModalTitle>{color ? 'Edytuj kolor wizyty' : 'Dodaj nowy kolor wizyty'}</ModalTitle>
+                    </ModalTitleGroup>
+                    <CloseBtn onClick={onClose} />
+                </ModalHeader>
 
-                    <FieldGroup>
-                        <Label>Kolor (HEX)</Label>
-                        <ColorPickerWrapper>
-                            <ColorInput
-                                type="color"
-                                value={hexColor}
-                                onChange={(e) => handleColorChange(e.target.value)}
-                            />
-                            <ColorHexInput
+                <ModalContent>
+                    <Form onSubmit={handleSubmit} id="appointment-color-form">
+                        <FieldGroup>
+                            <Label>Nazwa koloru</Label>
+                            <Input
                                 type="text"
-                                value={hexColor}
-                                onChange={(e) => handleColorChange(e.target.value)}
-                                placeholder="#3b82f6"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="np. Oklejanie PPF, Pilne, Mechanika..."
                             />
-                        </ColorPickerWrapper>
-                        {errors.hexColor && <ErrorMessage>{errors.hexColor}</ErrorMessage>}
-                    </FieldGroup>
+                            {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
+                        </FieldGroup>
 
-                    {errors.submit && (
-                        <ErrorMessage>{errors.submit}</ErrorMessage>
-                    )}
+                        <FieldGroup>
+                            <Label>Kolor (HEX)</Label>
+                            <ColorPickerWrapper>
+                                <ColorInput
+                                    type="color"
+                                    value={hexColor}
+                                    onChange={(e) => handleColorChange(e.target.value)}
+                                />
+                                <ColorHexInput
+                                    type="text"
+                                    value={hexColor}
+                                    onChange={(e) => handleColorChange(e.target.value)}
+                                    placeholder="#3b82f6"
+                                />
+                            </ColorPickerWrapper>
+                            {errors.hexColor && <ErrorMessage>{errors.hexColor}</ErrorMessage>}
+                        </FieldGroup>
 
-                    <ButtonGroup>
-                        <Button type="button" $variant="secondary" onClick={onClose}>
-                            Anuluj
-                        </Button>
-                        <Button type="submit" $variant="primary" disabled={isSubmitting}>
-                            {isSubmitting ? 'Zapisywanie...' : color ? 'Zapisz zmiany' : 'Dodaj kolor'}
-                        </Button>
-                    </ButtonGroup>
-                </Form>
-            </Modal>
+                        {errors.submit && (
+                            <ErrorMessage>{errors.submit}</ErrorMessage>
+                        )}
+                    </Form>
+                </ModalContent>
+
+                <ModalFooter>
+                    <SharedButton type="button" $variant="secondary" onClick={onClose}>
+                        Anuluj
+                    </SharedButton>
+                    <SharedButton
+                        type="submit"
+                        form="appointment-color-form"
+                        $variant="primary"
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? 'Zapisywanie...' : color ? 'Zapisz zmiany' : 'Dodaj kolor'}
+                    </SharedButton>
+                </ModalFooter>
+            </ModalShell>
 
             <Toast $show={showToast}>
-                ✓ Kolor został pomyślnie zaktualizowany
+                Kolor został pomyślnie zaktualizowany
             </Toast>
         </>
     );

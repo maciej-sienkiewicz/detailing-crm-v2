@@ -2,11 +2,19 @@ import { useState } from 'react';
 import type { ComponentType, CalculationBase, PaymentFrequency, CompensationComponentPayload } from '../../types';
 import { COMPONENT_TYPE_LABELS, CALC_BASE_LABELS, FREQUENCY_LABELS } from './constants';
 import {
-    Overlay, ModalBox, ModalTitle,
     Field, Label, Input, Select, Textarea, TwoCol,
-    FormActions, CancelBtn, SaveBtn,
     ErrorMsg, HintText,
 } from './styles';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalContent,
+    ModalFooter,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 
 interface Props {
     onClose: () => void;
@@ -62,10 +70,15 @@ export const AddComponentModal = ({ onClose, onSave }: Props) => {
         'Kwota (PLN)';
 
     return (
-        <Overlay onClick={onClose}>
-            <ModalBox onClick={e => e.stopPropagation()}>
-                <ModalTitle>Dodaj składnik wynagrodzenia</ModalTitle>
+        <ModalShell isOpen={true} onClose={onClose} maxWidth="460px">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Dodaj składnik wynagrodzenia</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
 
+            <ModalContent>
                 <Field>
                     <Label>Typ składnika</Label>
                     <Select value={type} onChange={e => setType(e.target.value as ComponentType)}>
@@ -139,14 +152,14 @@ export const AddComponentModal = ({ onClose, onSave }: Props) => {
                 </Field>
 
                 {error && <ErrorMsg>{error}</ErrorMsg>}
+            </ModalContent>
 
-                <FormActions>
-                    <CancelBtn onClick={onClose}>Anuluj</CancelBtn>
-                    <SaveBtn onClick={handleSave} disabled={saving}>
-                        {saving ? 'Zapisywanie...' : 'Dodaj składnik'}
-                    </SaveBtn>
-                </FormActions>
-            </ModalBox>
-        </Overlay>
+            <ModalFooter>
+                <SharedButton $variant="secondary" type="button" onClick={onClose}>Anuluj</SharedButton>
+                <SharedButton $variant="primary" type="button" onClick={handleSave} disabled={saving}>
+                    {saving ? 'Zapisywanie...' : 'Dodaj składnik'}
+                </SharedButton>
+            </ModalFooter>
+        </ModalShell>
     );
 };

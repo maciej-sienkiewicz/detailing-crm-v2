@@ -946,14 +946,13 @@ export const VisitDetailView = () => {
                 />
             )}
 
-            {isSmsReminderOpen && (
-                <SmsReminderModal
-                    visitId={visitId!}
-                    customer={visit.customer}
-                    existingReminder={smsReminderForEdit}
-                    onClose={() => { setIsSmsReminderOpen(false); setSmsReminderForEdit(null); }}
-                />
-            )}
+            <SmsReminderModal
+                isOpen={isSmsReminderOpen}
+                visitId={visitId!}
+                customer={visit.customer}
+                existingReminder={smsReminderForEdit}
+                onClose={() => { setIsSmsReminderOpen(false); setSmsReminderForEdit(null); }}
+            />
         </ViewContainer>
     );
 };

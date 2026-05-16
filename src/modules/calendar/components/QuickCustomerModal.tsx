@@ -11,8 +11,7 @@ import {
     ModalContainer,
     Form,
     Header,
-    DragHandle,
-    DragHandleBar,
+    TitleGroup,
     CloseButton,
     Title,
     Content,
@@ -167,15 +166,12 @@ export const QuickCustomerModal: React.FC<QuickCustomerModalProps> = ({
             <ModalContainer $isOpen={isOpen}>
                 <Form onSubmit={handleSubmit}>
                     <Header>
-                        <DragHandle>
-                            <DragHandleBar />
-                        </DragHandle>
-
+                        <TitleGroup>
+                            <Title>Nowy klient</Title>
+                        </TitleGroup>
                         <CloseButton type="button" onClick={onClose}>
                             <IconX />
                         </CloseButton>
-
-                        <Title>Nowy klient</Title>
                     </Header>
 
                     <Content>

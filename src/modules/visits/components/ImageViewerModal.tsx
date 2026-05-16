@@ -1,6 +1,11 @@
 import { useEffect } from 'react';
 import styled from 'styled-components';
 
+// ImageViewerModal is a fullscreen lightbox with a very dark overlay.
+// It intentionally keeps its own custom overlay and does NOT use ModalShell,
+// as the dark-background, image-centered lightbox pattern is incompatible with
+// the standard card-style modal shell.
+
 const ModalOverlay = styled.div`
     position: fixed;
     top: 0;

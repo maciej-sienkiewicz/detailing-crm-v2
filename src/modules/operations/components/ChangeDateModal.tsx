@@ -2,50 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Button, ButtonGroup } from '@/common/components/Button';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalSubtitle,
+    ModalContent,
+    ModalFooter,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import type { Operation } from '../types';
-
-const Overlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1001;
-    padding: 16px;
-`;
-
-const ModalContainer = styled.div`
-    background-color: white;
-    border-radius: 12px;
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
-    width: 100%;
-    max-width: 500px;
-`;
-
-const ModalHeader = styled.div`
-    padding: 24px;
-    border-bottom: 1px solid #e2e8f0;
-`;
-
-const ModalTitle = styled.h2`
-    margin: 0 0 4px;
-    font-size: 20px;
-    font-weight: 700;
-    color: #0f172a;
-`;
-
-const ModalSubtitle = styled.p`
-    margin: 0;
-    font-size: 14px;
-    color: #64748b;
-`;
-
-const ModalBody = styled.div`
-    padding: 24px;
-`;
 
 const FormGroup = styled.div`
     margin-bottom: 20px;
@@ -151,58 +119,51 @@ export const ChangeDateModal = ({
     if (!isOpen || !reservation) return null;
 
     return (
-        <Overlay onClick={onClose}>
-            <ModalContainer onClick={e => e.stopPropagation()}>
-                <ModalHeader>
+        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="500px">
+            <ModalHeader>
+                <ModalTitleGroup>
                     <ModalTitle>Zmień datę rezerwacji</ModalTitle>
                     <ModalSubtitle>
                         {reservation.customerFirstName} {reservation.customerLastName}
                     </ModalSubtitle>
-                </ModalHeader>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
 
-                <ModalBody>
-                    <FormGroup>
-                        <Label htmlFor="startDateTime">Data i godzina przyjazdu</Label>
-                        <Input
-                            id="startDateTime"
-                            type="datetime-local"
-                            value={startDateTime}
-                            onChange={(e) => setStartDateTime(e.target.value)}
-                            disabled={isUpdating}
-                        />
-                    </FormGroup>
+            <ModalContent>
+                <FormGroup>
+                    <Label htmlFor="startDateTime">Data i godzina przyjazdu</Label>
+                    <Input
+                        id="startDateTime"
+                        type="datetime-local"
+                        value={startDateTime}
+                        onChange={(e) => setStartDateTime(e.target.value)}
+                        disabled={isUpdating}
+                    />
+                </FormGroup>
 
-                    <FormGroup>
-                        <Label htmlFor="endDateTime">Data i godzina zakończenia</Label>
-                        <Input
-                            id="endDateTime"
-                            type="datetime-local"
-                            value={endDateTime}
-                            onChange={(e) => setEndDateTime(e.target.value)}
-                            disabled={isUpdating}
-                        />
-                    </FormGroup>
+                <FormGroup>
+                    <Label htmlFor="endDateTime">Data i godzina zakończenia</Label>
+                    <Input
+                        id="endDateTime"
+                        type="datetime-local"
+                        value={endDateTime}
+                        onChange={(e) => setEndDateTime(e.target.value)}
+                        disabled={isUpdating}
+                    />
+                </FormGroup>
 
-                    {error && <ErrorMessage>{error}</ErrorMessage>}
+                {error && <ErrorMessage>{error}</ErrorMessage>}
+            </ModalContent>
 
-                    <ButtonGroup>
-                        <Button
-                            $variant="secondary"
-                            onClick={onClose}
-                            disabled={isUpdating}
-                        >
-                            Anuluj
-                        </Button>
-                        <Button
-                            $variant="primary"
-                            onClick={handleConfirm}
-                            disabled={isUpdating}
-                        >
-                            {isUpdating ? 'Zapisywanie...' : 'Zapisz zmiany'}
-                        </Button>
-                    </ButtonGroup>
-                </ModalBody>
-            </ModalContainer>
-        </Overlay>
+            <ModalFooter>
+                <SharedButton $variant="secondary" type="button" onClick={onClose} disabled={isUpdating}>
+                    Anuluj
+                </SharedButton>
+                <SharedButton $variant="primary" type="button" onClick={handleConfirm} disabled={isUpdating}>
+                    {isUpdating ? 'Zapisywanie...' : 'Zapisz zmiany'}
+                </SharedButton>
+            </ModalFooter>
+        </ModalShell>
     );
 };

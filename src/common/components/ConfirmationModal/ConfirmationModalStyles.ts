@@ -1,232 +1,124 @@
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
 import type { ConfirmationVariant } from './ConfirmationModal';
+import { ModalOverlay, ModalBox, ModalFooter } from '@/common/styles';
 
-const fadeIn = keyframes`
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-`;
-
-const scaleIn = keyframes`
-    from {
-        opacity: 0;
-        transform: scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-`;
-
-export const Overlay = styled.div<{ $isOpen: boolean }>`
-    position: fixed;
-    inset: 0;
-    z-index: 60;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    background-color: ${props => props.$isOpen ? 'rgba(15, 23, 42, 0.5)' : 'rgba(15, 23, 42, 0)'};
-    backdrop-filter: ${props => props.$isOpen ? 'blur(4px)' : 'none'};
-    opacity: ${props => props.$isOpen ? 1 : 0};
-    pointer-events: ${props => props.$isOpen ? 'auto' : 'none'};
-    transition: all 0.3s ease;
-    animation: ${props => props.$isOpen ? fadeIn : 'none'} 0.3s ease-out;
-`;
-
-export const ModalContainer = styled.div<{ $isOpen: boolean }>`
-    background: white;
-    border-radius: 24px;
-    box-shadow:
-        0 25px 50px -12px rgba(0, 0, 0, 0.25),
-        0 10px 20px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 448px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    transform: ${props => props.$isOpen ? 'scale(1)' : 'scale(0.95)'};
-    opacity: ${props => props.$isOpen ? 1 : 0};
-    transition: all 0.3s ease;
-    animation: ${props => props.$isOpen ? scaleIn : 'none'} 0.3s cubic-bezier(0.32, 0.72, 0, 1);
-`;
+export { ModalOverlay as Overlay };
+export { ModalBox as ModalContainer };
+export { ModalFooter as Footer };
 
 export const Header = styled.div`
-    position: relative;
-    padding: 32px 32px 24px;
+    padding: 32px 28px 24px;
     text-align: center;
-`;
-
-export const DragHandle = styled.div`
-    display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
-
-    div {
-        width: 48px;
-        height: 6px;
-        background: #e5e7eb;
-        border-radius: 9999px;
-    }
+    position: relative;
 `;
 
 export const CloseButton = styled.button`
     position: absolute;
-    top: 24px;
-    right: 24px;
-    padding: 8px;
-    color: #9ca3af;
-    background: transparent;
-    border: none;
-    border-radius: 9999px;
+    top: 20px;
+    right: 20px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 50%;
     cursor: pointer;
-    transition: all 0.2s ease;
+    color: #64748b;
+    transition: all 150ms ease;
 
     &:hover {
-        color: #4b5563;
-        background: #f3f4f6;
+        background: #e2e8f0;
+        color: #0f172a;
     }
 
-    svg {
-        width: 24px;
-        height: 24px;
-    }
+    svg { width: 16px; height: 16px; }
 `;
 
-const getIconColors = (variant: ConfirmationVariant) => {
-    switch (variant) {
-        case 'danger':
-            return {
-                bg: '#fee2e2',
-                color: '#dc2626',
-            };
-        case 'warning':
-            return {
-                bg: '#fef3c7',
-                color: '#f59e0b',
-            };
-        case 'info':
-            return {
-                bg: '#dbeafe',
-                color: '#3b82f6',
-            };
-        default:
-            return {
-                bg: '#fef3c7',
-                color: '#f59e0b',
-            };
-    }
+const iconPalette: Record<ConfirmationVariant, { bg: string; color: string }> = {
+    danger:  { bg: '#fee2e2', color: '#dc2626' },
+    warning: { bg: '#fef3c7', color: '#d97706' },
+    info:    { bg: '#dbeafe', color: '#3b82f6' },
 };
 
 export const IconContainer = styled.div<{ $variant: ConfirmationVariant }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 20px;
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 16px;
     border-radius: 50%;
-    background: ${props => getIconColors(props.$variant).bg};
-    color: ${props => getIconColors(props.$variant).color};
+    background: ${p => iconPalette[p.$variant].bg};
+    color: ${p => iconPalette[p.$variant].color};
 
-    svg {
-        width: 32px;
-        height: 32px;
-        stroke-width: 2.5;
-    }
+    svg { width: 28px; height: 28px; stroke-width: 2.5; }
 `;
 
 export const Title = styled.h2`
-    font-size: 20px;
-    font-weight: 600;
-    color: #111827;
-    margin: 0 0 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.1px;
+    margin: 0 0 10px;
     line-height: 1.3;
 `;
 
 export const Message = styled.p`
-    font-size: 15px;
-    color: #6b7280;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #64748b;
     margin: 0;
     line-height: 1.5;
 `;
 
-export const Footer = styled.div`
-    display: flex;
-    gap: 12px;
-    padding: 0 32px 32px;
-`;
+const confirmPalette: Record<ConfirmationVariant, { bg: string; hover: string }> = {
+    danger:  { bg: '#dc2626', hover: '#b91c1c' },
+    warning: { bg: '#d97706', hover: '#b45309' },
+    info:    { bg: '#0ea5e9', hover: '#0284c7' },
+};
 
 export const CancelButton = styled.button`
     flex: 1;
-    padding: 12px 24px;
-    font-size: 15px;
-    font-weight: 500;
-    color: #374151;
-    background: white;
-    border: 1px solid #d1d5db;
-    border-radius: 12px;
+    padding: 11px 20px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #475569;
+    background: #f1f5f9;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 999px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 150ms ease;
 
     &:hover {
-        background: #f9fafb;
-        border-color: #9ca3af;
-    }
-
-    &:active {
-        transform: scale(0.98);
+        background: #e2e8f0;
+        color: #0f172a;
+        border-color: #cbd5e1;
     }
 `;
 
-const getConfirmButtonColors = (variant: ConfirmationVariant) => {
-    switch (variant) {
-        case 'danger':
-            return {
-                bg: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
-                hoverBg: 'linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)',
-            };
-        case 'warning':
-            return {
-                bg: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                hoverBg: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
-            };
-        case 'info':
-            return {
-                bg: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                hoverBg: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-            };
-        default:
-            return {
-                bg: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                hoverBg: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
-            };
-    }
-};
-
 export const ConfirmButton = styled.button<{ $variant: ConfirmationVariant }>`
     flex: 1;
-    padding: 12px 24px;
-    font-size: 15px;
-    font-weight: 500;
-    color: white;
-    background: ${props => getConfirmButtonColors(props.$variant).bg};
+    padding: 11px 20px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    background: ${p => confirmPalette[p.$variant].bg};
     border: none;
-    border-radius: 12px;
+    border-radius: 999px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 150ms ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
 
     &:hover {
-        background: ${props => getConfirmButtonColors(props.$variant).hoverBg};
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        background: ${p => confirmPalette[p.$variant].hover};
         transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
     }
 
-    &:active {
-        transform: scale(0.98) translateY(0);
-    }
+    &:active { transform: translateY(0); }
 `;

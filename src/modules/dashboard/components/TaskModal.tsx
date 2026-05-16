@@ -1,18 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import { X, ClipboardList } from 'lucide-react';
+import { ClipboardList } from 'lucide-react';
 import styled from 'styled-components';
 import {
-  ModalOverlay,
-  ModalBox,
+  ModalShell,
   ModalHeader,
   ModalTitleGroup,
   ModalTitle,
   ModalSubtitle,
-  ModalCloseButton,
   ModalContent,
   ModalFooter,
-} from '@/common/styles/sharedModalStyles';
+  CloseBtn,
+} from '@/common/components/ModalKit';
 import type { DashboardTask, CreateTaskPayload } from '../types';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
@@ -149,10 +147,6 @@ export const TaskModal = ({ isOpen, onClose, onSave, editingTask }: TaskModalPro
     }
   }, [isOpen, editingTask]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') onClose();
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
@@ -165,70 +159,63 @@ export const TaskModal = ({ isOpen, onClose, onSave, editingTask }: TaskModalPro
     }
   };
 
-  if (!isOpen) return null;
+  return (
+    <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="480px">
+      <ModalHeader>
+        <IconWrap>
+          <ClipboardList />
+        </IconWrap>
+        <ModalTitleGroup>
+          <ModalTitle>{isEditing ? 'Edytuj notatkę' : 'Nowa notatka'}</ModalTitle>
+          <ModalSubtitle>
+            {isEditing ? 'Zmień treść lub kontekst.' : 'Dodaj zadanie do listy "Do zrobienia".'}
+          </ModalSubtitle>
+        </ModalTitleGroup>
+        <CloseBtn onClick={onClose} aria-label="Zamknij" />
+      </ModalHeader>
 
-  return createPortal(
-    <ModalOverlay $isOpen={isOpen} onClick={onClose} onKeyDown={handleKeyDown}>
-      <ModalBox $isOpen={isOpen} $maxWidth="480px" onClick={e => e.stopPropagation()}>
-        <ModalHeader>
-          <IconWrap>
-            <ClipboardList />
-          </IconWrap>
-          <ModalTitleGroup>
-            <ModalTitle>{isEditing ? 'Edytuj notatkę' : 'Nowa notatka'}</ModalTitle>
-            <ModalSubtitle>
-              {isEditing ? 'Zmień treść lub kontekst.' : 'Dodaj zadanie do listy "Do zrobienia".'}
-            </ModalSubtitle>
-          </ModalTitleGroup>
-          <ModalCloseButton onClick={onClose} aria-label="Zamknij">
-            <X />
-          </ModalCloseButton>
-        </ModalHeader>
+      <form onSubmit={handleSubmit}>
+        <ModalContent>
+          <FieldGroup>
+            <Label htmlFor="task-title">Tytuł *</Label>
+            <Input
+              id="task-title"
+              ref={titleRef}
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="np. Zadzwoń do klienta, Zamów materiały…"
+              maxLength={200}
+              required
+            />
+            {title.length > 160 && (
+              <CharCount $warn={title.length > 190}>{title.length}/200</CharCount>
+            )}
+          </FieldGroup>
 
-        <form onSubmit={handleSubmit}>
-          <ModalContent>
-            <FieldGroup>
-              <Label htmlFor="task-title">Tytuł *</Label>
-              <Input
-                id="task-title"
-                ref={titleRef}
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                placeholder="np. Zadzwoń do klienta, Zamów materiały…"
-                maxLength={200}
-                required
-              />
-              {title.length > 160 && (
-                <CharCount $warn={title.length > 190}>{title.length}/200</CharCount>
-              )}
-            </FieldGroup>
+          <FieldGroup>
+            <Label htmlFor="task-meta">Kontekst (opcjonalnie)</Label>
+            <Textarea
+              id="task-meta"
+              value={meta}
+              onChange={e => setMeta(e.target.value)}
+              placeholder="np. Pilne · do piątku, Magazyn · niski stan…"
+              maxLength={300}
+            />
+            {meta.length > 220 && (
+              <CharCount $warn={meta.length > 280}>{meta.length}/300</CharCount>
+            )}
+          </FieldGroup>
+        </ModalContent>
 
-            <FieldGroup>
-              <Label htmlFor="task-meta">Kontekst (opcjonalnie)</Label>
-              <Textarea
-                id="task-meta"
-                value={meta}
-                onChange={e => setMeta(e.target.value)}
-                placeholder="np. Pilne · do piątku, Magazyn · niski stan…"
-                maxLength={300}
-              />
-              {meta.length > 220 && (
-                <CharCount $warn={meta.length > 280}>{meta.length}/300</CharCount>
-              )}
-            </FieldGroup>
-          </ModalContent>
-
-          <ModalFooter>
-            <BtnGhost type="button" onClick={onClose}>
-              Anuluj
-            </BtnGhost>
-            <BtnPrimary type="submit" disabled={!title.trim() || saving} $loading={saving}>
-              {saving ? 'Zapisuję…' : isEditing ? 'Zapisz zmiany' : 'Dodaj notatkę'}
-            </BtnPrimary>
-          </ModalFooter>
-        </form>
-      </ModalBox>
-    </ModalOverlay>,
-    document.body,
+        <ModalFooter>
+          <BtnGhost type="button" onClick={onClose}>
+            Anuluj
+          </BtnGhost>
+          <BtnPrimary type="submit" disabled={!title.trim() || saving} $loading={saving}>
+            {saving ? 'Zapisuję…' : isEditing ? 'Zapisz zmiany' : 'Dodaj notatkę'}
+          </BtnPrimary>
+        </ModalFooter>
+      </form>
+    </ModalShell>
   );
 };

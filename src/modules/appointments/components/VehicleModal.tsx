@@ -5,15 +5,16 @@ import { t } from '@/common/i18n';
 import type { Vehicle, SelectedVehicle } from '../types';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import {
-    ModalOverlay,
-    ModalBox,
+    ModalShell,
     ModalHeader,
     ModalTitleGroup,
     ModalTitle,
-    ModalCloseButton,
     ModalContent,
     ModalFooter,
-    ModalSectionDivider,
+    ModalDivider,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import {
     FormFieldGroup,
     FormLabel,
     FormErrorMessage,
@@ -92,16 +93,6 @@ const FormGrid = styled.div`
     }
 `;
 
-// ─── Close icon ───────────────────────────────────────────────────────────────
-
-const IconX = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-        strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"/>
-        <line x1="6" y1="6" x2="18" y2="18"/>
-    </svg>
-);
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface VehicleModalProps {
@@ -156,102 +147,95 @@ export const VehicleModal = ({
         onClose();
     };
 
-    if (!isOpen) return null;
-
     const title = showNewForm
         ? t.appointments.vehicleModal.titleNew
         : t.appointments.vehicleModal.titleSelect;
 
     return (
-        <ModalOverlay $isOpen={isOpen} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-            <ModalBox $isOpen={isOpen} $maxWidth="640px">
+        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="640px">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>{title}</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
 
-                <ModalHeader>
-                    <ModalTitleGroup>
-                        <ModalTitle>{title}</ModalTitle>
-                    </ModalTitleGroup>
-                    <ModalCloseButton type="button" onClick={onClose}>
-                        <IconX />
-                    </ModalCloseButton>
-                </ModalHeader>
+            <ModalContent>
+                {!showNewForm ? (
+                    <>
+                        {vehicles.length > 0 && (
+                            <>
+                                <VehicleGrid>
+                                    {vehicles.map((vehicle) => (
+                                        <VehicleCard
+                                            key={vehicle.id}
+                                            type="button"
+                                            onClick={() => handleVehicleClick(vehicle)}
+                                        >
+                                            <VehicleName>
+                                                {vehicle.brand} {vehicle.model}
+                                            </VehicleName>
+                                            <VehicleDetails>
+                                                <VehicleDetail>
+                                                    {t.appointments.vehicleModal.year}: {vehicle.year}
+                                                </VehicleDetail>
+                                                <VehicleDetail>·</VehicleDetail>
+                                                <VehicleDetail>{vehicle.licensePlate}</VehicleDetail>
+                                            </VehicleDetails>
+                                        </VehicleCard>
+                                    ))}
+                                </VehicleGrid>
+                                <ModalDivider />
+                            </>
+                        )}
 
-                <ModalContent>
-                    {!showNewForm ? (
-                        <>
-                            {vehicles.length > 0 && (
-                                <>
-                                    <VehicleGrid>
-                                        {vehicles.map((vehicle) => (
-                                            <VehicleCard
-                                                key={vehicle.id}
-                                                type="button"
-                                                onClick={() => handleVehicleClick(vehicle)}
-                                            >
-                                                <VehicleName>
-                                                    {vehicle.brand} {vehicle.model}
-                                                </VehicleName>
-                                                <VehicleDetails>
-                                                    <VehicleDetail>
-                                                        {t.appointments.vehicleModal.year}: {vehicle.year}
-                                                    </VehicleDetail>
-                                                    <VehicleDetail>·</VehicleDetail>
-                                                    <VehicleDetail>{vehicle.licensePlate}</VehicleDetail>
-                                                </VehicleDetails>
-                                            </VehicleCard>
-                                        ))}
-                                    </VehicleGrid>
-                                    <ModalSectionDivider />
-                                </>
-                            )}
-
-                            <SharedButtonGroup $align="between">
-                                <SharedButton $variant="primary" type="button" onClick={() => setShowNewForm(true)}>
-                                    {t.appointments.vehicleModal.addNewButton}
+                        <SharedButtonGroup $align="between">
+                            <SharedButton $variant="primary" type="button" onClick={() => setShowNewForm(true)}>
+                                {t.appointments.vehicleModal.addNewButton}
+                            </SharedButton>
+                            {allowSkip && (
+                                <SharedButton $variant="ghost" type="button" onClick={handleSkip}>
+                                    {t.appointments.vehicleModal.skip}
                                 </SharedButton>
-                                {allowSkip && (
-                                    <SharedButton $variant="ghost" type="button" onClick={handleSkip}>
-                                        {t.appointments.vehicleModal.skip}
-                                    </SharedButton>
-                                )}
-                            </SharedButtonGroup>
-                        </>
-                    ) : (
-                        <FormGrid>
-                            <FormFieldGroup>
-                                <FormLabel>{t.appointments.vehicleModal.brand}</FormLabel>
-                                <BrandSelect
-                                    value={formData.brand}
-                                    onChange={(val) => setFormData({ ...formData, brand: val, model: '' })}
-                                    autoOpen={true}
-                                />
-                                {errors.brand && <FormErrorMessage>{errors.brand}</FormErrorMessage>}
-                            </FormFieldGroup>
+                            )}
+                        </SharedButtonGroup>
+                    </>
+                ) : (
+                    <FormGrid>
+                        <FormFieldGroup>
+                            <FormLabel>{t.appointments.vehicleModal.brand}</FormLabel>
+                            <BrandSelect
+                                value={formData.brand}
+                                onChange={(val) => setFormData({ ...formData, brand: val, model: '' })}
+                                autoOpen={true}
+                            />
+                            {errors.brand && <FormErrorMessage>{errors.brand}</FormErrorMessage>}
+                        </FormFieldGroup>
 
-                            <FormFieldGroup>
-                                <FormLabel>{t.appointments.vehicleModal.model}</FormLabel>
-                                <ModelSelect
-                                    brand={formData.brand}
-                                    value={formData.model}
-                                    onChange={(val) => setFormData({ ...formData, model: val })}
-                                    autoOpen={true}
-                                />
-                                {errors.model && <FormErrorMessage>{errors.model}</FormErrorMessage>}
-                            </FormFieldGroup>
-                        </FormGrid>
-                    )}
-                </ModalContent>
-
-                {showNewForm && (
-                    <ModalFooter>
-                        <SharedButton $variant="secondary" type="button" onClick={() => setShowNewForm(false)}>
-                            {t.appointments.vehicleModal.cancelButton}
-                        </SharedButton>
-                        <SharedButton $variant="primary" type="button" onClick={handleSubmitNew}>
-                            {t.appointments.vehicleModal.confirmButton}
-                        </SharedButton>
-                    </ModalFooter>
+                        <FormFieldGroup>
+                            <FormLabel>{t.appointments.vehicleModal.model}</FormLabel>
+                            <ModelSelect
+                                brand={formData.brand}
+                                value={formData.model}
+                                onChange={(val) => setFormData({ ...formData, model: val })}
+                                autoOpen={true}
+                            />
+                            {errors.model && <FormErrorMessage>{errors.model}</FormErrorMessage>}
+                        </FormFieldGroup>
+                    </FormGrid>
                 )}
-            </ModalBox>
-        </ModalOverlay>
+            </ModalContent>
+
+            {showNewForm && (
+                <ModalFooter>
+                    <SharedButton $variant="secondary" type="button" onClick={() => setShowNewForm(false)}>
+                        {t.appointments.vehicleModal.cancelButton}
+                    </SharedButton>
+                    <SharedButton $variant="primary" type="button" onClick={handleSubmitNew}>
+                        {t.appointments.vehicleModal.confirmButton}
+                    </SharedButton>
+                </ModalFooter>
+            )}
+        </ModalShell>
     );
 };

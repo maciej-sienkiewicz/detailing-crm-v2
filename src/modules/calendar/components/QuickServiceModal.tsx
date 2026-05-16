@@ -7,8 +7,7 @@ import {
     ModalContainer,
     Form,
     Header,
-    DragHandle,
-    DragHandleBar,
+    TitleGroup,
     CloseButton,
     Title,
     Content,
@@ -120,15 +119,12 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
             <ModalContainer $isOpen={isOpen}>
                 <Form onSubmit={handleSubmit}>
                     <Header>
-                        <DragHandle>
-                            <DragHandleBar />
-                        </DragHandle>
-
+                        <TitleGroup>
+                            <Title>Wprowadź nową usługę</Title>
+                        </TitleGroup>
                         <CloseButton type="button" onClick={onClose}>
                             <IconX />
                         </CloseButton>
-
-                        <Title>Wprowadź nową usługę</Title>
                     </Header>
 
                     <Content>

@@ -2,67 +2,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { useCreateExpense } from '../hooks/useKsef';
+import {
+  ModalShell,
+  ModalHeader,
+  ModalTitleGroup,
+  ModalTitle,
+  ModalContent,
+  ModalFooter,
+  ModalSectionTitle,
+  CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 
-// ─── Overlay / Modal ──────────────────────────────────────────────────────────
-
-const Overlay = styled.div<{ $open: boolean }>`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 1100;
-  display: ${(p) => (p.$open ? 'flex' : 'none')};
-  align-items: center;
-  justify-content: center;
-  padding: ${(p) => p.theme.spacing.md};
-`;
-
-const Modal = styled.div`
-  background: ${(p) => p.theme.colors.surface};
-  border-radius: ${(p) => p.theme.radii.xl};
-  padding: ${(p) => p.theme.spacing.xl};
-  width: 100%;
-  max-width: 540px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: ${(p) => p.theme.shadows.xl};
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${(p) => p.theme.spacing.lg};
-`;
-
-const ModalTitle = styled.h2`
-  font-size: ${(p) => p.theme.fontSizes.lg};
-  font-weight: ${(p) => p.theme.fontWeights.bold};
-  color: ${(p) => p.theme.colors.text};
-  margin: 0;
-`;
-
-const CloseBtn = styled.button`
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: ${(p) => p.theme.colors.surfaceAlt};
-  color: ${(p) => p.theme.colors.textMuted};
-  border-radius: ${(p) => p.theme.radii.md};
-  cursor: pointer;
-  font-size: 16px;
-  &:hover { background: ${(p) => p.theme.colors.surfaceHover}; }
-`;
-
-// ─── Form ─────────────────────────────────────────────────────────────────────
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: ${(p) => p.theme.spacing.md};
-`;
+// ─── Form field styled-components ────────────────────────────────────────────
 
 const FieldRow = styled.div`
   display: grid;
@@ -263,17 +215,7 @@ const ModalSelect: React.FC<ModalSelectProps> = ({ value, onChange, options, pla
   );
 };
 
-// ─── Section title / Footer / Buttons ─────────────────────────────────────────
-
-const SectionTitle = styled.div`
-  font-size: ${(p) => p.theme.fontSizes.xs};
-  font-weight: ${(p) => p.theme.fontWeights.semibold};
-  color: ${(p) => p.theme.colors.textMuted};
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding-bottom: ${(p) => p.theme.spacing.xs};
-  border-bottom: 1px solid ${(p) => p.theme.colors.border};
-`;
+// ─── Info / Error ─────────────────────────────────────────────────────────────
 
 const InfoBox = styled.div`
   padding: 10px 14px;
@@ -283,39 +225,6 @@ const InfoBox = styled.div`
   font-size: 12px;
   color: #1e40af;
   line-height: 1.5;
-`;
-
-const Footer = styled.div`
-  display: flex;
-  gap: ${(p) => p.theme.spacing.sm};
-  margin-top: ${(p) => p.theme.spacing.sm};
-  justify-content: flex-end;
-`;
-
-const CancelBtn = styled.button`
-  padding: ${(p) => p.theme.spacing.sm} ${(p) => p.theme.spacing.lg};
-  font-size: ${(p) => p.theme.fontSizes.sm};
-  font-weight: ${(p) => p.theme.fontWeights.medium};
-  border: 1px solid ${(p) => p.theme.colors.border};
-  background: ${(p) => p.theme.colors.surface};
-  color: ${(p) => p.theme.colors.text};
-  border-radius: ${(p) => p.theme.radii.md};
-  cursor: pointer;
-  &:hover { background: ${(p) => p.theme.colors.surfaceHover}; }
-`;
-
-const SubmitBtn = styled.button<{ $loading?: boolean }>`
-  padding: ${(p) => p.theme.spacing.sm} ${(p) => p.theme.spacing.lg};
-  font-size: ${(p) => p.theme.fontSizes.sm};
-  font-weight: ${(p) => p.theme.fontWeights.semibold};
-  border: none;
-  background: linear-gradient(135deg, var(--brand-primary) 0%, #0284c7 100%);
-  color: white;
-  border-radius: ${(p) => p.theme.radii.md};
-  cursor: ${(p) => (p.$loading ? 'not-allowed' : 'pointer')};
-  opacity: ${(p) => (p.$loading ? 0.7 : 1)};
-  transition: all 0.15s ease;
-  &:hover:not(:disabled) { filter: brightness(1.08); }
 `;
 
 const ErrorMsg = styled.p`
@@ -469,21 +378,23 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
     }
   };
 
-  return createPortal(
-    <Overlay $open={isOpen} onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <Modal>
-        <ModalHeader>
+  return (
+    <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="540px">
+      <ModalHeader>
+        <ModalTitleGroup>
           <ModalTitle>Dodaj fakturę kosztową ręcznie</ModalTitle>
-          <CloseBtn onClick={onClose}>✕</CloseBtn>
-        </ModalHeader>
+        </ModalTitleGroup>
+        <CloseBtn onClick={onClose} />
+      </ModalHeader>
 
-        <Form onSubmit={handleSubmit}>
+      <ModalContent>
+        <form id="expense-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'inherit' }}>
           <InfoBox>
             Użyj tego formularza dla dostawców, którzy <strong>nie wystawiają faktur w KSeF</strong> (np. małe firmy,
             zagraniczne usługi, faktury gotówkowe). Faktury z KSeF są pobierane automatycznie.
           </InfoBox>
 
-          <SectionTitle>Faktura</SectionTitle>
+          <ModalSectionTitle>Faktura</ModalSectionTitle>
 
           <FieldRow>
             <Field>
@@ -501,7 +412,7 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </Field>
           </FieldRow>
 
-          <SectionTitle>Sprzedawca</SectionTitle>
+          <ModalSectionTitle>Sprzedawca</ModalSectionTitle>
 
           <Field>
             <Label>Nazwa sprzedawcy<OptionalTag>opcjonalne</OptionalTag></Label>
@@ -527,7 +438,7 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
             <div />
           </FieldRow>
 
-          <SectionTitle>Kwoty (PLN)</SectionTitle>
+          <ModalSectionTitle>Kwoty (PLN)</ModalSectionTitle>
 
           <FieldRow>
             <Field>
@@ -566,7 +477,7 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </Field>
           </FieldRow>
 
-          <SectionTitle>Płatność</SectionTitle>
+          <ModalSectionTitle>Płatność</ModalSectionTitle>
 
           <Field>
             <Label>Forma płatności<OptionalTag>opcjonalne</OptionalTag></Label>
@@ -579,16 +490,20 @@ export const AddExpenseModal: React.FC<Props> = ({ isOpen, onClose }) => {
           </Field>
 
           {error && <ErrorMsg>{error}</ErrorMsg>}
+        </form>
+      </ModalContent>
 
-          <Footer>
-            <CancelBtn type="button" onClick={onClose}>Anuluj</CancelBtn>
-            <SubmitBtn type="submit" $loading={createExpense.isPending} disabled={createExpense.isPending}>
-              {createExpense.isPending ? 'Zapisywanie…' : 'Zapisz fakturę'}
-            </SubmitBtn>
-          </Footer>
-        </Form>
-      </Modal>
-    </Overlay>,
-    document.body
+      <ModalFooter>
+        <SharedButton $variant="secondary" type="button" onClick={onClose}>Anuluj</SharedButton>
+        <SharedButton
+          $variant="primary"
+          type="submit"
+          form="expense-form"
+          disabled={createExpense.isPending}
+        >
+          {createExpense.isPending ? 'Zapisywanie…' : 'Zapisz fakturę'}
+        </SharedButton>
+      </ModalFooter>
+    </ModalShell>
   );
 };

@@ -7,8 +7,17 @@
 
 import { useState, useRef } from 'react';
 import styled from 'styled-components';
-import { Modal } from '@/common/components/Modal/Modal';
-import { Button } from '@/common/components/Button/Button';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalSubtitle,
+    ModalContent,
+    ModalFooter,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import { FormGrid, FieldGroup, Label, ErrorMessage } from '@/common/components/Form/Form';
 import { t } from '@/common/i18n';
 import { useAddVersion } from '../hooks/useConsents';
@@ -43,9 +52,7 @@ export const UploadTemplateModal = ({
         setRequiresResign(false);
         setSetAsActive(true);
         setErrors({});
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
+        if (fileInputRef.current) fileInputRef.current.value = '';
         onClose();
     };
 
@@ -55,14 +62,11 @@ export const UploadTemplateModal = ({
             setSelectedFile(null);
             return;
         }
-
-        // Validate file type
         if (file.type !== 'application/pdf') {
             setErrors({ file: t.consents.validation.filePdfOnly });
             setSelectedFile(null);
             return;
         }
-
         setErrors({});
         setSelectedFile(file);
     };
@@ -73,161 +77,143 @@ export const UploadTemplateModal = ({
 
     const validateForm = () => {
         const newErrors: Record<string, string> = {};
-
-        if (!selectedFile) {
-            newErrors.file = t.consents.validation.fileRequired;
-        }
-
+        if (!selectedFile) newErrors.file = t.consents.validation.fileRequired;
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
-        if (!validateForm() || !selectedFile) {
-            return;
-        }
-
+        if (!validateForm() || !selectedFile) return;
         addVersion({
             definitionId,
-            request: {
-                requiresResign,
-                setAsActive,
-            },
+            request: { requiresResign, setAsActive },
             file: selectedFile,
         });
     };
 
     return (
-        <Modal
-            isOpen={isOpen}
-            onClose={handleClose}
-            maxWidth="600px"
-            title={t.consents.uploadTemplateModal.title}
-        >
+        <ModalShell isOpen={isOpen} onClose={handleClose} maxWidth="600px">
             <ModalHeader>
-                <ModalTitle>{t.consents.uploadTemplateModal.title}</ModalTitle>
-                <ModalSubtitle>{definitionName}</ModalSubtitle>
+                <ModalTitleGroup>
+                    <ModalTitle>{t.consents.uploadTemplateModal.title}</ModalTitle>
+                    <ModalSubtitle>{definitionName}</ModalSubtitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={handleClose} />
             </ModalHeader>
 
-            <Form onSubmit={handleSubmit}>
-                <FormGrid>
-                    <FieldGroupFull>
-                        <Label>
-                            {t.consents.uploadTemplateModal.fileLabel}
-                            <RequiredStar>*</RequiredStar>
-                        </Label>
-                        <FileInputWrapper>
-                            <HiddenFileInput
-                                ref={fileInputRef}
-                                type="file"
-                                accept=".pdf,application/pdf"
-                                onChange={handleFileChange}
-                                disabled={isUploading}
-                            />
-                            <FileSelectButton
-                                type="button"
-                                onClick={handleSelectFile}
-                                disabled={isUploading}
-                                $hasError={!!errors.file}
-                            >
-                                {selectedFile
-                                    ? `${t.consents.uploadTemplateModal.fileSelected}: ${selectedFile.name}`
-                                    : t.consents.uploadTemplateModal.selectFile}
-                            </FileSelectButton>
-                        </FileInputWrapper>
-                        <HintText>{t.consents.uploadTemplateModal.fileHint}</HintText>
-                        {errors.file && <ErrorMessage>{errors.file}</ErrorMessage>}
-                    </FieldGroupFull>
+            <ModalContent>
+                <Form id="upload-template-form" onSubmit={handleSubmit}>
+                    <FormGrid>
+                        <FieldGroupFull>
+                            <Label>
+                                {t.consents.uploadTemplateModal.fileLabel}
+                                <RequiredStar>*</RequiredStar>
+                            </Label>
+                            <FileInputWrapper>
+                                <HiddenFileInput
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept=".pdf,application/pdf"
+                                    onChange={handleFileChange}
+                                    disabled={isUploading}
+                                />
+                                <FileSelectButton
+                                    type="button"
+                                    onClick={handleSelectFile}
+                                    disabled={isUploading}
+                                    $hasError={!!errors.file}
+                                >
+                                    {selectedFile
+                                        ? `${t.consents.uploadTemplateModal.fileSelected}: ${selectedFile.name}`
+                                        : t.consents.uploadTemplateModal.selectFile}
+                                </FileSelectButton>
+                            </FileInputWrapper>
+                            <HintText>{t.consents.uploadTemplateModal.fileHint}</HintText>
+                            {errors.file && <ErrorMessage>{errors.file}</ErrorMessage>}
+                        </FieldGroupFull>
 
-                    <FieldGroupFull>
-                        <CheckboxLabel>
-                            <Checkbox
-                                type="checkbox"
-                                checked={requiresResign}
-                                onChange={(e) => setRequiresResign(e.target.checked)}
-                                disabled={isUploading}
-                            />
-                            <CheckboxText>
-                                {t.consents.uploadTemplateModal.requiresResignLabel}
-                            </CheckboxText>
-                        </CheckboxLabel>
-                        <HintText>{t.consents.uploadTemplateModal.requiresResignHint}</HintText>
-                        {requiresResign && (
-                            <WarningBox>
-                                <WarningIcon>⚠️</WarningIcon>
-                                <WarningText>
-                                    Włączenie tej opcji spowoduje, że wszyscy klienci będą musieli
-                                    ponownie podpisać tę zgodę.
-                                </WarningText>
-                            </WarningBox>
-                        )}
-                    </FieldGroupFull>
+                        <FieldGroupFull>
+                            <CheckboxLabel>
+                                <Checkbox
+                                    type="checkbox"
+                                    checked={requiresResign}
+                                    onChange={(e) => setRequiresResign(e.target.checked)}
+                                    disabled={isUploading}
+                                />
+                                <CheckboxText>{t.consents.uploadTemplateModal.requiresResignLabel}</CheckboxText>
+                            </CheckboxLabel>
+                            <HintText>{t.consents.uploadTemplateModal.requiresResignHint}</HintText>
+                            {requiresResign && (
+                                <WarningBox>
+                                    <WarningIcon>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
+                                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                                            <path d="M12 9v4M12 17h.01" />
+                                        </svg>
+                                    </WarningIcon>
+                                    <WarningText>
+                                        Włączenie tej opcji spowoduje, że wszyscy klienci będą musieli
+                                        ponownie podpisać tę zgodę.
+                                    </WarningText>
+                                </WarningBox>
+                            )}
+                        </FieldGroupFull>
 
-                    <FieldGroupFull>
-                        <CheckboxLabel>
-                            <Checkbox
-                                type="checkbox"
-                                checked={setAsActive}
-                                onChange={(e) => setSetAsActive(e.target.checked)}
-                                disabled={isUploading}
-                            />
-                            <CheckboxText>
-                                {t.consents.uploadTemplateModal.setAsActiveLabel}
-                            </CheckboxText>
-                        </CheckboxLabel>
-                        <HintText>{t.consents.uploadTemplateModal.setAsActiveHint}</HintText>
-                    </FieldGroupFull>
-                </FormGrid>
+                        <FieldGroupFull>
+                            <CheckboxLabel>
+                                <Checkbox
+                                    type="checkbox"
+                                    checked={setAsActive}
+                                    onChange={(e) => setSetAsActive(e.target.checked)}
+                                    disabled={isUploading}
+                                />
+                                <CheckboxText>{t.consents.uploadTemplateModal.setAsActiveLabel}</CheckboxText>
+                            </CheckboxLabel>
+                            <HintText>{t.consents.uploadTemplateModal.setAsActiveHint}</HintText>
+                        </FieldGroupFull>
+                    </FormGrid>
 
-                {apiError && (
-                    <ErrorMessage>{t.consents.error.uploadTemplateFailed}</ErrorMessage>
-                )}
+                    {apiError && (
+                        <ErrorMessage>{t.consents.error.uploadTemplateFailed}</ErrorMessage>
+                    )}
 
-                {isUploading && (
-                    <UploadProgress>
-                        <Spinner />
-                        <UploadText>{t.consents.uploadTemplateModal.uploadingToS3}</UploadText>
-                    </UploadProgress>
-                )}
+                    {isUploading && (
+                        <UploadProgress>
+                            <Spinner />
+                            <UploadProgressText>{t.consents.uploadTemplateModal.uploadingToS3}</UploadProgressText>
+                        </UploadProgress>
+                    )}
+                </Form>
+            </ModalContent>
 
-                <ModalActions>
-                    <Button
-                        type="button"
-                        $variant="secondary"
-                        onClick={handleClose}
-                        disabled={isUploading}
-                    >
-                        {t.consents.uploadTemplateModal.cancel}
-                    </Button>
-                    <Button type="submit" $variant="primary" disabled={isUploading}>
-                        {isUploading
-                            ? t.consents.uploadTemplateModal.uploading
-                            : t.consents.uploadTemplateModal.upload}
-                    </Button>
-                </ModalActions>
-            </Form>
-        </Modal>
+            <ModalFooter>
+                <SharedButton
+                    type="button"
+                    $variant="secondary"
+                    $size="sm"
+                    onClick={handleClose}
+                    disabled={isUploading}
+                >
+                    {t.consents.uploadTemplateModal.cancel}
+                </SharedButton>
+                <SharedButton
+                    type="submit"
+                    form="upload-template-form"
+                    $variant="primary"
+                    $size="sm"
+                    disabled={isUploading}
+                >
+                    {isUploading
+                        ? t.consents.uploadTemplateModal.uploading
+                        : t.consents.uploadTemplateModal.upload}
+                </SharedButton>
+            </ModalFooter>
+        </ModalShell>
     );
 };
 
-const ModalHeader = styled.div`
-    margin-bottom: ${(props) => props.theme.spacing.lg};
-`;
-
-const ModalTitle = styled.h2`
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: ${(props) => props.theme.colors.text};
-    margin: 0 0 ${(props) => props.theme.spacing.xs} 0;
-`;
-
-const ModalSubtitle = styled.p`
-    font-size: 0.875rem;
-    color: ${(props) => props.theme.colors.textSecondary};
-    margin: 0;
-`;
+// ─── Local styles ─────────────────────────────────────────────────────────────
 
 const Form = styled.form`
     display: flex;
@@ -250,15 +236,12 @@ const FileInputWrapper = styled.div`
     gap: ${(props) => props.theme.spacing.sm};
 `;
 
-const HiddenFileInput = styled.input`
-    display: none;
-`;
+const HiddenFileInput = styled.input`display: none;`;
 
 const FileSelectButton = styled.button<{ $hasError?: boolean }>`
     padding: ${(props) => props.theme.spacing.sm} ${(props) => props.theme.spacing.md};
-    border: 2px dashed
-        ${(props) =>
-            props.$hasError ? props.theme.colors.error : props.theme.colors.border};
+    border: 2px dashed ${(props) =>
+        props.$hasError ? props.theme.colors.error : props.theme.colors.border};
     border-radius: ${(props) => props.theme.radii.md};
     background-color: ${(props) => props.theme.colors.surface};
     color: ${(props) => props.theme.colors.text};
@@ -272,10 +255,7 @@ const FileSelectButton = styled.button<{ $hasError?: boolean }>`
         background-color: ${(props) => props.theme.colors.surfaceHover};
     }
 
-    &:disabled {
-        cursor: not-allowed;
-        opacity: 0.6;
-    }
+    &:disabled { cursor: not-allowed; opacity: 0.6; }
 `;
 
 const HintText = styled.span`
@@ -297,9 +277,7 @@ const Checkbox = styled.input`
     cursor: pointer;
     accent-color: ${(props) => props.theme.colors.primary};
 
-    &:disabled {
-        cursor: not-allowed;
-    }
+    &:disabled { cursor: not-allowed; }
 `;
 
 const CheckboxText = styled.span`
@@ -316,11 +294,13 @@ const WarningBox = styled.div`
     border: 1px solid ${(props) => props.theme.colors.warning};
     border-radius: ${(props) => props.theme.radii.md};
     margin-top: ${(props) => props.theme.spacing.sm};
+    align-items: flex-start;
 `;
 
 const WarningIcon = styled.span`
-    font-size: 1.25rem;
     flex-shrink: 0;
+    margin-top: 1px;
+    color: #d97706;
 `;
 
 const WarningText = styled.span`
@@ -344,22 +324,12 @@ const Spinner = styled.div`
     border-top-color: ${(props) => props.theme.colors.primary};
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
 
-    @keyframes spin {
-        to {
-            transform: rotate(360deg);
-        }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 `;
 
-const UploadText = styled.span`
+const UploadProgressText = styled.span`
     font-size: 0.875rem;
     color: ${(props) => props.theme.colors.textSecondary};
-`;
-
-const ModalActions = styled.div`
-    display: flex;
-    gap: ${(props) => props.theme.spacing.md};
-    justify-content: flex-end;
-    margin-top: ${(props) => props.theme.spacing.md};
 `;

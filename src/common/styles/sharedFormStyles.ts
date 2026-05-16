@@ -156,6 +156,36 @@ export const FormSubmitError = styled.div`
     font-weight: 500;
 `;
 
+// ─── Native select ────────────────────────────────────────────────────────────
+
+export const FormSelect = styled.select<{ $hasError?: boolean }>`
+    width: 100%;
+    padding: 11px 16px;
+    background: #ffffff;
+    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : '#e2e8f0'};
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: 400;
+    color: #0f172a;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+
+    &:focus {
+        border-color: ${p => p.$hasError ? '#ef4444' : '#0ea5e9'};
+        box-shadow: 0 0 0 3px ${p =>
+            p.$hasError ? 'rgba(239,68,68,0.12)' : 'rgba(14,165,233,0.14)'};
+    }
+
+    &:disabled {
+        background: #f8fafc;
+        color: #94a3b8;
+        cursor: not-allowed;
+        border-color: #f1f5f9;
+    }
+`;
+
 // ─── Checkbox card ────────────────────────────────────────────────────────────
 
 export const FormCheckboxCard = styled.div`

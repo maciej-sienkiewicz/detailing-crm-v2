@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Modal } from '@/common/components/Modal';
-import { Button, ButtonGroup } from '@/common/components/Button';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalContent,
+    ModalFooter,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import { ErrorMessage } from '@/common/components/Form';
 import {
     useCreateProtocolTemplate,
@@ -43,11 +51,7 @@ const Input = styled.input`
     transition: all 180ms;
     width: 100%;
 
-    &:focus {
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
-    }
-
+    &:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14); }
     &::placeholder { color: #94a3b8; }
 `;
 
@@ -65,17 +69,11 @@ const Textarea = styled.textarea`
     transition: all 180ms;
     width: 100%;
 
-    &:focus {
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
-    }
-
+    &:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14); }
     &::placeholder { color: #94a3b8; }
 `;
 
-const HiddenInput = styled.input`
-    display: none;
-`;
+const HiddenInput = styled.input`display: none;`;
 
 const UploadArea = styled.div<{ $hasFile: boolean }>`
     border: 2px dashed ${props => props.$hasFile ? '#0ea5e9' : '#cbd5e1'};
@@ -86,152 +84,83 @@ const UploadArea = styled.div<{ $hasFile: boolean }>`
     cursor: pointer;
     transition: all 180ms;
 
-    &:hover {
-        border-color: #0ea5e9;
-        background: rgba(14, 165, 233, 0.04);
-    }
+    &:hover { border-color: #0ea5e9; background: rgba(14, 165, 233, 0.04); }
 `;
 
 const UploadIconWrap = styled.div`
-    width: 48px;
-    height: 48px;
+    width: 48px; height: 48px;
     margin: 0 auto 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     border-radius: 50%;
     background: rgba(14, 165, 233, 0.12);
     color: #0284c7;
-
     svg { width: 24px; height: 24px; }
 `;
 
 const UploadTitle = styled.div`
-    font-size: 14px;
-    font-weight: 600;
-    color: #334155;
-    margin-bottom: 4px;
+    font-size: 14px; font-weight: 600; color: #334155; margin-bottom: 4px;
 `;
 
 const UploadHint = styled.div`
-    font-size: 12px;
-    color: #94a3b8;
+    font-size: 12px; color: #94a3b8;
 `;
 
 const FilePreview = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px; background: white;
+    border: 1px solid #e2e8f0; border-radius: 10px;
 `;
 
 const FileIconWrap = styled.div`
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    background: rgba(220, 38, 38, 0.1);
-    color: #dc2626;
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 8px; background: rgba(220, 38, 38, 0.1); color: #dc2626;
     flex-shrink: 0;
     svg { width: 20px; height: 20px; }
 `;
 
-const FileInfo = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
+const FileInfo = styled.div`flex: 1; min-width: 0;`;
 
 const FileName = styled.div`
-    font-size: 13px;
-    font-weight: 500;
-    color: #0f172a;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 13px; font-weight: 500; color: #0f172a;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 `;
 
-const FileSize = styled.div`
-    font-size: 12px;
-    color: #64748b;
-    margin-top: 2px;
-`;
+const FileSize = styled.div`font-size: 12px; color: #64748b; margin-top: 2px;`;
 
 const RemoveBtn = styled.button`
-    padding: 6px;
-    background: transparent;
-    border: none;
-    color: #94a3b8;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: all 150ms;
-    display: flex;
-    align-items: center;
-
+    padding: 6px; background: transparent; border: none;
+    color: #94a3b8; cursor: pointer; border-radius: 6px;
+    transition: all 150ms; display: flex; align-items: center;
     &:hover { background: rgba(220, 38, 38, 0.08); color: #dc2626; }
     svg { width: 16px; height: 16px; }
 `;
 
 const StageRow = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
 `;
 
 const StageCard = styled.button<{ $selected: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 14px;
-    border-radius: 10px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px; border-radius: 10px;
     border: 1.5px solid ${props => props.$selected ? '#0ea5e9' : '#e2e8f0'};
     background: ${props => props.$selected ? 'rgba(14,165,233,0.06)' : 'white'};
-    cursor: pointer;
-    transition: all 180ms;
-    text-align: left;
-    font-family: inherit;
+    cursor: pointer; transition: all 180ms; text-align: left; font-family: inherit;
 
-    &:hover {
-        border-color: #0ea5e9;
-        background: rgba(14, 165, 233, 0.04);
-    }
+    &:hover { border-color: #0ea5e9; background: rgba(14, 165, 233, 0.04); }
 `;
 
 const StageIconWrap = styled.div<{ $stage: ProtocolStage }>`
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    background: ${props => props.$stage === 'CHECK_IN'
-        ? 'rgba(16,185,129,0.12)'
-        : 'rgba(99,102,241,0.12)'};
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    background: ${props => props.$stage === 'CHECK_IN' ? 'rgba(16,185,129,0.12)' : 'rgba(99,102,241,0.12)'};
     color: ${props => props.$stage === 'CHECK_IN' ? '#059669' : '#6366f1'};
     svg { width: 16px; height: 16px; }
 `;
 
-const StageText = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
+const StageText = styled.div`flex: 1; min-width: 0;`;
 
-const StageName = styled.div`
-    font-size: 13px;
-    font-weight: 600;
-    color: #0f172a;
-`;
-
-const StageDesc = styled.div`
-    font-size: 11px;
-    color: #64748b;
-    margin-top: 2px;
-`;
+const StageName = styled.div`font-size: 13px; font-weight: 600; color: #0f172a;`;
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -306,10 +235,7 @@ export function AddDocumentModal({ isOpen, onClose, initialStage = 'CHECK_IN', o
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
-    const handleClose = () => {
-        reset();
-        onClose();
-    };
+    const handleClose = () => { reset(); onClose(); };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0];
@@ -369,7 +295,6 @@ export function AddDocumentModal({ isOpen, onClose, initialStage = 'CHECK_IN', o
             onSuccess?.();
             onClose();
         } catch (err) {
-            // Clean up orphaned template if rule creation failed
             if (template && !createRule.isSuccess) {
                 try { await deleteTemplate.mutateAsync(template.id); } catch { /* best-effort */ }
             }
@@ -381,97 +306,100 @@ export function AddDocumentModal({ isOpen, onClose, initialStage = 'CHECK_IN', o
     const isPending = createTemplate.isPending || createRule.isPending;
 
     return (
-        <Modal isOpen={isOpen} onClose={handleClose} title="Dodaj dokument">
-            <Form onSubmit={handleSubmit}>
-                {/* File upload */}
-                <Field>
-                    <Label>Plik PDF *</Label>
-                    <HiddenInput
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".pdf,application/pdf"
-                        onChange={handleFileChange}
-                    />
-                    {file ? (
-                        <FilePreview>
-                            <FileIconWrap><FilePdfIcon /></FileIconWrap>
-                            <FileInfo>
-                                <FileName>{file.name}</FileName>
-                                <FileSize>{formatSize(file.size)}</FileSize>
-                            </FileInfo>
-                            <RemoveBtn
-                                type="button"
-                                onClick={() => { setFile(undefined); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+        <ModalShell isOpen={isOpen} onClose={handleClose} maxWidth="520px">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Dodaj dokument</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={handleClose} />
+            </ModalHeader>
+
+            <ModalContent>
+                <Form id="add-document-form" onSubmit={handleSubmit}>
+                    <Field>
+                        <Label>Plik PDF *</Label>
+                        <HiddenInput
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".pdf,application/pdf"
+                            onChange={handleFileChange}
+                        />
+                        {file ? (
+                            <FilePreview>
+                                <FileIconWrap><FilePdfIcon /></FileIconWrap>
+                                <FileInfo>
+                                    <FileName>{file.name}</FileName>
+                                    <FileSize>{formatSize(file.size)}</FileSize>
+                                </FileInfo>
+                                <RemoveBtn
+                                    type="button"
+                                    onClick={() => { setFile(undefined); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                                >
+                                    <XIcon />
+                                </RemoveBtn>
+                            </FilePreview>
+                        ) : (
+                            <UploadArea
+                                $hasFile={false}
+                                onClick={() => fileInputRef.current?.click()}
+                                onDragOver={e => e.preventDefault()}
+                                onDrop={handleDrop}
                             >
-                                <XIcon />
-                            </RemoveBtn>
-                        </FilePreview>
-                    ) : (
-                        <UploadArea
-                            $hasFile={false}
-                            onClick={() => fileInputRef.current?.click()}
-                            onDragOver={e => e.preventDefault()}
-                            onDrop={handleDrop}
-                        >
-                            <UploadIconWrap><UploadCloudIcon /></UploadIconWrap>
-                            <UploadTitle>Kliknij lub przeciągnij plik PDF</UploadTitle>
-                            <UploadHint>Maksymalny rozmiar: 10 MB</UploadHint>
-                        </UploadArea>
-                    )}
-                    {errors.file && <ErrorMessage>{errors.file}</ErrorMessage>}
-                </Field>
+                                <UploadIconWrap><UploadCloudIcon /></UploadIconWrap>
+                                <UploadTitle>Kliknij lub przeciągnij plik PDF</UploadTitle>
+                                <UploadHint>Maksymalny rozmiar: 10 MB</UploadHint>
+                            </UploadArea>
+                        )}
+                        {errors.file && <ErrorMessage>{errors.file}</ErrorMessage>}
+                    </Field>
 
-                {/* Name */}
-                <Field>
-                    <Label>Nazwa dokumentu *</Label>
-                    <Input
-                        type="text"
-                        placeholder="np. Protokół przyjęcia pojazdu"
-                        value={name}
-                        onChange={e => setName(e.target.value)}
-                    />
-                    {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
-                </Field>
+                    <Field>
+                        <Label>Nazwa dokumentu *</Label>
+                        <Input
+                            type="text"
+                            placeholder="np. Protokół przyjęcia pojazdu"
+                            value={name}
+                            onChange={e => setName(e.target.value)}
+                        />
+                        {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
+                    </Field>
 
-                {/* Description */}
-                <Field>
-                    <Label>Opis <span style={{ fontWeight: 400, color: '#94a3b8' }}>(opcjonalnie)</span></Label>
-                    <Textarea
-                        placeholder="Krótki opis przeznaczenia dokumentu…"
-                        value={description}
-                        onChange={e => setDescription(e.target.value)}
-                        rows={2}
-                    />
-                </Field>
+                    <Field>
+                        <Label>Opis <span style={{ fontWeight: 400, color: '#94a3b8' }}>(opcjonalnie)</span></Label>
+                        <Textarea
+                            placeholder="Krótki opis przeznaczenia dokumentu…"
+                            value={description}
+                            onChange={e => setDescription(e.target.value)}
+                            rows={2}
+                        />
+                    </Field>
 
-                {/* Stage selection */}
-                <Field>
-                    <Label>Przypisz do etapu *</Label>
-                    <StageRow>
-                        <StageCard type="button" $selected={stage === 'CHECK_IN'} onClick={() => setStage('CHECK_IN')}>
-                            <StageIconWrap $stage="CHECK_IN"><ArrowDownIcon /></StageIconWrap>
-                            <StageText>
-                                <StageName>Przyjęcie pojazdu</StageName>
-                            </StageText>
-                        </StageCard>
-                        <StageCard type="button" $selected={stage === 'CHECK_OUT'} onClick={() => setStage('CHECK_OUT')}>
-                            <StageIconWrap $stage="CHECK_OUT"><ArrowUpIcon /></StageIconWrap>
-                            <StageText>
-                                <StageName>Wydanie pojazdu</StageName>
-                            </StageText>
-                        </StageCard>
-                    </StageRow>
-                </Field>
+                    <Field>
+                        <Label>Przypisz do etapu *</Label>
+                        <StageRow>
+                            <StageCard type="button" $selected={stage === 'CHECK_IN'} onClick={() => setStage('CHECK_IN')}>
+                                <StageIconWrap $stage="CHECK_IN"><ArrowDownIcon /></StageIconWrap>
+                                <StageText><StageName>Przyjęcie pojazdu</StageName></StageText>
+                            </StageCard>
+                            <StageCard type="button" $selected={stage === 'CHECK_OUT'} onClick={() => setStage('CHECK_OUT')}>
+                                <StageIconWrap $stage="CHECK_OUT"><ArrowUpIcon /></StageIconWrap>
+                                <StageText><StageName>Wydanie pojazdu</StageName></StageText>
+                            </StageCard>
+                        </StageRow>
+                    </Field>
 
-                {errors.submit && <ErrorMessage>{errors.submit}</ErrorMessage>}
+                    {errors.submit && <ErrorMessage>{errors.submit}</ErrorMessage>}
+                </Form>
+            </ModalContent>
 
-                <ButtonGroup>
-                    <Button type="button" $variant="secondary" onClick={handleClose}>Anuluj</Button>
-                    <Button type="submit" $variant="primary" disabled={isPending}>
-                        {isPending ? 'Zapisywanie…' : 'Dodaj dokument'}
-                    </Button>
-                </ButtonGroup>
-            </Form>
-        </Modal>
+            <ModalFooter>
+                <SharedButton type="button" $variant="secondary" $size="sm" onClick={handleClose}>
+                    Anuluj
+                </SharedButton>
+                <SharedButton type="submit" form="add-document-form" $variant="primary" $size="sm" disabled={isPending}>
+                    {isPending ? 'Zapisywanie…' : 'Dodaj dokument'}
+                </SharedButton>
+            </ModalFooter>
+        </ModalShell>
     );
 }

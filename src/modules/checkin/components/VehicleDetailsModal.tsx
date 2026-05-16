@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Modal } from '@/common/components/Modal';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalContent,
+    ModalFooter,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import { FormGrid, FieldGroup, Label, Input } from '@/common/components/Form';
-import { Button } from '@/common/components/Button';
 import { t } from '@/common/i18n';
 import { useVehicleDetail } from '@/modules/vehicles/hooks/useVehicleDetail';
-
-const ModalContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
-`;
 
 const SectionTitle = styled.h4`
     font-size: ${props => props.theme.fontSizes.md};
@@ -26,13 +28,6 @@ const SectionTitle = styled.h4`
         height: 20px;
         color: ${props => props.theme.colors.primary};
     }
-`;
-
-const ButtonGroup = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.md};
-    justify-content: flex-end;
-    margin-top: ${props => props.theme.spacing.lg};
 `;
 
 const LoadingContainer = styled.div`
@@ -129,87 +124,96 @@ export const VehicleDetailsModal = ({
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Edytuj dane pojazdu" maxWidth="800px">
-            {isLoading ? (
-                <LoadingContainer>
-                    Ładowanie danych pojazdu...
-                </LoadingContainer>
-            ) : (
-                <ModalContent>
-                    <SectionTitle>
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-                        </svg>
-                        Dane pojazdu
-                    </SectionTitle>
+        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="800px">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Edytuj dane pojazdu</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
 
-                    <FormGrid>
-                        <FieldGroup>
-                            <Label>{t.checkin.verification.brand}</Label>
-                            <Input
-                                value={localVehicleData.brand}
-                                onChange={(e) => handleVehicleDataChange('brand', e.target.value)}
-                                placeholder="np. Toyota"
-                            />
-                        </FieldGroup>
+            <ModalContent>
+                {isLoading ? (
+                    <LoadingContainer>
+                        Ładowanie danych pojazdu...
+                    </LoadingContainer>
+                ) : (
+                    <>
+                        <SectionTitle>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                            </svg>
+                            Dane pojazdu
+                        </SectionTitle>
 
-                        <FieldGroup>
-                            <Label>{t.checkin.verification.model}</Label>
-                            <Input
-                                value={localVehicleData.model}
-                                onChange={(e) => handleVehicleDataChange('model', e.target.value)}
-                                placeholder="np. Corolla"
-                            />
-                        </FieldGroup>
+                        <FormGrid>
+                            <FieldGroup>
+                                <Label>{t.checkin.verification.brand}</Label>
+                                <Input
+                                    value={localVehicleData.brand}
+                                    onChange={(e) => handleVehicleDataChange('brand', e.target.value)}
+                                    placeholder="np. Toyota"
+                                />
+                            </FieldGroup>
 
-                        <FieldGroup>
-                            <Label>Rok produkcji</Label>
-                            <Input
-                                type="number"
-                                value={localVehicleData.yearOfProduction || ''}
-                                onChange={(e) => handleVehicleDataChange('yearOfProduction', e.target.value)}
-                                placeholder="np. 2020"
-                            />
-                        </FieldGroup>
+                            <FieldGroup>
+                                <Label>{t.checkin.verification.model}</Label>
+                                <Input
+                                    value={localVehicleData.model}
+                                    onChange={(e) => handleVehicleDataChange('model', e.target.value)}
+                                    placeholder="np. Corolla"
+                                />
+                            </FieldGroup>
 
-                        <FieldGroup>
-                            <Label>{t.checkin.verification.licensePlate}</Label>
-                            <Input
-                                value={localVehicleData.licensePlate}
-                                onChange={(e) => handleVehicleDataChange('licensePlate', e.target.value.toUpperCase())}
-                                placeholder="np. WW12345"
-                            />
-                        </FieldGroup>
+                            <FieldGroup>
+                                <Label>Rok produkcji</Label>
+                                <Input
+                                    type="number"
+                                    value={localVehicleData.yearOfProduction || ''}
+                                    onChange={(e) => handleVehicleDataChange('yearOfProduction', e.target.value)}
+                                    placeholder="np. 2020"
+                                />
+                            </FieldGroup>
 
-                        <FieldGroup>
-                            <Label>Kolor</Label>
-                            <Input
-                                value={localVehicleData.color}
-                                onChange={(e) => handleVehicleDataChange('color', e.target.value)}
-                                placeholder="np. Czarny metalik"
-                            />
-                        </FieldGroup>
+                            <FieldGroup>
+                                <Label>{t.checkin.verification.licensePlate}</Label>
+                                <Input
+                                    value={localVehicleData.licensePlate}
+                                    onChange={(e) => handleVehicleDataChange('licensePlate', e.target.value.toUpperCase())}
+                                    placeholder="np. WW12345"
+                                />
+                            </FieldGroup>
 
-                        <FieldGroup>
-                            <Label>Typ lakieru</Label>
-                            <Input
-                                value={localVehicleData.paintType}
-                                onChange={(e) => handleVehicleDataChange('paintType', e.target.value)}
-                                placeholder="np. Metalik, Perłowy, Mat"
-                            />
-                        </FieldGroup>
-                    </FormGrid>
+                            <FieldGroup>
+                                <Label>Kolor</Label>
+                                <Input
+                                    value={localVehicleData.color}
+                                    onChange={(e) => handleVehicleDataChange('color', e.target.value)}
+                                    placeholder="np. Czarny metalik"
+                                />
+                            </FieldGroup>
 
-                    <ButtonGroup>
-                        <Button $variant="secondary" onClick={onClose}>
-                            Anuluj
-                        </Button>
-                        <Button $variant="primary" onClick={handleSave}>
-                            Zapisz zmiany
-                        </Button>
-                    </ButtonGroup>
-                </ModalContent>
-            )}
-        </Modal>
+                            <FieldGroup>
+                                <Label>Typ lakieru</Label>
+                                <Input
+                                    value={localVehicleData.paintType}
+                                    onChange={(e) => handleVehicleDataChange('paintType', e.target.value)}
+                                    placeholder="np. Metalik, Perłowy, Mat"
+                                />
+                            </FieldGroup>
+                        </FormGrid>
+                    </>
+                )}
+            </ModalContent>
+
+            <ModalFooter>
+                <SharedButton $variant="secondary" onClick={onClose}>
+                    Anuluj
+                </SharedButton>
+                <SharedButton $variant="primary" onClick={handleSave}>
+                    Zapisz zmiany
+                </SharedButton>
+            </ModalFooter>
+        </ModalShell>
     );
 };

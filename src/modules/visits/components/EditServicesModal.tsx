@@ -7,6 +7,17 @@ import { ServiceAutocomplete } from '@/modules/checkin/components/ServiceAutocom
 import type { ServiceLineItem, ServiceStatus } from '../types';
 import type { ServicesChangesPayload } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import {
+  ModalShell,
+  ModalHeader,
+  ModalTitleGroup,
+  ModalTitle,
+  ModalSubtitle,
+  ModalContent,
+  ModalFooter,
+  CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 
 interface EditServicesModalProps {
   isOpen: boolean;
@@ -23,95 +34,7 @@ interface EditServicesModalProps {
   isSavingChanges?: boolean;
 }
 
-/* ─── Overlay ─────────────────────────────────────────────────────────────── */
-
-const Overlay = styled.div<{ $contentLeft: number }>`
-  position: fixed;
-  top: 0; right: 0; bottom: 0; left: 0;
-  z-index: 999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: ${st.bgOverlay};
-  backdrop-filter: blur(2px);
-
-  @media (min-width: 768px) {
-    left: ${p => p.$contentLeft}px;
-  }
-`;
-
-const ModalCard = styled.div`
-  background: ${st.bgCard};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radius};
-  box-shadow: ${st.shadowLg};
-  width: 100%;
-  max-width: 660px;
-  max-height: 88vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-`;
-
-/* ─── Header ──────────────────────────────────────────────────────────────── */
-
-const ModalHeader = styled.div`
-  padding: 20px 24px;
-  border-bottom: 1px solid ${st.border};
-  background: ${st.bgCard};
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-`;
-
-const HeaderText = styled.div``;
-
-const ModalTitle = styled.h2`
-  margin: 0 0 2px;
-  font-size: ${st.fontMd};
-  font-weight: 700;
-  color: ${st.text};
-`;
-
-const ModalSubtitle = styled.p`
-  margin: 0;
-  font-size: ${st.fontSm};
-  color: ${st.textMuted};
-`;
-
-const CloseBtn = styled.button`
-  width: 32px;
-  height: 32px;
-  border-radius: ${st.radiusSm};
-  border: 1px solid ${st.border};
-  background: ${st.bgCard};
-  color: ${st.textMuted};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all ${st.transition};
-
-  svg { width: 16px; height: 16px; }
-
-  &:hover {
-    background: ${st.bg};
-    border-color: ${st.borderHover};
-    color: ${st.text};
-  }
-`;
-
 /* ─── Content ─────────────────────────────────────────────────────────────── */
-
-const ModalContent = styled.div`
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-`;
 
 const AddSection = styled.div`
   padding: 16px 24px;
@@ -359,53 +282,6 @@ const NotifyHint = styled.span`
   margin-top: 2px;
 `;
 
-/* ─── Footer ──────────────────────────────────────────────────────────────── */
-
-const ModalFooter = styled.div`
-  padding: 14px 20px;
-  background: ${st.bg};
-  border-top: 1px solid ${st.border};
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-`;
-
-const CancelBtn = styled.button`
-  padding: 7px 14px;
-  border-radius: ${st.radiusFull};
-  border: 1px solid ${st.border};
-  background: ${st.bgCard};
-  color: ${st.textSecondary};
-  font-size: ${st.fontSm};
-  font-weight: 500;
-  cursor: pointer;
-  transition: all ${st.transition};
-
-  &:hover { background: ${st.bg}; border-color: ${st.borderHover}; }
-`;
-
-const SaveBtn = styled.button`
-  padding: 7px 14px;
-  border-radius: ${st.radiusFull};
-  border: none;
-  background: ${st.accentBlue};
-  color: white;
-  font-size: ${st.fontSm};
-  font-weight: 600;
-  cursor: pointer;
-  transition: all ${st.transition};
-  box-shadow: ${st.shadowXs};
-
-  &:hover:not(:disabled) {
-    background: #2563EB;
-    box-shadow: ${st.shadowSm};
-    transform: translateY(-1px);
-  }
-
-  &:disabled { opacity: 0.45; cursor: not-allowed; }
-`;
-
 /* ─── Component ───────────────────────────────────────────────────────────── */
 
 export const EditServicesModal = ({
@@ -542,247 +418,238 @@ export const EditServicesModal = ({
 
   return (
     <>
-      <Overlay
-        $contentLeft={contentLeft}
-        onMouseDown={e => e.target === e.currentTarget && onClose()}
-      >
-        <ModalCard>
+      <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="660px" contentLeft={contentLeft}>
 
-          {/* ── Header ── */}
-          <ModalHeader>
-            <HeaderText>
-              <ModalTitle>Zarządzanie usługami</ModalTitle>
-              <ModalSubtitle>
-                {totalCount}{' '}
-                {totalCount === 1 ? 'usługa' : totalCount < 5 ? 'usługi' : 'usług'}
-                {hasPendingChanges && ' · oczekuje na potwierdzenie'}
-              </ModalSubtitle>
-            </HeaderText>
-            <CloseBtn type="button" onClick={onClose} title="Zamknij">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </CloseBtn>
-          </ModalHeader>
+        {/* ── Header ── */}
+        <ModalHeader>
+          <ModalTitleGroup>
+            <ModalTitle>Zarządzanie usługami</ModalTitle>
+            <ModalSubtitle>
+              {totalCount}{' '}
+              {totalCount === 1 ? 'usługa' : totalCount < 5 ? 'usługi' : 'usług'}
+              {hasPendingChanges && ' · oczekuje na potwierdzenie'}
+            </ModalSubtitle>
+          </ModalTitleGroup>
+          <CloseBtn onClick={onClose} />
+        </ModalHeader>
 
-          {/* ── Content ── */}
-          <ModalContent>
+        {/* ── Content ── */}
+        <ModalContent>
 
-            {/* Add service */}
-            <AddSection>
-              <SectionLabel>Dodaj usługę</SectionLabel>
-              <ServiceAutocomplete
-                onSelect={service => {
-                  const tempId = `temp-${Date.now()}`;
-                  const tempItem: ServiceLineItem = {
-                    id: tempId,
-                    serviceId: service.id,
-                    serviceName: service.name,
-                    basePriceNet: service.basePriceNet,
-                    vatRate: service.vatRate as number,
-                    requireManualPrice: service.requireManualPrice,
-                    adjustment: { type: 'FIXED_NET', value: 0 },
-                    note: '',
-                    finalPriceNet: service.basePriceNet,
-                    finalPriceGross: Math.round(service.basePriceNet * (1 + service.vatRate / 100)),
-                    status: 'PENDING',
-                  };
-                  setTempAdded(prev => [tempItem, ...prev]);
-                }}
-                onAddNew={q => {
-                  setNewServiceNamePrefill(q);
-                  setIsQuickServiceModalOpen(true);
-                }}
-              />
-            </AddSection>
-
-            {/* Service rows */}
-            <ServicesList>
-              {allItems.map(service => {
-                const isDeleted     = !!deletedSnapshots[service.id];
-                const isAdded       = tempAdded.some(t => t.id === service.id);
-                const isPriceChanged = changedPriceIds.has(service.id);
-                const editData      = editingPrices[service.id];
-                const isEditing     = !isDeleted && editData !== undefined;
-
-                const effectiveNet   = isEditing
-                  ? Math.round(parseFloat(editData.net.replace(',', '.') || '0') * 100)
-                  : (localPriceOverrides[service.id] ?? service.finalPriceNet);
-                const effectiveGross = Math.round(effectiveNet * (1 + (service.vatRate || 0) / 100));
-
-                const rowState: RowState =
-                  isDeleted          ? 'deleted'
-                  : isAdded          ? 'added'
-                  : (isPriceChanged || service.status === 'PENDING') ? 'pending'
-                  : 'confirmed';
-
-                const badgeLabel =
-                  isDeleted          ? 'Usunięto'
-                  : isAdded          ? 'Dodano'
-                  : isPriceChanged   ? 'Zmieniono cenę'
-                  : service.status === 'PENDING' ? 'Oczekuje'
-                  : 'Potwierdzona';
-
-                return (
-                  <ServiceRow key={service.id} $state={rowState}>
-                    <ServiceInfo>
-                      <ServiceNameRow>
-                        <ServiceName $deleted={isDeleted}>
-                          {service.serviceName}
-                        </ServiceName>
-                        <StateBadge $state={rowState}>
-                          {badgeLabel}
-                        </StateBadge>
-                      </ServiceNameRow>
-
-                      {isEditing ? (
-                        <PriceInputsRow data-price-editing={service.id}>
-                          <PriceInputGroup>
-                            <PriceInputLabel>Netto</PriceInputLabel>
-                            <PriceInput
-                              type="text"
-                              inputMode="decimal"
-                              value={editData.net}
-                              onChange={e => handleNetChange(service.id, e.target.value)}
-                              onBlur={() => handlePriceBlur(service.id)}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') { e.preventDefault(); handleSavePrice(service.id); }
-                              }}
-                              autoFocus
-                            />
-                          </PriceInputGroup>
-                          <PriceInputGroup>
-                            <PriceInputLabel>Brutto</PriceInputLabel>
-                            <PriceInput
-                              type="text"
-                              inputMode="decimal"
-                              value={editData.gross}
-                              onChange={e => handleGrossChange(service.id, e.target.value)}
-                              onBlur={() => handlePriceBlur(service.id)}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') { e.preventDefault(); handleSavePrice(service.id); }
-                              }}
-                            />
-                          </PriceInputGroup>
-                        </PriceInputsRow>
-                      ) : (
-                        <PriceInfo>
-                          Netto <PriceStrong>{formatCurrency(effectiveNet / 100)}</PriceStrong>
-                          <PriceSep>·</PriceSep>
-                          Brutto <PriceStrong>{formatCurrency(effectiveGross / 100)}</PriceStrong>
-                        </PriceInfo>
-                      )}
-                    </ServiceInfo>
-
-                    <ActionGroup>
-                      {!isDeleted && !isAdded && service.status === 'PENDING' && (
-                        <ActionBtn
-                          $variant="confirm"
-                          onClick={() => onUpdateServiceStatus(service.id, 'CONFIRMED')}
-                          title="Zatwierdź"
-                        >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                          Zatwierdź
-                        </ActionBtn>
-                      )}
-
-                      {!isDeleted && (
-                        <ActionBtn
-                          $variant="edit"
-                          onClick={() => {
-                            const netPln = (effectiveNet / 100).toFixed(2);
-                            const grossPln = (effectiveGross / 100).toFixed(2);
-                            setEditingPrices(prev => ({
-                              ...prev,
-                              [service.id]: { net: netPln, gross: grossPln },
-                            }));
-                          }}
-                          title="Edytuj cenę"
-                        >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                          </svg>
-                          Edytuj
-                        </ActionBtn>
-                      )}
-
-                      {!isDeleted && (
-                        <ActionBtn
-                          $variant="delete"
-                          onClick={() => handleDelete(service.id)}
-                          title="Usuń"
-                        >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          </svg>
-                          Usuń
-                        </ActionBtn>
-                      )}
-                    </ActionGroup>
-                  </ServiceRow>
-                );
-              })}
-            </ServicesList>
-
-            {/* SMS notify */}
-            <NotifyRow htmlFor="notify-sms">
-              <NotifyCheckbox
-                id="notify-sms"
-                type="checkbox"
-                checked={notifyCustomer}
-                onChange={e => setNotifyCustomer(e.target.checked)}
-              />
-              <NotifyText>
-                <NotifyTitle>Poinformuj klienta SMS-em o zmianach</NotifyTitle>
-                {hasPendingChanges && (
-                  <NotifyHint>Zmiany wymagają akceptacji klienta</NotifyHint>
-                )}
-              </NotifyText>
-            </NotifyRow>
-
-          </ModalContent>
-
-          {/* ── Footer ── */}
-          <ModalFooter>
-            <CancelBtn type="button" onClick={onClose}>
-              Zamknij
-            </CancelBtn>
-            <SaveBtn
-              type="button"
-              disabled={!hasUnsaved || !!isSavingChanges}
-              onClick={() => {
-                const payload: ServicesChangesPayload = {
-                  notifyCustomer,
-                  added: tempAdded.map(t => ({
-                    serviceId: t.serviceId === 'custom' ? null : t.serviceId,
-                    serviceName: t.serviceName,
-                    basePriceNet: localPriceOverrides[t.id] ?? t.finalPriceNet,
-                    vatRate: t.vatRate,
-                    adjustment: t.adjustment,
-                    note: t.note,
-                  })),
-                  updated: Array.from(changedPriceIds)
-                    .filter(id => !tempAdded.some(t => t.id === id) && !deletedSnapshots[id])
-                    .map(id => ({
-                      serviceLineItemId: id,
-                      basePriceNet: localPriceOverrides[id]!,
-                    })),
-                  deleted: Object.keys(deletedSnapshots).map(id => ({ serviceLineItemId: id })),
+          {/* Add service */}
+          <AddSection>
+            <SectionLabel>Dodaj usługę</SectionLabel>
+            <ServiceAutocomplete
+              onSelect={service => {
+                const tempId = `temp-${Date.now()}`;
+                const tempItem: ServiceLineItem = {
+                  id: tempId,
+                  serviceId: service.id,
+                  serviceName: service.name,
+                  basePriceNet: service.basePriceNet,
+                  vatRate: service.vatRate as number,
+                  requireManualPrice: service.requireManualPrice,
+                  adjustment: { type: 'FIXED_NET', value: 0 },
+                  note: '',
+                  finalPriceNet: service.basePriceNet,
+                  finalPriceGross: Math.round(service.basePriceNet * (1 + service.vatRate / 100)),
+                  status: 'PENDING',
                 };
-                onSaveChanges(payload);
+                setTempAdded(prev => [tempItem, ...prev]);
               }}
-            >
-              {isSavingChanges ? 'Zapisywanie…' : 'Zapisz zmiany'}
-            </SaveBtn>
-          </ModalFooter>
+              onAddNew={q => {
+                setNewServiceNamePrefill(q);
+                setIsQuickServiceModalOpen(true);
+              }}
+            />
+          </AddSection>
 
-        </ModalCard>
-      </Overlay>
+          {/* Service rows */}
+          <ServicesList>
+            {allItems.map(service => {
+              const isDeleted     = !!deletedSnapshots[service.id];
+              const isAdded       = tempAdded.some(t => t.id === service.id);
+              const isPriceChanged = changedPriceIds.has(service.id);
+              const editData      = editingPrices[service.id];
+              const isEditing     = !isDeleted && editData !== undefined;
+
+              const effectiveNet   = isEditing
+                ? Math.round(parseFloat(editData.net.replace(',', '.') || '0') * 100)
+                : (localPriceOverrides[service.id] ?? service.finalPriceNet);
+              const effectiveGross = Math.round(effectiveNet * (1 + (service.vatRate || 0) / 100));
+
+              const rowState: RowState =
+                isDeleted          ? 'deleted'
+                : isAdded          ? 'added'
+                : (isPriceChanged || service.status === 'PENDING') ? 'pending'
+                : 'confirmed';
+
+              const badgeLabel =
+                isDeleted          ? 'Usunięto'
+                : isAdded          ? 'Dodano'
+                : isPriceChanged   ? 'Zmieniono cenę'
+                : service.status === 'PENDING' ? 'Oczekuje'
+                : 'Potwierdzona';
+
+              return (
+                <ServiceRow key={service.id} $state={rowState}>
+                  <ServiceInfo>
+                    <ServiceNameRow>
+                      <ServiceName $deleted={isDeleted}>
+                        {service.serviceName}
+                      </ServiceName>
+                      <StateBadge $state={rowState}>
+                        {badgeLabel}
+                      </StateBadge>
+                    </ServiceNameRow>
+
+                    {isEditing ? (
+                      <PriceInputsRow data-price-editing={service.id}>
+                        <PriceInputGroup>
+                          <PriceInputLabel>Netto</PriceInputLabel>
+                          <PriceInput
+                            type="text"
+                            inputMode="decimal"
+                            value={editData.net}
+                            onChange={e => handleNetChange(service.id, e.target.value)}
+                            onBlur={() => handlePriceBlur(service.id)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') { e.preventDefault(); handleSavePrice(service.id); }
+                            }}
+                            autoFocus
+                          />
+                        </PriceInputGroup>
+                        <PriceInputGroup>
+                          <PriceInputLabel>Brutto</PriceInputLabel>
+                          <PriceInput
+                            type="text"
+                            inputMode="decimal"
+                            value={editData.gross}
+                            onChange={e => handleGrossChange(service.id, e.target.value)}
+                            onBlur={() => handlePriceBlur(service.id)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') { e.preventDefault(); handleSavePrice(service.id); }
+                            }}
+                          />
+                        </PriceInputGroup>
+                      </PriceInputsRow>
+                    ) : (
+                      <PriceInfo>
+                        Netto <PriceStrong>{formatCurrency(effectiveNet / 100)}</PriceStrong>
+                        <PriceSep>·</PriceSep>
+                        Brutto <PriceStrong>{formatCurrency(effectiveGross / 100)}</PriceStrong>
+                      </PriceInfo>
+                    )}
+                  </ServiceInfo>
+
+                  <ActionGroup>
+                    {!isDeleted && !isAdded && service.status === 'PENDING' && (
+                      <ActionBtn
+                        $variant="confirm"
+                        onClick={() => onUpdateServiceStatus(service.id, 'CONFIRMED')}
+                        title="Zatwierdź"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        Zatwierdź
+                      </ActionBtn>
+                    )}
+
+                    {!isDeleted && (
+                      <ActionBtn
+                        $variant="edit"
+                        onClick={() => {
+                          const netPln = (effectiveNet / 100).toFixed(2);
+                          const grossPln = (effectiveGross / 100).toFixed(2);
+                          setEditingPrices(prev => ({
+                            ...prev,
+                            [service.id]: { net: netPln, gross: grossPln },
+                          }));
+                        }}
+                        title="Edytuj cenę"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                        Edytuj
+                      </ActionBtn>
+                    )}
+
+                    {!isDeleted && (
+                      <ActionBtn
+                        $variant="delete"
+                        onClick={() => handleDelete(service.id)}
+                        title="Usuń"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                        Usuń
+                      </ActionBtn>
+                    )}
+                  </ActionGroup>
+                </ServiceRow>
+              );
+            })}
+          </ServicesList>
+
+          {/* SMS notify */}
+          <NotifyRow htmlFor="notify-sms">
+            <NotifyCheckbox
+              id="notify-sms"
+              type="checkbox"
+              checked={notifyCustomer}
+              onChange={e => setNotifyCustomer(e.target.checked)}
+            />
+            <NotifyText>
+              <NotifyTitle>Poinformuj klienta SMS-em o zmianach</NotifyTitle>
+              {hasPendingChanges && (
+                <NotifyHint>Zmiany wymagają akceptacji klienta</NotifyHint>
+              )}
+            </NotifyText>
+          </NotifyRow>
+
+        </ModalContent>
+
+        {/* ── Footer ── */}
+        <ModalFooter>
+          <SharedButton $variant="secondary" type="button" onClick={onClose}>
+            Zamknij
+          </SharedButton>
+          <SharedButton
+            $variant="primary"
+            type="button"
+            disabled={!hasUnsaved || !!isSavingChanges}
+            onClick={() => {
+              const payload: ServicesChangesPayload = {
+                notifyCustomer,
+                added: tempAdded.map(t => ({
+                  serviceId: t.serviceId === 'custom' ? null : t.serviceId,
+                  serviceName: t.serviceName,
+                  basePriceNet: localPriceOverrides[t.id] ?? t.finalPriceNet,
+                  vatRate: t.vatRate,
+                  adjustment: t.adjustment,
+                  note: t.note,
+                })),
+                updated: Array.from(changedPriceIds)
+                  .filter(id => !tempAdded.some(t => t.id === id) && !deletedSnapshots[id])
+                  .map(id => ({
+                    serviceLineItemId: id,
+                    basePriceNet: localPriceOverrides[id]!,
+                  })),
+                deleted: Object.keys(deletedSnapshots).map(id => ({ serviceLineItemId: id })),
+              };
+              onSaveChanges(payload);
+            }}
+          >
+            {isSavingChanges ? 'Zapisywanie…' : 'Zapisz zmiany'}
+          </SharedButton>
+        </ModalFooter>
+
+      </ModalShell>
 
       <div style={{ zIndex: 1100 }}>
         <QuickServiceModal

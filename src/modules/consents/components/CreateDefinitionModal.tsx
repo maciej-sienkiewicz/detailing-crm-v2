@@ -5,8 +5,16 @@
 
 import { useState } from 'react';
 import styled from 'styled-components';
-import { Modal } from '@/common/components/Modal/Modal';
-import { Button } from '@/common/components/Button/Button';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalContent,
+    ModalFooter,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import { FormGrid, FieldGroup, Label, Input, TextArea, ErrorMessage } from '@/common/components/Form/Form';
 import { t } from '@/common/i18n';
 import type { ProtocolStage } from '../types';
@@ -66,9 +74,7 @@ export const CreateDefinitionModal = ({ isOpen, onClose }: CreateDefinitionModal
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!validateForm()) {
-            return;
-        }
+        if (!validateForm()) return;
 
         createDefinition({
             name: name.trim(),
@@ -79,113 +85,111 @@ export const CreateDefinitionModal = ({ isOpen, onClose }: CreateDefinitionModal
     };
 
     return (
-        <Modal
-            isOpen={isOpen}
-            onClose={handleClose}
-            maxWidth="600px"
-            title={t.consents.createDefinitionModal.title}
-        >
+        <ModalShell isOpen={isOpen} onClose={handleClose} maxWidth="600px">
             <ModalHeader>
-                <ModalTitle>{t.consents.createDefinitionModal.title}</ModalTitle>
+                <ModalTitleGroup>
+                    <ModalTitle>{t.consents.createDefinitionModal.title}</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={handleClose} />
             </ModalHeader>
 
-            <Form onSubmit={handleSubmit}>
-                <FormGrid>
-                    <FieldGroupFull>
-                        <Label>
-                            {t.consents.createDefinitionModal.nameLabel}
-                            <RequiredStar>*</RequiredStar>
-                        </Label>
-                        <Input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder={t.consents.createDefinitionModal.namePlaceholder}
-                            disabled={isCreating}
-                            $hasError={!!errors.name}
-                        />
-                        {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
-                    </FieldGroupFull>
-
-                    <FieldGroup>
-                        <Label>
-                            Etap wizyty
-                            <RequiredStar>*</RequiredStar>
-                        </Label>
-                        <Select
-                            value={stage}
-                            onChange={(e) => setStage(e.target.value as ProtocolStage)}
-                            disabled={isCreating}
-                        >
-                            {STAGE_OPTIONS.map((opt) => (
-                                <option key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                </option>
-                            ))}
-                        </Select>
-                    </FieldGroup>
-
-                    <FieldGroup>
-                        <Label>Obowiązkowa</Label>
-                        <CheckboxLabel>
-                            <Checkbox
-                                type="checkbox"
-                                checked={isMandatory}
-                                onChange={(e) => setIsMandatory(e.target.checked)}
+            <ModalContent>
+                <Form id="create-definition-form" onSubmit={handleSubmit}>
+                    <FormGrid>
+                        <FieldGroupFull>
+                            <Label>
+                                {t.consents.createDefinitionModal.nameLabel}
+                                <RequiredStar>*</RequiredStar>
+                            </Label>
+                            <Input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder={t.consents.createDefinitionModal.namePlaceholder}
                                 disabled={isCreating}
+                                $hasError={!!errors.name}
                             />
-                            <CheckboxText>Wymagana do podpisania przez klienta</CheckboxText>
-                        </CheckboxLabel>
-                    </FieldGroup>
+                            {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
+                        </FieldGroupFull>
 
-                    <FieldGroupFull>
-                        <Label>{t.consents.createDefinitionModal.descriptionLabel}</Label>
-                        <TextArea
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            placeholder={t.consents.createDefinitionModal.descriptionPlaceholder}
-                            disabled={isCreating}
-                            rows={3}
-                            $hasError={!!errors.description}
-                        />
-                        {errors.description && <ErrorMessage>{errors.description}</ErrorMessage>}
-                    </FieldGroupFull>
-                </FormGrid>
+                        <FieldGroup>
+                            <Label>
+                                Etap wizyty
+                                <RequiredStar>*</RequiredStar>
+                            </Label>
+                            <Select
+                                value={stage}
+                                onChange={(e) => setStage(e.target.value as ProtocolStage)}
+                                disabled={isCreating}
+                            >
+                                {STAGE_OPTIONS.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </option>
+                                ))}
+                            </Select>
+                        </FieldGroup>
 
-                {apiError && (
-                    <ErrorMessage>{t.consents.error.createDefinitionFailed}</ErrorMessage>
-                )}
+                        <FieldGroup>
+                            <Label>Obowiązkowa</Label>
+                            <CheckboxLabel>
+                                <Checkbox
+                                    type="checkbox"
+                                    checked={isMandatory}
+                                    onChange={(e) => setIsMandatory(e.target.checked)}
+                                    disabled={isCreating}
+                                />
+                                <CheckboxText>Wymagana do podpisania przez klienta</CheckboxText>
+                            </CheckboxLabel>
+                        </FieldGroup>
 
-                <ModalActions>
-                    <Button
-                        type="button"
-                        $variant="secondary"
-                        onClick={handleClose}
-                        disabled={isCreating}
-                    >
-                        {t.consents.createDefinitionModal.cancel}
-                    </Button>
-                    <Button type="submit" $variant="primary" disabled={isCreating}>
-                        {isCreating
-                            ? t.consents.createDefinitionModal.submitting
-                            : t.consents.createDefinitionModal.submit}
-                    </Button>
-                </ModalActions>
-            </Form>
-        </Modal>
+                        <FieldGroupFull>
+                            <Label>{t.consents.createDefinitionModal.descriptionLabel}</Label>
+                            <TextArea
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                placeholder={t.consents.createDefinitionModal.descriptionPlaceholder}
+                                disabled={isCreating}
+                                rows={3}
+                                $hasError={!!errors.description}
+                            />
+                            {errors.description && <ErrorMessage>{errors.description}</ErrorMessage>}
+                        </FieldGroupFull>
+                    </FormGrid>
+
+                    {apiError && (
+                        <ErrorMessage>{t.consents.error.createDefinitionFailed}</ErrorMessage>
+                    )}
+                </Form>
+            </ModalContent>
+
+            <ModalFooter>
+                <SharedButton
+                    type="button"
+                    $variant="secondary"
+                    $size="sm"
+                    onClick={handleClose}
+                    disabled={isCreating}
+                >
+                    {t.consents.createDefinitionModal.cancel}
+                </SharedButton>
+                <SharedButton
+                    type="submit"
+                    form="create-definition-form"
+                    $variant="primary"
+                    $size="sm"
+                    disabled={isCreating}
+                >
+                    {isCreating
+                        ? t.consents.createDefinitionModal.submitting
+                        : t.consents.createDefinitionModal.submit}
+                </SharedButton>
+            </ModalFooter>
+        </ModalShell>
     );
 };
 
-const ModalHeader = styled.div`
-    margin-bottom: ${(props) => props.theme.spacing.lg};
-`;
-
-const ModalTitle = styled.h2`
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: ${(props) => props.theme.colors.text};
-    margin: 0;
-`;
+// ─── Local styles ─────────────────────────────────────────────────────────────
 
 const Form = styled.form`
     display: flex;
@@ -215,14 +219,8 @@ const Select = styled.select`
     cursor: pointer;
     width: 100%;
 
-    &:focus {
-        border-color: ${(props) => props.theme.colors.primary};
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
+    &:focus { border-color: ${(props) => props.theme.colors.primary}; }
+    &:disabled { opacity: 0.6; cursor: not-allowed; }
 `;
 
 const CheckboxLabel = styled.label`
@@ -239,19 +237,10 @@ const Checkbox = styled.input`
     cursor: pointer;
     accent-color: ${(props) => props.theme.colors.primary};
 
-    &:disabled {
-        cursor: not-allowed;
-    }
+    &:disabled { cursor: not-allowed; }
 `;
 
 const CheckboxText = styled.span`
     font-size: 0.875rem;
     color: ${(props) => props.theme.colors.text};
-`;
-
-const ModalActions = styled.div`
-    display: flex;
-    gap: ${(props) => props.theme.spacing.md};
-    justify-content: flex-end;
-    margin-top: ${(props) => props.theme.spacing.md};
 `;

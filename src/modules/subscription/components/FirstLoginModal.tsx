@@ -128,7 +128,6 @@ export function FirstLoginModal({ trialUsed }: Props) {
     const [phase, setPhase] = useState<Phase>('idle');
     const [error, setError] = useState<string | null>(null);
 
-    // Custom plan builder state
     const [customOpen, setCustomOpen] = useState(false);
     const [selectedAddOns, setSelectedAddOns] = useState<Set<AddOnKey>>(new Set());
     const [customPrice, setCustomPrice] = useState<CalculatePriceResponse | null>(null);
@@ -138,13 +137,10 @@ export function FirstLoginModal({ trialUsed }: Props) {
     const sortedPlans = (plans ?? []).slice().sort((a, b) => a.displayOrder - b.displayOrder);
     const availableAddOns: AddOnDto[] = addOns ?? [];
 
-    // ── Real-time price calculation (debounced) ──────────────────────────────
     const recalculate = useCallback(async (keys: Set<AddOnKey>) => {
         setPriceLoading(true);
         try {
-            const result = await newSubscriptionApi.calculatePrice({
-                addOnKeys: Array.from(keys),
-            });
+            const result = await newSubscriptionApi.calculatePrice({ addOnKeys: Array.from(keys) });
             setCustomPrice(result);
         } catch {
             // silently ignore — price display falls back
@@ -159,14 +155,12 @@ export function FirstLoginModal({ trialUsed }: Props) {
         return () => clearTimeout(timer);
     }, [selectedAddOns, customOpen, recalculate]);
 
-    // Pre-fetch price when custom section opens
     useEffect(() => {
         if (customOpen && !customPrice) {
             recalculate(selectedAddOns);
         }
     }, [customOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // ── Trial ─────────────────────────────────────────────────────────────────
     const handleStartTrial = async () => {
         if (isPending) return;
         setError(null);
@@ -181,7 +175,6 @@ export function FirstLoginModal({ trialUsed }: Props) {
         }
     };
 
-    // ── Preset plan (BASIC or EVERYTHING) ─────────────────────────────────────
     const handleSelectPlan = async (planKey: string) => {
         if (isPending) return;
         setError(null);
@@ -196,7 +189,6 @@ export function FirstLoginModal({ trialUsed }: Props) {
         }
     };
 
-    // ── Custom plan (BASIC + selected add-ons) ────────────────────────────────
     const handleCustomConfirm = async () => {
         if (isPending) return;
         setError(null);
@@ -214,7 +206,6 @@ export function FirstLoginModal({ trialUsed }: Props) {
         }
     };
 
-    // ── Add-on toggle ─────────────────────────────────────────────────────────
     const toggleAddOn = (key: AddOnKey) => {
         setSelectedAddOns(prev => {
             const next = new Set(prev);
@@ -224,7 +215,6 @@ export function FirstLoginModal({ trialUsed }: Props) {
         });
     };
 
-    // ── Price display ─────────────────────────────────────────────────────────
     const totalPriceCents = customPrice?.totalMonthlyPriceCents ?? null;
     const basePriceCents = customPrice?.basePlanMonthlyPriceCents;
 
@@ -241,7 +231,6 @@ export function FirstLoginModal({ trialUsed }: Props) {
                         </WelcomeSub>
                     </CardHeader>
 
-                    {/* ── Global pending overlay ──────────────────────────── */}
                     {isPending && (
                         <LoadingOverlay>
                             <Spinner />
@@ -251,7 +240,6 @@ export function FirstLoginModal({ trialUsed }: Props) {
                         </LoadingOverlay>
                     )}
 
-                    {/* ── Loading plans ───────────────────────────────────── */}
                     {!isPending && plansLoading && (
                         <LoadingOverlay>
                             <Spinner />
@@ -259,7 +247,6 @@ export function FirstLoginModal({ trialUsed }: Props) {
                         </LoadingOverlay>
                     )}
 
-                    {/* ── Main content ────────────────────────────────────── */}
                     {!isPending && !plansLoading && (
                         <CardBody>
                             {error && (
@@ -269,7 +256,6 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                 </ErrorNote>
                             )}
 
-                            {/* Trial option */}
                             {!trialUsed && (
                                 <TrialSection>
                                     <SectionLabel>Zacznij bez zobowiązań</SectionLabel>
@@ -286,12 +272,10 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                 </TrialSection>
                             )}
 
-                            {/* Divider */}
                             {!trialUsed && sortedPlans.length > 0 && (
                                 <Divider>lub wybierz plan od razu</Divider>
                             )}
 
-                            {/* Preset plans */}
                             {sortedPlans.length > 0 && (
                                 <TrialSection>
                                     <SectionLabel>
@@ -310,15 +294,11 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                                     {isHighlighted && (
                                                         <RecommendedBadge>Polecany</RecommendedBadge>
                                                     )}
-                                                    <PlanBtnName $light={isHighlighted}>
-                                                        {plan.name}
-                                                    </PlanBtnName>
+                                                    <PlanBtnName $light={isHighlighted}>{plan.name}</PlanBtnName>
                                                     <PlanBtnPrice $light={isHighlighted}>
                                                         {formatCents(plan.monthlyPriceGrossCents)}
                                                     </PlanBtnPrice>
-                                                    <PlanBtnPer $light={isHighlighted}>
-                                                        / miesiąc
-                                                    </PlanBtnPer>
+                                                    <PlanBtnPer $light={isHighlighted}>/ miesiąc</PlanBtnPer>
                                                     <PlanBtnFeatures $light={isHighlighted}>
                                                         {planFeatureSummary(plan)}
                                                     </PlanBtnFeatures>
@@ -329,24 +309,17 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                 </TrialSection>
                             )}
 
-                            {/* Custom plan builder */}
                             {availableAddOns.length > 0 && (
                                 <>
-                                    <CustomToggle
-                                        onClick={() => setCustomOpen(o => !o)}
-                                        type="button"
-                                    >
+                                    <CustomToggle onClick={() => setCustomOpen(o => !o)} type="button">
                                         <span>Zbuduj własny pakiet</span>
                                         <ChevronDown open={customOpen} />
                                     </CustomToggle>
 
                                     {customOpen && (
                                         <CustomPanel>
-                                            <CustomPanelHeader>
-                                                Wybierz składniki pakietu
-                                            </CustomPanelHeader>
+                                            <CustomPanelHeader>Wybierz składniki pakietu</CustomPanelHeader>
 
-                                            {/* Fixed BASIC base */}
                                             <BasePlanRow>
                                                 <BasePlanCheck><CheckSmall /></BasePlanCheck>
                                                 <AddOnMeta>
@@ -360,7 +333,6 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                                 </AddOnPrice>
                                             </BasePlanRow>
 
-                                            {/* Add-on checkboxes */}
                                             {availableAddOns.map(addOn => (
                                                 <AddOnRow
                                                     key={addOn.key}
@@ -390,7 +362,6 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                                 </AddOnRow>
                                             ))}
 
-                                            {/* Summary + confirm */}
                                             <CustomSummary>
                                                 <SummaryPrice>
                                                     <SummaryLabel>Łącznie miesięcznie</SummaryLabel>
@@ -406,7 +377,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                                     onClick={handleCustomConfirm}
                                                     disabled={priceLoading}
                                                 >
-                                                    Aktywuj pakiet →
+                                                    Aktywuj pakiet
                                                 </CustomConfirmBtn>
                                             </CustomSummary>
                                         </CustomPanel>

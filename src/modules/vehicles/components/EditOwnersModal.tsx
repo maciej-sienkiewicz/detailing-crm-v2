@@ -1,15 +1,17 @@
 import styled from 'styled-components';
-import { Modal } from '@/common/components/Modal';
-import { Button } from '@/common/components/Button';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalContent,
+    ModalFooter,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import type { VehicleOwner } from '../types';
 import { useOwnerManagement } from '../hooks/useOwnerManagement';
 import { t } from '@/common/i18n';
-
-const ModalContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
-`;
 
 const OwnersList = styled.div`
     display: flex;
@@ -75,15 +77,6 @@ const RemoveButton = styled.button`
     }
 `;
 
-const AddOwnerSection = styled.div`
-    padding-top: ${props => props.theme.spacing.lg};
-    border-top: 1px solid ${props => props.theme.colors.border};
-`;
-
-const AddButton = styled(Button)`
-    width: 100%;
-`;
-
 interface EditOwnersModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -106,7 +99,14 @@ export const EditOwnersModal = ({ isOpen, onClose, vehicleId, owners }: EditOwne
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Zarządzaj właścicielami">
+        <ModalShell isOpen={isOpen} onClose={onClose}>
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Zarządzaj właścicielami</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
+
             <ModalContent>
                 <OwnersList>
                     {owners.map(owner => (
@@ -126,13 +126,13 @@ export const EditOwnersModal = ({ isOpen, onClose, vehicleId, owners }: EditOwne
                         </OwnerCard>
                     ))}
                 </OwnersList>
-
-                <AddOwnerSection>
-                    <AddButton $variant="primary">
-                        + Dodaj właściciela
-                    </AddButton>
-                </AddOwnerSection>
             </ModalContent>
-        </Modal>
+
+            <ModalFooter>
+                <SharedButton $variant="primary" style={{ width: '100%' }}>
+                    + Dodaj właściciela
+                </SharedButton>
+            </ModalFooter>
+        </ModalShell>
     );
 };

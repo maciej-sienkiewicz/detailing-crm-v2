@@ -1,36 +1,17 @@
 // src/modules/operations/components/CancelReservationModal.tsx
 
 import styled from 'styled-components';
-import { Button, ButtonGroup } from '@/common/components/Button';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalContent,
+    ModalFooter,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import type { Operation } from '../types';
-
-const Overlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1001;
-    padding: 16px;
-`;
-
-const ModalContainer = styled.div`
-    background-color: white;
-    border-radius: 12px;
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
-    width: 100%;
-    max-width: 480px;
-    padding: 24px;
-`;
-
-const ModalTitle = styled.h2`
-    margin: 0 0 8px;
-    font-size: 20px;
-    font-weight: 700;
-    color: #0f172a;
-`;
 
 const ModalDescription = styled.p`
     margin: 0 0 24px;
@@ -44,7 +25,6 @@ const WarningBox = styled.div`
     border: 1px solid #fecaca;
     border-radius: 8px;
     padding: 12px 16px;
-    margin-bottom: 24px;
     display: flex;
     gap: 12px;
 `;
@@ -83,9 +63,15 @@ export const CancelReservationModal = ({
     if (!isOpen || !reservation) return null;
 
     return (
-        <Overlay onClick={onClose}>
-            <ModalContainer onClick={e => e.stopPropagation()}>
-                <ModalTitle>Anuluj rezerwację</ModalTitle>
+        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="480px">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Anuluj rezerwację</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
+
+            <ModalContent>
                 <ModalDescription>
                     Czy na pewno chcesz anulować rezerwację dla klienta{' '}
                     <strong>
@@ -107,26 +93,16 @@ export const CancelReservationModal = ({
                         Nadal będzie widoczna w historii.
                     </WarningText>
                 </WarningBox>
+            </ModalContent>
 
-                <ButtonGroup>
-                    <Button
-                        $variant="secondary"
-                        onClick={onClose}
-                        disabled={isCancelling}
-                        $fullWidth
-                    >
-                        Wróć
-                    </Button>
-                    <Button
-                        $variant="danger"
-                        onClick={onConfirm}
-                        disabled={isCancelling}
-                        $fullWidth
-                    >
-                        {isCancelling ? 'Anulowanie...' : 'Anuluj rezerwację'}
-                    </Button>
-                </ButtonGroup>
-            </ModalContainer>
-        </Overlay>
+            <ModalFooter>
+                <SharedButton $variant="secondary" type="button" onClick={onClose} disabled={isCancelling}>
+                    Wróć
+                </SharedButton>
+                <SharedButton $variant="danger" type="button" onClick={onConfirm} disabled={isCancelling}>
+                    {isCancelling ? 'Anulowanie...' : 'Anuluj rezerwację'}
+                </SharedButton>
+            </ModalFooter>
+        </ModalShell>
     );
 };

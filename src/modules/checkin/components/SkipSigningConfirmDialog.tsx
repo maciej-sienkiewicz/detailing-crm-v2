@@ -1,6 +1,13 @@
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { Modal } from '@/common/components/Modal';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalContent,
+    CloseBtn,
+} from '@/common/components/ModalKit';
 
 const Body = styled.div`
     display: flex;
@@ -99,27 +106,31 @@ interface SkipSigningConfirmDialogProps {
 }
 
 export const SkipSigningConfirmDialog = ({ isOpen, onConfirm, onCancel }: SkipSigningConfirmDialogProps) => (
-    <Modal
-        isOpen={isOpen}
-        onClose={onCancel}
-        title="Pomiń podpisy?"
-        maxWidth="440px"
-    >
-        <Body>
-            <WarningBanner>
-                <WarningIconWrap><TriangleIcon /></WarningIconWrap>
-                <WarningText>Brak podpisów może utrudnić rozpatrzenie ewentualnych reklamacji.</WarningText>
-            </WarningBanner>
+    <ModalShell isOpen={isOpen} onClose={onCancel} maxWidth="440px">
+        <ModalHeader>
+            <ModalTitleGroup>
+                <ModalTitle>Pomiń podpisy?</ModalTitle>
+            </ModalTitleGroup>
+            <CloseBtn onClick={onCancel} />
+        </ModalHeader>
 
-            <Description>
-                Wizyta zostanie rozpoczęta bez zebrania podpisów na protokołach.
-                Brakujące podpisy możesz uzupełnić później w szczegółach wizyty.
-            </Description>
+        <ModalContent>
+            <Body>
+                <WarningBanner>
+                    <WarningIconWrap><TriangleIcon /></WarningIconWrap>
+                    <WarningText>Brak podpisów może utrudnić rozpatrzenie ewentualnych reklamacji.</WarningText>
+                </WarningBanner>
 
-            <Footer>
-                <CancelBtn onClick={onCancel}>Wróć, chcę zebrać podpisy</CancelBtn>
-                <ConfirmBtn onClick={onConfirm}>Rozpocznij bez podpisów</ConfirmBtn>
-            </Footer>
-        </Body>
-    </Modal>
+                <Description>
+                    Wizyta zostanie rozpoczęta bez zebrania podpisów na protokołach.
+                    Brakujące podpisy możesz uzupełnić później w szczegółach wizyty.
+                </Description>
+
+                <Footer>
+                    <CancelBtn onClick={onCancel}>Wróć, chcę zebrać podpisy</CancelBtn>
+                    <ConfirmBtn onClick={onConfirm}>Rozpocznij bez podpisów</ConfirmBtn>
+                </Footer>
+            </Body>
+        </ModalContent>
+    </ModalShell>
 );

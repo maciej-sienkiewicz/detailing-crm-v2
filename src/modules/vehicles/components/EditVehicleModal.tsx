@@ -1,27 +1,22 @@
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import styled from 'styled-components';
-import { Modal } from '@/common/components/Modal';
-import { Button, ButtonGroup } from '@/common/components/Button';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalContent,
+    ModalFooter,
+    ModalSectionTitle,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import { FormGrid, FieldGroup, Label, Input, ErrorMessage } from '@/common/components/Form';
 import { useUpdateVehicle } from '../hooks/useUpdateVehicle';
 import { updateVehicleSchema, type UpdateVehicleFormData } from '../utils/vehicleValidation';
 import type { Vehicle } from '../types';
 import { t } from '@/common/i18n';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
-
-const ModalContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
-`;
-
-const SectionTitle = styled.h3`
-    margin: 0 0 ${props => props.theme.spacing.md};
-    font-size: ${props => props.theme.fontSizes.md};
-    font-weight: 600;
-    color: ${props => props.theme.colors.text};
-`;
 
 interface EditVehicleModalProps {
     isOpen: boolean;
@@ -61,10 +56,17 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Edytuj pojazd" maxWidth="900px">
+        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="900px">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Edytuj pojazd</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
+
             <ModalContent>
-                <form onSubmit={handleSubmit(onSubmit)}>
-                    <SectionTitle>Dane identyfikacyjne</SectionTitle>
+                <form onSubmit={handleSubmit(onSubmit)} id="edit-vehicle-form">
+                    <ModalSectionTitle>Dane identyfikacyjne</ModalSectionTitle>
 
                     <FormGrid $columns={2}>
                         <FieldGroup>
@@ -134,7 +136,7 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                         </FieldGroup>
                     </FormGrid>
 
-                    <SectionTitle style={{ marginTop: '24px' }}>Wygląd i stan</SectionTitle>
+                    <ModalSectionTitle style={{ marginTop: '24px' }}>Wygląd i stan</ModalSectionTitle>
 
                     <FormGrid $columns={2}>
                         <FieldGroup>
@@ -175,17 +177,17 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                             )}
                         </FieldGroup>
                     </FormGrid>
-
-                    <ButtonGroup style={{ marginTop: '24px' }}>
-                        <Button type="button" $variant="secondary" onClick={onClose}>
-                            {t.common.cancel}
-                        </Button>
-                        <Button type="submit" $variant="primary" disabled={isUpdating}>
-                            {isUpdating ? 'Zapisywanie...' : t.common.save}
-                        </Button>
-                    </ButtonGroup>
                 </form>
             </ModalContent>
-        </Modal>
+
+            <ModalFooter>
+                <SharedButton type="button" $variant="secondary" onClick={onClose}>
+                    {t.common.cancel}
+                </SharedButton>
+                <SharedButton type="submit" form="edit-vehicle-form" $variant="primary" disabled={isUpdating}>
+                    {isUpdating ? 'Zapisywanie...' : t.common.save}
+                </SharedButton>
+            </ModalFooter>
+        </ModalShell>
     );
 };

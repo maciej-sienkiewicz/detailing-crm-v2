@@ -1,27 +1,34 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import * as S from './ConfirmationModalStyles';
 
 const IconX = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"/>
-        <line x1="6" y1="6" x2="18" y2="18"/>
+        <line x1="18" y1="6" x2="6" y2="18" />
+        <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
 );
 
 const IconAlertTriangle = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-        <line x1="12" y1="9" x2="12" y2="13"/>
-        <line x1="12" y1="17" x2="12.01" y2="17"/>
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+        <line x1="12" y1="9" x2="12" y2="13" />
+        <line x1="12" y1="17" x2="12.01" y2="17" />
     </svg>
 );
 
 const IconTrash = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="3 6 5 6 21 6"/>
-        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-        <line x1="10" y1="11" x2="10" y2="17"/>
-        <line x1="14" y1="11" x2="14" y2="17"/>
+        <polyline points="3 6 5 6 21 6" />
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+);
+
+const IconInfo = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
     </svg>
 );
 
@@ -48,40 +55,31 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     onConfirm,
     onCancel,
 }) => {
-    const handleConfirm = () => {
-        onConfirm();
-        onCancel(); // Close modal after confirm
-    };
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+        document.addEventListener('keydown', handleKey);
+        return () => document.removeEventListener('keydown', handleKey);
+    }, [isOpen, onCancel]);
 
     if (!isOpen) return null;
 
-    const getIcon = () => {
-        switch (variant) {
-            case 'danger':
-                return <IconTrash />;
-            case 'warning':
-                return <IconAlertTriangle />;
-            case 'info':
-                return null;
-            default:
-                return <IconAlertTriangle />;
-        }
-    };
+    const icon = variant === 'danger'
+        ? <IconTrash />
+        : variant === 'info'
+            ? <IconInfo />
+            : <IconAlertTriangle />;
 
-    return (
+    return createPortal(
         <S.Overlay $isOpen={isOpen} onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
-            <S.ModalContainer $isOpen={isOpen}>
+            <S.ModalContainer $isOpen={isOpen} $maxWidth="420px">
                 <S.Header>
-                    <S.DragHandle>
-                        <div />
-                    </S.DragHandle>
-
                     <S.CloseButton type="button" onClick={onCancel}>
                         <IconX />
                     </S.CloseButton>
 
                     <S.IconContainer $variant={variant}>
-                        {getIcon()}
+                        {icon}
                     </S.IconContainer>
 
                     <S.Title>{title}</S.Title>
@@ -92,11 +90,12 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                     <S.CancelButton type="button" onClick={onCancel}>
                         {cancelText}
                     </S.CancelButton>
-                    <S.ConfirmButton type="button" onClick={handleConfirm} $variant={variant}>
+                    <S.ConfirmButton type="button" onClick={() => { onConfirm(); onCancel(); }} $variant={variant}>
                         {confirmText}
                     </S.ConfirmButton>
                 </S.Footer>
             </S.ModalContainer>
-        </S.Overlay>
+        </S.Overlay>,
+        document.body
     );
 };

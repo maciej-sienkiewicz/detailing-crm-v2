@@ -1,16 +1,19 @@
 // src/modules/statistics/components/CategoryFormModal.tsx
 import { useState, useEffect, type FormEvent } from 'react';
 import styled from 'styled-components';
-import { Modal } from '@/common/components/Modal';
+import {
+  ModalShell,
+  ModalHeader,
+  ModalTitleGroup,
+  ModalTitle,
+  ModalContent,
+  ModalFooter,
+  CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import { t } from '@/common/i18n';
 import type { Category } from '../types';
 import { useCreateCategory, useUpdateCategory } from '../hooks/useCategories';
-
-const Form = styled.form`
-    display: flex;
-    flex-direction: column;
-    gap: ${props => props.theme.spacing.lg};
-`;
 
 const FieldGroup = styled.div`
     display: flex;
@@ -91,41 +94,10 @@ const ErrorText = styled.p`
     color: ${props => props.theme.colors.error};
 `;
 
-const ActionsRow = styled.div`
+const FormInner = styled.div`
     display: flex;
-    justify-content: flex-end;
-    gap: ${props => props.theme.spacing.sm};
-`;
-
-const CancelButton = styled.button`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.lg};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    background: transparent;
-    color: ${props => props.theme.colors.textSecondary};
-    cursor: pointer;
-`;
-
-const SubmitButton = styled.button`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.lg};
-    border: none;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
-    background: var(--brand-primary);
-    color: white;
-    cursor: pointer;
-    transition: opacity ${props => props.theme.transitions.fast};
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-
-    &:hover:not(:disabled) {
-        opacity: 0.9;
-    }
+    flex-direction: column;
+    gap: ${props => props.theme.spacing.lg};
 `;
 
 const COLOR_OPTIONS = [
@@ -191,60 +163,69 @@ export const CategoryFormModal = ({ isOpen, onClose, category }: CategoryFormMod
     };
 
     return (
-        <Modal
-            isOpen={isOpen}
-            onClose={onClose}
-            title={isEdit ? t.statistics.categoryForm.titleEdit : t.statistics.categoryForm.titleCreate}
-        >
-            <Form onSubmit={handleSubmit}>
-                <FieldGroup>
-                    <Label>{t.statistics.categoryForm.nameLabel}</Label>
-                    <Input
-                        value={name}
-                        onChange={e => { setName(e.target.value); setNameError(''); }}
-                        placeholder={t.statistics.categoryForm.namePlaceholder}
-                        disabled={isPending}
-                    />
-                    {nameError && <ErrorText>{nameError}</ErrorText>}
-                </FieldGroup>
+        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="480px">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>
+                        {isEdit ? t.statistics.categoryForm.titleEdit : t.statistics.categoryForm.titleCreate}
+                    </ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
 
-                <FieldGroup>
-                    <Label>{t.statistics.categoryForm.descriptionLabel}</Label>
-                    <Textarea
-                        value={description}
-                        onChange={e => setDescription(e.target.value)}
-                        placeholder={t.statistics.categoryForm.descriptionPlaceholder}
-                        disabled={isPending}
-                    />
-                </FieldGroup>
-
-                <FieldGroup>
-                    <Label>{t.statistics.categoryForm.colorLabel}</Label>
-                    <ColorPalette>
-                        {COLOR_OPTIONS.map(c => (
-                            <ColorSwatch
-                                key={c}
-                                type="button"
-                                $color={c}
-                                $selected={color === c}
-                                onClick={() => setColor(c)}
+            <form onSubmit={handleSubmit}>
+                <ModalContent>
+                    <FormInner>
+                        <FieldGroup>
+                            <Label>{t.statistics.categoryForm.nameLabel}</Label>
+                            <Input
+                                value={name}
+                                onChange={e => { setName(e.target.value); setNameError(''); }}
+                                placeholder={t.statistics.categoryForm.namePlaceholder}
                                 disabled={isPending}
                             />
-                        ))}
-                    </ColorPalette>
-                </FieldGroup>
+                            {nameError && <ErrorText>{nameError}</ErrorText>}
+                        </FieldGroup>
 
-                <ActionsRow>
-                    <CancelButton type="button" onClick={onClose} disabled={isPending}>
+                        <FieldGroup>
+                            <Label>{t.statistics.categoryForm.descriptionLabel}</Label>
+                            <Textarea
+                                value={description}
+                                onChange={e => setDescription(e.target.value)}
+                                placeholder={t.statistics.categoryForm.descriptionPlaceholder}
+                                disabled={isPending}
+                            />
+                        </FieldGroup>
+
+                        <FieldGroup>
+                            <Label>{t.statistics.categoryForm.colorLabel}</Label>
+                            <ColorPalette>
+                                {COLOR_OPTIONS.map(c => (
+                                    <ColorSwatch
+                                        key={c}
+                                        type="button"
+                                        $color={c}
+                                        $selected={color === c}
+                                        onClick={() => setColor(c)}
+                                        disabled={isPending}
+                                    />
+                                ))}
+                            </ColorPalette>
+                        </FieldGroup>
+                    </FormInner>
+                </ModalContent>
+
+                <ModalFooter>
+                    <SharedButton $variant="secondary" type="button" onClick={onClose} disabled={isPending}>
                         {t.common.cancel}
-                    </CancelButton>
-                    <SubmitButton type="submit" disabled={isPending}>
+                    </SharedButton>
+                    <SharedButton $variant="primary" type="submit" disabled={isPending}>
                         {isPending
                             ? t.statistics.categoryForm.submitting
                             : t.common.save}
-                    </SubmitButton>
-                </ActionsRow>
-            </Form>
-        </Modal>
+                    </SharedButton>
+                </ModalFooter>
+            </form>
+        </ModalShell>
     );
 };

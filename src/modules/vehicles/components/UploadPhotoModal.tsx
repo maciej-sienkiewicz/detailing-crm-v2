@@ -1,67 +1,16 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { useUploadVehiclePhoto } from '../hooks';
-
-const ModalOverlay = styled.div<{ $isOpen: boolean }>`
-    display: ${props => props.$isOpen ? 'flex' : 'none'};
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    backdrop-filter: blur(4px);
-`;
-
-const ModalContent = styled.div`
-    background: white;
-    border-radius: ${props => props.theme.radii.xl};
-    padding: ${props => props.theme.spacing.xl};
-    max-width: 500px;
-    width: 90%;
-    box-shadow: ${props => props.theme.shadows.xl};
-`;
-
-const ModalHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: ${props => props.theme.spacing.lg};
-`;
-
-const ModalTitle = styled.h2`
-    margin: 0;
-    font-size: ${props => props.theme.fontSizes.lg};
-    font-weight: 700;
-    color: ${props => props.theme.colors.text};
-`;
-
-const CloseButton = styled.button`
-    width: 32px;
-    height: 32px;
-    border-radius: ${props => props.theme.radii.full};
-    border: none;
-    background: ${props => props.theme.colors.surfaceHover};
-    color: ${props => props.theme.colors.textSecondary};
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-
-    &:hover {
-        background: ${props => props.theme.colors.border};
-        color: ${props => props.theme.colors.text};
-    }
-
-    svg {
-        width: 20px;
-        height: 20px;
-    }
-`;
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalContent,
+    ModalFooter,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 
 const Form = styled.form`
     display: flex;
@@ -157,44 +106,6 @@ const SelectedFile = styled.div`
     color: var(--brand-primary);
 `;
 
-const ButtonGroup = styled.div`
-    display: flex;
-    gap: ${props => props.theme.spacing.sm};
-    margin-top: ${props => props.theme.spacing.md};
-`;
-
-const Button = styled.button<{ $variant?: 'primary' | 'secondary' }>`
-    flex: 1;
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
-    border: none;
-    border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    ${props => props.$variant === 'primary' ? `
-        background: var(--brand-primary);
-        color: white;
-
-        &:hover:not(:disabled) {
-            opacity: 0.9;
-        }
-
-        &:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-    ` : `
-        background: ${props.theme.colors.surfaceHover};
-        color: ${props.theme.colors.text};
-
-        &:hover {
-            background: ${props.theme.colors.border};
-        }
-    `}
-`;
-
 interface UploadPhotoModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -229,7 +140,6 @@ export const UploadPhotoModal = ({ isOpen, onClose, vehicleId }: UploadPhotoModa
             onClose();
         } catch (error) {
             console.error('Failed to upload photo:', error);
-            // Optionally show error to user
             alert('Nie udało się dodać zdjęcia. Spróbuj ponownie.');
         }
     };
@@ -243,18 +153,16 @@ export const UploadPhotoModal = ({ isOpen, onClose, vehicleId }: UploadPhotoModa
     };
 
     return (
-        <ModalOverlay $isOpen={isOpen} onClick={handleClose}>
-            <ModalContent onClick={e => e.stopPropagation()}>
-                <ModalHeader>
+        <ModalShell isOpen={isOpen} onClose={handleClose} maxWidth="500px">
+            <ModalHeader>
+                <ModalTitleGroup>
                     <ModalTitle>Dodaj zdjęcie</ModalTitle>
-                    <CloseButton onClick={handleClose} type="button">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M18 6L6 18M6 6l12 12" />
-                        </svg>
-                    </CloseButton>
-                </ModalHeader>
+                </ModalTitleGroup>
+                <CloseBtn onClick={handleClose} />
+            </ModalHeader>
 
-                <Form onSubmit={handleSubmit}>
+            <ModalContent>
+                <Form onSubmit={handleSubmit} id="upload-photo-form">
                     <FormGroup>
                         <Label>Zdjęcie *</Label>
                         <FileInputWrapper>
@@ -289,17 +197,17 @@ export const UploadPhotoModal = ({ isOpen, onClose, vehicleId }: UploadPhotoModa
                             disabled={isUploading}
                         />
                     </FormGroup>
-
-                    <ButtonGroup>
-                        <Button type="button" onClick={handleClose} disabled={isUploading}>
-                            Anuluj
-                        </Button>
-                        <Button type="submit" $variant="primary" disabled={!file || isUploading}>
-                            {isUploading ? 'Dodawanie...' : 'Dodaj zdjęcie'}
-                        </Button>
-                    </ButtonGroup>
                 </Form>
             </ModalContent>
-        </ModalOverlay>
+
+            <ModalFooter>
+                <SharedButton type="button" $variant="secondary" onClick={handleClose} disabled={isUploading}>
+                    Anuluj
+                </SharedButton>
+                <SharedButton type="submit" form="upload-photo-form" $variant="primary" disabled={!file || isUploading}>
+                    {isUploading ? 'Dodawanie...' : 'Dodaj zdjęcie'}
+                </SharedButton>
+            </ModalFooter>
+        </ModalShell>
     );
 };

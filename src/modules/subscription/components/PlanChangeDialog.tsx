@@ -1,16 +1,18 @@
-import { useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalContent,
+    ModalFooter,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import { useToast } from '@/common/components/Toast';
-import { newSubscriptionApi } from '../api/subscriptionApi';
-import { useChangePlan, useActivateAddOn } from '../api/subscriptionQueries';
+import { useChangePlan, useActivateAddOn, useDeactivateAddOn as useDeactivateAddOnMutation } from '../api/subscriptionQueries';
 import type { PlanChangePreview, AddOnPreview, AddOnKey, PlanKey } from '../types';
 import { formatDate } from '../utils/formatters';
 import {
-    Overlay,
-    Dialog,
-    DialogHeader,
-    DialogTitle,
-    CloseBtn,
     DialogBody,
     LoadingRow,
     Spinner,
@@ -20,20 +22,10 @@ import {
     InfoValue,
     Explanation,
     DowngradeBadge,
-    DialogFooter,
-    CancelBtn,
-    ConfirmBtn,
     BtnSpinner,
 } from './PlanChangeDialog.styles';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
-
-const XIcon = () => (
-    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M18 6 6 18M6 6l12 12" />
-    </svg>
-);
 
 const WarnIcon = () => (
     <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#d97706"
@@ -65,12 +57,6 @@ export function PlanChangeDialog({
     const { showSuccess, showError } = useToast();
     const changePlan = useChangePlan();
 
-    useEffect(() => {
-        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-        document.addEventListener('keydown', onKey);
-        return () => document.removeEventListener('keydown', onKey);
-    }, [onClose]);
-
     const handleConfirm = async () => {
         try {
             await changePlan.mutateAsync(newPlanKey);
@@ -84,83 +70,82 @@ export function PlanChangeDialog({
 
     const isDowngrade = preview?.changeType === 'DOWNGRADE';
 
-    return createPortal(
-        <Overlay onClick={onClose}>
-            <Dialog onClick={e => e.stopPropagation()}>
-                <DialogHeader>
-                    <DialogTitle>
+    return (
+        <ModalShell isOpen onClose={onClose} maxWidth="480px">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>
                         {isDowngrade
                             ? `Obniżenie planu: ${currentPlanName} → ${newPlanName}`
                             : `Zmiana planu: ${currentPlanName} → ${newPlanName}`
                         }
-                    </DialogTitle>
-                    <CloseBtn onClick={onClose} aria-label="Zamknij"><XIcon /></CloseBtn>
-                </DialogHeader>
+                    </ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
 
-                <DialogBody>
-                    {isLoadingPreview || !preview ? (
-                        <LoadingRow>
-                            <Spinner />
-                            Ładowanie szczegółów…
-                        </LoadingRow>
-                    ) : (
-                        <>
-                            {isDowngrade && (
-                                <DowngradeBadge>
-                                    <WarnIcon />
-                                    Obniżenie planu wejdzie w życie po zakończeniu bieżącego okresu rozliczeniowego.
-                                    Do tego czasu zachowujesz pełny dostęp.
-                                </DowngradeBadge>
-                            )}
+            <DialogBody>
+                {isLoadingPreview || !preview ? (
+                    <LoadingRow>
+                        <Spinner />
+                        Ładowanie szczegółów…
+                    </LoadingRow>
+                ) : (
+                    <>
+                        {isDowngrade && (
+                            <DowngradeBadge>
+                                <WarnIcon />
+                                Obniżenie planu wejdzie w życie po zakończeniu bieżącego okresu rozliczeniowego.
+                                Do tego czasu zachowujesz pełny dostęp.
+                            </DowngradeBadge>
+                        )}
 
-                            <InfoGrid>
-                                <InfoRow>
-                                    <InfoLabel>Nowy plan</InfoLabel>
-                                    <InfoValue>{preview.newPlanName}</InfoValue>
-                                </InfoRow>
-                                <InfoRow>
-                                    <InfoLabel>Termin wejścia w życie</InfoLabel>
-                                    <InfoValue>
-                                        {isDowngrade
-                                            ? formatDate(preview.effectiveAt)
-                                            : 'Natychmiast'}
-                                    </InfoValue>
-                                </InfoRow>
-                                <InfoRow>
-                                    <InfoLabel>Kwota</InfoLabel>
-                                    <InfoValue $highlight={!isDowngrade}>
-                                        {isDowngrade
-                                            ? 'Bez opłaty'
-                                            : (preview.proratedAmountFormatted ?? 'Bezpłatnie w ramach trialu')}
-                                    </InfoValue>
-                                </InfoRow>
-                                <InfoRow>
-                                    <InfoLabel>Dni pozostałych w okresie</InfoLabel>
-                                    <InfoValue>{preview.daysRemaining}</InfoValue>
-                                </InfoRow>
-                            </InfoGrid>
+                        <InfoGrid>
+                            <InfoRow>
+                                <InfoLabel>Nowy plan</InfoLabel>
+                                <InfoValue>{preview.newPlanName}</InfoValue>
+                            </InfoRow>
+                            <InfoRow>
+                                <InfoLabel>Termin wejścia w życie</InfoLabel>
+                                <InfoValue>
+                                    {isDowngrade ? formatDate(preview.effectiveAt) : 'Natychmiast'}
+                                </InfoValue>
+                            </InfoRow>
+                            <InfoRow>
+                                <InfoLabel>Kwota</InfoLabel>
+                                <InfoValue $highlight={!isDowngrade}>
+                                    {isDowngrade
+                                        ? 'Bez opłaty'
+                                        : (preview.proratedAmountFormatted ?? 'Bezpłatnie w ramach trialu')}
+                                </InfoValue>
+                            </InfoRow>
+                            <InfoRow>
+                                <InfoLabel>Dni pozostałych w okresie</InfoLabel>
+                                <InfoValue>{preview.daysRemaining}</InfoValue>
+                            </InfoRow>
+                        </InfoGrid>
 
-                            <Explanation>{preview.explanation}</Explanation>
-                        </>
-                    )}
-                </DialogBody>
+                        <Explanation>{preview.explanation}</Explanation>
+                    </>
+                )}
+            </DialogBody>
 
-                <DialogFooter>
-                    <CancelBtn onClick={onClose} disabled={changePlan.isPending}>
-                        Anuluj
-                    </CancelBtn>
-                    <ConfirmBtn
-                        $variant={isDowngrade ? 'warning' : 'primary'}
-                        onClick={handleConfirm}
-                        disabled={changePlan.isPending || isLoadingPreview || !preview}
-                    >
-                        {changePlan.isPending && <BtnSpinner />}
-                        {isDowngrade ? 'Zaplanuj zmianę' : 'Potwierdź i zapłać'}
-                    </ConfirmBtn>
-                </DialogFooter>
-            </Dialog>
-        </Overlay>,
-        document.body
+            <ModalFooter>
+                <SharedButton $variant="secondary" $size="sm" onClick={onClose} disabled={changePlan.isPending}>
+                    Anuluj
+                </SharedButton>
+                <SharedButton
+                    $variant={isDowngrade ? 'ghost' : 'primary'}
+                    $size="sm"
+                    onClick={handleConfirm}
+                    disabled={changePlan.isPending || isLoadingPreview || !preview}
+                    style={isDowngrade ? { background: '#f59e0b', color: 'white' } : undefined}
+                >
+                    {changePlan.isPending && <BtnSpinner />}
+                    {isDowngrade ? 'Zaplanuj zmianę' : 'Potwierdź i zapłać'}
+                </SharedButton>
+            </ModalFooter>
+        </ModalShell>
     );
 }
 
@@ -184,12 +169,6 @@ export function AddOnActivationDialog({
     const { showSuccess, showError } = useToast();
     const activateAddOn = useActivateAddOn();
 
-    useEffect(() => {
-        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-        document.addEventListener('keydown', onKey);
-        return () => document.removeEventListener('keydown', onKey);
-    }, [onClose]);
-
     const handleConfirm = async () => {
         try {
             await activateAddOn.mutateAsync(addOnKey);
@@ -203,70 +182,70 @@ export function AddOnActivationDialog({
 
     const isTrial = preview?.proratedAmountCents === null;
 
-    return createPortal(
-        <Overlay onClick={onClose}>
-            <Dialog onClick={e => e.stopPropagation()}>
-                <DialogHeader>
-                    <DialogTitle>Aktywacja modułu: {addOnName}</DialogTitle>
-                    <CloseBtn onClick={onClose} aria-label="Zamknij"><XIcon /></CloseBtn>
-                </DialogHeader>
+    return (
+        <ModalShell isOpen onClose={onClose} maxWidth="480px">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Aktywacja modułu: {addOnName}</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
 
-                <DialogBody>
-                    {isLoadingPreview || !preview ? (
-                        <LoadingRow>
-                            <Spinner />
-                            Ładowanie szczegółów…
-                        </LoadingRow>
-                    ) : (
-                        <>
-                            <InfoGrid>
-                                <InfoRow>
-                                    <InfoLabel>Moduł</InfoLabel>
-                                    <InfoValue>{preview.addOnName}</InfoValue>
-                                </InfoRow>
-                                <InfoRow>
-                                    <InfoLabel>Kwota (proporcjonalnie)</InfoLabel>
-                                    <InfoValue $highlight={!isTrial}>
-                                        {isTrial
-                                            ? 'Bezpłatnie w ramach trialu'
-                                            : (preview.proratedAmountFormatted ?? '—')}
-                                    </InfoValue>
-                                </InfoRow>
-                                <InfoRow>
-                                    <InfoLabel>Dni pozostałych w okresie</InfoLabel>
-                                    <InfoValue>{preview.daysRemaining}</InfoValue>
-                                </InfoRow>
-                                <InfoRow>
-                                    <InfoLabel>Koniec okresu</InfoLabel>
-                                    <InfoValue>{formatDate(preview.periodEndsAt)}</InfoValue>
-                                </InfoRow>
-                            </InfoGrid>
+            <DialogBody>
+                {isLoadingPreview || !preview ? (
+                    <LoadingRow>
+                        <Spinner />
+                        Ładowanie szczegółów…
+                    </LoadingRow>
+                ) : (
+                    <>
+                        <InfoGrid>
+                            <InfoRow>
+                                <InfoLabel>Moduł</InfoLabel>
+                                <InfoValue>{preview.addOnName}</InfoValue>
+                            </InfoRow>
+                            <InfoRow>
+                                <InfoLabel>Kwota (proporcjonalnie)</InfoLabel>
+                                <InfoValue $highlight={!isTrial}>
+                                    {isTrial
+                                        ? 'Bezpłatnie w ramach trialu'
+                                        : (preview.proratedAmountFormatted ?? '—')}
+                                </InfoValue>
+                            </InfoRow>
+                            <InfoRow>
+                                <InfoLabel>Dni pozostałych w okresie</InfoLabel>
+                                <InfoValue>{preview.daysRemaining}</InfoValue>
+                            </InfoRow>
+                            <InfoRow>
+                                <InfoLabel>Koniec okresu</InfoLabel>
+                                <InfoValue>{formatDate(preview.periodEndsAt)}</InfoValue>
+                            </InfoRow>
+                        </InfoGrid>
 
-                            <Explanation>{preview.explanation}</Explanation>
-                        </>
-                    )}
-                </DialogBody>
+                        <Explanation>{preview.explanation}</Explanation>
+                    </>
+                )}
+            </DialogBody>
 
-                <DialogFooter>
-                    <CancelBtn onClick={onClose} disabled={activateAddOn.isPending}>
-                        Anuluj
-                    </CancelBtn>
-                    <ConfirmBtn
-                        $variant="primary"
-                        onClick={handleConfirm}
-                        disabled={activateAddOn.isPending || isLoadingPreview || !preview}
-                    >
-                        {activateAddOn.isPending && <BtnSpinner />}
-                        {isTrial ? 'Aktywuj bezpłatnie' : 'Potwierdź i zapłać'}
-                    </ConfirmBtn>
-                </DialogFooter>
-            </Dialog>
-        </Overlay>,
-        document.body
+            <ModalFooter>
+                <SharedButton $variant="secondary" $size="sm" onClick={onClose} disabled={activateAddOn.isPending}>
+                    Anuluj
+                </SharedButton>
+                <SharedButton
+                    $variant="primary"
+                    $size="sm"
+                    onClick={handleConfirm}
+                    disabled={activateAddOn.isPending || isLoadingPreview || !preview}
+                >
+                    {activateAddOn.isPending && <BtnSpinner />}
+                    {isTrial ? 'Aktywuj bezpłatnie' : 'Potwierdź i zapłać'}
+                </SharedButton>
+            </ModalFooter>
+        </ModalShell>
     );
 }
 
-// ─── Add-on deactivation dialog (no preview needed) ──────────────────────────
+// ─── Add-on deactivation dialog ───────────────────────────────────────────────
 
 interface DeactivateDialogProps {
     addOnKey: AddOnKey;
@@ -277,12 +256,6 @@ interface DeactivateDialogProps {
 export function AddOnDeactivationDialog({ addOnKey, addOnName, onClose }: DeactivateDialogProps) {
     const { showSuccess, showError } = useToast();
     const deactivateAddOn = useDeactivateAddOnMutation();
-
-    useEffect(() => {
-        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-        document.addEventListener('keydown', onKey);
-        return () => document.removeEventListener('keydown', onKey);
-    }, [onClose]);
 
     const handleConfirm = async () => {
         try {
@@ -295,39 +268,36 @@ export function AddOnDeactivationDialog({ addOnKey, addOnName, onClose }: Deacti
         }
     };
 
-    return createPortal(
-        <Overlay onClick={onClose}>
-            <Dialog onClick={e => e.stopPropagation()}>
-                <DialogHeader>
-                    <DialogTitle>Dezaktywacja modułu</DialogTitle>
-                    <CloseBtn onClick={onClose} aria-label="Zamknij"><XIcon /></CloseBtn>
-                </DialogHeader>
+    return (
+        <ModalShell isOpen onClose={onClose} maxWidth="480px">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Dezaktywacja modułu</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
 
-                <DialogBody>
-                    <DowngradeBadge>
-                        <WarnIcon />
-                        Stracisz dostęp do modułu <strong>{addOnName}</strong> natychmiast po potwierdzeniu. Kontynuować?
-                    </DowngradeBadge>
-                </DialogBody>
+            <DialogBody>
+                <DowngradeBadge>
+                    <WarnIcon />
+                    Stracisz dostęp do modułu <strong>{addOnName}</strong> natychmiast po potwierdzeniu. Kontynuować?
+                </DowngradeBadge>
+            </DialogBody>
 
-                <DialogFooter>
-                    <CancelBtn onClick={onClose} disabled={deactivateAddOn.isPending}>
-                        Anuluj
-                    </CancelBtn>
-                    <ConfirmBtn
-                        $variant="warning"
-                        onClick={handleConfirm}
-                        disabled={deactivateAddOn.isPending}
-                    >
-                        {deactivateAddOn.isPending && <BtnSpinner />}
-                        Dezaktywuj
-                    </ConfirmBtn>
-                </DialogFooter>
-            </Dialog>
-        </Overlay>,
-        document.body
+            <ModalFooter>
+                <SharedButton $variant="secondary" $size="sm" onClick={onClose} disabled={deactivateAddOn.isPending}>
+                    Anuluj
+                </SharedButton>
+                <SharedButton
+                    $variant="danger"
+                    $size="sm"
+                    onClick={handleConfirm}
+                    disabled={deactivateAddOn.isPending}
+                >
+                    {deactivateAddOn.isPending && <BtnSpinner />}
+                    Dezaktywuj
+                </SharedButton>
+            </ModalFooter>
+        </ModalShell>
     );
 }
-
-// Local import to avoid circular dep
-import { useDeactivateAddOn as useDeactivateAddOnMutation } from '../api/subscriptionQueries';

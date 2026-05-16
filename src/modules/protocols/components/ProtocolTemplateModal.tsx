@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Modal } from '@/common/components/Modal';
-import { Button, ButtonGroup } from '@/common/components/Button';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalContent,
+    ModalFooter,
+    ModalSectionTitle,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import { Label, FieldGroup, ErrorMessage, TextArea } from '@/common/components/Form';
 import {
     useCreateProtocolTemplate,
@@ -10,14 +19,7 @@ import {
 } from '../api/useProtocols';
 import type { ProtocolTemplate } from '../types';
 
-// Material Design 3 inspired styles
-const ModalContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-    max-height: 70vh;
-    overflow-y: auto;
-`;
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const Section = styled.div`
     display: flex;
@@ -99,7 +101,7 @@ const TemplateActions = styled.div`
     flex-shrink: 0;
 `;
 
-const IconButton = styled.button<{ $variant?: 'primary' | 'danger' }>`
+const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' }>`
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -116,45 +118,24 @@ const IconButton = styled.button<{ $variant?: 'primary' | 'danger' }>`
     ${props => props.$variant === 'primary' ? `
         background: rgb(59, 130, 246);
         color: white;
-
-        &:hover {
-            background: rgb(37, 99, 235);
-        }
-
-        &:active {
-            background: rgb(29, 78, 216);
-        }
+        &:hover { background: rgb(37, 99, 235); }
+        &:active { background: rgb(29, 78, 216); }
     ` : props.$variant === 'danger' ? `
         background: rgb(239, 68, 68);
         color: white;
-
-        &:hover {
-            background: rgb(220, 38, 38);
-        }
-
-        &:active {
-            background: rgb(185, 28, 28);
-        }
+        &:hover { background: rgb(220, 38, 38); }
+        &:active { background: rgb(185, 28, 28); }
     ` : `
         background: rgb(241, 245, 249);
         color: rgb(51, 65, 85);
-
-        &:hover {
-            background: rgb(226, 232, 240);
-        }
-
-        &:active {
-            background: rgb(203, 213, 225);
-        }
+        &:hover { background: rgb(226, 232, 240); }
+        &:active { background: rgb(203, 213, 225); }
     `}
 
-    svg {
-        width: 14px;
-        height: 14px;
-    }
+    svg { width: 14px; height: 14px; }
 `;
 
-const TextButton = styled.button`
+const TextBtn = styled.button`
     display: inline-flex;
     align-items: center;
     gap: 0.375rem;
@@ -168,18 +149,10 @@ const TextButton = styled.button`
     cursor: pointer;
     transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 
-    &:hover {
-        background: rgb(239, 246, 255);
-    }
+    &:hover { background: rgb(239, 246, 255); }
+    &:active { background: rgb(219, 234, 254); }
 
-    &:active {
-        background: rgb(219, 234, 254);
-    }
-
-    svg {
-        width: 14px;
-        height: 14px;
-    }
+    svg { width: 14px; height: 14px; }
 `;
 
 const Form = styled.form`
@@ -212,13 +185,8 @@ const BorderlessInput = styled.input`
     outline: none;
     transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
-    &:focus {
-        border-bottom-color: rgb(59, 130, 246);
-    }
-
-    &::placeholder {
-        color: rgb(148, 163, 184);
-    }
+    &:focus { border-bottom-color: rgb(59, 130, 246); }
+    &::placeholder { color: rgb(148, 163, 184); }
 `;
 
 const FileUploadArea = styled.div<{ $isDragging?: boolean }>`
@@ -237,11 +205,9 @@ const FileUploadArea = styled.div<{ $isDragging?: boolean }>`
     }
 `;
 
-const FileInput = styled.input`
-    display: none;
-`;
+const FileInputHidden = styled.input`display: none;`;
 
-const UploadIcon = styled.div`
+const UploadIconWrap = styled.div`
     width: 56px;
     height: 56px;
     margin: 0 auto 1rem;
@@ -251,11 +217,7 @@ const UploadIcon = styled.div`
     border-radius: 50%;
     background: rgb(219, 234, 254);
     color: rgb(59, 130, 246);
-
-    svg {
-        width: 28px;
-        height: 28px;
-    }
+    svg { width: 28px; height: 28px; }
 `;
 
 const UploadText = styled.div`
@@ -280,7 +242,7 @@ const FilePreview = styled.div`
     border-radius: 0.75rem;
 `;
 
-const FileIcon = styled.div`
+const FileIconWrap = styled.div`
     width: 44px;
     height: 44px;
     display: flex;
@@ -290,11 +252,7 @@ const FileIcon = styled.div`
     background: rgb(254, 226, 226);
     color: rgb(220, 38, 38);
     flex-shrink: 0;
-
-    svg {
-        width: 22px;
-        height: 22px;
-    }
+    svg { width: 22px; height: 22px; }
 `;
 
 const FileInfo = styled.div`
@@ -320,7 +278,7 @@ const FileSize = styled.div`
     gap: 0.5rem;
 `;
 
-const RemoveFileButton = styled.button`
+const RemoveFileBtn = styled.button`
     padding: 0.5rem;
     background: transparent;
     border: none;
@@ -334,11 +292,7 @@ const RemoveFileButton = styled.button`
         color: rgb(220, 38, 38);
     }
 
-    svg {
-        width: 18px;
-        height: 18px;
-        display: block;
-    }
+    svg { width: 18px; height: 18px; display: block; }
 `;
 
 const DownloadLink = styled.a`
@@ -351,17 +305,11 @@ const DownloadLink = styled.a`
     text-decoration: none;
     transition: color 0.15s;
 
-    &:hover {
-        color: rgb(37, 99, 235);
-    }
-
-    svg {
-        width: 14px;
-        height: 14px;
-    }
+    &:hover { color: rgb(37, 99, 235); }
+    svg { width: 14px; height: 14px; }
 `;
 
-const AddTemplateButton = styled.button`
+const AddTemplateBtn = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
@@ -382,10 +330,7 @@ const AddTemplateButton = styled.button`
         background: rgb(239, 246, 255);
     }
 
-    svg {
-        width: 18px;
-        height: 18px;
-    }
+    svg { width: 18px; height: 18px; }
 `;
 
 const EmptyState = styled.div`
@@ -396,19 +341,14 @@ const EmptyState = styled.div`
     border: 2px dashed rgb(226, 232, 240);
 `;
 
-const EmptyIcon = styled.div`
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    opacity: 0.4;
-`;
-
 const EmptyText = styled.div`
     font-size: 0.9375rem;
     color: rgb(100, 116, 139);
     line-height: 1.6;
 `;
 
-// Icons
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
 const PlusIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -451,14 +391,8 @@ const TrashIcon = () => (
     </svg>
 );
 
-interface ProtocolTemplateModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    templates: ProtocolTemplate[];
-    onSuccess?: () => void;
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// Helper function to format file size
 const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -466,6 +400,17 @@ const formatFileSize = (bytes: number): string => {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
 };
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+interface ProtocolTemplateModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    templates: ProtocolTemplate[];
+    onSuccess?: () => void;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export const ProtocolTemplateModal = ({
     isOpen,
@@ -492,9 +437,7 @@ export const ProtocolTemplateModal = ({
         setErrors({});
         setEditingTemplate(null);
         setIsCreating(false);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const handleEdit = (template: ProtocolTemplate) => {
@@ -506,10 +449,7 @@ export const ProtocolTemplateModal = ({
     };
 
     const handleDelete = async (template: ProtocolTemplate) => {
-        if (!confirm(`Czy na pewno chcesz usunąć szablon "${template.name}"?`)) {
-            return;
-        }
-
+        if (!confirm(`Czy na pewno chcesz usunąć szablon "${template.name}"?`)) return;
         try {
             await deleteMutation.mutateAsync(template.id);
             onSuccess?.();
@@ -521,103 +461,66 @@ export const ProtocolTemplateModal = ({
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
-
-        // Validate file type
         if (file.type !== 'application/pdf') {
             setErrors({ file: 'Tylko pliki PDF są dozwolone' });
             return;
         }
-
-        // Validate file size (max 10MB)
-        const maxSize = 10 * 1024 * 1024;
-        if (file.size > maxSize) {
+        if (file.size > 10 * 1024 * 1024) {
             setErrors({ file: 'Plik jest za duży. Maksymalny rozmiar to 10 MB' });
             return;
         }
-
         setSelectedFile(file);
         setErrors({});
     };
 
     const handleRemoveFile = () => {
         setSelectedFile(undefined);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
-    const handleUploadClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-    };
+    const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); };
 
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
-
         const file = e.dataTransfer.files?.[0];
         if (!file) return;
-
-        // Validate file type
         if (file.type !== 'application/pdf') {
             setErrors({ file: 'Tylko pliki PDF są dozwolone' });
             return;
         }
-
-        // Validate file size (max 10MB)
-        const maxSize = 10 * 1024 * 1024;
-        if (file.size > maxSize) {
+        if (file.size > 10 * 1024 * 1024) {
             setErrors({ file: 'Plik jest za duży. Maksymalny rozmiar to 10 MB' });
             return;
         }
-
         setSelectedFile(file);
         setErrors({});
     };
 
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};
-
         if (!name.trim() || name.trim().length < 3) {
             newErrors.name = 'Nazwa musi mieć co najmniej 3 znaki';
         }
-
         if (!editingTemplate && !selectedFile) {
             newErrors.file = 'Plik PDF szablonu jest wymagany';
         }
-
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        if (!validateForm()) {
-            return;
-        }
-
+        if (!validateForm()) return;
         try {
             if (editingTemplate) {
-                // Update existing template (no file upload on update)
                 await updateMutation.mutateAsync({
                     id: editingTemplate.id,
-                    data: {
-                        name: name.trim(),
-                        description: description.trim() || undefined,
-                    },
+                    data: { name: name.trim(), description: description.trim() || undefined },
                 });
             } else {
-                // Create new template with file upload
                 await createMutation.mutateAsync({
-                    data: {
-                        name: name.trim(),
-                        description: description.trim() || undefined,
-                    },
+                    data: { name: name.trim(), description: description.trim() || undefined },
                     file: selectedFile,
                 });
             }
@@ -625,9 +528,7 @@ export const ProtocolTemplateModal = ({
             onSuccess?.();
         } catch (error) {
             console.error('Failed to save template:', error);
-            const errorMessage = error instanceof Error
-                ? error.message
-                : 'Wystąpił błąd podczas zapisywania szablonu';
+            const errorMessage = error instanceof Error ? error.message : 'Wystąpił błąd podczas zapisywania szablonu';
             setErrors({ submit: errorMessage });
         }
     };
@@ -637,12 +538,17 @@ export const ProtocolTemplateModal = ({
         onClose();
     };
 
+    const isSaving = createMutation.isPending || updateMutation.isPending;
+
     return (
-        <Modal
-            isOpen={isOpen}
-            onClose={handleClose}
-            title="Zarządzaj szablonami protokołów"
-        >
+        <ModalShell isOpen={isOpen} onClose={handleClose} maxWidth="640px">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Zarządzaj szablonami protokołów</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={handleClose} />
+            </ModalHeader>
+
             <ModalContent>
                 {!isCreating ? (
                     <Section>
@@ -652,7 +558,6 @@ export const ProtocolTemplateModal = ({
                         </SectionHeader>
                         {templates.length === 0 ? (
                             <EmptyState>
-                                <EmptyIcon>📄</EmptyIcon>
                                 <EmptyText>
                                     Brak szablonów. Dodaj pierwszy szablon, aby móc tworzyć reguły dokumentacji.
                                 </EmptyText>
@@ -670,7 +575,7 @@ export const ProtocolTemplateModal = ({
                                             </TemplateInfo>
                                             <TemplateActions>
                                                 {template.templateUrl && (
-                                                    <TextButton
+                                                    <TextBtn
                                                         as="a"
                                                         href={template.templateUrl}
                                                         target="_blank"
@@ -678,39 +583,34 @@ export const ProtocolTemplateModal = ({
                                                     >
                                                         <DownloadIcon />
                                                         Podgląd
-                                                    </TextButton>
+                                                    </TextBtn>
                                                 )}
-                                                <IconButton onClick={() => handleEdit(template)}>
+                                                <ActionBtn onClick={() => handleEdit(template)}>
                                                     <EditIcon />
                                                     Edytuj
-                                                </IconButton>
-                                                <IconButton
-                                                    $variant="danger"
-                                                    onClick={() => handleDelete(template)}
-                                                >
+                                                </ActionBtn>
+                                                <ActionBtn $variant="danger" onClick={() => handleDelete(template)}>
                                                     <TrashIcon />
                                                     Usuń
-                                                </IconButton>
+                                                </ActionBtn>
                                             </TemplateActions>
                                         </TemplateCardHeader>
                                     </TemplateCard>
                                 ))}
                             </TemplateList>
                         )}
-                        <AddTemplateButton onClick={() => setIsCreating(true)}>
+                        <AddTemplateBtn onClick={() => setIsCreating(true)}>
                             <PlusIcon />
                             Dodaj nowy szablon
-                        </AddTemplateButton>
+                        </AddTemplateBtn>
                     </Section>
                 ) : (
                     <Section>
                         <SectionHeader>
                             <SectionLabel>{editingTemplate ? 'Edycja szablonu' : 'Nowy szablon'}</SectionLabel>
-                            <SectionTitle>
-                                {editingTemplate ? 'Edytuj szablon' : 'Dodaj nowy szablon'}
-                            </SectionTitle>
+                            <SectionTitle>{editingTemplate ? 'Edytuj szablon' : 'Dodaj nowy szablon'}</SectionTitle>
                         </SectionHeader>
-                        <Form onSubmit={handleSubmit}>
+                        <Form id="template-form" onSubmit={handleSubmit}>
                             <FormField>
                                 <FormLabel>Nazwa szablonu</FormLabel>
                                 <BorderlessInput
@@ -734,46 +634,36 @@ export const ProtocolTemplateModal = ({
 
                             <FieldGroup>
                                 <Label>Plik PDF szablonu</Label>
-
-                                {/* Hidden file input */}
-                                <FileInput
+                                <FileInputHidden
                                     ref={fileInputRef}
                                     type="file"
                                     accept=".pdf,application/pdf"
                                     onChange={handleFileSelect}
                                 />
-
-                                {/* Show upload area or file preview */}
                                 {!selectedFile && !editingTemplate?.templateUrl ? (
                                     <FileUploadArea
-                                        onClick={handleUploadClick}
+                                        onClick={() => fileInputRef.current?.click()}
                                         onDragOver={handleDragOver}
                                         onDrop={handleDrop}
                                     >
-                                        <UploadIcon>
-                                            <UploadCloudIcon />
-                                        </UploadIcon>
+                                        <UploadIconWrap><UploadCloudIcon /></UploadIconWrap>
                                         <UploadText>Kliknij aby wybrać plik PDF</UploadText>
                                         <UploadHint>lub przeciągnij i upuść (maks. 10 MB)</UploadHint>
                                     </FileUploadArea>
                                 ) : selectedFile ? (
                                     <FilePreview>
-                                        <FileIcon>
-                                            <FilePdfIcon />
-                                        </FileIcon>
+                                        <FileIconWrap><FilePdfIcon /></FileIconWrap>
                                         <FileInfo>
                                             <FileName>{selectedFile.name}</FileName>
                                             <FileSize>{formatFileSize(selectedFile.size)}</FileSize>
                                         </FileInfo>
-                                        <RemoveFileButton onClick={handleRemoveFile} type="button">
+                                        <RemoveFileBtn onClick={handleRemoveFile} type="button">
                                             <XIcon />
-                                        </RemoveFileButton>
+                                        </RemoveFileBtn>
                                     </FilePreview>
                                 ) : editingTemplate?.templateUrl ? (
                                     <FilePreview>
-                                        <FileIcon>
-                                            <FilePdfIcon />
-                                        </FileIcon>
+                                        <FileIconWrap><FilePdfIcon /></FileIconWrap>
                                         <FileInfo>
                                             <FileName>{editingTemplate.name}.pdf</FileName>
                                             <FileSize>
@@ -789,42 +679,30 @@ export const ProtocolTemplateModal = ({
                                                 </DownloadLink>
                                             </FileSize>
                                         </FileInfo>
-                                        <IconButton
-                                            type="button"
-                                            onClick={handleUploadClick}
-                                        >
+                                        <ActionBtn type="button" onClick={() => fileInputRef.current?.click()}>
                                             Zmień plik
-                                        </IconButton>
+                                        </ActionBtn>
                                     </FilePreview>
                                 ) : null}
-
                                 {errors.file && <ErrorMessage>{errors.file}</ErrorMessage>}
                             </FieldGroup>
 
-                            {errors.submit && (
-                                <ErrorMessage>{errors.submit}</ErrorMessage>
-                            )}
-
-                            <ButtonGroup>
-                                <Button type="button" $variant="secondary" onClick={resetForm}>
-                                    Anuluj
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    $variant="primary"
-                                    disabled={createMutation.isPending || updateMutation.isPending}
-                                >
-                                    {createMutation.isPending || updateMutation.isPending
-                                        ? 'Zapisywanie...'
-                                        : editingTemplate
-                                        ? 'Zapisz zmiany'
-                                        : 'Dodaj szablon'}
-                                </Button>
-                            </ButtonGroup>
+                            {errors.submit && <ErrorMessage>{errors.submit}</ErrorMessage>}
                         </Form>
                     </Section>
                 )}
             </ModalContent>
-        </Modal>
+
+            {isCreating && (
+                <ModalFooter>
+                    <SharedButton type="button" $variant="secondary" $size="sm" onClick={resetForm}>
+                        Anuluj
+                    </SharedButton>
+                    <SharedButton type="submit" form="template-form" $variant="primary" $size="sm" disabled={isSaving}>
+                        {isSaving ? 'Zapisywanie...' : editingTemplate ? 'Zapisz zmiany' : 'Dodaj szablon'}
+                    </SharedButton>
+                </ModalFooter>
+            )}
+        </ModalShell>
     );
 };

@@ -650,40 +650,6 @@ export const HintText = styled.p`
     font-style: italic;
 `;
 
-// ─── Modal ────────────────────────────────────────────────────────────────────
-
-export const Overlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 16px;
-`;
-
-export const ModalBox = styled.div`
-    background: ${st.bgCard};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
-    padding: 24px;
-    width: 100%;
-    max-width: 460px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    max-height: 90vh;
-    overflow-y: auto;
-`;
-
-export const ModalTitle = styled.h3`
-    margin: 0;
-    font-size: ${st.fontMd};
-    font-weight: 700;
-    color: ${st.text};
-`;
-
 // ─── Global Tab Form (new contract) ───────────────────────────────────────────
 
 export const GlobalFormWrapper = styled.div`

@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Modal } from '@/common/components/Modal';
-import { Button, ButtonGroup } from '@/common/components/Button';
+import {
+    ModalShell,
+    ModalHeader,
+    ModalTitleGroup,
+    ModalTitle,
+    ModalContent,
+    ModalFooter,
+    CloseBtn,
+} from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import { ErrorMessage } from '@/common/components/Form';
 import { consentsApi } from '@/modules/consents/api/consentsApi';
 import type { ProtocolStage } from '@/modules/consents/types';
@@ -25,7 +33,6 @@ const Wrap = styled.form`
     display: flex;
     flex-direction: column;
     gap: 18px;
-    margin-top: 4px;
 `;
 
 const Field = styled.div`
@@ -164,7 +171,7 @@ const ToggleRow = styled.label`
 
 const ToggleText = styled.div``;
 const ToggleLabel = styled.div`font-size: 13px; font-weight: 600; color: #0f172a;`;
-const ToggleDesc  = styled.div`font-size: 11px; color: #64748b; margin-top: 2px;`;
+const ToggleDesc = styled.div`font-size: 11px; color: #64748b; margin-top: 2px;`;
 
 const ToggleBtn = styled.button<{ $on: boolean }>`
     position: relative; width: 36px; height: 20px; border-radius: 9999px;
@@ -269,7 +276,6 @@ export function AddConsentDocumentModal({ isOpen, onClose, onSuccess }: AddConse
         setErrors({});
 
         try {
-            // 1. Utwórz definicję zgody (slug generowany automatycznie z nazwy)
             const definition = await consentsApi.createConsentDefinition({
                 name: name.trim(),
                 description: description.trim() || undefined,
@@ -277,13 +283,11 @@ export function AddConsentDocumentModal({ isOpen, onClose, onSuccess }: AddConse
                 isMandatory,
             });
 
-            // 2. Dodaj pierwszą wersję PDF (presigned URL w odpowiedzi)
             const versionResp = await consentsApi.addConsentVersion(definition.id, {
                 requiresResign,
                 setAsActive: true,
             });
 
-            // 3. Wyślij plik do S3
             if (versionResp.pdfUrl) {
                 await consentsApi.uploadFileToS3(versionResp.pdfUrl, file!);
             }
@@ -299,125 +303,130 @@ export function AddConsentDocumentModal({ isOpen, onClose, onSuccess }: AddConse
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={handleClose} title="Dodaj zgodę marketingową">
-            <Wrap onSubmit={handleSubmit}>
-                <InfoBox>
-                    <InfoIcon />
-                    <div>
-                        Zgoda jest zbierana <strong>jednorazowo</strong> per klient przy przyjęciu pojazdu
-                        i pamiętana między wizytami. Przy kolejnych wizytach nie jest wyświetlana ponownie,
-                        jeśli klient już podpisał aktywną wersję.
-                    </div>
-                </InfoBox>
+        <ModalShell isOpen={isOpen} onClose={handleClose} maxWidth="560px">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Dodaj zgodę marketingową</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={handleClose} />
+            </ModalHeader>
 
-                {/* PDF */}
-                <Field>
-                    <FieldLabel>Plik PDF *</FieldLabel>
-                    <HiddenFileInput
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".pdf,application/pdf"
-                        onChange={e => { const f = e.target.files?.[0]; if (f) applyFile(f); }}
-                    />
-                    {file ? (
-                        <FilePill>
-                            <FilePillIcon><FilePdfIcon /></FilePillIcon>
-                            <FilePillInfo>
-                                <FilePillName>{file.name}</FilePillName>
-                                <FilePillSize>{formatSize(file.size)}</FilePillSize>
-                            </FilePillInfo>
-                            <RemoveFileBtn type="button" onClick={() => {
-                                setFile(undefined);
-                                if (fileInputRef.current) fileInputRef.current.value = '';
-                            }}>
-                                <XIcon />
-                            </RemoveFileBtn>
-                        </FilePill>
-                    ) : (
-                        <UploadArea
-                            onClick={() => fileInputRef.current?.click()}
-                            onDragOver={e => e.preventDefault()}
-                            onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) applyFile(f); }}
+            <ModalContent>
+                <Wrap id="add-consent-form" onSubmit={handleSubmit}>
+                    <InfoBox>
+                        <InfoIcon />
+                        <div>
+                            Zgoda jest zbierana <strong>jednorazowo</strong> per klient przy przyjęciu pojazdu
+                            i pamiętana między wizytami. Przy kolejnych wizytach nie jest wyświetlana ponownie,
+                            jeśli klient już podpisał aktywną wersję.
+                        </div>
+                    </InfoBox>
+
+                    <Field>
+                        <FieldLabel>Plik PDF *</FieldLabel>
+                        <HiddenFileInput
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".pdf,application/pdf"
+                            onChange={e => { const f = e.target.files?.[0]; if (f) applyFile(f); }}
+                        />
+                        {file ? (
+                            <FilePill>
+                                <FilePillIcon><FilePdfIcon /></FilePillIcon>
+                                <FilePillInfo>
+                                    <FilePillName>{file.name}</FilePillName>
+                                    <FilePillSize>{formatSize(file.size)}</FilePillSize>
+                                </FilePillInfo>
+                                <RemoveFileBtn type="button" onClick={() => {
+                                    setFile(undefined);
+                                    if (fileInputRef.current) fileInputRef.current.value = '';
+                                }}>
+                                    <XIcon />
+                                </RemoveFileBtn>
+                            </FilePill>
+                        ) : (
+                            <UploadArea
+                                onClick={() => fileInputRef.current?.click()}
+                                onDragOver={e => e.preventDefault()}
+                                onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) applyFile(f); }}
+                            >
+                                <UploadIconWrap><UploadCloudIcon /></UploadIconWrap>
+                                <UploadTitle>Kliknij lub przeciągnij plik PDF</UploadTitle>
+                                <UploadSubtitle>Maksymalny rozmiar: 10 MB</UploadSubtitle>
+                            </UploadArea>
+                        )}
+                        {errors.file && <ErrorMessage>{errors.file}</ErrorMessage>}
+                    </Field>
+
+                    <Field>
+                        <FieldLabel>Nazwa dokumentu *</FieldLabel>
+                        <InputEl
+                            type="text"
+                            placeholder="np. Zgoda na treści marketingowe"
+                            value={name}
+                            onChange={e => setName(e.target.value)}
+                        />
+                        {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
+                    </Field>
+
+                    <Field>
+                        <FieldLabel>Etap wizyty *</FieldLabel>
+                        <SelectEl
+                            value={stage}
+                            onChange={e => setStage(e.target.value as ProtocolStage)}
                         >
-                            <UploadIconWrap><UploadCloudIcon /></UploadIconWrap>
-                            <UploadTitle>Kliknij lub przeciągnij plik PDF</UploadTitle>
-                            <UploadSubtitle>Maksymalny rozmiar: 10 MB</UploadSubtitle>
-                        </UploadArea>
-                    )}
-                    {errors.file && <ErrorMessage>{errors.file}</ErrorMessage>}
-                </Field>
+                            {STAGE_OPTIONS.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </SelectEl>
+                    </Field>
 
-                {/* Name */}
-                <Field>
-                    <FieldLabel>Nazwa dokumentu *</FieldLabel>
-                    <InputEl
-                        type="text"
-                        placeholder="np. Zgoda na treści marketingowe"
-                        value={name}
-                        onChange={e => setName(e.target.value)}
-                    />
-                    {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
-                </Field>
+                    <Field>
+                        <FieldLabel>Opis <span style={{ fontWeight: 400, color: '#94a3b8' }}>(opcjonalnie)</span></FieldLabel>
+                        <TextareaEl
+                            placeholder="Krótki opis zakresu zgody…"
+                            value={description}
+                            onChange={e => setDescription(e.target.value)}
+                            rows={2}
+                        />
+                    </Field>
 
-                {/* Stage */}
-                <Field>
-                    <FieldLabel>Etap wizyty *</FieldLabel>
-                    <SelectEl
-                        value={stage}
-                        onChange={e => setStage(e.target.value as ProtocolStage)}
-                    >
-                        {STAGE_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                    </SelectEl>
-                </Field>
+                    <ToggleRow>
+                        <ToggleText>
+                            <ToggleLabel>Obowiązkowa</ToggleLabel>
+                            <ToggleDesc>Klient musi podpisać tę zgodę, aby kontynuować</ToggleDesc>
+                        </ToggleText>
+                        <ToggleBtn
+                            type="button" $on={isMandatory}
+                            onClick={() => setIsMandatory(v => !v)}
+                            role="switch" aria-checked={isMandatory}
+                        />
+                    </ToggleRow>
 
-                {/* Description */}
-                <Field>
-                    <FieldLabel>Opis <span style={{ fontWeight: 400, color: '#94a3b8' }}>(opcjonalnie)</span></FieldLabel>
-                    <TextareaEl
-                        placeholder="Krótki opis zakresu zgody…"
-                        value={description}
-                        onChange={e => setDescription(e.target.value)}
-                        rows={2}
-                    />
-                </Field>
+                    <ToggleRow>
+                        <ToggleText>
+                            <ToggleLabel>Wymaga ponownego podpisu</ToggleLabel>
+                            <ToggleDesc>Klienci, którzy już podpisali starszą wersję, muszą podpisać ponownie</ToggleDesc>
+                        </ToggleText>
+                        <ToggleBtn
+                            type="button" $on={requiresResign}
+                            onClick={() => setRequiresResign(v => !v)}
+                            role="switch" aria-checked={requiresResign}
+                        />
+                    </ToggleRow>
 
-                {/* isMandatory */}
-                <ToggleRow>
-                    <ToggleText>
-                        <ToggleLabel>Obowiązkowa</ToggleLabel>
-                        <ToggleDesc>Klient musi podpisać tę zgodę, aby kontynuować</ToggleDesc>
-                    </ToggleText>
-                    <ToggleBtn
-                        type="button" $on={isMandatory}
-                        onClick={() => setIsMandatory(v => !v)}
-                        role="switch" aria-checked={isMandatory}
-                    />
-                </ToggleRow>
+                    {errors.submit && <ErrorMessage>{errors.submit}</ErrorMessage>}
+                </Wrap>
+            </ModalContent>
 
-                {/* requiresResign */}
-                <ToggleRow>
-                    <ToggleText>
-                        <ToggleLabel>Wymaga ponownego podpisu</ToggleLabel>
-                        <ToggleDesc>Klienci, którzy już podpisali starszą wersję, muszą podpisać ponownie</ToggleDesc>
-                    </ToggleText>
-                    <ToggleBtn
-                        type="button" $on={requiresResign}
-                        onClick={() => setRequiresResign(v => !v)}
-                        role="switch" aria-checked={requiresResign}
-                    />
-                </ToggleRow>
-
-                {errors.submit && <ErrorMessage>{errors.submit}</ErrorMessage>}
-
-                <ButtonGroup>
-                    <Button type="button" $variant="secondary" onClick={handleClose}>Anuluj</Button>
-                    <Button type="submit" $variant="primary" disabled={isSubmitting}>
-                        {isSubmitting ? 'Tworzenie…' : 'Utwórz zgodę'}
-                    </Button>
-                </ButtonGroup>
-            </Wrap>
-        </Modal>
+            <ModalFooter>
+                <SharedButton type="button" $variant="secondary" $size="sm" onClick={handleClose}>
+                    Anuluj
+                </SharedButton>
+                <SharedButton type="submit" form="add-consent-form" $variant="primary" $size="sm" disabled={isSubmitting}>
+                    {isSubmitting ? 'Tworzenie…' : 'Utwórz zgodę'}
+                </SharedButton>
+            </ModalFooter>
+        </ModalShell>
     );
 }
