@@ -266,7 +266,7 @@ export const UploadDocumentModal = ({
     };
 
     return (
-        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="540px">
+        <ModalShell isOpen={isOpen} onClose={onClose} size="md">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Dodaj dokument</ModalTitle>

@@ -102,7 +102,7 @@ export const EditCustomerModal = ({ isOpen, onClose, customer }: EditCustomerMod
     }, [methods, onClose, resetMutation]);
 
     return (
-        <ModalShell isOpen={isOpen} onClose={handleClose} maxWidth="640px">
+        <ModalShell isOpen={isOpen} onClose={handleClose} size="lg">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Edytuj dane klienta</ModalTitle>

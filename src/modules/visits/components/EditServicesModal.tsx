@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import styled, { css } from 'styled-components';
 import { formatCurrency } from '@/common/utils';
 import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceModal';
@@ -292,8 +291,6 @@ export const EditServicesModal = ({
   onSaveChanges,
   isSavingChanges,
 }: EditServicesModalProps) => {
-  const { isCollapsed } = useSidebar();
-  const contentLeft = typeof window !== 'undefined' ? (isCollapsed ? 64 : 240) : 0;
 
   const [notifyCustomer, setNotifyCustomer] = useState(true);
   const [editingPrices, setEditingPrices] = useState<Record<string, { net: string; gross: string }>>({});
@@ -418,7 +415,7 @@ export const EditServicesModal = ({
 
   return (
     <>
-      <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="660px" contentLeft={contentLeft}>
+      <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="660px">
 
         {/* ── Header ── */}
         <ModalHeader>

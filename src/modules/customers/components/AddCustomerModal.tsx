@@ -86,7 +86,7 @@ export const AddCustomerModal = ({
     }, [methods, onClose, resetMutation]);
 
     return (
-        <ModalShell isOpen={isOpen} onClose={handleClose} maxWidth="640px">
+        <ModalShell isOpen={isOpen} onClose={handleClose} size="lg">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>{t.customers.form.title}</ModalTitle>

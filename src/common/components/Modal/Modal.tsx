@@ -13,9 +13,13 @@ interface ModalProps {
     onClose: () => void;
     title: string;
     children: ReactNode;
+    /** @deprecated Use size on ModalShell instead */
     maxWidth?: string;
 }
 
+/**
+ * @deprecated Use ModalShell + ModalHeader + ModalContent + ModalFooter from ModalKit directly.
+ */
 export const Modal = ({ isOpen, onClose, title, children, maxWidth }: ModalProps) => (
     <ModalShell isOpen={isOpen} onClose={onClose} maxWidth={maxWidth ?? '800px'}>
         <ModalHeader>

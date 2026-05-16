@@ -20,7 +20,7 @@ export const modalScaleIn = keyframes`
 
 // ─── Overlay ──────────────────────────────────────────────────────────────────
 
-export const ModalOverlay = styled.div<{ $isOpen: boolean; $contentLeft?: number }>`
+export const ModalOverlay = styled.div<{ $isOpen: boolean }>`
     position: fixed;
     inset: 0;
     z-index: 1000;
@@ -34,10 +34,6 @@ export const ModalOverlay = styled.div<{ $isOpen: boolean; $contentLeft?: number
     pointer-events: ${p => p.$isOpen ? 'auto' : 'none'};
     transition: background 300ms ease, backdrop-filter 300ms ease, opacity 300ms ease;
     animation: ${p => p.$isOpen ? overlayFadeIn : 'none'} 250ms ease-out;
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-        left: ${p => (p.$contentLeft ?? 0)}px;
-    }
 `;
 
 // ─── Modal box ────────────────────────────────────────────────────────────────

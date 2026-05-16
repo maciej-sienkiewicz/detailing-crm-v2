@@ -7,7 +7,7 @@
  * import { SharedButton } from '@/common/styles';
  */
 
-export { ModalShell } from './ModalShell';
+export { ModalShell, type ModalSize } from './ModalShell';
 export { CloseBtn } from './CloseBtn';
 
 export {

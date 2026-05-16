@@ -138,7 +138,7 @@ export const EditCompanyModal = ({
     };
 
     return (
-        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="640px">
+        <ModalShell isOpen={isOpen} onClose={onClose} size="lg">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>
