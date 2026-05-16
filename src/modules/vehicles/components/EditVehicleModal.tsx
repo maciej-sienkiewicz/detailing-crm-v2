@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -5,18 +6,30 @@ import {
     ModalHeader,
     ModalTitleGroup,
     ModalTitle,
+    ModalSubtitle,
     ModalContent,
     ModalFooter,
-    ModalSectionTitle,
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
-import { FormGrid, FieldGroup, Label, Input, ErrorMessage } from '@/common/components/Form';
+import {
+    FormGrid,
+    FormField,
+    FieldLabel,
+    InputShell,
+    BareInput,
+    FormErrorMsg,
+    FormTabBar,
+    FormTabBtn,
+    FormTabPanel,
+} from '@/common/components/Form';
 import { useUpdateVehicle } from '../hooks/useUpdateVehicle';
 import { updateVehicleSchema, type UpdateVehicleFormData } from '../utils/vehicleValidation';
 import type { Vehicle } from '../types';
 import { t } from '@/common/i18n';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
+
+type TabId = 'identity' | 'appearance';
 
 interface EditVehicleModalProps {
     isOpen: boolean;
@@ -25,6 +38,7 @@ interface EditVehicleModalProps {
 }
 
 export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalProps) => {
+    const [activeTab, setActiveTab] = useState<TabId>('identity');
     const { updateVehicle, isUpdating } = useUpdateVehicle(vehicle.id);
 
     const {
@@ -49,134 +63,164 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
 
     const onSubmit = (data: UpdateVehicleFormData) => {
         updateVehicle(data, {
-            onSuccess: () => {
-                onClose();
-            },
+            onSuccess: () => onClose(),
         });
     };
 
     return (
-        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="900px">
+        <ModalShell isOpen={isOpen} onClose={onClose} size="xl">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Edytuj pojazd</ModalTitle>
+                    <ModalSubtitle>Zaktualizuj dane pojazdu</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
 
-            <ModalContent>
-                <form onSubmit={handleSubmit(onSubmit)} id="edit-vehicle-form">
-                    <ModalSectionTitle>Dane identyfikacyjne</ModalSectionTitle>
+            <ModalContent style={{ paddingTop: '8px' }}>
+                <form id="edit-vehicle-form" onSubmit={handleSubmit(onSubmit)} autoComplete="off">
+                    <FormTabBar>
+                        <FormTabBtn
+                            type="button"
+                            $active={activeTab === 'identity'}
+                            onClick={() => setActiveTab('identity')}
+                        >
+                            Dane identyfikacyjne
+                        </FormTabBtn>
+                        <FormTabBtn
+                            type="button"
+                            $active={activeTab === 'appearance'}
+                            onClick={() => setActiveTab('appearance')}
+                        >
+                            Wygląd i stan
+                        </FormTabBtn>
+                    </FormTabBar>
 
-                    <FormGrid $columns={2}>
-                        <FieldGroup>
-                            <Label htmlFor="licensePlate">Numer rejestracyjny</Label>
-                            <Input
-                                id="licensePlate"
-                                {...register('licensePlate')}
-                                placeholder="WA 12345"
-                            />
-                            {errors.licensePlate && (
-                                <ErrorMessage>{errors.licensePlate.message}</ErrorMessage>
-                            )}
-                        </FieldGroup>
-
-                        <FieldGroup>
-                            <Label htmlFor="brand">Marka *</Label>
-                            <Controller
-                                name="brand"
-                                control={control}
-                                render={({ field }) => (
-                                    <BrandSelect
-                                        value={field.value}
-                                        onChange={(val) => {
-                                            field.onChange(val);
-                                            // Reset model when brand changes
-                                            setValue('model', '');
-                                        }}
+                    <FormTabPanel $active={activeTab === 'identity'}>
+                        <FormGrid>
+                            <FormField>
+                                <FieldLabel htmlFor="ev-licensePlate">Numer rejestracyjny</FieldLabel>
+                                <InputShell $hasError={!!errors.licensePlate}>
+                                    <BareInput
+                                        id="ev-licensePlate"
+                                        autoComplete="new-password"
+                                        {...register('licensePlate')}
+                                        placeholder="WA 12345"
                                     />
+                                </InputShell>
+                                {errors.licensePlate && (
+                                    <FormErrorMsg>{errors.licensePlate.message}</FormErrorMsg>
                                 )}
-                            />
-                            {errors.brand && (
-                                <ErrorMessage>{errors.brand.message}</ErrorMessage>
-                            )}
-                        </FieldGroup>
+                            </FormField>
 
-                        <FieldGroup>
-                            <Label htmlFor="model">Model *</Label>
-                            <Controller
-                                name="model"
-                                control={control}
-                                render={({ field }) => (
-                                    <ModelSelect
-                                        brand={watch('brand')}
-                                        value={field.value}
-                                        onChange={(val) => field.onChange(val)}
+                            <FormField>
+                                <FieldLabel htmlFor="ev-brand">Marka</FieldLabel>
+                                <Controller
+                                    name="brand"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <BrandSelect
+                                            value={field.value}
+                                            onChange={(val) => {
+                                                field.onChange(val);
+                                                setValue('model', '');
+                                            }}
+                                        />
+                                    )}
+                                />
+                                {errors.brand && (
+                                    <FormErrorMsg>{errors.brand.message}</FormErrorMsg>
+                                )}
+                            </FormField>
+
+                            <FormField>
+                                <FieldLabel htmlFor="ev-model">Model</FieldLabel>
+                                <Controller
+                                    name="model"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <ModelSelect
+                                            brand={watch('brand')}
+                                            value={field.value}
+                                            onChange={(val) => field.onChange(val)}
+                                        />
+                                    )}
+                                />
+                                {errors.model && (
+                                    <FormErrorMsg>{errors.model.message}</FormErrorMsg>
+                                )}
+                            </FormField>
+
+                            <FormField>
+                                <FieldLabel htmlFor="ev-year">Rok produkcji</FieldLabel>
+                                <InputShell $hasError={!!errors.yearOfProduction}>
+                                    <BareInput
+                                        id="ev-year"
+                                        type="number"
+                                        autoComplete="new-password"
+                                        {...register('yearOfProduction', { valueAsNumber: true })}
+                                        placeholder="2021"
+                                        min="1900"
+                                        max={new Date().getFullYear() + 1}
                                     />
+                                </InputShell>
+                                {errors.yearOfProduction && (
+                                    <FormErrorMsg>{errors.yearOfProduction.message}</FormErrorMsg>
                                 )}
-                            />
-                            {errors.model && (
-                                <ErrorMessage>{errors.model.message}</ErrorMessage>
-                            )}
-                        </FieldGroup>
+                            </FormField>
+                        </FormGrid>
+                    </FormTabPanel>
 
-                        <FieldGroup>
-                            <Label htmlFor="yearOfProduction">Rok produkcji</Label>
-                            <Input
-                                id="yearOfProduction"
-                                type="number"
-                                {...register('yearOfProduction', { valueAsNumber: true })}
-                                placeholder="2021"
-                                min="1900"
-                                max={new Date().getFullYear() + 1}
-                            />
-                            {errors.yearOfProduction && (
-                                <ErrorMessage>{errors.yearOfProduction.message}</ErrorMessage>
-                            )}
-                        </FieldGroup>
-                    </FormGrid>
+                    <FormTabPanel $active={activeTab === 'appearance'}>
+                        <FormGrid>
+                            <FormField>
+                                <FieldLabel htmlFor="ev-color">Kolor</FieldLabel>
+                                <InputShell $hasError={!!errors.color}>
+                                    <BareInput
+                                        id="ev-color"
+                                        autoComplete="new-password"
+                                        {...register('color')}
+                                        placeholder="Czarny metalik"
+                                    />
+                                </InputShell>
+                                {errors.color && (
+                                    <FormErrorMsg>{errors.color.message}</FormErrorMsg>
+                                )}
+                            </FormField>
 
-                    <ModalSectionTitle style={{ marginTop: '24px' }}>Wygląd i stan</ModalSectionTitle>
+                            <FormField>
+                                <FieldLabel htmlFor="ev-paintType">Rodzaj lakieru</FieldLabel>
+                                <InputShell $hasError={!!errors.paintType}>
+                                    <BareInput
+                                        id="ev-paintType"
+                                        autoComplete="new-password"
+                                        {...register('paintType')}
+                                        placeholder="Lakier bazowy + lakier"
+                                    />
+                                </InputShell>
+                                {errors.paintType && (
+                                    <FormErrorMsg>{errors.paintType.message}</FormErrorMsg>
+                                )}
+                            </FormField>
 
-                    <FormGrid $columns={2}>
-                        <FieldGroup>
-                            <Label htmlFor="color">Kolor</Label>
-                            <Input
-                                id="color"
-                                {...register('color')}
-                                placeholder="Czarny metalik"
-                            />
-                            {errors.color && (
-                                <ErrorMessage>{errors.color.message}</ErrorMessage>
-                            )}
-                        </FieldGroup>
-
-                        <FieldGroup>
-                            <Label htmlFor="paintType">Rodzaj lakieru</Label>
-                            <Input
-                                id="paintType"
-                                {...register('paintType')}
-                                placeholder="Lakier bazowy + lakier"
-                            />
-                            {errors.paintType && (
-                                <ErrorMessage>{errors.paintType.message}</ErrorMessage>
-                            )}
-                        </FieldGroup>
-
-                        <FieldGroup>
-                            <Label htmlFor="currentMileage">Przebieg (km)</Label>
-                            <Input
-                                id="currentMileage"
-                                type="number"
-                                {...register('currentMileage', { valueAsNumber: true })}
-                                placeholder="45000"
-                                min="0"
-                            />
-                            {errors.currentMileage && (
-                                <ErrorMessage>{errors.currentMileage.message}</ErrorMessage>
-                            )}
-                        </FieldGroup>
-                    </FormGrid>
+                            <FormField>
+                                <FieldLabel htmlFor="ev-mileage">Przebieg (km)</FieldLabel>
+                                <InputShell $hasError={!!errors.currentMileage}>
+                                    <BareInput
+                                        id="ev-mileage"
+                                        type="number"
+                                        autoComplete="new-password"
+                                        {...register('currentMileage', { valueAsNumber: true })}
+                                        placeholder="45000"
+                                        min="0"
+                                    />
+                                </InputShell>
+                                {errors.currentMileage && (
+                                    <FormErrorMsg>{errors.currentMileage.message}</FormErrorMsg>
+                                )}
+                            </FormField>
+                        </FormGrid>
+                    </FormTabPanel>
                 </form>
             </ModalContent>
 
@@ -184,7 +228,12 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                 <SharedButton type="button" $variant="secondary" onClick={onClose}>
                     {t.common.cancel}
                 </SharedButton>
-                <SharedButton type="submit" form="edit-vehicle-form" $variant="primary" disabled={isUpdating}>
+                <SharedButton
+                    type="submit"
+                    form="edit-vehicle-form"
+                    $variant="primary"
+                    disabled={isUpdating}
+                >
                     {isUpdating ? 'Zapisywanie...' : t.common.save}
                 </SharedButton>
             </ModalFooter>

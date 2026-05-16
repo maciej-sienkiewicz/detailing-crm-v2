@@ -30,20 +30,18 @@ const Trigger = styled.button<{ $disabled?: boolean; $compact?: boolean }>`
     line-height: 1.4;
     &:focus { outline: none; }
   ` : `
-    padding: 9px 12px;
-    border: 1px solid ${props.theme.colors.border};
-    border-radius: ${props.theme.radii.md};
-    background: #F8FAFC;
-    color: ${props.theme.colors.text};
-    font-size: ${props.theme.fontSizes.sm};
+    padding: 12px 14px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    background: white;
+    color: #0f172a;
+    font-size: 14px;
     &:hover:not(:disabled) {
-      background: #FFFFFF;
-      border-color: ${props.theme.colors.border};
+      border-color: #cbd5e1;
     }
     &:focus {
       outline: none;
-      background: #FFFFFF;
-      border-color: ${props.theme.colors.primary};
+      border-color: var(--brand-primary);
       box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
     }
   `}

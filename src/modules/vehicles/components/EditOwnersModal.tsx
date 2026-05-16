@@ -4,6 +4,7 @@ import {
     ModalHeader,
     ModalTitleGroup,
     ModalTitle,
+    ModalSubtitle,
     ModalContent,
     ModalFooter,
     CloseBtn,
@@ -92,17 +93,17 @@ export const EditOwnersModal = ({ isOpen, onClose, vehicleId, owners }: EditOwne
             alert('Nie można usunąć ostatniego właściciela');
             return;
         }
-
         if (window.confirm(t.vehicles.detail.owners.confirmRemove)) {
             removeOwner(customerId);
         }
     };
 
     return (
-        <ModalShell isOpen={isOpen} onClose={onClose}>
+        <ModalShell isOpen={isOpen} onClose={onClose} size="md">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Zarządzaj właścicielami</ModalTitle>
+                    <ModalSubtitle>Dodaj lub usuń właścicieli pojazdu</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>

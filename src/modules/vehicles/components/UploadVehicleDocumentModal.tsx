@@ -1,7 +1,6 @@
-// src/modules/vehicles/components/UploadVehicleDocumentModal.tsx
-
 import { useState, useRef, ChangeEvent } from 'react';
 import styled from 'styled-components';
+import { Upload, FileText, X } from 'lucide-react';
 import {
     ModalShell,
     ModalHeader,
@@ -13,24 +12,25 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
+import {
+    FormField,
+    FieldLabel,
+    InputShell,
+    BareInput,
+} from '@/common/components/Form';
 import { useUploadVehicleDocument } from '../hooks/useVehicleDocuments';
 import { t } from '@/common/i18n';
 
 const DropZone = styled.div<{ $isDragging?: boolean; $hasFile?: boolean }>`
     border: 2px dashed ${props =>
-        props.$hasFile ? 'var(--brand-primary)' :
-        props.$isDragging ? 'var(--brand-primary)' :
-        props.theme.colors.border};
+        props.$hasFile || props.$isDragging ? 'var(--brand-primary)' : props.theme.colors.border};
     border-radius: ${props => props.theme.radii.lg};
     padding: ${props => props.theme.spacing.xl};
     text-align: center;
     background: ${props =>
-        props.$hasFile ? '#f0f9ff' :
-        props.$isDragging ? '#f0f9ff' :
-        props.theme.colors.surface};
+        props.$hasFile || props.$isDragging ? '#f0f9ff' : props.theme.colors.surface};
     transition: all 0.2s ease;
     cursor: pointer;
-    margin-bottom: ${props => props.theme.spacing.lg};
 
     &:hover {
         border-color: var(--brand-primary);
@@ -38,60 +38,56 @@ const DropZone = styled.div<{ $isDragging?: boolean; $hasFile?: boolean }>`
     }
 `;
 
-const UploadIcon = styled.div`
-    width: 64px;
-    height: 64px;
-    margin: 0 auto ${props => props.theme.spacing.md};
-    border-radius: ${props => props.theme.radii.full};
+const UploadIconWrap = styled.div`
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
     background: linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 80%, black) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-
-    svg { width: 32px; height: 32px; }
 `;
 
 const DropText = styled.p`
-    margin: 0 0 ${props => props.theme.spacing.xs};
-    font-size: ${props => props.theme.fontSizes.md};
+    margin: 0 0 4px;
+    font-size: 15px;
     font-weight: 600;
     color: ${props => props.theme.colors.text};
 `;
 
 const DropHint = styled.p`
     margin: 0;
-    font-size: ${props => props.theme.fontSizes.sm};
+    font-size: 13px;
     color: ${props => props.theme.colors.textMuted};
 `;
 
-const FileInput = styled.input`
+const HiddenFileInput = styled.input`
     display: none;
 `;
 
 const SelectedFile = styled.div`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.md};
-    padding: ${props => props.theme.spacing.md};
+    gap: 12px;
+    padding: 12px 14px;
     background: white;
     border: 1px solid ${props => props.theme.colors.border};
-    border-radius: ${props => props.theme.radii.md};
-    margin-bottom: ${props => props.theme.spacing.lg};
+    border-radius: 10px;
+    margin-bottom: 16px;
 `;
 
-const FileIconWrapper = styled.div`
+const FileIconWrap = styled.div`
     width: 40px;
     height: 40px;
-    border-radius: ${props => props.theme.radii.md};
+    border-radius: 10px;
     background: linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 80%, black) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     flex-shrink: 0;
-
-    svg { width: 20px; height: 20px; }
 `;
 
 const FileDetails = styled.div`
@@ -100,7 +96,7 @@ const FileDetails = styled.div`
 `;
 
 const FileName = styled.div`
-    font-size: ${props => props.theme.fontSizes.sm};
+    font-size: 14px;
     font-weight: 600;
     color: ${props => props.theme.colors.text};
     white-space: nowrap;
@@ -109,56 +105,26 @@ const FileName = styled.div`
 `;
 
 const FileSize = styled.div`
-    font-size: ${props => props.theme.fontSizes.xs};
+    font-size: 12px;
     color: ${props => props.theme.colors.textMuted};
     margin-top: 2px;
 `;
 
-const RemoveButton = styled.button`
+const RemoveBtn = styled.button`
     width: 32px;
     height: 32px;
     border: none;
-    border-radius: ${props => props.theme.radii.md};
+    border-radius: 8px;
     background: #fee2e2;
     color: #991b1b;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition: background 0.15s ease;
+    flex-shrink: 0;
 
     &:hover { background: #fecaca; }
-
-    svg { width: 16px; height: 16px; }
-`;
-
-const FormField = styled.div`
-    margin-bottom: ${props => props.theme.spacing.lg};
-`;
-
-const Label = styled.label`
-    display: block;
-    margin-bottom: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #374151;
-`;
-
-const Input = styled.input`
-    width: 100%;
-    padding: 12px 14px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 14px;
-    background: white;
-    color: #0f172a;
-    box-sizing: border-box;
-
-    &:focus {
-        outline: none;
-        border-color: var(--brand-primary);
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-    }
 `;
 
 const formatFileSize = (bytes: number): string => {
@@ -219,7 +185,7 @@ export const UploadVehicleDocumentModal = ({ isOpen, onClose, vehicleId }: Uploa
     };
 
     return (
-        <ModalShell isOpen={isOpen} onClose={onClose} maxWidth="540px">
+        <ModalShell isOpen={isOpen} onClose={onClose} size="md">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Dodaj dokument</ModalTitle>
@@ -229,7 +195,7 @@ export const UploadVehicleDocumentModal = ({ isOpen, onClose, vehicleId }: Uploa
             </ModalHeader>
 
             <ModalContent>
-                <form onSubmit={handleSubmit} id="upload-document-form">
+                <form id="upload-document-form" onSubmit={handleSubmit}>
                     {!file ? (
                         <DropZone
                             $isDragging={isDragging}
@@ -237,52 +203,47 @@ export const UploadVehicleDocumentModal = ({ isOpen, onClose, vehicleId }: Uploa
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
                             onDrop={handleDrop}
+                            style={{ marginBottom: '16px' }}
                         >
-                            <UploadIcon>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                    <polyline points="17,8 12,3 7,8"/>
-                                    <line x1="12" y1="3" x2="12" y2="15"/>
-                                </svg>
-                            </UploadIcon>
+                            <UploadIconWrap>
+                                <Upload size={26} />
+                            </UploadIconWrap>
                             <DropText>Kliknij lub przeciągnij plik</DropText>
                             <DropHint>Obsługiwane: PDF, DOCX, JPG, PNG (max 10 MB)</DropHint>
                         </DropZone>
                     ) : (
                         <SelectedFile>
-                            <FileIconWrapper>
-                                <svg viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                    <polyline points="14,2 14,8 20,8"/>
-                                </svg>
-                            </FileIconWrapper>
+                            <FileIconWrap>
+                                <FileText size={20} />
+                            </FileIconWrap>
                             <FileDetails>
                                 <FileName>{file.name}</FileName>
                                 <FileSize>{formatFileSize(file.size)}</FileSize>
                             </FileDetails>
-                            <RemoveButton type="button" onClick={() => setFile(null)}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <line x1="18" y1="6" x2="6" y2="18"/>
-                                    <line x1="6" y1="6" x2="18" y2="18"/>
-                                </svg>
-                            </RemoveButton>
+                            <RemoveBtn type="button" onClick={() => setFile(null)}>
+                                <X size={16} />
+                            </RemoveBtn>
                         </SelectedFile>
                     )}
 
-                    <FileInput
+                    <HiddenFileInput
                         ref={fileInputRef}
                         type="file"
                         onChange={handleFileChange}
                         accept=".pdf,.docx,.doc,.jpg,.jpeg,.png,.xlsx"
                     />
 
-                    <FormField>
-                        <Label>Nazwa dokumentu</Label>
-                        <Input
-                            value={name}
-                            onChange={e => setName(e.target.value)}
-                            placeholder="Nazwa dokumentu (opcjonalnie)"
-                        />
+                    <FormField $fullWidth>
+                        <FieldLabel htmlFor="doc-name">Nazwa dokumentu</FieldLabel>
+                        <InputShell>
+                            <BareInput
+                                id="doc-name"
+                                value={name}
+                                onChange={e => setName(e.target.value)}
+                                placeholder="Nazwa dokumentu (opcjonalnie)"
+                                autoComplete="new-password"
+                            />
+                        </InputShell>
                     </FormField>
                 </form>
             </ModalContent>

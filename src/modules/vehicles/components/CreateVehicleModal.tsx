@@ -1,49 +1,38 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import styled from 'styled-components';
 import {
     ModalShell,
     ModalHeader,
     ModalTitleGroup,
     ModalTitle,
+    ModalSubtitle,
     ModalContent,
     ModalFooter,
-    ModalSectionTitle,
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
-import { FormGrid, FieldGroup, Label, Input, TextArea, ErrorMessage } from '@/common/components/Form/Form';
+import {
+    FormGrid,
+    FormField,
+    FieldLabel,
+    InputShell,
+    InputShellTextArea,
+    BareInput,
+    BareTextArea,
+    FormErrorMsg,
+    FormAlertBanner,
+    FormTabBar,
+    FormTabBtn,
+    FormTabPanel,
+} from '@/common/components/Form';
 import { useCreateVehicle } from '../hooks/useCreateVehicle';
 import { createVehicleSchema, type CreateVehicleFormData } from '../utils/vehicleValidation';
 import { OwnerSelect } from './OwnerSelect';
 import { t } from '@/common/i18n';
 import type { CreateVehiclePayload } from '../types';
 
-const ErrorAlert = styled.div`
-    padding: ${props => props.theme.spacing.md};
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid ${props => props.theme.colors.error};
-    border-radius: ${props => props.theme.radii.md};
-    color: ${props => props.theme.colors.error};
-    font-size: ${props => props.theme.fontSizes.sm};
-`;
-
-const LoadingSpinner = styled.span`
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-
-    @keyframes spin {
-        to {
-            transform: rotate(360deg);
-        }
-    }
-`;
+type TabId = 'details' | 'owners';
 
 interface CreateVehicleModalProps {
     isOpen: boolean;
@@ -52,6 +41,7 @@ interface CreateVehicleModalProps {
 }
 
 export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicleModalProps) => {
+    const [activeTab, setActiveTab] = useState<TabId>('details');
     const { createVehicle, isCreating, isSuccess, error } = useCreateVehicle();
 
     const {
@@ -87,13 +77,13 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
             ...(data.currentMileage && { currentMileage: data.currentMileage }),
             ...(data.technicalNotes && { technicalNotes: data.technicalNotes }),
         };
-
         createVehicle(payload);
     }, [createVehicle]);
 
     useEffect(() => {
         if (isSuccess) {
             reset();
+            setActiveTab('details');
             onSuccess?.();
             onClose();
         }
@@ -101,141 +91,203 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
 
     const handleClose = useCallback(() => {
         reset();
+        setActiveTab('details');
         onClose();
     }, [reset, onClose]);
 
     return (
-        <ModalShell isOpen={isOpen} onClose={handleClose} maxWidth="900px">
+        <ModalShell isOpen={isOpen} onClose={handleClose} size="xl">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>{t.vehicles.form.title}</ModalTitle>
+                    <ModalSubtitle>Wypełnij dane nowego pojazdu</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={handleClose} />
             </ModalHeader>
 
-            <ModalContent>
+            <ModalContent style={{ paddingTop: '8px' }}>
                 {error && (
-                    <ErrorAlert>
-                        {t.vehicles.error.createFailed}
-                    </ErrorAlert>
+                    <FormAlertBanner>{t.vehicles.error.createFailed}</FormAlertBanner>
                 )}
 
-                <form onSubmit={handleSubmit(handleFormSubmit)} id="create-vehicle-form">
-                    <ModalSectionTitle>{t.vehicles.form.basicInfo}</ModalSectionTitle>
-                    <FormGrid $columns={2}>
-                        <FieldGroup>
-                            <Label>{t.vehicles.form.licensePlate}</Label>
-                            <Input
-                                {...register('licensePlate')}
-                                placeholder={t.vehicles.form.licensePlatePlaceholder}
-                                disabled={isCreating}
+                <form id="create-vehicle-form" onSubmit={handleSubmit(handleFormSubmit)} autoComplete="off">
+                    <FormTabBar>
+                        <FormTabBtn
+                            type="button"
+                            $active={activeTab === 'details'}
+                            onClick={() => setActiveTab('details')}
+                        >
+                            Dane pojazdu
+                        </FormTabBtn>
+                        <FormTabBtn
+                            type="button"
+                            $active={activeTab === 'owners'}
+                            onClick={() => setActiveTab('owners')}
+                        >
+                            Właściciele
+                        </FormTabBtn>
+                    </FormTabBar>
+
+                    <FormTabPanel $active={activeTab === 'details'}>
+                        <FormGrid>
+                            <FormField>
+                                <FieldLabel htmlFor="cv-licensePlate">
+                                    {t.vehicles.form.licensePlate}
+                                </FieldLabel>
+                                <InputShell $hasError={!!errors.licensePlate}>
+                                    <BareInput
+                                        id="cv-licensePlate"
+                                        autoComplete="new-password"
+                                        {...register('licensePlate')}
+                                        placeholder={t.vehicles.form.licensePlatePlaceholder}
+                                    />
+                                </InputShell>
+                                {errors.licensePlate && (
+                                    <FormErrorMsg>{errors.licensePlate.message}</FormErrorMsg>
+                                )}
+                            </FormField>
+
+                            <FormField>
+                                <FieldLabel htmlFor="cv-brand">
+                                    {t.vehicles.form.brand}
+                                </FieldLabel>
+                                <InputShell $hasError={!!errors.brand}>
+                                    <BareInput
+                                        id="cv-brand"
+                                        autoComplete="new-password"
+                                        {...register('brand')}
+                                        placeholder={t.vehicles.form.brandPlaceholder}
+                                    />
+                                </InputShell>
+                                {errors.brand && (
+                                    <FormErrorMsg>{errors.brand.message}</FormErrorMsg>
+                                )}
+                            </FormField>
+
+                            <FormField>
+                                <FieldLabel htmlFor="cv-model">
+                                    {t.vehicles.form.model}
+                                </FieldLabel>
+                                <InputShell $hasError={!!errors.model}>
+                                    <BareInput
+                                        id="cv-model"
+                                        autoComplete="new-password"
+                                        {...register('model')}
+                                        placeholder={t.vehicles.form.modelPlaceholder}
+                                    />
+                                </InputShell>
+                                {errors.model && (
+                                    <FormErrorMsg>{errors.model.message}</FormErrorMsg>
+                                )}
+                            </FormField>
+
+                            <FormField>
+                                <FieldLabel htmlFor="cv-year">
+                                    {t.vehicles.form.year}
+                                </FieldLabel>
+                                <InputShell $hasError={!!errors.yearOfProduction}>
+                                    <BareInput
+                                        id="cv-year"
+                                        type="number"
+                                        autoComplete="new-password"
+                                        {...register('yearOfProduction', { valueAsNumber: true })}
+                                        placeholder={t.vehicles.form.yearPlaceholder}
+                                    />
+                                </InputShell>
+                                {errors.yearOfProduction && (
+                                    <FormErrorMsg>{errors.yearOfProduction.message}</FormErrorMsg>
+                                )}
+                            </FormField>
+
+                            <FormField>
+                                <FieldLabel htmlFor="cv-color">
+                                    {t.vehicles.form.color}
+                                </FieldLabel>
+                                <InputShell $hasError={!!errors.color}>
+                                    <BareInput
+                                        id="cv-color"
+                                        autoComplete="new-password"
+                                        {...register('color')}
+                                        placeholder={t.vehicles.form.colorPlaceholder}
+                                    />
+                                </InputShell>
+                                {errors.color && (
+                                    <FormErrorMsg>{errors.color.message}</FormErrorMsg>
+                                )}
+                            </FormField>
+
+                            <FormField>
+                                <FieldLabel htmlFor="cv-paintType">
+                                    {t.vehicles.form.paintType}
+                                </FieldLabel>
+                                <InputShell $hasError={!!errors.paintType}>
+                                    <BareInput
+                                        id="cv-paintType"
+                                        autoComplete="new-password"
+                                        {...register('paintType')}
+                                        placeholder={t.vehicles.form.paintTypePlaceholder}
+                                    />
+                                </InputShell>
+                                {errors.paintType && (
+                                    <FormErrorMsg>{errors.paintType.message}</FormErrorMsg>
+                                )}
+                            </FormField>
+
+                            <FormField>
+                                <FieldLabel htmlFor="cv-mileage">
+                                    {t.vehicles.form.mileage}
+                                </FieldLabel>
+                                <InputShell $hasError={!!errors.currentMileage}>
+                                    <BareInput
+                                        id="cv-mileage"
+                                        type="number"
+                                        autoComplete="new-password"
+                                        {...register('currentMileage', { valueAsNumber: true })}
+                                        placeholder={t.vehicles.form.mileagePlaceholder}
+                                    />
+                                </InputShell>
+                                {errors.currentMileage && (
+                                    <FormErrorMsg>{errors.currentMileage.message}</FormErrorMsg>
+                                )}
+                            </FormField>
+
+                            <FormField $fullWidth>
+                                <FieldLabel htmlFor="cv-notes">
+                                    {t.vehicles.form.notes.title}
+                                </FieldLabel>
+                                <InputShellTextArea $hasError={!!errors.technicalNotes}>
+                                    <BareTextArea
+                                        id="cv-notes"
+                                        autoComplete="new-password"
+                                        {...register('technicalNotes')}
+                                        placeholder={t.vehicles.form.notes.placeholder}
+                                    />
+                                </InputShellTextArea>
+                                {errors.technicalNotes && (
+                                    <FormErrorMsg>{errors.technicalNotes.message}</FormErrorMsg>
+                                )}
+                            </FormField>
+                        </FormGrid>
+                    </FormTabPanel>
+
+                    <FormTabPanel $active={activeTab === 'owners'}>
+                        <FormField $fullWidth>
+                            <FieldLabel>{t.vehicles.form.owners.title}</FieldLabel>
+                            <Controller
+                                name="ownerIds"
+                                control={control}
+                                render={({ field }) => (
+                                    <OwnerSelect
+                                        selectedOwnerIds={field.value}
+                                        onChange={field.onChange}
+                                    />
+                                )}
                             />
-                            {errors.licensePlate && (
-                                <ErrorMessage>{errors.licensePlate.message}</ErrorMessage>
+                            {errors.ownerIds && (
+                                <FormErrorMsg>{errors.ownerIds.message}</FormErrorMsg>
                             )}
-                        </FieldGroup>
-
-                        <FieldGroup>
-                            <Label>{t.vehicles.form.brand}</Label>
-                            <Input
-                                {...register('brand')}
-                                placeholder={t.vehicles.form.brandPlaceholder}
-                                disabled={isCreating}
-                            />
-                            {errors.brand && (
-                                <ErrorMessage>{errors.brand.message}</ErrorMessage>
-                            )}
-                        </FieldGroup>
-
-                        <FieldGroup>
-                            <Label>{t.vehicles.form.model}</Label>
-                            <Input
-                                {...register('model')}
-                                placeholder={t.vehicles.form.modelPlaceholder}
-                                disabled={isCreating}
-                            />
-                            {errors.model && (
-                                <ErrorMessage>{errors.model.message}</ErrorMessage>
-                            )}
-                        </FieldGroup>
-
-                        <FieldGroup>
-                            <Label>{t.vehicles.form.year}</Label>
-                            <Input
-                                type="number"
-                                {...register('yearOfProduction', { valueAsNumber: true })}
-                                placeholder={t.vehicles.form.yearPlaceholder}
-                                disabled={isCreating}
-                            />
-                            {errors.yearOfProduction && (
-                                <ErrorMessage>{errors.yearOfProduction.message}</ErrorMessage>
-                            )}
-                        </FieldGroup>
-
-                        <FieldGroup>
-                            <Label>{t.vehicles.form.color}</Label>
-                            <Input
-                                {...register('color')}
-                                placeholder={t.vehicles.form.colorPlaceholder}
-                                disabled={isCreating}
-                            />
-                            {errors.color && (
-                                <ErrorMessage>{errors.color.message}</ErrorMessage>
-                            )}
-                        </FieldGroup>
-
-                        <FieldGroup>
-                            <Label>{t.vehicles.form.paintType}</Label>
-                            <Input
-                                {...register('paintType')}
-                                placeholder={t.vehicles.form.paintTypePlaceholder}
-                                disabled={isCreating}
-                            />
-                            {errors.paintType && (
-                                <ErrorMessage>{errors.paintType.message}</ErrorMessage>
-                            )}
-                        </FieldGroup>
-
-                        <FieldGroup>
-                            <Label>{t.vehicles.form.mileage}</Label>
-                            <Input
-                                type="number"
-                                {...register('currentMileage', { valueAsNumber: true })}
-                                placeholder={t.vehicles.form.mileagePlaceholder}
-                                disabled={isCreating}
-                            />
-                            {errors.currentMileage && (
-                                <ErrorMessage>{errors.currentMileage.message}</ErrorMessage>
-                            )}
-                        </FieldGroup>
-                    </FormGrid>
-
-                    <ModalSectionTitle style={{ marginTop: '20px' }}>{t.vehicles.form.owners.title}</ModalSectionTitle>
-                    <Controller
-                        name="ownerIds"
-                        control={control}
-                        render={({ field }) => (
-                            <OwnerSelect
-                                selectedOwnerIds={field.value}
-                                onChange={field.onChange}
-                            />
-                        )}
-                    />
-                    {errors.ownerIds && (
-                        <ErrorMessage>{errors.ownerIds.message}</ErrorMessage>
-                    )}
-
-                    <ModalSectionTitle style={{ marginTop: '20px' }}>{t.vehicles.form.notes.title}</ModalSectionTitle>
-                    <FieldGroup>
-                        <TextArea
-                            {...register('technicalNotes')}
-                            placeholder={t.vehicles.form.notes.placeholder}
-                            disabled={isCreating}
-                        />
-                        {errors.technicalNotes && (
-                            <ErrorMessage>{errors.technicalNotes.message}</ErrorMessage>
-                        )}
-                    </FieldGroup>
+                        </FormField>
+                    </FormTabPanel>
                 </form>
             </ModalContent>
 
@@ -254,14 +306,7 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
                     $variant="primary"
                     disabled={isCreating}
                 >
-                    {isCreating ? (
-                        <>
-                            <LoadingSpinner />
-                            {t.vehicles.form.submitting}
-                        </>
-                    ) : (
-                        t.vehicles.form.submit
-                    )}
+                    {isCreating ? t.vehicles.form.submitting : t.vehicles.form.submit}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>
