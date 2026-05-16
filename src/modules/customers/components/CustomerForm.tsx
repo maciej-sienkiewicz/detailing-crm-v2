@@ -3,6 +3,7 @@ import { useFormContext } from 'react-hook-form';
 import type { CreateCustomerFormData } from '../utils/customerValidation';
 import { t } from '@/common/i18n';
 import { PhoneInputField } from '@/common/components/PhoneInputField';
+import { NipInput } from './NipInput';
 import {
     FormGrid,
     FormField,
@@ -222,22 +223,7 @@ export const CustomerForm = () => {
                         )}
                     </FormField>
 
-                    <FormField>
-                        <FieldLabel htmlFor="company.nip">
-                            {t.customers.form.company.nip}
-                        </FieldLabel>
-                        <InputShell $hasError={!!errors.company?.nip}>
-                            <BareInput
-                                id="company.nip"
-                                autoComplete="new-password"
-                                {...register('company.nip')}
-                                placeholder={t.customers.form.company.nipPlaceholder}
-                            />
-                        </InputShell>
-                        {errors.company?.nip && (
-                            <FormErrorMsg>{errors.company.nip.message}</FormErrorMsg>
-                        )}
-                    </FormField>
+                    <NipInput />
 
                     <FormField>
                         <FieldLabel htmlFor="company.regon">
