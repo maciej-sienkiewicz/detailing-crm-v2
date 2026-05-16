@@ -27,6 +27,7 @@ import {
     BareTextArea,
     FormAlertBanner,
 } from '@/common/components/Form';
+import { NipInputWithGus, type CompanyInfoResponse } from '@/common/components/NipInputWithGus';
 
 // ─── Custom Select (portal-based) ────────────────────────────────────────────
 
@@ -209,6 +210,14 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) => {
     const setField = (key: keyof FormState) => (value: string) =>
         setForm(prev => ({ ...prev, [key]: value }));
 
+    const handleGUSFetch = (data: CompanyInfoResponse) => {
+        setForm(prev => ({
+            ...prev,
+            counterpartyName: data.name,
+            counterpartyNip:  data.nip,
+        }));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
@@ -381,16 +390,13 @@ export const CreateDocumentModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
                         <FormField>
                             <FieldLabel htmlFor="cd-counterpartyNip">NIP</FieldLabel>
-                            <InputShell>
-                                <BareInput
-                                    id="cd-counterpartyNip"
-                                    type="text"
-                                    placeholder="1234567890"
-                                    value={form.counterpartyNip}
-                                    onChange={set('counterpartyNip')}
-                                    autoComplete="new-password"
-                                />
-                            </InputShell>
+                            <NipInputWithGus
+                                id="cd-counterpartyNip"
+                                value={form.counterpartyNip}
+                                onChange={setField('counterpartyNip')}
+                                onFetch={handleGUSFetch}
+                                placeholder="1234567890"
+                            />
                         </FormField>
                     </FormGrid>
 
