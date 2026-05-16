@@ -36,42 +36,44 @@ export const InProgressToReadyWizard = ({
     } = useStateTransitionWizard(visit.id, 'in_progress_to_ready', onTransitionSuccess);
 
     const [notificationChannels, setNotificationChannels] = React.useState({ sms: true, email: !!visit.customer.email });
+    const [qualityAllChecked, setQualityAllChecked] = React.useState(true);
 
-    const handleQualityApprove = () => {
-        handleNext();
-    };
-
-    const handleQualityReject = () => {
-        handleClose();
-        onClose();
-    };
-
+    const handleQualityReject = () => { handleClose(); onClose(); };
     const handleNotificationSkip = () => {
         updateWizardData({ notifications: { sms: false, email: false } });
         handleFinish();
     };
-
     const handleNotificationSend = () => {
         updateWizardData({ notifications: notificationChannels });
         handleFinish();
     };
 
+    const stepFooterProps = currentStep === 1 ? {
+        onBack:      handleQualityReject,
+        backLabel:   'Wymaga poprawek',
+        onNext:      handleNext,
+        nextLabel:   'Zatwierdź jakość',
+        onFinish:    undefined,
+        onSkip:      undefined,
+        disableNext: !qualityAllChecked,
+    } : {
+        onBack:      handleBack,
+        backLabel:   'Wstecz',
+        onNext:      undefined,
+        nextLabel:   undefined,
+        onFinish:    handleNotificationSend,
+        finishLabel: 'Wyślij i kontynuuj',
+        onSkip:      handleNotificationSkip,
+        skipLabel:   'Pomiń',
+        disableNext: !(notificationChannels.sms || notificationChannels.email),
+    };
+
     const getStepContent = () => {
         switch (currentStep) {
             case 1:
-                return (
-                    <QualityCheckStep
-                        onApprove={handleQualityApprove}
-                        onReject={handleQualityReject}
-                    />
-                );
+                return <QualityCheckStep onAllCheckedChange={setQualityAllChecked} />;
             case 2:
-                return (
-                    <NotificationStep
-                        customer={visit.customer}
-                        onChannelsChange={setNotificationChannels}
-                    />
-                );
+                return <NotificationStep customer={visit.customer} onChannelsChange={setNotificationChannels} />;
             default:
                 return null;
         }
@@ -80,16 +82,9 @@ export const InProgressToReadyWizard = ({
     return (
         <WizardLayout
             isOpen={isOpen}
-            onClose={() => {
-                handleClose();
-                onClose();
-            }}
+            onClose={() => { handleClose(); onClose(); }}
             title={currentStep === 1 ? 'Weryfikacja jakości' : 'Powiadomienie klienta'}
-            subtitle={
-                currentStep === 1
-                    ? undefined
-                    : 'Poinformuj klienta o gotowości pojazdu'
-            }
+            subtitle={currentStep === 2 ? 'Poinformuj klienta o gotowości pojazdu' : undefined}
             icon={
                 currentStep === 1 ? (
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -105,13 +100,8 @@ export const InProgressToReadyWizard = ({
             }
             currentStep={currentStep}
             totalSteps={totalSteps}
-            onBack={currentStep > 1 ? handleBack : undefined}
-            onSkip={currentStep === 2 ? handleNotificationSkip : undefined}
-            skipLabel="Pomiń powiadomienia"
-            onFinish={currentStep === 2 ? handleNotificationSend : undefined}
-            finishLabel="Wyślij i kontynuuj"
             isProcessing={isProcessing}
-            disableNext={currentStep === 2 ? !(notificationChannels.sms || notificationChannels.email) : false}
+            {...stepFooterProps}
         >
             {getStepContent()}
         </WizardLayout>
