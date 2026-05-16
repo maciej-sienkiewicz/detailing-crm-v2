@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CustomerForm } from './CustomerForm';
@@ -21,7 +21,6 @@ import {
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
 import { FormAlertBanner } from '@/common/components/Form';
-
 import type { Customer } from '../types';
 
 interface AddCustomerModalProps {
@@ -35,18 +34,17 @@ export const AddCustomerModal = ({
     onClose,
     onSuccess,
 }: AddCustomerModalProps) => {
-    const [includeCompany, setIncludeCompany] = useState(false);
-    const [includeHomeAddress, setIncludeHomeAddress] = useState(false);
-
     const methods = useForm<CreateCustomerFormData>({
         resolver: (values, context, options) => {
-            // Czyścimy dane przed walidacją: jeśli sekcja jest wyłączona, wymuszamy czysty null
+            // Include address only if street was filled; include company only if name was filled.
+            // This matches the tab-based UX where unfilled optional tabs are treated as null.
+            const hasAddress = !!(values.homeAddress?.street?.trim());
+            const hasCompany = !!(values.company?.name?.trim());
             const dataToValidate = {
                 ...values,
-                company: includeCompany ? values.company : null,
-                homeAddress: includeHomeAddress ? values.homeAddress : null,
+                homeAddress: hasAddress ? values.homeAddress : null,
+                company: hasCompany ? values.company : null,
             };
-
             return zodResolver(createCustomerSchema)(dataToValidate, context, options);
         },
         defaultValues: {
@@ -62,8 +60,6 @@ export const AddCustomerModal = ({
 
     const handleSuccess = useCallback((customer: Customer) => {
         methods.reset();
-        setIncludeCompany(false);
-        setIncludeHomeAddress(false);
         onSuccess(customer);
         onClose();
     }, [methods, onClose, onSuccess]);
@@ -73,10 +69,12 @@ export const AddCustomerModal = ({
     });
 
     const handleSubmit = methods.handleSubmit(data => {
+        const hasAddress = !!(data.homeAddress?.street?.trim());
+        const hasCompany = !!(data.company?.name?.trim());
         const payload = mapFormDataToPayload({
             ...data,
-            homeAddress: includeHomeAddress ? data.homeAddress : null,
-            company: includeCompany ? data.company : null,
+            homeAddress: hasAddress ? data.homeAddress : null,
+            company: hasCompany ? data.company : null,
         });
         createCustomer(payload);
     });
@@ -84,8 +82,6 @@ export const AddCustomerModal = ({
     const handleClose = useCallback(() => {
         methods.reset();
         resetMutation();
-        setIncludeCompany(false);
-        setIncludeHomeAddress(false);
         onClose();
     }, [methods, onClose, resetMutation]);
 
@@ -105,13 +101,8 @@ export const AddCustomerModal = ({
                 )}
 
                 <FormProvider {...methods}>
-                    <form id="add-customer-form" onSubmit={handleSubmit}>
-                        <CustomerForm
-                            includeCompany={includeCompany}
-                            onIncludeCompanyChange={setIncludeCompany}
-                            includeHomeAddress={includeHomeAddress}
-                            onIncludeHomeAddressChange={setIncludeHomeAddress}
-                        />
+                    <form id="add-customer-form" onSubmit={handleSubmit} autoComplete="off">
+                        <CustomerForm />
                     </form>
                 </FormProvider>
             </ModalContent>

@@ -431,3 +431,35 @@ export const ExpandableSection = styled.div<{ $isExpanded: boolean }>`
 export const ExpandableContent = styled.div`
     overflow: hidden;
 `;
+
+// ─── Tab navigation ───────────────────────────────────────────────────────────
+
+export const FormTabBar = styled.div`
+    display: flex;
+    border-bottom: 1px solid #f1f5f9;
+    margin-bottom: 24px;
+    gap: 0;
+`;
+
+export const FormTabBtn = styled.button<{ $active?: boolean }>`
+    padding: 10px 16px;
+    border: none;
+    border-bottom: 2px solid ${p => p.$active ? 'var(--brand-primary)' : 'transparent'};
+    margin-bottom: -1px;
+    background: none;
+    font-size: 13px;
+    font-weight: ${p => p.$active ? 600 : 500};
+    color: ${p => p.$active ? 'var(--brand-primary)' : '#64748b'};
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+    white-space: nowrap;
+
+    &:hover {
+        color: ${p => p.$active ? 'var(--brand-primary)' : '#374151'};
+    }
+`;
+
+/** CSS-based tab panel — always in the DOM so react-hook-form retains field values. */
+export const FormTabPanel = styled.div<{ $active?: boolean }>`
+    display: ${p => p.$active ? 'block' : 'none'};
+`;

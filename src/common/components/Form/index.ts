@@ -37,4 +37,8 @@ export {
     // Expandable
     ExpandableSection,
     ExpandableContent,
+    // Tabs
+    FormTabBar,
+    FormTabBtn,
+    FormTabPanel,
 } from './Form';

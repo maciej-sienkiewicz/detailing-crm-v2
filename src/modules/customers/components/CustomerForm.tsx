@@ -1,5 +1,5 @@
+import { useState } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { Home, Building2 } from 'lucide-react';
 import type { CreateCustomerFormData } from '../utils/customerValidation';
 import { t } from '@/common/i18n';
 import { PhoneInputField } from '@/common/components/PhoneInputField';
@@ -12,31 +12,16 @@ import {
     BareInput,
     BareTextArea,
     FormErrorMsg,
-    FormSection,
-    SectionHeader,
-    ToggleCard,
-    ToggleSwitch,
-    ToggleContent,
-    ToggleTitle,
-    ToggleDescription,
-    HiddenCheckbox,
-    ExpandableSection,
-    ExpandableContent,
+    FormTabBar,
+    FormTabBtn,
+    FormTabPanel,
 } from '@/common/components/Form';
 
-interface CustomerFormProps {
-    includeCompany: boolean;
-    onIncludeCompanyChange: (value: boolean) => void;
-    includeHomeAddress: boolean;
-    onIncludeHomeAddressChange: (value: boolean) => void;
-}
+type TabId = 'basic' | 'address' | 'company';
 
-export const CustomerForm = ({
-    includeCompany,
-    onIncludeCompanyChange,
-    includeHomeAddress,
-    onIncludeHomeAddressChange,
-}: CustomerFormProps) => {
+export const CustomerForm = () => {
+    const [activeTab, setActiveTab] = useState<TabId>('basic');
+
     const {
         register,
         formState: { errors },
@@ -44,15 +29,40 @@ export const CustomerForm = ({
 
     return (
         <>
-            {/* ── Dane osobowe ─────────────────────────────────────────────── */}
-            <FormSection>
+            <FormTabBar>
+                <FormTabBtn
+                    type="button"
+                    $active={activeTab === 'basic'}
+                    onClick={() => setActiveTab('basic')}
+                >
+                    Dane podstawowe
+                </FormTabBtn>
+                <FormTabBtn
+                    type="button"
+                    $active={activeTab === 'address'}
+                    onClick={() => setActiveTab('address')}
+                >
+                    Adres zamieszkania
+                </FormTabBtn>
+                <FormTabBtn
+                    type="button"
+                    $active={activeTab === 'company'}
+                    onClick={() => setActiveTab('company')}
+                >
+                    Dane firmy
+                </FormTabBtn>
+            </FormTabBar>
+
+            {/* ── Dane podstawowe ───────────────────────────────────────────
+                Always rendered (CSS hidden) so RHF retains field values.   */}
+            <FormTabPanel $active={activeTab === 'basic'}>
                 <FormGrid>
                     <FormField>
                         <FieldLabel htmlFor="firstName">{t.customers.form.firstName}</FieldLabel>
                         <InputShell $hasError={!!errors.firstName}>
                             <BareInput
                                 id="firstName"
-                                autoComplete="off"
+                                autoComplete="new-password"
                                 {...register('firstName')}
                                 placeholder={t.customers.form.firstNamePlaceholder}
                             />
@@ -67,7 +77,7 @@ export const CustomerForm = ({
                         <InputShell $hasError={!!errors.lastName}>
                             <BareInput
                                 id="lastName"
-                                autoComplete="off"
+                                autoComplete="new-password"
                                 {...register('lastName')}
                                 placeholder={t.customers.form.lastNamePlaceholder}
                             />
@@ -83,7 +93,7 @@ export const CustomerForm = ({
                             <BareInput
                                 id="email"
                                 type="email"
-                                autoComplete="off"
+                                autoComplete="new-password"
                                 {...register('email')}
                                 placeholder={t.customers.form.emailPlaceholder}
                             />
@@ -101,263 +111,13 @@ export const CustomerForm = ({
                             placeholder={t.customers.form.phonePlaceholder}
                         />
                     </FormField>
-                </FormGrid>
-            </FormSection>
 
-            {/* ── Adres zamieszkania (opcjonalny) ──────────────────────────── */}
-            <FormSection>
-                <ToggleCard $isActive={includeHomeAddress}>
-                    <HiddenCheckbox
-                        type="checkbox"
-                        checked={includeHomeAddress}
-                        onChange={e => onIncludeHomeAddressChange(e.target.checked)}
-                    />
-                    <ToggleSwitch $isActive={includeHomeAddress} />
-                    <ToggleContent>
-                        <ToggleTitle>{t.customers.form.includeHomeAddress}</ToggleTitle>
-                        <ToggleDescription>Adres zamieszkania do korespondencji</ToggleDescription>
-                    </ToggleContent>
-                </ToggleCard>
-
-                <ExpandableSection $isExpanded={includeHomeAddress}>
-                    <ExpandableContent>
-                        <SectionHeader
-                            icon={<Home />}
-                            iconColor="#10b981"
-                            title={t.customers.form.homeAddress.title}
-                            subtitle="Dane adresowe klienta"
-                        />
-
-                        <FormGrid>
-                            <FormField $fullWidth>
-                                <FieldLabel htmlFor="homeAddress.street">
-                                    {t.customers.form.homeAddress.street}
-                                </FieldLabel>
-                                <InputShell $hasError={!!errors.homeAddress?.street}>
-                                    <BareInput
-                                        id="homeAddress.street"
-                                        autoComplete="off"
-                                        {...register('homeAddress.street')}
-                                        placeholder={t.customers.form.homeAddress.streetPlaceholder}
-                                    />
-                                </InputShell>
-                                {errors.homeAddress?.street && (
-                                    <FormErrorMsg>{errors.homeAddress.street.message}</FormErrorMsg>
-                                )}
-                            </FormField>
-
-                            <FormField>
-                                <FieldLabel htmlFor="homeAddress.city">
-                                    {t.customers.form.homeAddress.city}
-                                </FieldLabel>
-                                <InputShell $hasError={!!errors.homeAddress?.city}>
-                                    <BareInput
-                                        id="homeAddress.city"
-                                        autoComplete="off"
-                                        {...register('homeAddress.city')}
-                                        placeholder={t.customers.form.homeAddress.cityPlaceholder}
-                                    />
-                                </InputShell>
-                                {errors.homeAddress?.city && (
-                                    <FormErrorMsg>{errors.homeAddress.city.message}</FormErrorMsg>
-                                )}
-                            </FormField>
-
-                            <FormField>
-                                <FieldLabel htmlFor="homeAddress.postalCode">
-                                    {t.customers.form.homeAddress.postalCode}
-                                </FieldLabel>
-                                <InputShell $hasError={!!errors.homeAddress?.postalCode}>
-                                    <BareInput
-                                        id="homeAddress.postalCode"
-                                        autoComplete="off"
-                                        {...register('homeAddress.postalCode')}
-                                        placeholder={t.customers.form.homeAddress.postalCodePlaceholder}
-                                    />
-                                </InputShell>
-                                {errors.homeAddress?.postalCode && (
-                                    <FormErrorMsg>{errors.homeAddress.postalCode.message}</FormErrorMsg>
-                                )}
-                            </FormField>
-
-                            <FormField>
-                                <FieldLabel htmlFor="homeAddress.country">
-                                    {t.customers.form.homeAddress.country}
-                                </FieldLabel>
-                                <InputShell $hasError={!!errors.homeAddress?.country}>
-                                    <BareInput
-                                        id="homeAddress.country"
-                                        autoComplete="off"
-                                        {...register('homeAddress.country')}
-                                        placeholder={t.customers.form.homeAddress.countryPlaceholder}
-                                    />
-                                </InputShell>
-                                {errors.homeAddress?.country && (
-                                    <FormErrorMsg>{errors.homeAddress.country.message}</FormErrorMsg>
-                                )}
-                            </FormField>
-                        </FormGrid>
-                    </ExpandableContent>
-                </ExpandableSection>
-            </FormSection>
-
-            {/* ── Firma (opcjonalna) ────────────────────────────────────────── */}
-            <FormSection>
-                <ToggleCard $isActive={includeCompany}>
-                    <HiddenCheckbox
-                        type="checkbox"
-                        checked={includeCompany}
-                        onChange={e => onIncludeCompanyChange(e.target.checked)}
-                    />
-                    <ToggleSwitch $isActive={includeCompany} />
-                    <ToggleContent>
-                        <ToggleTitle>{t.customers.form.includeCompany}</ToggleTitle>
-                        <ToggleDescription>Dane firmy do faktur i dokumentów</ToggleDescription>
-                    </ToggleContent>
-                </ToggleCard>
-
-                <ExpandableSection $isExpanded={includeCompany}>
-                    <ExpandableContent>
-                        <SectionHeader
-                            icon={<Building2 />}
-                            iconColor="#f59e0b"
-                            title={t.customers.form.company.title}
-                            subtitle="Dane rejestrowe firmy"
-                        />
-
-                        <FormGrid>
-                            <FormField $fullWidth>
-                                <FieldLabel htmlFor="company.name">
-                                    {t.customers.form.company.name}
-                                </FieldLabel>
-                                <InputShell $hasError={!!errors.company?.name}>
-                                    <BareInput
-                                        id="company.name"
-                                        autoComplete="off"
-                                        {...register('company.name')}
-                                        placeholder={t.customers.form.company.namePlaceholder}
-                                    />
-                                </InputShell>
-                                {errors.company?.name && (
-                                    <FormErrorMsg>{errors.company.name.message}</FormErrorMsg>
-                                )}
-                            </FormField>
-
-                            <FormField>
-                                <FieldLabel htmlFor="company.nip">
-                                    {t.customers.form.company.nip}
-                                </FieldLabel>
-                                <InputShell $hasError={!!errors.company?.nip}>
-                                    <BareInput
-                                        id="company.nip"
-                                        autoComplete="off"
-                                        {...register('company.nip')}
-                                        placeholder={t.customers.form.company.nipPlaceholder}
-                                    />
-                                </InputShell>
-                                {errors.company?.nip && (
-                                    <FormErrorMsg>{errors.company.nip.message}</FormErrorMsg>
-                                )}
-                            </FormField>
-
-                            <FormField>
-                                <FieldLabel htmlFor="company.regon">
-                                    {t.customers.form.company.regon}
-                                </FieldLabel>
-                                <InputShell $hasError={!!errors.company?.regon}>
-                                    <BareInput
-                                        id="company.regon"
-                                        autoComplete="off"
-                                        {...register('company.regon')}
-                                        placeholder={t.customers.form.company.regonPlaceholder}
-                                    />
-                                </InputShell>
-                                {errors.company?.regon && (
-                                    <FormErrorMsg>{errors.company.regon.message}</FormErrorMsg>
-                                )}
-                            </FormField>
-
-                            <FormField $fullWidth>
-                                <FieldLabel htmlFor="company.address.street">
-                                    {t.customers.form.company.street}
-                                </FieldLabel>
-                                <InputShell $hasError={!!errors.company?.address?.street}>
-                                    <BareInput
-                                        id="company.address.street"
-                                        autoComplete="off"
-                                        {...register('company.address.street')}
-                                        placeholder={t.customers.form.company.streetPlaceholder}
-                                    />
-                                </InputShell>
-                                {errors.company?.address?.street && (
-                                    <FormErrorMsg>{errors.company.address.street.message}</FormErrorMsg>
-                                )}
-                            </FormField>
-
-                            <FormField>
-                                <FieldLabel htmlFor="company.address.city">
-                                    {t.customers.form.company.city}
-                                </FieldLabel>
-                                <InputShell $hasError={!!errors.company?.address?.city}>
-                                    <BareInput
-                                        id="company.address.city"
-                                        autoComplete="off"
-                                        {...register('company.address.city')}
-                                        placeholder={t.customers.form.company.cityPlaceholder}
-                                    />
-                                </InputShell>
-                                {errors.company?.address?.city && (
-                                    <FormErrorMsg>{errors.company.address.city.message}</FormErrorMsg>
-                                )}
-                            </FormField>
-
-                            <FormField>
-                                <FieldLabel htmlFor="company.address.postalCode">
-                                    {t.customers.form.company.postalCode}
-                                </FieldLabel>
-                                <InputShell $hasError={!!errors.company?.address?.postalCode}>
-                                    <BareInput
-                                        id="company.address.postalCode"
-                                        autoComplete="off"
-                                        {...register('company.address.postalCode')}
-                                        placeholder={t.customers.form.company.postalCodePlaceholder}
-                                    />
-                                </InputShell>
-                                {errors.company?.address?.postalCode && (
-                                    <FormErrorMsg>{errors.company.address.postalCode.message}</FormErrorMsg>
-                                )}
-                            </FormField>
-
-                            <FormField>
-                                <FieldLabel htmlFor="company.address.country">
-                                    {t.customers.form.company.country}
-                                </FieldLabel>
-                                <InputShell $hasError={!!errors.company?.address?.country}>
-                                    <BareInput
-                                        id="company.address.country"
-                                        autoComplete="off"
-                                        {...register('company.address.country')}
-                                        placeholder={t.customers.form.company.countryPlaceholder}
-                                    />
-                                </InputShell>
-                                {errors.company?.address?.country && (
-                                    <FormErrorMsg>{errors.company.address.country.message}</FormErrorMsg>
-                                )}
-                            </FormField>
-                        </FormGrid>
-                    </ExpandableContent>
-                </ExpandableSection>
-            </FormSection>
-
-            {/* ── Notatki ──────────────────────────────────────────────────── */}
-            <FormSection>
-                <FormGrid>
                     <FormField $fullWidth>
                         <FieldLabel htmlFor="notes">{t.customers.form.notes.label}</FieldLabel>
                         <InputShellTextArea $hasError={!!errors.notes}>
                             <BareTextArea
                                 id="notes"
-                                autoComplete="off"
+                                autoComplete="new-password"
                                 {...register('notes')}
                                 placeholder={t.customers.form.notes.placeholder}
                             />
@@ -367,7 +127,204 @@ export const CustomerForm = ({
                         )}
                     </FormField>
                 </FormGrid>
-            </FormSection>
+            </FormTabPanel>
+
+            {/* ── Adres zamieszkania ──────────────────────────────────────── */}
+            <FormTabPanel $active={activeTab === 'address'}>
+                <FormGrid>
+                    <FormField $fullWidth>
+                        <FieldLabel htmlFor="homeAddress.street">
+                            {t.customers.form.homeAddress.street}
+                        </FieldLabel>
+                        <InputShell $hasError={!!errors.homeAddress?.street}>
+                            <BareInput
+                                id="homeAddress.street"
+                                autoComplete="new-password"
+                                {...register('homeAddress.street')}
+                                placeholder={t.customers.form.homeAddress.streetPlaceholder}
+                            />
+                        </InputShell>
+                        {errors.homeAddress?.street && (
+                            <FormErrorMsg>{errors.homeAddress.street.message}</FormErrorMsg>
+                        )}
+                    </FormField>
+
+                    <FormField>
+                        <FieldLabel htmlFor="homeAddress.city">
+                            {t.customers.form.homeAddress.city}
+                        </FieldLabel>
+                        <InputShell $hasError={!!errors.homeAddress?.city}>
+                            <BareInput
+                                id="homeAddress.city"
+                                autoComplete="new-password"
+                                {...register('homeAddress.city')}
+                                placeholder={t.customers.form.homeAddress.cityPlaceholder}
+                            />
+                        </InputShell>
+                        {errors.homeAddress?.city && (
+                            <FormErrorMsg>{errors.homeAddress.city.message}</FormErrorMsg>
+                        )}
+                    </FormField>
+
+                    <FormField>
+                        <FieldLabel htmlFor="homeAddress.postalCode">
+                            {t.customers.form.homeAddress.postalCode}
+                        </FieldLabel>
+                        <InputShell $hasError={!!errors.homeAddress?.postalCode}>
+                            <BareInput
+                                id="homeAddress.postalCode"
+                                autoComplete="new-password"
+                                {...register('homeAddress.postalCode')}
+                                placeholder={t.customers.form.homeAddress.postalCodePlaceholder}
+                            />
+                        </InputShell>
+                        {errors.homeAddress?.postalCode && (
+                            <FormErrorMsg>{errors.homeAddress.postalCode.message}</FormErrorMsg>
+                        )}
+                    </FormField>
+
+                    <FormField>
+                        <FieldLabel htmlFor="homeAddress.country">
+                            {t.customers.form.homeAddress.country}
+                        </FieldLabel>
+                        <InputShell $hasError={!!errors.homeAddress?.country}>
+                            <BareInput
+                                id="homeAddress.country"
+                                autoComplete="new-password"
+                                {...register('homeAddress.country')}
+                                placeholder={t.customers.form.homeAddress.countryPlaceholder}
+                            />
+                        </InputShell>
+                        {errors.homeAddress?.country && (
+                            <FormErrorMsg>{errors.homeAddress.country.message}</FormErrorMsg>
+                        )}
+                    </FormField>
+                </FormGrid>
+            </FormTabPanel>
+
+            {/* ── Dane firmy ─────────────────────────────────────────────── */}
+            <FormTabPanel $active={activeTab === 'company'}>
+                <FormGrid>
+                    <FormField $fullWidth>
+                        <FieldLabel htmlFor="company.name">
+                            {t.customers.form.company.name}
+                        </FieldLabel>
+                        <InputShell $hasError={!!errors.company?.name}>
+                            <BareInput
+                                id="company.name"
+                                autoComplete="new-password"
+                                {...register('company.name')}
+                                placeholder={t.customers.form.company.namePlaceholder}
+                            />
+                        </InputShell>
+                        {errors.company?.name && (
+                            <FormErrorMsg>{errors.company.name.message}</FormErrorMsg>
+                        )}
+                    </FormField>
+
+                    <FormField>
+                        <FieldLabel htmlFor="company.nip">
+                            {t.customers.form.company.nip}
+                        </FieldLabel>
+                        <InputShell $hasError={!!errors.company?.nip}>
+                            <BareInput
+                                id="company.nip"
+                                autoComplete="new-password"
+                                {...register('company.nip')}
+                                placeholder={t.customers.form.company.nipPlaceholder}
+                            />
+                        </InputShell>
+                        {errors.company?.nip && (
+                            <FormErrorMsg>{errors.company.nip.message}</FormErrorMsg>
+                        )}
+                    </FormField>
+
+                    <FormField>
+                        <FieldLabel htmlFor="company.regon">
+                            {t.customers.form.company.regon}
+                        </FieldLabel>
+                        <InputShell $hasError={!!errors.company?.regon}>
+                            <BareInput
+                                id="company.regon"
+                                autoComplete="new-password"
+                                {...register('company.regon')}
+                                placeholder={t.customers.form.company.regonPlaceholder}
+                            />
+                        </InputShell>
+                        {errors.company?.regon && (
+                            <FormErrorMsg>{errors.company.regon.message}</FormErrorMsg>
+                        )}
+                    </FormField>
+
+                    <FormField $fullWidth>
+                        <FieldLabel htmlFor="company.address.street">
+                            {t.customers.form.company.street}
+                        </FieldLabel>
+                        <InputShell $hasError={!!errors.company?.address?.street}>
+                            <BareInput
+                                id="company.address.street"
+                                autoComplete="new-password"
+                                {...register('company.address.street')}
+                                placeholder={t.customers.form.company.streetPlaceholder}
+                            />
+                        </InputShell>
+                        {errors.company?.address?.street && (
+                            <FormErrorMsg>{errors.company.address.street.message}</FormErrorMsg>
+                        )}
+                    </FormField>
+
+                    <FormField>
+                        <FieldLabel htmlFor="company.address.city">
+                            {t.customers.form.company.city}
+                        </FieldLabel>
+                        <InputShell $hasError={!!errors.company?.address?.city}>
+                            <BareInput
+                                id="company.address.city"
+                                autoComplete="new-password"
+                                {...register('company.address.city')}
+                                placeholder={t.customers.form.company.cityPlaceholder}
+                            />
+                        </InputShell>
+                        {errors.company?.address?.city && (
+                            <FormErrorMsg>{errors.company.address.city.message}</FormErrorMsg>
+                        )}
+                    </FormField>
+
+                    <FormField>
+                        <FieldLabel htmlFor="company.address.postalCode">
+                            {t.customers.form.company.postalCode}
+                        </FieldLabel>
+                        <InputShell $hasError={!!errors.company?.address?.postalCode}>
+                            <BareInput
+                                id="company.address.postalCode"
+                                autoComplete="new-password"
+                                {...register('company.address.postalCode')}
+                                placeholder={t.customers.form.company.postalCodePlaceholder}
+                            />
+                        </InputShell>
+                        {errors.company?.address?.postalCode && (
+                            <FormErrorMsg>{errors.company.address.postalCode.message}</FormErrorMsg>
+                        )}
+                    </FormField>
+
+                    <FormField>
+                        <FieldLabel htmlFor="company.address.country">
+                            {t.customers.form.company.country}
+                        </FieldLabel>
+                        <InputShell $hasError={!!errors.company?.address?.country}>
+                            <BareInput
+                                id="company.address.country"
+                                autoComplete="new-password"
+                                {...register('company.address.country')}
+                                placeholder={t.customers.form.company.countryPlaceholder}
+                            />
+                        </InputShell>
+                        {errors.company?.address?.country && (
+                            <FormErrorMsg>{errors.company.address.country.message}</FormErrorMsg>
+                        )}
+                    </FormField>
+                </FormGrid>
+            </FormTabPanel>
         </>
     );
 };

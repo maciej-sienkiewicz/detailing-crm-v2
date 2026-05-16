@@ -334,7 +334,7 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
                         }
                     }}
                     type="tel"
-                    autoComplete="off"
+                    autoComplete="new-password"
                     defaultValue={initialDisplayValue}
                     onChange={handleNumberChange}
                     onBlur={handleBlur}
