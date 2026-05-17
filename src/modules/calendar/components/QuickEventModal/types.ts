@@ -3,6 +3,13 @@ import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/t
 
 export type { EventCreationData };
 
+export type AdjustmentType = 'PERCENT' | 'FIXED_NET' | 'FIXED_GROSS' | 'SET_NET' | 'SET_GROSS';
+
+export interface ServiceAdjustment {
+    type: AdjustmentType;
+    value: number;
+}
+
 /** Pre-fill data for opening the modal from an external context (e.g. lead booking) */
 export interface QuickEventInitialData {
   customer?: SelectedCustomer;
@@ -36,6 +43,7 @@ export interface QuickEventFormData {
     isAllDay: boolean;
     serviceIds: string[];
     servicePrices?: { [key: string]: number };
+    serviceAdjustments?: { [key: string]: ServiceAdjustment };
     serviceNotes?: { [key: string]: string };
     tempServices?: { [key: string]: { name: string; basePriceNet: number; vatRate: number } };
     colorId: string;

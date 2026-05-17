@@ -12,13 +12,13 @@ import { LockedSection } from '@/common/components/LockedSection';
 import * as S from '../QuickEventModalStyles';
 import { useQuickEventForm } from './useQuickEventForm';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
-import { roundTo2 } from './helpers';
+import { roundTo2, calculateFinalPrice } from './helpers';
 import {
     IconClock, IconUser, IconCar, IconSettings, IconNote,
-    IconTrash, IconX, IconPalette, IconMessageSquare, IconPlus, IconPencil, IconCheck,
+    IconTrash, IconX, IconPalette, IconMessageSquare, IconPlus, IconPencil, IconCheck, IconPercent,
 } from './icons';
 import { useFeature } from '@/modules/subscription';
-import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Service } from './types';
+import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Service, AdjustmentType } from './types';
 
 export type { QuickEventFormData, QuickEventInitialData } from './types';
 export type { QuickEventModalRef };
@@ -100,6 +100,16 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
     const [serviceDropdownPos, setServiceDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
     const [autoOpenModel, setAutoOpenModel] = useState(false);
+    const [expandedServiceDiscount, setExpandedServiceDiscount] = useState<string | null>(null);
+    const [discountDraftInputs, setDiscountDraftInputs] = useState<{ [id: string]: string }>({});
+
+    const DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
+        { type: 'PERCENT', label: '%' },
+        { type: 'FIXED_NET', label: '−Netto' },
+        { type: 'FIXED_GROSS', label: '−Brutto' },
+        { type: 'SET_NET', label: '=Netto' },
+        { type: 'SET_GROSS', label: '=Brutto' },
+    ];
 
     useEffect(() => {
         if (!isOpen) setAutoOpenModel(false);
@@ -904,71 +914,61 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     if (!service) return null;
 
                                                     const vatRate = service.vatRate || 23;
-                                                    const inputs = form.servicePriceInputs[id] ?? {
-                                                        gross: (form.servicePrices[id] ?? 0).toFixed(2),
-                                                        net: roundTo2((form.servicePrices[id] ?? 0) / (1 + vatRate / 100)).toFixed(2),
-                                                    };
+                                                    const baseGross = form.servicePrices[id] ?? 0;
+                                                    const adjustment = form.serviceAdjustments[id] ?? { type: 'PERCENT' as AdjustmentType, value: 0 };
+                                                    const priceResult = calculateFinalPrice(baseGross, vatRate, adjustment);
+                                                    const { finalNet, finalGross, baseNet, hasDiscount } = priceResult;
+
                                                     const isNoteExpanded = form.expandedServiceNote === id;
+                                                    const isDiscountExpanded = expandedServiceDiscount === id;
                                                     const hasNote = !!(form.serviceNotes[id]?.length > 0);
 
-                                                    const limitDecimals = (raw: string): string => {
-                                                        const sepIdx = Math.max(raw.indexOf('.'), raw.indexOf(','));
-                                                        if (sepIdx === -1) return raw;
-                                                        return raw.slice(0, sepIdx + 3);
-                                                    };
-                                                    const syncFromGross = (raw: string) => {
-                                                        const limited = limitDecimals(raw);
-                                                        const num = parseFloat(limited.replace(',', '.'));
-                                                        if (!isNaN(num)) {
-                                                            const net = roundTo2(num / (1 + vatRate / 100));
-                                                            form.setServicePrices(prev => ({ ...prev, [id]: num }));
-                                                            form.setServicePriceInputs(prev => ({ ...prev, [id]: { gross: limited, net: net.toFixed(2) } }));
-                                                        } else {
-                                                            form.setServicePriceInputs(prev => ({ ...prev, [id]: { ...prev[id], gross: limited } }));
-                                                        }
-                                                    };
-                                                    const syncFromNet = (raw: string) => {
-                                                        const limited = limitDecimals(raw);
-                                                        const num = parseFloat(limited.replace(',', '.'));
-                                                        if (!isNaN(num)) {
-                                                            const gross = roundTo2(num * (1 + vatRate / 100));
-                                                            form.setServicePrices(prev => ({ ...prev, [id]: gross }));
-                                                            form.setServicePriceInputs(prev => ({ ...prev, [id]: { net: limited, gross: gross.toFixed(2) } }));
-                                                        } else {
-                                                            form.setServicePriceInputs(prev => ({ ...prev, [id]: { ...prev[id], net: limited } }));
-                                                        }
-                                                    };
-                                                    const normalizeInputs = () => {
-                                                        const gross = form.servicePrices[id] ?? 0;
-                                                        const net = roundTo2(gross / (1 + vatRate / 100));
-                                                        form.setServicePriceInputs(prev => ({
+                                                    const discountSuffix = adjustment.type === 'PERCENT' ? '%' : 'zł';
+                                                    const discountDisplayValue = discountDraftInputs[id] !== undefined
+                                                        ? discountDraftInputs[id]
+                                                        : (adjustment.value === 0 ? ''
+                                                            : adjustment.type === 'PERCENT'
+                                                                ? String(Math.abs(adjustment.value))
+                                                                : String(adjustment.value / 100));
+
+                                                    const commitDiscount = () => {
+                                                        const raw = discountDraftInputs[id];
+                                                        if (raw === undefined) return;
+                                                        const val = parseFloat(raw.replace(',', '.'));
+                                                        const storeVal = isNaN(val) ? 0
+                                                            : adjustment.type === 'PERCENT'
+                                                                ? -Math.abs(val)
+                                                                : Math.round(val * 100);
+                                                        form.setServiceAdjustments(prev => ({
                                                             ...prev,
-                                                            [id]: { gross: gross.toFixed(2), net: net.toFixed(2) },
+                                                            [id]: { ...adjustment, value: storeVal },
                                                         }));
+                                                        setDiscountDraftInputs(prev => { const n = { ...prev }; delete n[id]; return n; });
                                                     };
 
                                                     return (
-                                                        <S.ServiceItem key={id}>
+                                                        <S.ServiceItem key={id} $hasDiscount={hasDiscount}>
                                                             <S.ServiceItemRow>
                                                                 <S.ServiceName title={service.name}>{service.name}</S.ServiceName>
 
-                                                                <S.PriceCellInput
-                                                                    type="text"
-                                                                    inputMode="decimal"
-                                                                    value={inputs.net}
-                                                                    onChange={(e) => syncFromNet(e.target.value)}
-                                                                    onBlur={normalizeInputs}
-                                                                />
-                                                                <S.PriceCellInput
-                                                                    type="text"
-                                                                    inputMode="decimal"
-                                                                    value={inputs.gross}
-                                                                    onChange={(e) => syncFromGross(e.target.value)}
-                                                                    onBlur={normalizeInputs}
-                                                                    $isBrutto
-                                                                />
+                                                                <S.PriceDisplay>
+                                                                    <S.PriceDisplayMain $isDiscounted={hasDiscount}>{finalNet.toFixed(2)}</S.PriceDisplayMain>
+                                                                    {hasDiscount && <S.PriceDisplayOriginal>{baseNet.toFixed(2)}</S.PriceDisplayOriginal>}
+                                                                </S.PriceDisplay>
+                                                                <S.PriceDisplay>
+                                                                    <S.PriceDisplayMain $isBrutto $isDiscounted={hasDiscount}>{finalGross.toFixed(2)}</S.PriceDisplayMain>
+                                                                    {hasDiscount && <S.PriceDisplayOriginal>{baseGross.toFixed(2)}</S.PriceDisplayOriginal>}
+                                                                </S.PriceDisplay>
 
                                                                 <S.ServiceActions>
+                                                                    <S.DiscountButton
+                                                                        type="button"
+                                                                        onClick={() => setExpandedServiceDiscount(isDiscountExpanded ? null : id)}
+                                                                        $active={hasDiscount}
+                                                                        title={hasDiscount ? 'Edytuj rabat' : 'Dodaj rabat'}
+                                                                    >
+                                                                        <IconPercent />
+                                                                    </S.DiscountButton>
                                                                     <S.IconButton
                                                                         type="button"
                                                                         onClick={() => form.setExpandedServiceNote(isNoteExpanded ? null : id)}
@@ -983,14 +983,65 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                             form.setSelectedServiceIds(prev => prev.filter(i => i !== id));
                                                                             form.setServicePrices(prev => { const n = { ...prev }; delete n[id]; return n; });
                                                                             form.setServicePriceInputs(prev => { const n = { ...prev }; delete n[id]; return n; });
+                                                                            form.setServiceAdjustments(prev => { const n = { ...prev }; delete n[id]; return n; });
                                                                             form.setServiceNotes(prev => { const n = { ...prev }; delete n[id]; return n; });
                                                                             if (form.expandedServiceNote === id) form.setExpandedServiceNote(null);
+                                                                            if (expandedServiceDiscount === id) setExpandedServiceDiscount(null);
+                                                                            setDiscountDraftInputs(prev => { const n = { ...prev }; delete n[id]; return n; });
                                                                         }}
                                                                     >
                                                                         <IconTrash />
                                                                     </S.DeleteButton>
                                                                 </S.ServiceActions>
                                                             </S.ServiceItemRow>
+
+                                                            {isDiscountExpanded && (
+                                                                <S.DiscountPanel>
+                                                                    <S.DiscountTypeRow>
+                                                                        {DISCOUNT_TYPES.map(({ type, label }) => (
+                                                                            <S.DiscountTypePill
+                                                                                key={type}
+                                                                                type="button"
+                                                                                $selected={adjustment.type === type}
+                                                                                onClick={() => {
+                                                                                    form.setServiceAdjustments(prev => ({
+                                                                                        ...prev,
+                                                                                        [id]: { type, value: 0 },
+                                                                                    }));
+                                                                                    setDiscountDraftInputs(prev => ({ ...prev, [id]: '' }));
+                                                                                }}
+                                                                            >
+                                                                                {label}
+                                                                            </S.DiscountTypePill>
+                                                                        ))}
+                                                                    </S.DiscountTypeRow>
+                                                                    <S.DiscountValueRow>
+                                                                        <S.DiscountValueInput
+                                                                            type="text"
+                                                                            inputMode="decimal"
+                                                                            placeholder="0"
+                                                                            value={discountDisplayValue}
+                                                                            onChange={(e) => setDiscountDraftInputs(prev => ({ ...prev, [id]: e.target.value }))}
+                                                                            onBlur={commitDiscount}
+                                                                        />
+                                                                        <S.DiscountValueSuffix>{discountSuffix}</S.DiscountValueSuffix>
+                                                                        {hasDiscount && (
+                                                                            <S.DiscountRemoveButton
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    form.setServiceAdjustments(prev => ({
+                                                                                        ...prev,
+                                                                                        [id]: { type: 'PERCENT', value: 0 },
+                                                                                    }));
+                                                                                    setDiscountDraftInputs(prev => { const n = { ...prev }; delete n[id]; return n; });
+                                                                                }}
+                                                                            >
+                                                                                Usuń rabat
+                                                                            </S.DiscountRemoveButton>
+                                                                        )}
+                                                                    </S.DiscountValueRow>
+                                                                </S.DiscountPanel>
+                                                            )}
 
                                                             {isNoteExpanded && (
                                                                 <S.ServiceNoteContainer>
@@ -1014,10 +1065,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 form.selectedServiceIds.forEach(id => {
                                                     const svc = form.services.find((s: Service) => s.id === id) || form.tempServices[id];
                                                     if (!svc) return;
-                                                    const gross = form.servicePrices[id] ?? 0;
+                                                    const baseGross = form.servicePrices[id] ?? 0;
                                                     const vat = svc.vatRate || 23;
-                                                    totalNet += roundTo2(gross / (1 + vat / 100));
-                                                    totalGross += gross;
+                                                    const adj = form.serviceAdjustments[id] ?? { type: 'PERCENT', value: 0 };
+                                                    const p = calculateFinalPrice(baseGross, vat, adj);
+                                                    totalNet += p.finalNet;
+                                                    totalGross += p.finalGross;
                                                 });
                                                 totalNet = roundTo2(totalNet);
                                                 totalGross = roundTo2(totalGross);

@@ -7,7 +7,7 @@ import { useCustomerVehicles, useCustomerSearch as useAppointmentCustomerSearch 
 import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/types';
 import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
 import { useDebounce } from '@/common/hooks';
-import { formatDateTimeLocal, formatDate, roundTo2 } from './helpers';
+import { formatDateTimeLocal, formatDate, roundTo2, calculateFinalPrice } from './helpers';
 
 const capitalizeWords = (value: string): string =>
     value.replace(/\S+/g, word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
@@ -40,6 +40,7 @@ import type {
     QuickEventModalRef,
     EventCreationData,
     QuickEventInitialData,
+    ServiceAdjustment,
 } from './types';
 
 interface UseQuickEventFormOptions {
@@ -95,6 +96,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
     const [servicePrices, setServicePrices] = useState<{ [key: string]: number }>({});
     const [servicePriceInputs, setServicePriceInputs] = useState<{ [id: string]: { net: string; gross: string } }>({});
+    const [serviceAdjustments, setServiceAdjustments] = useState<{ [key: string]: ServiceAdjustment }>({});
     const [serviceNotes, setServiceNotes] = useState<{ [key: string]: string }>({});
     const [expandedServiceNote, setExpandedServiceNote] = useState<string | null>(null);
     const [serviceSearch, setServiceSearch] = useState('');
@@ -287,6 +289,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         setSelectedVehicle(null);
         setSelectedServiceIds([]);
         setServicePrices({});
+        setServiceAdjustments({});
         setServiceNotes({});
         setExpandedServiceNote(null);
         setServiceSearch('');
@@ -451,6 +454,14 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
                 : null
         );
         try {
+            const finalServicePrices: { [key: string]: number } = {};
+            selectedServiceIds.forEach(id => {
+                const svc = services.find((s: Service) => s.id === id) || tempServices[id];
+                const baseGross = servicePrices[id] ?? 0;
+                const vatRate = (svc as Service)?.vatRate ?? (tempServices[id]?.vatRate ?? 23);
+                const adj = serviceAdjustments[id] ?? { type: 'PERCENT', value: 0 };
+                finalServicePrices[id] = calculateFinalPrice(baseGross, vatRate, adj).finalGross;
+            });
             await Promise.resolve(onSave({
                 title,
                 customer: selectedCustomer,
@@ -459,7 +470,8 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
                 endDateTime,
                 isAllDay,
                 serviceIds: selectedServiceIds,
-                servicePrices,
+                servicePrices: finalServicePrices,
+                serviceAdjustments,
                 serviceNotes,
                 tempServices,
                 colorId: selectedColorId,
@@ -822,6 +834,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         selectedServiceIds, setSelectedServiceIds,
         servicePrices, setServicePrices,
         servicePriceInputs, setServicePriceInputs,
+        serviceAdjustments, setServiceAdjustments,
         serviceNotes, setServiceNotes,
         expandedServiceNote, setExpandedServiceNote,
         serviceSearch, setServiceSearch,

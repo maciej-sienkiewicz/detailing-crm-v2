@@ -504,7 +504,7 @@ export const ServicesBlock = styled.div`
 /** Sticky column-header row */
 export const ServicesTableHeader = styled.div`
     display: grid;
-    grid-template-columns: 1fr 74px 74px 60px;
+    grid-template-columns: 1fr 74px 74px 90px;
     align-items: center;
     gap: 4px;
     padding: 7px 8px 7px 14px;
@@ -531,17 +531,18 @@ export const ServicesList = styled.div`
     flex-direction: column;
 `;
 
-export const ServiceItem = styled.div`
+export const ServiceItem = styled.div<{ $hasDiscount?: boolean }>`
     border-bottom: 1px solid #f1f5f9;
+    background: ${p => p.$hasDiscount ? '#fffbeb' : 'transparent'};
     transition: background 120ms ease;
 
     &:last-child { border-bottom: none; }
-    &:hover { background: #fafbfd; }
+    &:hover { background: ${p => p.$hasDiscount ? '#fef3c7' : '#fafbfd'}; }
 `;
 
 export const ServiceItemRow = styled.div`
     display: grid;
-    grid-template-columns: 1fr 74px 74px 60px;
+    grid-template-columns: 1fr 74px 74px 90px;
     align-items: center;
     gap: 4px;
     padding: 8px 8px 8px 14px;
@@ -558,7 +559,7 @@ export const ServiceName = styled.span`
     padding-right: 4px;
 `;
 
-// ─── Inline price editing ─────────────────────────────────────────────────────
+// ─── Inline price display (read-only) ────────────────────────────────────────
 
 /** Kept as display:contents so the two inputs land in their grid cells */
 export const ServicePricesGroup = styled.div`display: contents;`;
@@ -566,6 +567,32 @@ export const PriceCell            = styled.div`display: contents;`;
 export const PriceCellLabel       = styled.span`display: none;`;
 export const PriceSep             = styled.span`display: none;`;
 export const PriceCurrency        = styled.span`display: none;`;
+
+export const PriceDisplay = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+    padding: 5px 8px;
+`;
+
+export const PriceDisplayMain = styled.span<{ $isBrutto?: boolean; $isDiscounted?: boolean }>`
+    font-size: 13px;
+    font-weight: ${p => p.$isBrutto ? 600 : 400};
+    color: ${p => p.$isDiscounted ? '#059669' : (p.$isBrutto ? '#0f172a' : '#64748b')};
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+    white-space: nowrap;
+`;
+
+export const PriceDisplayOriginal = styled.span`
+    font-size: 10px;
+    color: #b0bec5;
+    text-decoration: line-through;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+    white-space: nowrap;
+`;
 
 export const PriceCellInput = styled.input<{ $isBrutto?: boolean }>`
     width: 100%;
@@ -603,6 +630,23 @@ export const ServiceActions = styled.div`
     flex-shrink: 0;
 `;
 
+export const DiscountButton = styled.button<{ $active?: boolean }>`
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    border: none;
+    background: ${p => p.$active ? '#fef3c7' : 'transparent'};
+    color: ${p => p.$active ? '#d97706' : '#b0bec5'};
+    cursor: pointer;
+    transition: all 150ms ease;
+
+    &:hover { background: #fef3c7; color: #d97706; }
+    svg { width: 13px; height: 13px; }
+`;
+
 export const IconButton = styled.button<{ $active?: boolean }>`
     width: 28px;
     height: 28px;
@@ -635,6 +679,86 @@ export const DeleteButton = styled.button`
 
     &:hover { background: #fef2f2; color: #ef4444; }
     svg { width: 13px; height: 13px; }
+`;
+
+export const DiscountPanel = styled.div`
+    padding: 8px 10px 10px 14px;
+    background: #fffbeb;
+    border-top: 1px dashed #fde68a;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+`;
+
+export const DiscountTypeRow = styled.div`
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+`;
+
+export const DiscountTypePill = styled.button<{ $selected?: boolean }>`
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: ${p => p.$selected ? 700 : 500};
+    color: ${p => p.$selected ? '#92400e' : '#78716c'};
+    background: ${p => p.$selected ? '#fde68a' : '#f5f5f4'};
+    border: 1.5px solid ${p => p.$selected ? '#f59e0b' : '#e7e5e4'};
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 120ms ease;
+    white-space: nowrap;
+    font-family: inherit;
+
+    &:hover { background: #fde68a; color: #92400e; border-color: #f59e0b; }
+`;
+
+export const DiscountValueRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 7px;
+`;
+
+export const DiscountValueInput = styled.input`
+    width: 72px;
+    padding: 5px 8px;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: right;
+    background: #ffffff;
+    border: 1.5px solid #f59e0b;
+    border-radius: 8px;
+    color: #0f172a;
+    outline: none;
+    font-variant-numeric: tabular-nums;
+    font-family: inherit;
+    transition: all 150ms ease;
+
+    &:focus { box-shadow: 0 0 0 2px rgba(245,158,11,0.20); }
+    &::placeholder { color: #d1cdc7; }
+`;
+
+export const DiscountValueSuffix = styled.span`
+    font-size: 13px;
+    font-weight: 600;
+    color: #92400e;
+    min-width: 20px;
+`;
+
+export const DiscountRemoveButton = styled.button`
+    margin-left: auto;
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7280;
+    background: transparent;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 150ms ease;
+    white-space: nowrap;
+
+    &:hover { color: #ef4444; border-color: #fca5a5; background: #fef2f2; }
 `;
 
 export const ServiceNoteContainer = styled.div`
