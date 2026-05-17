@@ -8,6 +8,7 @@ import { formatCurrency } from '@/common/utils';
 import { Select, Input } from '@/common/components/Form';
 import { ServiceAutocomplete } from './ServiceAutocomplete';
 import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceModal';
+import { applyAdjustment, distributeAdjustment } from '@/common/utils/priceAdjustment';
 import type { ServiceLineItem, AdjustmentType } from '../types';
 import type { Service } from '@/modules/services/types';
 
@@ -433,17 +434,8 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
 
     const calculateServicePrice = (service: ServiceLineItem) => {
         const { basePriceNet, vatRate, adjustment } = service;
-        let finalPriceNet = basePriceNet;
-        switch (adjustment.type) {
-            case 'PERCENT': { const pct = Math.round(basePriceNet * Math.abs(adjustment.value) / 100); finalPriceNet = adjustment.value > 0 ? basePriceNet + pct : basePriceNet - pct; break; }
-            case 'FIXED_NET': finalPriceNet = basePriceNet - adjustment.value; break;
-            case 'FIXED_GROSS': finalPriceNet = Math.round((((basePriceNet * (100 + vatRate)) / 100 - adjustment.value) * 100) / (100 + vatRate)); break;
-            case 'SET_NET': finalPriceNet = adjustment.value; break;
-            case 'SET_GROSS': finalPriceNet = Math.round((adjustment.value * 100) / (100 + vatRate)); break;
-        }
-        if (finalPriceNet < 0) finalPriceNet = 0;
-        const finalPriceGross = adjustment.type === 'SET_GROSS' ? adjustment.value : finalPriceNet + Math.round((finalPriceNet * vatRate) / 100);
-        return { finalPriceNet, finalPriceGross, hasDiscount: finalPriceNet !== basePriceNet };
+        const result = applyAdjustment(basePriceNet, vatRate, adjustment);
+        return { finalPriceNet: result.finalNetCents, finalPriceGross: result.finalGrossCents, hasDiscount: result.hasDiscount };
     };
 
     const getLiveAdjustment = (service: ServiceLineItem) => {
@@ -467,56 +459,10 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
         const value = parseFloat(targetPrice);
         if (isNaN(value)) return;
 
-        if (discountType === 'PERCENT') {
-            onChange(services.map(s => ({ ...s, adjustment: { type: 'PERCENT' as const, value: -Math.abs(value) } })));
-            closeDiscountModal();
-            return;
-        }
-
-        const valueInCents = Math.round(value * 100);
-        const getBaseGross = (s: ServiceLineItem) => s.basePriceNet + Math.round(s.basePriceNet * s.vatRate / 100);
-
-        let updated: ServiceLineItem[];
-
-        if (discountType === 'FIXED_NET') {
-            const totalBaseNet = services.reduce((sum, s) => sum + s.basePriceNet, 0);
-            if (totalBaseNet === 0) return;
-            let remaining = valueInCents;
-            updated = services.map((s, i) => {
-                const share = i === services.length - 1 ? remaining : Math.round(valueInCents * s.basePriceNet / totalBaseNet);
-                remaining -= share;
-                return { ...s, adjustment: { type: 'FIXED_NET' as const, value: share } };
-            });
-        } else if (discountType === 'FIXED_GROSS') {
-            const totalBaseGross = services.reduce((sum, s) => sum + getBaseGross(s), 0);
-            if (totalBaseGross === 0) return;
-            let remaining = valueInCents;
-            updated = services.map((s, i) => {
-                const share = i === services.length - 1 ? remaining : Math.round(valueInCents * getBaseGross(s) / totalBaseGross);
-                remaining -= share;
-                return { ...s, adjustment: { type: 'FIXED_GROSS' as const, value: share } };
-            });
-        } else if (discountType === 'SET_NET') {
-            const totalBaseNet = services.reduce((sum, s) => sum + s.basePriceNet, 0);
-            if (totalBaseNet === 0) return;
-            let remaining = valueInCents;
-            updated = services.map((s, i) => {
-                const share = i === services.length - 1 ? remaining : Math.round(valueInCents * s.basePriceNet / totalBaseNet);
-                remaining -= share;
-                return { ...s, adjustment: { type: 'SET_NET' as const, value: share } };
-            });
-        } else { // SET_GROSS
-            const totalBaseGross = services.reduce((sum, s) => sum + getBaseGross(s), 0);
-            if (totalBaseGross === 0) return;
-            let remaining = valueInCents;
-            updated = services.map((s, i) => {
-                const share = i === services.length - 1 ? remaining : Math.round(valueInCents * getBaseGross(s) / totalBaseGross);
-                remaining -= share;
-                return { ...s, adjustment: { type: 'SET_GROSS' as const, value: share } };
-            });
-        }
-
-        onChange(updated);
+        const valueInCents = discountType === 'PERCENT' ? value : Math.round(value * 100);
+        const basePrices = services.map(s => ({ basePriceNetCents: s.basePriceNet, vatRate: s.vatRate }));
+        const adjustments = distributeAdjustment(basePrices, discountType, valueInCents);
+        onChange(services.map((s, i) => ({ ...s, adjustment: adjustments[i] })));
         closeDiscountModal();
     };
 

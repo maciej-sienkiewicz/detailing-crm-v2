@@ -4,7 +4,7 @@
  * Shared primitives (overlay, inputs, buttons) are imported from
  * @/common/styles so the same tokens can be reused elsewhere.
  */
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import {
     overlayFadeIn,
     modalScaleIn,
@@ -681,7 +681,14 @@ export const DeleteButton = styled.button`
     svg { width: 13px; height: 13px; }
 `;
 
+const slideDown = keyframes`
+    from { max-height: 0; opacity: 0; transform: translateY(-4px); }
+    to   { max-height: 160px; opacity: 1; transform: translateY(0); }
+`;
+
 export const DiscountPanel = styled.div`
+    overflow: hidden;
+    animation: ${slideDown} 200ms ease-out forwards;
     padding: 8px 10px 10px 14px;
     background: #fffbeb;
     border-top: 1px dashed #fde68a;
@@ -745,7 +752,6 @@ export const DiscountValueSuffix = styled.span`
 `;
 
 export const DiscountRemoveButton = styled.button`
-    margin-left: auto;
     padding: 3px 9px;
     font-size: 11px;
     font-weight: 600;
@@ -759,6 +765,23 @@ export const DiscountRemoveButton = styled.button`
     white-space: nowrap;
 
     &:hover { color: #ef4444; border-color: #fca5a5; background: #fef2f2; }
+`;
+
+export const DiscountHideButton = styled.button`
+    margin-left: auto;
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #92400e;
+    background: transparent;
+    border: 1.5px solid #fde68a;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 150ms ease;
+    white-space: nowrap;
+
+    &:hover { background: #fef3c7; }
 `;
 
 export const ServiceNoteContainer = styled.div`
@@ -795,10 +818,36 @@ export const ServiceNoteTextarea = styled.textarea`
 export const SummarySection = styled.div`
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     padding: 10px 14px;
     background: #f8fafc;
     border-top: 1px solid #e2e8f0;
+`;
+
+export const BulkDiscountTrigger = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #92400e;
+    background: #fef3c7;
+    border: 1.5px solid #fde68a;
+    border-radius: 7px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 150ms ease;
+    white-space: nowrap;
+
+    svg { width: 11px; height: 11px; }
+    &:hover { background: #fde68a; border-color: #f59e0b; }
+`;
+
+export const SummaryTotals = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 0;
 `;
 
 export const SummaryItem = styled.div`
@@ -832,6 +881,86 @@ export const SummaryValue = styled.span<{ $isTotal?: boolean }>`
 
 /** No longer used (vertical dividers are now CSS border-right on SummaryItem) */
 export const SummaryDivider = styled.div`display: none;`;
+
+// ─── Bulk discount modal ──────────────────────────────────────────────────────
+
+export const BulkDiscountOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+`;
+
+export const BulkDiscountCard = styled.div`
+    width: 340px;
+    background: #ffffff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0,0,0,0.06);
+`;
+
+export const BulkDiscountHeader = styled.div`
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+`;
+
+export const BulkDiscountTitle = styled.h4`
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+`;
+
+export const BulkDiscountBody = styled.div`
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+`;
+
+export const BulkDiscountFooter = styled.div`
+    padding: 12px 20px;
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+`;
+
+export const BulkDiscountCancelBtn = styled.button`
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #64748b;
+    background: transparent;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 150ms ease;
+    &:hover { background: #f1f5f9; }
+`;
+
+export const BulkDiscountApplyBtn = styled.button`
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #ffffff;
+    background: #d97706;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 150ms ease;
+    &:hover { background: #b45309; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
 
 // ─── Footer ───────────────────────────────────────────────────────────────────
 

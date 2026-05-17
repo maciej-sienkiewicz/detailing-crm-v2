@@ -12,13 +12,13 @@ import { LockedSection } from '@/common/components/LockedSection';
 import * as S from '../QuickEventModalStyles';
 import { useQuickEventForm } from './useQuickEventForm';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
-import { roundTo2, calculateFinalPrice } from './helpers';
+import { roundTo2, calculateFinalPrice, distributeAdjustment } from './helpers';
 import {
     IconClock, IconUser, IconCar, IconSettings, IconNote,
     IconTrash, IconX, IconPalette, IconMessageSquare, IconPlus, IconPencil, IconCheck, IconPercent,
 } from './icons';
 import { useFeature } from '@/modules/subscription';
-import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Service, AdjustmentType } from './types';
+import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Service, AdjustmentType, ServiceAdjustment } from './types';
 
 export type { QuickEventFormData, QuickEventInitialData } from './types';
 export type { QuickEventModalRef };
@@ -103,6 +103,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     const [expandedServiceDiscount, setExpandedServiceDiscount] = useState<string | null>(null);
     const [discountDraftInputs, setDiscountDraftInputs] = useState<{ [id: string]: string }>({});
 
+    // Bulk discount modal state
+    const [bulkDiscountOpen, setBulkDiscountOpen] = useState(false);
+    const [bulkDiscountType, setBulkDiscountType] = useState<AdjustmentType>('PERCENT');
+    const [bulkDiscountValue, setBulkDiscountValue] = useState('');
+
     const DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
         { type: 'PERCENT', label: '%' },
         { type: 'FIXED_NET', label: '−Netto' },
@@ -110,6 +115,22 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         { type: 'SET_NET', label: '=Netto' },
         { type: 'SET_GROSS', label: '=Brutto' },
     ];
+
+    const applyBulkDiscount = () => {
+        const val = parseFloat(bulkDiscountValue.replace(',', '.'));
+        if (isNaN(val) || val <= 0) return;
+        const valueInCents = bulkDiscountType === 'PERCENT' ? val : Math.round(val * 100);
+        const bases = form.selectedServiceIds.map(id => {
+            const svc = form.services.find((s: Service) => s.id === id) || form.tempServices[id];
+            return { basePriceNetCents: Math.round(roundTo2((form.servicePrices[id] ?? 0) / (1 + ((svc?.vatRate ?? 23) / 100))) * 100), vatRate: svc?.vatRate ?? 23 };
+        });
+        const adjustments = distributeAdjustment(bases, bulkDiscountType, valueInCents);
+        const next: { [id: string]: ServiceAdjustment } = {};
+        form.selectedServiceIds.forEach((id, i) => { next[id] = adjustments[i]; });
+        form.setServiceAdjustments(prev => ({ ...prev, ...next }));
+        setBulkDiscountOpen(false);
+        setBulkDiscountValue('');
+    };
 
     useEffect(() => {
         if (!isOpen) setAutoOpenModel(false);
@@ -1039,6 +1060,12 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                                 Usuń rabat
                                                                             </S.DiscountRemoveButton>
                                                                         )}
+                                                                        <S.DiscountHideButton
+                                                                            type="button"
+                                                                            onClick={() => setExpandedServiceDiscount(null)}
+                                                                        >
+                                                                            Ukryj
+                                                                        </S.DiscountHideButton>
                                                                     </S.DiscountValueRow>
                                                                 </S.DiscountPanel>
                                                             )}
@@ -1077,18 +1104,28 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 const totalVat = roundTo2(totalGross - totalNet);
                                                 return (
                                                     <S.SummarySection>
-                                                        <S.SummaryItem>
-                                                            <S.SummaryLabel>Netto</S.SummaryLabel>
-                                                            <S.SummaryValue>{totalNet.toFixed(2)} zł</S.SummaryValue>
-                                                        </S.SummaryItem>
-                                                        <S.SummaryItem>
-                                                            <S.SummaryLabel>VAT</S.SummaryLabel>
-                                                            <S.SummaryValue>{totalVat.toFixed(2)} zł</S.SummaryValue>
-                                                        </S.SummaryItem>
-                                                        <S.SummaryItem>
-                                                            <S.SummaryLabel>Łącznie</S.SummaryLabel>
-                                                            <S.SummaryValue $isTotal>{totalGross.toFixed(2)} zł</S.SummaryValue>
-                                                        </S.SummaryItem>
+                                                        <S.BulkDiscountTrigger
+                                                            type="button"
+                                                            onClick={() => { setBulkDiscountOpen(true); setBulkDiscountValue(''); }}
+                                                            title="Zastosuj rabat do wszystkich usług"
+                                                        >
+                                                            <IconPercent />
+                                                            Rabatuj wszystko
+                                                        </S.BulkDiscountTrigger>
+                                                        <S.SummaryTotals>
+                                                            <S.SummaryItem>
+                                                                <S.SummaryLabel>Netto</S.SummaryLabel>
+                                                                <S.SummaryValue>{totalNet.toFixed(2)} zł</S.SummaryValue>
+                                                            </S.SummaryItem>
+                                                            <S.SummaryItem>
+                                                                <S.SummaryLabel>VAT</S.SummaryLabel>
+                                                                <S.SummaryValue>{totalVat.toFixed(2)} zł</S.SummaryValue>
+                                                            </S.SummaryItem>
+                                                            <S.SummaryItem>
+                                                                <S.SummaryLabel>Łącznie</S.SummaryLabel>
+                                                                <S.SummaryValue $isTotal>{totalGross.toFixed(2)} zł</S.SummaryValue>
+                                                            </S.SummaryItem>
+                                                        </S.SummaryTotals>
                                                     </S.SummarySection>
                                                 );
                                             })()}
@@ -1236,6 +1273,59 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 onClose={() => form.setIsQuickColorModalOpen(false)}
                 onColorCreate={form.handleQuickColorCreate}
             />
+
+            {/* ── Bulk discount modal ─────────────────────────────────── */}
+            {bulkDiscountOpen && (
+                <S.BulkDiscountOverlay onClick={() => setBulkDiscountOpen(false)}>
+                    <S.BulkDiscountCard onClick={(e) => e.stopPropagation()}>
+                        <S.BulkDiscountHeader>
+                            <S.BulkDiscountTitle>Rabatuj wszystko</S.BulkDiscountTitle>
+                            <S.ChipClear type="button" onClick={() => setBulkDiscountOpen(false)}>
+                                <IconX />
+                            </S.ChipClear>
+                        </S.BulkDiscountHeader>
+                        <S.BulkDiscountBody>
+                            <S.DiscountTypeRow>
+                                {DISCOUNT_TYPES.map(({ type, label }) => (
+                                    <S.DiscountTypePill
+                                        key={type}
+                                        type="button"
+                                        $selected={bulkDiscountType === type}
+                                        onClick={() => { setBulkDiscountType(type); setBulkDiscountValue(''); }}
+                                    >
+                                        {label}
+                                    </S.DiscountTypePill>
+                                ))}
+                            </S.DiscountTypeRow>
+                            <S.DiscountValueRow>
+                                <S.DiscountValueInput
+                                    type="text"
+                                    inputMode="decimal"
+                                    placeholder="0"
+                                    value={bulkDiscountValue}
+                                    onChange={(e) => setBulkDiscountValue(e.target.value)}
+                                    autoFocus
+                                />
+                                <S.DiscountValueSuffix>
+                                    {bulkDiscountType === 'PERCENT' ? '%' : 'zł'}
+                                </S.DiscountValueSuffix>
+                            </S.DiscountValueRow>
+                        </S.BulkDiscountBody>
+                        <S.BulkDiscountFooter>
+                            <S.BulkDiscountCancelBtn type="button" onClick={() => setBulkDiscountOpen(false)}>
+                                Anuluj
+                            </S.BulkDiscountCancelBtn>
+                            <S.BulkDiscountApplyBtn
+                                type="button"
+                                onClick={applyBulkDiscount}
+                                disabled={!bulkDiscountValue || parseFloat(bulkDiscountValue.replace(',', '.')) <= 0}
+                            >
+                                Zastosuj
+                            </S.BulkDiscountApplyBtn>
+                        </S.BulkDiscountFooter>
+                    </S.BulkDiscountCard>
+                </S.BulkDiscountOverlay>
+            )}
         </>
     );
 });

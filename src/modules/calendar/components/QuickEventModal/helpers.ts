@@ -49,11 +49,17 @@ export const formatDate = (date: Date): string => {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 
+import { applyAdjustment as _applyAdjustment } from '@/common/utils/priceAdjustment';
+
 export const roundTo2 = (v: number): number =>
     Math.round((v + Number.EPSILON) * 100) / 100;
 
-// Calculates final price from base gross price and a price adjustment.
-// Base gross is in PLN. Adjustment.value is in cents for FIXED_* and SET_* types, or a signed percent for PERCENT.
+// Re-export from shared utility for convenient single-import by callers.
+export { applyAdjustment, distributeAdjustment } from '@/common/utils/priceAdjustment';
+export type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
+
+// PLN-level wrapper around the cent-based shared applyAdjustment.
+// Base gross is in PLN; adjustment.value is in cents for FIXED_*/SET_*, signed percent for PERCENT.
 export const calculateFinalPrice = (
     baseGross: number,
     vatRate: number,
@@ -61,41 +67,14 @@ export const calculateFinalPrice = (
 ) => {
     const baseNet = roundTo2(baseGross / (1 + vatRate / 100));
     const baseNetCents = Math.round(baseNet * 100);
-    let finalNetCents = baseNetCents;
 
-    switch (adjustment.type) {
-        case 'PERCENT': {
-            const pct = Math.round(baseNetCents * Math.abs(adjustment.value) / 100);
-            finalNetCents = adjustment.value > 0 ? baseNetCents + pct : baseNetCents - pct;
-            break;
-        }
-        case 'FIXED_NET':
-            finalNetCents = baseNetCents - adjustment.value;
-            break;
-        case 'FIXED_GROSS': {
-            const baseGrossCents = Math.round(baseGross * 100);
-            finalNetCents = Math.round(((baseGrossCents - adjustment.value) * 100) / (100 + vatRate));
-            break;
-        }
-        case 'SET_NET':
-            finalNetCents = adjustment.value;
-            break;
-        case 'SET_GROSS':
-            finalNetCents = Math.round((adjustment.value * 100) / (100 + vatRate));
-            break;
-    }
-
-    if (finalNetCents < 0) finalNetCents = 0;
-
-    const finalGrossCents = adjustment.type === 'SET_GROSS'
-        ? adjustment.value
-        : finalNetCents + Math.round((finalNetCents * vatRate) / 100);
+    const result = _applyAdjustment(baseNetCents, vatRate, adjustment as { type: any; value: number });
 
     return {
-        finalNet: roundTo2(finalNetCents / 100),
-        finalGross: roundTo2(finalGrossCents / 100),
+        finalNet: roundTo2(result.finalNetCents / 100),
+        finalGross: roundTo2(result.finalGrossCents / 100),
         baseNet,
         baseGross,
-        hasDiscount: finalNetCents !== baseNetCents,
+        hasDiscount: result.hasDiscount,
     };
 };
