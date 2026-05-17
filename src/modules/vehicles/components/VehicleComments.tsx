@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import { useVehicleComments } from '../hooks/useVehicleComments';
 import { formatDate, formatDateTime } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -77,12 +78,24 @@ const Content = styled.p`
     line-height: 1.55;
 `;
 
-const VisitLink = styled.div`
+const VisitLink = styled.button`
     display: flex;
     align-items: center;
     gap: 5px;
     font-size: 11px;
     color: ${st.textMuted};
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    transition: color 150ms;
+
+    &:hover {
+        color: #0ea5e9;
+
+        span { color: #0ea5e9; }
+    }
 
     svg {
         flex-shrink: 0;
@@ -92,6 +105,7 @@ const VisitLink = styled.div`
 const VisitName = styled.span`
     font-weight: 500;
     color: ${st.textSecondary};
+    transition: color 150ms;
 `;
 
 const Footer = styled.div`
@@ -176,6 +190,7 @@ interface Props {
 
 export function VehicleComments({ vehicleId }: Props) {
     const [page, setPage] = useState(1);
+    const navigate = useNavigate();
     const { comments, pagination, isLoading } = useVehicleComments(vehicleId, page, PAGE_SIZE);
 
     if (isLoading) {
@@ -213,7 +228,7 @@ export function VehicleComments({ vehicleId }: Props) {
                             <Timestamp>{formatDateTime(c.createdAt)}</Timestamp>
                         </ItemHeader>
                         <Content>{c.content}</Content>
-                        <VisitLink>
+                        <VisitLink onClick={() => navigate(`/visits/${c.visitId}`)}>
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                             </svg>
