@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Clipboard, ClipboardCheck } from 'lucide-react';
 import type { Lead } from '../../types';
@@ -22,21 +22,20 @@ import {
   LoadingDots,
 } from './styles';
 
-function buildSubject(lead: Lead): string {
-  const vehicle = [lead.vehicleBrand, lead.vehicleModel].filter(Boolean).join(' ') || 'Państwa pojazd';
-  return `Oferta detailingu – ${vehicle}`;
-}
-
 interface Props {
   lead: Lead;
   onClose: () => void;
 }
 
 export function OfferComposerModal({ lead, onClose }: Props) {
-  const { phase, displayedBody } = useOfferContent(lead);
+  const { phase, displayedBody, title } = useOfferContent(lead);
 
   const [toValue, setToValue] = useState(lead.contactIdentifier);
-  const [subjectValue, setSubjectValue] = useState(() => buildSubject(lead));
+  const [subjectValue, setSubjectValue] = useState('');
+
+  useEffect(() => {
+    if (title) setSubjectValue(title);
+  }, [title]);
   const [closing, setClosing] = useState(false);
   const [copied, setCopied] = useState(false);
 

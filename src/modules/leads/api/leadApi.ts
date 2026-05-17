@@ -621,4 +621,9 @@ export const leadApi = {
     const response = await apiClient.post(`${BASE_PATH}/${leadId}/appointment`, data);
     return response.data;
   },
+
+  generateQuoteReply: async (leadId: LeadId): Promise<{ title: string; reply: string }> => {
+    const response = await apiClient.post(`${BASE_PATH}/${leadId}/quote-reply`);
+    return response.data;
+  },
 };
