@@ -25,13 +25,16 @@ type Method = keyof typeof METHOD_COLORS;
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
-const fmt = (pln: number) =>
-  pln.toLocaleString('pl-PL', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' PLN';
+const fmt = (grosz: number) => {
+  const pln = grosz / 100;
+  return pln.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' PLN';
+};
 
-const fmtCompact = (pln: number): string => {
+const fmtCompact = (grosz: number): string => {
+  const pln = grosz / 100;
   if (pln >= 1_000_000) return (pln / 1_000_000).toFixed(1).replace('.', ',') + ' mln';
   if (pln >= 1_000)     return (pln / 1_000).toFixed(0) + ' tys.';
-  return String(pln);
+  return pln.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 const formatPeriodLabel = (label: string, granularity: ReportGranularity): string => {
