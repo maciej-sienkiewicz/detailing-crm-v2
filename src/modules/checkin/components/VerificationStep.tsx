@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
+import { useQueryClient } from '@tanstack/react-query';
 import { FormGrid, FieldGroup, Label, Input, TextArea, ErrorMessage } from '@/common/components/Form';
 import { Button } from '@/common/components/Button';
 import { Toggle } from '@/common/components/Toggle';
@@ -20,6 +21,8 @@ import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandMod
 import { customerDetailApi } from '@/modules/customers/api/customerDetailApi';
 import { gusApi } from '@/modules/gus/api/gusApi';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { QuickColorModal } from '@/modules/calendar/components/QuickColorModal';
+import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
 
 // ─── Section Card ─────────────────────────────────────────────────────────────
 
@@ -428,13 +431,46 @@ const ColorMenuItem = styled.button<{ $selected?: boolean }>`
     }
 `;
 
+const ColorMenuSeparator = styled.div`
+    height: 1px;
+    background: ${st.border};
+    margin: 4px 0;
+`;
+
+const ColorMenuAddBtn = styled.button`
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: ${st.accentBlue};
+    transition: background ${st.transition};
+
+    &:hover {
+        background: ${st.bgCardAlt};
+    }
+
+    svg {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+    }
+`;
+
 interface ColorDropdownProps {
     colors: AppointmentColor[];
     value: string;
     onChange: (value: string) => void;
+    onAddColor?: () => void;
 }
 
-const ColorDropdown = ({ colors, value, onChange }: ColorDropdownProps) => {
+const ColorDropdown = ({ colors, value, onChange, onAddColor }: ColorDropdownProps) => {
     const [open, setOpen] = useState(false);
     const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -494,6 +530,21 @@ const ColorDropdown = ({ colors, value, onChange }: ColorDropdownProps) => {
                             <span>{c.name}</span>
                         </ColorMenuItem>
                     ))}
+                    {onAddColor && (
+                        <>
+                            <ColorMenuSeparator />
+                            <ColorMenuAddBtn
+                                type="button"
+                                onClick={() => { setOpen(false); onAddColor(); }}
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <line x1="12" y1="5" x2="12" y2="19"/>
+                                    <line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                                Dodaj nowy kolor
+                            </ColorMenuAddBtn>
+                        </>
+                    )}
                 </ColorMenu>,
                 document.body
             )}
@@ -542,10 +593,22 @@ export const VerificationStep = ({
     initialVehicleData,
     initialIsNewVehicle,
 }: VerificationStepProps) => {
+    const queryClient = useQueryClient();
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isCustomerDetailsModalOpen, setIsCustomerDetailsModalOpen] = useState(false);
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
     const [isVehicleDetailsModalOpen, setIsVehicleDetailsModalOpen] = useState(false);
+    const [isColorModalOpen, setIsColorModalOpen] = useState(false);
+
+    const handleColorCreate = async (color: { name: string; hexColor: string }) => {
+        try {
+            const newColor = await appointmentColorApi.createColor(color);
+            queryClient.invalidateQueries({ queryKey: ['appointmentColors'] });
+            onChange({ appointmentColorId: newColor.id });
+        } catch {
+            // creation failure is silent — user can retry by opening the modal again
+        }
+    };
 
     const startInputRef = useRef<HTMLDivElement | null>(null);
     const endInputRef = useRef<HTMLDivElement | null>(null);
@@ -1029,6 +1092,7 @@ export const VerificationStep = ({
                                 colors={colors}
                                 value={formData.appointmentColorId}
                                 onChange={(val) => onChange({ appointmentColorId: val })}
+                                onAddColor={() => setIsColorModalOpen(true)}
                             />
                             {errors.color && <ErrorMessage>{errors.color}</ErrorMessage>}
                         </FieldGroup>
@@ -1572,6 +1636,12 @@ export const VerificationStep = ({
                     paintType: formData.vehicleData?.paintType,
                 }}
                 onSave={handleVehicleDetailsSave}
+            />
+
+            <QuickColorModal
+                isOpen={isColorModalOpen}
+                onClose={() => setIsColorModalOpen(false)}
+                onColorCreate={handleColorCreate}
             />
         </StepContainer>
     );
