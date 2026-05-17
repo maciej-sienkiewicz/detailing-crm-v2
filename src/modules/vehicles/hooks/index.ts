@@ -1,4 +1,5 @@
 export { useVehicles, vehiclesQueryKey } from './useVehicles';
+export { useVehicleComments } from './useVehicleComments';
 export { useVehicleDetail, vehicleDetailQueryKey } from './useVehicleDetail';
 export { useCreateVehicle } from './useCreateVehicle';
 export { useUpdateVehicle } from './useUpdateVehicle';

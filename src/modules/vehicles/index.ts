@@ -12,6 +12,7 @@ export {
     useVehicleSearch,
     useVehiclePagination,
     useOwnerManagement,
+    useVehicleComments,
 } from './hooks';
 
 export { vehicleApi } from './api/vehicleApi';
@@ -50,4 +51,8 @@ export type {
     VehicleActivity,
     VehicleVisitSummary,
     PaginationMeta,
+    VehicleComment,
+    VehicleCommentType,
+    VehicleCommentsFilters,
+    VehicleCommentsResponse,
 } from './types';

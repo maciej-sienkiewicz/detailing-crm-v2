@@ -22,6 +22,7 @@ import type {
     VehicleNote,
     CreateVehicleNotePayload,
     UpdateVehicleNotePayload,
+    VehicleCommentsResponse,
 } from '../types';
 import type { CalendarEventsResponse } from '@/modules/calendar/types';
 
@@ -630,6 +631,19 @@ export const vehicleApi = {
 
         const response = await apiClient.get<VehicleAppointmentsResponse>(
             `${BASE_PATH}/${vehicleId}/appointments`,
+            { params: { page, limit } }
+        );
+        return response.data;
+    },
+
+    getComments: async (vehicleId: string, page = 1, limit = 20): Promise<VehicleCommentsResponse> => {
+        if (USE_MOCKS) {
+            await new Promise(resolve => setTimeout(resolve, 400));
+            return { comments: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: limit } };
+        }
+
+        const response = await apiClient.get<VehicleCommentsResponse>(
+            `${BASE_PATH}/${vehicleId}/comments`,
             { params: { page, limit } }
         );
         return response.data;

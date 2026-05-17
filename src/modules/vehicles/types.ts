@@ -295,3 +295,27 @@ export interface CreateVehicleNotePayload {
 export interface UpdateVehicleNotePayload {
     content: string;
 }
+
+export type VehicleCommentType = 'INTERNAL' | 'FOR_CUSTOMER';
+
+export interface VehicleComment {
+    id: string;
+    content: string;
+    type: VehicleCommentType;
+    createdAt: string;
+    createdBy: string;
+    createdByName: string;
+    visitId: string;
+    visitTitle: string;
+    visitDate: string;
+}
+
+export interface VehicleCommentsFilters {
+    page: number;
+    limit: number;
+}
+
+export interface VehicleCommentsResponse {
+    comments: VehicleComment[];
+    pagination: PaginationMeta;
+}
