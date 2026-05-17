@@ -9,6 +9,8 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { ServiceInlineRow } from './ServiceInlineRow';
 import type { NewRow } from './ServiceInlineRow';
 import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceModal';
+import { LockedSection } from '@/common/components/LockedSection';
+import { useFeature } from '@/modules/subscription';
 
 const BRAND = '#0ea5e9';
 const BRAND_DARK = '#0284c7';
@@ -615,6 +617,7 @@ interface ServicesTableProps {
 export const ServicesTable = ({ services, visitStatus, visitId, highlightPending }: ServicesTableProps) => {
     const { calculateServicePrice } = useServicePricing();
     const { saveServicesChanges, isSaving } = useSaveServicesChanges(visitId ?? '');
+    const smsFeature = useFeature('SMS_EMAIL');
 
     /* ── Per-service approve/reject menu ── */
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -734,7 +737,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const acceptDraft = () => {
         const validNewRows = newRows.filter(r => r.serviceName.trim());
         const payload: ServicesChangesPayload = {
-            notifyCustomer,
+            notifyCustomer: smsFeature.enabled ? notifyCustomer : false,
             added: validNewRows.map(r => ({
                 serviceId: r.serviceId,
                 serviceName: r.serviceName,
@@ -1128,14 +1131,19 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
             {hasChanges && (
                 <DraftBar>
-                    <DraftBarLabel>
-                        <input
-                            type="checkbox"
-                            checked={notifyCustomer}
-                            onChange={e => setNotifyCustomer(e.target.checked)}
-                        />
-                        Poinformuj klienta SMS-em o zmianach
-                    </DraftBarLabel>
+                    <LockedSection
+                        locked={!smsFeature.enabled}
+                        message="Twój abonament nie obsługuje powiadomień SMS."
+                    >
+                        <DraftBarLabel>
+                            <input
+                                type="checkbox"
+                                checked={smsFeature.enabled ? notifyCustomer : false}
+                                onChange={e => setNotifyCustomer(e.target.checked)}
+                            />
+                            Poinformuj klienta SMS-em o zmianach
+                        </DraftBarLabel>
+                    </LockedSection>
                     <DraftBarActions>
                         <DiscardBtn onClick={discardDraft} disabled={isSaving}>
                             Odrzuć
