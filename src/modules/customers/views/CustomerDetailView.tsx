@@ -15,7 +15,6 @@ import { DocumentsManager } from '../components/DocumentsManager';
 import { CustomerConsentsSection } from '../components/CustomerConsentsSection';
 import { AuditTimeline } from '@/common/components/AuditTimeline';
 import { EditCustomerModal } from '../components/EditCustomerModal';
-import { EditCompanyModal } from '../components/EditCompanyModal';
 import { SharedButton } from '@/common/styles/sharedButtonStyles';
 import { formatCurrency } from '../utils/customerMappers';
 import { formatDate } from '@/common/utils';
@@ -134,8 +133,8 @@ export const CustomerDetailView = () => {
     const { customerId } = useParams<{ customerId: string }>();
     const navigate = useNavigate();
 
-    const [isEditModalOpen,        setIsEditModalOpen]        = useState(false);
-    const [isEditCompanyModalOpen, setIsEditCompanyModalOpen] = useState(false);
+    const [isEditModalOpen,   setIsEditModalOpen]   = useState(false);
+    const [editModalInitialTab, setEditModalInitialTab] = useState<'basic' | 'address' | 'company'>('basic');
     const [isDocsOpen,             setIsDocsOpen]             = useState(false);
     const [isCommOpen,             setIsCommOpen]             = useState(false);
     const [isAuditOpen,            setIsAuditOpen]            = useState(false);
@@ -330,6 +329,57 @@ export const CustomerDetailView = () => {
                                 </ContactList>
                             </PanelBody>
                         </Panel>
+
+                        {/* Company */}
+                        {customer.company && (
+                            <Panel>
+                                <PanelHead>
+                                    <PanelTitle>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                            <polyline points="9,22 9,12 15,12 15,22"/>
+                                        </svg>
+                                        Dane firmy
+                                    </PanelTitle>
+                                    <SharedButton
+                                        $variant="ghost"
+                                        $size="sm"
+                                        onClick={() => {
+                                            setEditModalInitialTab('company');
+                                            setIsEditModalOpen(true);
+                                        }}
+                                    >
+                                        Edytuj
+                                    </SharedButton>
+                                </PanelHead>
+                                <PanelBody>
+                                    <PrefRow>
+                                        <PrefKey>Nazwa</PrefKey>
+                                        <PrefVal>{customer.company.name}</PrefVal>
+                                    </PrefRow>
+                                    {customer.company.nip && (
+                                        <PrefRow>
+                                            <PrefKey>NIP</PrefKey>
+                                            <PrefVal>{customer.company.nip}</PrefVal>
+                                        </PrefRow>
+                                    )}
+                                    {customer.company.regon && (
+                                        <PrefRow>
+                                            <PrefKey>REGON</PrefKey>
+                                            <PrefVal>{customer.company.regon}</PrefVal>
+                                        </PrefRow>
+                                    )}
+                                    {customer.company.address && (
+                                        <PrefRow>
+                                            <PrefKey>Adres</PrefKey>
+                                            <PrefVal>
+                                                {customer.company.address.street}, {customer.company.address.postalCode} {customer.company.address.city}
+                                            </PrefVal>
+                                        </PrefRow>
+                                    )}
+                                </PanelBody>
+                            </Panel>
+                        )}
 
                         {/* Vehicles */}
                         <Panel>
@@ -706,50 +756,6 @@ export const CustomerDetailView = () => {
                             </CollapsibleBody>
                         </CollapsibleSection>
 
-                        {/* Company invoice data */}
-                        {customer.company && (
-                            <Panel>
-                                <PanelHead>
-                                    <PanelTitle>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                                            <polyline points="9,22 9,12 15,12 15,22"/>
-                                        </svg>
-                                        Dane do faktury
-                                    </PanelTitle>
-                                    <SharedButton
-                                        $variant="ghost"
-                                        $size="sm"
-                                        onClick={() => setIsEditCompanyModalOpen(true)}
-                                    >
-                                        Edytuj
-                                    </SharedButton>
-                                </PanelHead>
-                                <PanelBody>
-                                    {customer.company.nip && (
-                                        <PrefRow>
-                                            <PrefKey>NIP</PrefKey>
-                                            <PrefVal>{customer.company.nip}</PrefVal>
-                                        </PrefRow>
-                                    )}
-                                    {customer.company.regon && (
-                                        <PrefRow>
-                                            <PrefKey>REGON</PrefKey>
-                                            <PrefVal>{customer.company.regon}</PrefVal>
-                                        </PrefRow>
-                                    )}
-                                    {customer.company.address && (
-                                        <PrefRow>
-                                            <PrefKey>Adres</PrefKey>
-                                            <PrefVal>
-                                                {customer.company.address.street}, {customer.company.address.postalCode} {customer.company.address.city}
-                                            </PrefVal>
-                                        </PrefRow>
-                                    )}
-                                </PanelBody>
-                            </Panel>
-                        )}
-
                     </MainCol>
                 </TwoColGrid>
             </PageContent>
@@ -757,14 +763,9 @@ export const CustomerDetailView = () => {
             {/* ─── Modals ─────────────────────────────────────── */}
             <EditCustomerModal
                 isOpen={isEditModalOpen}
-                onClose={() => setIsEditModalOpen(false)}
+                onClose={() => { setIsEditModalOpen(false); setEditModalInitialTab('basic'); }}
                 customer={customer}
-            />
-            <EditCompanyModal
-                isOpen={isEditCompanyModalOpen}
-                onClose={() => setIsEditCompanyModalOpen(false)}
-                customerId={customerId!}
-                company={customer.company}
+                initialTab={editModalInitialTab}
             />
 
             {reservationMenu && (
