@@ -637,16 +637,76 @@ export const vehicleApi = {
     },
 
     getComments: async (vehicleId: string, page = 1, limit = 20): Promise<VehicleCommentsResponse> => {
-        if (USE_MOCKS) {
-            await new Promise(resolve => setTimeout(resolve, 400));
-            return { comments: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: limit } };
-        }
+        const mockComments = [
+            {
+                id: 'vc1',
+                content: 'Klient zgłosił rysy na progu prawym. Zdjęcia zostały wykonane przed przyjęciem pojazdu. Naprawa uzgodniona na kolejną wizytę.',
+                type: 'INTERNAL' as const,
+                createdAt: '2025-04-10T09:15:00Z',
+                createdBy: 'u1',
+                createdByName: 'Marek Wiśniewski',
+                visitId: 'vis-001',
+                visitTitle: 'Detailing kompleksowy + korekta lakieru',
+                visitDate: '2025-04-10T08:00:00Z',
+            },
+            {
+                id: 'vc2',
+                content: 'Pojazd gotowy do odbioru. Lakier zabezpieczony powłoką ceramiczną, czas utwardzania 12h. Prosimy unikać mycia przez pierwsze 7 dni.',
+                type: 'FOR_CUSTOMER' as const,
+                createdAt: '2025-04-11T16:45:00Z',
+                createdBy: 'u1',
+                createdByName: 'Marek Wiśniewski',
+                visitId: 'vis-001',
+                visitTitle: 'Detailing kompleksowy + korekta lakieru',
+                visitDate: '2025-04-10T08:00:00Z',
+            },
+            {
+                id: 'vc3',
+                content: 'Wymieniono komplet żarówek na LED. Stare żarówki H7 zwrócone klientowi na jego prośbę.',
+                type: 'INTERNAL' as const,
+                createdAt: '2025-02-20T11:30:00Z',
+                createdBy: 'u2',
+                createdByName: 'Agnieszka Kowalska',
+                visitId: 'vis-002',
+                visitTitle: 'Przegląd + wymiana oświetlenia',
+                visitDate: '2025-02-20T10:00:00Z',
+            },
+            {
+                id: 'vc4',
+                content: 'Uwaga — klient prosił o kontakt przed rozpoczęciem prac przy podwoziu. Wymaga konsultacji odnośnie rdzawienia progu lewego.',
+                type: 'INTERNAL' as const,
+                createdAt: '2025-02-20T10:05:00Z',
+                createdBy: 'u2',
+                createdByName: 'Agnieszka Kowalska',
+                visitId: 'vis-002',
+                visitTitle: 'Przegląd + wymiana oświetlenia',
+                visitDate: '2025-02-20T10:00:00Z',
+            },
+            {
+                id: 'vc5',
+                content: 'Prace zakończone zgodnie z zamówieniem. Felgi odrestaurowane, opony wyważone. Pojazd do odbioru.',
+                type: 'FOR_CUSTOMER' as const,
+                createdAt: '2024-11-05T14:20:00Z',
+                createdBy: 'u3',
+                createdByName: 'Piotr Jabłoński',
+                visitId: 'vis-003',
+                visitTitle: 'Renowacja felg aluminiowych',
+                visitDate: '2024-11-05T09:00:00Z',
+            },
+        ];
 
-        const response = await apiClient.get<VehicleCommentsResponse>(
-            `${BASE_PATH}/${vehicleId}/comments`,
-            { params: { page, limit } }
-        );
-        return response.data;
+        await new Promise(resolve => setTimeout(resolve, 400));
+        const start = (page - 1) * limit;
+        const paginated = mockComments.slice(start, start + limit);
+        return {
+            comments: paginated,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(mockComments.length / limit),
+                totalItems: mockComments.length,
+                itemsPerPage: limit,
+            },
+        };
     },
 
     getCalendarEvents: async (vehicleId: string): Promise<CalendarEventsResponse> => {

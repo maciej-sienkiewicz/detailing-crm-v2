@@ -9,6 +9,7 @@ import { VehicleDocuments } from '../components/VehicleDocuments';
 import { VehiclePhotoGallery } from '../components/VehiclePhotoGallery';
 import { VehicleNotes } from '../components/VehicleNotes';
 import { VehicleAuditTimeline } from '../components/VehicleAuditTimeline';
+import { VehicleComments } from '../components/VehicleComments';
 import { EditVehicleModal } from '../components/EditVehicleModal';
 import { EditOwnersModal } from '../components/EditOwnersModal';
 import { SharedButton } from '@/common/styles/sharedButtonStyles';
@@ -89,9 +90,10 @@ export const VehicleDetailView = () => {
     const { vehicleId } = useParams<{ vehicleId: string }>();
     const navigate = useNavigate();
 
-    const [isDocsOpen,   setIsDocsOpen]   = useState(true);
-    const [isPhotosOpen, setIsPhotosOpen] = useState(false);
-    const [isAuditOpen,  setIsAuditOpen]  = useState(false);
+    const [isDocsOpen,      setIsDocsOpen]      = useState(true);
+    const [isPhotosOpen,    setIsPhotosOpen]    = useState(false);
+    const [isAuditOpen,     setIsAuditOpen]     = useState(false);
+    const [isCommentsOpen,  setIsCommentsOpen]  = useState(false);
     const [isEditModalOpen,       setIsEditModalOpen]       = useState(false);
     const [isEditOwnersModalOpen, setIsEditOwnersModalOpen] = useState(false);
 
@@ -555,6 +557,30 @@ export const VehicleDetailView = () => {
                             </CollapsibleHeader>
                             <CollapsibleBody $visible={isAuditOpen} id="audit-section">
                                 <VehicleAuditTimeline vehicleId={vehicleId!} />
+                            </CollapsibleBody>
+                        </CollapsibleSection>
+
+                        {/* Comments */}
+                        <CollapsibleSection>
+                            <CollapsibleHeader
+                                onClick={() => setIsCommentsOpen(v => !v)}
+                                aria-expanded={isCommentsOpen}
+                                aria-controls="comments-section"
+                            >
+                                <CollapsibleHeaderLeft>
+                                    <SectionIconWrap $gradient="linear-gradient(135deg, #10B981 0%, #059669 100%)">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                        </svg>
+                                    </SectionIconWrap>
+                                    <CollapsibleTitle>Komentarze z wizyt</CollapsibleTitle>
+                                </CollapsibleHeaderLeft>
+                                <ChevronIcon $open={isCommentsOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </ChevronIcon>
+                            </CollapsibleHeader>
+                            <CollapsibleBody $visible={isCommentsOpen} $flush id="comments-section">
+                                <VehicleComments vehicleId={vehicleId!} />
                             </CollapsibleBody>
                         </CollapsibleSection>
 
