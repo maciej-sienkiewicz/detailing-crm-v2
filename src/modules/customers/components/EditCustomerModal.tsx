@@ -7,6 +7,8 @@ import { useUpdateCompany } from '../hooks/useUpdateCompany';
 import { useDeleteCompany } from '../hooks/useDeleteCompany';
 import { createCustomerSchema, type CreateCustomerFormData } from '../utils/customerValidation';
 import { validatePolishNip, validatePolishRegon } from '../utils/polishValidators';
+import { NipInputWithGus } from '@/common/components/NipInputWithGus';
+import type { CompanyInfoResponse } from '@/common/components/NipInputWithGus';
 import { t } from '@/common/i18n';
 import type { Customer } from '../types';
 import { PhoneInputField } from '@/common/components/PhoneInputField';
@@ -163,6 +165,19 @@ export const EditCustomerModal = ({ isOpen, onClose, customer, initialTab }: Edi
             },
         });
     });
+
+    const handleGusData = (data: CompanyInfoResponse) => {
+        companyMethods.setValue('name', data.name, { shouldValidate: true });
+        companyMethods.setValue('regon', data.regon, { shouldValidate: true });
+        const { street, buildingNumber, apartmentNumber, city, postalCode, country } = data.address;
+        const streetLine = [street, buildingNumber].filter(Boolean).join(' ') +
+            (apartmentNumber ? `/${apartmentNumber}` : '');
+        const formattedPostal = postalCode?.replace(/^(\d{2})(\d{3})$/, '$1-$2') ?? postalCode ?? '';
+        companyMethods.setValue('street', streetLine || '', { shouldValidate: true });
+        companyMethods.setValue('city', city ?? '', { shouldValidate: true });
+        companyMethods.setValue('postalCode', formattedPostal, { shouldValidate: true });
+        companyMethods.setValue('country', country ?? 'Polska', { shouldValidate: true });
+    };
 
     const handleDeleteCompany = () => {
         if (confirm('Czy na pewno chcesz usunąć dane firmy z tego klienta?')) {
@@ -416,14 +431,14 @@ export const EditCustomerModal = ({ isOpen, onClose, customer, initialTab }: Edi
                                     <FieldLabel htmlFor="ec-company-nip">
                                         {t.customers.form.company.nip}
                                     </FieldLabel>
-                                    <InputShell $hasError={!!companyMethods.formState.errors.nip}>
-                                        <BareInput
-                                            id="ec-company-nip"
-                                            autoComplete="off"
-                                            {...companyMethods.register('nip')}
-                                            placeholder={t.customers.form.company.nipPlaceholder}
-                                        />
-                                    </InputShell>
+                                    <NipInputWithGus
+                                        id="ec-company-nip"
+                                        value={companyMethods.watch('nip') ?? ''}
+                                        onChange={val => companyMethods.setValue('nip', val, { shouldValidate: companyMethods.formState.isSubmitted })}
+                                        onFetch={handleGusData}
+                                        hasError={!!companyMethods.formState.errors.nip}
+                                        placeholder={t.customers.form.company.nipPlaceholder}
+                                    />
                                     {companyMethods.formState.errors.nip && (
                                         <FormErrorMsg>{companyMethods.formState.errors.nip.message}</FormErrorMsg>
                                     )}
