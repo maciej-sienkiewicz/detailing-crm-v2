@@ -300,3 +300,8 @@ export interface LeadDetail extends Lead {
   estimation: LeadEstimation | null;
   userQuote: LeadUserQuote | null;
 }
+
+export interface GenerateQuoteReplyResponse {
+  title: string;
+  reply: string;
+}

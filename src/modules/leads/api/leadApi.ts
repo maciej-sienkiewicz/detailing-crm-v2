@@ -15,6 +15,7 @@ import type {
   LeadStatus,
   LeadSource,
   SaveUserQuoteRequest,
+  GenerateQuoteReplyResponse,
 } from '../types';
 
 const USE_MOCKS = false;
@@ -622,7 +623,7 @@ export const leadApi = {
     return response.data;
   },
 
-  generateQuoteReply: async (leadId: LeadId): Promise<{ title: string; reply: string }> => {
+  generateQuoteReply: async (leadId: LeadId): Promise<GenerateQuoteReplyResponse> => {
     const response = await apiClient.post(`${BASE_PATH}/${leadId}/quote-reply`);
     return response.data;
   },
