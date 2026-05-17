@@ -572,6 +572,11 @@ const DraftBarActions = styled.div`
     flex-shrink: 0;
 `;
 
+const DraftBarSmsWrap = styled.div`
+    flex: 1;
+    min-width: 0;
+`;
+
 const DiscardBtn = styled.button`
     padding: 7px 14px;
     border-radius: ${st.radiusFull};
@@ -1131,19 +1136,21 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
             {hasChanges && (
                 <DraftBar>
-                    <LockedSection
-                        locked={!smsFeature.enabled}
-                        message="Twój abonament nie obsługuje powiadomień SMS."
-                    >
-                        <DraftBarLabel>
-                            <input
-                                type="checkbox"
-                                checked={smsFeature.enabled ? notifyCustomer : false}
-                                onChange={e => setNotifyCustomer(e.target.checked)}
-                            />
-                            Poinformuj klienta SMS-em o zmianach
-                        </DraftBarLabel>
-                    </LockedSection>
+                    <DraftBarSmsWrap>
+                        <LockedSection
+                            locked={!smsFeature.enabled}
+                            message="Twój abonament nie obsługuje powiadomień SMS."
+                        >
+                            <DraftBarLabel>
+                                <input
+                                    type="checkbox"
+                                    checked={smsFeature.enabled ? notifyCustomer : false}
+                                    onChange={e => setNotifyCustomer(e.target.checked)}
+                                />
+                                Poinformuj klienta SMS-em o zmianach
+                            </DraftBarLabel>
+                        </LockedSection>
+                    </DraftBarSmsWrap>
                     <DraftBarActions>
                         <DiscardBtn onClick={discardDraft} disabled={isSaving}>
                             Odrzuć
