@@ -726,7 +726,7 @@ export const DiscountValueRow = styled.div`
 `;
 
 export const DiscountValueInput = styled.input`
-    width: 72px;
+    width: 110px;
     padding: 5px 8px;
     font-size: 13px;
     font-weight: 500;
@@ -751,6 +751,13 @@ export const DiscountValueSuffix = styled.span`
     min-width: 20px;
 `;
 
+export const DiscountActionButtons = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: auto;
+`;
+
 export const DiscountRemoveButton = styled.button`
     padding: 3px 9px;
     font-size: 11px;
@@ -768,7 +775,6 @@ export const DiscountRemoveButton = styled.button`
 `;
 
 export const DiscountHideButton = styled.button`
-    margin-left: auto;
     padding: 3px 9px;
     font-size: 11px;
     font-weight: 500;

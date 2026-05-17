@@ -952,9 +952,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                 ? String(Math.abs(adjustment.value))
                                                                 : String(adjustment.value / 100));
 
-                                                    const commitDiscount = () => {
-                                                        const raw = discountDraftInputs[id];
-                                                        if (raw === undefined) return;
+                                                    const limitDecimals = (raw: string) => {
+                                                        const sepIdx = Math.max(raw.indexOf('.'), raw.indexOf(','));
+                                                        if (sepIdx === -1) return raw;
+                                                        return raw.slice(0, sepIdx + 3);
+                                                    };
+
+                                                    const applyDiscountValue = (raw: string) => {
                                                         const val = parseFloat(raw.replace(',', '.'));
                                                         const storeVal = isNaN(val) ? 0
                                                             : adjustment.type === 'PERCENT'
@@ -964,6 +968,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             ...prev,
                                                             [id]: { ...adjustment, value: storeVal },
                                                         }));
+                                                    };
+
+                                                    const commitDiscount = () => {
                                                         setDiscountDraftInputs(prev => { const n = { ...prev }; delete n[id]; return n; });
                                                     };
 
@@ -1042,30 +1049,36 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                             inputMode="decimal"
                                                                             placeholder="0"
                                                                             value={discountDisplayValue}
-                                                                            onChange={(e) => setDiscountDraftInputs(prev => ({ ...prev, [id]: e.target.value }))}
+                                                                            onChange={(e) => {
+                                                                                const limited = limitDecimals(e.target.value);
+                                                                                setDiscountDraftInputs(prev => ({ ...prev, [id]: limited }));
+                                                                                applyDiscountValue(limited);
+                                                                            }}
                                                                             onBlur={commitDiscount}
                                                                         />
                                                                         <S.DiscountValueSuffix>{discountSuffix}</S.DiscountValueSuffix>
-                                                                        {hasDiscount && (
-                                                                            <S.DiscountRemoveButton
+                                                                        <S.DiscountActionButtons>
+                                                                            {hasDiscount && (
+                                                                                <S.DiscountRemoveButton
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        form.setServiceAdjustments(prev => ({
+                                                                                            ...prev,
+                                                                                            [id]: { type: 'PERCENT', value: 0 },
+                                                                                        }));
+                                                                                        setDiscountDraftInputs(prev => { const n = { ...prev }; delete n[id]; return n; });
+                                                                                    }}
+                                                                                >
+                                                                                    Usuń rabat
+                                                                                </S.DiscountRemoveButton>
+                                                                            )}
+                                                                            <S.DiscountHideButton
                                                                                 type="button"
-                                                                                onClick={() => {
-                                                                                    form.setServiceAdjustments(prev => ({
-                                                                                        ...prev,
-                                                                                        [id]: { type: 'PERCENT', value: 0 },
-                                                                                    }));
-                                                                                    setDiscountDraftInputs(prev => { const n = { ...prev }; delete n[id]; return n; });
-                                                                                }}
+                                                                                onClick={() => setExpandedServiceDiscount(null)}
                                                                             >
-                                                                                Usuń rabat
-                                                                            </S.DiscountRemoveButton>
-                                                                        )}
-                                                                        <S.DiscountHideButton
-                                                                            type="button"
-                                                                            onClick={() => setExpandedServiceDiscount(null)}
-                                                                        >
-                                                                            Ukryj
-                                                                        </S.DiscountHideButton>
+                                                                                Ukryj
+                                                                            </S.DiscountHideButton>
+                                                                        </S.DiscountActionButtons>
                                                                     </S.DiscountValueRow>
                                                                 </S.DiscountPanel>
                                                             )}
