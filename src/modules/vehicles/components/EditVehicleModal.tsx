@@ -99,21 +99,6 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                     <FormTabPanel $active={activeTab === 'identity'}>
                         <FormGrid>
                             <FormField>
-                                <FieldLabel htmlFor="ev-licensePlate">Numer rejestracyjny</FieldLabel>
-                                <InputShell $hasError={!!errors.licensePlate}>
-                                    <BareInput
-                                        id="ev-licensePlate"
-                                        autoComplete="new-password"
-                                        {...register('licensePlate')}
-                                        placeholder="WA 12345"
-                                    />
-                                </InputShell>
-                                {errors.licensePlate && (
-                                    <FormErrorMsg>{errors.licensePlate.message}</FormErrorMsg>
-                                )}
-                            </FormField>
-
-                            <FormField>
                                 <FieldLabel htmlFor="ev-brand">Marka</FieldLabel>
                                 <Controller
                                     name="brand"
@@ -148,6 +133,21 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                                 />
                                 {errors.model && (
                                     <FormErrorMsg>{errors.model.message}</FormErrorMsg>
+                                )}
+                            </FormField>
+
+                            <FormField>
+                                <FieldLabel htmlFor="ev-licensePlate">Numer rejestracyjny</FieldLabel>
+                                <InputShell $hasError={!!errors.licensePlate}>
+                                    <BareInput
+                                        id="ev-licensePlate"
+                                        autoComplete="new-password"
+                                        {...register('licensePlate')}
+                                        placeholder="WA 12345"
+                                    />
+                                </InputShell>
+                                {errors.licensePlate && (
+                                    <FormErrorMsg>{errors.licensePlate.message}</FormErrorMsg>
                                 )}
                             </FormField>
 
