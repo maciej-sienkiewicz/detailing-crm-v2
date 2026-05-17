@@ -1,6 +1,6 @@
 // src/modules/calendar/components/EventSummaryPopover.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -61,6 +61,30 @@ const PopoverHeader = styled.div<{ $color: string }>`
         background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
         pointer-events: none;
     }
+`;
+
+const HeaderCloseButton = styled.button`
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.18);
+    color: white;
+    cursor: pointer;
+    transition: background 150ms ease;
+    line-height: 1;
+    font-size: 16px;
+
+    &:hover { background: rgba(255, 255, 255, 0.32); }
+
+    svg { width: 14px; height: 14px; }
 `;
 
 const EventTitle = styled.h3`
@@ -667,6 +691,12 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
     const navigate = useNavigate();
     const isAppointment = event.type === 'APPOINTMENT';
 
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+        document.addEventListener('keydown', handler);
+        return () => document.removeEventListener('keydown', handler);
+    }, [onClose]);
+
     // Check if appointment is cancelled/abandoned - don't show "Porzuć" button
     const appointmentStatus = isAppointment ? (event as AppointmentEventData).status : undefined;
     const isCancelled = appointmentStatus === 'CANCELLED' || appointmentStatus === 'ABANDONED';
@@ -712,6 +742,11 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
             <Overlay onClick={onClose} />
             <PopoverContainer $x={position.x} $y={position.y}>
                 <PopoverHeader $color={event.colorHex || '#3b82f6'}>
+                    <HeaderCloseButton type="button" onClick={onClose} title="Zamknij (Esc)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </HeaderCloseButton>
                     <EventType>{isAppointment ? 'Rezerwacja' : 'Wizyta'}</EventType>
                     <EventTitle>{event.title}</EventTitle>
                 </PopoverHeader>
@@ -867,12 +902,12 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                     {(event.totalPrice !== undefined || event.totalNet !== undefined) && (
                         <PricesContainer>
                             <div>
-                                <PriceLabel>Brutto</PriceLabel>
-                                <PriceTag>{formatPrice(event.totalPrice, event.currency)}</PriceTag>
-                            </div>
-                            <div>
                                 <PriceLabel>Netto</PriceLabel>
                                 <PriceTag>{formatPrice(event.totalNet, event.currency)}</PriceTag>
+                            </div>
+                            <div>
+                                <PriceLabel>Brutto</PriceLabel>
+                                <PriceTag>{formatPrice(event.totalPrice, event.currency)}</PriceTag>
                             </div>
                         </PricesContainer>
                     )}
