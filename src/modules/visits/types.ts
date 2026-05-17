@@ -225,6 +225,7 @@ export interface UpdateServiceStatusPayload {
 // Batch services changes
 export interface ServicesChangesPayload {
     notifyCustomer: boolean;
+    requireConfirmation: boolean;
     added: Array<{
         serviceId: string | null;
         serviceName: string;

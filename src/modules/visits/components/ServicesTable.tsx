@@ -549,20 +549,29 @@ const DraftBar = styled.div`
     }
 `;
 
-const DraftBarLabel = styled.label`
+const DraftBarCheckboxes = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 12px;
+`;
+
+const DraftBarLabel = styled.label<{ $disabled?: boolean }>`
     display: flex;
     align-items: center;
     gap: 8px;
     font-size: ${st.fontSm};
-    color: ${st.textSecondary};
-    cursor: pointer;
+    color: ${p => p.$disabled ? st.textMuted : st.textSecondary};
+    cursor: ${p => p.$disabled ? 'not-allowed' : 'pointer'};
     user-select: none;
+    opacity: ${p => p.$disabled ? 0.5 : 1};
+    transition: opacity 150ms, color 150ms;
 
     input[type='checkbox'] {
         width: 14px;
         height: 14px;
         accent-color: ${BRAND};
-        cursor: pointer;
+        cursor: ${p => p.$disabled ? 'not-allowed' : 'pointer'};
     }
 `;
 
@@ -634,6 +643,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const [newRows, setNewRows] = useState<NewRow[]>([]);
     const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
     const [notifyCustomer, setNotifyCustomer] = useState(true);
+    const [requireConfirmation, setRequireConfirmation] = useState(false);
     const [isQuickServiceOpen, setIsQuickServiceOpen] = useState(false);
     const [quickServicePrefill, setQuickServicePrefill] = useState('');
     const [quickServiceDraftId, setQuickServiceDraftId] = useState<string | null>(null);
@@ -741,8 +751,10 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
     const acceptDraft = () => {
         const validNewRows = newRows.filter(r => r.serviceName.trim());
+        const effectiveNotify = smsFeature.enabled ? notifyCustomer : false;
         const payload: ServicesChangesPayload = {
-            notifyCustomer: smsFeature.enabled ? notifyCustomer : false,
+            notifyCustomer: effectiveNotify,
+            requireConfirmation: effectiveNotify ? requireConfirmation : false,
             added: validNewRows.map(r => ({
                 serviceId: r.serviceId,
                 serviceName: r.serviceName,
@@ -1141,14 +1153,25 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                             locked={!smsFeature.enabled}
                             message="Twój abonament nie obsługuje powiadomień SMS."
                         >
-                            <DraftBarLabel>
-                                <input
-                                    type="checkbox"
-                                    checked={smsFeature.enabled ? notifyCustomer : false}
-                                    onChange={e => setNotifyCustomer(e.target.checked)}
-                                />
-                                Poinformuj klienta SMS-em o zmianach
-                            </DraftBarLabel>
+                            <DraftBarCheckboxes>
+                                <DraftBarLabel>
+                                    <input
+                                        type="checkbox"
+                                        checked={smsFeature.enabled ? notifyCustomer : false}
+                                        onChange={e => setNotifyCustomer(e.target.checked)}
+                                    />
+                                    Poinformuj klienta SMS-em o zmianach
+                                </DraftBarLabel>
+                                <DraftBarLabel $disabled={!notifyCustomer}>
+                                    <input
+                                        type="checkbox"
+                                        checked={notifyCustomer ? requireConfirmation : false}
+                                        onChange={e => setRequireConfirmation(e.target.checked)}
+                                        disabled={!notifyCustomer}
+                                    />
+                                    Wymagaj potwierdzenia od klienta
+                                </DraftBarLabel>
+                            </DraftBarCheckboxes>
                         </LockedSection>
                     </DraftBarSmsWrap>
                     <DraftBarActions>
