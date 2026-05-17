@@ -395,7 +395,7 @@ export const VisitHeader = ({
     const dotCfg = DOT_CONFIG[visit.status];
     const completeLabel = COMPLETE_LABEL[visit.status] ?? 'Zakończ wizytę';
     const customerName = `${visit.customer.firstName} ${visit.customer.lastName}`.trim();
-    const vehicleLabel = [visit.vehicle.brand, visit.vehicle.model, visit.vehicle.yearOfProduction && `(${visit.vehicle.yearOfProduction})`]
+    const vehicleLabel = [visit.vehicle.brand, visit.vehicle.model, visit.vehicle.licensePlate && `(${visit.vehicle.licensePlate})`]
         .filter(Boolean)
         .join(' ');
 
