@@ -33,10 +33,10 @@ apiClient.interceptors.response.use(
             headers: error.response?.headers
         });
 
-        if (error.response?.status === 401) {
+        const status = error.response?.status;
+
+        if (status === 401) {
             console.warn('[apiClient] Otrzymano 401 - nieautoryzowany dostęp');
-            // Unikaj przekierowania na /login jeśli już jesteśmy na publicznej stronie
-            // aby zapobiec nieskończonej pętli wywołań /me endpoint
             const currentPath = window.location.pathname;
             const publicPaths = ['/login', '/signup', '/forgot-password', '/m/upload', '/m/voice'];
 
@@ -46,11 +46,16 @@ apiClient.interceptors.response.use(
             }
         }
 
-        if (error.response?.status === 403) {
+        if (status !== undefined && status >= 400 && status < 500 && status !== 401) {
+            const message: string = error.response?.data?.message ?? 'Wystąpił nieoczekiwany błąd';
+            window.dispatchEvent(new CustomEvent('api:error', { detail: { message } }));
+        }
+
+        if (status === 403) {
             console.error('Access forbidden');
         }
 
-        if (error.response?.status >= 500) {
+        if (status !== undefined && status >= 500) {
             console.error('Server error occurred');
         }
 

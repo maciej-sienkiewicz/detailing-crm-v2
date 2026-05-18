@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Toast } from './Toast';
 
@@ -59,6 +59,15 @@ export const ToastProvider = ({ children }: ToastProviderProps) => {
     const removeToast = useCallback((id: string) => {
         setToasts(prev => prev.filter(toast => toast.id !== id));
     }, []);
+
+    useEffect(() => {
+        const handleApiError = (e: Event) => {
+            const { message } = (e as CustomEvent<{ message: string }>).detail;
+            showError(message);
+        };
+        window.addEventListener('api:error', handleApiError);
+        return () => window.removeEventListener('api:error', handleApiError);
+    }, [showError]);
 
     const value: ToastContextValue = {
         showToast,
