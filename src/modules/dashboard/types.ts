@@ -178,6 +178,7 @@ export interface UpcomingVisit {
   customerName: string;
   vehicleName: string;
   price: number;
+  priceNetto: number;
   statusKind: VisitStatusKind;
   statusLabel: string;
 }

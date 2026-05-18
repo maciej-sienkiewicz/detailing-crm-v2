@@ -208,12 +208,28 @@ const StatusBadge = styled.span<{ $kind: VisitStatusKind }>`
   }
 `;
 
+const VisitPriceWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+`;
+
 const VisitPrice = styled.div`
   font-size: 14px;
   font-weight: 700;
   color: ${p => p.theme.colors.text};
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.3px;
+  white-space: nowrap;
+`;
+
+const VisitPriceNetto = styled.div`
+  font-size: 11px;
+  font-weight: 400;
+  color: ${p => p.theme.colors.textMuted};
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.2px;
   white-space: nowrap;
 `;
 
@@ -336,7 +352,10 @@ const VisitRowItem = ({
       </VisitMeta>
     </div>
     <StatusBadge $kind={visit.statusKind}>{visit.statusLabel}</StatusBadge>
-    <VisitPrice>{formatCurrency(visit.price)}</VisitPrice>
+    <VisitPriceWrapper>
+      <VisitPrice>{formatCurrency(visit.price)}</VisitPrice>
+      <VisitPriceNetto>{formatCurrency(visit.priceNetto)} netto</VisitPriceNetto>
+    </VisitPriceWrapper>
   </VisitRow>
 );
 
