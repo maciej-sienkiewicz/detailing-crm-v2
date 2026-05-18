@@ -7,9 +7,9 @@ import { st } from './StatisticsTheme';
 const Nav = styled.nav`
     display: flex;
     gap: 2px;
-    background: ${st.bgCardAlt};
-    border: 1px solid ${st.border};
-    border-radius: ${st.radius};
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 9999px;
     padding: 4px;
     width: fit-content;
 `;
@@ -19,13 +19,14 @@ const Tab = styled(NavLink)`
     align-items: center;
     gap: 7px;
     padding: 7px 16px;
-    border-radius: 10px;
+    border-radius: 9999px;
     font-size: ${st.fontSm};
     font-weight: 600;
-    color: ${st.textSecondary};
+    color: rgba(255, 255, 255, 0.5);
     text-decoration: none;
-    transition: all ${st.transition};
+    transition: all 180ms ease;
     white-space: nowrap;
+    font-family: inherit;
 
     svg {
         width: 15px;
@@ -34,14 +35,14 @@ const Tab = styled(NavLink)`
     }
 
     &:hover {
-        color: ${st.text};
-        background: ${st.bgCard};
+        color: rgba(255, 255, 255, 0.8);
+        background: rgba(255, 255, 255, 0.08);
     }
 
     &.active {
-        color: ${st.text};
-        background: ${st.bgCard};
-        box-shadow: ${st.shadowSm};
+        color: #f1f5f9;
+        background: rgba(255, 255, 255, 0.14);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
     }
 `;
 
