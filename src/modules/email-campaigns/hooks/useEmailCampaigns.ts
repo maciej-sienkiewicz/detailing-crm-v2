@@ -10,7 +10,6 @@ export function useEmailAutomationConfig() {
   const { data, isLoading, isError } = useQuery({
     queryKey: KEYS.automation,
     queryFn: fetchEmailAutomationConfig,
-    staleTime: 60_000,
   });
   return { config: data ?? null, isLoading, isError };
 }

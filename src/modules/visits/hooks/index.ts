@@ -156,7 +156,6 @@ export const useVisitPhotos = (visitId: string) => {
         queryKey: visitPhotosQueryKey(visitId),
         queryFn: () => visitApi.getVisitPhotos(visitId),
         enabled: !!visitId,
-        staleTime: 0, // Photos use presigned URLs that expire
     });
 
     return {

@@ -11,7 +11,6 @@ export const useAuditLog = (module: string, entityId: string, page = 1, size = 5
         queryKey: auditLogQueryKey(module, entityId, page),
         queryFn: () => auditApi.getAuditLog(module, entityId, page, size),
         enabled: !!module && !!entityId,
-        staleTime: 30_000,
     });
 
     return {

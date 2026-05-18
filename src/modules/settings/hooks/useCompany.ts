@@ -8,7 +8,6 @@ export const useCompanySettings = () => {
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: QUERY_KEY,
         queryFn: companyApi.getCompanySettings,
-        staleTime: 5 * 60 * 1000,
     });
 
     return { company: data, isLoading, isError, refetch };

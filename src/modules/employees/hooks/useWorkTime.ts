@@ -9,7 +9,6 @@ export const useWorkTime = (employeeId: string, from?: string, to?: string) => {
         queryKey: [...workTimeKey(employeeId), { from, to }],
         queryFn: () => employeeApi.listWorkTime(employeeId, from, to),
         enabled: !!employeeId,
-        staleTime: 30_000,
     });
     return { entries: data ?? [], isLoading, isError, refetch };
 };
@@ -19,7 +18,6 @@ export const useWorkTimePeriods = (employeeId: string) => {
         queryKey: [...workTimeKey(employeeId), 'periods'],
         queryFn: () => employeeApi.getWorkTimePeriods(employeeId),
         enabled: !!employeeId,
-        staleTime: 60_000,
     });
     return { periods: data ?? [], isLoading, isError };
 };

@@ -28,7 +28,6 @@ export function useCampaigns() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: KEYS.campaigns,
     queryFn: fetchCampaigns,
-    staleTime: 30_000,
   });
   return { campaigns: data ?? [], isLoading, isError, refetch };
 }
@@ -72,7 +71,6 @@ export function usePreviewAudience() {
     return qc.fetchQuery({
       queryKey: KEYS.audience(filters),
       queryFn: () => previewAudience(filters),
-      staleTime: 60_000,
     });
   };
 
@@ -85,7 +83,6 @@ export function useAutomationConfig() {
   const { data, isLoading, isError } = useQuery({
     queryKey: KEYS.automation,
     queryFn: fetchAutomationConfig,
-    staleTime: 60_000,
   });
   return { config: data ?? null, isLoading, isError };
 }
@@ -106,7 +103,6 @@ export function useVehicleBrands() {
   const { data, isLoading } = useQuery({
     queryKey: KEYS.brands,
     queryFn: fetchVehicleBrands,
-    staleTime: 5 * 60_000,
   });
   return { brands: data ?? [], isLoading };
 }

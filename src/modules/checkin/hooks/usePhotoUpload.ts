@@ -10,7 +10,6 @@ export const usePhotoUpload = (appointmentId: string) => {
     const { data: uploadSession, isLoading: isLoadingSession } = useQuery({
         queryKey: ['photo-session', appointmentId],
         queryFn: () => checkinApi.createUploadSession(appointmentId),
-        staleTime: 3600000, // 1 hour
     });
 
     // Get session photos
@@ -22,7 +21,6 @@ export const usePhotoUpload = (appointmentId: string) => {
         queryKey: ['photo-session', uploadSession?.sessionId, 'photos'],
         queryFn: () => checkinApi.getSessionPhotos(uploadSession!.sessionId),
         enabled: !!uploadSession?.sessionId,
-        staleTime: 0, // Always fresh
     });
 
     const photos = sessionPhotosData?.photos || [];

@@ -606,7 +606,6 @@ export function CompetitorStoriesSection() {
     const { data: stories = [], isLoading } = useQuery({
         queryKey: ['instagram', 'stories', 72],
         queryFn: () => instagramApi.getStories(72),
-        staleTime: 5 * 60_000,
         refetchInterval: 10 * 60_000,
     });
 

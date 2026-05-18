@@ -7,7 +7,6 @@ export const useCustomerReservations = (customerId: string) => {
     const query = useQuery({
         queryKey: [CUSTOMER_RESERVATIONS_QUERY_KEY, customerId],
         queryFn: () => customerDetailApi.getCustomerReservations(customerId),
-        staleTime: 60_000,
         enabled: !!customerId,
     });
 

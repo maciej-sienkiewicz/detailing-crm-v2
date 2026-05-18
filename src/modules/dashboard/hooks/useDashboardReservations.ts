@@ -6,5 +6,4 @@ export const useDashboardReservations = (weeks = 13) =>
   useQuery<DashboardReservationSummary>({
     queryKey: ['dashboard', 'reservation-summary', weeks],
     queryFn: () => dashboardApi.getReservationSummary(weeks),
-    staleTime: 0,
   });

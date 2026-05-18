@@ -7,7 +7,6 @@ export const useCustomerDetail = (customerId: string) => {
     const query = useQuery({
         queryKey: [CUSTOMER_DETAIL_QUERY_KEY, customerId],
         queryFn: () => customerDetailApi.getCustomerDetail(customerId),
-        staleTime: 60_000,
         enabled: !!customerId,
     });
 

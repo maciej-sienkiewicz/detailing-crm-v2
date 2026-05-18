@@ -8,7 +8,6 @@ export const useCustomerNotes = (customerId: string) => {
         queryKey: customerNotesQueryKey(customerId),
         queryFn: () => customerEditApi.getNotes(customerId),
         enabled: !!customerId,
-        staleTime: 30_000,
     });
     return { notes: data ?? [], isLoading, isError };
 };

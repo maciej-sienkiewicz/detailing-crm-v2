@@ -10,7 +10,6 @@ export const useBonuses = (employeeId: string, period?: string) => {
         queryKey: bonusesKey(employeeId, period),
         queryFn: () => employeeApi.listBonuses(employeeId, period),
         enabled: !!employeeId,
-        staleTime: 60_000,
     });
     return { bonuses: data ?? [], isLoading, isError, refetch };
 };

@@ -221,7 +221,6 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom }: Props
         queryKey: ['svc-inline-search', debouncedQuery],
         queryFn: () => servicesApi.getServices({ search: debouncedQuery, page: 1, limit: 8, showInactive: false }),
         enabled: debouncedQuery.trim().length >= 1,
-        staleTime: 30_000,
     });
 
     const suggestions: Service[] = data?.services ?? [];

@@ -44,7 +44,6 @@ export const useVehicleHistory = (vehicleId: string) => {
         queryKey: ['vehicle', vehicleId, 'history-events'],
         queryFn: () => vehicleApi.getCalendarEvents(vehicleId),
         enabled: !!vehicleId,
-        staleTime: 60_000,
     });
 
     const events: VehicleHistoryEvent[] = [

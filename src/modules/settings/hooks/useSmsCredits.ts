@@ -11,7 +11,6 @@ export function useSmsCreditBalance(options?: { enabled?: boolean }) {
     return useQuery({
         queryKey: KEYS.balance,
         queryFn:  smsCreditApi.getBalance,
-        staleTime: 30_000,
         enabled:  options?.enabled ?? true,
     });
 }
@@ -20,7 +19,6 @@ export function useSmsCreditPackages() {
     return useQuery({
         queryKey: KEYS.packages,
         queryFn:  smsCreditApi.getPackages,
-        staleTime: 5 * 60_000,
     });
 }
 
@@ -28,7 +26,6 @@ export function useSmsCreditTransactions(page: number, size: number) {
     return useQuery({
         queryKey: KEYS.transactions(page, size),
         queryFn:  () => smsCreditApi.getTransactions(page, size),
-        staleTime: 30_000,
     });
 }
 

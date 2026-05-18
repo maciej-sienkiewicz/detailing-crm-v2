@@ -32,6 +32,5 @@ export const useUpcomingVisits = () => {
   return useQuery<UpcomingVisit[]>({
     queryKey: ['dashboard', 'upcoming-visits', startDate],
     queryFn: () => dashboardApi.getUpcomingEvents(startDate, endDate),
-    staleTime: 2 * 60 * 1000,
   });
 };

@@ -6,7 +6,6 @@ export const useVehicleVisits = (vehicleId: string, page = 1, limit = 50) => {
         queryKey: ['vehicle', vehicleId, 'visits', page],
         queryFn: () => vehicleApi.getVisits(vehicleId, page, limit),
         enabled: !!vehicleId,
-        staleTime: 60_000,
     });
     return {
         visits: data?.visits ?? [],

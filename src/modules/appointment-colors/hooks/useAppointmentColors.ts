@@ -13,7 +13,6 @@ export const useAppointmentColors = (filters: AppointmentColorFilters) => {
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: [QUERY_KEY, filters],
         queryFn: () => appointmentColorApi.getColors(filters),
-        staleTime: 300_000, // 5 minutes
     });
 
     return {

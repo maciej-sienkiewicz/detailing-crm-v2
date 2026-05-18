@@ -8,7 +8,6 @@ export const useSubscriptionStatus = () => {
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: SUBSCRIPTION_QUERY_KEY,
         queryFn: subscriptionApi.getStatus,
-        staleTime: 60_000,
     });
 
     return { status: data, isLoading, isError, refetch };
@@ -18,7 +17,6 @@ export const useSubscriptionPlans = () => {
     const { data, isLoading } = useQuery({
         queryKey: PLANS_QUERY_KEY,
         queryFn: subscriptionApi.getPlans,
-        staleTime: 10 * 60_000,
     });
 
     return { plans: data ?? [], isLoading };

@@ -9,7 +9,6 @@ export const usePayroll = (employeeId: string) => {
         queryKey: payrollKey(employeeId),
         queryFn: () => employeeApi.listPayroll(employeeId),
         enabled: !!employeeId,
-        staleTime: 60_000,
     });
     return { entries: data ?? [], isLoading, isError, refetch };
 };

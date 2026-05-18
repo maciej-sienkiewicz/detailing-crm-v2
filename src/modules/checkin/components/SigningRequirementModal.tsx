@@ -88,7 +88,6 @@ export const SigningRequirementModal = ({
     const { data: emailConfig, isPending: emailConfigPending } = useQuery({
         queryKey: ['email-automation-config'],
         queryFn: () => import('@/modules/email-campaigns/api/emailCampaignsApi').then(m => m.fetchEmailAutomationConfig()),
-        staleTime: 120_000,
     });
     // Default to false while loading to avoid "on → off" flicker on first open
     const visitWelcomeEnabled = emailConfigPending ? false : (emailConfig?.visitWelcome?.enabled ?? true);

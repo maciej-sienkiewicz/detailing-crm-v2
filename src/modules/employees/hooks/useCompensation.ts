@@ -9,7 +9,6 @@ export const useCurrentCompensation = (employeeId: string) => {
         queryKey: [...compensationKey(employeeId), 'current'],
         queryFn: () => employeeApi.getCurrentCompensation(employeeId),
         enabled: !!employeeId,
-        staleTime: 60_000,
     });
     return { compensation: data ?? null, isLoading, isError, refetch };
 };
@@ -19,7 +18,6 @@ export const useCompensationHistory = (employeeId: string) => {
         queryKey: [...compensationKey(employeeId), 'history'],
         queryFn: () => employeeApi.getCompensationHistory(employeeId),
         enabled: !!employeeId,
-        staleTime: 60_000,
     });
     return { history: data ?? [], isLoading, isError, refetch };
 };

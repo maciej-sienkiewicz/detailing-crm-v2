@@ -17,7 +17,6 @@ export const useEntitlements = () => {
     return useQuery({
         queryKey: ENTITLEMENTS_KEY,
         queryFn: newSubscriptionApi.getEntitlements,
-        staleTime: 5 * 60_000,
         retry: false,
     });
 };
@@ -26,7 +25,6 @@ export const useMyPlan = () => {
     return useQuery({
         queryKey: MY_PLAN_KEY,
         queryFn: newSubscriptionApi.getMyPlan,
-        staleTime: 60_000,
     });
 };
 
@@ -34,7 +32,6 @@ export const useFeaturePlans = () => {
     return useQuery({
         queryKey: FEATURE_PLANS_KEY,
         queryFn: newSubscriptionApi.getFeaturePlans,
-        staleTime: 10 * 60_000,
     });
 };
 
@@ -42,7 +39,6 @@ export const useAddOns = () => {
     return useQuery({
         queryKey: ADD_ONS_KEY,
         queryFn: newSubscriptionApi.getAddOns,
-        staleTime: 10 * 60_000,
     });
 };
 
@@ -50,7 +46,6 @@ export const usePaymentHistory = (page = 0) => {
     return useQuery({
         queryKey: [...PAYMENT_HISTORY_KEY, page],
         queryFn: () => newSubscriptionApi.getPaymentHistory(page),
-        staleTime: 30_000,
     });
 };
 

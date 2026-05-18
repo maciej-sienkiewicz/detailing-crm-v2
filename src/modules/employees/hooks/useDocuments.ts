@@ -9,7 +9,6 @@ export const useDocuments = (employeeId: string) => {
         queryKey: documentsKey(employeeId),
         queryFn: () => employeeApi.listDocuments(employeeId),
         enabled: !!employeeId,
-        staleTime: 60_000,
     });
     return { documents: data ?? [], isLoading, isError, refetch };
 };

@@ -12,7 +12,6 @@ export const useContracts = (employeeId: string) => {
         queryKey: contractsKey(employeeId),
         queryFn: () => employeeApi.listContracts(employeeId),
         enabled: !!employeeId,
-        staleTime: 60_000,
     });
     return { contracts: data ?? [], isLoading, isError, refetch };
 };
@@ -39,7 +38,6 @@ export const useAmendments = (employeeId: string, contractId: string) => {
         queryKey: amendmentsKey(employeeId, contractId),
         queryFn: () => employeeApi.listAmendments(employeeId, contractId),
         enabled: !!employeeId && !!contractId,
-        staleTime: 60_000,
     });
     return { amendments: data ?? [], isLoading, isError };
 };

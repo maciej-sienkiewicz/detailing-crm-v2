@@ -14,8 +14,6 @@ export const useEmployees = (filters: EmployeeFilters) => {
     const { data, isLoading, isError, error, refetch } = useQuery({
         queryKey,
         queryFn: () => employeeApi.listEmployees(filters),
-        staleTime: 30_000,
-        placeholderData: prev => prev,
     });
     return {
         employees: data?.items ?? [],
@@ -33,7 +31,6 @@ export const useEmployee = (employeeId: string) => {
         queryKey,
         queryFn: () => employeeApi.getEmployee(employeeId),
         enabled: !!employeeId,
-        staleTime: 60_000,
     });
     return { employee: data, isLoading, isError, error, refetch };
 };

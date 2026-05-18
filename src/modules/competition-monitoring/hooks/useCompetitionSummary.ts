@@ -7,7 +7,6 @@ export const useCompetitionSummary = () => {
     const query = useQuery({
         queryKey: [COMPETITION_SUMMARY_KEY],
         queryFn: instagramApi.getCompetitionSummary,
-        staleTime: 5 * 60 * 1000,
     });
 
     return {

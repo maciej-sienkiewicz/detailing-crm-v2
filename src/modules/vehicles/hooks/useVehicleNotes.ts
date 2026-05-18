@@ -11,7 +11,6 @@ export const useVehicleNotes = (vehicleId: string) => {
         queryKey: vehicleNotesQueryKey(vehicleId),
         queryFn: () => vehicleApi.getNotes(vehicleId),
         enabled: !!vehicleId,
-        staleTime: 30_000,
     });
     return { notes: data ?? [], isLoading, isError };
 };

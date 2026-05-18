@@ -169,7 +169,6 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     const { data: automationConfig } = useQuery({
         queryKey: ['sms-automation-config'],
         queryFn: () => import('@/modules/sms-campaigns/api/smsCampaignsApi').then(m => m.fetchAutomationConfig()),
-        staleTime: 120_000,
     });
     const preVisitEnabled = automationConfig?.preVisit?.enabled ?? true;
     const bookingConfirmationEnabled = automationConfig?.bookingConfirmation?.enabled ?? true;

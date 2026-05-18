@@ -256,7 +256,6 @@ export const SmsReminderEditSection = ({
     const { data: automation } = useQuery({
         queryKey: ['sms-automation-config'],
         queryFn: fetchAutomationConfig,
-        staleTime: 120_000,
     });
 
     const preVisitEnabled = automation?.preVisit?.enabled ?? true;

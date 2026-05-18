@@ -31,7 +31,6 @@ export const useGrowthEngine = () => {
   } = useQuery({
     queryKey: ['trends', 'keywords'],
     queryFn: () => trendsApi.getKeywords(),
-    staleTime: 10 * 60_000,
   });
 
   const allKeywords = useMemo(() => keywordsData ?? [], [keywordsData]);
@@ -47,7 +46,6 @@ export const useGrowthEngine = () => {
     queryKey: ['trends', 'locations', firstKeyword],
     queryFn: () => trendsApi.getVoivodeships(firstKeyword!),
     enabled: !!firstKeyword,
-    staleTime: 60 * 60_000,
   });
 
   const from = granularity === 'daily' ? daysAgo(90) : undefined;
@@ -56,7 +54,6 @@ export const useGrowthEngine = () => {
     queries: effectiveSelected.map((keyword) => ({
       queryKey: ['trends', 'history', keyword, locationCode, granularity],
       queryFn: () => trendsApi.getKeywordHistory(keyword, locationCode, from),
-      staleTime: 5 * 60_000,
     })),
   });
 

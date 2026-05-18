@@ -593,13 +593,11 @@ const AppointmentSmsRow: React.FC<{ appointmentId: string }> = ({ appointmentId 
     const { data: appointment, isLoading } = useQuery({
         queryKey: ['appointments', appointmentId],
         queryFn: () => appointmentApi.getAppointment(appointmentId),
-        staleTime: 60_000,
     });
 
     const { data: automation } = useQuery({
         queryKey: ['sms-automation-config'],
         queryFn: () => import('@/modules/sms-campaigns/api/smsCampaignsApi').then(m => m.fetchAutomationConfig()),
-        staleTime: 120_000,
     });
 
     const smsInfo: CalendarSmsInfo | undefined = appointment?.smsInfo;

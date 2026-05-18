@@ -8,8 +8,6 @@ export const useGallery = (filters: GalleryFilters) => {
     const { data, isLoading, isFetching, error } = useQuery({
         queryKey: ['gallery', filters],
         queryFn: () => galleryApi.getPhotos(filters),
-        placeholderData: prev => prev,
-        staleTime: 30_000,
     });
 
     return {

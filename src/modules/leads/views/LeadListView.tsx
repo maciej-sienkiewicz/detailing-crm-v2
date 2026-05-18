@@ -2192,14 +2192,12 @@ const VisitPreviewModal: React.FC<VisitPreviewModalProps> = ({ visitId, onClose 
     queryKey: ['visit-preview', visitId],
     queryFn: () => visitApi.getVisitDetail(visitId!),
     enabled: !!visitId,
-    staleTime: 5 * 60_000,
   });
 
   const { data: photosData, isLoading: isPhotosLoading } = useQuery({
     queryKey: ['visit-photos-preview', visitId],
     queryFn: () => visitApi.getVisitPhotos(visitId!),
     enabled: !!visitId,
-    staleTime: 5 * 60_000,
   });
 
   const visit = detailData?.visit;
@@ -2498,7 +2496,6 @@ const CustomerPickerModal: React.FC<CustomerPickerModalProps> = ({ isOpen, onClo
     queryKey: ['customer-picker', debouncedSearch],
     queryFn: () => customerApi.getCustomers({ search: debouncedSearch, page: 1, limit: 15 }),
     enabled: isOpen,
-    staleTime: 30_000,
   });
 
   // API returns { data: Customer[], pagination: ... }
@@ -2594,7 +2591,6 @@ const ServiceNameInput: React.FC<ServiceNameInputProps> = ({ value, onChange }) 
     queryKey: ['service-suggest', search],
     queryFn: () => servicesApi.getServices({ search, page: 1, limit: 8, showInactive: false }),
     enabled: open && search.length >= 1,
-    staleTime: 60_000,
   });
 
   const suggestions = data?.services ?? [];

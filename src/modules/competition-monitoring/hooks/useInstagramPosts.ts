@@ -8,7 +8,6 @@ export const useInstagramPosts = (profileId: string | null) => {
         queryKey: instagramPostsKey(profileId ?? ''),
         queryFn: () => instagramApi.getPosts(profileId!),
         enabled: profileId !== null,
-        staleTime: 5 * 60 * 1000,
     });
 
     return {

@@ -46,7 +46,6 @@ export const useAppointmentServices = () => {
     return useQuery({
         queryKey: ['appointments', 'services'],
         queryFn: appointmentApi.getServices,
-        staleTime: 300_000,
     });
 };
 
@@ -55,7 +54,6 @@ export const useCustomerSearch = (query: string) => {
         queryKey: ['appointments', 'customers', 'search', query],
         queryFn: () => appointmentApi.searchCustomers(query),
         enabled: query.length >= 0,
-        staleTime: 60_000,
     });
 };
 
@@ -64,7 +62,6 @@ export const useCustomerVehicles = (customerId: string | undefined) => {
         queryKey: ['appointments', 'customers', customerId, 'vehicles'],
         queryFn: () => appointmentApi.getCustomerVehicles(customerId!),
         enabled: !!customerId,
-        staleTime: 120_000,
     });
 };
 
@@ -72,6 +69,5 @@ export const useAppointmentColors = () => {
     return useQuery({
         queryKey: ['appointments', 'colors'],
         queryFn: appointmentApi.getAppointmentColors,
-        staleTime: 600_000,
     });
 };

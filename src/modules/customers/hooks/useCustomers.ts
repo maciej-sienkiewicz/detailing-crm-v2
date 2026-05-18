@@ -10,8 +10,6 @@ export const useCustomers = (filters: CustomerFilters) => {
     const query = useQuery({
         queryKey,
         queryFn: () => customerApi.getCustomers(filters),
-        staleTime: 30_000,
-        placeholderData: previousData => previousData,
     });
 
     return {

@@ -18,7 +18,6 @@ export const useFinanceDocuments = (filters: DocumentListFilters) => {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: [...FINANCE_DOCS_KEY, filters],
     queryFn:  () => financeApi.getDocuments(filters),
-    staleTime: 30_000,
   });
 
   return {
@@ -37,7 +36,6 @@ export const useFinanceDocument = (id: string | undefined) => {
     queryKey: [...FINANCE_DOCS_KEY, 'detail', id],
     queryFn:  () => financeApi.getDocument(id!),
     enabled:  !!id,
-    staleTime: 60_000,
   });
 
   return { document: data, isLoading, isError };
@@ -111,7 +109,6 @@ export const useCashRegister = () => {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: FINANCE_CASH_KEY,
     queryFn:  () => financeApi.getCashRegister(),
-    staleTime: 15_000,
   });
 
   return { cashRegister: data, isLoading, isError, refetch };
@@ -121,7 +118,6 @@ export const useCashHistory = (page: number, pageSize: number) => {
   const { data, isLoading, isError } = useQuery({
     queryKey: [...FINANCE_CASH_KEY, 'history', page, pageSize],
     queryFn:  () => financeApi.getCashHistory(page, pageSize),
-    staleTime: 15_000,
   });
 
   return {
@@ -149,7 +145,6 @@ export const useFinanceSummary = (dateFrom?: string, dateTo?: string) => {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: [...FINANCE_SUMMARY_KEY, dateFrom, dateTo],
     queryFn:  () => financeApi.getSummary(dateFrom, dateTo),
-    staleTime: 60_000,
   });
 
   return { summary: data, isLoading, isError, refetch };
@@ -159,7 +154,6 @@ export const usePaymentMethodReport = (params: PaymentMethodReportParams) => {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: [...FINANCE_REPORT_KEY, params],
     queryFn:  () => financeApi.getPaymentMethodReport(params),
-    staleTime: 2 * 60_000,
   });
 
   return { report: data, isLoading, isError, refetch };

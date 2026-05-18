@@ -6,7 +6,6 @@ export const useVehicleAppointments = (vehicleId: string, page = 1, limit = 50) 
         queryKey: ['vehicle', vehicleId, 'appointments', page],
         queryFn: () => vehicleApi.getAppointments(vehicleId, page, limit),
         enabled: !!vehicleId,
-        staleTime: 60_000,
     });
     return {
         appointments: data?.appointments ?? [],

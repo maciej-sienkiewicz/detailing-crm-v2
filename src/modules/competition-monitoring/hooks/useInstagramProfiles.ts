@@ -7,7 +7,6 @@ export const useInstagramProfiles = () => {
     const query = useQuery({
         queryKey: [INSTAGRAM_PROFILES_KEY],
         queryFn: instagramApi.listProfiles,
-        staleTime: 30_000,
     });
 
     return {

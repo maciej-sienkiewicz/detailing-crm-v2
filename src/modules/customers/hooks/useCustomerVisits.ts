@@ -7,7 +7,6 @@ export const useCustomerVisits = (customerId: string, page: number = 1, limit: n
     const query = useQuery({
         queryKey: [CUSTOMER_VISITS_QUERY_KEY, customerId, page, limit],
         queryFn: () => customerDetailApi.getCustomerVisits(customerId, page, limit),
-        staleTime: 60_000,
         enabled: !!customerId,
     });
 

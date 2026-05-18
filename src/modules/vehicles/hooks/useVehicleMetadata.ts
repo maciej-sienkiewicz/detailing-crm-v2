@@ -8,7 +8,5 @@ export const useVehicleMetadata = () => {
   return useQuery<BrandWithModels[]>({
     queryKey: VEHICLE_METADATA_QUERY_KEY,
     queryFn: () => vehicleMetadataApi.getAll(),
-    staleTime: Infinity,
-    gcTime: Infinity,
   });
 };

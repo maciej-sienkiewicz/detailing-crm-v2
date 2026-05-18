@@ -7,7 +7,6 @@ export const useTagSuggestions = () => {
     return useQuery({
         queryKey: ['photo-tags', 'suggestions'],
         queryFn: () => photoTagsApi.getTagSuggestions(),
-        staleTime: 5 * 60 * 1000,
         select: (data) => data.suggestions,
     });
 };

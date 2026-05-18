@@ -19,7 +19,6 @@ export const useKsefCredentials = () => {
   const { data, isLoading, isError } = useQuery({
     queryKey: KSEF_CREDENTIALS_KEY,
     queryFn:  () => ksefApi.getCredentials(),
-    staleTime: 60_000,
   });
 
   return { credentials: data ?? null, isLoading, isError };
@@ -55,7 +54,6 @@ export const useKsefSyncStatus = () => {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: KSEF_SYNC_STATUS_KEY,
     queryFn:  () => ksefApi.getSyncStatus(),
-    staleTime: 30_000,
   });
 
   return { syncStatus: data, isLoading, isError, refetch };
@@ -93,7 +91,6 @@ export const useKsefExpenses = (filters: KsefExpenseListFilters) => {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: [...KSEF_EXPENSES_KEY, filters],
     queryFn:  () => ksefApi.getExpenses(filters),
-    staleTime: 30_000,
   });
 
   return {
@@ -173,7 +170,6 @@ export const useKsefStatistics = (year: number) => {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: [...KSEF_STATISTICS_KEY, year],
     queryFn:  () => ksefApi.getStatistics(year),
-    staleTime: 5 * 60_000,
   });
 
   return { statistics: data, isLoading, isError, refetch };

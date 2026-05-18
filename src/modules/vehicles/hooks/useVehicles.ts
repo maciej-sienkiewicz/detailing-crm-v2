@@ -8,7 +8,6 @@ export const useVehicles = (filters: VehicleFilters) => {
     const query = useQuery({
         queryKey: vehiclesQueryKey(filters),
         queryFn: () => vehicleApi.getVehicles(filters),
-        staleTime: 30_000,
     });
 
     return {

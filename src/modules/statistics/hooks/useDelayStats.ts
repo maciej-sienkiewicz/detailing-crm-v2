@@ -1,5 +1,5 @@
 // src/modules/statistics/hooks/useDelayStats.ts
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { delayStatsApi } from '../api/delayStatsApi';
 import type { Granularity } from '../types';
 
@@ -15,7 +15,6 @@ export const useDelayStats = (
         queryKey: [DELAY_STATS_KEY, granularity, startDate, endDate, excludedServiceIds],
         queryFn: () => delayStatsApi.getDelayStats(granularity, startDate, endDate, excludedServiceIds),
         enabled: !!startDate && !!endDate,
-        placeholderData: keepPreviousData,
     });
 
     return { delayStats: data, isLoading, isFetching, isError, refetch };

@@ -14,7 +14,6 @@ export const useLeaves = (employeeId: string) => {
         queryKey: leavesKey(employeeId),
         queryFn: () => employeeApi.listLeaves(employeeId),
         enabled: !!employeeId,
-        staleTime: 30_000,
     });
     return { leaves: data ?? [], isLoading, isError, refetch };
 };
@@ -43,7 +42,6 @@ export const useLeaveBalance = (employeeId: string, year?: number) => {
         queryKey: [...leaveBalanceKey(employeeId), year],
         queryFn: () => employeeApi.getLeaveBalance(employeeId, year),
         enabled: !!employeeId,
-        staleTime: 60_000,
     });
     const balance = Array.isArray(data) ? data : data ? [data] : [];
     return { balances: balance, isLoading, isError, refetch };

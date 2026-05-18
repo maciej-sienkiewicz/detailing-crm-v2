@@ -22,7 +22,6 @@ export const useConsentDefinitions = () => {
     const query = useQuery({
         queryKey: CONSENT_QUERY_KEYS.definitions,
         queryFn: consentsApi.getConsentDefinitions,
-        staleTime: 5 * 60 * 1000,
     });
 
     return {
@@ -39,7 +38,6 @@ export const useConsentDefinition = (id: string) => {
         queryKey: CONSENT_QUERY_KEYS.definition(id),
         queryFn: () => consentsApi.getConsentDefinition(id),
         enabled: !!id,
-        staleTime: 5 * 60 * 1000,
     });
 
     return {
@@ -157,7 +155,6 @@ export const useCustomerConsents = (customerId: string) => {
         queryKey: CONSENT_QUERY_KEYS.customerConsents(customerId),
         queryFn: () => consentsApi.getCustomerConsentStatus(customerId),
         enabled: !!customerId,
-        staleTime: 60 * 1000,
     });
 
     return {

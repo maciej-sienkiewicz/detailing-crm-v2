@@ -1,5 +1,5 @@
 // src/modules/statistics/hooks/useStats.ts
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { statsApi } from '../api/statsApi';
 import type { Granularity } from '../types';
 
@@ -14,7 +14,6 @@ export const useBreakdown = (
         queryKey: [BREAKDOWN_KEY, granularity, startDate, endDate],
         queryFn: () => statsApi.getBreakdown(granularity, startDate, endDate),
         enabled: !!startDate && !!endDate,
-        placeholderData: keepPreviousData,
     });
 
     return { breakdown: data, isLoading, isFetching, isError, refetch };
@@ -30,7 +29,6 @@ export const useCategoryStats = (
         queryKey: ['statistics', 'category', categoryId, granularity, startDate, endDate],
         queryFn: () => statsApi.getCategoryStats(categoryId, granularity, startDate, endDate),
         enabled: !!categoryId && !!startDate && !!endDate,
-        placeholderData: keepPreviousData,
     });
 
     return { stats: data, isLoading, isFetching, isError, refetch };

@@ -36,7 +36,6 @@ export const useLeads = (filters: LeadListFilters) => {
   const { data, isLoading, isError, error, refetch } = useQuery<LeadListResponse>({
     queryKey,
     queryFn: () => leadApi.getLeads(filters),
-    staleTime: 30_000, // 30 seconds
   });
 
   return {
@@ -59,7 +58,6 @@ export const useLead = (id: LeadId | undefined) => {
     queryKey,
     queryFn: () => leadApi.getLead(id!),
     enabled: !!id,
-    staleTime: 60_000,
   });
 
   return {
@@ -81,7 +79,6 @@ export const useNewLeadsCount = (): number => {
     queryKey: LEAD_PIPELINE_KEY,
     queryFn: () => leadApi.getPipelineSummary(),
     select: (summary) => summary.newLeadsCount,
-    staleTime: 30_000,
   });
   return data ?? 0;
 };
@@ -101,7 +98,6 @@ export const useLeadPipelineSummary = (sourceFilter?: LeadSource[], dateFrom?: s
   const { data, isLoading, isError, error, refetch } = useQuery<LeadPipelineSummary>({
     queryKey,
     queryFn: () => leadApi.getPipelineSummary(sourceFilter, dateFrom, dateTo),
-    staleTime: 30_000, // 30 seconds
   });
 
   return {
