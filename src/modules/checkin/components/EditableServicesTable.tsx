@@ -57,11 +57,44 @@ const Th = styled.th`
     white-space: nowrap;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        &:nth-child(1) { width: auto; }
-        &:nth-child(2) { width: 140px; }
-        &:nth-child(3) { width: 200px; }
-        &:nth-child(4) { width: 160px; }
-        &:nth-child(5) { width: 48px; text-align: center; }
+        &:nth-child(1) { width: 32px; padding: 8px 4px; }
+        &:nth-child(2) { width: auto; }
+        &:nth-child(3) { width: 140px; }
+        &:nth-child(4) { width: 200px; }
+        &:nth-child(5) { width: 160px; }
+        &:nth-child(6) { width: 48px; text-align: center; }
+    }
+`;
+
+const DragHandle = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 100%;
+    cursor: grab;
+    color: #cbd5e1;
+    transition: color 150ms ease;
+    padding: 2px;
+
+    &:active { cursor: grabbing; }
+
+    ${Tr}:hover & { color: #94a3b8; }
+
+    svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        display: none;
+    }
+`;
+
+const DragTd = styled.td`
+    padding: 0 4px;
+    width: 32px;
+    vertical-align: middle;
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        display: none;
     }
 `;
 
@@ -71,12 +104,14 @@ const Tbody = styled.tbody`
     }
 `;
 
-const Tr = styled.tr`
+const Tr = styled.tr<{ $isDragging?: boolean; $isOver?: boolean }>`
     border-bottom: 1px solid ${props => props.theme.colors.border};
-    transition: background-color ${props => props.theme.transitions.fast};
+    transition: background-color ${props => props.theme.transitions.fast}, opacity 150ms ease;
+    opacity: ${p => p.$isDragging ? 0.35 : 1};
+    background-color: ${p => p.$isOver ? '#eff6ff' : 'transparent'};
 
     &:hover {
-        background-color: ${props => props.theme.colors.surfaceHover};
+        background-color: ${p => p.$isOver ? '#eff6ff' : p.theme.colors.surfaceHover};
     }
 
     &:last-child {
@@ -477,6 +512,8 @@ const DiscountTypeDropdown = ({ value, onChange }: { value: AdjustmentType, onCh
 export const EditableServicesTable = ({ services, onChange }: { services: ServiceLineItem[], onChange: (s: ServiceLineItem[]) => void }) => {
     const [editingPrices, setEditingPrices] = useState<Record<string, boolean>>({});
     const [editingNotes, setEditingNotes] = useState<Record<string, boolean>>({});
+    const [dragIndex, setDragIndex] = useState<number | null>(null);
+    const [overIndex, setOverIndex] = useState<number | null>(null);
     const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
     const [quickServiceInitialName, setQuickServiceInitialName] = useState('');
     const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
@@ -506,6 +543,26 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
         return { totalNet: acc.totalNet + p.finalPriceNet, totalGross: acc.totalGross + p.finalPriceGross };
     }, { totalNet: 0, totalGross: 0 });
 
+    const handleDragStart = (index: number) => setDragIndex(index);
+
+    const handleDragOver = (e: React.DragEvent, index: number) => {
+        e.preventDefault();
+        if (overIndex !== index) setOverIndex(index);
+    };
+
+    const handleDrop = (index: number) => {
+        if (dragIndex !== null && dragIndex !== index) {
+            const reordered = [...services];
+            const [moved] = reordered.splice(dragIndex, 1);
+            reordered.splice(index, 0, moved);
+            onChange(reordered);
+        }
+        setDragIndex(null);
+        setOverIndex(null);
+    };
+
+    const handleDragEnd = () => { setDragIndex(null); setOverIndex(null); };
+
     const openDiscountModal = () => { setIsDiscountModalOpen(true); setTargetPrice(''); };
     const closeDiscountModal = () => { setIsDiscountModalOpen(false); setTargetPrice(''); };
 
@@ -533,14 +590,36 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
                 <Table>
                     <Thead>
                         <tr>
+                            <Th />
                             <Th>Nazwa usługi</Th><Th>Cena bazowa</Th><Th>Rabat</Th><Th>Cena końcowa</Th><Th>Akcje</Th>
                         </tr>
                     </Thead>
                     <Tbody>
-                        {services.map(service => {
+                        {services.map((service, index) => {
                             const pricing = calculateServicePrice({ ...service, adjustment: getLiveAdjustment(service) });
                             return (
-                                <Tr key={service.id}>
+                                <Tr
+                                    key={service.id}
+                                    draggable
+                                    $isDragging={dragIndex === index}
+                                    $isOver={overIndex === index && dragIndex !== index}
+                                    onDragStart={() => handleDragStart(index)}
+                                    onDragOver={(e) => handleDragOver(e, index)}
+                                    onDrop={() => handleDrop(index)}
+                                    onDragEnd={handleDragEnd}
+                                >
+                                    <DragTd>
+                                        <DragHandle>
+                                            <svg viewBox="0 0 16 16" fill="currentColor">
+                                                <circle cx="5" cy="4" r="1.5" />
+                                                <circle cx="11" cy="4" r="1.5" />
+                                                <circle cx="5" cy="8" r="1.5" />
+                                                <circle cx="11" cy="8" r="1.5" />
+                                                <circle cx="5" cy="12" r="1.5" />
+                                                <circle cx="11" cy="12" r="1.5" />
+                                            </svg>
+                                        </DragHandle>
+                                    </DragTd>
                                     <Td data-label="Nazwa usługi">
                                         <ServiceName>{service.serviceName}</ServiceName>
                                         {editingNotes[service.id] ? (
@@ -622,6 +701,7 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
                         })}
 
                         <TotalRow>
+                            <td />
                             <TotalLabel colSpan={2}>Podsumowanie</TotalLabel>
                             <TotalValue colSpan={2}>
                                 <TotalsContent>
