@@ -338,7 +338,8 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
         ...selectedVisitStatuses,
     ] as (AppointmentStatus | VisitStatus)[];
 
-    const allActive = activeStatuses.length === ALL_STATUSES.length && selectedColorIds.length === 0;
+    const allStatusesActive = activeStatuses.length === ALL_STATUSES.length;
+    const allActive = allStatusesActive && selectedColorIds.length === 0;
 
     const toggle = (status: AppointmentStatus | VisitStatus) => {
         const meta = STATUS_META[status];
@@ -425,7 +426,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
                     </AllChip>
                 ) : (
                     <>
-                        {activeStatuses.map(s => {
+                        {!allStatusesActive && activeStatuses.map(s => {
                             const m = STATUS_META[s];
                             return (
                                 <Chip key={s} $color={m.dot}>
@@ -445,6 +446,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
                                 </Chip>
                             );
                         })}
+
                         {selectedColorIds.map(id => {
                             const color = availableColors.find(c => c.id === id);
                             if (!color) return null;
