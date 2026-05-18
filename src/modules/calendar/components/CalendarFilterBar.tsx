@@ -361,11 +361,16 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
     };
 
     const toggleColor = (id: string) => {
-        if (selectedColorIds.includes(id)) {
-            onColorIdsChange(selectedColorIds.filter(c => c !== id));
+        const allIds = availableColors.map(c => c.id);
+        const effective = selectedColorIds.length === 0 ? allIds : selectedColorIds;
+        let next: string[];
+        if (effective.includes(id)) {
+            next = effective.filter(c => c !== id);
         } else {
-            onColorIdsChange([...selectedColorIds, id]);
+            next = [...effective, id];
         }
+        // if all colors are selected again, reset to empty (= no filter)
+        onColorIdsChange(next.length === allIds.length ? [] : next);
     };
 
     const resetAll = () => {
@@ -527,7 +532,7 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
                         <>
                             <PopupSection>Kolory</PopupSection>
                             {availableColors.map(color => {
-                                const on = selectedColorIds.includes(color.id);
+                                const on = selectedColorIds.length === 0 || selectedColorIds.includes(color.id);
                                 return (
                                     <PopupRow key={color.id} $active={on} onClick={() => toggleColor(color.id)} role="option" aria-selected={on}>
                                         <ColorSwatch $hex={color.hexColor} />
