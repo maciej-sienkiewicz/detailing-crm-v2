@@ -4,7 +4,6 @@ import styled, { keyframes } from 'styled-components';
 import {
     X, Copy, Check, RotateCcw, Sparkles, Wand2,
     Award, Cpu, Heart, Coffee,
-    Shield, Droplets, Star, Car, PaintBucket, Zap, MoreHorizontal,
 } from 'lucide-react';
 import type { GenerateInstagramPostRequest } from '../types';
 import { instagramApi } from '../api/instagramApi';
@@ -350,126 +349,6 @@ const SegmentMeta = styled.span<{ $active: boolean }>`
   transition: color 180ms;
 `;
 
-// ─── Service type icon grid ────────────────────────────────────────────────────
-
-const ServiceGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 7px;
-
-  @media (max-width: 480px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-`;
-
-const ServiceCell = styled.button<{ $active: boolean }>`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px 8px 10px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
-  border: 1.5px solid ${p => p.$active ? '#3B82F6' : '#E2E8F0'};
-  background: ${p => p.$active ? '#F0F7FF' : '#fff'};
-  box-shadow: ${p => p.$active ? '0 0 0 3px rgba(59,130,246,0.10)' : '0 1px 2px rgba(15,23,42,0.04)'};
-
-  &:hover {
-    border-color: ${p => p.$active ? '#3B82F6' : '#CBD5E1'};
-    background: ${p => p.$active ? '#F0F7FF' : '#FAFBFC'};
-  }
-`;
-
-const ServiceIconBox = styled.div<{ $active: boolean }>`
-  color: ${p => p.$active ? '#2563EB' : '#94A3B8'};
-  transition: color 150ms;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const ServiceLabel = styled.span<{ $active: boolean }>`
-  font-size: 11px;
-  font-weight: ${p => p.$active ? 700 : 500};
-  color: ${p => p.$active ? '#1E40AF' : '#64748B'};
-  text-align: center;
-  line-height: 1.2;
-  transition: color 150ms, font-weight 150ms;
-`;
-
-// ─── Style notes (tag input) ───────────────────────────────────────────────────
-
-const TagsWrap = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px 10px;
-  border: 1.5px solid #E2E8F0;
-  border-radius: 10px;
-  min-height: 44px;
-  background: #fff;
-  cursor: text;
-  align-items: flex-start;
-  transition: border-color 150ms, box-shadow 150ms;
-
-  &:focus-within {
-    border-color: #3B82F6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
-  }
-`;
-
-const Tag = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 8px 3px 10px;
-  background: #EFF6FF;
-  border: 1px solid #BFDBFE;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #2563EB;
-  line-height: 1.4;
-`;
-
-const TagRemoveBtn = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #93C5FD;
-  padding: 0;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  transition: color 120ms;
-
-  &:hover {
-    color: #EF4444;
-  }
-`;
-
-const TagInput = styled.input`
-  border: none;
-  outline: none;
-  font-size: 12px;
-  font-family: inherit;
-  color: #0F172A;
-  background: transparent;
-  flex: 1;
-  min-width: 140px;
-  padding: 3px 4px;
-
-  &::placeholder {
-    color: #CBD5E1;
-  }
-`;
-
 // ─── Loading ───────────────────────────────────────────────────────────────────
 
 const LoadingWrap = styled.div`
@@ -692,16 +571,6 @@ const LENGTHS: { value: string; label: string; meta: string }[] = [
     { value: 'full',  label: 'Pełny',  meta: '~500 znaków' },
 ];
 
-const SERVICE_TYPES: { value: string; label: string; icon: React.ReactNode }[] = [
-    { value: 'ppf',       label: 'PPF',        icon: <Shield         size={18} strokeWidth={1.8} /> },
-    { value: 'ceramic',   label: 'Ceramika',   icon: <Droplets       size={18} strokeWidth={1.8} /> },
-    { value: 'detailing', label: 'Detailing',  icon: <Sparkles       size={18} strokeWidth={1.8} /> },
-    { value: 'interior',  label: 'Wnętrze',    icon: <Car            size={18} strokeWidth={1.8} /> },
-    { value: 'wrap',      label: 'Oklejanie',  icon: <PaintBucket    size={18} strokeWidth={1.8} /> },
-    { value: 'polish',    label: 'Polerowanie',icon: <Zap            size={18} strokeWidth={1.8} /> },
-    { value: 'other',     label: 'Inne',       icon: <MoreHorizontal size={18} strokeWidth={1.8} /> },
-];
-
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 type Phase = 'form' | 'loading' | 'result';
@@ -709,7 +578,6 @@ type Phase = 'form' | 'loading' | 'result';
 export interface GeneratePostPrefill {
     topic?: string;
     context?: string;
-    serviceType?: GenerateInstagramPostRequest['serviceType'];
 }
 
 interface Props {
@@ -724,14 +592,10 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     const [topic, setTopic]           = useState(prefill?.topic    ?? '');
     const [context, setContext]       = useState(prefill?.context  ?? '');
     const [tone, setTone]             = useState<string | null>(null);
-    const [length, setLength]         = useState<string | null>(null);
-    const [serviceType, setService]   = useState<string | null>(prefill?.serviceType ?? null);
-    const [styleNotes, setNotes]      = useState<string[]>([]);
-    const [noteInput, setNoteInput]   = useState('');
+    const [length, setLength]         = useState<string | null>('full');
     const [result, setResult]         = useState('');
     const [copied, setCopied]         = useState(false);
 
-    const tagsWrapRef = useRef<HTMLDivElement>(null);
     const topicRef    = useRef<HTMLInputElement>(null);
 
     const canGenerate = topic.trim().length > 0;
@@ -756,12 +620,10 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
         setPhase('loading');
         try {
             const req: GenerateInstagramPostRequest = {
-                topic:       topic.trim(),
-                context:     context.trim() || undefined,
-                postTone:    tone     as GenerateInstagramPostRequest['postTone']    ?? undefined,
-                postLength:  length   as GenerateInstagramPostRequest['postLength']  ?? undefined,
-                serviceType: serviceType as GenerateInstagramPostRequest['serviceType'] ?? undefined,
-                styleNotes:  styleNotes.length > 0 ? styleNotes : undefined,
+                topic:      topic.trim(),
+                context:    context.trim() || undefined,
+                postTone:   tone   as GenerateInstagramPostRequest['postTone']   ?? undefined,
+                postLength: length as GenerateInstagramPostRequest['postLength'] ?? undefined,
             };
             const data = await instagramApi.generatePost(req);
             setResult(data.content);
@@ -769,7 +631,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
         } catch {
             setPhase('form');
         }
-    }, [canGenerate, topic, context, tone, length, serviceType, styleNotes]);
+    }, [canGenerate, topic, context, tone, length]);
 
     const handleCopy = useCallback(async () => {
         try {
@@ -785,28 +647,6 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
         setPhase('form');
         setResult('');
         setTimeout(() => topicRef.current?.focus(), 80);
-    };
-
-    const addNote = useCallback(() => {
-        const note = noteInput.trim();
-        if (note && !styleNotes.includes(note)) {
-            setNotes(prev => [...prev, note]);
-        }
-        setNoteInput('');
-    }, [noteInput, styleNotes]);
-
-    const removeNote = (note: string) => {
-        setNotes(prev => prev.filter(n => n !== note));
-    };
-
-    const handleNoteKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' || e.key === ',') {
-            e.preventDefault();
-            addNote();
-        }
-        if (e.key === 'Backspace' && !noteInput && styleNotes.length > 0) {
-            setNotes(prev => prev.slice(0, -1));
-        }
     };
 
     const handleOverlayClick = (e: React.MouseEvent) => {
@@ -929,55 +769,6 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                     </SegmentedWrap>
                 </FormSection>
 
-                {/* Service type */}
-                <FormSection>
-                    <FieldLabel>Rodzaj usługi</FieldLabel>
-                    <ServiceGrid>
-                        {SERVICE_TYPES.map(s => (
-                            <ServiceCell
-                                key={s.value}
-                                type="button"
-                                $active={serviceType === s.value}
-                                onClick={() => setService(prev => prev === s.value ? null : s.value)}
-                            >
-                                <ServiceIconBox $active={serviceType === s.value}>
-                                    {s.icon}
-                                </ServiceIconBox>
-                                <ServiceLabel $active={serviceType === s.value}>{s.label}</ServiceLabel>
-                            </ServiceCell>
-                        ))}
-                    </ServiceGrid>
-                </FormSection>
-
-                {/* Style notes */}
-                <FormSection>
-                    <FieldLabel>Reguły stylistyczne</FieldLabel>
-                    <TagsWrap
-                        ref={tagsWrapRef}
-                        onClick={() => tagsWrapRef.current?.querySelector('input')?.focus()}
-                    >
-                        {styleNotes.map(note => (
-                            <Tag key={note}>
-                                {note}
-                                <TagRemoveBtn
-                                    type="button"
-                                    onClick={e => { e.stopPropagation(); removeNote(note); }}
-                                    aria-label="Usuń regułę"
-                                >
-                                    <X size={10} strokeWidth={2.5} />
-                                </TagRemoveBtn>
-                            </Tag>
-                        ))}
-                        <TagInput
-                            placeholder={styleNotes.length === 0 ? 'Np. Nie używaj emoji · Enter aby dodać' : 'Dodaj regułę…'}
-                            value={noteInput}
-                            onChange={e => setNoteInput(e.target.value)}
-                            onKeyDown={handleNoteKeyDown}
-                            onBlur={addNote}
-                        />
-                    </TagsWrap>
-                    <HintText>Reguły nadrzędne wobec domyślnego stylu. Rozdziel Enterem lub przecinkiem.</HintText>
-                </FormSection>
             </>
         );
     };

@@ -86,8 +86,6 @@ export interface GenerateInstagramPostRequest {
     context?: string;
     postTone?: 'premium' | 'technical' | 'emotional' | 'casual';
     postLength?: 'short' | 'full';
-    serviceType?: 'ppf' | 'ceramic' | 'detailing' | 'interior' | 'wrap' | 'polish' | 'other';
-    styleNotes?: string[];
 }
 
 export interface InstagramPostResult {

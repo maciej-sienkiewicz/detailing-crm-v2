@@ -363,7 +363,6 @@ const mockReactToPost = async (postId: string, reaction: 'liked' | 'disliked' | 
 
 const mockGeneratePost = async (req: GenerateInstagramPostRequest): Promise<InstagramPostResult> => {
     await delay(2800);
-    const serviceTag = req.serviceType ?? 'detailing';
     const tonePrefix: Record<string, string> = {
         premium: '✨ Ekskluzywna realizacja.',
         technical: '🔬 Technicznie precyzyjnie.',
@@ -372,7 +371,7 @@ const mockGeneratePost = async (req: GenerateInstagramPostRequest): Promise<Inst
     };
     const prefix = req.postTone ? tonePrefix[req.postTone] : '✨';
     return {
-        content: `${prefix}\n\n${req.topic}\n\n${req.context ? req.context + '\n\n' : ''}✅ Profesjonalne podejście\n✅ Najwyższa jakość materiałów\n✅ Gwarancja satysfakcji\n\nZapisz się już teraz — link w bio 👆\n\n#detailing #${serviceTag} #premium #wroclaw #profesjonalizm`,
+        content: `${prefix}\n\n${req.topic}\n\n${req.context ? req.context + '\n\n' : ''}✅ Profesjonalne podejście\n✅ Najwyższa jakość materiałów\n✅ Gwarancja satysfakcji\n\nZapisz się już teraz — link w bio 👆\n\n#detailing #premium #wroclaw #profesjonalizm`,
     };
 };
 
