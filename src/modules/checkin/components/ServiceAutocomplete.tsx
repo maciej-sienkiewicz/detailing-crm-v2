@@ -19,15 +19,14 @@ const StyledInput = styled(Input)`
 
 const DropdownContainer = styled.div`
     position: absolute;
-    top: 100%;
+    top: calc(100% + 4px);
     left: 0;
     right: 0;
-    background: ${props => props.theme.colors.surface};
-    border: 1px solid ${props => props.theme.colors.border};
-    border-top: none;
-    border-radius: 0 0 ${props => props.theme.radii.md} ${props => props.theme.radii.md};
-    box-shadow: ${props => props.theme.shadows.lg};
-    max-height: 300px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.10), 0 1px 4px rgba(15, 23, 42, 0.06);
+    max-height: 240px;
     overflow-y: auto;
     z-index: 1000;
 `;
@@ -36,15 +35,14 @@ const SuggestionItem = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
+    gap: 12px;
+    padding: 8px 12px;
     cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
-    border-bottom: 1px solid ${props => props.theme.colors.border};
+    transition: background ${props => props.theme.transitions.fast};
+    border-bottom: 1px solid #f1f5f9;
 
     &:hover {
-        background-color: ${props => props.theme.colors.surfaceHover};
-        border-left: 3px solid ${props => props.theme.colors.primary};
-        padding-left: calc(${props => props.theme.spacing.lg} - 3px);
+        background-color: #f8fafc;
     }
 
     &:last-child {
@@ -53,49 +51,57 @@ const SuggestionItem = styled.div`
 `;
 
 const ServiceName = styled.div`
-    font-weight: ${props => props.theme.fontWeights.medium};
-    color: ${props => props.theme.colors.text};
+    font-size: 13px;
+    font-weight: 500;
+    color: #0f172a;
     flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 `;
 
 const PriceInfo = styled.div`
     display: flex;
-    gap: ${props => props.theme.spacing.md};
-    font-size: ${props => props.theme.fontSizes.sm};
-    color: ${props => props.theme.colors.textSecondary};
+    gap: 10px;
+    font-size: 12px;
+    color: #64748b;
     font-feature-settings: 'tnum';
+    flex-shrink: 0;
 `;
 
 const PriceLabel = styled.span`
-    font-weight: ${props => props.theme.fontWeights.medium};
+    color: #94a3b8;
 `;
 
 const EmptyState = styled.div`
-    padding: ${props => props.theme.spacing.lg};
+    padding: 12px 14px;
     text-align: center;
     color: ${props => props.theme.colors.textMuted};
-    font-size: ${props => props.theme.fontSizes.sm};
+    font-size: 13px;
 `;
 
 const AddNewButton = styled.div`
     display: flex;
     align-items: center;
-    gap: ${props => props.theme.spacing.sm};
-    padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
+    gap: 7px;
+    padding: 8px 12px;
     cursor: pointer;
-    transition: all ${props => props.theme.transitions.fast};
-    border-top: 1px solid ${props => props.theme.colors.border};
-    background-color: rgba(59, 130, 246, 0.05);
-    color: ${props => props.theme.colors.primary};
-    font-weight: ${props => props.theme.fontWeights.medium};
+    transition: background ${props => props.theme.transitions.fast};
+    border-top: 1px solid #f1f5f9;
+    background-color: #f8faff;
+    color: #2563eb;
+    font-size: 13px;
+    font-weight: 500;
 
     &:hover {
-        background-color: rgba(59, 130, 246, 0.1);
+        background-color: #eff6ff;
     }
 
     svg {
-        width: 20px;
-        height: 20px;
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
     }
 `;
 
