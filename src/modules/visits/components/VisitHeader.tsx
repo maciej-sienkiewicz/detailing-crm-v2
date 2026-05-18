@@ -460,7 +460,7 @@ export const VisitHeader = ({
                                         </PencilBtn>
                                     )}
                                     {vehicleLabel && (
-                                        <> <TitleMutedSep>·</TitleMutedSep> {vehicleLabel}</>
+                                        <> <TitleMutedSep></TitleMutedSep> {vehicleLabel}</>
                                     )}
                                 </VisitTitle>
                             </>
