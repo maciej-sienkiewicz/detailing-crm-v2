@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Archive, Search, ChevronLeft, ChevronRight, Check, Clock } from 'lucide-react';
+import { Archive, Search, ChevronLeft, ChevronRight, Plus, CheckCircle2, Trash2 } from 'lucide-react';
 import styled from 'styled-components';
 import {
   ModalShell,
@@ -11,6 +11,7 @@ import {
   CloseBtn,
 } from '@/common/components/ModalKit';
 import { useTaskArchive } from '../hooks/useTaskArchive';
+import type { ArchivedTask } from '../types';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
@@ -29,7 +30,7 @@ const IconWrap = styled.div`
 
 const SearchRow = styled.div`
   position: relative;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 `;
 
 const SearchIcon = styled.div`
@@ -40,7 +41,7 @@ const SearchIcon = styled.div`
   color: #94a3b8;
   display: flex;
   align-items: center;
-  svg { width: 15px; height: 15px; }
+  svg { width: 14px; height: 14px; }
 `;
 
 const SearchInput = styled.input`
@@ -70,56 +71,72 @@ const ArchiveList = styled.div`
   gap: 8px;
 `;
 
-const ArchiveItem = styled.div`
-  border: 1px solid #f1f5f9;
+const Card = styled.div<{ $done: boolean }>`
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid ${p => p.$done ? '#10b981' : '#cbd5e1'};
   border-radius: 10px;
-  padding: 12px 14px;
+  overflow: hidden;
+  background: #fff;
+`;
+
+const CardTop = styled.div`
+  padding: 12px 14px 10px;
+`;
+
+const CardTitle = styled.div`
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.4;
+  margin-bottom: 3px;
+`;
+
+const CardMeta = styled.div`
+  font-size: 11px;
+  color: #94a3b8;
+`;
+
+const Timeline = styled.div`
+  display: flex;
+  border-top: 1px solid #f1f5f9;
   background: #fafafa;
 `;
 
-const ItemTitle = styled.div<{ $done: boolean }>`
-  font-size: 13px;
-  font-weight: 500;
-  color: ${p => p.$done ? '#94a3b8' : '#0f172a'};
-  text-decoration: ${p => p.$done ? 'line-through' : 'none'};
-  margin-bottom: 4px;
-`;
-
-const ItemMeta = styled.div`
-  font-size: 11px;
-  color: #94a3b8;
-  margin-bottom: 8px;
-`;
-
-const ItemTimestamps = styled.div`
+const TimelineStep = styled.div<{ $active?: boolean; $accent?: string }>`
+  flex: 1;
+  padding: 8px 10px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-direction: column;
+  gap: 2px;
+  position: relative;
+
+  & + & {
+    border-left: 1px solid #f1f5f9;
+  }
 `;
 
-const Stamp = styled.div`
-  display: inline-flex;
+const StepLabel = styled.div<{ $color: string }>`
+  display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
-  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  color: ${p => p.$color};
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 
-  svg { width: 11px; height: 11px; flex-shrink: 0; }
+  svg { width: 10px; height: 10px; flex-shrink: 0; }
 `;
 
-const DoneBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 10px;
-  font-weight: 600;
-  color: #10b981;
-  background: #ecfdf5;
-  border-radius: 5px;
-  padding: 2px 6px;
-  margin-left: 6px;
-  vertical-align: middle;
-  svg { width: 10px; height: 10px; }
+const StepDate = styled.div`
+  font-size: 11px;
+  color: #374151;
+  font-weight: 500;
+`;
+
+const StepUser = styled.div`
+  font-size: 11px;
+  color: #64748b;
 `;
 
 const EmptyState = styled.div`
@@ -134,18 +151,30 @@ const EmptyState = styled.div`
 `;
 
 const SkeletonItem = styled.div`
+  border: 1px solid #f1f5f9;
   border-radius: 10px;
-  padding: 12px 14px;
-  background: #f8fafc;
+  overflow: hidden;
+`;
+
+const SkeletonTop = styled.div`
+  padding: 12px 14px 10px;
   display: flex;
   flex-direction: column;
   gap: 6px;
 `;
 
+const SkeletonBottom = styled.div`
+  border-top: 1px solid #f1f5f9;
+  background: #fafafa;
+  padding: 8px 14px;
+  display: flex;
+  gap: 20px;
+`;
+
 const Skeleton = styled.div<{ $w: string; $h?: string }>`
   width: ${p => p.$w};
-  height: ${p => p.$h ?? '12px'};
-  border-radius: 6px;
+  height: ${p => p.$h ?? '11px'};
+  border-radius: 4px;
   background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
@@ -160,9 +189,9 @@ const Pagination = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 16px;
+  padding-top: 14px;
   border-top: 1px solid #f1f5f9;
-  margin-top: 16px;
+  margin-top: 14px;
 `;
 
 const PaginationInfo = styled.span`
@@ -175,35 +204,82 @@ const PaginationBtns = styled.div`
   gap: 4px;
 `;
 
-const PageBtn = styled.button<{ $disabled?: boolean }>`
+const PageBtn = styled.button`
   width: 30px;
   height: 30px;
   border: 1px solid #e2e8f0;
   border-radius: 7px;
   background: #fff;
-  color: ${p => p.$disabled ? '#cbd5e1' : '#374151'};
-  cursor: ${p => p.$disabled ? 'not-allowed' : 'pointer'};
+  color: #374151;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   transition: background 120ms ease;
 
-  &:hover:not([disabled]) { background: #f8fafc; }
+  &:hover:not(:disabled) { background: #f8fafc; }
+  &:disabled { color: #cbd5e1; cursor: not-allowed; }
   svg { width: 14px; height: 14px; }
 `;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const fmt = (iso: string | null) => {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString('pl-PL', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  });
-};
+const fmtDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-// ─── Component ────────────────────────────────────────────────────────────────
+const fmtTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+
+// ─── Sub-component ────────────────────────────────────────────────────────────
+
+const ArchiveCard = ({ item }: { item: ArchivedTask }) => (
+  <Card $done={item.done}>
+    <CardTop>
+      <CardTitle>{item.title}</CardTitle>
+      {item.meta && <CardMeta>{item.meta}</CardMeta>}
+    </CardTop>
+
+    <Timeline>
+      <TimelineStep>
+        <StepLabel $color="#64748b">
+          <Plus />
+          Dodane
+        </StepLabel>
+        <StepDate>{fmtDate(item.createdAt)}, {fmtTime(item.createdAt)}</StepDate>
+      </TimelineStep>
+
+      {item.done && item.completedAt ? (
+        <TimelineStep>
+          <StepLabel $color="#10b981">
+            <CheckCircle2 />
+            Wykonane
+          </StepLabel>
+          <StepDate>{fmtDate(item.completedAt)}, {fmtTime(item.completedAt)}</StepDate>
+          {item.completedByUserName && <StepUser>{item.completedByUserName}</StepUser>}
+        </TimelineStep>
+      ) : (
+        <TimelineStep>
+          <StepLabel $color="#94a3b8">
+            <CheckCircle2 />
+            Niewykonane
+          </StepLabel>
+        </TimelineStep>
+      )}
+
+      <TimelineStep>
+        <StepLabel $color="#f97316">
+          <Trash2 />
+          Usunięte
+        </StepLabel>
+        <StepDate>{fmtDate(item.deletedAt)}, {fmtTime(item.deletedAt)}</StepDate>
+        <StepUser>{item.deletedByUserName}</StepUser>
+      </TimelineStep>
+    </Timeline>
+  </Card>
+);
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 interface Props {
   isOpen: boolean;
@@ -241,7 +317,7 @@ export const TaskArchiveModal = ({ isOpen, onClose }: Props) => {
         </IconWrap>
         <ModalTitleGroup>
           <ModalTitle>Archiwum zadań</ModalTitle>
-          <ModalSubtitle>Historia usuniętych zadań z datami i autorem usunięcia.</ModalSubtitle>
+          <ModalSubtitle>Historia usuniętych zadań z pełną ścieżką zdarzeń.</ModalSubtitle>
         </ModalTitleGroup>
         <CloseBtn onClick={onClose} aria-label="Zamknij" />
       </ModalHeader>
@@ -260,9 +336,15 @@ export const TaskArchiveModal = ({ isOpen, onClose }: Props) => {
           <ArchiveList>
             {[75, 55, 65].map(w => (
               <SkeletonItem key={w}>
-                <Skeleton $w={`${w}%`} $h="13px" />
-                <Skeleton $w="40%" />
-                <Skeleton $w="60%" />
+                <SkeletonTop>
+                  <Skeleton $w={`${w}%`} $h="13px" />
+                  <Skeleton $w="35%" />
+                </SkeletonTop>
+                <SkeletonBottom>
+                  <Skeleton $w="25%" />
+                  <Skeleton $w="25%" />
+                  <Skeleton $w="25%" />
+                </SkeletonBottom>
               </SkeletonItem>
             ))}
           </ArchiveList>
@@ -273,33 +355,7 @@ export const TaskArchiveModal = ({ isOpen, onClose }: Props) => {
           </EmptyState>
         ) : (
           <ArchiveList>
-            {items.map(item => (
-              <ArchiveItem key={item.id}>
-                <ItemTitle $done={item.done}>
-                  {item.title}
-                  {item.done && (
-                    <DoneBadge><Check />Wykonane</DoneBadge>
-                  )}
-                </ItemTitle>
-                {item.meta && <ItemMeta>{item.meta}</ItemMeta>}
-                <ItemTimestamps>
-                  <Stamp>
-                    <Clock />
-                    Dodano: {fmt(item.createdAt)}
-                  </Stamp>
-                  {item.completedAt && (
-                    <Stamp>
-                      <Check />
-                      Wykonano: {fmt(item.completedAt)}
-                    </Stamp>
-                  )}
-                  <Stamp>
-                    <Archive size={11} />
-                    Usunięto: {fmt(item.deletedAt)} przez {item.deletedByUserName}
-                  </Stamp>
-                </ItemTimestamps>
-              </ArchiveItem>
-            ))}
+            {items.map(item => <ArchiveCard key={item.id} item={item} />)}
           </ArchiveList>
         )}
 
@@ -310,7 +366,6 @@ export const TaskArchiveModal = ({ isOpen, onClose }: Props) => {
             </PaginationInfo>
             <PaginationBtns>
               <PageBtn
-                $disabled={page === 1}
                 disabled={page === 1}
                 onClick={() => setPage(p => p - 1)}
                 aria-label="Poprzednia strona"
@@ -318,7 +373,6 @@ export const TaskArchiveModal = ({ isOpen, onClose }: Props) => {
                 <ChevronLeft />
               </PageBtn>
               <PageBtn
-                $disabled={page >= pagination.totalPages}
                 disabled={page >= pagination.totalPages}
                 onClick={() => setPage(p => p + 1)}
                 aria-label="Następna strona"

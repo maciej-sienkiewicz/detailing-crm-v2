@@ -33,8 +33,9 @@ let mockArchive: ArchivedTask[] = [
     done: true,
     createdAt: '2026-05-01T10:00:00Z',
     completedAt: '2026-05-10T14:30:00Z',
+    completedByUserName: 'Jan Kowalski',
     deletedAt: '2026-05-15T09:12:00Z',
-    deletedByUserName: 'Jan Kowalski',
+    deletedByUserName: 'Anna Nowak',
   },
   {
     id: 'a2',
@@ -43,6 +44,7 @@ let mockArchive: ArchivedTask[] = [
     done: false,
     createdAt: '2026-05-03T08:00:00Z',
     completedAt: null,
+    completedByUserName: null,
     deletedAt: '2026-05-14T11:00:00Z',
     deletedByUserName: 'Anna Nowak',
   },

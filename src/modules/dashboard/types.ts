@@ -211,10 +211,11 @@ export interface UpdateTaskPayload {
 export interface ArchivedTask {
   id: string;
   title: string;
-  meta: string;
+  meta: string | null;
   done: boolean;
   createdAt: string;
   completedAt: string | null;
+  completedByUserName: string | null;
   deletedAt: string;
   deletedByUserName: string;
 }
