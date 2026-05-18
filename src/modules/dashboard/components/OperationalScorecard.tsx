@@ -100,25 +100,43 @@ const ScorecardContainer = styled.div`
   }
 `;
 
-const OverdueBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  background: rgba(220, 38, 38, 0.07);
-  color: ${p => p.theme.colors.error};
-  border: 1px solid rgba(220, 38, 38, 0.15);
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 600;
-
-  svg { width: 10px; height: 10px; }
-`;
-
 const SubLabel = styled.span<{ $variant: CardVariant }>`
   font-size: 11px;
   color: ${p => CARD_CONFIG[p.$variant].accentColor};
   font-weight: 500;
+`;
+
+const OverdueFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+`;
+
+const OverdueLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: ${p => p.theme.colors.error};
+
+  svg { width: 13px; height: 13px; flex-shrink: 0; }
+`;
+
+const OverdueCount = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: rgba(220, 38, 38, 0.1);
+  color: ${p => p.theme.colors.error};
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 `;
 
 // ─── Drawer Overlay ───────────────────────────────────────────────────────────
@@ -475,17 +493,21 @@ const KpiCard = ({
 }: KpiCardProps) => {
   const cfg = CARD_CONFIG[variant];
 
-  const subContent = (
-    <>
-      {typeof overdueBadge === 'number' && overdueBadge > 0 && (
-        <OverdueBadge>
+  const subContent = subLabel
+    ? <SubLabel $variant={variant}>{subLabel}</SubLabel>
+    : undefined;
+
+  const footerContent = typeof overdueBadge === 'number' && overdueBadge > 0
+    ? (
+      <OverdueFooter>
+        <OverdueLeft>
           <AlertTriangle />
-          {t.dashboard.stats.overdue}: {overdueBadge}
-        </OverdueBadge>
-      )}
-      {subLabel && <SubLabel $variant={variant}>{subLabel}</SubLabel>}
-    </>
-  );
+          {t.dashboard.stats.overdue}
+        </OverdueLeft>
+        <OverdueCount>{overdueBadge}</OverdueCount>
+      </OverdueFooter>
+    )
+    : undefined;
 
   return (
     <StatTile
@@ -496,6 +518,7 @@ const KpiCard = ({
       value={value}
       label={label}
       subContent={subContent}
+      footerContent={footerContent}
       onClick={hasDetails ? onToggle : undefined}
       isActive={isActive}
     />

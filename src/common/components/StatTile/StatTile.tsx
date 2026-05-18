@@ -23,6 +23,7 @@ export interface StatTileProps extends StatTileConfig {
   value: React.ReactNode;
   label: string;
   subContent?: React.ReactNode;
+  footerContent?: React.ReactNode;
   tooltip?: string;
   onClick?: () => void;
   isActive?: boolean;
@@ -43,6 +44,7 @@ const TileCard = styled.div<{
   border: 1px solid ${p => p.theme.colors.border};
   border-top: 3px solid ${p => p.$accentColor};
   border-radius: ${p => p.theme.radii.xl};
+  overflow: hidden;
   padding: ${p => p.$compact ? '14px 16px' : '20px 20px 18px'};
   box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.04);
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 150ms ease;
@@ -123,6 +125,15 @@ const TileSubRow = styled.div`
   align-items: center;
   gap: 6px;
   min-height: 18px;
+`;
+
+const TileFooter = styled.div<{ $compact: boolean }>`
+  display: flex;
+  align-items: center;
+  margin: ${p => p.$compact ? '10px -16px -14px' : '14px -20px -18px'};
+  padding: ${p => p.$compact ? '7px 16px' : '9px 20px'};
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  background: rgba(0, 0, 0, 0.018);
 `;
 
 const InfoBtnWrapper = styled.div`
@@ -226,6 +237,7 @@ export const StatTile: React.FC<StatTileProps> = ({
   value,
   label,
   subContent,
+  footerContent,
   tooltip,
   onClick,
   isActive = false,
@@ -261,6 +273,9 @@ export const StatTile: React.FC<StatTileProps> = ({
     <TileValue $compact={compact}>{value}</TileValue>
     <TileLabel $compact={compact}>{label}</TileLabel>
     {subContent !== undefined && <TileSubRow>{subContent}</TileSubRow>}
+    {footerContent !== undefined && (
+      <TileFooter $compact={compact}>{footerContent}</TileFooter>
+    )}
   </TileCard>
 );
 
