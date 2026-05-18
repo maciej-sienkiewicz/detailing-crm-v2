@@ -10,6 +10,7 @@ import { ServiceDelayTable } from '../components/ServiceDelayTable';
 import { useDelayStats } from '../hooks/useDelayStats';
 import type { Granularity } from '../types';
 import { st } from '../components/StatisticsTheme';
+import { PageHeader } from '@/common/components/PageHeader';
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -31,37 +32,6 @@ const ViewContainer = styled.main`
     }
 `;
 
-const PageHeader = styled.header`
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: flex-end;
-    }
-`;
-
-const PageTitleGroup = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-`;
-
-const PageTitle = styled.h1`
-    margin: 0;
-    font-size: 28px;
-    font-weight: 800;
-    color: ${st.text};
-    letter-spacing: -0.5px;
-`;
-
-const PageSubtitle = styled.p`
-    margin: 0;
-    font-size: ${st.fontSm};
-    color: ${st.textMuted};
-`;
 
 const Section = styled.section`
     display: flex;
@@ -297,14 +267,11 @@ export const DelayStatisticsView = () => {
 
     return (
         <ViewContainer>
-            {/* ── Page header ──────────────────────────── */}
-            <PageHeader>
-                <PageTitleGroup>
-                    <PageTitle>Statystyki</PageTitle>
-                    <PageSubtitle>Analiza terminowości realizacji wizyt</PageSubtitle>
-                </PageTitleGroup>
-                <StatsNav />
-            </PageHeader>
+            <PageHeader
+                title="Statystyki"
+                subtitle="Analiza terminowości realizacji wizyt"
+                actions={<StatsNav />}
+            />
 
             {/* ── Filters ──────────────────────────────── */}
             <Section>
