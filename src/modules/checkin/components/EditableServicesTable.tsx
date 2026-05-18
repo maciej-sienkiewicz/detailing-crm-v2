@@ -335,33 +335,38 @@ const DiscountTypeMenuItem = styled.button<{ $selected?: boolean }>`
 `;
 
 const NoteEditRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 4px;
+    position: relative;
     margin-top: 4px;
 `;
 const NoteInput = styled(Input)`
-    flex: 1;
-    min-width: 0;
+    width: 100%;
     box-sizing: border-box;
     font-size: ${props => props.theme.fontSizes.sm};
+    padding-right: 36px;
 `;
 const NoteConfirmBtn = styled.button`
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
-    width: 26px;
-    height: 26px;
+    width: 22px;
+    height: 22px;
     padding: 0;
     border: none;
-    border-radius: 6px;
-    background: #dcfce7;
-    color: #16a34a;
+    border-radius: 5px;
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: #fff;
     cursor: pointer;
-    transition: background 150ms ease;
-    &:hover { background: #bbf7d0; }
-    svg { width: 14px; height: 14px; }
+    box-shadow: 0 1px 4px rgba(22, 163, 74, 0.35);
+    transition: box-shadow 150ms ease, transform 150ms ease;
+    &:hover {
+        box-shadow: 0 2px 8px rgba(22, 163, 74, 0.50);
+        transform: translateY(-50%) scale(1.08);
+    }
+    svg { width: 11px; height: 11px; stroke-width: 3; }
 `;
 const NoteDisplay = styled.div`
     margin-top: 4px; padding: 3px 6px; background: ${props => props.theme.colors.surfaceAlt};
