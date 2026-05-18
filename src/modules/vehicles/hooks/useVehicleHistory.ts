@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { vehicleApi } from '../api/vehicleApi';
-import type { VehicleVisit, VehicleAppointment } from '../types';
+import type { AppointmentResponse, VisitResponse } from '@/modules/calendar/types';
 
 export interface VehicleHistoryEvent {
     id: string;
@@ -13,57 +13,44 @@ export interface VehicleHistoryEvent {
     currency: string;
 }
 
-function mapVisit(v: VehicleVisit): VehicleHistoryEvent {
+function mapAppointment(a: AppointmentResponse): VehicleHistoryEvent {
     return {
-        id: v.id,
-        type: 'VISIT',
-        date: v.date,
-        title: v.description || 'Wizyta',
-        customerName: v.customerName,
-        status: v.status,
-        grossAmount: v.totalCost.grossAmount,
+        id: a.id,
+        type: 'APPOINTMENT',
+        date: a.schedule.startDateTime,
+        title: a.appointmentTitle || a.services.map(s => s.serviceName).join(', ') || 'Rezerwacja',
+        customerName: `${a.customer.firstName} ${a.customer.lastName}`,
+        status: a.status,
+        grossAmount: (a.totalGross ?? 0) / 100,
         currency: 'PLN',
     };
 }
 
-function mapAppointment(a: VehicleAppointment): VehicleHistoryEvent {
+function mapVisit(v: VisitResponse): VehicleHistoryEvent {
     return {
-        id: a.id,
-        type: 'APPOINTMENT',
-        date: a.startDateTime,
-        title: a.title || 'Rezerwacja',
-        customerName: a.customerName,
-        status: a.status,
-        grossAmount: a.totalCost.grossAmount,
+        id: v.id,
+        type: 'VISIT',
+        date: v.scheduledDate,
+        title: v.title || v.visitNumber,
+        customerName: `${v.customer.firstName} ${v.customer.lastName}`,
+        status: v.status,
+        grossAmount: (v.totalGross ?? 0) / 100,
         currency: 'PLN',
     };
 }
 
 export const useVehicleHistory = (vehicleId: string) => {
-    const { data: visitsData, isLoading: visitsLoading, isError: visitsError } = useQuery({
-        queryKey: ['vehicle', vehicleId, 'visits'],
-        queryFn: () => vehicleApi.getVisits(vehicleId),
+    const { data, isLoading, isError } = useQuery({
+        queryKey: ['vehicle', vehicleId, 'history-events'],
+        queryFn: () => vehicleApi.getCalendarEvents(vehicleId),
         enabled: !!vehicleId,
         staleTime: 60_000,
     });
 
-    const { data: appointmentsData, isLoading: appointmentsLoading, isError: appointmentsError } = useQuery({
-        queryKey: ['vehicle', vehicleId, 'appointments'],
-        queryFn: () => vehicleApi.getAppointments(vehicleId),
-        enabled: !!vehicleId,
-        staleTime: 60_000,
-    });
+    const events: VehicleHistoryEvent[] = [
+        ...(data?.appointments ?? []).map(mapAppointment),
+        ...(data?.visits ?? []).map(mapVisit),
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    const visits = (visitsData?.visits ?? []).map(mapVisit);
-    const appointments = (appointmentsData?.appointments ?? []).map(mapAppointment);
-
-    const events: VehicleHistoryEvent[] = [...visits, ...appointments].sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-
-    return {
-        events,
-        isLoading: visitsLoading || appointmentsLoading,
-        isError: visitsError || appointmentsError,
-    };
+    return { events, isLoading, isError };
 };
