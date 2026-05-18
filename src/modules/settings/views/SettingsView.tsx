@@ -9,6 +9,7 @@ import { AutomationSettings } from '@/modules/sms-campaigns/components/Automatio
 import { EmailAutomationSettings } from '@/modules/email-campaigns/components/EmailAutomationSettings';
 import { SmsCreditSection } from '../components/SmsCreditSection';
 import { InvoicesSection } from '../components/InvoicesSection';
+import { PageHeader } from '@/common/components/PageHeader';
 
 // ─── Nav definition ──────────────────────────────────────────────────────────
 
@@ -90,44 +91,13 @@ const NAV_GROUPS: NavGroup[] = [
 // ─── Styled components ───────────────────────────────────────────────────────
 
 const Page = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
     padding: 22px 28px 40px;
     max-width: 1400px;
     margin: 0 auto;
     width: 100%;
-`;
-
-const PageHead = styled.header`
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: 22px;
-    margin-bottom: 22px;
-    flex-wrap: wrap;
-`;
-
-const PageTitle = styled.h1`
-    font-size: 26px;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-    margin: 6px 0 4px;
-    line-height: 1.1;
-    color: ${props => props.theme.colors.text};
-`;
-
-const PageSub = styled.p`
-    font-size: 13px;
-    color: #475569;
-    margin: 0;
-`;
-
-const Crumb = styled.div`
-    font-size: 12px;
-    color: #94a3b8;
-    margin-bottom: 2px;
-
-    a { color: #64748b; text-decoration: none; &:hover { color: #0f172a; } }
-    .sep { margin: 0 4px; }
-    .cur { color: #0f172a; font-weight: 500; }
 `;
 
 const GridMain = styled.div`
@@ -290,17 +260,10 @@ export function SettingsView() {
 
     return (
         <Page>
-            <PageHead>
-                <div>
-                    <Crumb>
-                        <a href="#">AutoCRM</a>
-                        <span className="sep">›</span>
-                        <span className="cur">Ustawienia</span>
-                    </Crumb>
-                    <PageTitle>Ustawienia</PageTitle>
-                    <PageSub>Konfiguracja studia, automatyzacji i konta.</PageSub>
-                </div>
-            </PageHead>
+            <PageHeader
+                title="Ustawienia"
+                subtitle="Konfiguracja studia, automatyzacji i konta."
+            />
 
             <GridMain>
                 <Nav>

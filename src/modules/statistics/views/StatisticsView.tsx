@@ -13,6 +13,7 @@ import { useCategories, useDeleteCategory, useAssignService, useUnassignService 
 import { useBreakdown, useCategoryStats } from '../hooks/useStats';
 import type { Category, Granularity } from '../types';
 import { st } from '../components/StatisticsTheme';
+import { PageHeader } from '@/common/components/PageHeader';
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
 
@@ -34,37 +35,6 @@ const ViewContainer = styled.main`
     }
 `;
 
-const PageHeader = styled.header`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: flex-end;
-    }
-`;
-
-const PageTitleGroup = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-`;
-
-const PageTitle = styled.h1`
-    margin: 0;
-    font-size: 28px;
-    font-weight: 800;
-    color: ${st.text};
-    letter-spacing: -0.5px;
-`;
-
-const PageSubtitle = styled.p`
-    margin: 0;
-    font-size: ${st.fontSm};
-    color: ${st.textMuted};
-`;
 
 const Section = styled.section`
     display: flex;
@@ -474,14 +444,11 @@ export const StatisticsView = () => {
 
     return (
         <ViewContainer>
-            {/* ── Page header ──────────────────────────────── */}
-            <PageHeader>
-                <PageTitleGroup>
-                    <PageTitle>{t.statistics.title}</PageTitle>
-                    <PageSubtitle>Analiza przychodów i struktury usług</PageSubtitle>
-                </PageTitleGroup>
-                <StatsNav />
-            </PageHeader>
+            <PageHeader
+                title={t.statistics.title}
+                subtitle="Analiza przychodów i struktury usług"
+                actions={<StatsNav />}
+            />
 
             {/* ── Filters ──────────────────────────────────── */}
             <Section>
