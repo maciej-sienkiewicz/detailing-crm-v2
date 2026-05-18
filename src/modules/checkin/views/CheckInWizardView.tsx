@@ -342,6 +342,8 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
     const { errors, isStepValid } = useCheckInValidation(formData, currentStep);
     const { showSuccess } = useToast();
 
+    const [showValidationErrors, setShowValidationErrors] = useState(false);
+
     const [signingModalState, setSigningModalState] = useState<{
         isOpen: boolean;
         isCreating: boolean;
@@ -357,11 +359,19 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
     });
 
     const handleNext = () => {
-        if (isStepValid) nextStep();
+        if (!isStepValid) {
+            setShowValidationErrors(true);
+            return;
+        }
+        setShowValidationErrors(false);
+        nextStep();
     };
 
     const handleSubmit = async () => {
-        if (!isStepValid) return;
+        if (!isStepValid) {
+            setShowValidationErrors(true);
+            return;
+        }
 
         setSigningModalState({ isOpen: true, isCreating: true, visitId: null, visitNumber: null, protocols: [] });
 
@@ -402,8 +412,8 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
 
     const isFirstStep = currentStep === 'verification';
     const isLastStep = currentStep === 'photos';
-    const canProceed = isStepValid;
-    const hasErrors = !canProceed && Object.keys(errors).length > 0;
+    const visibleErrors = showValidationErrors ? errors : {};
+    const hasErrors = showValidationErrors && Object.keys(errors).length > 0;
 
     const getStepState = (stepId: string): 'done' | 'active' | 'pending' => {
         if (completedSteps.includes(stepId)) return 'done';
@@ -447,7 +457,7 @@ export const CheckInWizardView = ({ reservationId, initialData, colors, onComple
                         {currentStep === 'verification' && (
                             <VerificationStep
                                 formData={formData}
-                                errors={errors}
+                                errors={visibleErrors}
                                 onChange={updateFormData}
                                 onServicesChange={handleServicesChange}
                                 colors={colors}
