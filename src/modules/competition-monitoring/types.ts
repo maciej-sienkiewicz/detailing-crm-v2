@@ -86,6 +86,7 @@ export interface GenerateInstagramPostRequest {
     context?: string;
     postTone?: 'premium' | 'technical' | 'emotional' | 'casual';
     postLength?: 'short' | 'full';
+    styleNotes?: string[];
 }
 
 export interface InstagramPostResult {

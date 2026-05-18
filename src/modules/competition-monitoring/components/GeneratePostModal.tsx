@@ -349,6 +349,77 @@ const SegmentMeta = styled.span<{ $active: boolean }>`
   transition: color 180ms;
 `;
 
+// ─── Style notes (tag input) ───────────────────────────────────────────────────
+
+const TagsWrap = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 10px;
+  min-height: 44px;
+  background: #fff;
+  cursor: text;
+  align-items: flex-start;
+  transition: border-color 150ms, box-shadow 150ms;
+
+  &:focus-within {
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  }
+`;
+
+const Tag = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 10px;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #2563EB;
+  line-height: 1.4;
+`;
+
+const TagRemoveBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #93C5FD;
+  padding: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: color 120ms;
+
+  &:hover {
+    color: #EF4444;
+  }
+`;
+
+const TagInput = styled.input`
+  border: none;
+  outline: none;
+  font-size: 12px;
+  font-family: inherit;
+  color: #0F172A;
+  background: transparent;
+  flex: 1;
+  min-width: 140px;
+  padding: 3px 4px;
+
+  &::placeholder {
+    color: #CBD5E1;
+  }
+`;
+
 // ─── Loading ───────────────────────────────────────────────────────────────────
 
 const LoadingWrap = styled.div`
@@ -593,9 +664,12 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
     const [context, setContext]       = useState(prefill?.context  ?? '');
     const [tone, setTone]             = useState<string | null>(null);
     const [length, setLength]         = useState<string | null>('full');
+    const [styleNotes, setNotes]      = useState<string[]>([]);
+    const [noteInput, setNoteInput]   = useState('');
     const [result, setResult]         = useState('');
     const [copied, setCopied]         = useState(false);
 
+    const tagsWrapRef = useRef<HTMLDivElement>(null);
     const topicRef    = useRef<HTMLInputElement>(null);
 
     const canGenerate = topic.trim().length > 0;
@@ -624,6 +698,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                 context:    context.trim() || undefined,
                 postTone:   tone   as GenerateInstagramPostRequest['postTone']   ?? undefined,
                 postLength: length as GenerateInstagramPostRequest['postLength'] ?? undefined,
+                styleNotes: styleNotes.length > 0 ? styleNotes : undefined,
             };
             const data = await instagramApi.generatePost(req);
             setResult(data.content);
@@ -631,7 +706,7 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
         } catch {
             setPhase('form');
         }
-    }, [canGenerate, topic, context, tone, length]);
+    }, [canGenerate, topic, context, tone, length, styleNotes]);
 
     const handleCopy = useCallback(async () => {
         try {
@@ -647,6 +722,28 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
         setPhase('form');
         setResult('');
         setTimeout(() => topicRef.current?.focus(), 80);
+    };
+
+    const addNote = useCallback(() => {
+        const note = noteInput.trim();
+        if (note && !styleNotes.includes(note)) {
+            setNotes(prev => [...prev, note]);
+        }
+        setNoteInput('');
+    }, [noteInput, styleNotes]);
+
+    const removeNote = (note: string) => {
+        setNotes(prev => prev.filter(n => n !== note));
+    };
+
+    const handleNoteKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addNote();
+        }
+        if (e.key === 'Backspace' && !noteInput && styleNotes.length > 0) {
+            setNotes(prev => prev.slice(0, -1));
+        }
     };
 
     const handleOverlayClick = (e: React.MouseEvent) => {
@@ -767,6 +864,36 @@ export const GeneratePostModal: React.FC<Props> = ({ onClose, prefill }) => {
                             </SegmentBtn>
                         ))}
                     </SegmentedWrap>
+                </FormSection>
+
+                {/* Style notes */}
+                <FormSection>
+                    <FieldLabel>Reguły stylistyczne</FieldLabel>
+                    <TagsWrap
+                        ref={tagsWrapRef}
+                        onClick={() => tagsWrapRef.current?.querySelector('input')?.focus()}
+                    >
+                        {styleNotes.map(note => (
+                            <Tag key={note}>
+                                {note}
+                                <TagRemoveBtn
+                                    type="button"
+                                    onClick={e => { e.stopPropagation(); removeNote(note); }}
+                                    aria-label="Usuń regułę"
+                                >
+                                    <X size={10} strokeWidth={2.5} />
+                                </TagRemoveBtn>
+                            </Tag>
+                        ))}
+                        <TagInput
+                            placeholder={styleNotes.length === 0 ? 'Np. Nie używaj emoji · Enter aby dodać' : 'Dodaj regułę…'}
+                            value={noteInput}
+                            onChange={e => setNoteInput(e.target.value)}
+                            onKeyDown={handleNoteKeyDown}
+                            onBlur={addNote}
+                        />
+                    </TagsWrap>
+                    <HintText>Reguły nadrzędne wobec domyślnego stylu. Rozdziel Enterem lub przecinkiem.</HintText>
                 </FormSection>
 
             </>
