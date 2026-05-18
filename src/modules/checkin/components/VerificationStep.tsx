@@ -355,10 +355,10 @@ const ColorTrigger = styled.button`
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 9px 12px;
-    border: 1px solid ${st.border};
-    border-radius: 8px;
-    background: #F8FAFC;
+    padding: 11px 16px;
+    border: 1.5px solid ${st.border};
+    border-radius: 12px;
+    background: #ffffff;
     cursor: pointer;
     transition: all ${st.transition};
     font-size: 14px;
@@ -367,14 +367,14 @@ const ColorTrigger = styled.button`
 
     &:hover {
         border-color: ${st.borderHover};
-        background: #FFFFFF;
+        background: #FAFBFC;
     }
 
     &:focus {
         outline: none;
         border-color: ${st.accentBlue};
         box-shadow: ${st.shadowBlue};
-        background: #FFFFFF;
+        background: #ffffff;
     }
 `;
 
