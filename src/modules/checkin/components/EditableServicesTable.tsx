@@ -79,7 +79,7 @@ const DragHandle = styled.div`
 
     &:active { cursor: grabbing; }
 
-    ${Tr}:hover & { color: #94a3b8; }
+    tr:hover & { color: #94a3b8; }
 
     svg { width: 16px; height: 16px; flex-shrink: 0; }
 
