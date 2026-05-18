@@ -13,7 +13,6 @@ export interface PageHeaderProps {
 
 const HeroCard = styled.div`
   position: relative;
-  overflow: hidden;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 65%, #0c1f35 100%);
   border-radius: ${(p) => p.theme.radii.xl};
   padding: 28px 32px;
