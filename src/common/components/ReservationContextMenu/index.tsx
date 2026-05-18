@@ -1,11 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
-const Menu = styled.div<{ $x: number; $y: number }>`
+const Menu = styled.div<{ $x: number; $y: number; $visible: boolean }>`
   position: fixed;
   top: ${p => p.$y}px;
   left: ${p => p.$x}px;
@@ -16,6 +16,7 @@ const Menu = styled.div<{ $x: number; $y: number }>`
   box-shadow: 0 4px 16px rgba(15,23,42,0.12), 0 1px 4px rgba(15,23,42,0.08);
   min-width: 160px;
   padding: 4px 0;
+  visibility: ${p => p.$visible ? 'visible' : 'hidden'};
 `;
 
 const MenuItem = styled.button`
@@ -57,6 +58,7 @@ export interface ReservationContextMenuProps {
 export const ReservationContextMenu = ({ appointmentId, x, y, onClose }: ReservationContextMenuProps) => {
   const navigate = useNavigate();
   const menuRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ x, y, visible: false });
 
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
@@ -75,7 +77,13 @@ export const ReservationContextMenu = ({ appointmentId, x, y, onClose }: Reserva
     };
   }, [onClose]);
 
-  const safeX = Math.min(x, window.innerWidth - 168);
+  useEffect(() => {
+    if (!menuRef.current) return;
+    const { offsetWidth, offsetHeight } = menuRef.current;
+    const safeX = Math.min(x, window.innerWidth - offsetWidth - 4);
+    const safeY = y + offsetHeight > window.innerHeight ? y - offsetHeight : y;
+    setPos({ x: safeX, y: safeY, visible: true });
+  }, [x, y]);
 
   const handleEdit = () => {
     onClose();
@@ -88,7 +96,7 @@ export const ReservationContextMenu = ({ appointmentId, x, y, onClose }: Reserva
   };
 
   return createPortal(
-    <Menu ref={menuRef} $x={safeX} $y={y} onMouseDown={e => e.stopPropagation()}>
+    <Menu ref={menuRef} $x={pos.x} $y={pos.y} $visible={pos.visible} onMouseDown={e => e.stopPropagation()}>
       <MenuItem onClick={handleEdit}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
