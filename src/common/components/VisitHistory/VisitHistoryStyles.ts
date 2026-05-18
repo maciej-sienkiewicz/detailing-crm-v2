@@ -1,5 +1,4 @@
 // src/common/components/VisitHistory/VisitHistoryStyles.ts
-// Shared styled components used by CustomerVisitHistory and VehicleVisitHistory.
 
 import styled from 'styled-components';
 

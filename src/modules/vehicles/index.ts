@@ -25,7 +25,6 @@ export { VehiclePagination } from './components/VehiclePagination';
 export { VehicleHeader } from './components/VehicleHeader';
 export { VehicleOwnerManager } from './components/VehicleOwnerManager';
 export { VehicleActivityTimeline } from './components/VehicleActivityTimeline';
-export { VehicleVisitHistory } from './components/VehicleVisitHistory';
 export { VehiclePhotoGallery } from './components/VehiclePhotoGallery';
 export { EditVehicleModal } from './components/EditVehicleModal';
 export { EditOwnersModal } from './components/EditOwnersModal';
