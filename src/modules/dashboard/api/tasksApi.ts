@@ -19,11 +19,34 @@
  */
 
 import { apiClient } from '@/core';
-import type { DashboardTask, CreateTaskPayload, UpdateTaskPayload } from '../types';
+import type { DashboardTask, CreateTaskPayload, UpdateTaskPayload, ArchivedTask, TaskArchivePage } from '../types';
 
 const USE_MOCKS = false;
 
 // ─── In-memory store ──────────────────────────────────────────────────────────
+
+let mockArchive: ArchivedTask[] = [
+  {
+    id: 'a1',
+    title: 'Zamówić folię PPF',
+    meta: 'Dostawca: XYZ',
+    done: true,
+    createdAt: '2026-05-01T10:00:00Z',
+    completedAt: '2026-05-10T14:30:00Z',
+    deletedAt: '2026-05-15T09:12:00Z',
+    deletedByUserName: 'Jan Kowalski',
+  },
+  {
+    id: 'a2',
+    title: 'Kupić nowe gąbki polerskie',
+    meta: 'Magazyn · pilne',
+    done: false,
+    createdAt: '2026-05-03T08:00:00Z',
+    completedAt: null,
+    deletedAt: '2026-05-14T11:00:00Z',
+    deletedByUserName: 'Anna Nowak',
+  },
+];
 
 let mockTasks: DashboardTask[] = [
   { id: 't1', title: 'Wystaw fakturę dla J. Kowalski', meta: 'Wczoraj · 1 850,00 zł', done: true, createdAt: new Date().toISOString() },
@@ -87,5 +110,31 @@ export const tasksApi = {
       return;
     }
     await apiClient.delete(`/v1/tasks/${id}`);
+  },
+};
+
+// ─── Archive API ──────────────────────────────────────────────────────────────
+
+export const taskArchiveApi = {
+  list: async (params: { page: number; size: number; search?: string }): Promise<TaskArchivePage> => {
+    if (USE_MOCKS) {
+      await delay();
+      const filtered = params.search
+        ? mockArchive.filter(a => a.title.toLowerCase().includes(params.search!.toLowerCase()))
+        : mockArchive;
+      const total = filtered.length;
+      const start = (params.page - 1) * params.size;
+      return {
+        items: filtered.slice(start, start + params.size),
+        pagination: {
+          total,
+          page: params.page,
+          pageSize: params.size,
+          totalPages: Math.max(1, Math.ceil(total / params.size)),
+        },
+      };
+    }
+    const response = await apiClient.get('/v1/tasks/archive', { params });
+    return response.data;
   },
 };

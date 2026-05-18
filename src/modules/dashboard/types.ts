@@ -206,6 +206,30 @@ export interface UpdateTaskPayload {
 }
 
 /**
+ * Archived task entry returned by GET /api/v1/tasks/archive
+ */
+export interface ArchivedTask {
+  id: string;
+  title: string;
+  meta: string;
+  done: boolean;
+  createdAt: string;
+  completedAt: string | null;
+  deletedAt: string;
+  deletedByUserName: string;
+}
+
+export interface TaskArchivePage {
+  items: ArchivedTask[];
+  pagination: {
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
+}
+
+/**
  * Complete dashboard data response
  */
 export interface DashboardData {

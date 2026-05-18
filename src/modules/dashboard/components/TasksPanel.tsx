@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { Check, Pencil, Trash2, Plus, ClipboardList } from 'lucide-react';
+import { Check, Pencil, Trash2, Plus, ClipboardList, Archive } from 'lucide-react';
 import { useTasks } from '../hooks/useTasks';
 import { TaskModal } from './TaskModal';
+import { TaskArchiveModal } from './TaskArchiveModal';
 import type { DashboardTask, CreateTaskPayload } from '../types';
 
 // ─── Styled components ────────────────────────────────────────────────────────
@@ -29,6 +30,35 @@ const PanelTitle = styled.h3`
   margin: 0;
   letter-spacing: -0.1px;
   color: ${p => p.theme.colors.text};
+`;
+
+const HeadActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+const ArchiveButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+
+  &:hover {
+    background: #e2e8f0;
+    color: #374151;
+  }
+
+  svg { width: 13px; height: 13px; stroke-width: 2; }
 `;
 
 const AddButton = styled.button`
@@ -197,6 +227,7 @@ const Skeleton = styled.div<{ $w: string; $h?: string }>`
 export const TasksPanel = () => {
   const { tasks, isLoading, createTask, updateTask, deleteTask, isDeleting } = useTasks();
   const [modalOpen, setModalOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<DashboardTask | null>(null);
 
   const openCreate = () => {
@@ -226,10 +257,16 @@ export const TasksPanel = () => {
       <Panel>
         <PanelHead>
           <PanelTitle>Do zrobienia</PanelTitle>
-          <AddButton onClick={openCreate}>
-            <Plus />
-            Dodaj
-          </AddButton>
+          <HeadActions>
+            <ArchiveButton onClick={() => setArchiveOpen(true)}>
+              <Archive />
+              Archiwum
+            </ArchiveButton>
+            <AddButton onClick={openCreate}>
+              <Plus />
+              Dodaj
+            </AddButton>
+          </HeadActions>
         </PanelHead>
 
         {isLoading ? (
@@ -289,6 +326,11 @@ export const TasksPanel = () => {
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
         editingTask={editingTask}
+      />
+
+      <TaskArchiveModal
+        isOpen={archiveOpen}
+        onClose={() => setArchiveOpen(false)}
       />
     </>
   );
