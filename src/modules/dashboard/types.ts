@@ -214,6 +214,7 @@ export interface ArchivedTask {
   meta: string | null;
   done: boolean;
   createdAt: string;
+  createdByUserName: string;
   completedAt: string | null;
   completedByUserName: string | null;
   deletedAt: string;

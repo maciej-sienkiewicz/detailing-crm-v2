@@ -247,6 +247,7 @@ const ArchiveCard = ({ item }: { item: ArchivedTask }) => (
           Dodane
         </StepLabel>
         <StepDate>{fmtDate(item.createdAt)}, {fmtTime(item.createdAt)}</StepDate>
+        <StepUser>{item.createdByUserName}</StepUser>
       </TimelineStep>
 
       {item.done && item.completedAt ? (
