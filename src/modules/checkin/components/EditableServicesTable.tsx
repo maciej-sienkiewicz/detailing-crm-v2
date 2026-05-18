@@ -13,6 +13,7 @@ import type { ServiceLineItem, AdjustmentType } from '../types';
 import type { Service } from '@/modules/services/types';
 
 const TableContainer = styled.div`
+    margin-top: 12px;
     background-color: ${props => props.theme.colors.surface};
     border-radius: ${props => props.theme.radii.lg};
     overflow: hidden;
@@ -21,6 +22,7 @@ const TableContainer = styled.div`
     @media (max-width: ${props => props.theme.breakpoints.md}) {
         border: none;
         background: transparent;
+        margin-top: 8px;
     }
 `;
 
@@ -34,8 +36,8 @@ const Table = styled.table`
 `;
 
 const Thead = styled.thead`
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-    color: white;
+    background: #f8fafc;
+    border-bottom: 1.5px solid ${props => props.theme.colors.border};
 
     @media (max-width: ${props => props.theme.breakpoints.md}) {
         display: none;
@@ -43,23 +45,21 @@ const Thead = styled.thead`
 `;
 
 const Th = styled.th`
-    padding: ${props => props.theme.spacing.md};
+    padding: 8px 14px;
     text-align: left;
-    font-size: ${props => props.theme.fontSizes.sm};
-    font-weight: ${props => props.theme.fontWeights.semibold};
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
     white-space: nowrap;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.lg};
-        font-size: ${props => props.theme.fontSizes.xs};
-
         &:nth-child(1) { width: auto; }
-        &:nth-child(2) { width: 160px; }
-        &:nth-child(3) { width: 220px; }
-        &:nth-child(4) { width: 180px; }
-        &:nth-child(5) { width: 80px; text-align: center; }
+        &:nth-child(2) { width: 140px; }
+        &:nth-child(3) { width: 200px; }
+        &:nth-child(4) { width: 160px; }
+        &:nth-child(5) { width: 48px; text-align: center; }
     }
 `;
 
@@ -92,12 +92,9 @@ const Tr = styled.tr`
 `;
 
 const Td = styled.td<{ 'data-label'?: string }>`
-    padding: ${props => props.theme.spacing.md};
+    padding: 10px 14px;
     font-size: ${props => props.theme.fontSizes.sm};
-
-    @media (min-width: ${props => props.theme.breakpoints.md}) {
-        padding: ${props => props.theme.spacing.lg};
-    }
+    vertical-align: top;
 
     @media (max-width: ${props => props.theme.breakpoints.md}) {
         display: block;
@@ -137,8 +134,9 @@ const TotalLabel = styled(Td)`
     font-size: ${props => props.theme.fontSizes.xs};
     color: ${props => props.theme.colors.textSecondary};
     text-transform: uppercase;
-    letter-spacing: 1px;
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.lg};
+    letter-spacing: 0.6px;
+    padding: 8px 14px;
+    vertical-align: middle;
 
     @media (max-width: ${props => props.theme.breakpoints.md}) {
         display: block;
@@ -147,7 +145,8 @@ const TotalLabel = styled(Td)`
 `;
 
 const TotalValue = styled(Td)`
-    padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.lg};
+    padding: 8px 14px;
+    vertical-align: middle;
 
     @media (max-width: ${props => props.theme.breakpoints.md}) {
         display: block;
@@ -182,16 +181,17 @@ const PriceGroup = styled.div`
 const TotalItem = styled.div`
     display: flex;
     align-items: baseline;
-    gap: 6px;
+    gap: 5px;
 
     span:first-child {
-        font-size: ${props => props.theme.fontSizes.xs};
+        font-size: 11px;
         color: ${props => props.theme.colors.textMuted};
         text-transform: uppercase;
+        letter-spacing: 0.4px;
     }
 
     span:last-child {
-        font-size: ${props => props.theme.fontSizes.md};
+        font-size: ${props => props.theme.fontSizes.sm};
         color: ${props => props.theme.colors.text};
         font-weight: 700;
         font-feature-settings: 'tnum';
@@ -199,39 +199,36 @@ const TotalItem = styled.div`
 
     &.primary span:last-child {
         color: ${props => props.theme.colors.primary};
-        font-size: ${props => props.theme.fontSizes.lg};
+        font-size: ${props => props.theme.fontSizes.md};
     }
 `;
 
 const DiscountButton = styled.button`
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    background: #f59e0b; /* Zachowany kolor bazowy */
-    color: white;
-    border: none;
+    gap: 5px;
+    padding: 5px 12px;
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fcd34d;
     border-radius: ${props => props.theme.radii.md};
-    font-size: ${props => props.theme.fontSizes.xs};
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
+    white-space: nowrap;
 
     svg {
-        width: 14px;
-        height: 14px;
+        width: 12px;
+        height: 12px;
+        flex-shrink: 0;
     }
 
     &:hover:not(:disabled) {
-        background: #d97706;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-
-    &:active:not(:disabled) {
-        transform: translateY(0);
+        background: #fef3c7;
+        border-color: #f59e0b;
     }
 
     &:disabled {
@@ -242,7 +239,6 @@ const DiscountButton = styled.button`
     @media (max-width: ${props => props.theme.breakpoints.md}) {
         width: 100%;
         justify-content: center;
-        padding: ${props => props.theme.spacing.sm};
     }
 `;
 
@@ -256,7 +252,7 @@ const ServiceName = styled.div`
 const PriceCell = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
 `;
 
 const PriceLabel = styled.span`
@@ -266,9 +262,10 @@ const PriceLabel = styled.span`
 `;
 
 const PriceValue = styled.div<{ $highlight?: boolean }>`
-    font-size: ${props => props.theme.fontSizes.md};
+    font-size: ${props => props.theme.fontSizes.sm};
     font-weight: ${props => props.theme.fontWeights.semibold};
     color: ${props => props.$highlight ? props.theme.colors.primary : props.theme.colors.text};
+    font-feature-settings: 'tnum';
 `;
 
 const PriceInput = styled(Input)`
@@ -280,38 +277,41 @@ const PriceInput = styled(Input)`
 const DiscountCell = styled.div`
     display: flex;
     flex-direction: column;
-    gap: ${props => props.theme.spacing.sm};
+    gap: 4px;
 `;
 
 const DiscountInputWrapper = styled.div`
     display: flex;
     align-items: center;
     background: white;
-    border: 2px solid ${props => props.theme.colors.border};
+    border: 1px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.md};
     width: 100%;
 `;
 
 const DiscountInput = styled.input`
     width: 100%;
-    padding: ${props => props.theme.spacing.sm};
+    padding: 5px 6px;
     border: none;
+    font-size: 13px;
     text-align: right;
     font-feature-settings: 'tnum';
+    background: transparent;
     &:focus { outline: none; }
 `;
 
 const DiscountSuffix = styled.span`
-    padding-right: ${props => props.theme.spacing.md};
-    font-size: ${props => props.theme.fontSizes.sm};
+    padding-right: 8px;
+    font-size: 12px;
     color: ${props => props.theme.colors.textMuted};
 `;
 
 const DiscountTypeDropdownContainer = styled.div` position: relative; width: 100%; `;
 const DiscountTypeTrigger = styled.button`
-    width: 100%; display: flex; align-items: center; gap: 8px; padding: 8px;
-    border: 2px solid ${props => props.theme.colors.border}; border-radius: ${props => props.theme.radii.md};
-    background: white; cursor: pointer; font-size: ${props => props.theme.fontSizes.sm};
+    width: 100%; display: flex; align-items: center; gap: 6px; padding: 5px 8px;
+    border: 1px solid ${props => props.theme.colors.border}; border-radius: ${props => props.theme.radii.md};
+    background: #f8fafc; cursor: pointer; font-size: 12px; color: #374151;
+    &:hover { background: white; border-color: #cbd5e1; }
 `;
 const DiscountTypeMenu = styled.div<{ $top: number; $left: number; $width: number }>`
     position: fixed; top: ${p => p.$top}px; left: ${p => p.$left}px; width: ${p => p.$width}px;
@@ -331,9 +331,11 @@ const NoteDisplay = styled.div`
 `;
 
 const ActionButton = styled.button`
-    padding: 8px; background: transparent; border: none; cursor: pointer;
-    color: ${props => props.theme.colors.textSecondary}; &:hover { color: ${props => props.theme.colors.error}; }
-    svg { width: 20px; height: 20px; }
+    padding: 4px; background: transparent; border: none; cursor: pointer;
+    color: ${props => props.theme.colors.textSecondary}; border-radius: 4px;
+    transition: color 150ms ease, background 150ms ease;
+    &:hover { color: ${props => props.theme.colors.error}; background: #fef2f2; }
+    svg { width: 16px; height: 16px; display: block; }
 `;
 
 const CustomPriceLabel = styled.div`
