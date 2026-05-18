@@ -334,11 +334,34 @@ const DiscountTypeMenuItem = styled.button<{ $selected?: boolean }>`
     &:hover { background: #f8fafc; }
 `;
 
+const NoteEditRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+`;
 const NoteInput = styled(Input)`
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     box-sizing: border-box;
     font-size: ${props => props.theme.fontSizes.sm};
-    margin-top: 4px;
+`;
+const NoteConfirmBtn = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: #dcfce7;
+    color: #16a34a;
+    cursor: pointer;
+    transition: background 150ms ease;
+    &:hover { background: #bbf7d0; }
+    svg { width: 14px; height: 14px; }
 `;
 const NoteDisplay = styled.div`
     margin-top: 4px; padding: 3px 6px; background: ${props => props.theme.colors.surfaceAlt};
@@ -516,12 +539,25 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
                                     <Td data-label="Nazwa usługi">
                                         <ServiceName>{service.serviceName}</ServiceName>
                                         {editingNotes[service.id] ? (
-                                            <NoteInput
-                                                autoFocus
-                                                value={service.note}
-                                                onChange={(e) => onChange(services.map(s => s.id === service.id ? { ...s, note: e.target.value } : s))}
-                                                onBlur={() => setEditingNotes({ ...editingNotes, [service.id]: false })}
-                                            />
+                                            <NoteEditRow>
+                                                <NoteInput
+                                                    autoFocus
+                                                    value={service.note}
+                                                    onChange={(e) => onChange(services.map(s => s.id === service.id ? { ...s, note: e.target.value } : s))}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setEditingNotes({ ...editingNotes, [service.id]: false }); } }}
+                                                    onBlur={() => setEditingNotes({ ...editingNotes, [service.id]: false })}
+                                                />
+                                                <NoteConfirmBtn
+                                                    type="button"
+                                                    aria-label="Zatwierdź notatkę"
+                                                    onMouseDown={(e) => e.preventDefault()}
+                                                    onClick={() => setEditingNotes({ ...editingNotes, [service.id]: false })}
+                                                >
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                        <polyline points="20 6 9 17 4 12" />
+                                                    </svg>
+                                                </NoteConfirmBtn>
+                                            </NoteEditRow>
                                         ) : (
                                             <NoteDisplay onClick={() => setEditingNotes({ ...editingNotes, [service.id]: true })}>
                                                 {service.note || 'Dodaj notatkę...'}
