@@ -543,7 +543,7 @@ export const pl: TranslationKeys = {
             licensePlate: 'Numer rejestracyjny',
         },
         technical: {
-            title: 'Stan techniczny pojazdu',
+            title: 'Dane przy odbiorze pojazdu',
             subtitle: 'Określ stan pojazdu przed rozpoczęciem prac',
             mileage: 'Przebieg (km)',
             mileagePlaceholder: 'np. 45230',
