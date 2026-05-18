@@ -70,16 +70,15 @@ function getOwnerInitials(owner: VehicleOwner): string {
 }
 
 function visitStatusBadge(status: string): { label: string; kind: 'success' | 'info' | 'warn' | 'neutral' | 'error' } {
-    switch (status) {
-        case 'COMPLETED':
-        case 'completed':         return { label: 'Zakończona',       kind: 'success' };
-        case 'IN_PROGRESS':
-        case 'in_progress':       return { label: 'W trakcie',        kind: 'info' };
+    switch (status.toUpperCase()) {
+        case 'COMPLETED':         return { label: 'Zakończona',        kind: 'success' };
+        case 'CONVERTED':         return { label: 'Zrealizowana',      kind: 'success' };
+        case 'IN_PROGRESS':       return { label: 'W trakcie',         kind: 'info' };
         case 'READY_FOR_PICKUP':  return { label: 'Gotowa do odbioru', kind: 'warn' };
-        case 'CREATED':           return { label: 'Rezerwacja',        kind: 'neutral' };
+        case 'CREATED':
+        case 'SCHEDULED':         return { label: 'Rezerwacja',        kind: 'neutral' };
         case 'ABANDONED':         return { label: 'Porzucona',         kind: 'error' };
-        case 'CANCELLED':
-        case 'cancelled':         return { label: 'Anulowana',         kind: 'error' };
+        case 'CANCELLED':         return { label: 'Anulowana',         kind: 'error' };
         default:                  return { label: status,              kind: 'neutral' };
     }
 }

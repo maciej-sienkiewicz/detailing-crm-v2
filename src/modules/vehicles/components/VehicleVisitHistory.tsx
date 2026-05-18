@@ -52,17 +52,16 @@ type HistoryEntry =
 /* ─── Translations ────────────────────────────────────── */
 
 const statusTranslations: Record<string, string> = {
-    completed: 'Zakończona',
-    'in-progress': 'W trakcie',
-    'in_progress': 'W trakcie',
-    'ready_for_pickup': 'Gotowe do odbioru',
-    scheduled: 'Zaplanowana',
-    created: 'Zaplanowana',
-    cancelled: 'Anulowana',
+    COMPLETED: 'Zakończona',
+    CONVERTED: 'Zrealizowana',
+    'IN-PROGRESS': 'W trakcie',
+    IN_PROGRESS: 'W trakcie',
+    'READY-FOR-PICKUP': 'Gotowe do odbioru',
+    READY_FOR_PICKUP: 'Gotowe do odbioru',
+    SCHEDULED: 'Zaplanowana',
     CREATED: 'Zaplanowana',
     ABANDONED: 'Porzucona',
     CANCELLED: 'Anulowana',
-    CONVERTED: 'Zrealizowana',
 };
 
 /* ─── Component ──────────────────────────────────────── */
@@ -210,7 +209,7 @@ export const VehicleVisitHistory = ({ visits, appointments }: VehicleVisitHistor
                                             <VisitCost style={{ color: '#94a3b8' }}>—</VisitCost>
                                         )}
                                         <VisitStatusBadge $status={status}>
-                                            {statusTranslations[status] || status}
+                                            {statusTranslations[status.toUpperCase()] || status}
                                         </VisitStatusBadge>
                                     </VisitRight>
                                 </VisitRow>

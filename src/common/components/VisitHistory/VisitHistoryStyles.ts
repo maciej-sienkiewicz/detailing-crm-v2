@@ -145,12 +145,12 @@ export const VisitRow = styled.div<{ $isAbandoned?: boolean }>`
 export const VisitAccent = styled.div<{ $status: string }>`
     align-self: stretch;
     background: ${props => {
-        const s = props.$status;
-        if (s === 'scheduled' || s === 'CREATED' || s === 'created') return '#f59e0b';
-        if (s === 'in-progress' || s === 'in_progress') return 'var(--brand-primary)';
-        if (s === 'ready-for-pickup' || s === 'ready_for_pickup') return '#10b981';
-        if (s === 'completed' || s === 'CONVERTED') return '#6366f1';
-        if (s === 'cancelled' || s === 'CANCELLED' || s === 'ABANDONED') return '#ef4444';
+        const s = props.$status.toUpperCase();
+        if (s === 'SCHEDULED' || s === 'CREATED') return '#f59e0b';
+        if (s === 'IN-PROGRESS' || s === 'IN_PROGRESS') return 'var(--brand-primary)';
+        if (s === 'READY-FOR-PICKUP' || s === 'READY_FOR_PICKUP') return '#10b981';
+        if (s === 'COMPLETED' || s === 'CONVERTED') return '#6366f1';
+        if (s === 'CANCELLED' || s === 'ABANDONED') return '#ef4444';
         return '#94a3b8';
     }};
 `;
@@ -274,12 +274,12 @@ export const VisitStatusBadge = styled.span<{ $status: string }>`
     flex-shrink: 0;
 
     ${props => {
-        const s = props.$status;
-        if (s === 'completed' || s === 'CONVERTED') return 'background: #dcfce7; color: #166534;';
-        if (s === 'in-progress' || s === 'in_progress') return 'background: #dbeafe; color: #1e40af;';
-        if (s === 'ready-for-pickup' || s === 'ready_for_pickup') return 'background: #d1fae5; color: #065f46;';
-        if (s === 'scheduled' || s === 'CREATED' || s === 'created') return 'background: #fef3c7; color: #92400e;';
-        if (s === 'cancelled' || s === 'CANCELLED' || s === 'ABANDONED') return 'background: #fee2e2; color: #991b1b;';
+        const s = props.$status.toUpperCase();
+        if (s === 'COMPLETED' || s === 'CONVERTED') return 'background: #dcfce7; color: #166534;';
+        if (s === 'IN-PROGRESS' || s === 'IN_PROGRESS') return 'background: #dbeafe; color: #1e40af;';
+        if (s === 'READY-FOR-PICKUP' || s === 'READY_FOR_PICKUP') return 'background: #d1fae5; color: #065f46;';
+        if (s === 'SCHEDULED' || s === 'CREATED') return 'background: #fef3c7; color: #92400e;';
+        if (s === 'CANCELLED' || s === 'ABANDONED') return 'background: #fee2e2; color: #991b1b;';
         return 'background: #f3f4f6; color: #6b7280;';
     }}
 `;
