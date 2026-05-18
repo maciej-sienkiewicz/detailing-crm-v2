@@ -41,6 +41,7 @@ import { Modal } from '@/common/components/Modal/Modal';
 import { ImageViewerModal } from '@/modules/visits/components/ImageViewerModal';
 import type { VisitPhoto } from '@/modules/visits/types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { PageHeader, PageHeaderPrimaryButton } from '@/common/components/PageHeader';
 import { StatTile, StatTileSkeleton } from '@/common/components/StatTile';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal/ConfirmationModal';
 import { LeadForm } from '../components/LeadForm';
@@ -135,41 +136,6 @@ const ViewContainer = styled.main`
   }
 `;
 
-const ViewHeader = styled.header`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-`;
-
-const TitleSection = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
-const PageTitle = styled.h1`
-  margin: 0;
-  font-size: ${st.fontXl};
-  font-weight: 700;
-  color: ${st.text};
-  letter-spacing: -0.3px;
-  line-height: 1.2;
-`;
-
-const PageMeta = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 6px;
-  flex-wrap: wrap;
-`;
-
-const PageSubtitle = styled.span`
-  font-size: ${st.fontSm};
-  color: ${st.textMuted};
-`;
-
 const TotalChip = styled.span`
   display: inline-flex;
   align-items: center;
@@ -210,31 +176,6 @@ const HeaderBtns = styled.div`
   flex-shrink: 0;
 `;
 
-const AddButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 10px 20px;
-  background: #0ea5e9;
-  color: #fff;
-  border: none;
-  border-radius: 9999px;
-  font-size: ${st.fontSm};
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: all ${st.transition};
-  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
-
-  &:hover {
-    background: #0284c7;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(14, 165, 233, 0.36);
-  }
-  &:active { transform: translateY(0); }
-  svg { flex-shrink: 0; width: 15px; height: 15px; }
-`;
 
 const SecondaryBtn = styled.button`
   display: inline-flex;
@@ -3432,12 +3373,11 @@ export const LeadListView: React.FC = () => {
 
   return (
     <ViewContainer>
-      {/* Header */}
-      <ViewHeader>
-        <TitleSection>
-          <PageTitle>Leady</PageTitle>
-          <PageMeta>
-            <PageSubtitle>Zarządzaj zapytaniami i potencjalnymi klientami</PageSubtitle>
+      <PageHeader
+        title="Leady"
+        subtitle={
+          <>
+            Zarządzaj zapytaniami i potencjalnymi klientami
             {pagination && (
               <TotalChip>{pagination.totalItems} leadów</TotalChip>
             )}
@@ -3447,10 +3387,10 @@ export const LeadListView: React.FC = () => {
                 {newLeadsCount} {newLeadsCount === 1 ? 'nowy' : newLeadsCount < 5 ? 'nowe' : 'nowych'}
               </NewChip>
             )}
-          </PageMeta>
-        </TitleSection>
-
-        <HeaderBtns>
+          </>
+        }
+        actions={
+          <HeaderBtns>
           {/* Date range picker */}
           <DatePickerWrap ref={datePickerRef}>
             <DatePickerTrigger
@@ -3530,12 +3470,13 @@ export const LeadListView: React.FC = () => {
             )}
           </DatePickerWrap>
 
-          <AddButton onClick={() => setIsFormOpen(true)}>
+          <PageHeaderPrimaryButton onClick={() => setIsFormOpen(true)}>
             <Plus />
             Dodaj lead
-          </AddButton>
+          </PageHeaderPrimaryButton>
         </HeaderBtns>
-      </ViewHeader>
+        }
+      />
 
       {/* Stats tiles */}
       <StatsGrid>
