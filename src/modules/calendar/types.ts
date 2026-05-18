@@ -46,6 +46,7 @@ export interface CalendarEventData {
     totalNet?: number; // net (netto) in minor units
     currency?: string;
     colorHex: string;
+    colorId?: string;
 }
 
 /**

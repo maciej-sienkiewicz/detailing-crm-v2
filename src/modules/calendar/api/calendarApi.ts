@@ -72,6 +72,7 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         vehicleId: appointment.vehicleId ?? undefined,
         vehicleInfo,
         colorHex,
+        colorId: appointment.appointmentColor?.id,
         appointmentTitle: appointment.appointmentTitle || undefined,
         serviceNames,
         isAllDay: appointment.schedule.isAllDay,
@@ -134,6 +135,7 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
         status,
         licensePlate: visit.vehicle.licensePlate,
         colorHex,
+        colorId: visit.appointmentColor?.id,
         totalPrice: visit.totalGross,
         totalNet: visit.totalNet,
         currency: 'PLN',
@@ -189,6 +191,7 @@ const fetchUnified = async (
     dateRange: DateRange,
     appointmentStatuses: AppointmentStatus[],
     visitStatuses: VisitStatus[],
+    colorIds: string[],
 ): Promise<CalendarEventsResponse> => {
     if (USE_MOCKS) {
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -205,6 +208,11 @@ const fetchUnified = async (
     }
     if (visitStatuses.length > 0) {
         params.visitStatuses = visitStatuses.join(',');
+    }
+    // Proposed API param: filter by appointmentColor IDs (comma-separated).
+    // Backend should return only events whose appointmentColor.id is in this list.
+    if (colorIds.length > 0) {
+        params.colorIds = colorIds.join(',');
     }
 
     const response = await apiClient.get<CalendarEventsResponse>('/v1/calendar/events', { params });
@@ -257,13 +265,14 @@ export const calendarApi = {
         dateRange: DateRange,
         appointmentStatuses: AppointmentStatus[] = [],
         visitStatuses: VisitStatus[] = [],
+        colorIds: string[] = [],
     ): Promise<CalendarEvent[]> => {
         if (appointmentStatuses.length === 0 && visitStatuses.length === 0) {
             return [];
         }
 
         const { appointments, visits } = USE_UNIFIED_CALENDAR_API
-            ? await fetchUnified(dateRange, appointmentStatuses, visitStatuses)
+            ? await fetchUnified(dateRange, appointmentStatuses, visitStatuses, colorIds)
             : await fetchLegacy(dateRange, appointmentStatuses, visitStatuses);
 
         return [

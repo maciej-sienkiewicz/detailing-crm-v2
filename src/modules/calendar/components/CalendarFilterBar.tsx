@@ -6,6 +6,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import type { AppointmentStatus, VisitStatus } from '../types';
+import { useAppointmentColors } from '@/modules/appointment-colors/hooks/useAppointmentColors';
 
 /* ─────────────────────────────────────────────────────────────────
    Status metadata (colours from design)
@@ -272,6 +273,29 @@ const PopupCheck = styled.span`
     }
 `;
 
+const ColorSwatch = styled.span<{ $hex: string }>`
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    background: ${p => p.$hex};
+    flex-shrink: 0;
+    border: 1px solid rgba(0,0,0,0.08);
+`;
+
+const ColorChip = styled.span<{ $hex: string }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 4px 4px 8px;
+    border-radius: 8px;
+    background: ${p => p.$hex}18;
+    border: 1px solid ${p => p.$hex}50;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0f172a;
+    white-space: nowrap;
+`;
+
 /* ─────────────────────────────────────────────────────────────────
    Props
 ───────────────────────────────────────────────────────────────── */
@@ -281,6 +305,8 @@ interface CalendarFilterBarProps {
     selectedVisitStatuses: VisitStatus[];
     onAppointmentStatusesChange: (statuses: AppointmentStatus[]) => void;
     onVisitStatusesChange: (statuses: VisitStatus[]) => void;
+    selectedColorIds: string[];
+    onColorIdsChange: (ids: string[]) => void;
     /** When true, forces the popup open (e.g. triggered by mobile filter pill). */
     popupOpen?: boolean;
     onPopupClose?: () => void;
@@ -296,6 +322,8 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
     selectedVisitStatuses,
     onAppointmentStatusesChange,
     onVisitStatusesChange,
+    selectedColorIds,
+    onColorIdsChange,
     popupOpen: popupOpenProp,
     onPopupClose,
     eventsCount,
@@ -303,12 +331,14 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
     const [popupOpen, setPopupOpen] = useState(false);
     const barRef = useRef<HTMLDivElement>(null);
 
+    const { colors: availableColors } = useAppointmentColors({ limit: 100 });
+
     const activeStatuses = [
         ...selectedAppointmentStatuses,
         ...selectedVisitStatuses,
     ] as (AppointmentStatus | VisitStatus)[];
 
-    const allActive = activeStatuses.length === ALL_STATUSES.length;
+    const allActive = activeStatuses.length === ALL_STATUSES.length && selectedColorIds.length === 0;
 
     const toggle = (status: AppointmentStatus | VisitStatus) => {
         const meta = STATUS_META[status];
@@ -329,9 +359,18 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
         }
     };
 
+    const toggleColor = (id: string) => {
+        if (selectedColorIds.includes(id)) {
+            onColorIdsChange(selectedColorIds.filter(c => c !== id));
+        } else {
+            onColorIdsChange([...selectedColorIds, id]);
+        }
+    };
+
     const resetAll = () => {
         onAppointmentStatusesChange(ALL_APPOINTMENT_STATUSES);
         onVisitStatusesChange(ALL_VISIT_STATUSES);
+        onColorIdsChange([]);
     };
 
     const closePopup = () => {
@@ -385,26 +424,49 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
                         Wszystkie wydarzenia
                     </AllChip>
                 ) : (
-                    activeStatuses.map(s => {
-                        const m = STATUS_META[s];
-                        return (
-                            <Chip key={s} $color={m.dot}>
-                                <ChipDot $color={m.dot} />
-                                {m.label}
-                                <ChipRemove
-                                    onClick={() => toggle(s)}
-                                    title={`Usuń filtr: ${m.label}`}
-                                    aria-label={`Usuń filtr: ${m.label}`}
-                                >
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                        <line x1="18" y1="6" x2="6" y2="18" />
-                                        <line x1="6" y1="6" x2="18" y2="18" />
-                                    </svg>
-                                </ChipRemove>
-                            </Chip>
-                        );
-                    })
+                    <>
+                        {activeStatuses.map(s => {
+                            const m = STATUS_META[s];
+                            return (
+                                <Chip key={s} $color={m.dot}>
+                                    <ChipDot $color={m.dot} />
+                                    {m.label}
+                                    <ChipRemove
+                                        onClick={() => toggle(s)}
+                                        title={`Usuń filtr: ${m.label}`}
+                                        aria-label={`Usuń filtr: ${m.label}`}
+                                    >
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <line x1="18" y1="6" x2="6" y2="18" />
+                                            <line x1="6" y1="6" x2="18" y2="18" />
+                                        </svg>
+                                    </ChipRemove>
+                                </Chip>
+                            );
+                        })}
+                        {selectedColorIds.map(id => {
+                            const color = availableColors.find(c => c.id === id);
+                            if (!color) return null;
+                            return (
+                                <ColorChip key={id} $hex={color.hexColor}>
+                                    <ColorSwatch $hex={color.hexColor} />
+                                    {color.name}
+                                    <ChipRemove
+                                        onClick={() => toggleColor(id)}
+                                        title={`Usuń filtr koloru: ${color.name}`}
+                                        aria-label={`Usuń filtr koloru: ${color.name}`}
+                                    >
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <line x1="18" y1="6" x2="6" y2="18" />
+                                            <line x1="6" y1="6" x2="18" y2="18" />
+                                        </svg>
+                                    </ChipRemove>
+                                </ColorChip>
+                            );
+                        })}
+                    </>
                 )}
 
                 {/* Add filter button */}
@@ -458,6 +520,29 @@ export const CalendarFilterBar: React.FC<CalendarFilterBarProps> = ({
                             </PopupRow>
                         );
                     })}
+
+                    {availableColors.length > 0 && (
+                        <>
+                            <PopupSection>Kolory</PopupSection>
+                            {availableColors.map(color => {
+                                const on = selectedColorIds.includes(color.id);
+                                return (
+                                    <PopupRow key={color.id} $active={on} onClick={() => toggleColor(color.id)} role="option" aria-selected={on}>
+                                        <ColorSwatch $hex={color.hexColor} />
+                                        <PopupRowLabel>{color.name}</PopupRowLabel>
+                                        {on && (
+                                            <PopupCheck>
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                    <polyline points="20 6 9 17 4 12" />
+                                                </svg>
+                                            </PopupCheck>
+                                        )}
+                                    </PopupRow>
+                                );
+                            })}
+                        </>
+                    )}
                 </Popup>
 
                 {/* Right side: clear + count */}

@@ -762,8 +762,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const {
         appointmentStatuses: selectedAppointmentStatuses,
         visitStatuses: selectedVisitStatuses,
+        colorIds: selectedColorIds,
         setAppointmentStatuses: setSelectedAppointmentStatuses,
         setVisitStatuses: setSelectedVisitStatuses,
+        setColorIds: setSelectedColorIds,
     } = useCalendarFilters();
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [calendarTitle, setCalendarTitle] = useState('');
@@ -862,7 +864,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     // Reservation options modal state
 
     const { createQuickEventAsync } = useQuickEventCreation();
-    const { data: events = [], isLoading } = useCalendarEvents(dateRange, selectedAppointmentStatuses, selectedVisitStatuses);
+    const { data: events = [], isLoading } = useCalendarEvents(dateRange, selectedAppointmentStatuses, selectedVisitStatuses, selectedColorIds);
 
     /**
      * Handle date range changes (triggered when view changes or user navigates)
@@ -1176,6 +1178,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 selectedVisitStatuses={selectedVisitStatuses}
                 onAppointmentStatusesChange={setSelectedAppointmentStatuses}
                 onVisitStatusesChange={setSelectedVisitStatuses}
+                selectedColorIds={selectedColorIds}
+                onColorIdsChange={setSelectedColorIds}
                 popupOpen={isFilterOpen}
                 onPopupClose={() => setIsFilterOpen(false)}
                 eventsCount={events.length}

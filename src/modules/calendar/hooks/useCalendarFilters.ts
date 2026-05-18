@@ -9,11 +9,13 @@ const ALL_VISIT_STATUSES: VisitStatus[] = ['IN_PROGRESS', 'READY_FOR_PICKUP', 'C
 interface CalendarFiltersState {
     appointmentStatuses: AppointmentStatus[];
     visitStatuses: VisitStatus[];
+    colorIds: string[];
 }
 
 const DEFAULT_FILTERS: CalendarFiltersState = {
     appointmentStatuses: ALL_APPOINTMENT_STATUSES,
     visitStatuses: ALL_VISIT_STATUSES,
+    colorIds: [],
 };
 
 /**
@@ -41,6 +43,8 @@ export function useCalendarFilters() {
     const appointmentStatuses = validateAppointmentStatuses(stored.appointmentStatuses);
     const visitStatuses = validateVisitStatuses(stored.visitStatuses);
 
+    const colorIds: string[] = Array.isArray(stored.colorIds) ? stored.colorIds : [];
+
     const setAppointmentStatuses = (statuses: AppointmentStatus[]) => {
         setStored((prev) => ({ ...prev, appointmentStatuses: statuses }));
     };
@@ -49,10 +53,16 @@ export function useCalendarFilters() {
         setStored((prev) => ({ ...prev, visitStatuses: statuses }));
     };
 
+    const setColorIds = (ids: string[]) => {
+        setStored((prev) => ({ ...prev, colorIds: ids }));
+    };
+
     return {
         appointmentStatuses,
         visitStatuses,
+        colorIds,
         setAppointmentStatuses,
         setVisitStatuses,
+        setColorIds,
     };
 }
