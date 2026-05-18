@@ -131,7 +131,7 @@ const Tr = styled.tr<{ $isDragging?: boolean; $isOver?: boolean }>`
 const Td = styled.td<{ 'data-label'?: string }>`
     padding: 10px 14px;
     font-size: ${props => props.theme.fontSizes.sm};
-    vertical-align: top;
+    vertical-align: middle;
 
     @media (max-width: ${props => props.theme.breakpoints.md}) {
         display: block;
