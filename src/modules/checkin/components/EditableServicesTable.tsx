@@ -324,10 +324,16 @@ const DiscountTypeMenuItem = styled.button<{ $selected?: boolean }>`
     background: ${props => props.$selected ? props.theme.colors.surfaceAlt : 'transparent'};
 `;
 
-const NoteInput = styled(Input)` font-size: ${props => props.theme.fontSizes.sm}; `;
+const NoteInput = styled(Input)`
+    width: 100%;
+    box-sizing: border-box;
+    font-size: ${props => props.theme.fontSizes.sm};
+    margin-top: 4px;
+`;
 const NoteDisplay = styled.div`
-    margin-top: 4px; padding: 4px 8px; background: ${props => props.theme.colors.surfaceAlt};
+    margin-top: 4px; padding: 3px 6px; background: ${props => props.theme.colors.surfaceAlt};
     font-size: ${props => props.theme.fontSizes.sm}; cursor: pointer; border-radius: 4px;
+    color: ${props => props.theme.colors.textMuted};
 `;
 
 const ActionButton = styled.button`
@@ -491,9 +497,18 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
                                 <Tr key={service.id}>
                                     <Td data-label="Nazwa usługi">
                                         <ServiceName>{service.serviceName}</ServiceName>
-                                        <NoteDisplay onClick={() => setEditingNotes({ ...editingNotes, [service.id]: true })}>
-                                            {editingNotes[service.id] ? <NoteInput autoFocus value={service.note} onChange={(e) => onChange(services.map(s => s.id === service.id ? { ...s, note: e.target.value } : s))} onBlur={() => setEditingNotes({ ...editingNotes, [service.id]: false })} /> : service.note || 'Dodaj notatkę...'}
-                                        </NoteDisplay>
+                                        {editingNotes[service.id] ? (
+                                            <NoteInput
+                                                autoFocus
+                                                value={service.note}
+                                                onChange={(e) => onChange(services.map(s => s.id === service.id ? { ...s, note: e.target.value } : s))}
+                                                onBlur={() => setEditingNotes({ ...editingNotes, [service.id]: false })}
+                                            />
+                                        ) : (
+                                            <NoteDisplay onClick={() => setEditingNotes({ ...editingNotes, [service.id]: true })}>
+                                                {service.note || 'Dodaj notatkę...'}
+                                            </NoteDisplay>
+                                        )}
                                     </Td>
                                     <Td data-label="Cena bazowa">
                                         {service.requireManualPrice ? <CustomPriceLabel>Cena niestandardowa</CustomPriceLabel> : (
