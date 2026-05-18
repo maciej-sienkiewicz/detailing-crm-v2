@@ -9,6 +9,7 @@ import { OperationalDataTable } from '../components/OperationalDataTable';
 import { OperationFilterBar } from '../components/OperationFilterBar';
 import { OperationPagination } from '../components/OperationPagination';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { PageHeader, PageHeaderPrimaryButton } from '@/common/components/PageHeader';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -29,41 +30,6 @@ const ViewContainer = styled.main`
     }
 `;
 
-const PageHeader = styled.header`
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-`;
-
-const TitleBlock = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
-
-const PageTitle = styled.h1`
-    margin: 0;
-    font-size: ${st.fontXl};
-    font-weight: 700;
-    color: ${st.text};
-    letter-spacing: -0.3px;
-    line-height: 1.2;
-`;
-
-const PageMeta = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 6px;
-    flex-wrap: wrap;
-`;
-
-const PageSubtitle = styled.span`
-    font-size: ${st.fontSm};
-    color: ${st.textMuted};
-`;
-
 const TotalChip = styled.span`
     display: inline-flex;
     align-items: center;
@@ -74,39 +40,6 @@ const TotalChip = styled.span`
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.1px;
-`;
-
-const NewButton = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 10px 20px;
-    background: ${st.accentBlue};
-    color: #fff;
-    border: none;
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-    transition: all ${st.transition};
-    box-shadow: 0 1px 4px rgba(37, 99, 235, 0.25);
-
-    &:hover {
-        background: #1D4ED8;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
-    }
-
-    &:active {
-        transform: translateY(0);
-        box-shadow: 0 1px 4px rgba(37, 99, 235, 0.25);
-    }
-
-    svg {
-        flex-shrink: 0;
-    }
 `;
 
 const ContentCard = styled.section`
@@ -162,25 +95,26 @@ export const OperationListView = () => {
 
     return (
         <ViewContainer>
-            <PageHeader>
-                <TitleBlock>
-                    <PageTitle>Wizyty i Rezerwacje</PageTitle>
-                    <PageMeta>
-                        <PageSubtitle>Zarządzaj aktywnymi operacjami w warsztacie</PageSubtitle>
+            <PageHeader
+                title="Wizyty i Rezerwacje"
+                subtitle={
+                    <>
+                        Zarządzaj aktywnymi operacjami w warsztacie
                         {pagination && (
                             <TotalChip>{pagination.totalItems} rekordów</TotalChip>
                         )}
-                    </PageMeta>
-                </TitleBlock>
-
-                <NewButton onClick={() => navigate('/checkin/new')}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    Nowa wizyta
-                </NewButton>
-            </PageHeader>
+                    </>
+                }
+                actions={
+                    <PageHeaderPrimaryButton onClick={() => navigate('/checkin/new')}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        Nowa wizyta
+                    </PageHeaderPrimaryButton>
+                }
+            />
 
             <ContentCard>
                 <OperationFilterBar

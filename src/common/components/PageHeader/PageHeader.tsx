@@ -5,7 +5,7 @@ import styled, { keyframes } from 'styled-components';
 
 export interface PageHeaderProps {
   title: string;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   actions?: React.ReactNode;
 }
 
@@ -61,11 +61,15 @@ const HeroHeading = styled.h1`
   }
 `;
 
-const HeroSubtitle = styled.p`
+const HeroSubtitle = styled.div`
   margin: 0;
   font-size: 14px;
   color: #475569;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 `;
 
 const HeroActions = styled.div`
