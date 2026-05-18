@@ -6,6 +6,8 @@ import styled from 'styled-components';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatCurrency } from '@/common/utils';
 import { Select, Input } from '@/common/components/Form';
+import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, ModalCloseButton } from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import { ServiceAutocomplete } from './ServiceAutocomplete';
 import { QuickServiceModal } from '@/modules/calendar/components/QuickServiceModal';
 import { applyAdjustment, distributeAdjustment } from '@/common/utils/priceAdjustment';
@@ -320,8 +322,16 @@ const DiscountTypeMenu = styled.div<{ $top: number; $left: number; $width: numbe
     box-shadow: 0 4px 12px rgba(0,0,0,0.12);
 `;
 const DiscountTypeMenuItem = styled.button<{ $selected?: boolean }>`
-    width: 100%; padding: 10px; border: none; text-align: left; cursor: pointer;
-    background: ${props => props.$selected ? props.theme.colors.surfaceAlt : 'transparent'};
+    width: 100%;
+    padding: 6px 8px;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: 12px;
+    color: #374151;
+    background: ${props => props.$selected ? '#eff6ff' : 'transparent'};
+    font-weight: ${props => props.$selected ? 600 : 400};
+    &:hover { background: #f8fafc; }
 `;
 
 const NoteInput = styled(Input)`
@@ -337,11 +347,21 @@ const NoteDisplay = styled.div`
 `;
 
 const ActionButton = styled.button`
-    padding: 4px; background: transparent; border: none; cursor: pointer;
-    color: ${props => props.theme.colors.textSecondary}; border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    border-radius: 6px;
+    color: ${props => props.theme.colors.textSecondary};
     transition: color 150ms ease, background 150ms ease;
     &:hover { color: ${props => props.theme.colors.error}; background: #fef2f2; }
-    svg { width: 16px; height: 16px; display: block; }
+    svg { width: 15px; height: 15px; flex-shrink: 0; }
 `;
 
 const CustomPriceLabel = styled.div`
@@ -349,22 +369,20 @@ const CustomPriceLabel = styled.div`
     background: #fef3c7; color: #f59e0b; border-radius: 4px;
 `;
 
-// --- MODAL STYLES (ZGODNIE Z PROŚBĄ BEZ ZMIAN) ---
+const ModalFieldLabel = styled.p`
+    margin: 0 0 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+`;
 
-const ModalOverlay = styled.div`
-    position: fixed; inset: 0; background: rgba(0,0,0,0.4);
-    display: flex; align-items: center; justify-content: center; z-index: 1000;
+const ModalTotalInfo = styled.p`
+    margin: 10px 0 0;
+    font-size: 13px;
+    color: #64748b;
 `;
-const ModalCard = styled.div`
-    width: 100%; max-width: 440px; background: #fff; border-radius: ${props => props.theme.radii.lg}; overflow: hidden;
-`;
-const ModalHeader = styled.div` padding: 24px; border-bottom: 1px solid ${props => props.theme.colors.border}; `;
-const ModalTitle = styled.h4` margin: 0; font-size: ${props => props.theme.fontSizes.md}; `;
-const ModalBody = styled.div` padding: 24px; `;
-const ModalFooter = styled.div` padding: 16px; display: flex; justify-content: flex-end; gap: 8px; background: ${props => props.theme.colors.surfaceAlt}; `;
-const SecondaryBtn = styled.button` padding: 8px 16px; border: 1px solid ${props => props.theme.colors.border}; background: transparent; cursor: pointer; border-radius: 6px; `;
-const PrimaryBtn = styled.button` padding: 8px 16px; background: #0ea5e9; color: white; border: none; cursor: pointer; border-radius: 6px; font-weight: 600; `;
-const ModalInput = styled(Input)` width: 100%; margin-top: 8px; `;
 
 const DISCOUNT_TYPE_OPTIONS = [
     { value: 'PERCENT', label: 'Procent (%)' },
@@ -597,25 +615,46 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
                 onChange([...services, { id: `temp_${Date.now()}`, serviceId: s.id || null, serviceName: s.name, basePriceNet: s.basePriceNet, vatRate: s.vatRate, adjustment: { type: 'PERCENT', value: 0 }, note: '' }]);
             }} />
 
-            {isDiscountModalOpen && (
-                <ModalOverlay onClick={closeDiscountModal}>
-                    <ModalCard onClick={e => e.stopPropagation()}>
-                        <ModalHeader><ModalTitle>Rabatuj</ModalTitle></ModalHeader>
-                        <ModalBody>
-                            <p style={{ marginBottom: '16px', fontSize: '14px' }}>Wybierz typ rabatu i podaj wartość dla wszystkich usług.</p>
-                            <DiscountTypeDropdown value={discountType} onChange={setDiscountType} />
-                            <ModalInput type="number" value={targetPrice} onChange={e => setTargetPrice(e.target.value)} placeholder="0.00" autoFocus />
-                            <div style={{ marginTop: '12px', fontSize: '12px', color: '#6b7280' }}>
-                                Suma brutto: <strong>{formatCurrency(totals.totalGross / 100)}</strong>
-                            </div>
-                        </ModalBody>
-                        <ModalFooter>
-                            <SecondaryBtn onClick={closeDiscountModal}>Anuluj</SecondaryBtn>
-                            <PrimaryBtn onClick={handleApplyDiscount}>Zastosuj rabat</PrimaryBtn>
-                        </ModalFooter>
-                    </ModalCard>
-                </ModalOverlay>
-            )}
+            <ModalShell isOpen={isDiscountModalOpen} onClose={closeDiscountModal} size="sm">
+                <ModalHeader>
+                    <ModalTitleGroup>
+                        <ModalTitle>Rabat zbiorczy</ModalTitle>
+                    </ModalTitleGroup>
+                    <ModalCloseButton type="button" onClick={closeDiscountModal} aria-label="Zamknij">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </ModalCloseButton>
+                </ModalHeader>
+                <ModalContent>
+                    <div>
+                        <ModalFieldLabel>Typ rabatu</ModalFieldLabel>
+                        <DiscountTypeDropdown value={discountType} onChange={setDiscountType} />
+                    </div>
+                    <div>
+                        <ModalFieldLabel>Wartość</ModalFieldLabel>
+                        <Input
+                            type="number"
+                            value={targetPrice}
+                            onChange={e => setTargetPrice(e.target.value)}
+                            placeholder="0.00"
+                            autoFocus
+                            style={{ width: '100%', boxSizing: 'border-box' }}
+                        />
+                        <ModalTotalInfo>
+                            Suma brutto: <strong>{formatCurrency(totals.totalGross / 100)}</strong>
+                        </ModalTotalInfo>
+                    </div>
+                </ModalContent>
+                <ModalFooter>
+                    <SharedButton $variant="secondary" $size="sm" type="button" onClick={closeDiscountModal}>
+                        Anuluj
+                    </SharedButton>
+                    <SharedButton $variant="primary" $size="sm" type="button" onClick={handleApplyDiscount}>
+                        Zastosuj rabat
+                    </SharedButton>
+                </ModalFooter>
+            </ModalShell>
         </>
     );
 };
