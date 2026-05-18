@@ -331,10 +331,6 @@ export const DashboardView = () => {
       <HeroCard>
         <HeroRow>
           <HeroLeft>
-            <HeroEyebrow>
-              <LiveDot />
-              Status operacyjny · na żywo
-            </HeroEyebrow>
               <HeroGreeting>{greeting}{user?.firstName ? `, ${user.firstName}` : ''}!</HeroGreeting>
               {heroDesc && <HeroDesc>{heroDesc}</HeroDesc>}
               <HeroActions>
@@ -368,10 +364,6 @@ export const DashboardView = () => {
       )}
 
       <div>
-        <SectionLabel>
-          <SectionLabelText>Status operacyjny</SectionLabelText>
-          <SectionLabelLine />
-        </SectionLabel>
         <OperationalScorecard stats={stats} />
       </div>
 
