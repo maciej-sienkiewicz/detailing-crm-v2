@@ -338,6 +338,7 @@ export const AppointmentEditView = () => {
                     hideVehicleColorAndPaint={true}
                     hideLicensePlate={true}
                     hideVehicleHandoff={true}
+                    hideMileage={true}
                     initialCustomerData={initialData?.customerData}
                     initialHasFullCustomerData={initialData?.hasFullCustomerData}
                     initialIsNewCustomer={initialData?.isNewCustomer}
