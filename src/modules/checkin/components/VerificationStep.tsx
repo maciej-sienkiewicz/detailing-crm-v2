@@ -565,6 +565,7 @@ interface VerificationStepProps {
     hideVehicleColorAndPaint?: boolean;
     hideLicensePlate?: boolean;
     hideVehicleHandoff?: boolean;
+    hideMileage?: boolean;
     initialCustomerData?: CheckInFormData['customerData'];
     initialHasFullCustomerData?: boolean;
     initialIsNewCustomer?: boolean;
@@ -586,6 +587,7 @@ export const VerificationStep = ({
     hideVehicleColorAndPaint = false,
     hideLicensePlate = false,
     hideVehicleHandoff = false,
+    hideMileage = false,
     initialCustomerData,
     initialHasFullCustomerData,
     initialIsNewCustomer,
@@ -1448,16 +1450,18 @@ export const VerificationStep = ({
                             </FieldGroup>
                         )}
 
-                        <FieldGroup>
-                            <Label>{t.checkin.technical.mileage}</Label>
-                            <Input
-                                type="number"
-                                value={formData.technicalState.mileage || ''}
-                                onChange={(e) => onChange({ technicalState: { ...formData.technicalState, mileage: parseInt(e.target.value) || 0 } })}
-                                placeholder={t.checkin.technical.mileagePlaceholder}
-                            />
-                            {errors.mileage && <ErrorMessage>{errors.mileage}</ErrorMessage>}
-                        </FieldGroup>
+                        {!hideMileage && (
+                            <FieldGroup>
+                                <Label>{t.checkin.technical.mileage}</Label>
+                                <Input
+                                    type="number"
+                                    value={formData.technicalState.mileage || ''}
+                                    onChange={(e) => onChange({ technicalState: { ...formData.technicalState, mileage: parseInt(e.target.value) || 0 } })}
+                                    placeholder={t.checkin.technical.mileagePlaceholder}
+                                />
+                                {errors.mileage && <ErrorMessage>{errors.mileage}</ErrorMessage>}
+                            </FieldGroup>
+                        )}
 
                         {!hideVehicleColorAndPaint && (
                             <FieldGroup>
