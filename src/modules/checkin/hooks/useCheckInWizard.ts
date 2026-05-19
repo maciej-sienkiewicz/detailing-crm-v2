@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { checkinApi } from '../api/checkinApi';
 import { DASHBOARD_STATS_KEY } from '@/modules/dashboard/hooks/useDashboard';
+import { toApiServiceLineItem } from '@/common/utils/priceAdjustment';
 import type { CheckInFormData, CheckInStep, ReservationToVisitPayload, WalkInVisitPayload } from '../types';
 
 const DRAFT_STORAGE_KEY = 'checkin_draft';
@@ -219,16 +220,16 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
             };
         })();
 
-        // Transform services: convert temporary serviceIds to null
+        // Transform services: convert temporary serviceIds to null,
+        // and collapse requireManualPrice services to SET_NET for the server.
         const transformedServices = formData.services.map(service => {
-            // If serviceId is null, starts with "temp_", or is "null" string, convert to null
             const isTemporary = !service.serviceId ||
                                 service.serviceId.startsWith('temp_') ||
                                 service.serviceId === 'null';
-            return {
+            return toApiServiceLineItem({
                 ...service,
                 serviceId: isTemporary ? null : service.serviceId,
-            };
+            });
         });
 
         const sharedPayload = {

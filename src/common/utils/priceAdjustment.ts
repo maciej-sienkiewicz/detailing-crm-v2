@@ -129,3 +129,24 @@ export const distributeAdjustment = (
         return { type: discountType, value: share };
     });
 };
+
+/**
+ * Converts a requireManualPrice service for API submission.
+ * In the UI the entered price lives in basePriceNet so discounts can be applied
+ * normally. Before sending to the server we collapse basePriceNet + adjustment
+ * into a single SET_NET on basePriceNet=0, which is what the backend expects.
+ */
+export function toApiServiceLineItem<T extends {
+    basePriceNet: number;
+    vatRate: number;
+    adjustment: PriceAdjustment;
+    requireManualPrice?: boolean;
+}>(service: T): T {
+    if (!service.requireManualPrice) return service;
+    const { finalNetCents } = applyAdjustment(service.basePriceNet, service.vatRate, service.adjustment);
+    return {
+        ...service,
+        basePriceNet: 0,
+        adjustment: { type: 'SET_NET', value: finalNetCents },
+    };
+}

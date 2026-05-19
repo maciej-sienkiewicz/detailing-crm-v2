@@ -265,7 +265,7 @@ describe('EditableServicesTable', () => {
             expect(screen.getByRole('button', { name: 'Netto' })).toBeInTheDocument();
         });
 
-        it('dodaje usługę z basePriceNet=0 i adjustment SET_GROSS po wpisaniu ceny brutto', async () => {
+        it('po wpisaniu ceny brutto ustawia basePriceNet=netto i PERCENT 0 (dla UI rabatu)', async () => {
             mockUseQuery.mockReturnValue({ data: { services: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
             const user = userEvent.setup();
             const { onChange } = renderTable([]);
@@ -274,7 +274,7 @@ describe('EditableServicesTable', () => {
             await user.type(autocompleteInput, 'niest');
             await user.click(await screen.findByText('Usługa niestandardowa'));
 
-            // domyślnie tryb Brutto — wpisujemy 123 PLN brutto
+            // domyślnie tryb Brutto — wpisujemy 123 PLN brutto (VAT 23% → netto 100)
             const priceInput = screen.getByPlaceholderText('0.00');
             await user.type(priceInput, '123');
 
@@ -283,13 +283,14 @@ describe('EditableServicesTable', () => {
             expect(onChange).toHaveBeenCalledOnce();
             const [newList] = onChange.mock.calls[0];
             expect(newList).toHaveLength(1);
-            expect(newList[0].basePriceNet).toBe(0);
-            expect(newList[0].adjustment.type).toBe('SET_GROSS');
-            expect(newList[0].adjustment.value).toBe(12300);
+            // 123 brutto / 1.23 = ~100 netto = 10000 centów
+            expect(newList[0].basePriceNet).toBe(10000);
+            expect(newList[0].adjustment.type).toBe('PERCENT');
+            expect(newList[0].adjustment.value).toBe(0);
             expect(newList[0].requireManualPrice).toBe(true);
         });
 
-        it('dodaje usługę z basePriceNet=0 i adjustment SET_NET po wpisaniu ceny netto', async () => {
+        it('po wpisaniu ceny netto ustawia basePriceNet=netto i PERCENT 0 (dla UI rabatu)', async () => {
             mockUseQuery.mockReturnValue({ data: { services: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
             const user = userEvent.setup();
             const { onChange } = renderTable([]);
@@ -307,9 +308,9 @@ describe('EditableServicesTable', () => {
 
             expect(onChange).toHaveBeenCalledOnce();
             const [newList] = onChange.mock.calls[0];
-            expect(newList[0].basePriceNet).toBe(0);
-            expect(newList[0].adjustment.type).toBe('SET_NET');
-            expect(newList[0].adjustment.value).toBe(10000);
+            expect(newList[0].basePriceNet).toBe(10000);
+            expect(newList[0].adjustment.type).toBe('PERCENT');
+            expect(newList[0].adjustment.value).toBe(0);
         });
 
         it('przycisk "Dodaj usługę" jest nieaktywny gdy pole ceny jest puste', async () => {
