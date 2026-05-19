@@ -8,14 +8,6 @@ import { formatCurrency } from '@/common/utils';
 import { t } from '@/common/i18n';
 import { CarLogoImage } from './CarLogoImage';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const paintLabels: Record<string, string> = {
-    metallic: 'Metalik',
-    matte:    'Mat',
-    pearl:    'Perła',
-    solid:    'Akryl',
-};
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -312,7 +304,6 @@ export const VehicleHeader = ({ vehicle, onEditVehicle, onEditOwners }: VehicleH
     const metaParts = [
         vehicle.color,
         vehicle.currentMileage ? `${vehicle.currentMileage.toLocaleString()} km` : null,
-        vehicle.paintType ? (paintLabels[vehicle.paintType.toLowerCase()] ?? vehicle.paintType) : null,
     ].filter(Boolean) as string[];
 
     const { stats } = vehicle;

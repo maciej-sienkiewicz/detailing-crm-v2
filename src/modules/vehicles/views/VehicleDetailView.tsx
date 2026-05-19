@@ -41,13 +41,6 @@ import {
 
 const MONTH_LABELS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
 
-const paintLabels: Record<string, string> = {
-    metallic: 'Metalik',
-    matte:    'Mat',
-    pearl:    'Perła',
-    solid:    'Akryl',
-};
-
 const roleLabels: Record<string, string> = {
     PRIMARY:  'Właściciel',
     CO_OWNER: 'Współwłaściciel',
@@ -207,7 +200,6 @@ export const VehicleDetailView = () => {
                                             yearOfProduction: vehicle.yearOfProduction,
                                             licensePlate:    vehicle.licensePlate,
                                             color:           vehicle.color ?? undefined,
-                                            paintType:       vehicle.paintType ?? undefined,
                                         },
                                         ...(singleOwner ? {
                                             prefillCustomer: {
@@ -288,12 +280,6 @@ export const VehicleDetailView = () => {
                                     <PrefRow>
                                         <PrefKey>Kolor</PrefKey>
                                         <PrefVal>{vehicle.color}</PrefVal>
-                                    </PrefRow>
-                                )}
-                                {vehicle.paintType && (
-                                    <PrefRow>
-                                        <PrefKey>Lakier</PrefKey>
-                                        <PrefVal>{paintLabels[vehicle.paintType.toLowerCase()] ?? vehicle.paintType}</PrefVal>
                                     </PrefRow>
                                 )}
                                 {vehicle.currentMileage != null && (

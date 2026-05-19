@@ -108,7 +108,6 @@ export interface SelectedVehicle {
     yearOfProduction: number;
     licensePlate?: string;
     color?: string;
-    paintType?: string;
     isNew: boolean;
 }
 
@@ -133,7 +132,6 @@ export const VehicleSearchModal = ({ isOpen, onClose, onSelect }: VehicleSearchM
         yearOfProduction: CURRENT_YEAR,
         licensePlate: '',
         color: '',
-        paintType: '',
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -186,7 +184,6 @@ export const VehicleSearchModal = ({ isOpen, onClose, onSelect }: VehicleSearchM
             yearOfProduction: formData.yearOfProduction,
             licensePlate: formData.licensePlate.trim() || undefined,
             color: formData.color.trim() || undefined,
-            paintType: formData.paintType.trim() || undefined,
             isNew: true,
         });
         resetAndClose();
@@ -201,7 +198,6 @@ export const VehicleSearchModal = ({ isOpen, onClose, onSelect }: VehicleSearchM
             yearOfProduction: CURRENT_YEAR,
             licensePlate: '',
             color: '',
-            paintType: '',
         });
         setErrors({});
         onClose();
@@ -336,17 +332,6 @@ export const VehicleSearchModal = ({ isOpen, onClose, onSelect }: VehicleSearchM
                                         setFormData({ ...formData, color: e.target.value })
                                     }
                                     placeholder="np. Czarny metalik"
-                                />
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <Label>Typ lakieru</Label>
-                                <Input
-                                    value={formData.paintType}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, paintType: e.target.value })
-                                    }
-                                    placeholder="np. Lakier bazowy + lakier"
                                 />
                             </FieldGroup>
                         </FormGrid>

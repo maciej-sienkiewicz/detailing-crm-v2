@@ -297,11 +297,12 @@ const FilledBadge = styled.span`
 
 const DepositSection = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: 8px;
+    flex-direction: row;
+    gap: 12px;
 `;
 
 const DepositItem = styled.div`
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -738,8 +739,7 @@ export const VerificationStep = ({
             initialVehicleData.model === formData.vehicleData.model &&
             initialVehicleData.yearOfProduction === formData.vehicleData.yearOfProduction &&
             (initialVehicleData.licensePlate || '') === (formData.vehicleData.licensePlate || '') &&
-            (initialVehicleData.color || '') === (formData.vehicleData.color || '') &&
-            (initialVehicleData.paintType || '') === (formData.vehicleData.paintType || '')
+            (initialVehicleData.color || '') === (formData.vehicleData.color || '')
         )
     );
     const vehicleIsNewEqual = initialIsNewVehicle === undefined ? true : (initialIsNewVehicle === formData.isNewVehicle);
@@ -963,7 +963,6 @@ export const VerificationStep = ({
                 yearOfProduction: vehicle.yearOfProduction ?? undefined,
                 licensePlate: vehicle.licensePlate ?? undefined,
                 color: vehicle.color ?? undefined,
-                paintType: vehicle.paintType ?? undefined,
             },
             isNewVehicle: vehicle.isNew || false,
         });
@@ -974,7 +973,7 @@ export const VerificationStep = ({
     const handleVehicleDetailsSave = (data: {
         vehicleData: {
             brand: string; model: string; yearOfProduction?: number;
-            licensePlate: string; color?: string; paintType?: string;
+            licensePlate: string; color?: string;
         };
     }) => {
         onChange({
@@ -985,7 +984,6 @@ export const VerificationStep = ({
                 yearOfProduction: data.vehicleData.yearOfProduction,
                 licensePlate: data.vehicleData.licensePlate,
                 color: data.vehicleData.color,
-                paintType: data.vehicleData.paintType,
             },
         });
         setVehicleChoiceMade(true);
@@ -1450,25 +1448,26 @@ export const VerificationStep = ({
                             </FieldGroup>
                         )}
 
+                        <FieldGroup>
+                            <Label>{t.checkin.technical.mileage}</Label>
+                            <Input
+                                type="number"
+                                value={formData.technicalState.mileage || ''}
+                                onChange={(e) => onChange({ technicalState: { ...formData.technicalState, mileage: parseInt(e.target.value) || 0 } })}
+                                placeholder={t.checkin.technical.mileagePlaceholder}
+                            />
+                            {errors.mileage && <ErrorMessage>{errors.mileage}</ErrorMessage>}
+                        </FieldGroup>
+
                         {!hideVehicleColorAndPaint && (
-                            <>
-                                <FieldGroup>
-                                    <Label>Kolor</Label>
-                                    <Input
-                                        value={(pendingVehicleUpdates?.color ?? formData.vehicleData?.color) || ''}
-                                        onChange={(e) => handleVehicleFieldChange({ color: e.target.value })}
-                                        onBlur={handleVehicleFieldBlur}
-                                    />
-                                </FieldGroup>
-                                <FieldGroup>
-                                    <Label>Typ lakieru</Label>
-                                    <Input
-                                        value={formData.vehicleData?.paintType || ''}
-                                        onChange={(e) => handleVehicleFieldChange({ paintType: e.target.value })}
-                                        onBlur={handleVehicleFieldBlur}
-                                    />
-                                </FieldGroup>
-                            </>
+                            <FieldGroup>
+                                <Label>Kolor</Label>
+                                <Input
+                                    value={(pendingVehicleUpdates?.color ?? formData.vehicleData?.color) || ''}
+                                    onChange={(e) => handleVehicleFieldChange({ color: e.target.value })}
+                                    onBlur={handleVehicleFieldBlur}
+                                />
+                            </FieldGroup>
                         )}
                     </FormGrid>
                 </SectionBody>
@@ -1484,43 +1483,27 @@ export const VerificationStep = ({
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-3-3v6m8-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                {t.checkin.technical.title}
+                                Depozyt
                             </SectionLabel>
                         </SectionTitleRow>
                     </SectionHead>
                     <SectionBody>
-                        <FormGrid $columns={2}>
-                            <FieldGroup>
-                                <Label>{t.checkin.technical.mileage}</Label>
-                                <Input
-                                    type="number"
-                                    value={formData.technicalState.mileage || ''}
-                                    onChange={(e) => onChange({ technicalState: { ...formData.technicalState, mileage: parseInt(e.target.value) || 0 } })}
-                                    placeholder={t.checkin.technical.mileagePlaceholder}
+                        <DepositSection>
+                            <DepositItem>
+                                <DepositLabel>{t.checkin.technical.depositItems.keys}</DepositLabel>
+                                <Toggle
+                                    checked={formData.technicalState.deposit.keys}
+                                    onChange={(checked) => onChange({ technicalState: { ...formData.technicalState, deposit: { ...formData.technicalState.deposit, keys: checked } } })}
                                 />
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <Label>{t.checkin.technical.deposit}</Label>
-                                <DepositSection>
-                                    <DepositItem>
-                                        <DepositLabel>{t.checkin.technical.depositItems.keys}</DepositLabel>
-                                        <Toggle
-                                            checked={formData.technicalState.deposit.keys}
-                                            onChange={(checked) => onChange({ technicalState: { ...formData.technicalState, deposit: { ...formData.technicalState.deposit, keys: checked } } })}
-                                        />
-                                    </DepositItem>
-                                    <DepositItem>
-                                        <DepositLabel>{t.checkin.technical.depositItems.registrationDocument}</DepositLabel>
-                                        <Toggle
-                                            checked={formData.technicalState.deposit.registrationDocument}
-                                            onChange={(checked) => onChange({ technicalState: { ...formData.technicalState, deposit: { ...formData.technicalState.deposit, registrationDocument: checked } } })}
-                                        />
-                                    </DepositItem>
-                                </DepositSection>
-                            </FieldGroup>
-                        </FormGrid>
-                        {errors.mileage && <ErrorMessage>{errors.mileage}</ErrorMessage>}
+                            </DepositItem>
+                            <DepositItem>
+                                <DepositLabel>{t.checkin.technical.depositItems.registrationDocument}</DepositLabel>
+                                <Toggle
+                                    checked={formData.technicalState.deposit.registrationDocument}
+                                    onChange={(checked) => onChange({ technicalState: { ...formData.technicalState, deposit: { ...formData.technicalState.deposit, registrationDocument: checked } } })}
+                                />
+                            </DepositItem>
+                        </DepositSection>
                     </SectionBody>
                 </SectionCard>
             )}
@@ -1633,7 +1616,6 @@ export const VerificationStep = ({
                     yearOfProduction: formData.vehicleData?.yearOfProduction,
                     licensePlate: formData.vehicleData?.licensePlate || '',
                     color: formData.vehicleData?.color,
-                    paintType: formData.vehicleData?.paintType,
                 }}
                 onSave={handleVehicleDetailsSave}
             />

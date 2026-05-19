@@ -28,10 +28,6 @@ export const createVehicleSchema = z.object({
         .string()
         .min(1, t.vehicles.validation.colorRequired),
 
-    paintType: z
-        .string()
-        .optional(),
-
     currentMileage: z
         .number()
         .positive(t.vehicles.validation.mileagePositive)
@@ -64,8 +60,6 @@ export const updateVehicleSchema = z.object({
     yearOfProduction: z.preprocess(nullToUndefinedNum, z.number().optional()),
 
     color: z.preprocess(nullToUndefinedStr, z.string().optional()),
-
-    paintType: z.preprocess(nullToUndefinedStr, z.string().optional()),
 
     currentMileage: z.preprocess(nullToUndefinedNum, z.number().optional()),
 

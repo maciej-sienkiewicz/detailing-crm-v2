@@ -400,7 +400,6 @@ export const pl: TranslationKeys = {
                 model: 'Model',
                 year: 'Rok produkcji',
                 color: 'Kolor',
-                paintType: 'Rodzaj lakieru',
                 mileage: 'Przebieg',
             },
             owners: {
@@ -478,8 +477,6 @@ export const pl: TranslationKeys = {
             yearPlaceholder: '2021',
             color: 'Kolor',
             colorPlaceholder: 'Czarny metalik',
-            paintType: 'Rodzaj lakieru (opcjonalnie)',
-            paintTypePlaceholder: 'Lakier bazowy + lakier',
             mileage: 'Przebieg (opcjonalnie)',
             mileagePlaceholder: '45000',
             owners: {

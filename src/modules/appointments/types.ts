@@ -58,7 +58,6 @@ export type VehicleIdentity =
             yearOfProduction?: number;
             licensePlate?: string;
             color?: string;
-            paintType?: string;
         };
     }
     | {
@@ -70,7 +69,6 @@ export type VehicleIdentity =
             yearOfProduction?: number;
             licensePlate?: string;
             color?: string;
-            paintType?: string;
         };
     }
     | {

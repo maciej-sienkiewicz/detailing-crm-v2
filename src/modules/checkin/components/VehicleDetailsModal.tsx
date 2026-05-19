@@ -48,7 +48,6 @@ interface VehicleDetailsModalProps {
         yearOfProduction?: number;
         licensePlate: string;
         color?: string;
-        paintType?: string;
     };
     onSave: (data: {
         vehicleData: {
@@ -57,7 +56,6 @@ interface VehicleDetailsModalProps {
             yearOfProduction?: number;
             licensePlate: string;
             color?: string;
-            paintType?: string;
         };
     }) => void;
 }
@@ -78,7 +76,6 @@ export const VehicleDetailsModal = ({
         yearOfProduction: undefined as number | undefined,
         licensePlate: '',
         color: '',
-        paintType: '',
     });
 
     // Inicjalizuj dane gdy modal się otwiera
@@ -87,24 +84,20 @@ export const VehicleDetailsModal = ({
 
         // Preferuj fallbackData (dane z rezerwacji) nad danymi z API
         if (fallbackData) {
-            // Użyj danych z rezerwacji
             setLocalVehicleData({
                 brand: fallbackData.brand,
                 model: fallbackData.model,
                 yearOfProduction: fallbackData.yearOfProduction,
                 licensePlate: fallbackData.licensePlate,
                 color: fallbackData.color || '',
-                paintType: fallbackData.paintType || '',
             });
         } else if (vehicleDetail) {
-            // Użyj danych z API jako fallback
             setLocalVehicleData({
                 brand: vehicleDetail.vehicle.brand,
                 model: vehicleDetail.vehicle.model,
                 yearOfProduction: vehicleDetail.vehicle.yearOfProduction,
                 licensePlate: vehicleDetail.vehicle.licensePlate,
                 color: vehicleDetail.vehicle.color || '',
-                paintType: vehicleDetail.vehicle.paintType || '',
             });
         }
     }, [isOpen, vehicleDetail, fallbackData]);
@@ -190,15 +183,6 @@ export const VehicleDetailsModal = ({
                                     value={localVehicleData.color}
                                     onChange={(e) => handleVehicleDataChange('color', e.target.value)}
                                     placeholder="np. Czarny metalik"
-                                />
-                            </FieldGroup>
-
-                            <FieldGroup>
-                                <Label>Typ lakieru</Label>
-                                <Input
-                                    value={localVehicleData.paintType}
-                                    onChange={(e) => handleVehicleDataChange('paintType', e.target.value)}
-                                    placeholder="np. Metalik, Perłowy, Mat"
                                 />
                             </FieldGroup>
                         </FormGrid>

@@ -459,7 +459,6 @@ export interface TranslationKeys {
                 model: string;
                 year: string;
                 color: string;
-                paintType: string;
                 mileage: string;
             };
             owners: {
@@ -537,8 +536,6 @@ export interface TranslationKeys {
             yearPlaceholder: string;
             color: string;
             colorPlaceholder: string;
-            paintType: string;
-            paintTypePlaceholder: string;
             mileage: string;
             mileagePlaceholder: string;
             owners: {

@@ -110,7 +110,6 @@ const FIELD_LABELS: Record<string, string> = {
     brand:               'Marka',
     model:               'Model',
     yearOfProduction:    'Rok produkcji',
-    paintType:           'Rodzaj lakieru',
     status:              'Status',
     technicalNotes:      'Notatki techniczne',
     mileageAtArrival:    'Przebieg przy przyjęciu',
