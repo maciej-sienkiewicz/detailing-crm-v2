@@ -124,7 +124,6 @@ export const OperationStatusBadge = ({ status }: OperationStatusBadgeProps) => {
     const { label, color, bg } = statusConfig[status];
     return (
         <Badge $color={color} $bg={bg}>
-            <Dot $color={color} />
             {label}
         </Badge>
     );
