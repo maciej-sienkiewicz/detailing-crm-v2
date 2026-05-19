@@ -1027,9 +1027,6 @@ export const VerificationStep = ({
                     <SectionTitleRow>
                         <SectionNum>1</SectionNum>
                         <SectionLabel>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
                             Termin wizyty
                         </SectionLabel>
                     </SectionTitleRow>
@@ -1106,9 +1103,6 @@ export const VerificationStep = ({
                     <SectionTitleRow>
                         <SectionNum>2</SectionNum>
                         <SectionLabel>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
                             {t.checkin.verification.customerSection}
                             {customerChoiceMade && customerBadge && (
                                 <StatusPill>{customerBadge}</StatusPill>
@@ -1252,9 +1246,6 @@ export const VerificationStep = ({
                             onClick={() => setIsCompanyOpen(!isCompanyOpen)}
                         >
                             <CollapsibleBtnLeft>
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                </svg>
                                 Dane firmowe
                                 {companyHasData && <FilledBadge>Uzupełniony</FilledBadge>}
                             </CollapsibleBtnLeft>
@@ -1518,9 +1509,6 @@ export const VerificationStep = ({
                     <SectionTitleRow>
                         <SectionNum>{showTechnicalSection ? 5 : 4}</SectionNum>
                         <SectionLabel>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                            </svg>
                             Usługi
                         </SectionLabel>
                     </SectionTitleRow>
@@ -1540,9 +1528,6 @@ export const VerificationStep = ({
                     <SectionTitleRow>
                         <SectionNum>{showTechnicalSection ? 6 : 5}</SectionNum>
                         <SectionLabel>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-                            </svg>
                             {t.checkin.technical.inspectionNotes}
                         </SectionLabel>
                     </SectionTitleRow>

@@ -553,7 +553,7 @@ export const pl: TranslationKeys = {
                 other: 'Inne',
             },
             inspectionNotes: 'Notatki',
-            inspectionNotesPlaceholder: 'Opisz widoczne uszkodzenia, stan lakieru, itp.',
+            inspectionNotesPlaceholder: 'Dodatkowe informacje',
         },
         photos: {
             title: 'Dokumentacja zdjęciowa',

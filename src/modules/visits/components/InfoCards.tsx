@@ -443,13 +443,6 @@ export const CustomerInfoCard = ({ customer, onViewDetails }: CustomerInfoCardPr
                         <StatBigValue>{customer.stats.totalVisits}</StatBigValue>
                     </StatBlock>
                 </StatsRow>
-
-                {customer.stats.vehiclesCount > 0 && (
-                    <StatMiniRow>
-                        <StatMiniLabel>Zarejestrowane pojazdy</StatMiniLabel>
-                        <StatMiniValue>{customer.stats.vehiclesCount}</StatMiniValue>
-                    </StatMiniRow>
-                )}
             </CustomerBody>
         </SidebarCard>
     );
