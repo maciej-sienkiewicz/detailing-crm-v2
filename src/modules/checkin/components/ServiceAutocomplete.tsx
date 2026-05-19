@@ -170,39 +170,39 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
                 <DropdownContainer>
                     {isLoading ? (
                         <EmptyState>Wyszukiwanie...</EmptyState>
-                    ) : services.length > 0 ? (
-                        <>
-                            {services.map((service) => {
-                                const priceNet = service.basePriceNet / 100;
-                                const priceGross = (service.basePriceNet * (100 + service.vatRate)) / 10000;
-
-                                return (
-                                    <SuggestionItem
-                                        key={service.id}
-                                        onClick={() => handleServiceSelect(service)}
-                                    >
-                                        <ServiceName>{service.name}</ServiceName>
-                                        {service.requireManualPrice ? (
-                                            <PriceInfo>
-                                                <div style={{ fontWeight: 600, color: '#f59e0b' }}>NIESTANDARDOWA</div>
-                                            </PriceInfo>
-                                        ) : (
-                                            <PriceInfo>
-                                                <div>
-                                                    <PriceLabel>Netto:</PriceLabel> {formatCurrency(priceNet)}
-                                                </div>
-                                                <div>
-                                                    <PriceLabel>Brutto:</PriceLabel> {formatCurrency(priceGross)}
-                                                </div>
-                                            </PriceInfo>
-                                        )}
-                                    </SuggestionItem>
-                                );
-                            })}
-                        </>
                     ) : (
                         <>
-                            <EmptyState>Nie znaleziono usług</EmptyState>
+                            {services.length > 0 ? (
+                                services.map((service) => {
+                                    const priceNet = service.basePriceNet / 100;
+                                    const priceGross = (service.basePriceNet * (100 + service.vatRate)) / 10000;
+
+                                    return (
+                                        <SuggestionItem
+                                            key={service.id}
+                                            onClick={() => handleServiceSelect(service)}
+                                        >
+                                            <ServiceName>{service.name}</ServiceName>
+                                            {service.requireManualPrice ? (
+                                                <PriceInfo>
+                                                    <div style={{ fontWeight: 600, color: '#f59e0b' }}>NIESTANDARDOWA</div>
+                                                </PriceInfo>
+                                            ) : (
+                                                <PriceInfo>
+                                                    <div>
+                                                        <PriceLabel>Netto:</PriceLabel> {formatCurrency(priceNet)}
+                                                    </div>
+                                                    <div>
+                                                        <PriceLabel>Brutto:</PriceLabel> {formatCurrency(priceGross)}
+                                                    </div>
+                                                </PriceInfo>
+                                            )}
+                                        </SuggestionItem>
+                                    );
+                                })
+                            ) : (
+                                <EmptyState>Nie znaleziono usług</EmptyState>
+                            )}
                             {onAddNew && searchQuery.trim().length > 0 && (
                                 <AddNewButton onClick={() => {
                                     onAddNew(searchQuery);

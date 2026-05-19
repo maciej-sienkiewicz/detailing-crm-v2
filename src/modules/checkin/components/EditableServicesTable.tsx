@@ -521,6 +521,9 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
     const [targetPrice, setTargetPrice] = useState('');
     const [discountInputValues, setDiscountInputValues] = useState<Record<string, string>>({});
     const [focusedDiscountFields, setFocusedDiscountFields] = useState<Record<string, boolean>>({});
+    const [isManualPriceModalOpen, setIsManualPriceModalOpen] = useState(false);
+    const [pendingManualPriceService, setPendingManualPriceService] = useState<Service | null>(null);
+    const [manualPriceInput, setManualPriceInput] = useState('');
     const queryClient = useQueryClient();
 
     const calculateServicePrice = (service: ServiceLineItem) => {
@@ -566,6 +569,35 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
     const openDiscountModal = () => { setIsDiscountModalOpen(true); setTargetPrice(''); };
     const closeDiscountModal = () => { setIsDiscountModalOpen(false); setTargetPrice(''); };
 
+    const handleServiceSelect = (s: Service) => {
+        if (s.requireManualPrice) {
+            setPendingManualPriceService(s);
+            setManualPriceInput('');
+            setIsManualPriceModalOpen(true);
+        } else {
+            onChange([...services, {
+                id: `${s.id}_${Date.now()}`, serviceId: s.id, serviceName: s.name,
+                basePriceNet: s.basePriceNet, vatRate: s.vatRate,
+                adjustment: { type: 'PERCENT', value: 0 }, note: '', requireManualPrice: false,
+            }]);
+        }
+    };
+
+    const handleConfirmManualPrice = () => {
+        if (!pendingManualPriceService) return;
+        const priceNet = parseFloat(manualPriceInput.replace(',', '.'));
+        if (isNaN(priceNet) || priceNet < 0) return;
+        const s = pendingManualPriceService;
+        onChange([...services, {
+            id: `${s.id}_${Date.now()}`, serviceId: s.id, serviceName: s.name,
+            basePriceNet: Math.round(priceNet * 100), vatRate: s.vatRate,
+            adjustment: { type: 'PERCENT', value: 0 }, note: '', requireManualPrice: true,
+        }]);
+        setIsManualPriceModalOpen(false);
+        setPendingManualPriceService(null);
+        setManualPriceInput('');
+    };
+
     const handleApplyDiscount = () => {
         const value = parseFloat(targetPrice);
         if (isNaN(value)) return;
@@ -581,10 +613,7 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
 
     return (
         <>
-            <ServiceAutocomplete onSelect={(s) => onChange([...services, {
-                id: `${s.id}_${Date.now()}`, serviceId: s.id, serviceName: s.name, basePriceNet: s.basePriceNet, vatRate: s.vatRate,
-                adjustment: { type: 'PERCENT', value: 0 }, note: '', requireManualPrice: s.requireManualPrice
-            }])} onAddNew={(q) => { setQuickServiceInitialName(q); setIsQuickServiceModalOpen(true); }} />
+            <ServiceAutocomplete onSelect={handleServiceSelect} onAddNew={(q) => { setQuickServiceInitialName(q); setIsQuickServiceModalOpen(true); }} />
 
             <TableContainer>
                 <Table>
@@ -735,6 +764,56 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
                 if (s.id) queryClient.invalidateQueries({ queryKey: ['services'] });
                 onChange([...services, { id: `temp_${Date.now()}`, serviceId: s.id || null, serviceName: s.name, basePriceNet: s.basePriceNet, vatRate: s.vatRate, adjustment: { type: 'PERCENT', value: 0 }, note: '' }]);
             }} />
+
+            <ModalShell isOpen={isManualPriceModalOpen} onClose={() => { setIsManualPriceModalOpen(false); setPendingManualPriceService(null); }} size="sm">
+                <ModalHeader>
+                    <ModalTitleGroup>
+                        <ModalTitle>Podaj cenę usługi</ModalTitle>
+                    </ModalTitleGroup>
+                    <ModalCloseButton type="button" onClick={() => { setIsManualPriceModalOpen(false); setPendingManualPriceService(null); }} aria-label="Zamknij">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </ModalCloseButton>
+                </ModalHeader>
+                <ModalContent>
+                    {pendingManualPriceService && (
+                        <div style={{ marginBottom: 4, fontWeight: 600, color: '#0f172a' }}>
+                            {pendingManualPriceService.name}
+                        </div>
+                    )}
+                    <div>
+                        <ModalFieldLabel>Cena netto (PLN)</ModalFieldLabel>
+                        <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={manualPriceInput}
+                            onChange={e => setManualPriceInput(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleConfirmManualPrice(); } }}
+                            placeholder="0.00"
+                            autoFocus
+                            style={{ width: '100%', boxSizing: 'border-box' }}
+                        />
+                        {manualPriceInput && !isNaN(parseFloat(manualPriceInput.replace(',', '.'))) && pendingManualPriceService && (
+                            <ModalTotalInfo>
+                                Brutto ({pendingManualPriceService.vatRate}% VAT):{' '}
+                                <strong>{formatCurrency(parseFloat(manualPriceInput.replace(',', '.')) * (1 + pendingManualPriceService.vatRate / 100))}</strong>
+                            </ModalTotalInfo>
+                        )}
+                    </div>
+                </ModalContent>
+                <ModalFooter>
+                    <SharedButton $variant="secondary" $size="sm" type="button" onClick={() => { setIsManualPriceModalOpen(false); setPendingManualPriceService(null); }}>
+                        Anuluj
+                    </SharedButton>
+                    <SharedButton $variant="primary" $size="sm" type="button" onClick={handleConfirmManualPrice}
+                        disabled={!manualPriceInput || isNaN(parseFloat(manualPriceInput.replace(',', '.')))}
+                    >
+                        Dodaj usługę
+                    </SharedButton>
+                </ModalFooter>
+            </ModalShell>
 
             <ModalShell isOpen={isDiscountModalOpen} onClose={closeDiscountModal} size="sm">
                 <ModalHeader>
