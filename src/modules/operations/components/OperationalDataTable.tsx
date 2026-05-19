@@ -7,7 +7,7 @@ import styled, { keyframes } from 'styled-components';
 import { useOperations } from '../hooks/useOperations';
 import { useDeleteOperation } from '../hooks/useDeleteOperation';
 import { useUpdateReservationDate, useCancelReservation, useUpdateOperationTitle } from '../hooks/useReservationActions';
-import { OperationStatusBadge, getStatusAccentColor } from './OperationStatusBadge';
+import { OperationStatusBadge, getStatusAccentColor, getStatusIcon } from './OperationStatusBadge';
 import { DeleteOperationModal } from './DeleteOperationModal';
 import { ChangeDateModal } from './ChangeDateModal';
 import { CancelReservationModal } from './CancelReservationModal';
@@ -108,14 +108,12 @@ const MainCell = styled.div`
     min-width: 0;
 `;
 
-const TypeBubble = styled.div<{ $isVisit: boolean }>`
+const TypeBubble = styled.div<{ $color: string }>`
     width: 38px;
     height: 38px;
     border-radius: 10px;
-    background: ${props => props.$isVisit
-        ? 'rgba(5, 150, 105, 0.10)'
-        : 'rgba(37, 99, 235, 0.10)'};
-    color: ${props => props.$isVisit ? '#059669' : '#2563EB'};
+    background: ${props => props.$color}18;
+    color: ${props => props.$color};
     display: flex;
     align-items: center;
     justify-content: center;
@@ -766,8 +764,8 @@ export const OperationalDataTable = ({
                                 >
                                     {/* Title */}
                                     <MainCell onClick={e => editingTitleId === op.id && e.stopPropagation()}>
-                                        <TypeBubble $isVisit={isVisit}>
-                                            {isVisit ? <CarIcon /> : <CalendarIcon />}
+                                        <TypeBubble $color={accentColor}>
+                                            {(() => { const Icon = getStatusIcon(op.status); return <Icon />; })()}
                                         </TypeBubble>
 
                                         <VehicleBlock>
