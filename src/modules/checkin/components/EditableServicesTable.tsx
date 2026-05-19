@@ -705,9 +705,6 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
                                     </Td>
                                     <Td data-label="Cena bazowa">
                                         <PriceCell>
-                                            {service.requireManualPrice && (
-                                                <CustomPriceLabel style={{ marginBottom: 4 }}>Cena niestandardowa</CustomPriceLabel>
-                                            )}
                                             <div><PriceLabel>Netto</PriceLabel> <PriceValue>{formatCurrency(service.basePriceNet / 100)}</PriceValue></div>
                                             <div><PriceLabel>Brutto</PriceLabel> <PriceValue>{formatCurrency((service.basePriceNet + Math.round(service.basePriceNet * service.vatRate / 100)) / 100)}</PriceValue></div>
                                         </PriceCell>

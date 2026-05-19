@@ -339,7 +339,7 @@ describe('EditableServicesTable', () => {
             expect(screen.getByText('Procent (%)')).toBeInTheDocument();
         });
 
-        it('wyświetla etykietę "Cena niestandardowa" oraz cenę w kolumnie bazowej', () => {
+        it('wyświetla cenę netto i brutto w kolumnie bazowej', () => {
             const customService = makeServiceLineItem({
                 id: 'line-custom',
                 serviceId: 'svc-2',
@@ -349,9 +349,6 @@ describe('EditableServicesTable', () => {
             });
             const { container } = renderTable([customService]);
 
-            expect(screen.getByText('Cena niestandardowa')).toBeInTheDocument();
-
-            // weryfikujemy że cena jest w kolumnie "Cena bazowa" (td[data-label])
             const basePriceTd = container.querySelector('td[data-label="Cena bazowa"]');
             expect(basePriceTd).not.toBeNull();
             expect(basePriceTd!.textContent).toContain('100,00');
