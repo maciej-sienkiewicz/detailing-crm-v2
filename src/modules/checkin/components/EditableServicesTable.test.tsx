@@ -323,10 +323,10 @@ describe('EditableServicesTable', () => {
         });
     });
 
-    // ── ukrycie rabatu dla NIESTANDARDOWA ─────────────────────────────────────
+    // ── rabat dostępny dla NIESTANDARDOWA ────────────────────────────────────
 
-    describe('ukrycie rabatu dla usługi NIESTANDARDOWA', () => {
-        it('nie renderuje sekcji rabatu dla usługi z requireManualPrice=true', () => {
+    describe('rabat dla usługi NIESTANDARDOWA', () => {
+        it('renderuje sekcję rabatu dla usługi z requireManualPrice=true', () => {
             const customService = makeServiceLineItem({
                 id: 'line-custom',
                 serviceId: 'svc-2',
@@ -336,16 +336,25 @@ describe('EditableServicesTable', () => {
             });
             renderTable([customService]);
 
-            // Typ rabatu i input rabatu nie powinny być widoczne
-            expect(screen.queryByText('Procent (%)')).not.toBeInTheDocument();
-            expect(screen.queryByText('Rabat netto')).not.toBeInTheDocument();
+            expect(screen.getByText('Procent (%)')).toBeInTheDocument();
         });
 
-        it('renderuje sekcję rabatu dla zwykłej usługi', () => {
-            const normalService = makeServiceLineItem();
-            renderTable([normalService]);
+        it('wyświetla etykietę "Cena niestandardowa" oraz cenę w kolumnie bazowej', () => {
+            const customService = makeServiceLineItem({
+                id: 'line-custom',
+                serviceId: 'svc-2',
+                serviceName: 'Usługa niestandardowa',
+                basePriceNet: 10000,
+                requireManualPrice: true,
+            });
+            const { container } = renderTable([customService]);
 
-            expect(screen.getByText('Procent (%)')).toBeInTheDocument();
+            expect(screen.getByText('Cena niestandardowa')).toBeInTheDocument();
+
+            // weryfikujemy że cena jest w kolumnie "Cena bazowa" (td[data-label])
+            const basePriceTd = container.querySelector('td[data-label="Cena bazowa"]');
+            expect(basePriceTd).not.toBeNull();
+            expect(basePriceTd!.textContent).toContain('100,00');
         });
     });
 });
