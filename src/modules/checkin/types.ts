@@ -60,7 +60,6 @@ export interface CheckInFormData {
         licensePlate?: string;
         vin?: string;
         color?: string;
-        paintType?: string;
     } | null;
     isNewVehicle: boolean; // Czy pojazd został utworzony teraz podczas check-in
     vehicleHandoff: {
@@ -178,7 +177,6 @@ export type CheckInVehicleIdentity =
             licensePlate?: string;
             vin?: string;
             color?: string;
-            paintType?: string;
         };
     }
     | {
@@ -191,7 +189,6 @@ export type CheckInVehicleIdentity =
             licensePlate?: string;
             vin?: string;
             color?: string;
-            paintType?: string;
         };
     };
 

@@ -53,7 +53,6 @@ interface LocationState {
         yearOfProduction?: number;
         licensePlate?: string;
         color?: string;
-        paintType?: string;
     };
 }
 

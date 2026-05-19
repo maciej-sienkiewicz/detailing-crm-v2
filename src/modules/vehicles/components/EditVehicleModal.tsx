@@ -56,7 +56,6 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
             model: vehicle.model,
             yearOfProduction: vehicle.yearOfProduction,
             color: vehicle.color,
-            paintType: vehicle.paintType || '',
             currentMileage: vehicle.currentMileage || 0,
         },
     });
@@ -185,21 +184,6 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                                 </InputShell>
                                 {errors.color && (
                                     <FormErrorMsg>{errors.color.message}</FormErrorMsg>
-                                )}
-                            </FormField>
-
-                            <FormField>
-                                <FieldLabel htmlFor="ev-paintType">Rodzaj lakieru</FieldLabel>
-                                <InputShell $hasError={!!errors.paintType}>
-                                    <BareInput
-                                        id="ev-paintType"
-                                        autoComplete="new-password"
-                                        {...register('paintType')}
-                                        placeholder="Lakier bazowy + lakier"
-                                    />
-                                </InputShell>
-                                {errors.paintType && (
-                                    <FormErrorMsg>{errors.paintType.message}</FormErrorMsg>
                                 )}
                             </FormField>
 

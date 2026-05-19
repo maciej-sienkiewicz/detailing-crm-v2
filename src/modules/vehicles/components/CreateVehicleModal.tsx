@@ -58,7 +58,6 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
             model: '',
             yearOfProduction: new Date().getFullYear(),
             color: '',
-            paintType: '',
             currentMileage: 0,
             technicalNotes: '',
             ownerIds: [],
@@ -73,7 +72,6 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
             yearOfProduction: data.yearOfProduction,
             color: data.color,
             ownerIds: data.ownerIds,
-            ...(data.paintType && { paintType: data.paintType }),
             ...(data.currentMileage && { currentMileage: data.currentMileage }),
             ...(data.technicalNotes && { technicalNotes: data.technicalNotes }),
         };
@@ -213,23 +211,6 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
                                 </InputShell>
                                 {errors.color && (
                                     <FormErrorMsg>{errors.color.message}</FormErrorMsg>
-                                )}
-                            </FormField>
-
-                            <FormField>
-                                <FieldLabel htmlFor="cv-paintType">
-                                    {t.vehicles.form.paintType}
-                                </FieldLabel>
-                                <InputShell $hasError={!!errors.paintType}>
-                                    <BareInput
-                                        id="cv-paintType"
-                                        autoComplete="new-password"
-                                        {...register('paintType')}
-                                        placeholder={t.vehicles.form.paintTypePlaceholder}
-                                    />
-                                </InputShell>
-                                {errors.paintType && (
-                                    <FormErrorMsg>{errors.paintType.message}</FormErrorMsg>
                                 )}
                             </FormField>
 

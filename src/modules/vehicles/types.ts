@@ -52,7 +52,6 @@ export interface Vehicle {
     model: string;
     yearOfProduction: number;
     color: string;
-    paintType: string | null;
     currentMileage: number | null;
     status: VehicleStatus;
     technicalNotes: string;
@@ -111,7 +110,6 @@ export interface CreateVehiclePayload {
     model: string;
     yearOfProduction: number;
     color: string;
-    paintType?: string;
     currentMileage?: number;
     technicalNotes?: string;
     ownerIds: string[];
@@ -120,7 +118,6 @@ export interface CreateVehiclePayload {
 export interface UpdateVehiclePayload {
     licensePlate?: string;
     color?: string;
-    paintType?: string;
     currentMileage?: number;
     technicalNotes?: string;
     status?: VehicleStatus;

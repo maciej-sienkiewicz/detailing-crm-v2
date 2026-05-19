@@ -112,7 +112,6 @@ export const AppointmentEditView = () => {
                     yearOfProduction: appointment.vehicle.year,
                     licensePlate: appointment.vehicle.licensePlate,
                     color: appointment.vehicle.color,
-                    paintType: appointment.vehicle.paintType,
                 }
                 : null,
             isNewVehicle: false,
@@ -279,7 +278,6 @@ export const AppointmentEditView = () => {
                             yearOfProduction: formData.vehicleData.yearOfProduction,
                             licensePlate: formData.vehicleData.licensePlate || undefined,
                             color: formData.vehicleData.color,
-                            paintType: formData.vehicleData.paintType,
                         },
                     }
                     : {
@@ -291,7 +289,6 @@ export const AppointmentEditView = () => {
                             yearOfProduction: formData.vehicleData.yearOfProduction,
                             licensePlate: formData.vehicleData.licensePlate || undefined,
                             color: formData.vehicleData.color,
-                            paintType: formData.vehicleData.paintType,
                         },
                     },
             services: formData.services,
