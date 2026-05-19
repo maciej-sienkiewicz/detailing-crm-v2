@@ -46,7 +46,7 @@ const fadeIn = keyframes`
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
-const COLS = '1fr 160px 160px 148px 138px 162px 44px';
+const COLS = '1fr 160px 160px 148px 138px 44px';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -725,7 +725,6 @@ export const OperationalDataTable = ({
                         <HeaderCell>Klient</HeaderCell>
                         <HeaderCell>Data przyjazdu</HeaderCell>
                         <HeaderCell>Wartość</HeaderCell>
-                        <HeaderCell>Status</HeaderCell>
                         <HeaderCell />
                     </HeaderRow>
 
@@ -821,9 +820,7 @@ export const OperationalDataTable = ({
                                                 </TitleEditRow>
                                             )}
                                             <RowMeta>
-                                                <TypeTag $isVisit={isVisit}>
-                                                    {isVisit ? 'Wizyta' : 'Rezerwacja'}
-                                                </TypeTag>
+                                                <OperationStatusBadge status={op.status} />
                                             </RowMeta>
                                             {!isVisit && op.smsInfo && (
                                                 <SmsInfoRow>
@@ -886,11 +883,6 @@ export const OperationalDataTable = ({
                                             netto {formatCurrency(op.financials.netAmount, op.financials.currency)}
                                         </NetAmt>
                                     </AmountCellWrap>
-
-                                    {/* Status */}
-                                    <div>
-                                        <OperationStatusBadge status={op.status} />
-                                    </div>
 
                                     {/* Actions */}
                                     <ActionsCellWrap onClick={e => e.stopPropagation()}>

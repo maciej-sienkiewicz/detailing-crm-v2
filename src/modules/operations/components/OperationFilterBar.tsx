@@ -8,10 +8,10 @@ import type { FilterStatus } from '../types';
 
 const chipColor: Record<FilterStatus | 'ALL', string> = {
     ALL:              st.accentBlue,
-    RESERVATIONS:     '#2563EB',
-    IN_PROGRESS:      '#059669',
+    RESERVATIONS:     '#7C3AED',
+    IN_PROGRESS:      '#2563EB',
     READY_FOR_PICKUP: '#D97706',
-    COMPLETED:        '#64748B',
+    COMPLETED:        '#059669',
     REJECTED:         '#DC2626',
     ARCHIVED:         '#94A3B8',
 };
