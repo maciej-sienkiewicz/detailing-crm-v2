@@ -611,13 +611,15 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
         const parsed = parseFloat(manualPriceInput.replace(',', '.'));
         if (isNaN(parsed) || parsed < 0) return;
         const s = pendingManualPriceService;
-        const priceNetCents = manualPriceMode === 'GROSS'
-            ? Math.round(parsed * 100 / (1 + s.vatRate / 100))
-            : Math.round(parsed * 100);
+        const valueCents = Math.round(parsed * 100);
         onChange([...services, {
             id: `${s.id}_${Date.now()}`, serviceId: s.id, serviceName: s.name,
-            basePriceNet: priceNetCents, vatRate: s.vatRate,
-            adjustment: { type: 'PERCENT', value: 0 }, note: '', requireManualPrice: true,
+            basePriceNet: 0, vatRate: s.vatRate,
+            adjustment: {
+                type: manualPriceMode === 'GROSS' ? 'SET_GROSS' : 'SET_NET',
+                value: valueCents,
+            },
+            note: '', requireManualPrice: true,
         }]);
         setIsManualPriceModalOpen(false);
         setPendingManualPriceService(null);
@@ -705,9 +707,6 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
                                     </Td>
                                     <Td data-label="Cena bazowa">
                                         <PriceCell>
-                                            {service.requireManualPrice && (
-                                                <CustomPriceLabel style={{ marginBottom: 4 }}>Cena niestandardowa</CustomPriceLabel>
-                                            )}
                                             <div><PriceLabel>Netto</PriceLabel> <PriceValue>{formatCurrency(service.basePriceNet / 100)}</PriceValue></div>
                                             <div><PriceLabel>Brutto</PriceLabel> <PriceValue>{formatCurrency((service.basePriceNet + Math.round(service.basePriceNet * service.vatRate / 100)) / 100)}</PriceValue></div>
                                         </PriceCell>

@@ -174,6 +174,17 @@ const VisitTitle = styled.h1`
     white-space: nowrap;
 `;
 
+const TitlePlaceholder = styled.h1`
+    margin: 0;
+    font-size: 26px;
+    font-weight: 300;
+    font-style: italic;
+    letter-spacing: -0.2px;
+    line-height: 1.15;
+    color: rgba(148, 163, 184, 0.45);
+    white-space: nowrap;
+`;
+
 const TitleMutedSep = styled.span`
     color: #64748b;
     font-weight: 400;
@@ -449,20 +460,29 @@ export const VisitHeader = ({
                             </>
                         ) : (
                             <>
-                                <VisitTitle>
-                                    {visit.title}
-                                    {onTitleUpdate && (
-                                        <PencilBtn onClick={startEditTitle} title="Edytuj tytuł wizyty">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                            </svg>
-                                        </PencilBtn>
-                                    )}
-                                    {vehicleLabel && (
-                                        <> <TitleMutedSep></TitleMutedSep> {vehicleLabel}</>
-                                    )}
-                                </VisitTitle>
+                                {visit.title ? (
+                                    <VisitTitle>
+                                        {visit.title}
+                                        {onTitleUpdate && (
+                                            <PencilBtn onClick={startEditTitle} title="Edytuj tytuł wizyty">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                </svg>
+                                            </PencilBtn>
+                                        )}
+                                        {vehicleLabel && (
+                                            <> <TitleMutedSep></TitleMutedSep> {vehicleLabel}</>
+                                        )}
+                                    </VisitTitle>
+                                ) : (
+                                    <TitlePlaceholder onClick={onTitleUpdate ? startEditTitle : undefined} style={onTitleUpdate ? { cursor: 'pointer' } : undefined}>
+                                        Uzupełnij tytuł wizyty...
+                                        {vehicleLabel && (
+                                            <> <TitleMutedSep></TitleMutedSep> {vehicleLabel}</>
+                                        )}
+                                    </TitlePlaceholder>
+                                )}
                             </>
                         )}
                     </TitleRow>

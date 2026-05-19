@@ -265,7 +265,7 @@ describe('EditableServicesTable', () => {
             expect(screen.getByRole('button', { name: 'Netto' })).toBeInTheDocument();
         });
 
-        it('dodaje usługę z poprawną ceną netto po wpisaniu ceny brutto', async () => {
+        it('dodaje usługę z basePriceNet=0 i adjustment SET_GROSS po wpisaniu ceny brutto', async () => {
             mockUseQuery.mockReturnValue({ data: { services: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
             const user = userEvent.setup();
             const { onChange } = renderTable([]);
@@ -283,12 +283,13 @@ describe('EditableServicesTable', () => {
             expect(onChange).toHaveBeenCalledOnce();
             const [newList] = onChange.mock.calls[0];
             expect(newList).toHaveLength(1);
-            // 123 brutto / 1.23 (VAT 23%) = 100 netto = 10000 centów
-            expect(newList[0].basePriceNet).toBe(10000);
+            expect(newList[0].basePriceNet).toBe(0);
+            expect(newList[0].adjustment.type).toBe('SET_GROSS');
+            expect(newList[0].adjustment.value).toBe(12300);
             expect(newList[0].requireManualPrice).toBe(true);
         });
 
-        it('dodaje usługę z poprawną ceną netto po wpisaniu ceny netto', async () => {
+        it('dodaje usługę z basePriceNet=0 i adjustment SET_NET po wpisaniu ceny netto', async () => {
             mockUseQuery.mockReturnValue({ data: { services: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
             const user = userEvent.setup();
             const { onChange } = renderTable([]);
@@ -297,7 +298,6 @@ describe('EditableServicesTable', () => {
             await user.type(autocompleteInput, 'niest');
             await user.click(await screen.findByText('Usługa niestandardowa'));
 
-            // przełączamy na Netto
             await user.click(screen.getByRole('button', { name: 'Netto' }));
 
             const priceInput = screen.getByPlaceholderText('0.00');
@@ -307,7 +307,9 @@ describe('EditableServicesTable', () => {
 
             expect(onChange).toHaveBeenCalledOnce();
             const [newList] = onChange.mock.calls[0];
-            expect(newList[0].basePriceNet).toBe(10000);
+            expect(newList[0].basePriceNet).toBe(0);
+            expect(newList[0].adjustment.type).toBe('SET_NET');
+            expect(newList[0].adjustment.value).toBe(10000);
         });
 
         it('przycisk "Dodaj usługę" jest nieaktywny gdy pole ceny jest puste', async () => {
@@ -339,7 +341,7 @@ describe('EditableServicesTable', () => {
             expect(screen.getByText('Procent (%)')).toBeInTheDocument();
         });
 
-        it('wyświetla etykietę "Cena niestandardowa" oraz cenę w kolumnie bazowej', () => {
+        it('wyświetla cenę netto i brutto w kolumnie bazowej', () => {
             const customService = makeServiceLineItem({
                 id: 'line-custom',
                 serviceId: 'svc-2',
@@ -349,9 +351,6 @@ describe('EditableServicesTable', () => {
             });
             const { container } = renderTable([customService]);
 
-            expect(screen.getByText('Cena niestandardowa')).toBeInTheDocument();
-
-            // weryfikujemy że cena jest w kolumnie "Cena bazowa" (td[data-label])
             const basePriceTd = container.querySelector('td[data-label="Cena bazowa"]');
             expect(basePriceTd).not.toBeNull();
             expect(basePriceTd!.textContent).toContain('100,00');
