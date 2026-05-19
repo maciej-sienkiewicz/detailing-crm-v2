@@ -447,6 +447,27 @@ const ModalTotalInfo = styled.p`
     color: #64748b;
 `;
 
+const PriceModeToggle = styled.div`
+    display: flex;
+    border: 1px solid ${props => props.theme.colors.border};
+    border-radius: ${props => props.theme.radii.md};
+    overflow: hidden;
+    margin-bottom: 12px;
+`;
+
+const PriceModeBtn = styled.button<{ $active: boolean }>`
+    flex: 1;
+    padding: 6px 0;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: ${p => p.$active ? 600 : 400};
+    background: ${p => p.$active ? '#2563eb' : 'transparent'};
+    color: ${p => p.$active ? '#fff' : '#64748b'};
+    transition: background 150ms ease, color 150ms ease;
+    &:hover { background: ${p => p.$active ? '#1d4ed8' : '#f1f5f9'}; }
+`;
+
 const DISCOUNT_TYPE_OPTIONS = [
     { value: 'PERCENT', label: 'Procent (%)' },
     { value: 'FIXED_NET', label: 'Rabat netto' },
@@ -524,6 +545,7 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
     const [isManualPriceModalOpen, setIsManualPriceModalOpen] = useState(false);
     const [pendingManualPriceService, setPendingManualPriceService] = useState<Service | null>(null);
     const [manualPriceInput, setManualPriceInput] = useState('');
+    const [manualPriceMode, setManualPriceMode] = useState<'NET' | 'GROSS'>('GROSS');
     const queryClient = useQueryClient();
 
     const calculateServicePrice = (service: ServiceLineItem) => {
@@ -573,6 +595,7 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
         if (s.requireManualPrice) {
             setPendingManualPriceService(s);
             setManualPriceInput('');
+            setManualPriceMode('GROSS');
             setIsManualPriceModalOpen(true);
         } else {
             onChange([...services, {
@@ -585,12 +608,15 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
 
     const handleConfirmManualPrice = () => {
         if (!pendingManualPriceService) return;
-        const priceNet = parseFloat(manualPriceInput.replace(',', '.'));
-        if (isNaN(priceNet) || priceNet < 0) return;
+        const parsed = parseFloat(manualPriceInput.replace(',', '.'));
+        if (isNaN(parsed) || parsed < 0) return;
         const s = pendingManualPriceService;
+        const priceNetCents = manualPriceMode === 'GROSS'
+            ? Math.round(parsed * 100 / (1 + s.vatRate / 100))
+            : Math.round(parsed * 100);
         onChange([...services, {
             id: `${s.id}_${Date.now()}`, serviceId: s.id, serviceName: s.name,
-            basePriceNet: Math.round(priceNet * 100), vatRate: s.vatRate,
+            basePriceNet: priceNetCents, vatRate: s.vatRate,
             adjustment: { type: 'PERCENT', value: 0 }, note: '', requireManualPrice: true,
         }]);
         setIsManualPriceModalOpen(false);
@@ -778,12 +804,20 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
                 </ModalHeader>
                 <ModalContent>
                     {pendingManualPriceService && (
-                        <div style={{ marginBottom: 4, fontWeight: 600, color: '#0f172a' }}>
+                        <div style={{ marginBottom: 12, fontWeight: 600, color: '#0f172a' }}>
                             {pendingManualPriceService.name}
                         </div>
                     )}
+                    <PriceModeToggle>
+                        <PriceModeBtn type="button" $active={manualPriceMode === 'GROSS'} onClick={() => { setManualPriceMode('GROSS'); setManualPriceInput(''); }}>
+                            Brutto
+                        </PriceModeBtn>
+                        <PriceModeBtn type="button" $active={manualPriceMode === 'NET'} onClick={() => { setManualPriceMode('NET'); setManualPriceInput(''); }}>
+                            Netto
+                        </PriceModeBtn>
+                    </PriceModeToggle>
                     <div>
-                        <ModalFieldLabel>Cena netto (PLN)</ModalFieldLabel>
+                        <ModalFieldLabel>Cena {manualPriceMode === 'GROSS' ? 'brutto' : 'netto'} (PLN)</ModalFieldLabel>
                         <Input
                             type="number"
                             min="0"
@@ -795,12 +829,19 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
                             autoFocus
                             style={{ width: '100%', boxSizing: 'border-box' }}
                         />
-                        {manualPriceInput && !isNaN(parseFloat(manualPriceInput.replace(',', '.'))) && pendingManualPriceService && (
-                            <ModalTotalInfo>
-                                Brutto ({pendingManualPriceService.vatRate}% VAT):{' '}
-                                <strong>{formatCurrency(parseFloat(manualPriceInput.replace(',', '.')) * (1 + pendingManualPriceService.vatRate / 100))}</strong>
-                            </ModalTotalInfo>
-                        )}
+                        {manualPriceInput && !isNaN(parseFloat(manualPriceInput.replace(',', '.'))) && pendingManualPriceService && (() => {
+                            const parsed = parseFloat(manualPriceInput.replace(',', '.'));
+                            const vat = pendingManualPriceService.vatRate;
+                            const other = manualPriceMode === 'GROSS'
+                                ? parsed / (1 + vat / 100)
+                                : parsed * (1 + vat / 100);
+                            const otherLabel = manualPriceMode === 'GROSS' ? 'Netto' : 'Brutto';
+                            return (
+                                <ModalTotalInfo>
+                                    {otherLabel} ({vat}% VAT): <strong>{formatCurrency(other)}</strong>
+                                </ModalTotalInfo>
+                            );
+                        })()}
                     </div>
                 </ModalContent>
                 <ModalFooter>
