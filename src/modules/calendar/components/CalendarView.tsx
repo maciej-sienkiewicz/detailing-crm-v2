@@ -743,6 +743,30 @@ const NewEventBtn = styled.button`
     svg { width: 14px; height: 14px; flex-shrink: 0; }
 `;
 
+const NewVisitBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 9999px;
+    background: #059669;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.28);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 150ms ease, box-shadow 150ms ease;
+
+    &:hover {
+        background: #047857;
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.38);
+    }
+
+    svg { width: 14px; height: 14px; flex-shrink: 0; }
+`;
+
 interface CalendarViewProps {
     onViewChange?: (view: CalendarViewType) => void;
 }
@@ -1169,6 +1193,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                             </svg>
                             Nowa rezerwacja
                         </NewEventBtn>
+
+                        <NewVisitBtn onClick={() => navigate('/checkin/new')}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            Nowa wizyta
+                        </NewVisitBtn>
                     </PageHeaderRight>
                 </DesktopPageHeader>
 
