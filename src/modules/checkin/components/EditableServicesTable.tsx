@@ -612,13 +612,15 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
         if (isNaN(parsed) || parsed < 0) return;
         const s = pendingManualPriceService;
         const valueCents = Math.round(parsed * 100);
+        // Store as basePriceNet so the discount cell works normally in the table.
+        // toApiServiceLineItem() will collapse it to SET_NET=finalNet before submission.
+        const basePriceNet = manualPriceMode === 'GROSS'
+            ? Math.round(valueCents / (1 + s.vatRate / 100))
+            : valueCents;
         onChange([...services, {
             id: `${s.id}_${Date.now()}`, serviceId: s.id, serviceName: s.name,
-            basePriceNet: 0, vatRate: s.vatRate,
-            adjustment: {
-                type: manualPriceMode === 'GROSS' ? 'SET_GROSS' : 'SET_NET',
-                value: valueCents,
-            },
+            basePriceNet, vatRate: s.vatRate,
+            adjustment: { type: 'PERCENT', value: 0 },
             note: '', requireManualPrice: true,
         }]);
         setIsManualPriceModalOpen(false);

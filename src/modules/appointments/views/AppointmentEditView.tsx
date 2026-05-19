@@ -13,6 +13,7 @@ import type { AppointmentCreateRequest } from '@/modules/appointments/types';
 import { Button } from '@/common/components/Button';
 import { t } from '@/common/i18n';
 import { toInstant, fromInstantToLocalInput } from '@/common/dateTime';
+import { toApiServiceLineItem } from '@/common/utils/priceAdjustment';
 import { SmsReminderEditSection } from '../components/SmsReminderEditSection';
 import type { AppointmentSmsInfo } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -291,7 +292,7 @@ export const AppointmentEditView = () => {
                             color: formData.vehicleData.color,
                         },
                     },
-            services: formData.services,
+            services: formData.services.map(toApiServiceLineItem),
             schedule: {
                 isAllDay: false,
                 startDateTime: startInstant,

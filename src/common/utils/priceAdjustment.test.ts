@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyAdjustment, distributeAdjustment } from './priceAdjustment';
+import { applyAdjustment, distributeAdjustment, toApiServiceLineItem } from './priceAdjustment';
 
 // ─── applyAdjustment ─────────────────────────────────────────────────────────
 
@@ -242,5 +242,33 @@ describe('distributeAdjustment', () => {
             const result = distributeAdjustment([svc(10000), svc(5000)], 'SET_GROSS', 9000);
             result.forEach(adj => expect(adj.type).toBe('SET_GROSS'));
         });
+    });
+});
+
+// ─── toApiServiceLineItem ─────────────────────────────────────────────────────
+
+describe('toApiServiceLineItem', () => {
+    const base = { vatRate: 23 as const, serviceId: 'svc-1', serviceName: 'Test', id: 'line-1', note: '' };
+
+    it('leaves non-manual services unchanged', () => {
+        const svc = { ...base, basePriceNet: 10000, adjustment: { type: 'PERCENT' as const, value: -10 }, requireManualPrice: false };
+        expect(toApiServiceLineItem(svc)).toEqual(svc);
+    });
+
+    it('collapses manual service with PERCENT discount to SET_NET=finalNet', () => {
+        // basePriceNet=10000, 10% discount → finalNet = 9000
+        const svc = { ...base, basePriceNet: 10000, adjustment: { type: 'PERCENT' as const, value: -10 }, requireManualPrice: true };
+        const result = toApiServiceLineItem(svc);
+        expect(result.basePriceNet).toBe(0);
+        expect(result.adjustment.type).toBe('SET_NET');
+        expect(result.adjustment.value).toBe(9000);
+    });
+
+    it('collapses manual service with no discount to SET_NET=basePriceNet', () => {
+        const svc = { ...base, basePriceNet: 10000, adjustment: { type: 'PERCENT' as const, value: 0 }, requireManualPrice: true };
+        const result = toApiServiceLineItem(svc);
+        expect(result.basePriceNet).toBe(0);
+        expect(result.adjustment.type).toBe('SET_NET');
+        expect(result.adjustment.value).toBe(10000);
     });
 });
