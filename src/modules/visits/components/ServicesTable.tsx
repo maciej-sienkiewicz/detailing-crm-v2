@@ -652,7 +652,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editNetStr, setEditNetStr] = useState('');
     const [editGrossStr, setEditGrossStr] = useState('');
-    const [editedPrices, setEditedPrices] = useState<Record<string, number>>({}); // id → basePriceNet (cents)
+    const [editLastField, setEditLastField] = useState<'net' | 'gross'>('gross');
+    const [editedPrices, setEditedPrices] = useState<Record<string, { basePriceNet: number; adjustment: { type: 'SET_NET' | 'SET_GROSS'; value: number } }>>({}); // id → price override
 
     const epln = (c: number) => c / 100;
     const eCents = (v: number) => Math.round(v * 100);
@@ -663,7 +664,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
     const startEditPrice = (service: ServiceLineItem) => {
         const pricing = calculateServicePrice(service);
-        const netCents = editedPrices[service.id] ?? pricing.finalPriceNet;
+        const netCents = editedPrices[service.id]?.basePriceNet ?? pricing.finalPriceNet;
         const netPln = epln(netCents);
         setEditingId(service.id);
         setEditNetStr(eFmt(netPln));
@@ -672,7 +673,13 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
     const confirmEditPrice = (serviceId: string) => {
         const net = eParse(editNetStr);
-        if (net !== null) setEditedPrices(prev => ({ ...prev, [serviceId]: eCents(net) }));
+        const gross = eParse(editGrossStr);
+        if (net !== null) {
+            const adjustment = editLastField === 'gross' && gross !== null
+                ? { type: 'SET_GROSS' as const, value: eCents(gross) }
+                : { type: 'SET_NET' as const, value: eCents(net) };
+            setEditedPrices(prev => ({ ...prev, [serviceId]: { basePriceNet: eCents(net), adjustment } }));
+        }
         setEditingId(null);
     };
 
@@ -680,6 +687,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
     const handleEditNetChange = (val: string, vatRate: number) => {
         if (val && !/^[0-9]*[,.]?[0-9]{0,2}$/.test(val)) return;
+        setEditLastField('net');
         setEditNetStr(val);
         const n = eParse(val);
         if (n !== null) setEditGrossStr(eFmt(eGrossFromNet(n, vatRate)));
@@ -687,6 +695,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
     const handleEditGrossChange = (val: string, vatRate: number) => {
         if (val && !/^[0-9]*[,.]?[0-9]{0,2}$/.test(val)) return;
+        setEditLastField('gross');
         setEditGrossStr(val);
         const g = eParse(val);
         if (g !== null) setEditNetStr(eFmt(eNetFromGross(g, vatRate)));
@@ -763,9 +772,10 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 adjustment: { type: 'FIXED_NET', value: 0 },
                 note: '',
             })),
-            updated: Object.entries(editedPrices).map(([serviceLineItemId, basePriceNet]) => ({
+            updated: Object.entries(editedPrices).map(([serviceLineItemId, { basePriceNet, adjustment }]) => ({
                 serviceLineItemId,
                 basePriceNet,
+                adjustment,
             })),
             deleted: Array.from(deletedIds).map(id => ({ serviceLineItemId: id })),
         };
@@ -804,7 +814,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 totalVat += Math.max(gross - net, 0);
                 totalOriginalGross += gross;
             } else if (editedPrices[service.id] !== undefined) {
-                const net = editedPrices[service.id];
+                const net = editedPrices[service.id].basePriceNet;
                 const gross = Math.round(net * (1 + service.vatRate / 100));
                 totalFinalNet += net;
                 totalFinalGross += gross;
@@ -961,7 +971,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                             if (hasEditedPrice) {
                                                 return (
                                                     <EditedPriceWrap>
-                                                        <PriceValue>{formatCurrency(editedPrices[service.id] / 100)}</PriceValue>
+                                                        <PriceValue>{formatCurrency(editedPrices[service.id].basePriceNet / 100)}</PriceValue>
                                                         <EditedBadge>Zmieniona</EditedBadge>
                                                     </EditedPriceWrap>
                                                 );
@@ -1025,7 +1035,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                                 );
                                             }
                                             if (hasEditedPrice) {
-                                                const editedGross = Math.round(editedPrices[service.id] * (1 + service.vatRate / 100));
+                                                const editedGross = Math.round(editedPrices[service.id].basePriceNet * (1 + service.vatRate / 100));
                                                 return (
                                                     <EditedPriceWrap>
                                                         <PriceValue>{formatCurrency(editedGross / 100)}</PriceValue>

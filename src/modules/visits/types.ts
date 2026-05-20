@@ -240,6 +240,10 @@ export interface ServicesChangesPayload {
     updated: Array<{
         serviceLineItemId: string;
         basePriceNet: number;
+        adjustment: {
+            type: 'SET_NET' | 'SET_GROSS';
+            value: number;
+        };
     }>;
     deleted: Array<{
         serviceLineItemId: string;
