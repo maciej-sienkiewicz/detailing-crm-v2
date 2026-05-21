@@ -37,9 +37,9 @@ function normalizeWeekly(profiles: ProfileSummary[]): DataPoint[] {
             pt[`${p.id}_posts`]    = w?.postCount  ?? 0;
             pt[`${p.id}_stories`]  = w?.storyCount ?? 0;
             pt[`${p.id}_activity`] = (w?.postCount ?? 0) + (w?.storyCount ?? 0);
-            // null when no posts that week — prevents misleading zero on the avg line
-            pt[`${p.id}_likes`]    = w && w.postCount > 0 ? (w.avgLikes    ?? null) : null;
-            pt[`${p.id}_comments`] = w && w.postCount > 0 ? (w.avgComments ?? null) : null;
+            // null when no posts that week — prevents misleading zero on the line
+            pt[`${p.id}_likes`]    = w && w.postCount > 0 ? (w.totalLikes    ?? null) : null;
+            pt[`${p.id}_comments`] = w && w.postCount > 0 ? (w.totalComments ?? null) : null;
         });
         return pt;
     });
@@ -265,7 +265,15 @@ const WeeklyTooltip = ({ active, payload, label, profiles, colorMap, mode }: Too
                     return (
                         <TooltipRow key={p.id} $color={color}>
                             <span style={{ flex: 1 }}>@{p.username}</span>
-                            <span>{posts} post{posts !== 1 ? 'y' : ''} · ❤️ {fmt(likes)} · 💬 {fmt(comments)}</span>
+                            <span>
+                                {posts} post{posts !== 1 ? 'y' : ''}
+                                {' · '}
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="#e11d48" stroke="none" style={{ verticalAlign: 'middle', marginRight: 2 }}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                                {fmt(likes)}
+                                {' · '}
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" strokeWidth="2" style={{ verticalAlign: 'middle', marginRight: 2 }}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                {fmt(comments)}
+                            </span>
                         </TooltipRow>
                     );
                 }
@@ -373,7 +381,7 @@ function PostsChart({ weekData, profiles, colorMap }: { weekData: DataPoint[]; p
     const bs = barSize(weekData.length, profiles.length);
     return (
         <>
-            <SubLabel>Posty / tydzień · Śr. lajki (tylko tygodnie z postami)</SubLabel>
+            <SubLabel>Posty / tydzień · Suma lajków (tylko tygodnie z postami)</SubLabel>
             <ChartArea>
                 <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={weekData} margin={{ top: 4, right: 40, left: 0, bottom: 0 }}>
@@ -391,7 +399,7 @@ function PostsChart({ weekData, profiles, colorMap }: { weekData: DataPoint[]; p
                             <Line key={`line-${p.id}`} yAxisId="right" type="monotone"
                                 dataKey={`${p.id}_likes`} stroke={colorMap[p.id]}
                                 strokeWidth={2} dot={false} strokeDasharray="4 2"
-                                name={`${p.username} avg ❤️`} connectNulls />
+                                name={`${p.username} suma lajków`} connectNulls />
                         ))}
                     </ComposedChart>
                 </ResponsiveContainer>

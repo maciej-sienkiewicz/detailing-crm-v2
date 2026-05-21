@@ -25,6 +25,8 @@ export interface WeeklyStat {
     weekStart: string;   // "YYYY-MM-DD" — Monday of that week
     postCount: number;
     storyCount: number;
+    totalLikes: number;
+    totalComments: number;
     avgLikes: number;
     avgComments: number;
 }

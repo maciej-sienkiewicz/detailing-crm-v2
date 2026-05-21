@@ -197,12 +197,17 @@ const makeWeeks = (base: number, variance: number, storiesBase: number, count = 
         d.setDate(d.getDate() - i * 7);
         const day = d.getDay();
         d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+        const avgLikes    = Math.max(0, Math.round(rng()));
+        const avgComments = Math.max(0, Math.round(Math.abs(rng()) * 0.12));
+        const postCount   = Math.max(0, Math.floor(1 + Math.abs(rng()) / base * 1.5));
         weeks.push({
-            weekStart: d.toISOString().slice(0, 10),
-            avgLikes: Math.max(0, Math.round(rng())),
-            avgComments: Math.max(0, Math.round(Math.abs(rng()) * 0.12)),
-            postCount: Math.max(0, Math.floor(1 + Math.abs(rng()) / base * 1.5)),
-            storyCount: Math.max(0, Math.round(Math.abs(rngS()))),
+            weekStart:     d.toISOString().slice(0, 10),
+            avgLikes,
+            avgComments,
+            postCount,
+            storyCount:    Math.max(0, Math.round(Math.abs(rngS()))),
+            totalLikes:    avgLikes    * postCount,
+            totalComments: avgComments * postCount,
         });
     }
     return weeks;
