@@ -1442,7 +1442,12 @@ const InlineNameInput = styled.input`
   &::placeholder { color: #c0cad8; }
 `;
 
-const InlinePriceInput = styled.input`
+const pricePulse = keyframes`
+  0%, 100% { background: rgba(239, 68, 68, 0.08); }
+  50%       { background: rgba(239, 68, 68, 0.25); }
+`;
+
+const InlinePriceInput = styled.input<{ $pulse?: boolean }>`
   border: none;
   background: transparent;
   outline: none;
@@ -1459,6 +1464,10 @@ const InlinePriceInput = styled.input`
 
   &:focus { color: ${st.text}; background: rgba(14,165,233,0.07); }
   &::placeholder { color: #c0cad8; }
+
+  ${props => props.$pulse && css`
+    animation: ${pricePulse} 0.6s ease-in-out 3;
+  `}
 
   /* hide browser number arrows */
   -moz-appearance: textfield;
@@ -2582,7 +2591,7 @@ interface UserQuoteEditorProps {
 const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote, prefillItems, onSaved, onDeleted }) => {
   const saveQuote   = useSaveUserQuote(leadId);
   const deleteQuote = useDeleteUserQuote(leadId);
-  const { showSuccess } = useToast();
+  const { showSuccess, showWarning } = useToast();
 
   const emptyItem = (): UserQuoteItem => ({ _key: `new-${Date.now()}`, serviceName: '', priceNet: '', vatRate: 23, priceGross: '' });
 
@@ -2606,21 +2615,31 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
       priceGross: (item.priceGross / 100).toFixed(2),
     }));
 
-  const [items, setItems] = useState<UserQuoteItem[]>(() => {
+  const buildInitialItems = (): UserQuoteItem[] => {
     if (existingQuote) return buildItemsFromQuote(existingQuote);
     if (prefillItems?.length) return buildItemsFromEstimation(prefillItems);
     return [emptyItem()];
-  });
+  };
+
+  const [items, setItems] = useState<UserQuoteItem[]>(buildInitialItems);
+  const [savedItems, setSavedItems] = useState<UserQuoteItem[]>(buildInitialItems);
+  const [pulseKeys, setPulseKeys] = useState<Set<string>>(new Set());
+
   useEffect(() => {
-    if (existingQuote) {
-      setItems(buildItemsFromQuote(existingQuote));
-    } else if (prefillItems?.length) {
-      setItems(buildItemsFromEstimation(prefillItems));
-    } else {
-      setItems([emptyItem()]);
-    }
+    const next = existingQuote
+      ? buildItemsFromQuote(existingQuote)
+      : prefillItems?.length
+        ? buildItemsFromEstimation(prefillItems)
+        : [emptyItem()];
+    setItems(next);
+    setSavedItems(next);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingQuote?.id, existingQuote?.updatedAt]);
+
+  const serializeItems = (its: UserQuoteItem[]) =>
+    its.map(i => `${i.serviceName}|${i.priceGross}|${i.priceNet}|${i.vatRate}`).join(';');
+
+  const hasChanges = serializeItems(items) !== serializeItems(savedItems);
 
   const addItem = () => setItems(prev => [...prev, emptyItem()]);
   const removeItem = (key: string) => setItems(prev => prev.filter(i => i._key !== key));
@@ -2679,6 +2698,17 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
   };
 
   const handleSave = () => {
+    const missingPriceKeys = items
+      .filter(i => i.serviceName.trim() && !parseFloat(i.priceGross.replace(',', '.')))
+      .map(i => i._key);
+
+    if (missingPriceKeys.length > 0) {
+      showWarning('Uzupełnij cenę');
+      setPulseKeys(new Set(missingPriceKeys));
+      setTimeout(() => setPulseKeys(new Set()), 1800);
+      return;
+    }
+
     const validItems: SaveUserQuoteItemRequest[] = items
       .filter(i => i.serviceName.trim() && i.priceNet)
       .map(i => ({
@@ -2692,6 +2722,7 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
     saveQuote.mutate({ items: validItems }, {
       onSuccess: (saved) => {
         showSuccess('Kosztorys zapisany');
+        setSavedItems([...items]);
         onSaved?.(saved.totalGross);
       },
     });
@@ -2736,6 +2767,7 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
                   onChange={e => syncFromGross(item._key, e.target.value)}
                   onBlur={() => normalizeItem(item._key)}
                   title="Cena brutto (PLN)"
+                  $pulse={pulseKeys.has(item._key)}
                 />
                 <span style={{ fontSize: st.fontSm, fontWeight: 500, color: st.textSecondary, whiteSpace: 'nowrap' }}>brutto</span>
                 <QuoteRemoveBtn onClick={() => removeItem(item._key)} title="Usuń pozycję" style={{ marginLeft: 2 }}>
@@ -2773,9 +2805,11 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
         <QuoteAddBtn onClick={addItem}>
           <Plus /> Dodaj usługę
         </QuoteAddBtn>
-        <QuoteSaveBtn onClick={handleSave} disabled={saveQuote.isPending}>
-          {saveQuote.isPending ? 'Zapisywanie…' : 'Zapisz kosztorys'}
-        </QuoteSaveBtn>
+        {hasChanges && (
+          <QuoteSaveBtn onClick={handleSave} disabled={saveQuote.isPending}>
+            {saveQuote.isPending ? 'Zapisywanie…' : 'Zapisz kosztorys'}
+          </QuoteSaveBtn>
+        )}
         {existingQuote && (
           <QuoteDeleteBtn onClick={handleDelete} disabled={deleteQuote.isPending}>
             {deleteQuote.isPending ? 'Usuwanie…' : 'Usuń kosztorys'}
@@ -3308,7 +3342,7 @@ export const LeadListView: React.FC = () => {
             </CellStack>
           </Td>
 
-          <StatusTd onClick={e => e.stopPropagation()}>
+          <StatusTd onClick={() => toggleExpand(lead.id)}>
             <StatusBadge
               $variant={getStatusVariant(lead)}
               onClick={e => {

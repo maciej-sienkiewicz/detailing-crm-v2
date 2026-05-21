@@ -4,7 +4,15 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import styled from 'styled-components';
-import { Modal } from '@/common/components/Modal';
+import {
+  ModalShell,
+  ModalHeader,
+  ModalTitleGroup,
+  ModalTitle,
+  ModalContent,
+  ModalFooter,
+  CloseBtn,
+} from '@/common/components/ModalKit';
 import { Button, ButtonGroup } from '@/common/components/Button';
 import { t } from '@/common/i18n';
 import { LeadSource } from '../types';
@@ -178,12 +186,6 @@ const Toast = styled.div<{ $show: boolean; $type: 'success' | 'error' }>`
   z-index: 10000;
 `;
 
-const FormFooter = styled.div`
-  border-top: 1px solid ${props => props.theme.colors.border};
-  padding-top: ${props => props.theme.spacing.lg};
-  margin-top: ${props => props.theme.spacing.md};
-`;
-
 // Icons
 const PhoneIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -324,123 +326,133 @@ export const LeadForm: React.FC<LeadFormProps> = ({ isOpen, onClose, editLead })
 
   return (
     <>
-      <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} maxWidth="500px">
-        <Form onSubmit={handleSubmit(onSubmit)} id="lead-form">
-          {/* Source Selection - only for new leads */}
-          {!isEditMode && (
-            <FormGroup>
-              <Label>{t.leads?.fields?.source || 'Źródło'}</Label>
-              <Controller
-                name="source"
-                control={control}
-                render={({ field }) => (
-                  <SourceToggleGroup>
-                    <SourceToggle
-                      type="button"
-                      $isActive={field.value === LeadSource.PHONE}
-                      onClick={() => field.onChange(LeadSource.PHONE)}
-                    >
-                      <PhoneIcon />
-                      {t.leads?.sources?.phone || 'Telefon'}
-                    </SourceToggle>
-                    <SourceToggle
-                      type="button"
-                      $isActive={field.value === LeadSource.EMAIL}
-                      onClick={() => field.onChange(LeadSource.EMAIL)}
-                    >
-                      <EmailIcon />
-                      {t.leads?.sources?.email || 'E-mail'}
-                    </SourceToggle>
-                    <SourceToggle
-                      type="button"
-                      $isActive={field.value === LeadSource.MANUAL}
-                      onClick={() => field.onChange(LeadSource.MANUAL)}
-                    >
-                      <ManualIcon />
-                      {t.leads?.sources?.manual || 'Ręczne'}
-                    </SourceToggle>
-                  </SourceToggleGroup>
+      <ModalShell isOpen={isOpen} onClose={onClose} size="md">
+        <ModalHeader>
+          <ModalTitleGroup>
+            <ModalTitle>{modalTitle}</ModalTitle>
+          </ModalTitleGroup>
+          <CloseBtn onClick={onClose} />
+        </ModalHeader>
+
+        <ModalContent>
+          <Form onSubmit={handleSubmit(onSubmit)} id="lead-form">
+            {/* Source Selection - only for new leads */}
+            {!isEditMode && (
+              <FormGroup>
+                <Label>{t.leads?.fields?.source || 'Źródło'}</Label>
+                <Controller
+                  name="source"
+                  control={control}
+                  render={({ field }) => (
+                    <SourceToggleGroup>
+                      <SourceToggle
+                        type="button"
+                        $isActive={field.value === LeadSource.PHONE}
+                        onClick={() => field.onChange(LeadSource.PHONE)}
+                      >
+                        <PhoneIcon />
+                        {t.leads?.sources?.phone || 'Telefon'}
+                      </SourceToggle>
+                      <SourceToggle
+                        type="button"
+                        $isActive={field.value === LeadSource.EMAIL}
+                        onClick={() => field.onChange(LeadSource.EMAIL)}
+                      >
+                        <EmailIcon />
+                        {t.leads?.sources?.email || 'E-mail'}
+                      </SourceToggle>
+                      <SourceToggle
+                        type="button"
+                        $isActive={field.value === LeadSource.MANUAL}
+                        onClick={() => field.onChange(LeadSource.MANUAL)}
+                      >
+                        <ManualIcon />
+                        {t.leads?.sources?.manual || 'Ręczne'}
+                      </SourceToggle>
+                    </SourceToggleGroup>
+                  )}
+                />
+              </FormGroup>
+            )}
+
+            <FormRow>
+              {/* Contact Identifier */}
+              <FormGroup>
+                <Label>{getContactLabel()}</Label>
+                <Input
+                  {...register('contactIdentifier')}
+                  placeholder={getContactPlaceholder()}
+                  $hasError={!!errors.contactIdentifier}
+                  disabled={isEditMode}
+                />
+                {errors.contactIdentifier && (
+                  <ErrorMessage>{errors.contactIdentifier.message}</ErrorMessage>
                 )}
-              />
-            </FormGroup>
-          )}
+              </FormGroup>
 
-          <FormRow>
-            {/* Contact Identifier */}
+              {/* Customer Name */}
+              <FormGroup>
+                <Label>{t.leads?.fields?.name || 'Klient'}</Label>
+                <Input
+                  {...register('customerName')}
+                  placeholder="Jan Kowalski"
+                  $hasError={!!errors.customerName}
+                />
+                {errors.customerName && (
+                  <ErrorMessage>{errors.customerName.message}</ErrorMessage>
+                )}
+              </FormGroup>
+            </FormRow>
+
+            {/* Estimated Value */}
             <FormGroup>
-              <Label>{getContactLabel()}</Label>
-              <Input
-                {...register('contactIdentifier')}
-                placeholder={getContactPlaceholder()}
-                $hasError={!!errors.contactIdentifier}
-                disabled={isEditMode} // Can't change contact in edit mode
-              />
-              {errors.contactIdentifier && (
-                <ErrorMessage>{errors.contactIdentifier.message}</ErrorMessage>
+              <Label>{t.leads?.fields?.estimatedValue || 'Szacowana wartość'}</Label>
+              <CurrencyInputWrapper>
+                <CurrencyInput
+                  {...register('estimatedValueDisplay')}
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="2500"
+                  $hasError={!!errors.estimatedValueDisplay}
+                />
+                <CurrencySuffix>PLN</CurrencySuffix>
+              </CurrencyInputWrapper>
+              {errors.estimatedValueDisplay && (
+                <ErrorMessage>{errors.estimatedValueDisplay.message}</ErrorMessage>
               )}
             </FormGroup>
 
-            {/* Customer Name */}
+            {/* Initial Message / Notes */}
             <FormGroup>
-              <Label>{t.leads?.fields?.name || 'Klient'}</Label>
-              <Input
-                {...register('customerName')}
-                placeholder="Jan Kowalski"
-                $hasError={!!errors.customerName}
+              <Label>Notatka / Wymagania</Label>
+              <TextArea
+                {...register('initialMessage')}
+                placeholder="Opisz wstępne wymagania klienta..."
+                $hasError={!!errors.initialMessage}
               />
-              {errors.customerName && (
-                <ErrorMessage>{errors.customerName.message}</ErrorMessage>
+              {errors.initialMessage && (
+                <ErrorMessage>{errors.initialMessage.message}</ErrorMessage>
               )}
             </FormGroup>
-          </FormRow>
+          </Form>
+        </ModalContent>
 
-          {/* Estimated Value */}
-          <FormGroup>
-            <Label>{t.leads?.fields?.estimatedValue || 'Szacowana wartość'}</Label>
-            <CurrencyInputWrapper>
-              <CurrencyInput
-                {...register('estimatedValueDisplay')}
-                type="text"
-                inputMode="decimal"
-                placeholder="2500"
-                $hasError={!!errors.estimatedValueDisplay}
-              />
-              <CurrencySuffix>PLN</CurrencySuffix>
-            </CurrencyInputWrapper>
-            {errors.estimatedValueDisplay && (
-              <ErrorMessage>{errors.estimatedValueDisplay.message}</ErrorMessage>
-            )}
-          </FormGroup>
-
-          {/* Initial Message / Notes */}
-          <FormGroup>
-            <Label>Notatka / Wymagania</Label>
-            <TextArea
-              {...register('initialMessage')}
-              placeholder="Opisz wstępne wymagania klienta..."
-              $hasError={!!errors.initialMessage}
-            />
-            {errors.initialMessage && (
-              <ErrorMessage>{errors.initialMessage.message}</ErrorMessage>
-            )}
-          </FormGroup>
-
-          <FormFooter>
-            <ButtonGroup $justify="end">
-              <Button type="button" onClick={onClose} $variant="secondary">
-                {t.common.cancel}
-              </Button>
-              <Button
-                type="submit"
-                $variant="primary"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Zapisywanie...' : t.common.save}
-              </Button>
-            </ButtonGroup>
-          </FormFooter>
-        </Form>
-      </Modal>
+        <ModalFooter>
+          <ButtonGroup $justify="end">
+            <Button type="button" onClick={onClose} $variant="secondary">
+              {t.common.cancel}
+            </Button>
+            <Button
+              type="submit"
+              form="lead-form"
+              $variant="primary"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Zapisywanie...' : t.common.save}
+            </Button>
+          </ButtonGroup>
+        </ModalFooter>
+      </ModalShell>
 
       <Toast $show={toast.show} $type={toast.type}>
         {toast.message}
