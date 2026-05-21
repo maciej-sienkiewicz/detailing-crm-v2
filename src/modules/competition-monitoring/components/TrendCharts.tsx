@@ -168,6 +168,13 @@ const SubLabel = styled.div`
     gap: 8px;
 `;
 
+const ChartHint = styled.p`
+    margin: 4px 0 12px;
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+    line-height: 1.55;
+`;
+
 const LegendDot = styled.span<{ $color: string }>`
     display: inline-block;
     width: 8px;
@@ -196,7 +203,7 @@ const TooltipBox = styled.div`
     box-shadow: ${st.shadowMd};
     padding: 10px 14px;
     font-size: 12px;
-    min-width: 160px;
+    min-width: 280px;
 `;
 
 const TooltipTitle = styled.div`
@@ -253,7 +260,11 @@ const WeeklyTooltip = ({ active, payload, label, profiles, colorMap, mode }: Too
                             <span style={{ flex: 1 }}>@{p.username}</span>
                             <span>
                                 <strong>{posts + stories}</strong>
-                                <span style={{ color: st.textMuted }}> ({posts}p + <span style={{ color: STORIES_PINK }}>{stories}s</span>)</span>
+                                <span style={{ color: st.textMuted }}>
+                                    {' '}({posts} {posts === 1 ? 'post' : posts < 5 ? 'posty' : 'postów'}
+                                    {' + '}
+                                    <span style={{ color: STORIES_PINK }}>{stories} stories</span>)
+                                </span>
                             </span>
                         </TooltipRow>
                     );
@@ -330,6 +341,10 @@ function ActivityChart({ weekData, profiles, colorMap }: { weekData: DataPoint[]
                 Posty + Stories na tydzień
                 <LegendDot $color={STORIES_PINK} /> <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>Stories</span>
             </SubLabel>
+            <ChartHint>
+                Każdy słupek pokazuje łączną aktywność w danym tygodniu – część dolna to posty (kolor profilu), górna to stories (róż).
+                Im wyższy słupek, tym intensywniej prowadzony profil w danym tygodniu.
+            </ChartHint>
             <ChartArea>
                 <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={weekData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
@@ -357,6 +372,9 @@ function FollowerSubChart({ profiles, colorMap }: { profiles: ProfileSummary[]; 
     return (
         <SubChartArea>
             <SubLabel>Trend obserwujących</SubLabel>
+            <ChartHint>
+                Dzienna zmiana liczby obserwujących. Gwałtowne skoki lub spadki mogą sygnalizować viralowy post, współpracę z influencerem lub masowe usunięcia kont.
+            </ChartHint>
             <div style={{ height: 130 }}>
                 <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={dailyData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
@@ -381,7 +399,11 @@ function PostsChart({ weekData, profiles, colorMap }: { weekData: DataPoint[]; p
     const bs = barSize(weekData.length, profiles.length);
     return (
         <>
-            <SubLabel>Posty / tydzień · Suma lajków (tylko tygodnie z postami)</SubLabel>
+            <SubLabel>Posty / tydzień · Suma lajków</SubLabel>
+            <ChartHint>
+                Każdy słupek oznacza liczbę postów opublikowanych w danym tygodniu. Przerywana kreska pokazuje łączną liczbę lajków, jaką te posty zebrały.
+                Duże piki na linii przy małej liczbie postów mogą wskazywać na wyjątkowe zaangażowanie – konkurs, kampanię płatną lub sztuczną aktywność.
+            </ChartHint>
             <ChartArea>
                 <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={weekData} margin={{ top: 4, right: 40, left: 0, bottom: 0 }}>
@@ -424,8 +446,14 @@ function StoriesChart({
     return (
         <>
             <SubLabel>
-                Stories {isDaily ? '— granulacja dzienna (ostatnie 4 tygodnie)' : '— granulacja tygodniowa'}
+                Stories {isDaily ? '— granulacja dzienna' : '— granulacja tygodniowa'}
             </SubLabel>
+            <ChartHint>
+                {isDaily
+                    ? 'Liczba stories opublikowanych każdego dnia (ostatnie 4 tygodnie). Stories znikają po 24 h – częste publikacje budują większy zasięg organiczny i utrzymują profil wysoko w relacjach obserwujących.'
+                    : 'Łączna liczba stories opublikowanych w każdym tygodniu. Regularna aktywność w stories to jeden z silniejszych sygnałów zaangażowania algorytmu Instagrama.'
+                }
+            </ChartHint>
             <ChartArea>
                 <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
@@ -450,7 +478,11 @@ function FollowersChart({ profiles, colorMap }: { profiles: ProfileSummary[]; co
     if (!dailyData.length) return <EmptyState><span>Brak historii obserwujących</span></EmptyState>;
     return (
         <>
-            <SubLabel>Obserwujący (dziennie)</SubLabel>
+            <SubLabel>Historia obserwujących</SubLabel>
+            <ChartHint>
+                Dzienna liczba obserwujących na przestrzeni wybranego okresu. Stały, równomierny wzrost świadczy o organicznym zasięgu.
+                Nagłe skoki mogą być efektem viralowego posta lub płatnej kampanii; nagłe spadki – usunięcia fałszywych kont lub kontrowersyjnej publikacji.
+            </ChartHint>
             <ChartArea>
                 <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={dailyData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
