@@ -21,64 +21,59 @@ export interface InstagramPost {
     scrapedAt: string;
 }
 
-/**
- * Aggregated weekly stats for a single profile.
- * Computed server-side from scraped posts.
- *
- * Backend: weekStart is the ISO date of that Monday (e.g. "2025-01-06").
- */
 export interface WeeklyStat {
-    weekStart: string;
+    weekStart: string;   // "YYYY-MM-DD" — Monday of that week
+    postCount: number;
+    storyCount: number;
     avgLikes: number;
     avgComments: number;
-    postCount: number;
 }
 
-/**
- * Summary stats for a single tracked profile.
- *
- * Backend endpoint: GET /api/v1/instagram/profiles/summary
- *
- * Response DTO (Kotlin):
- * data class InstagramProfileSummaryResponse(
- *   val id: String,                      // studioProfileId
- *   val profileId: String,
- *   val username: String,
- *   val status: String,
- *   val apiError: Boolean,
- *   val addedAt: Instant,
- *   val postCount: Int,
- *   val avgLikes: Double,
- *   val avgComments: Double,
- *   val avgViews: Double?,
- *   val avgEngagement: Double,           // avgLikes + avgComments per post (historical avg)
- *   val postsPerWeek: Double,
- *   val lastPostAt: Instant?,
- *   val weeklyStats: List<WeeklyStatDto>
- * )
- *
- * data class WeeklyStatDto(
- *   val weekStart: String,   // "YYYY-MM-DD" — Monday of that week
- *   val avgLikes: Double,
- *   val avgComments: Double,
- *   val postCount: Int
- * )
- */
+export interface FollowerHistoryEntry {
+    date: string;          // "YYYY-MM-DD"
+    followerCount: number;
+}
+
 export interface ProfileSummary {
+    // Identification
     id: string;
     profileId: string;
     username: string;
     status: InstagramProfileStatus;
     apiError: boolean;
     addedAt: string;
+
+    // Post metrics (within the requested `weeks` window)
     postCount: number;
     avgLikes: number;
     avgComments: number;
     avgViews: number | null;
-    avgEngagement: number;
     postsPerWeek: number;
     lastPostAt: string | null;
+    avgEngagement: number;
+
+    // Stories
+    storiesPerWeek: number;
+
+    // Profile details (from /user/details sync, may be null before first sync)
+    followerCount: number | null;
+    followingCount: number | null;
+    mediaCount: number | null;
+    hasContactData: boolean | null;
+    isVerified: boolean | null;
+    isBusiness: boolean | null;
+    accountType: number | null;          // 1=personal 2=creator 3=professional
+    category: string | null;
+    externalUrl: string | null;
+    biography: string | null;
+    hasHighlightReels: boolean | null;
+    totalClipsCount: number | null;
+    isPrivate: boolean | null;
+    detailsLastSyncedAt: string | null;
+
+    // Time-series data
     weeklyStats: WeeklyStat[];
+    followerHistory: FollowerHistoryEntry[];
 }
 
 export interface GenerateInstagramPostRequest {
@@ -107,3 +102,18 @@ export interface StoryGroup {
     username: string;
     stories: InstagramStory[];
 }
+
+// ─── Chart helpers ────────────────────────────────────────────────────────────
+
+export const PROFILE_COLORS = [
+    '#0ea5e9',  // sky
+    '#8b5cf6',  // violet
+    '#f59e0b',  // amber
+    '#10b981',  // emerald
+    '#ef4444',  // red
+    '#06b6d4',  // cyan
+    '#f97316',  // orange
+    '#64748b',  // slate
+] as const;
+
+export type WeeksOption = 4 | 13 | 26 | 52;

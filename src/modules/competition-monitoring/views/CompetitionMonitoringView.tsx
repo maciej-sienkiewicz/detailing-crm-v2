@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useAuth } from '@/core/context/AuthContext';
@@ -8,10 +8,14 @@ import { useProfileActions } from '../hooks/useProfileActions';
 import { ProfileCard } from '../components/ProfileCard';
 import { AddProfileModal } from '../components/AddProfileModal';
 import { PostsModal } from '../components/PostsModal';
-import type { InstagramProfile, InstagramProfileStatus } from '../types';
-import { CompetitionTable } from '@/modules/competition-monitoring/components/CompetitionTable.tsx';
-import { PostVolumeChart } from '@/modules/competition-monitoring/components/PostVolumeChart.tsx';
+import { TrendCharts } from '../components/TrendCharts';
+import { RankingTable } from '../components/RankingTable';
+import { ProfileChipSelector } from '../components/ProfileChipSelector';
 import { GeneratePostModal } from '../components/GeneratePostModal';
+import { PROFILE_COLORS } from '../types';
+import type { InstagramProfile, InstagramProfileStatus, WeeksOption } from '../types';
+
+// ─── Animations ───────────────────────────────────────────────────────────────
 
 const fadeUp = keyframes`
     from { opacity: 0; transform: translateY(10px); }
@@ -23,205 +27,197 @@ const fadeUp = keyframes`
 const ViewContainer = styled.main`
     display: flex;
     flex-direction: column;
-    gap: ${p => p.theme.spacing.xl};
-    padding: ${p => p.theme.spacing.lg};
+    gap: 20px;
+    padding: 24px;
     max-width: 1920px;
     margin: 0 auto;
     width: 100%;
     animation: ${fadeUp} 300ms ease both;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
-        padding: ${p => p.theme.spacing.xl};
+        padding: 32px;
     }
 `;
 
-// ─── Hero ─────────────────────────────────────────────────────────────────────
+// ─── Header ───────────────────────────────────────────────────────────────────
 
-const HeroCard = styled.div`
-    position: relative;
-    overflow: hidden;
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 65%, #0c1f35 100%);
-    border-radius: ${p => p.theme.radii.xl};
-    padding: 28px 32px;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 8px 32px rgba(0, 0, 0, 0.16);
+const PageTopRow = styled.div`
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
-
-    &::before {
-        content: '';
-        position: absolute;
-        top: -80px;
-        right: -60px;
-        width: 320px;
-        height: 320px;
-        background: radial-gradient(circle, rgba(99, 102, 241, 0.16) 0%, transparent 65%);
-        pointer-events: none;
-    }
-
-    @media (max-width: ${p => p.theme.breakpoints.sm}) {
-        padding: 22px 20px;
-    }
 `;
 
-const HeroText = styled.div`
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-`;
-
-const HeroHeading = styled.h1`
+const PageTitle = styled.h1`
     margin: 0;
-    font-size: 30px;
+    font-size: 22px;
     font-weight: 700;
-    color: #f1f5f9;
-    letter-spacing: -0.5px;
-    line-height: 1.1;
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-        font-size: 34px;
-    }
+    color: ${st.text};
+    letter-spacing: -0.3px;
 `;
 
-const HeroSubtitle = styled.p`
-    margin: 0;
-    font-size: 14px;
-    color: #475569;
-    font-weight: 500;
+const PageSubtitle = styled.p`
+    margin: 4px 0 0;
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
 `;
 
-const HeroBadges = styled.div`
+const ActionRow = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
-    margin-top: 2px;
 `;
 
-const HeroBadge = styled.span<{ $color: string; $bg: string }>`
+const WeeksBar = styled.div`
     display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 10px;
+    background: ${st.bgCardAlt};
+    border: 1px solid ${st.border};
     border-radius: ${st.radiusFull};
-    font-size: 12px;
-    font-weight: 600;
-    color: ${p => p.$color};
-    background: ${p => p.$bg};
+    padding: 3px;
+    gap: 2px;
 `;
 
-const HeroActions = styled.div`
-    position: relative;
-    z-index: 1;
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    align-items: center;
+const WeeksBtn = styled.button<{ $active: boolean }>`
+    padding: 5px 14px;
+    border-radius: ${st.radiusFull};
+    border: none;
+    font-family: inherit;
+    font-size: ${st.fontSm};
+    font-weight: ${p => p.$active ? 700 : 400};
+    background: ${p => p.$active ? '#fff' : 'transparent'};
+    color: ${p => p.$active ? st.text : st.textMuted};
+    box-shadow: ${p => p.$active ? st.shadowXs : 'none'};
+    cursor: pointer;
+    transition: all ${st.transition};
+    white-space: nowrap;
+
+    &:hover { color: ${p => p.$active ? st.text : st.textSecondary}; }
 `;
 
 const AddButton = styled.button`
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 9px 20px;
+    padding: 8px 18px;
     font-size: ${st.fontSm};
     font-weight: 600;
+    font-family: inherit;
     background: ${st.accentBlue};
     color: #fff;
     border: none;
     border-radius: ${st.radiusFull};
     cursor: pointer;
-    box-shadow: ${st.shadowXs};
     transition: all ${st.transition};
     white-space: nowrap;
 
-    &:hover {
-        background: #2563eb;
-        box-shadow: ${st.shadowSm};
-        transform: translateY(-1px);
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
+    &:hover { background: #2563eb; transform: translateY(-1px); }
+    &:active { transform: none; }
 `;
 
 const GenerateButton = styled.button`
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 9px 20px;
+    padding: 8px 18px;
     font-size: ${st.fontSm};
     font-weight: 600;
-    background: rgba(255, 255, 255, 0.08);
-    color: #e2e8f0;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    font-family: inherit;
+    background: ${st.bgCard};
+    color: ${st.textSecondary};
+    border: 1.5px solid ${st.border};
     border-radius: ${st.radiusFull};
     cursor: pointer;
     transition: all ${st.transition};
     white-space: nowrap;
-    backdrop-filter: blur(4px);
 
-    &:hover {
-        background: rgba(255, 255, 255, 0.14);
-        border-color: rgba(255, 255, 255, 0.24);
-        color: #fff;
-        transform: translateY(-1px);
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
+    &:hover { border-color: ${st.accentBlue}; color: ${st.accentBlue}; }
 `;
 
-// ─── Panel Card (tabs + content) ──────────────────────────────────────────────
+// ─── Selector + Charts card ────────────────────────────────────────────────────
+
+const SelectorCard = styled.div`
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusLg};
+    box-shadow: ${st.shadowSm};
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+`;
+
+const SelectorTop = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-bottom: 14px;
+    border-bottom: 1px solid ${st.border};
+    margin-bottom: 16px;
+`;
+
+const MaxNote = styled.span`
+    font-size: ${st.fontXs};
+    color: ${st.textMuted};
+`;
+
+// ─── Info banner ──────────────────────────────────────────────────────────────
+
+const InfoBanner = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 16px;
+    background: ${st.bgAccentBlue};
+    border: 1px solid rgba(59,130,246,0.18);
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    color: ${st.textSecondary};
+    line-height: 1.5;
+`;
+
+// ─── Panel Card (profiles tab) ────────────────────────────────────────────────
 
 const PanelCard = styled.div`
-    background: ${p => p.theme.colors.surface};
-    border: 1px solid ${p => p.theme.colors.border};
-    border-radius: ${p => p.theme.radii.xl};
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.04);
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusLg};
+    box-shadow: ${st.shadowSm};
     overflow: hidden;
 `;
-
-// ─── Tabs ─────────────────────────────────────────────────────────────────────
 
 const TabBar = styled.nav`
     display: flex;
     align-items: stretch;
-    border-bottom: 1px solid ${p => p.theme.colors.border};
-    background: ${p => p.theme.colors.surface};
+    border-bottom: 1px solid ${st.border};
+    background: ${st.bgCard};
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     &::-webkit-scrollbar { display: none; }
 `;
 
 const TabButton = styled.button<{ $active: boolean }>`
     flex-shrink: 0;
-    padding: 14px 20px;
+    padding: 13px 20px;
     font-size: ${st.fontSm};
     font-weight: ${p => p.$active ? 600 : 400};
     cursor: pointer;
     border: none;
+    font-family: inherit;
     background: transparent;
     color: ${p => p.$active ? st.accentBlue : st.textSecondary};
     border-bottom: 2px solid ${p => p.$active ? st.accentBlue : 'transparent'};
     margin-bottom: -1px;
-    transition: color ${st.transition}, border-color ${st.transition}, background ${st.transition};
+    transition: color ${st.transition}, border-color ${st.transition};
     display: flex;
     align-items: center;
     gap: 7px;
     white-space: nowrap;
 
-    &:hover {
-        color: ${p => p.$active ? st.accentBlue : st.text};
-        background: ${p => p.$active ? 'transparent' : st.bg};
-    }
+    &:hover { color: ${p => p.$active ? st.accentBlue : st.text}; }
 `;
 
 const TabBadge = styled.span<{ $active: boolean }>`
@@ -231,7 +227,6 @@ const TabBadge = styled.span<{ $active: boolean }>`
     font-weight: 700;
     background: ${p => p.$active ? st.accentBlueDim : st.bgCardAlt};
     color: ${p => p.$active ? st.accentBlue : st.textMuted};
-    transition: all ${st.transition};
 `;
 
 const TabBadgeAmber = styled.span`
@@ -239,21 +234,11 @@ const TabBadgeAmber = styled.span`
     border-radius: ${st.radiusFull};
     font-size: 11px;
     font-weight: 700;
-    background: ${st.accentAmberDim};
-    color: ${st.accentAmber};
+    background: rgba(245,158,11,0.12);
+    color: #92400e;
 `;
 
-const PanelBody = styled.div`
-    padding: 24px;
-`;
-
-// ─── Analytics tab ────────────────────────────────────────────────────────────
-
-const AnalyticsSection = styled.section`
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-`;
+// ─── Loading / error states ────────────────────────────────────────────────────
 
 const LoadingOverlay = styled.div`
     display: flex;
@@ -269,19 +254,16 @@ const Spinner = styled.div`
     border-top-color: ${st.accentBlue};
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
-
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 `;
 
-const ErrorContainer = styled.div`
+const ErrorBox = styled.div`
     padding: 48px 32px;
     text-align: center;
-    color: ${st.accentRed};
+    color: #dc2626;
 `;
 
-const RetryButton = styled.button`
+const RetryBtn = styled.button`
     margin-top: 12px;
     padding: 8px 20px;
     background: transparent;
@@ -290,15 +272,13 @@ const RetryButton = styled.button`
     border-radius: ${st.radiusSm};
     font-size: ${st.fontSm};
     font-weight: 600;
+    font-family: inherit;
     cursor: pointer;
     transition: all ${st.transition};
     display: block;
     margin-inline: auto;
 
-    &:hover {
-        background: ${st.accentBlue};
-        color: #fff;
-    }
+    &:hover { background: ${st.accentBlue}; color: #fff; }
 `;
 
 const EmptyAnalytics = styled.div`
@@ -308,7 +288,7 @@ const EmptyAnalytics = styled.div`
 `;
 
 const EmptyIcon = styled.div`
-    font-size: 52px;
+    font-size: 48px;
     margin-bottom: 16px;
     opacity: 0.3;
 `;
@@ -329,7 +309,7 @@ const EmptyDesc = styled.p`
     line-height: 1.6;
 `;
 
-// ─── Management tab ───────────────────────────────────────────────────────────
+// ─── Profile management tab ────────────────────────────────────────────────────
 
 const FilterBar = styled.div`
     display: flex;
@@ -346,25 +326,20 @@ const FilterBtn = styled.button<{ $active: boolean }>`
     border-radius: ${st.radiusFull};
     font-size: ${st.fontSm};
     font-weight: 600;
+    font-family: inherit;
     cursor: pointer;
     transition: all ${st.transition};
     border: 1px solid ${p => p.$active ? st.accentBlue : st.border};
     background: ${p => p.$active ? st.accentBlueDim : st.bgCard};
     color: ${p => p.$active ? st.accentBlue : st.textSecondary};
 
-    &:hover {
-        border-color: ${st.accentBlue};
-        color: ${st.accentBlue};
-    }
+    &:hover { border-color: ${st.accentBlue}; color: ${st.accentBlue}; }
 `;
 
 const ProfileList = styled.div`
     display: flex;
     flex-direction: column;
-
-    & > * + * {
-        border-top: 1px solid ${st.border};
-    }
+    & > * + * { border-top: 1px solid ${st.border}; }
 `;
 
 const ProfileRow = styled.div`
@@ -378,22 +353,18 @@ const ListEmpty = styled.div`
     font-size: ${st.fontSm};
 `;
 
-const InfoBanner = styled.div`
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 12px 16px;
-    background: ${st.bgAccentBlue};
-    border: 1px solid rgba(59, 130, 246, 0.18);
-    border-radius: ${st.radiusSm};
-    font-size: ${st.fontSm};
-    color: ${st.textSecondary};
-    line-height: 1.5;
-`;
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+const MAX_CHART_PROFILES = 4;
 
-type Tab = 'analytics' | 'profiles';
+const WEEKS_OPTIONS: { value: WeeksOption; label: string }[] = [
+    { value: 4,  label: '4 tyg.'  },
+    { value: 13, label: '3 mies.' },
+    { value: 26, label: '6 mies.' },
+    { value: 52, label: 'Rok'     },
+];
+
+type MainTab    = 'analytics' | 'profiles';
 type FilterType = 'ALL' | InstagramProfileStatus;
 
 const FILTER_LABELS: Record<FilterType, string> = {
@@ -407,164 +378,117 @@ const FILTER_LABELS: Record<FilterType, string> = {
 
 export const CompetitionMonitoringView = () => {
     const { user } = useAuth();
-    const { profiles, isLoading: profilesLoading, isError: profilesError, refetch: refetchProfiles } = useInstagramProfiles();
-    const { summaries, isLoading: summaryLoading, isError: summaryError, refetch: refetchSummary } = useCompetitionSummary();
-    const { approveProfile, isApproving, rejectProfile, isRejecting, removeProfile, isRemoving } =
-        useProfileActions();
 
-    const [activeTab, setActiveTab] = useState<Tab>('analytics');
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
-    const [selectedProfile, setSelectedProfile] = useState<InstagramProfile | null>(null);
-    const [activeFilter, setActiveFilter] = useState<FilterType>('ALL');
+    const [weeks, setWeeks]                         = useState<WeeksOption>(13);
+    const [activeTab, setActiveTab]                 = useState<MainTab>('analytics');
+    const [isAddModalOpen, setIsAddModalOpen]       = useState(false);
+    const [isGenerateOpen, setIsGenerateOpen]       = useState(false);
+    const [selectedProfile, setSelectedProfile]     = useState<InstagramProfile | null>(null);
+    const [activeFilter, setActiveFilter]           = useState<FilterType>('ALL');
+    const [selectedIds, setSelectedIds]             = useState<Set<string>>(new Set());
+
+    const { profiles, isLoading: pLoading, isError: pError, refetch: refetchProfiles } = useInstagramProfiles();
+    const { summaries, isLoading: sLoading, isError: sError, refetch: refetchSummary }  = useCompetitionSummary(weeks);
+    const { approveProfile, isApproving, rejectProfile, isRejecting, removeProfile, isRemoving } = useProfileActions();
 
     const isManagerOrOwner = user?.role === 'MANAGER' || user?.role === 'OWNER';
+    const pendingCount     = profiles.filter(p => p.status === 'PENDING_APPROVAL').length;
+    const activeCount      = summaries.length;
 
-    const filtered = activeFilter === 'ALL'
+    // Assign stable colors per profile id
+    const colorMap = useMemo<Record<string, string>>(() => {
+        const map: Record<string, string> = {};
+        summaries.forEach((p, i) => { map[p.id] = PROFILE_COLORS[i % PROFILE_COLORS.length]; });
+        return map;
+    }, [summaries]);
+
+    // Auto-select first MAX_CHART_PROFILES on first load
+    useMemo(() => {
+        if (summaries.length > 0 && selectedIds.size === 0) {
+            setSelectedIds(new Set(summaries.slice(0, MAX_CHART_PROFILES).map(p => p.id)));
+        }
+    }, [summaries]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const toggleId = useCallback((id: string) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) { next.delete(id); } else { next.add(id); }
+            return next;
+        });
+    }, []);
+
+    const selectedProfiles = useMemo(
+        () => summaries.filter(p => selectedIds.has(p.id)),
+        [summaries, selectedIds]
+    );
+
+    const filteredManagement = activeFilter === 'ALL'
         ? profiles
         : profiles.filter(p => p.status === activeFilter);
 
-    const pendingCount = profiles.filter(p => p.status === 'PENDING_APPROVAL').length;
-    const activeCount = profiles.filter(p => p.status === 'ACTIVE').length;
-
-    const handleViewPosts = useCallback((profile: InstagramProfile) => {
-        setSelectedProfile(profile);
-    }, []);
-
-    const handleClosePosts = useCallback(() => {
-        setSelectedProfile(null);
-    }, []);
-
-    // ─── Analytics tab content ────────────────────────────────────────────────
+    // ─── Analytics content ────────────────────────────────────────────────────
 
     const renderAnalytics = () => {
-        if (summaryLoading) {
-            return <LoadingOverlay><Spinner /></LoadingOverlay>;
-        }
+        if (sLoading) return <LoadingOverlay><Spinner /></LoadingOverlay>;
 
-        if (summaryError) {
-            return (
-                <ErrorContainer>
-                    <p>Nie udało się załadować danych analitycznych.</p>
-                    <RetryButton onClick={() => refetchSummary()}>Spróbuj ponownie</RetryButton>
-                </ErrorContainer>
-            );
-        }
-
-        if (summaries.length === 0) {
-            return (
-                <EmptyAnalytics>
-                    <EmptyIcon>📊</EmptyIcon>
-                    <EmptyTitle>Brak danych do analizy</EmptyTitle>
-                    <EmptyDesc>
-                        Dodaj aktywne profile konkurentów i poczekaj na pierwszą niedzielną synchronizację, aby zobaczyć ranking i trendy.
-                    </EmptyDesc>
-                </EmptyAnalytics>
-            );
-        }
-
-        return (
-            <AnalyticsSection>
-                <CompetitionTable summaries={summaries} />
-                <PostVolumeChart summaries={summaries} />
-            </AnalyticsSection>
+        if (sError) return (
+            <ErrorBox>
+                <p>Nie udało się załadować danych analitycznych.</p>
+                <RetryBtn onClick={() => refetchSummary()}>Spróbuj ponownie</RetryBtn>
+            </ErrorBox>
         );
+
+        if (summaries.length === 0) return (
+            <EmptyAnalytics>
+                <EmptyIcon>📊</EmptyIcon>
+                <EmptyTitle>Brak danych do analizy</EmptyTitle>
+                <EmptyDesc>
+                    Dodaj aktywne profile i poczekaj na pierwszą niedzielną synchronizację, aby zobaczyć rankingi i trendy.
+                </EmptyDesc>
+            </EmptyAnalytics>
+        );
+
+        return null;
     };
 
-    // ─── Profiles tab content ─────────────────────────────────────────────────
-
-    const renderProfiles = () => {
-        if (profilesLoading) {
-            return <LoadingOverlay><Spinner /></LoadingOverlay>;
-        }
-
-        if (profilesError) {
-            return (
-                <ErrorContainer>
-                    <p>Nie udało się załadować listy profili.</p>
-                    <RetryButton onClick={() => refetchProfiles()}>Spróbuj ponownie</RetryButton>
-                </ErrorContainer>
-            );
-        }
-
-        return (
-            <>
-                {profiles.length > 0 && (
-                    <FilterBar>
-                        {(Object.keys(FILTER_LABELS) as FilterType[]).map(key => (
-                            <FilterBtn
-                                key={key}
-                                $active={activeFilter === key}
-                                onClick={() => setActiveFilter(key)}
-                            >
-                                {FILTER_LABELS[key]}
-                                {' · '}
-                                {key === 'ALL'
-                                    ? profiles.length
-                                    : profiles.filter(p => p.status === key).length}
-                            </FilterBtn>
-                        ))}
-                    </FilterBar>
-                )}
-
-                {filtered.length === 0 ? (
-                    <ListEmpty>
-                        {profiles.length === 0
-                            ? 'Brak obserwowanych profili. Kliknij „Dodaj profil", aby zacząć.'
-                            : 'Brak profili w tej kategorii.'}
-                    </ListEmpty>
-                ) : (
-                    <ProfileList>
-                        {filtered.map(profile => (
-                            <ProfileRow key={profile.id}>
-                                <ProfileCard
-                                    profile={profile}
-                                    isManagerOrOwner={isManagerOrOwner}
-                                    isApproving={isApproving}
-                                    isRejecting={isRejecting}
-                                    isRemoving={isRemoving}
-                                    onApprove={approveProfile}
-                                    onReject={rejectProfile}
-                                    onRemove={removeProfile}
-                                    onViewPosts={handleViewPosts}
-                                />
-                            </ProfileRow>
-                        ))}
-                    </ProfileList>
-                )}
-            </>
-        );
-    };
+    const analyticsEmpty = renderAnalytics();
 
     // ─── Render ───────────────────────────────────────────────────────────────
 
     return (
         <ViewContainer>
-            {/* Hero */}
-            <HeroCard>
-                <HeroText>
-                    <HeroHeading>Zarządzanie Instagramem</HeroHeading>
-                    <HeroSubtitle>Obserwuj i analizuj profile Instagram konkurentów</HeroSubtitle>
-                </HeroText>
 
-                <HeroActions>
-                    <GenerateButton onClick={() => setIsGenerateModalOpen(true)}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            {/* ── Header ──────────────────────────────────────────────────── */}
+            <PageTopRow>
+                <div>
+                    <PageTitle>Analityka Instagram</PageTitle>
+                    <PageSubtitle>Obserwuj i porównuj profile konkurentów</PageSubtitle>
+                </div>
+                <ActionRow>
+                    <WeeksBar>
+                        {WEEKS_OPTIONS.map(o => (
+                            <WeeksBtn key={o.value} $active={weeks === o.value} onClick={() => setWeeks(o.value)}>
+                                {o.label}
+                            </WeeksBtn>
+                        ))}
+                    </WeeksBar>
+                    <GenerateButton onClick={() => setIsGenerateOpen(true)}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
                         </svg>
                         Generuj post
                     </GenerateButton>
                     <AddButton onClick={() => setIsAddModalOpen(true)}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <line x1="12" y1="5" x2="12" y2="19" />
                             <line x1="5" y1="12" x2="19" y2="12" />
                         </svg>
                         Dodaj profil
                     </AddButton>
-                </HeroActions>
-            </HeroCard>
+                </ActionRow>
+            </PageTopRow>
 
-            {/* Info banner */}
+            {/* ── Pending banner ───────────────────────────────────────────── */}
             {pendingCount > 0 && isManagerOrOwner && (
                 <InfoBanner>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={st.accentBlue} strokeWidth="2" style={{ flexShrink: 0, marginTop: 1 }}>
@@ -572,29 +496,22 @@ export const CompetitionMonitoringView = () => {
                         <line x1="12" y1="8" x2="12" y2="12" />
                         <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
-                    Masz {pendingCount} {pendingCount === 1 ? 'profil' : 'profile'} oczekujące na akceptację. Przejdź do zakładki <strong style={{ marginInline: 4 }}>Profile</strong>, aby je zatwierdzić.
+                    {pendingCount} {pendingCount === 1 ? 'profil oczekuje' : 'profile oczekują'} na akceptację.
+                    Przejdź do zakładki <strong style={{ marginInline: 4 }}>Profile</strong>, aby je zatwierdzić.
                 </InfoBanner>
             )}
 
-            {/* Main panel */}
+            {/* ── Main tabs ────────────────────────────────────────────────── */}
             <PanelCard>
                 <TabBar>
-                    <TabButton
-                        $active={activeTab === 'analytics'}
-                        onClick={() => setActiveTab('analytics')}
-                    >
+                    <TabButton $active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                         </svg>
                         Analityka
-                        {summaries.length > 0 && (
-                            <TabBadge $active={activeTab === 'analytics'}>{summaries.length}</TabBadge>
-                        )}
+                        {activeCount > 0 && <TabBadge $active={activeTab === 'analytics'}>{activeCount}</TabBadge>}
                     </TabButton>
-                    <TabButton
-                        $active={activeTab === 'profiles'}
-                        onClick={() => setActiveTab('profiles')}
-                    >
+                    <TabButton $active={activeTab === 'profiles'} onClick={() => setActiveTab('profiles')}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                             <circle cx="9" cy="7" r="4" />
@@ -602,39 +519,100 @@ export const CompetitionMonitoringView = () => {
                             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                         </svg>
                         Profile
-                        {profiles.length > 0 && (
-                            <TabBadge $active={activeTab === 'profiles'}>{profiles.length}</TabBadge>
-                        )}
-                        {pendingCount > 0 && (
-                            <TabBadgeAmber>{pendingCount}</TabBadgeAmber>
-                        )}
+                        {profiles.length > 0 && <TabBadge $active={activeTab === 'profiles'}>{profiles.length}</TabBadge>}
+                        {pendingCount > 0 && <TabBadgeAmber>{pendingCount}</TabBadgeAmber>}
                     </TabButton>
                 </TabBar>
 
-                {activeTab === 'analytics' ? (
-                    <PanelBody>{renderAnalytics()}</PanelBody>
-                ) : (
-                    renderProfiles()
+                {/* Analytics tab */}
+                {activeTab === 'analytics' && (
+                    analyticsEmpty ?? (
+                        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+                            {/* Profile chip selector */}
+                            <SelectorCard>
+                                <SelectorTop>
+                                    <ProfileChipSelector
+                                        profiles={summaries}
+                                        selectedIds={selectedIds}
+                                        colorMap={colorMap}
+                                        onToggle={toggleId}
+                                        maxSelected={MAX_CHART_PROFILES}
+                                    />
+                                    <MaxNote>Maks. {MAX_CHART_PROFILES} profile na wykresie</MaxNote>
+                                </SelectorTop>
+
+                                {/* Charts with 4 tabs */}
+                                <TrendCharts
+                                    profiles={selectedProfiles}
+                                    colorMap={colorMap}
+                                />
+                            </SelectorCard>
+
+                            {/* Ranking table — all profiles */}
+                            <RankingTable
+                                profiles={summaries}
+                                colorMap={colorMap}
+                                selectedIds={selectedIds}
+                                onToggle={toggleId}
+                            />
+                        </div>
+                    )
+                )}
+
+                {/* Profiles management tab */}
+                {activeTab === 'profiles' && (
+                    pLoading ? <LoadingOverlay><Spinner /></LoadingOverlay>
+                    : pError  ? (
+                        <ErrorBox>
+                            <p>Nie udało się załadować listy profili.</p>
+                            <RetryBtn onClick={() => refetchProfiles()}>Spróbuj ponownie</RetryBtn>
+                        </ErrorBox>
+                    ) : (
+                        <>
+                            {profiles.length > 0 && (
+                                <FilterBar>
+                                    {(Object.keys(FILTER_LABELS) as FilterType[]).map(key => (
+                                        <FilterBtn key={key} $active={activeFilter === key} onClick={() => setActiveFilter(key)}>
+                                            {FILTER_LABELS[key]} · {key === 'ALL' ? profiles.length : profiles.filter(p => p.status === key).length}
+                                        </FilterBtn>
+                                    ))}
+                                </FilterBar>
+                            )}
+                            {filteredManagement.length === 0 ? (
+                                <ListEmpty>
+                                    {profiles.length === 0
+                                        ? 'Brak obserwowanych profili. Kliknij „Dodaj profil", aby zacząć.'
+                                        : 'Brak profili w tej kategorii.'}
+                                </ListEmpty>
+                            ) : (
+                                <ProfileList>
+                                    {filteredManagement.map(profile => (
+                                        <ProfileRow key={profile.id}>
+                                            <ProfileCard
+                                                profile={profile}
+                                                isManagerOrOwner={isManagerOrOwner}
+                                                isApproving={isApproving}
+                                                isRejecting={isRejecting}
+                                                isRemoving={isRemoving}
+                                                onApprove={approveProfile}
+                                                onReject={rejectProfile}
+                                                onRemove={removeProfile}
+                                                onViewPosts={(p) => setSelectedProfile(p)}
+                                            />
+                                        </ProfileRow>
+                                    ))}
+                                </ProfileList>
+                            )}
+                        </>
+                    )
                 )}
             </PanelCard>
 
-            <AddProfileModal
-                isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
-            />
-
-            {selectedProfile && (
-                <PostsModal
-                    profile={selectedProfile}
-                    onClose={handleClosePosts}
-                />
-            )}
-
-            {isGenerateModalOpen && (
-                <GeneratePostModal
-                    onClose={() => setIsGenerateModalOpen(false)}
-                />
-            )}
+            {/* ── Modals ───────────────────────────────────────────────────── */}
+            <AddProfileModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
+            {selectedProfile && <PostsModal profile={selectedProfile} onClose={() => setSelectedProfile(null)} />}
+            {isGenerateOpen  && <GeneratePostModal onClose={() => setIsGenerateOpen(false)} />}
         </ViewContainer>
     );
 };

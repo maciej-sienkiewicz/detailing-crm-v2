@@ -1,5 +1,6 @@
 import { apiClient } from '@/core/apiClient';
-import type { InstagramProfile, InstagramPost, InstagramStory, ProfileSummary, WeeklyStat, GenerateInstagramPostRequest, InstagramPostResult } from '../types';
+import type { InstagramProfile, InstagramPost, InstagramStory, ProfileSummary, WeeklyStat, FollowerHistoryEntry, GenerateInstagramPostRequest, InstagramPostResult } from '../types';
+import type { WeeksOption } from '../types';
 
 const BASE_PATH = '/v1/instagram/profiles';
 const USE_MOCKS = false;
@@ -176,21 +177,24 @@ const mockPostsMap: Record<string, InstagramPost[]> = {
     ],
 };
 
-// Weekly stat helpers for mock data
-// Generates up to 52 weeks (≈ 1 year) so the date-range picker has data to work with.
-const makeWeeks = (base: number, variance: number, count = 52): WeeklyStat[] => {
+// ─── Mock generators ──────────────────────────────────────────────────────────
+
+const makeWeeks = (base: number, variance: number, storiesBase: number, count = 52): WeeklyStat[] => {
     const weeks: WeeklyStat[] = [];
-    const now = new Date('2025-01-13');
-    // Seed-like deterministic-ish values so rerenders don't reshuffle the chart
+    const now = new Date('2025-05-21');
     let seed = base;
     const rng = () => {
         seed = (seed * 1664525 + 1013904223) & 0x7fffffff;
         return base + ((seed / 0x7fffffff) - 0.5) * variance;
     };
+    let seedS = storiesBase;
+    const rngS = () => {
+        seedS = (seedS * 22695477 + 1) & 0x7fffffff;
+        return storiesBase + ((seedS / 0x7fffffff) - 0.5) * storiesBase * 0.6;
+    };
     for (let i = count - 1; i >= 0; i--) {
         const d = new Date(now);
         d.setDate(d.getDate() - i * 7);
-        // Normalise to Monday of that week
         const day = d.getDay();
         d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
         weeks.push({
@@ -198,9 +202,28 @@ const makeWeeks = (base: number, variance: number, count = 52): WeeklyStat[] => 
             avgLikes: Math.max(0, Math.round(rng())),
             avgComments: Math.max(0, Math.round(Math.abs(rng()) * 0.12)),
             postCount: Math.max(0, Math.floor(1 + Math.abs(rng()) / base * 1.5)),
+            storyCount: Math.max(0, Math.round(Math.abs(rngS()))),
         });
     }
     return weeks;
+};
+
+const makeFollowerHistory = (start: number, trend: number, days = 90): FollowerHistoryEntry[] => {
+    const entries: FollowerHistoryEntry[] = [];
+    const now = new Date('2025-05-21');
+    let count = start - trend * days;
+    let seed = start;
+    const noise = () => {
+        seed = (seed * 1664525 + 1013904223) & 0x7fffffff;
+        return ((seed / 0x7fffffff) - 0.5) * 8;
+    };
+    for (let i = days; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        count = Math.max(0, count + trend + noise());
+        entries.push({ date: d.toISOString().slice(0, 10), followerCount: Math.round(count) });
+    }
+    return entries;
 };
 
 const mockSummaries: ProfileSummary[] = [
@@ -217,8 +240,24 @@ const mockSummaries: ProfileSummary[] = [
         avgViews: 3925,
         avgEngagement: 146,
         postsPerWeek: 2.1,
-        lastPostAt: '2025-01-08T10:00:00Z',
-        weeklyStats: makeWeeks(131, 60),
+        storiesPerWeek: 5.4,
+        lastPostAt: '2025-05-18T10:00:00Z',
+        followerCount: 1667,
+        followingCount: 53,
+        mediaCount: 506,
+        hasContactData: true,
+        isVerified: false,
+        isBusiness: true,
+        accountType: 3,
+        category: 'Automotive Service',
+        externalUrl: 'http://www.autoperfect.pl/',
+        biography: '• Ulubione miejsce Twojego samochodu •\nPPF • Detailing • Ceramika • Wrocław',
+        hasHighlightReels: true,
+        totalClipsCount: 12,
+        isPrivate: false,
+        detailsLastSyncedAt: '2025-05-21T08:05:12Z',
+        weeklyStats: makeWeeks(131, 60, 5),
+        followerHistory: makeFollowerHistory(1580, 1.5),
     },
     {
         id: 'sp-4',
@@ -233,8 +272,24 @@ const mockSummaries: ProfileSummary[] = [
         avgViews: 980,
         avgEngagement: 58,
         postsPerWeek: 0.9,
-        lastPostAt: '2025-01-10T08:00:00Z',
-        weeklyStats: makeWeeks(55, 30),
+        storiesPerWeek: 1.2,
+        lastPostAt: '2025-05-10T08:00:00Z',
+        followerCount: 892,
+        followingCount: 310,
+        mediaCount: 134,
+        hasContactData: false,
+        isVerified: false,
+        isBusiness: false,
+        accountType: 1,
+        category: null,
+        externalUrl: null,
+        biography: 'Pasja do czystych aut 🚗',
+        hasHighlightReels: false,
+        totalClipsCount: 3,
+        isPrivate: false,
+        detailsLastSyncedAt: '2025-05-21T08:05:12Z',
+        weeklyStats: makeWeeks(55, 30, 1),
+        followerHistory: makeFollowerHistory(870, 0.3),
     },
     {
         id: 'sp-5',
@@ -249,8 +304,24 @@ const mockSummaries: ProfileSummary[] = [
         avgViews: 6400,
         avgEngagement: 225,
         postsPerWeek: 3.4,
-        lastPostAt: '2025-01-11T15:00:00Z',
-        weeklyStats: makeWeeks(198, 80),
+        storiesPerWeek: 8.1,
+        lastPostAt: '2025-05-20T15:00:00Z',
+        followerCount: 4210,
+        followingCount: 128,
+        mediaCount: 890,
+        hasContactData: true,
+        isVerified: false,
+        isBusiness: true,
+        accountType: 3,
+        category: 'Car Detailing',
+        externalUrl: 'https://detailpro.pl/',
+        biography: 'Detailing premium • PPF • Ceramika\nWarszawa 🏆 #1 w rankingu czytelników',
+        hasHighlightReels: true,
+        totalClipsCount: 34,
+        isPrivate: false,
+        detailsLastSyncedAt: '2025-05-21T08:05:12Z',
+        weeklyStats: makeWeeks(198, 80, 8),
+        followerHistory: makeFollowerHistory(3900, 3.2),
     },
 ];
 
@@ -425,10 +496,10 @@ export const instagramApi = {
      * Date-range filtering is done client-side from the full dataset so that
      * switching ranges requires no additional network requests.
      */
-    getCompetitionSummary: async (): Promise<ProfileSummary[]> => {
+    getCompetitionSummary: async (weeks: WeeksOption = 52): Promise<ProfileSummary[]> => {
         if (USE_MOCKS) return mockGetSummary();
         const response = await apiClient.get<ProfileSummary[]>(`${BASE_PATH}/summary`, {
-            params: { weeks: 52 },
+            params: { weeks },
         });
         return response.data;
     },
