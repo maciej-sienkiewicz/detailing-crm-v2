@@ -5,48 +5,68 @@ import {
     Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { ProfileSummary } from '../types';
+import type { ProfileSummary, WeeksOption } from '../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ChartTab = 'activity' | 'posts' | 'stories' | 'followers';
 
 interface Props {
-    profiles: ProfileSummary[];   // already filtered to selected profiles
+    profiles: ProfileSummary[];
     colorMap: Record<string, string>;
+    weeks: WeeksOption;
 }
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const STORIES_PINK = '#ec4899';
 
 // ─── Data helpers ─────────────────────────────────────────────────────────────
 
-type WeekPoint  = Record<string, string | number | null>;
-type DailyPoint = Record<string, string | number | null>;
+type DataPoint = Record<string, string | number | null>;
 
-function normalizeWeekly(profiles: ProfileSummary[]): WeekPoint[] {
+function normalizeWeekly(profiles: ProfileSummary[]): DataPoint[] {
     const weekSet = new Set<string>();
     profiles.forEach(p => p.weeklyStats.forEach(w => weekSet.add(w.weekStart)));
     const sorted = [...weekSet].sort();
 
     return sorted.map(weekStart => {
-        const pt: WeekPoint = { weekStart, label: fmtWeek(weekStart) };
+        const pt: DataPoint = { weekStart, label: fmtWeek(weekStart) };
         profiles.forEach(p => {
             const w = p.weeklyStats.find(s => s.weekStart === weekStart);
             pt[`${p.id}_posts`]    = w?.postCount  ?? 0;
             pt[`${p.id}_stories`]  = w?.storyCount ?? 0;
             pt[`${p.id}_activity`] = (w?.postCount ?? 0) + (w?.storyCount ?? 0);
-            pt[`${p.id}_likes`]    = w?.avgLikes    ?? null;
-            pt[`${p.id}_comments`] = w?.avgComments ?? null;
+            // null when no posts that week — prevents misleading zero on the avg line
+            pt[`${p.id}_likes`]    = w && w.postCount > 0 ? (w.avgLikes    ?? null) : null;
+            pt[`${p.id}_comments`] = w && w.postCount > 0 ? (w.avgComments ?? null) : null;
         });
         return pt;
     });
 }
 
-function normalizeFollowers(profiles: ProfileSummary[]): DailyPoint[] {
+function normalizeDailyStories(profiles: ProfileSummary[]): DataPoint[] {
+    const dateSet = new Set<string>();
+    profiles.forEach(p => (p.dailyStoryStats ?? []).forEach(d => dateSet.add(d.date)));
+    const sorted = [...dateSet].sort();
+
+    return sorted.map(date => {
+        const pt: DataPoint = { date, label: fmtDate(date) };
+        profiles.forEach(p => {
+            const entry = (p.dailyStoryStats ?? []).find(d => d.date === date);
+            pt[`${p.id}_stories`] = entry?.storyCount ?? 0;
+        });
+        return pt;
+    });
+}
+
+function normalizeFollowers(profiles: ProfileSummary[]): DataPoint[] {
     const dateSet = new Set<string>();
     profiles.forEach(p => (p.followerHistory ?? []).forEach(h => dateSet.add(h.date)));
     const sorted = [...dateSet].sort();
 
     return sorted.map(date => {
-        const pt: DailyPoint = { date, label: fmtDate(date) };
+        const pt: DataPoint = { date, label: fmtDate(date) };
         profiles.forEach(p => {
             const h = (p.followerHistory ?? []).find(e => e.date === date);
             pt[`${p.id}_followers`] = h?.followerCount ?? null;
@@ -73,6 +93,10 @@ function tickInterval(dataLen: number): number {
     if (dataLen <= 26) return 2;
     if (dataLen <= 52) return 3;
     return Math.ceil(dataLen / 13);
+}
+
+function barSize(dataLen: number, profileCount: number): number {
+    return Math.max(4, Math.min(24, Math.floor(280 / (dataLen * profileCount + 1))));
 }
 
 const fmt = (v: number | null | undefined) =>
@@ -139,6 +163,18 @@ const SubLabel = styled.div`
     letter-spacing: 0.5px;
     color: ${st.textMuted};
     margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
+const LegendDot = styled.span<{ $color: string }>`
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: ${p => p.$color};
+    flex-shrink: 0;
 `;
 
 const EmptyState = styled.div`
@@ -190,20 +226,11 @@ const TooltipRow = styled.div<{ $color: string }>`
     }
 `;
 
-const NoDataTag = styled.span`
-    padding: 2px 8px;
-    background: #fef9c3;
-    color: #92400e;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-`;
-
 // ─── Custom Tooltips ──────────────────────────────────────────────────────────
 
 interface TooltipProps {
     active?: boolean;
-    payload?: Array<{ name: string; value: number; color: string; payload: WeekPoint }>;
+    payload?: Array<{ name: string; value: number; color: string; payload: DataPoint }>;
     label?: string;
     profiles: ProfileSummary[];
     colorMap: Record<string, string>;
@@ -212,7 +239,7 @@ interface TooltipProps {
 
 const WeeklyTooltip = ({ active, payload, label, profiles, colorMap, mode }: TooltipProps) => {
     if (!active || !payload?.length) return null;
-    const pt = payload[0]?.payload as WeekPoint;
+    const pt = payload[0]?.payload as DataPoint;
     return (
         <TooltipBox>
             <TooltipTitle>{label}</TooltipTitle>
@@ -224,7 +251,10 @@ const WeeklyTooltip = ({ active, payload, label, profiles, colorMap, mode }: Too
                     return (
                         <TooltipRow key={p.id} $color={color}>
                             <span style={{ flex: 1 }}>@{p.username}</span>
-                            <span><strong>{posts + stories}</strong> ({posts}p + {stories}s)</span>
+                            <span>
+                                <strong>{posts + stories}</strong>
+                                <span style={{ color: st.textMuted }}> ({posts}p + <span style={{ color: STORIES_PINK }}>{stories}s</span>)</span>
+                            </span>
                         </TooltipRow>
                     );
                 }
@@ -283,11 +313,15 @@ const FollowerTooltip = ({ active, payload, label, profiles, colorMap }: Followe
 const AXIS_STYLE = { fontSize: 11, fill: st.textMuted };
 const GRID_PROPS = { stroke: st.border, strokeDasharray: '3 3' };
 
-function ActivityChart({ weekData, profiles, colorMap }: { weekData: WeekPoint[]; profiles: ProfileSummary[]; colorMap: Record<string, string> }) {
+function ActivityChart({ weekData, profiles, colorMap }: { weekData: DataPoint[]; profiles: ProfileSummary[]; colorMap: Record<string, string> }) {
     const interval = tickInterval(weekData.length);
+    const bs = barSize(weekData.length, profiles.length);
     return (
         <>
-            <SubLabel>Posty + Stories na tydzień</SubLabel>
+            <SubLabel>
+                Posty + Stories na tydzień
+                <LegendDot $color={STORIES_PINK} /> <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>Stories</span>
+            </SubLabel>
             <ChartArea>
                 <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={weekData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
@@ -295,12 +329,12 @@ function ActivityChart({ weekData, profiles, colorMap }: { weekData: WeekPoint[]
                         <XAxis dataKey="label" tick={AXIS_STYLE} interval={interval} />
                         <YAxis tick={AXIS_STYLE} allowDecimals={false} width={32} />
                         <Tooltip content={<WeeklyTooltip profiles={profiles} colorMap={colorMap} mode="activity" />} />
-                        {profiles.map(p => (
-                            <Bar key={p.id} dataKey={`${p.id}_activity`} name={p.username}
-                                fill={colorMap[p.id]} radius={[3, 3, 0, 0]}
-                                barSize={Math.max(6, Math.min(24, Math.floor(280 / (weekData.length * profiles.length + 1))))}>
-                            </Bar>
-                        ))}
+                        {profiles.flatMap(p => [
+                            <Bar key={`${p.id}-posts`}   dataKey={`${p.id}_posts`}   stackId={p.id}
+                                fill={colorMap[p.id]} radius={[0, 0, 0, 0]} barSize={bs} />,
+                            <Bar key={`${p.id}-stories`} dataKey={`${p.id}_stories`} stackId={p.id}
+                                fill={STORIES_PINK}   radius={[3, 3, 0, 0]} barSize={bs} />,
+                        ])}
                     </ComposedChart>
                 </ResponsiveContainer>
             </ChartArea>
@@ -334,11 +368,12 @@ function FollowerSubChart({ profiles, colorMap }: { profiles: ProfileSummary[]; 
     );
 }
 
-function PostsChart({ weekData, profiles, colorMap }: { weekData: WeekPoint[]; profiles: ProfileSummary[]; colorMap: Record<string, string> }) {
+function PostsChart({ weekData, profiles, colorMap }: { weekData: DataPoint[]; profiles: ProfileSummary[]; colorMap: Record<string, string> }) {
     const interval = tickInterval(weekData.length);
+    const bs = barSize(weekData.length, profiles.length);
     return (
         <>
-            <SubLabel>Posty / tydzień · Śr. lajki</SubLabel>
+            <SubLabel>Posty / tydzień · Śr. lajki (tylko tygodnie z postami)</SubLabel>
             <ChartArea>
                 <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={weekData} margin={{ top: 4, right: 40, left: 0, bottom: 0 }}>
@@ -350,7 +385,7 @@ function PostsChart({ weekData, profiles, colorMap }: { weekData: WeekPoint[]; p
                         {profiles.map(p => (
                             <Bar key={`bar-${p.id}`} yAxisId="left" dataKey={`${p.id}_posts`}
                                 fill={colorMap[p.id]} radius={[3, 3, 0, 0]} name={p.username}
-                                barSize={Math.max(6, Math.min(24, Math.floor(280 / (weekData.length * profiles.length + 1))))} />
+                                barSize={bs} />
                         ))}
                         {profiles.map(p => (
                             <Line key={`line-${p.id}`} yAxisId="right" type="monotone"
@@ -365,22 +400,34 @@ function PostsChart({ weekData, profiles, colorMap }: { weekData: WeekPoint[]; p
     );
 }
 
-function StoriesChart({ weekData, profiles, colorMap }: { weekData: WeekPoint[]; profiles: ProfileSummary[]; colorMap: Record<string, string> }) {
-    const interval = tickInterval(weekData.length);
+function StoriesChart({
+    weekData, dailyData, isDaily, profiles, colorMap,
+}: {
+    weekData: DataPoint[];
+    dailyData: DataPoint[];
+    isDaily: boolean;
+    profiles: ProfileSummary[];
+    colorMap: Record<string, string>;
+}) {
+    const data     = isDaily ? dailyData : weekData;
+    const interval = tickInterval(data.length);
+    const bs       = barSize(data.length, profiles.length);
+
     return (
         <>
-            <SubLabel>Stories na tydzień</SubLabel>
+            <SubLabel>
+                Stories {isDaily ? '— granulacja dzienna (ostatnie 4 tygodnie)' : '— granulacja tygodniowa'}
+            </SubLabel>
             <ChartArea>
                 <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={weekData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+                    <ComposedChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
                         <CartesianGrid {...GRID_PROPS} />
                         <XAxis dataKey="label" tick={AXIS_STYLE} interval={interval} />
                         <YAxis tick={AXIS_STYLE} allowDecimals={false} width={32} />
                         <Tooltip content={<WeeklyTooltip profiles={profiles} colorMap={colorMap} mode="stories" />} />
                         {profiles.map(p => (
                             <Bar key={p.id} dataKey={`${p.id}_stories`} name={p.username}
-                                fill={colorMap[p.id]} radius={[3, 3, 0, 0]}
-                                barSize={Math.max(6, Math.min(24, Math.floor(280 / (weekData.length * profiles.length + 1))))} />
+                                fill={colorMap[p.id]} radius={[3, 3, 0, 0]} barSize={bs} />
                         ))}
                     </ComposedChart>
                 </ResponsiveContainer>
@@ -429,10 +476,11 @@ const TABS: { id: ChartTab; label: string }[] = [
     { id: 'followers', label: 'Obserwujący'      },
 ];
 
-export const TrendCharts = ({ profiles, colorMap }: Props) => {
+export const TrendCharts = ({ profiles, colorMap, weeks }: Props) => {
     const [activeTab, setActiveTab] = useState<ChartTab>('activity');
 
-    const weekData = useMemo(() => normalizeWeekly(profiles), [profiles]);
+    const weekData       = useMemo(() => normalizeWeekly(profiles),        [profiles]);
+    const dailyStoryData = useMemo(() => normalizeDailyStories(profiles),  [profiles]);
 
     if (profiles.length === 0) {
         return (
@@ -472,7 +520,13 @@ export const TrendCharts = ({ profiles, colorMap }: Props) => {
                     <PostsChart weekData={weekData} profiles={profiles} colorMap={colorMap} />
                 )}
                 {activeTab === 'stories' && (
-                    <StoriesChart weekData={weekData} profiles={profiles} colorMap={colorMap} />
+                    <StoriesChart
+                        weekData={weekData}
+                        dailyData={dailyStoryData}
+                        isDaily={weeks === 4}
+                        profiles={profiles}
+                        colorMap={colorMap}
+                    />
                 )}
                 {activeTab === 'followers' && (
                     <FollowersChart profiles={profiles} colorMap={colorMap} />

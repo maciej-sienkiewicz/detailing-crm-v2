@@ -34,6 +34,11 @@ export interface FollowerHistoryEntry {
     followerCount: number;
 }
 
+export interface DailyStoryStat {
+    date: string;          // "YYYY-MM-DD"
+    storyCount: number;
+}
+
 export interface ProfileSummary {
     // Identification
     id: string;
@@ -74,6 +79,7 @@ export interface ProfileSummary {
     // Time-series data
     weeklyStats: WeeklyStat[];
     followerHistory: FollowerHistoryEntry[];
+    dailyStoryStats: DailyStoryStat[];
 }
 
 export interface GenerateInstagramPostRequest {

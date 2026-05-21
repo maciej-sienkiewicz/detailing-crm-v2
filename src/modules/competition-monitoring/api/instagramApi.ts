@@ -1,5 +1,5 @@
 import { apiClient } from '@/core/apiClient';
-import type { InstagramProfile, InstagramPost, InstagramStory, ProfileSummary, WeeklyStat, FollowerHistoryEntry, GenerateInstagramPostRequest, InstagramPostResult } from '../types';
+import type { InstagramProfile, InstagramPost, InstagramStory, ProfileSummary, WeeklyStat, FollowerHistoryEntry, DailyStoryStat, GenerateInstagramPostRequest, InstagramPostResult } from '../types';
 import type { WeeksOption } from '../types';
 
 const BASE_PATH = '/v1/instagram/profiles';
@@ -208,6 +208,22 @@ const makeWeeks = (base: number, variance: number, storiesBase: number, count = 
     return weeks;
 };
 
+const makeDailyStories = (base: number, days = 28): DailyStoryStat[] => {
+    const stats: DailyStoryStat[] = [];
+    const now = new Date('2025-05-21');
+    let seed = base * 31337;
+    const rng = () => {
+        seed = (seed * 22695477 + 1) & 0x7fffffff;
+        return Math.max(0, Math.round(base + ((seed / 0x7fffffff) - 0.5) * base * 1.4));
+    };
+    for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        stats.push({ date: d.toISOString().slice(0, 10), storyCount: rng() });
+    }
+    return stats;
+};
+
 const makeFollowerHistory = (start: number, trend: number, days = 90): FollowerHistoryEntry[] => {
     const entries: FollowerHistoryEntry[] = [];
     const now = new Date('2025-05-21');
@@ -258,6 +274,7 @@ const mockSummaries: ProfileSummary[] = [
         detailsLastSyncedAt: '2025-05-21T08:05:12Z',
         weeklyStats: makeWeeks(131, 60, 5),
         followerHistory: makeFollowerHistory(1580, 1.5),
+        dailyStoryStats: makeDailyStories(5),
     },
     {
         id: 'sp-4',
@@ -290,6 +307,7 @@ const mockSummaries: ProfileSummary[] = [
         detailsLastSyncedAt: '2025-05-21T08:05:12Z',
         weeklyStats: makeWeeks(55, 30, 1),
         followerHistory: makeFollowerHistory(870, 0.3),
+        dailyStoryStats: makeDailyStories(1),
     },
     {
         id: 'sp-5',
@@ -322,6 +340,7 @@ const mockSummaries: ProfileSummary[] = [
         detailsLastSyncedAt: '2025-05-21T08:05:12Z',
         weeklyStats: makeWeeks(198, 80, 8),
         followerHistory: makeFollowerHistory(3900, 3.2),
+        dailyStoryStats: makeDailyStories(8),
     },
 ];
 

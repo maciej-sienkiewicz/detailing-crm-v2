@@ -546,6 +546,7 @@ export const CompetitionMonitoringView = () => {
                                 <TrendCharts
                                     profiles={selectedProfiles}
                                     colorMap={colorMap}
+                                    weeks={weeks}
                                 />
                             </SelectorCard>
 
