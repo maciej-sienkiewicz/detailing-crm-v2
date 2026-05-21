@@ -99,9 +99,16 @@ const Td = styled.td`
     vertical-align: middle;
 `;
 
-const Check = styled.span<{ $ok: boolean }>`
-    font-size: 16px;
-    line-height: 1;
+const CheckIcon = styled.span<{ $ok: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: ${p => p.$ok ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.09)'};
+    color: ${p => p.$ok ? '#059669' : '#dc2626'};
+    flex-shrink: 0;
 `;
 
 const CategoryText = styled.span`
@@ -173,7 +180,20 @@ const fmtSync = (iso: string | null) => {
 
 const Bool = ({ value }: { value: boolean | null }) => {
     if (value === null) return <NullDash>—</NullDash>;
-    return <Check $ok={value}>{value ? '✅' : '❌'}</Check>;
+    return (
+        <CheckIcon $ok={value}>
+            {value ? (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                </svg>
+            ) : (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            )}
+        </CheckIcon>
+    );
 };
 
 // ─── Rows definition ──────────────────────────────────────────────────────────
