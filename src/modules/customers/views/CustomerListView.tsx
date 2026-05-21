@@ -10,6 +10,7 @@ import { CustomerGrid } from '../components/CustomerGrid';
 import { CustomerPagination } from '../components/CustomerPagination';
 import { AddCustomerModal } from '../components/AddCustomerModal';
 import { CustomerFilterPanel } from '../components/CustomerFilterPanel';
+import { ExportModal } from '../components/ExportModal';
 import { EmptyState } from '../components/EmptyState';
 import { t, interpolate } from '@/common/i18n';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -221,6 +222,7 @@ const countActiveFilters = (f: CustomerAdvancedFilters): number => {
 export const CustomerListView = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [appliedFilters, setAppliedFilters] = useState<CustomerAdvancedFilters>(EMPTY_ADVANCED_FILTERS);
     const [activeTab, setActiveTab] = useState<CustomerTab>('all');
     const [sortBy, setSortBy] = useState<CustomerSortField>('lastName');
@@ -351,7 +353,7 @@ export const CustomerListView = () => {
                                 <FilterBadge>{activeFilterCount}</FilterBadge>
                             )}
                         </SecondaryBtn>
-                        <SecondaryBtn>
+                        <SecondaryBtn onClick={() => setIsExportModalOpen(true)}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                                 <polyline points="7 10 12 15 17 10" />
@@ -386,6 +388,18 @@ export const CustomerListView = () => {
                     resetPagination();
                 }}
                 onClose={() => setIsFilterPanelOpen(false)}
+            />
+
+            <ExportModal
+                isOpen={isExportModalOpen}
+                onClose={() => setIsExportModalOpen(false)}
+                currentFilters={{
+                    search: debouncedSearch,
+                    sortBy,
+                    sortDirection,
+                    ...appliedFilters,
+                }}
+                filteredCount={pagination?.totalItems ?? 0}
             />
         </ViewContainer>
     );
