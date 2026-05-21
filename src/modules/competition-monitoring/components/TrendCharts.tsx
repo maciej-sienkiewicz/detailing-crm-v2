@@ -339,10 +339,9 @@ function ActivityChart({ weekData, profiles, colorMap }: { weekData: DataPoint[]
         <>
             <SubLabel>
                 Posty + Stories na tydzień
-                <LegendDot $color={STORIES_PINK} /> <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>Stories</span>
             </SubLabel>
             <ChartHint>
-                Każdy słupek pokazuje łączną aktywność w danym tygodniu – część dolna to posty (kolor profilu), górna to stories (róż).
+                Każdy słupek pokazuje sumę dodanych postów i stories w tygodniu.
                 Im wyższy słupek, tym intensywniej prowadzony profil w danym tygodniu.
             </ChartHint>
             <ChartArea>
@@ -356,7 +355,7 @@ function ActivityChart({ weekData, profiles, colorMap }: { weekData: DataPoint[]
                             <Bar key={`${p.id}-posts`}   dataKey={`${p.id}_posts`}   stackId={p.id}
                                 fill={colorMap[p.id]} radius={[0, 0, 0, 0]} barSize={bs} />,
                             <Bar key={`${p.id}-stories`} dataKey={`${p.id}_stories`} stackId={p.id}
-                                fill={STORIES_PINK}   radius={[3, 3, 0, 0]} barSize={bs} />,
+                                fill={colorMap[p.id]}    radius={[3, 3, 0, 0]} barSize={bs} />,
                         ])}
                     </ComposedChart>
                 </ResponsiveContainer>
@@ -399,10 +398,10 @@ function PostsChart({ weekData, profiles, colorMap }: { weekData: DataPoint[]; p
     const bs = barSize(weekData.length, profiles.length);
     return (
         <>
-            <SubLabel>Posty / tydzień · Suma lajków</SubLabel>
+            <SubLabel>Dodane posty</SubLabel>
             <ChartHint>
                 Każdy słupek oznacza liczbę postów opublikowanych w danym tygodniu. Przerywana kreska pokazuje łączną liczbę lajków, jaką te posty zebrały.
-                Duże piki na linii przy małej liczbie postów mogą wskazywać na wyjątkowe zaangażowanie – konkurs, kampanię płatną lub sztuczną aktywność.
+                Duże piki na linii mogą wskazywać na wyjątkowe zaangażowanie - na przykład jakiś konkurs, płatną kampanię lub sztuczną, zakupioną aktywność.
             </ChartHint>
             <ChartArea>
                 <ResponsiveContainer width="100%" height="100%">
@@ -553,7 +552,6 @@ export const TrendCharts = ({ profiles, colorMap, weeks }: Props) => {
                 {activeTab === 'activity' && (
                     <>
                         <ActivityChart weekData={weekData} profiles={profiles} colorMap={colorMap} />
-                        <FollowerSubChart profiles={profiles} colorMap={colorMap} />
                     </>
                 )}
                 {activeTab === 'posts' && (

@@ -218,11 +218,9 @@ export const RankingTable = ({ profiles, colorMap, selectedIds, onToggle }: Prop
                                     </Td>
                                     <Td $right>
                                         <MetricPrimary>{fmt(p.avgLikes) ?? <NullVal>—</NullVal>}</MetricPrimary>
-                                        <MetricSub>Σ {fmtK(p.weeklyStats.reduce((s, w) => s + w.totalLikes, 0))}</MetricSub>
                                     </Td>
                                     <Td $right>
                                         <MetricPrimary>{fmt(p.avgComments) ?? <NullVal>—</NullVal>}</MetricPrimary>
-                                        <MetricSub>Σ {fmtK(p.weeklyStats.reduce((s, w) => s + w.totalComments, 0))}</MetricSub>
                                     </Td>
                                     <Td $right>
                                         <MetricPrimary>{fmt(p.postsPerWeek, 1) ?? <NullVal>—</NullVal>}</MetricPrimary>
