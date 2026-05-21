@@ -2850,16 +2850,14 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
   }, []);
 
   const [previewVisitId, setPreviewVisitId] = useState<string | null>(null);
-  const [quoteEditorOpen, setQuoteEditorOpen] = useState(false);
 
   const estimation    = detail?.estimation ?? null;
   const userQuote     = detail?.userQuote ?? null;
   const relatedVisits = estimation?.relatedVisits ?? detail?.relatedVisits ?? lead.relatedVisits ?? [];
   const hasQuote      = !!userQuote;
 
-  // AI is dimmed when user has their own quote; user quote is dimmed when not set and editor is closed
-  const aiDimmed    = hasQuote;
-  const quoteDimmed = !hasQuote && !quoteEditorOpen;
+  // AI is dimmed when user has their own quote
+  const aiDimmed = hasQuote;
 
   // Silently sync estimatedValue when quote is saved or deleted
   const handleQuoteSaved = (totalGross: number) => {
@@ -2868,12 +2866,6 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
   const handleQuoteDeleted = () => {
     updateValue.mutate({ id: lead.id, estimatedValue: estimation?.totalGross ?? 0 });
   };
-
-  const editorBtnLabel = quoteEditorOpen && !hasQuote
-    ? 'Zamknij'
-    : hasQuote
-      ? 'Edytuj'
-      : 'Wprowadź';
 
   return (
     <>
@@ -2896,17 +2888,9 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
                 <FileText size={13} style={{ marginRight: 6 }} /> Kosztorys AI
               </PanelLabel>
 
-              {/* Row 1 col 2 — User quote label + action button */}
+              {/* Row 1 col 2 — User quote label */}
               <PanelLabel style={{ display: 'flex', alignItems: 'center' }}>
                 <Edit3 size={13} style={{ marginRight: 6 }} /> Twój kosztorys
-                {!isDetailLoading && (
-                  <EditEstBtn
-                    onClick={e => { e.stopPropagation(); setQuoteEditorOpen(v => !v); }}
-                    title={editorBtnLabel}
-                  >
-                    <Edit3 /> {editorBtnLabel}
-                  </EditEstBtn>
-                )}
               </PanelLabel>
 
               {/* Row 2 col 1 — AI card (dimmed when user quote is active) */}
@@ -2953,16 +2937,14 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
                 )}
               </EstColumnWrapper>
 
-              {/* Row 2 col 2 — User quote (dimmed placeholder when not set and editor closed) */}
-              <EstColumnWrapper $dimmed={quoteDimmed}>
+              {/* Row 2 col 2 — User quote */}
+              <EstColumnWrapper>
                 {isDetailLoading ? (
                   <EstCard>
                     <EstRow><SkeletonPulse $w="55%" /></EstRow>
                     <EstRow><SkeletonPulse $w="45%" /></EstRow>
                     <EstRow $isTotal><SkeletonPulse $w="30%" /></EstRow>
                   </EstCard>
-                ) : quoteDimmed ? (
-                  <QuotePlaceholder>Brak własnego kosztorysu</QuotePlaceholder>
                 ) : (
                   <UserQuoteEditor
                     leadId={lead.id}
@@ -3342,7 +3324,7 @@ export const LeadListView: React.FC = () => {
             </CellStack>
           </Td>
 
-          <StatusTd onClick={() => toggleExpand(lead.id)}>
+          <StatusTd onClick={e => { e.stopPropagation(); toggleExpand(lead.id); }}>
             <StatusBadge
               $variant={getStatusVariant(lead)}
               onClick={e => {
