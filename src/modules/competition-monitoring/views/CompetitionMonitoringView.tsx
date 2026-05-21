@@ -12,6 +12,7 @@ import { TrendCharts } from '../components/TrendCharts';
 import { RankingTable } from '../components/RankingTable';
 import { ProfileChipSelector } from '../components/ProfileChipSelector';
 import { GeneratePostModal } from '../components/GeneratePostModal';
+import { ProfileSeoCard } from '../components/ProfileSeoCard';
 import { PROFILE_COLORS } from '../types';
 import type { InstagramProfile, InstagramProfileStatus, WeeksOption } from '../types';
 
@@ -557,6 +558,9 @@ export const CompetitionMonitoringView = () => {
                                 selectedIds={selectedIds}
                                 onToggle={toggleId}
                             />
+
+                            {/* Profile SEO comparison card */}
+                            <ProfileSeoCard profiles={summaries} />
                         </div>
                     )
                 )}
