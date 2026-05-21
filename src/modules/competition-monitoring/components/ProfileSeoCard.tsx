@@ -122,20 +122,6 @@ const NullDash = styled.span`
     font-size: ${st.fontSm};
 `;
 
-const BioText = styled.div`
-    font-size: ${st.fontXs};
-    color: ${st.textSecondary};
-    max-width: 180px;
-    white-space: pre-line;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    text-align: left;
-    margin: 0 auto;
-    line-height: 1.45;
-`;
-
 const AccountTypeBadge = styled.span<{ $type: number | null }>`
     display: inline-block;
     padding: 2px 8px;
@@ -255,14 +241,6 @@ const ROWS: RowDef[] = [
         renderValue: p =>
             p.accountType != null
                 ? <AccountTypeBadge $type={p.accountType}>{ACCOUNT_TYPE_LABEL[p.accountType] ?? `Typ ${p.accountType}`}</AccountTypeBadge>
-                : <NullDash>—</NullDash>,
-    },
-    {
-        kind: 'text',
-        label: 'Bio',
-        renderValue: p =>
-            p.biography
-                ? <BioText>{p.biography}</BioText>
                 : <NullDash>—</NullDash>,
     },
 ];

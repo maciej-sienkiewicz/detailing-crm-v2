@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { PageHeader, PageHeaderPrimaryButton, PageHeaderGhostButton } from '@/common/components/PageHeader/PageHeader';
 import { useAuth } from '@/core/context/AuthContext';
 import { useInstagramProfiles } from '../hooks/useInstagramProfiles';
 import { useCompetitionSummary } from '../hooks/useCompetitionSummary';
@@ -40,41 +41,12 @@ const ViewContainer = styled.main`
     }
 `;
 
-// ─── Header ───────────────────────────────────────────────────────────────────
-
-const PageTopRow = styled.div`
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-`;
-
-const PageTitle = styled.h1`
-    margin: 0;
-    font-size: 22px;
-    font-weight: 700;
-    color: ${st.text};
-    letter-spacing: -0.3px;
-`;
-
-const PageSubtitle = styled.p`
-    margin: 4px 0 0;
-    font-size: ${st.fontSm};
-    color: ${st.textMuted};
-`;
-
-const ActionRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-`;
+// ─── Weeks selector (dark variant for PageHeader) ─────────────────────────────
 
 const WeeksBar = styled.div`
     display: inline-flex;
-    background: ${st.bgCardAlt};
-    border: 1px solid ${st.border};
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: ${st.radiusFull};
     padding: 3px;
     gap: 2px;
@@ -87,53 +59,14 @@ const WeeksBtn = styled.button<{ $active: boolean }>`
     font-family: inherit;
     font-size: ${st.fontSm};
     font-weight: ${p => p.$active ? 700 : 400};
-    background: ${p => p.$active ? '#fff' : 'transparent'};
-    color: ${p => p.$active ? st.text : st.textMuted};
-    box-shadow: ${p => p.$active ? st.shadowXs : 'none'};
+    background: ${p => p.$active ? 'rgba(255,255,255,0.14)' : 'transparent'};
+    color: ${p => p.$active ? '#f1f5f9' : '#64748b'};
+    box-shadow: ${p => p.$active ? '0 1px 3px rgba(0,0,0,0.2)' : 'none'};
     cursor: pointer;
     transition: all ${st.transition};
     white-space: nowrap;
 
-    &:hover { color: ${p => p.$active ? st.text : st.textSecondary}; }
-`;
-
-const AddButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 18px;
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    font-family: inherit;
-    background: ${st.accentBlue};
-    color: #fff;
-    border: none;
-    border-radius: ${st.radiusFull};
-    cursor: pointer;
-    transition: all ${st.transition};
-    white-space: nowrap;
-
-    &:hover { background: #2563eb; transform: translateY(-1px); }
-    &:active { transform: none; }
-`;
-
-const GenerateButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 18px;
-    font-size: ${st.fontSm};
-    font-weight: 600;
-    font-family: inherit;
-    background: ${st.bgCard};
-    color: ${st.textSecondary};
-    border: 1.5px solid ${st.border};
-    border-radius: ${st.radiusFull};
-    cursor: pointer;
-    transition: all ${st.transition};
-    white-space: nowrap;
-
-    &:hover { border-color: ${st.accentBlue}; color: ${st.accentBlue}; }
+    &:hover { color: ${p => p.$active ? '#f1f5f9' : '#94a3b8'}; }
 `;
 
 // ─── Selector + Charts card ────────────────────────────────────────────────────
@@ -460,34 +393,34 @@ export const CompetitionMonitoringView = () => {
         <ViewContainer>
 
             {/* ── Header ──────────────────────────────────────────────────── */}
-            <PageTopRow>
-                <div>
-                    <PageTitle>Analityka Instagram</PageTitle>
-                    <PageSubtitle>Obserwuj i porównuj profile konkurentów</PageSubtitle>
-                </div>
-                <ActionRow>
-                    <WeeksBar>
-                        {WEEKS_OPTIONS.map(o => (
-                            <WeeksBtn key={o.value} $active={weeks === o.value} onClick={() => setWeeks(o.value)}>
-                                {o.label}
-                            </WeeksBtn>
-                        ))}
-                    </WeeksBar>
-                    <GenerateButton onClick={() => setIsGenerateOpen(true)}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-                        </svg>
-                        Generuj post
-                    </GenerateButton>
-                    <AddButton onClick={() => setIsAddModalOpen(true)}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <line x1="12" y1="5" x2="12" y2="19" />
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg>
-                        Dodaj profil
-                    </AddButton>
-                </ActionRow>
-            </PageTopRow>
+            <PageHeader
+                title="Analityka Instagram"
+                subtitle="Obserwuj i porównuj profile konkurentów"
+                actions={
+                    <>
+                        <WeeksBar>
+                            {WEEKS_OPTIONS.map(o => (
+                                <WeeksBtn key={o.value} $active={weeks === o.value} onClick={() => setWeeks(o.value)}>
+                                    {o.label}
+                                </WeeksBtn>
+                            ))}
+                        </WeeksBar>
+                        <PageHeaderGhostButton onClick={() => setIsGenerateOpen(true)}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                            </svg>
+                            Generuj post
+                        </PageHeaderGhostButton>
+                        <PageHeaderPrimaryButton onClick={() => setIsAddModalOpen(true)}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            Dodaj profil
+                        </PageHeaderPrimaryButton>
+                    </>
+                }
+            />
 
             {/* ── Pending banner ───────────────────────────────────────────── */}
             {pendingCount > 0 && isManagerOrOwner && (
