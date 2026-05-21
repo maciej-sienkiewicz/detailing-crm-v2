@@ -33,12 +33,32 @@ function trimWeekStats(stats: WeeklyStat[], maxWeeks: number): WeeklyStat[] {
     return complete.slice(-maxWeeks);
 }
 
-function normalizeWeekly(profiles: ProfileSummary[]): DataPoint[] {
-    const weekSet = new Set<string>();
-    profiles.forEach(p => p.weeklyStats.forEach(w => weekSet.add(w.weekStart)));
-    const sorted = [...weekSet].sort();
+function buildCompleteWeekRange(maxWeeks: number): string[] {
+    const today = new Date();
+    const day = today.getDay(); // 0=Sun, 1=Mon, …, 6=Sat
+    const daysSinceMonday = day === 0 ? 6 : day - 1;
+    const currentMonday = new Date(today);
+    currentMonday.setHours(0, 0, 0, 0);
+    currentMonday.setDate(today.getDate() - daysSinceMonday);
+    // Last COMPLETE week started 7 days before the current Monday
+    const lastComplete = new Date(currentMonday);
+    lastComplete.setDate(currentMonday.getDate() - 7);
+    // Build maxWeeks consecutive Mondays ending at lastComplete
+    const weeks: string[] = [];
+    for (let i = maxWeeks - 1; i >= 0; i--) {
+        const d = new Date(lastComplete);
+        d.setDate(lastComplete.getDate() - i * 7);
+        weeks.push(d.toISOString().slice(0, 10));
+    }
+    return weeks;
+}
 
-    return sorted.map(weekStart => {
+function normalizeWeekly(profiles: ProfileSummary[], maxWeeks: number): DataPoint[] {
+    // Always build the full canonical week sequence so that weeks with no activity
+    // still appear as x-axis ticks (zero-height bars) rather than being skipped.
+    const weekStarts = buildCompleteWeekRange(maxWeeks);
+
+    return weekStarts.map(weekStart => {
         const pt: DataPoint = { weekStart, label: fmtWeek(weekStart) };
         profiles.forEach(p => {
             const w = p.weeklyStats.find(s => s.weekStart === weekStart);
@@ -493,14 +513,8 @@ const TABS: { id: ChartTab; label: string }[] = [
 export const TrendCharts = ({ profiles, colorMap, weeks }: Props) => {
     const [activeTab, setActiveTab] = useState<ChartTab>('activity');
 
-    // Trim each profile's weeklyStats to the last `weeks` COMPLETE weeks (drops the current partial week).
-    const trimmedProfiles = useMemo(
-        () => profiles.map(p => ({ ...p, weeklyStats: trimWeekStats(p.weeklyStats, weeks) })),
-        [profiles, weeks]
-    );
-
-    const weekData       = useMemo(() => normalizeWeekly(trimmedProfiles),  [trimmedProfiles]);
-    const dailyStoryData = useMemo(() => normalizeDailyStories(profiles),   [profiles]);
+    const weekData       = useMemo(() => normalizeWeekly(profiles, weeks), [profiles, weeks]);
+    const dailyStoryData = useMemo(() => normalizeDailyStories(profiles),  [profiles]);
 
     if (profiles.length === 0) {
         return (
