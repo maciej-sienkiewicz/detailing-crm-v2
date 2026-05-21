@@ -5,7 +5,7 @@ import {
     Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { ProfileSummary, WeeklyStat, WeeksOption } from '../types';
+import type { ProfileSummary, WeeksOption } from '../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -25,38 +25,18 @@ const STORIES_PINK = '#ec4899';
 
 type DataPoint = Record<string, string | number | null>;
 
-// Removes the current incomplete week and limits to the last maxWeeks complete weeks.
-function trimWeekStats(stats: WeeklyStat[], maxWeeks: number): WeeklyStat[] {
-    const complete = stats.filter(
-        w => new Date(w.weekStart).getTime() + 7 * 86_400_000 <= Date.now()
-    );
-    return complete.slice(-maxWeeks);
-}
-
-function buildCompleteWeekRange(maxWeeks: number): string[] {
-    const today = new Date();
-    const day = today.getDay(); // 0=Sun, 1=Mon, …, 6=Sat
-    const daysSinceMonday = day === 0 ? 6 : day - 1;
-    const currentMonday = new Date(today);
-    currentMonday.setHours(0, 0, 0, 0);
-    currentMonday.setDate(today.getDate() - daysSinceMonday);
-    // Last COMPLETE week started 7 days before the current Monday
-    const lastComplete = new Date(currentMonday);
-    lastComplete.setDate(currentMonday.getDate() - 7);
-    // Build maxWeeks consecutive Mondays ending at lastComplete
-    const weeks: string[] = [];
-    for (let i = maxWeeks - 1; i >= 0; i--) {
-        const d = new Date(lastComplete);
-        d.setDate(lastComplete.getDate() - i * 7);
-        weeks.push(d.toISOString().slice(0, 10));
-    }
-    return weeks;
-}
-
 function normalizeWeekly(profiles: ProfileSummary[], maxWeeks: number): DataPoint[] {
-    // Always build the full canonical week sequence so that weeks with no activity
-    // still appear as x-axis ticks (zero-height bars) rather than being skipped.
-    const weekStarts = buildCompleteWeekRange(maxWeeks);
+    // Backend now fills all week slots (including zero-activity weeks) but still
+    // sends the current partial week. Filter to complete weeks only, then take
+    // the last maxWeeks so the chart always shows real, closed periods.
+    const now = Date.now();
+    const weekSet = new Set<string>();
+    profiles.forEach(p =>
+        p.weeklyStats
+            .filter(w => new Date(w.weekStart).getTime() + 7 * 86_400_000 <= now)
+            .forEach(w => weekSet.add(w.weekStart))
+    );
+    const weekStarts = [...weekSet].sort().slice(-maxWeeks);
 
     return weekStarts.map(weekStart => {
         const pt: DataPoint = { weekStart, label: fmtWeek(weekStart) };
