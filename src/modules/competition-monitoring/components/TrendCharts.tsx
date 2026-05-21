@@ -5,7 +5,7 @@ import {
     Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { ProfileSummary, WeeksOption } from '../types';
+import type { ProfileSummary, WeeklyStat, WeeksOption } from '../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,6 +24,14 @@ const STORIES_PINK = '#ec4899';
 // ─── Data helpers ─────────────────────────────────────────────────────────────
 
 type DataPoint = Record<string, string | number | null>;
+
+// Removes the current incomplete week and limits to the last maxWeeks complete weeks.
+function trimWeekStats(stats: WeeklyStat[], maxWeeks: number): WeeklyStat[] {
+    const complete = stats.filter(
+        w => new Date(w.weekStart).getTime() + 7 * 86_400_000 <= Date.now()
+    );
+    return complete.slice(-maxWeeks);
+}
 
 function normalizeWeekly(profiles: ProfileSummary[]): DataPoint[] {
     const weekSet = new Set<string>();
@@ -409,14 +417,20 @@ function StoriesChart({
     profiles: ProfileSummary[];
     colorMap: Record<string, string>;
 }) {
-    const data     = isDaily ? dailyData : weekData;
-    const interval = tickInterval(data.length);
-    const bs       = barSize(data.length, profiles.length);
+    // Fall back to weekly when daily data hasn't arrived yet.
+    const usingDaily = isDaily && dailyData.length > 0;
+    const data       = usingDaily ? dailyData : weekData;
+    const interval   = tickInterval(data.length);
+    const bs         = barSize(data.length, profiles.length);
 
     return (
         <>
             <SubLabel>
-                Stories {isDaily ? '— granulacja dzienna (ostatnie 4 tygodnie)' : '— granulacja tygodniowa'}
+                Stories — {usingDaily
+                    ? 'granulacja dzienna (ostatnie 4 tygodnie)'
+                    : isDaily
+                        ? 'granulacja tygodniowa (brak danych dziennych)'
+                        : 'granulacja tygodniowa'}
             </SubLabel>
             <ChartArea>
                 <ResponsiveContainer width="100%" height="100%">
@@ -479,8 +493,14 @@ const TABS: { id: ChartTab; label: string }[] = [
 export const TrendCharts = ({ profiles, colorMap, weeks }: Props) => {
     const [activeTab, setActiveTab] = useState<ChartTab>('activity');
 
-    const weekData       = useMemo(() => normalizeWeekly(profiles),        [profiles]);
-    const dailyStoryData = useMemo(() => normalizeDailyStories(profiles),  [profiles]);
+    // Trim each profile's weeklyStats to the last `weeks` COMPLETE weeks (drops the current partial week).
+    const trimmedProfiles = useMemo(
+        () => profiles.map(p => ({ ...p, weeklyStats: trimWeekStats(p.weeklyStats, weeks) })),
+        [profiles, weeks]
+    );
+
+    const weekData       = useMemo(() => normalizeWeekly(trimmedProfiles),  [trimmedProfiles]);
+    const dailyStoryData = useMemo(() => normalizeDailyStories(profiles),   [profiles]);
 
     if (profiles.length === 0) {
         return (

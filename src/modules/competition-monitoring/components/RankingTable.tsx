@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { ProfileSummary } from '../types';
+import type { ProfileSummary, WeeklyStat } from '../types';
 
 interface Props {
     profiles: ProfileSummary[];
@@ -147,6 +147,18 @@ const NullVal = styled.span`
     font-size: ${st.fontXs};
 `;
 
+const InsufficientBadge = styled.span`
+    display: inline-flex;
+    padding: 2px 7px;
+    background: rgba(245,158,11,0.10);
+    color: #92400e;
+    border-radius: ${st.radiusFull};
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: default;
+`;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const fmt = (v: number | null | undefined, decimals = 0) =>
@@ -154,6 +166,9 @@ const fmt = (v: number | null | undefined, decimals = 0) =>
 
 const fmtK = (v: number | null | undefined) =>
     v == null ? null : v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v);
+
+const hasCompleteWeek = (stats: WeeklyStat[]): boolean =>
+    stats.some(w => new Date(w.weekStart).getTime() + 7 * 86_400_000 <= Date.now());
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -226,7 +241,10 @@ export const RankingTable = ({ profiles, colorMap, selectedIds, onToggle }: Prop
                                         <MetricPrimary>{fmt(p.postsPerWeek, 1) ?? <NullVal>—</NullVal>}</MetricPrimary>
                                     </Td>
                                     <Td $right>
-                                        <MetricPrimary>{fmt(p.storiesPerWeek, 1) ?? <NullVal>—</NullVal>}</MetricPrimary>
+                                        {hasCompleteWeek(p.weeklyStats)
+                                            ? <MetricPrimary>{fmt(p.storiesPerWeek, 1) ?? <NullVal>—</NullVal>}</MetricPrimary>
+                                            : <InsufficientBadge title="Mniej niż tydzień danych — średnia byłaby myląca">brak danych</InsufficientBadge>
+                                        }
                                     </Td>
                                     <Td $right>
                                         <MetricPrimary>{fmt(p.avgEngagement, 1) ?? <NullVal>—</NullVal>}</MetricPrimary>
