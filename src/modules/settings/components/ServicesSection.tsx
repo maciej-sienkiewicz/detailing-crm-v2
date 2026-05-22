@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
 import {
   useServices,
   useCreateService,
@@ -35,7 +34,6 @@ const Container = styled.div`
   gap: 16px;
 `;
 
-
 // ─── Toolbar ──────────────────────────────────────────────────────────────────
 
 const Toolbar = styled.div`
@@ -56,7 +54,7 @@ const SearchIconWrap = styled.div`
   left: 11px;
   top: 50%;
   transform: translateY(-50%);
-  color: ${st.textMuted};
+  color: #94a3b8;
   display: flex;
   pointer-events: none;
 `;
@@ -64,64 +62,65 @@ const SearchIconWrap = styled.div`
 const SearchInput = styled.input`
   width: 100%;
   box-sizing: border-box;
-  padding: 9px 12px 9px 34px;
-  font-size: ${st.fontSm};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radiusSm};
-  background: ${st.bgCard};
-  color: ${st.text};
+  height: 38px;
+  padding: 0 12px 0 34px;
+  font-size: 13px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9px;
+  background: white;
+  color: #0f172a;
   outline: none;
-  transition: border-color ${st.transition}, box-shadow ${st.transition};
+  font-family: inherit;
+  transition: border-color 180ms, box-shadow 180ms;
 
   &:focus {
-    border-color: ${st.accentBlue};
-    box-shadow: ${st.shadowBlue};
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
   }
-  &::placeholder { color: ${st.textMuted}; }
+  &::placeholder { color: #94a3b8; }
 `;
 
 const ToggleFilterBtn = styled.button<{ $on: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px;
-  font-size: ${st.fontSm};
+  height: 38px;
+  padding: 0 14px;
+  font-size: 13px;
   font-weight: ${p => p.$on ? 600 : 500};
-  background: ${p => p.$on ? st.accentBlueDim : st.bgCard};
-  color: ${p => p.$on ? st.accentBlue : st.textSecondary};
-  border: 1px solid ${p => p.$on ? `${st.accentBlue}40` : st.border};
-  border-radius: ${st.radiusSm};
+  background: ${p => p.$on ? 'rgba(14,165,233,0.08)' : 'white'};
+  color: ${p => p.$on ? '#0ea5e9' : '#475569'};
+  border: 1.5px solid ${p => p.$on ? 'rgba(14,165,233,0.4)' : '#e2e8f0'};
+  border-radius: 9px;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: all ${st.transition};
+  font-family: inherit;
+  transition: all 150ms;
 
-  &:hover { border-color: ${st.accentBlue}; color: ${st.accentBlue}; }
+  &:hover { border-color: #0ea5e9; color: #0ea5e9; }
 `;
 
 const AddButton = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 9px 18px;
-  font-size: ${st.fontSm};
-  font-weight: 700;
-  background: ${st.accentBlue};
+  height: 38px;
+  padding: 0 18px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #0ea5e9;
   color: #fff;
   border: none;
-  border-radius: ${st.radiusFull};
+  border-radius: 9px;
   cursor: pointer;
-  box-shadow: ${st.shadowXs};
   white-space: nowrap;
   flex-shrink: 0;
-  transition: all ${st.transition};
+  font-family: inherit;
+  transition: opacity 150ms, transform 100ms;
 
-  &:hover:not(:disabled) {
-    background: #2563EB;
-    box-shadow: ${st.shadowSm};
-    transform: translateY(-1px);
-  }
-  &:active { transform: translateY(0); }
+  &:hover:not(:disabled) { opacity: 0.9; }
+  &:active { transform: scale(0.98); }
   &:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 `;
 
@@ -135,19 +134,18 @@ const StatsRow = styled.div`
 `;
 
 const StatText = styled.span`
-  font-size: ${st.fontXs};
-  color: ${st.textMuted};
+  font-size: 11px;
+  color: #94a3b8;
 
-  strong { color: ${st.text}; font-weight: 700; }
+  strong { color: #0f172a; font-weight: 700; }
 `;
 
 // ─── Form panel ───────────────────────────────────────────────────────────────
 
 const FormPanel = styled.div`
-  background: ${st.bgCard};
-  border: 1px solid ${st.accentBlue}30;
-  border-radius: ${st.radius};
-  box-shadow: 0 0 0 1px ${st.accentBlue}14, ${st.shadowMd};
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
   overflow: hidden;
   animation: ${expandDown} 220ms ease both;
 `;
@@ -157,13 +155,14 @@ const FormHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 15px 20px;
-  border-bottom: 1px solid ${st.border};
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafbfc;
 `;
 
 const FormTitle = styled.span`
-  font-size: ${st.fontSm};
+  font-size: 13px;
   font-weight: 700;
-  color: ${st.text};
+  color: #0f172a;
 `;
 
 const CloseBtn = styled.button`
@@ -172,22 +171,22 @@ const CloseBtn = styled.button`
   justify-content: center;
   width: 28px;
   height: 28px;
-  background: transparent;
-  border: 1px solid ${st.border};
-  border-radius: ${st.radiusSm};
+  background: white;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 7px;
   cursor: pointer;
-  color: ${st.textMuted};
-  transition: all ${st.transition};
+  color: #94a3b8;
+  transition: all 150ms;
 
   &:hover {
-    background: ${st.bgCardAlt};
-    color: ${st.text};
-    border-color: ${st.borderHover};
+    background: #f8fafc;
+    color: #0f172a;
+    border-color: #cbd5e1;
   }
 `;
 
 const FormBody = styled.div`
-  padding: 20px;
+  padding: 20px 22px;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -207,73 +206,83 @@ const FormField = styled.div`
 `;
 
 const FieldLabel = styled.label`
-  font-size: ${st.fontXs};
-  font-weight: 700;
-  color: ${st.textSecondary};
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
 `;
 
 const FieldInput = styled.input<{ $error?: boolean }>`
-  padding: 9px 12px;
-  font-size: ${st.fontSm};
-  border: 1px solid ${p => p.$error ? st.accentRed : st.border};
-  border-radius: ${st.radiusSm};
-  background: ${st.bgCard};
-  color: ${st.text};
+  width: 100%;
+  box-sizing: border-box;
+  height: 38px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-family: inherit;
+  border: 1.5px solid ${p => p.$error ? '#ef4444' : '#e2e8f0'};
+  border-radius: 9px;
+  background: white;
+  color: #0f172a;
   outline: none;
-  transition: border-color ${st.transition}, box-shadow ${st.transition};
+  transition: border-color 180ms, box-shadow 180ms;
 
   &:focus {
-    border-color: ${p => p.$error ? st.accentRed : st.accentBlue};
-    box-shadow: ${p => p.$error
-      ? '0 0 0 3px rgba(239,68,68,0.12)'
-      : st.shadowBlue};
+    border-color: ${p => p.$error ? '#ef4444' : '#0ea5e9'};
+    box-shadow: 0 0 0 3px ${p => p.$error ? 'rgba(239,68,68,0.12)' : 'rgba(14,165,233,0.14)'};
   }
-  &::placeholder { color: ${st.textMuted}; }
+  &::placeholder { color: #94a3b8; }
   &:disabled {
-    background: ${st.bgCardAlt};
-    color: ${st.textMuted};
+    background: #f8fafc;
+    color: #94a3b8;
     cursor: not-allowed;
   }
 `;
 
 const FieldSelect = styled.select`
-  padding: 9px 12px;
-  font-size: ${st.fontSm};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radiusSm};
-  background: ${st.bgCard};
-  color: ${st.text};
+  width: 100%;
+  box-sizing: border-box;
+  height: 38px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-family: inherit;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9px;
+  background: white;
+  color: #0f172a;
   outline: none;
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394A3B8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 28px;
-  transition: border-color ${st.transition}, box-shadow ${st.transition};
+  background-position: right 12px center;
+  padding-right: 36px;
+  transition: border-color 180ms, box-shadow 180ms;
 
   &:focus {
-    border-color: ${st.accentBlue};
-    box-shadow: ${st.shadowBlue};
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 3px rgba(14,165,233,0.14);
+  }
+  &:disabled {
+    background-color: #f8fafc;
+    color: #94a3b8;
+    cursor: not-allowed;
   }
 `;
 
 const ErrorMsg = styled.span`
-  font-size: ${st.fontXs};
-  color: ${st.accentRed};
+  font-size: 11px;
+  color: #ef4444;
 `;
 
 const GrossPreview = styled.div`
-  padding: 9px 12px;
-  font-size: ${st.fontSm};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radiusSm};
-  background: ${st.bgCardAlt};
-  color: ${st.textSecondary};
+  height: 38px;
+  padding: 0 12px;
+  font-size: 13px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #475569;
   white-space: nowrap;
-  min-height: 38px;
   display: flex;
   align-items: center;
 `;
@@ -291,23 +300,23 @@ const ToggleTrack = styled.div<{ $on: boolean }>`
   height: 24px;
   flex-shrink: 0;
   margin-top: 2px;
-  background: ${p => p.$on ? st.accentBlue : st.bgCardAlt};
-  border: 1px solid ${p => p.$on ? st.accentBlue : st.border};
-  border-radius: ${st.radiusFull};
+  background: ${p => p.$on ? '#0ea5e9' : '#f1f5f9'};
+  border: 1px solid ${p => p.$on ? '#0ea5e9' : '#e2e8f0'};
+  border-radius: 9999px;
   position: relative;
-  transition: background ${st.transition}, border-color ${st.transition};
+  transition: background 150ms, border-color 150ms;
 `;
 
 const ToggleThumb = styled.div<{ $on: boolean }>`
   width: 18px;
   height: 18px;
-  background: ${p => p.$on ? '#fff' : st.textMuted};
+  background: ${p => p.$on ? '#fff' : '#94a3b8'};
   border-radius: 50%;
   position: absolute;
   top: 2px;
   left: ${p => p.$on ? '22px' : '2px'};
-  transition: left ${st.transition}, background ${st.transition};
-  box-shadow: ${st.shadowXs};
+  transition: left 150ms, background 150ms;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.12);
 `;
 
 const ManualTextWrap = styled.div`
@@ -317,14 +326,14 @@ const ManualTextWrap = styled.div`
 `;
 
 const ManualLabel = styled.span`
-  font-size: ${st.fontSm};
+  font-size: 13px;
   font-weight: 600;
-  color: ${st.text};
+  color: #0f172a;
 `;
 
 const ManualDesc = styled.span`
-  font-size: ${st.fontXs};
-  color: ${st.textMuted};
+  font-size: 11px;
+  color: #94a3b8;
   line-height: 1.5;
 `;
 
@@ -333,49 +342,53 @@ const FormFooter = styled.div`
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  padding: 14px 20px;
-  border-top: 1px solid ${st.border};
-  background: ${st.bg};
+  padding: 14px 22px;
+  border-top: 1px solid #f1f5f9;
+  background: #fafbfc;
 `;
 
 const CancelBtn = styled.button`
-  padding: 8px 18px;
-  font-size: ${st.fontSm};
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  font-size: 13px;
   font-weight: 500;
-  background: transparent;
-  color: ${st.textSecondary};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radiusFull};
+  background: white;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
   cursor: pointer;
-  transition: all ${st.transition};
+  font-family: inherit;
+  transition: background 150ms;
 
-  &:hover { background: ${st.bgCardAlt}; border-color: ${st.borderHover}; }
+  &:hover { background: #f8fafc; }
 `;
 
 const SubmitBtn = styled.button`
-  padding: 8px 22px;
-  font-size: ${st.fontSm};
-  font-weight: 700;
-  background: ${st.accentBlue};
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #0ea5e9;
   color: #fff;
   border: none;
-  border-radius: ${st.radiusFull};
+  border-radius: 9px;
   cursor: pointer;
-  box-shadow: ${st.shadowXs};
-  transition: all ${st.transition};
+  font-family: inherit;
+  transition: opacity 150ms, transform 100ms;
 
-  &:hover:not(:disabled) { background: #2563EB; }
-  &:active { transform: translateY(0); }
+  &:hover:not(:disabled) { opacity: 0.9; }
+  &:active { transform: scale(0.98); }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
 // ─── Service table ────────────────────────────────────────────────────────────
 
 const ServiceList = styled.div`
-  background: ${st.bgCard};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radius};
-  box-shadow: ${st.shadowSm};
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
   overflow: hidden;
 `;
 
@@ -384,16 +397,16 @@ const ListHeader = styled.div`
   grid-template-columns: 1fr 64px 160px 90px 72px;
   gap: 8px;
   padding: 10px 20px;
-  border-bottom: 1px solid ${st.border};
-  background: ${st.bg};
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafbfc;
 `;
 
 const ColLabel = styled.span`
-  font-size: ${st.fontXs};
-  font-weight: 700;
-  color: ${st.textMuted};
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.06em;
 `;
 
 const ServiceRow = styled.div`
@@ -402,11 +415,11 @@ const ServiceRow = styled.div`
   gap: 8px;
   align-items: center;
   padding: 13px 20px;
-  border-bottom: 1px solid ${st.border};
-  transition: background ${st.transition};
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 150ms;
 
   &:last-child { border-bottom: none; }
-  &:hover { background: ${st.bg}; }
+  &:hover { background: #fafbfc; }
 `;
 
 const RowNameCell = styled.div`
@@ -417,9 +430,9 @@ const RowNameCell = styled.div`
 `;
 
 const ServiceName = styled.span<{ $muted?: boolean }>`
-  font-size: ${st.fontSm};
+  font-size: 13px;
   font-weight: 600;
-  color: ${p => p.$muted ? st.textMuted : st.text};
+  color: ${p => p.$muted ? '#94a3b8' : '#0f172a'};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -429,11 +442,11 @@ const ManualBadge = styled.span`
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
-  font-size: ${st.fontXs};
+  font-size: 11px;
   font-weight: 600;
-  background: ${st.accentAmberDim};
-  color: ${st.accentAmber};
-  border-radius: ${st.radiusFull};
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  border-radius: 9999px;
   white-space: nowrap;
   flex-shrink: 0;
 `;
@@ -443,11 +456,11 @@ const VatBadge = styled.span`
   align-items: center;
   justify-content: center;
   padding: 3px 9px;
-  font-size: ${st.fontXs};
+  font-size: 11px;
   font-weight: 700;
-  background: ${st.accentBlueDim};
-  color: ${st.accentBlue};
-  border-radius: ${st.radiusFull};
+  background: rgba(14, 165, 233, 0.1);
+  color: #0ea5e9;
+  border-radius: 9999px;
   white-space: nowrap;
 `;
 
@@ -459,15 +472,15 @@ const PriceCell = styled.div`
 `;
 
 const PriceNet = styled.span`
-  font-size: ${st.fontSm};
+  font-size: 13px;
   font-weight: 700;
-  color: ${st.text};
+  color: #0f172a;
   white-space: nowrap;
 `;
 
 const PriceGross = styled.span`
-  font-size: ${st.fontXs};
-  color: ${st.textMuted};
+  font-size: 11px;
+  color: #94a3b8;
   white-space: nowrap;
 `;
 
@@ -483,13 +496,13 @@ const StatusDot = styled.div<{ $active: boolean }>`
   height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
-  background: ${p => p.$active ? st.accentGreen : st.textMuted};
+  background: ${p => p.$active ? '#10b981' : '#94a3b8'};
 `;
 
 const StatusLabel = styled.span<{ $active: boolean }>`
-  font-size: ${st.fontXs};
+  font-size: 11px;
   font-weight: 600;
-  color: ${p => p.$active ? st.accentGreen : st.textMuted};
+  color: ${p => p.$active ? '#10b981' : '#94a3b8'};
 `;
 
 const ActionsCell = styled.div`
@@ -505,17 +518,17 @@ const ActionBtn = styled.button<{ $danger?: boolean }>`
   justify-content: center;
   width: 30px;
   height: 30px;
-  border-radius: ${st.radiusSm};
+  border-radius: 7px;
   border: 1px solid transparent;
   background: transparent;
-  color: ${p => p.$danger ? st.accentRed : st.textMuted};
+  color: ${p => p.$danger ? '#ef4444' : '#94a3b8'};
   cursor: pointer;
-  transition: all ${st.transition};
+  transition: all 150ms;
 
   &:hover:not(:disabled) {
-    background: ${p => p.$danger ? st.accentRedDim : st.bgCardAlt};
-    border-color: ${p => p.$danger ? `${st.accentRed}30` : st.border};
-    color: ${p => p.$danger ? st.accentRed : st.text};
+    background: ${p => p.$danger ? 'rgba(239,68,68,0.08)' : '#f1f5f9'};
+    border-color: ${p => p.$danger ? 'rgba(239,68,68,0.2)' : '#e2e8f0'};
+    color: ${p => p.$danger ? '#ef4444' : '#334155'};
   }
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
@@ -537,7 +550,7 @@ const SkeletonRow = styled.div`
   gap: 8px;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid ${st.border};
+  border-bottom: 1px solid #f1f5f9;
 
   &:last-child { border-bottom: none; }
 `;
@@ -556,15 +569,15 @@ const EmptyWrap = styled.div`
 
 const EmptyTitle = styled.p`
   margin: 0;
-  font-size: ${st.fontSm};
+  font-size: 13px;
   font-weight: 600;
-  color: ${st.textSecondary};
+  color: #475569;
 `;
 
 const EmptyDesc = styled.p`
   margin: 0;
-  font-size: ${st.fontXs};
-  color: ${st.textMuted};
+  font-size: 11px;
+  color: #94a3b8;
   line-height: 1.6;
 `;
 
@@ -575,13 +588,13 @@ const Pager = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  border-top: 1px solid ${st.border};
-  background: ${st.bg};
+  border-top: 1px solid #f1f5f9;
+  background: #fafbfc;
 `;
 
 const PagerInfo = styled.span`
-  font-size: ${st.fontXs};
-  color: ${st.textMuted};
+  font-size: 11px;
+  color: #94a3b8;
 `;
 
 const PagerControls = styled.div`
@@ -597,16 +610,17 @@ const PagerBtn = styled.button<{ $active?: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: ${st.fontXs};
+  font-size: 11px;
+  font-family: inherit;
   font-weight: ${p => p.$active ? 700 : 500};
-  border-radius: ${st.radiusSm};
-  border: 1px solid ${p => p.$active ? `${st.accentBlue}40` : st.border};
-  background: ${p => p.$active ? st.accentBlueDim : st.bgCard};
-  color: ${p => p.$active ? st.accentBlue : st.textSecondary};
+  border-radius: 7px;
+  border: 1px solid ${p => p.$active ? 'rgba(14,165,233,0.3)' : '#e2e8f0'};
+  background: ${p => p.$active ? 'rgba(14,165,233,0.08)' : 'white'};
+  color: ${p => p.$active ? '#0ea5e9' : '#475569'};
   cursor: pointer;
-  transition: all ${st.transition};
+  transition: all 150ms;
 
-  &:hover:not(:disabled) { background: ${st.bgCardAlt}; border-color: ${st.borderHover}; }
+  &:hover:not(:disabled) { background: #f8fafc; border-color: #cbd5e1; }
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
 
@@ -615,7 +629,7 @@ const PagerBtn = styled.button<{ $active?: boolean }>`
 const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  background: ${st.bgOverlay};
+  background: rgba(15, 23, 42, 0.4);
   z-index: 2000;
   display: flex;
   align-items: center;
@@ -624,12 +638,12 @@ const Overlay = styled.div`
 `;
 
 const Dialog = styled.div`
-  background: ${st.bgCard};
-  border-radius: ${st.radius};
+  background: white;
+  border-radius: 14px;
   padding: 28px;
   max-width: 400px;
   width: 100%;
-  box-shadow: ${st.shadowLg};
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -638,15 +652,15 @@ const Dialog = styled.div`
 
 const DialogTitle = styled.h3`
   margin: 0;
-  font-size: ${st.fontMd};
+  font-size: 15px;
   font-weight: 700;
-  color: ${st.text};
+  color: #0f172a;
 `;
 
 const DialogText = styled.p`
   margin: 0;
-  font-size: ${st.fontSm};
-  color: ${st.textSecondary};
+  font-size: 13px;
+  color: #475569;
   line-height: 1.65;
 `;
 
@@ -657,17 +671,20 @@ const DialogActions = styled.div`
 `;
 
 const DangerBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
   padding: 8px 20px;
-  font-size: ${st.fontSm};
+  font-size: 13px;
   font-weight: 700;
-  background: ${st.accentRed};
+  background: #ef4444;
   color: #fff;
   border: none;
-  border-radius: ${st.radiusFull};
+  border-radius: 9px;
   cursor: pointer;
-  transition: background ${st.transition};
+  font-family: inherit;
+  transition: opacity 150ms;
 
-  &:hover:not(:disabled) { background: #DC2626; }
+  &:hover:not(:disabled) { opacity: 0.9; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
