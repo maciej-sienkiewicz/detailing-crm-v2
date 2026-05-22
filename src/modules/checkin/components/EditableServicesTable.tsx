@@ -325,7 +325,7 @@ const DiscountInputWrapper = styled.div`
     background: white;
     border: 1px solid ${props => props.theme.colors.border};
     border-radius: ${props => props.theme.radii.md};
-    width: 100%;
+    width: fit-content;
 `;
 
 const DiscountInput = styled.input`
