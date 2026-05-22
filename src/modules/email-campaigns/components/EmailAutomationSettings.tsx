@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { st as stBase } from '@/modules/statistics/components/StatisticsTheme';
 import { UnsavedChangesBanner } from '@/modules/settings/components/shared/SettingsLayout';
+import { useCompanySettings } from '@/modules/settings/hooks/useCompany';
 
 const st = {
   ...stBase,
@@ -10,7 +11,7 @@ const st = {
   gradientBlue:  'linear-gradient(135deg, #0ea5e9, #0369a1)',
   radius:        '12px',
   radiusSm:      '9px',
-  shadowBlue:    '0 0 0 3px rgba(14,165,233,0.15)',
+  shadowBlue:    '0 0 0 3px rgba(14,165,233,0.14)',
   borderFocus:   '#0ea5e9',
 } as const;
 
@@ -34,104 +35,29 @@ const expandDown = keyframes`
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 16px;
-`;
-
-// ─── Intro panel ──────────────────────────────────────────────────────────────
-
-const IntroPanel = styled.div`
-  background: ${st.bgCard};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radius};
-  padding: 20px 22px;
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  box-shadow: ${st.shadowSm};
-`;
-
-const IntroPanelIcon = styled.div`
-  width: 42px;
-  height: 42px;
-  border-radius: 11px;
-  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  flex-shrink: 0;
-`;
-
-const IntroPanelContent = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
-const IntroPanelTitle = styled.h2`
-  margin: 0 0 4px;
-  font-size: 14px;
-  font-weight: 700;
-  color: ${st.text};
-  letter-spacing: -0.2px;
-`;
-
-const IntroPanelDesc = styled.p`
-  margin: 0 0 14px;
-  font-size: 13px;
-  color: ${st.textSecondary};
-  line-height: 1.6;
-`;
-
-const IntroPanelMeta = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-`;
-
-const StatPill = styled.span<{ $active?: boolean; $purple?: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 600;
-  background: ${p =>
-    p.$active && p.$purple ? 'rgba(139,92,246,0.12)' :
-    p.$active ? st.accentBlueDim :
-    st.bgCardAlt};
-  color: ${p =>
-    p.$active && p.$purple ? '#7c3aed' :
-    p.$active ? st.accentBlue :
-    st.textMuted};
-  border: 1px solid ${p =>
-    p.$active && p.$purple ? 'rgba(139,92,246,0.22)' :
-    p.$active ? 'rgba(14,165,233,0.22)' :
-    st.border};
+  gap: 18px;
 `;
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
 const Card = styled.div<{ $enabled: boolean }>`
-  background: ${st.bgCard};
-  border: 1px solid ${p => p.$enabled ? 'rgba(139,92,246,0.22)' : st.border};
-  border-radius: ${st.radius};
+  background: white;
+  border: 1px solid ${p => p.$enabled ? 'rgba(139,92,246,0.24)' : '#e2e8f0'};
+  border-radius: 12px;
   overflow: hidden;
   box-shadow: ${p => p.$enabled
     ? '0 0 0 1px rgba(139,92,246,0.08), 0 4px 12px rgba(109,40,217,0.06), 0 2px 4px rgba(109,40,217,0.04)'
-    : st.shadowSm};
+    : '0 1px 3px rgba(15,23,42,0.04), 0 1px 2px rgba(15,23,42,0.03)'};
   transition:
-    border-color ${st.transitionSlow},
-    box-shadow   ${st.transitionSlow};
+    border-color 300ms,
+    box-shadow   300ms;
 `;
 
 const CardHeaderRow = styled.div`
   display: flex;
   align-items: center;
   padding: 14px 18px;
-  gap: 0;
-  background: ${st.bgCard};
+  background: white;
 `;
 
 const CardHeaderLeft = styled.div`
@@ -142,12 +68,7 @@ const CardHeaderLeft = styled.div`
   min-width: 0;
   cursor: pointer;
   user-select: none;
-  padding: 3px 12px 3px 3px;
-  margin: -3px -12px -3px -3px;
-  border-radius: 9px;
-  transition: background ${st.transition};
-
-  &:hover { background: rgba(0, 0, 0, 0.03); }
+  padding-right: 12px;
 `;
 
 const CardHeaderRight = styled.div`
@@ -165,9 +86,9 @@ const CardIconWrap = styled.div<{ $enabled: boolean }>`
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: ${p => p.$enabled ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)' : st.bgCardAlt};
-  color: ${p => p.$enabled ? '#fff' : st.textMuted};
-  transition: background ${st.transitionSlow}, color ${st.transitionSlow};
+  background: ${p => p.$enabled ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)' : '#f1f5f9'};
+  color: ${p => p.$enabled ? '#fff' : '#94a3b8'};
+  transition: background 300ms, color 300ms;
 `;
 
 const CardTitleGroup = styled.div`
@@ -177,17 +98,17 @@ const CardTitleGroup = styled.div`
 
 const CardTitle = styled.h3`
   margin: 0 0 2px;
-  font-size: ${st.fontSm};
+  font-size: 13px;
   font-weight: 700;
-  color: ${st.text};
+  color: #0f172a;
   line-height: 1.25;
 `;
 
 const CardDescription = styled.p`
   margin: 0 0 5px;
   font-size: 12px;
-  color: ${st.textMuted};
-  line-height: 1.45;
+  color: #94a3b8;
+  line-height: 1.4;
 `;
 
 const CardMeta = styled.div`
@@ -201,11 +122,11 @@ const ChevronWrap = styled.div<{ $open: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${st.textMuted};
+  color: #94a3b8;
   transition: transform 220ms ease;
   transform: rotate(${p => p.$open ? '180deg' : '0deg'});
   flex-shrink: 0;
-  margin-left: 2px;
+  cursor: pointer;
 `;
 
 const ImmediateBadge = styled.span`
@@ -213,16 +134,16 @@ const ImmediateBadge = styled.span`
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  background: rgba(139, 92, 246, 0.1);
+  background: rgba(139, 92, 246, 0.10);
   color: #7c3aed;
-  border-radius: ${st.radiusFull};
-  font-size: ${st.fontXs};
+  border-radius: 9999px;
+  font-size: 11px;
   font-weight: 600;
 `;
 
 const InactiveLabel = styled.span`
-  font-size: ${st.fontXs};
-  color: ${st.textMuted};
+  font-size: 11px;
+  color: #94a3b8;
 `;
 
 // ─── Toggle ───────────────────────────────────────────────────────────────────
@@ -231,12 +152,12 @@ const ToggleTrack = styled.div<{ $on: boolean }>`
   width: 44px;
   height: 24px;
   flex-shrink: 0;
-  background: ${p => p.$on ? '#8b5cf6' : st.bgCardAlt};
-  border: 1px solid ${p => p.$on ? '#8b5cf6' : st.border};
-  border-radius: ${st.radiusFull};
+  background: ${p => p.$on ? '#8b5cf6' : '#f1f5f9'};
+  border: 1px solid ${p => p.$on ? '#8b5cf6' : '#e2e8f0'};
+  border-radius: 9999px;
   position: relative;
   cursor: pointer;
-  transition: background ${st.transition}, border-color ${st.transition};
+  transition: background 180ms, border-color 180ms;
 
   &:hover { opacity: 0.88; }
 `;
@@ -244,13 +165,13 @@ const ToggleTrack = styled.div<{ $on: boolean }>`
 const ToggleThumb = styled.div<{ $on: boolean }>`
   width: 18px;
   height: 18px;
-  background: ${p => p.$on ? '#fff' : st.textMuted};
+  background: ${p => p.$on ? '#fff' : '#94a3b8'};
   border-radius: 50%;
   position: absolute;
   top: 2px;
   left: ${p => p.$on ? '22px' : '2px'};
-  transition: left ${st.transition}, background ${st.transition};
-  box-shadow: ${st.shadowXs};
+  transition: left 180ms, background 180ms;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.12);
   pointer-events: none;
 `;
 
@@ -258,17 +179,17 @@ const ToggleThumb = styled.div<{ $on: boolean }>`
 
 const BodyDivider = styled.div`
   height: 1px;
-  background: ${st.border};
+  background: #f1f5f9;
   margin: 0 18px;
 `;
 
 const CardBody = styled.div<{ $muted?: boolean }>`
-  padding: 18px 18px 20px;
+  padding: 18px 22px 20px;
   display: flex;
   flex-direction: column;
   gap: 20px;
   animation: ${expandDown} 220ms ease both;
-  background: ${p => p.$muted ? '#fafbfc' : st.bgCard};
+  background: ${p => p.$muted ? '#fafbfc' : 'white'};
 `;
 
 const DisabledHint = styled.div`
@@ -280,43 +201,45 @@ const DisabledHint = styled.div`
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   font-size: 12px;
-  color: ${st.textMuted};
+  color: #94a3b8;
   font-weight: 500;
 `;
 
-// ─── Form fields ──────────────────────────────────────────────────────────────
+// ─── Form fields — aligned with CompanySection ────────────────────────────────
 
-const SectionLabel = styled.div`
+const SectionLabel = styled.label`
+  display: block;
   font-size: 12px;
   font-weight: 600;
   color: #334155;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 `;
 
 const FieldGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 `;
 
 const SubjectInput = styled.input`
   width: 100%;
+  height: 38px;
   box-sizing: border-box;
-  padding: 10px 14px;
-  font-size: ${st.fontSm};
+  padding: 0 12px;
+  font-size: 13px;
   font-family: inherit;
-  border: 1px solid ${st.border};
-  border-radius: ${st.radiusSm};
-  background: ${st.bgCard};
-  color: ${st.text};
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9px;
+  background: white;
+  color: #0f172a;
   outline: none;
-  transition: border-color ${st.transition}, box-shadow ${st.transition};
+  transition: border-color 180ms, box-shadow 180ms;
 
   &:focus {
     border-color: #8b5cf6;
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
+    box-shadow: 0 0 0 3px rgba(139,92,246,0.12);
   }
-  &::placeholder { color: ${st.textMuted}; }
+  &::placeholder { color: #94a3b8; }
 `;
 
 const ChipsRow = styled.div`
@@ -324,12 +247,12 @@ const ChipsRow = styled.div`
   align-items: center;
   gap: 5px;
   flex-wrap: wrap;
-  margin-bottom: 8px;
+  margin-bottom: 2px;
 `;
 
 const ChipsLead = styled.span`
-  font-size: ${st.fontXs};
-  color: ${st.textMuted};
+  font-size: 11px;
+  color: #94a3b8;
   white-space: nowrap;
 `;
 
@@ -337,45 +260,45 @@ const VarChip = styled.button`
   display: inline-flex;
   align-items: center;
   padding: 3px 9px;
-  font-size: ${st.fontXs};
+  font-size: 11px;
   font-weight: 600;
-  background: ${st.bgCardAlt};
-  color: ${st.textSecondary};
-  border: 1px solid ${st.border};
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
   border-radius: 5px;
   cursor: pointer;
   font-family: 'SF Mono', 'Fira Code', monospace;
   letter-spacing: -0.2px;
-  transition: all ${st.transition};
+  transition: all 150ms;
 
   &:hover {
-    background: rgba(139, 92, 246, 0.1);
+    background: rgba(139,92,246,0.08);
     color: #7c3aed;
-    border-color: rgba(139, 92, 246, 0.28);
+    border-color: rgba(139,92,246,0.28);
   }
 `;
 
 const BodyTextarea = styled.textarea`
   width: 100%;
   box-sizing: border-box;
-  padding: 12px 14px;
-  font-size: ${st.fontSm};
+  padding: 10px 12px;
+  font-size: 13px;
   line-height: 1.65;
   font-family: inherit;
-  border: 1px solid ${st.border};
-  border-radius: ${st.radiusSm};
-  background: ${st.bgCard};
-  color: ${st.text};
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9px;
+  background: white;
+  color: #0f172a;
   outline: none;
   resize: vertical;
   min-height: 130px;
-  transition: border-color ${st.transition}, box-shadow ${st.transition};
+  transition: border-color 180ms, box-shadow 180ms;
 
   &:focus {
     border-color: #8b5cf6;
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
+    box-shadow: 0 0 0 3px rgba(139,92,246,0.12);
   }
-  &::placeholder { color: ${st.textMuted}; }
+  &::placeholder { color: #94a3b8; }
 `;
 
 // ─── Email preview ────────────────────────────────────────────────────────────
@@ -383,7 +306,7 @@ const BodyTextarea = styled.textarea`
 const PreviewSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 `;
 
 const PreviewHeader = styled.div`
@@ -392,7 +315,7 @@ const PreviewHeader = styled.div`
   gap: 8px;
 `;
 
-const PreviewLabel = styled.div`
+const PreviewLbl = styled.div`
   font-size: 12px;
   font-weight: 600;
   color: #334155;
@@ -403,26 +326,25 @@ const PreviewBadge = styled.span`
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 9999px;
-  background: rgba(139, 92, 246, 0.08);
+  background: rgba(139,92,246,0.08);
   color: #7c3aed;
-  border: 1px solid rgba(139, 92, 246, 0.18);
+  border: 1px solid rgba(139,92,246,0.18);
 `;
 
 const EmailClient = styled.div`
-  border: 1px solid ${st.border};
+  border: 1px solid #e2e8f0;
   border-radius: 10px;
   overflow: hidden;
-  background: #fff;
-  box-shadow: ${st.shadowSm};
+  background: white;
 `;
 
 const EmailClientBar = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 14px;
+  padding: 8px 12px;
   background: #f8fafc;
-  border-bottom: 1px solid ${st.border};
+  border-bottom: 1px solid #f1f5f9;
 `;
 
 const EmailClientDot = styled.span<{ $color: string }>`
@@ -435,18 +357,18 @@ const EmailClientDot = styled.span<{ $color: string }>`
 
 const EmailClientTitle = styled.span`
   font-size: 11px;
-  color: ${st.textMuted};
+  color: #94a3b8;
   font-weight: 500;
   flex: 1;
   text-align: center;
 `;
 
 const EmailMeta = styled.div`
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-bottom: 1px solid #f1f5f9;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 `;
 
 const EmailMetaRow = styled.div`
@@ -458,38 +380,38 @@ const EmailMetaRow = styled.div`
 
 const EmailMetaKey = styled.span`
   font-weight: 600;
-  color: ${st.textMuted};
+  color: #94a3b8;
   width: 44px;
   flex-shrink: 0;
 `;
 
 const EmailMetaValue = styled.span`
-  color: ${st.text};
+  color: #334155;
   font-weight: 500;
 `;
 
 const EmailSubjectRow = styled.div`
-  padding: 10px 16px;
+  padding: 10px 14px;
   border-bottom: 1px solid #f1f5f9;
   font-size: 13px;
   font-weight: 700;
-  color: ${st.text};
+  color: #0f172a;
 `;
 
 const EmailBody = styled.div`
-  padding: 14px 16px 18px;
+  padding: 12px 14px 16px;
   font-size: 13px;
-  color: ${st.textSecondary};
+  color: #334155;
   line-height: 1.75;
   white-space: pre-wrap;
-  min-height: 60px;
+  min-height: 56px;
 `;
 
 const EmailBodyPlaceholder = styled.div`
-  padding: 20px 16px;
+  padding: 20px 14px;
   text-align: center;
   font-size: 12px;
-  color: ${st.textMuted};
+  color: #94a3b8;
   font-style: italic;
 `;
 
@@ -504,14 +426,9 @@ const SkeletonBox = styled.div<{ $w?: string; $h?: string }>`
   border-radius: 4px;
 `;
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
+const FlexFill = styled.div`flex: 1;`;
 
-const EmailIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-    <polyline points="22,6 12,13 2,6"/>
-  </svg>
-);
+// ─── Icons ────────────────────────────────────────────────────────────────────
 
 const ChevronIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -527,7 +444,7 @@ const InfoIcon = () => (
   </svg>
 );
 
-// ─── Variables ────────────────────────────────────────────────────────────────
+// ─── Variables & template resolution ─────────────────────────────────────────
 
 const VARS: { key: string; label: string }[] = [
   { key: '{{imie}}',     label: 'imię'     },
@@ -537,41 +454,35 @@ const VARS: { key: string; label: string }[] = [
   { key: '{{studio}}',   label: 'studio'   },
 ];
 
-const PREVIEW_VALUES: Record<string, string> = {
-  '{{imie}}':     'Jan',
-  '{{nazwisko}}': 'Kowalski',
-  '{{data}}':     '15.06.2026',
-  '{{godzina}}':  '14:30',
-  '{{studio}}':   'Auto Detailing Pro',
-};
-
-function resolveTemplate(tpl: string): string {
-  return Object.entries(PREVIEW_VALUES).reduce(
-    (acc, [key, val]) => acc.replaceAll(key, val),
-    tpl
-  );
+function resolveTemplate(tpl: string, studioName: string): string {
+  return tpl
+    .replace(/\{\{imie\}\}/g, 'Jan')
+    .replace(/\{\{nazwisko\}\}/g, 'Kowalski')
+    .replace(/\{\{data\}\}/g, '15.06.2026')
+    .replace(/\{\{godzina\}\}/g, '14:30')
+    .replace(/\{\{studio\}\}/g, studioName);
 }
 
 // ─── RuleEditor ───────────────────────────────────────────────────────────────
 
 interface RuleEditorProps {
-  rule:     EmailNotificationRule;
-  onChange: (rule: EmailNotificationRule) => void;
+  rule:       EmailNotificationRule;
+  studioName: string;
+  onChange:   (rule: EmailNotificationRule) => void;
 }
 
-const RuleEditor: React.FC<RuleEditorProps> = ({ rule, onChange }) => {
+const RuleEditor: React.FC<RuleEditorProps> = ({ rule, studioName, onChange }) => {
   const insertIntoSubject = (key: string) =>
     onChange({ ...rule, subjectTemplate: rule.subjectTemplate + key });
 
   const insertIntoBody = (key: string) =>
     onChange({ ...rule, bodyTemplate: rule.bodyTemplate + key });
 
-  const resolvedSubject = resolveTemplate(rule.subjectTemplate);
-  const resolvedBody    = resolveTemplate(rule.bodyTemplate);
+  const resolvedSubject = resolveTemplate(rule.subjectTemplate, studioName);
+  const resolvedBody    = resolveTemplate(rule.bodyTemplate, studioName);
 
   return (
     <>
-      {/* ── Subject ── */}
       <FieldGroup>
         <SectionLabel>Temat wiadomości</SectionLabel>
         <ChipsRow>
@@ -590,7 +501,6 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, onChange }) => {
         />
       </FieldGroup>
 
-      {/* ── Body ── */}
       <FieldGroup>
         <SectionLabel>Treść wiadomości</SectionLabel>
         <ChipsRow>
@@ -608,10 +518,9 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, onChange }) => {
         />
       </FieldGroup>
 
-      {/* ── Email preview ── */}
       <PreviewSection>
         <PreviewHeader>
-          <PreviewLabel>Podgląd wiadomości</PreviewLabel>
+          <PreviewLbl>Podgląd</PreviewLbl>
           <PreviewBadge>przykładowe dane</PreviewBadge>
         </PreviewHeader>
         <EmailClient>
@@ -624,7 +533,7 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, onChange }) => {
           <EmailMeta>
             <EmailMetaRow>
               <EmailMetaKey>Od:</EmailMetaKey>
-              <EmailMetaValue>studio@autodetailing.pl</EmailMetaValue>
+              <EmailMetaValue>{studioName}</EmailMetaValue>
             </EmailMetaRow>
             <EmailMetaRow>
               <EmailMetaKey>Do:</EmailMetaKey>
@@ -677,13 +586,14 @@ interface EmailRuleCardProps {
   description:     string;
   icon:            React.ReactNode;
   meta:            React.ReactNode;
+  studioName:      string;
   onToggleOpen:    () => void;
   onToggleEnabled: (e: React.MouseEvent) => void;
   onChange:        (rule: EmailNotificationRule) => void;
 }
 
 const EmailRuleCard: React.FC<EmailRuleCardProps> = ({
-  rule, open, title, description, icon, meta,
+  rule, open, title, description, icon, meta, studioName,
   onToggleOpen, onToggleEnabled, onChange,
 }) => (
   <Card $enabled={rule.enabled}>
@@ -698,12 +608,11 @@ const EmailRuleCard: React.FC<EmailRuleCardProps> = ({
           <CardMeta>{meta}</CardMeta>
         </CardTitleGroup>
       </CardHeaderLeft>
-
       <CardHeaderRight>
         <ToggleTrack $on={rule.enabled} onClick={onToggleEnabled}>
           <ToggleThumb $on={rule.enabled} />
         </ToggleTrack>
-        <ChevronWrap $open={open} onClick={onToggleOpen} style={{ cursor: 'pointer' }}>
+        <ChevronWrap $open={open} onClick={onToggleOpen}>
           <ChevronIcon />
         </ChevronWrap>
       </CardHeaderRight>
@@ -719,7 +628,7 @@ const EmailRuleCard: React.FC<EmailRuleCardProps> = ({
               Reguła jest wyłączona — możesz edytować szablon, ale emaile nie będą wysyłane.
             </DisabledHint>
           )}
-          <RuleEditor rule={rule} onChange={onChange} />
+          <RuleEditor rule={rule} studioName={studioName} onChange={onChange} />
         </CardBody>
       </>
     )}
@@ -728,28 +637,17 @@ const EmailRuleCard: React.FC<EmailRuleCardProps> = ({
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
-const CardTitleGroup2 = styled.div`flex: 1;`;
-
 const SkeletonList: React.FC = () => (
   <Container>
-    <Card $enabled={false}>
-      <CardHeaderRow style={{ cursor: 'default' }}>
-        <SkeletonBox $w="42px" $h="42px" style={{ borderRadius: '11px', flexShrink: 0 }} />
-        <CardTitleGroup2>
-          <SkeletonBox $w="50%" $h="13px" style={{ marginBottom: 6 }} />
-          <SkeletonBox $w="75%" $h="11px" />
-        </CardTitleGroup2>
-      </CardHeaderRow>
-    </Card>
     {[48, 44].map((w, i) => (
       <Card key={i} $enabled={false}>
         <CardHeaderRow style={{ cursor: 'default' }}>
           <SkeletonBox $w="36px" $h="36px" style={{ borderRadius: '10px', flexShrink: 0 }} />
-          <CardTitleGroup2>
+          <FlexFill style={{ marginLeft: 12 }}>
             <SkeletonBox $w={`${w}%`} $h="13px" style={{ marginBottom: 6 }} />
             <SkeletonBox $w="65%" $h="11px" style={{ marginBottom: 6 }} />
             <SkeletonBox $w={`${w - 20}%`} $h="11px" />
-          </CardTitleGroup2>
+          </FlexFill>
           <SkeletonBox $w="44px" $h="24px" style={{ borderRadius: '9999px', flexShrink: 0, marginLeft: 12 }} />
         </CardHeaderRow>
       </Card>
@@ -762,6 +660,9 @@ const SkeletonList: React.FC = () => (
 export const EmailAutomationSettings: React.FC = () => {
   const { config, isLoading } = useEmailAutomationConfig();
   const updateMutation = useUpdateEmailAutomationConfig();
+  const { company } = useCompanySettings();
+
+  const studioName = company?.name ?? 'Twoje Studio';
 
   const [localConfig, setLocalConfig] = useState<EmailAutomationConfig | null>(null);
   const [savedConfig, setSavedConfig] = useState<EmailAutomationConfig | null>(null);
@@ -773,7 +674,6 @@ export const EmailAutomationSettings: React.FC = () => {
       const merged = mergeWithDefaults(config);
       setLocalConfig(merged);
       setSavedConfig(merged);
-      // Auto-open enabled rules on first load
       const initialOpen = new Set<keyof EmailAutomationConfig>(
         (Object.keys(merged) as (keyof EmailAutomationConfig)[]).filter(k => merged[k].enabled)
       );
@@ -824,37 +724,15 @@ export const EmailAutomationSettings: React.FC = () => {
 
   if (isLoading || !localConfig) return <SkeletonList />;
 
-  const activeCount = (Object.values(localConfig) as EmailNotificationRule[]).filter(r => r.enabled).length;
-
   return (
     <>
       <Container>
-        {/* ── Intro ── */}
-        <IntroPanel>
-          <IntroPanelIcon>
-            <EmailIcon />
-          </IntroPanelIcon>
-          <IntroPanelContent>
-            <IntroPanelTitle>Automatyzacja Email</IntroPanelTitle>
-            <IntroPanelDesc>
-              Konfiguruj emaile wysyłane automatycznie do klientów na kluczowych etapach obsługi.
-              Podgląd na żywo pozwala zobaczyć dokładnie jak wiadomość wygląda dla klienta.
-            </IntroPanelDesc>
-            <IntroPanelMeta>
-              <StatPill $active={activeCount > 0} $purple>
-                {activeCount}/2 aktywnych
-              </StatPill>
-              <StatPill>Kanał: Email</StatPill>
-            </IntroPanelMeta>
-          </IntroPanelContent>
-        </IntroPanel>
-
-        {/* ── Visit welcome ── */}
         <EmailRuleCard
           rule={localConfig.visitWelcome}
           open={openCards.has('visitWelcome')}
           title="Powitanie przy przyjęciu pojazdu"
           description="Email wysyłany do klienta w momencie gdy pojazd zostaje przyjęty i wizyta zostaje rozpoczęta."
+          studioName={studioName}
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
@@ -871,12 +749,12 @@ export const EmailAutomationSettings: React.FC = () => {
           onChange={makeRuleUpdater('visitWelcome')}
         />
 
-        {/* ── Ready for pickup ── */}
         <EmailRuleCard
           rule={localConfig.visitReadyForPickup}
           open={openCards.has('visitReadyForPickup')}
           title="Pojazd gotowy do odbioru"
           description="Poinformuj klienta natychmiast gdy jego pojazd jest gotowy — jeden klik z widoku wizyty."
+          studioName={studioName}
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/>
