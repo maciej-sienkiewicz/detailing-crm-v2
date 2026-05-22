@@ -52,7 +52,7 @@ const ModalOverlay = styled.div<{ $closing: boolean }>`
   inset: 0;
   z-index: 3000;
   pointer-events: all;
-  background: rgba(0, 0, 0, ${p => p.$closing ? 0 : 0.18});
+  background: rgba(0, 0, 0, ${p => p.$closing ? 0 : 0.25});
   transition: background 0.3s ease;
 `;
 
@@ -64,12 +64,13 @@ const ModalWindow = styled.div<{ $closing: boolean }>`
   display: flex;
   flex-direction: column;
   max-height: 82vh;
-  background: white;
+  background: rgba(240, 242, 245, 0.97);
+  backdrop-filter: blur(24px) saturate(180%);
   border-radius: 14px;
   box-shadow:
-    0 0 0 0.5px rgba(0, 0, 0, 0.14),
-    0 24px 64px rgba(0, 0, 0, 0.22),
-    0 4px 12px rgba(0, 0, 0, 0.08);
+    0 0 0 0.5px rgba(0, 0, 0, 0.18),
+    0 24px 64px rgba(0, 0, 0, 0.36),
+    0 4px 12px rgba(0, 0, 0, 0.14);
   overflow: hidden;
   transform-origin: center center;
   pointer-events: all;
@@ -83,7 +84,7 @@ const ModalTitleBar = styled.div`
   align-items: center;
   gap: 8px;
   padding: 11px 16px;
-  background: #f1f5f9;
+  background: rgba(215, 218, 224, 0.85);
   border-bottom: 0.5px solid rgba(0, 0, 0, 0.12);
   user-select: none;
   flex-shrink: 0;
@@ -381,7 +382,7 @@ const ToggleThumb = styled.div<{ $on: boolean }>`
 
 const BodyDivider = styled.div`
   height: 1px;
-  background: #f1f5f9;
+  background: rgba(215, 218, 224, 0.85);
   margin: 0 18px;
 `;
 
@@ -464,7 +465,7 @@ const VarChip = styled.button`
   padding: 3px 9px;
   font-size: 11px;
   font-weight: 600;
-  background: #f1f5f9;
+  background: rgba(215, 218, 224, 0.85);
   color: #475569;
   border: 1px solid #e2e8f0;
   border-radius: 5px;
