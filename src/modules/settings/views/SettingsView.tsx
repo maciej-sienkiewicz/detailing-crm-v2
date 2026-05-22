@@ -244,16 +244,16 @@ const HeaderActionWrap = styled.div`
 const SectionBreadcrumb = styled.div`
     display: flex;
     align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.32);
+    gap: 6px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
     font-weight: 500;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
 `;
 
 const BreadcrumbSep = styled.span`
-    font-size: 10px;
-    opacity: 0.5;
+    font-size: 12px;
+    opacity: 0.4;
 `;
 
 const ConstructionIcon = () => (
