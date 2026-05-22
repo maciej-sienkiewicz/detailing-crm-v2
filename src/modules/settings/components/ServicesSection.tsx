@@ -1,6 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { SectionHeader } from './shared/SettingsLayout';
+import type { HelpContent } from './shared/SettingsLayout';
+
+// ─── Help content ─────────────────────────────────────────────────────────────
+
+const HELP: HelpContent = {
+    title: 'Cennik usług — jak to działa',
+    lead: 'Usługi z cennika są dostępne do wyboru przy tworzeniu zleceń. Ceny netto i brutto są obliczane automatycznie na podstawie wybranej stawki VAT.',
+    sections: [
+        {
+            heading: 'Tworzenie zleceń',
+            body: 'Każda aktywna usługa pojawia się na liście wyboru przy otwieraniu nowego zlecenia. Klient i pracownik widzą te same nazwy i ceny.',
+        },
+        {
+            heading: 'Stawka VAT i przeliczanie cen',
+            body: 'System automatycznie przelicza cenę netto ↔ brutto po zmianie stawki VAT. Wystarczy wpisać jedną wartość — druga pojawi się sama.',
+        },
+        {
+            heading: 'Wycena ręczna',
+            body: 'Usługi z włączoną wyceną ręczną nie mają stałej ceny — pracownik wpisuje ją indywidualnie podczas tworzenia zlecenia. Przydatne dla usług niestandardowych.',
+        },
+        {
+            heading: 'Archiwizacja usługi',
+            body: 'Zarchiwizowana usługa nie jest dostępna przy tworzeniu nowych zleceń, ale wszystkie historyczne wizyty z tą usługą pozostają bez zmian.',
+        },
+    ],
+};
 import {
   useServices,
   useCreateService,
@@ -33,6 +60,12 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
+`;
+
+const SectionWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 `;
 
 // ─── Toolbar ──────────────────────────────────────────────────────────────────
@@ -891,7 +924,15 @@ export const ServicesSection: React.FC = () => {
   const pageNumbers = buildPageNumbers(page, totalPages);
 
   return (
-    <Container>
+    <SectionWrap>
+      <SectionHeader
+        category="Studio"
+        title="Cennik usług"
+        description="Zarządzaj listą usług oferowanych przez studio. Ceny i stawki VAT są automatycznie używane przy tworzeniu zleceń i faktur."
+        help={HELP}
+      />
+
+      <Container>
       {/* ── Toolbar ── */}
       <Toolbar>
         <SearchWrap>
@@ -1197,6 +1238,7 @@ export const ServicesSection: React.FC = () => {
           </Dialog>
         </Overlay>
       )}
-    </Container>
+      </Container>
+    </SectionWrap>
   );
 };

@@ -12,44 +12,33 @@ import type { ProtocolRule, ProtocolStage, ProtocolTemplate } from '@/modules/pr
 import type { ConsentResponse } from '@/modules/consents/types';
 import { AddDocumentModal } from './AddDocumentModal';
 import { AddConsentDocumentModal } from './AddConsentDocumentModal';
+import { SectionHeader } from './shared/SettingsLayout';
+import type { HelpContent } from './shared/SettingsLayout';
 
-// ─── Layout ──────────────────────────────────────────────────────────────────
+// ─── Help content ─────────────────────────────────────────────────────────────
 
-const SectionHead = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: 18px;
-    margin-bottom: 4px;
-    flex-wrap: wrap;
-`;
-
-const HeadLeft = styled.div``;
-
-const EyeLabel = styled.div`
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #94a3b8;
-    margin-bottom: 4px;
-`;
-
-const SectionTitle = styled.h2`
-    font-size: 20px;
-    font-weight: 700;
-    letter-spacing: -0.4px;
-    margin: 0 0 4px;
-    color: ${props => props.theme.colors.text};
-`;
-
-const SectionDesc = styled.p`
-    font-size: 13px;
-    color: #475569;
-    margin: 0;
-    max-width: 680px;
-    line-height: 1.55;
-`;
+const HELP: HelpContent = {
+    title: 'Dokumenty i podpisy — jak to działa',
+    lead: 'Protokoły zdawczo-odbiorcze i zgody marketingowe są podpisywane elektronicznie na tablecie lub smartfonie klienta podczas każdej wizyty.',
+    sections: [
+        {
+            heading: 'Protokół przyjęcia (Check-in)',
+            body: 'Generowany automatycznie przy rejestracji pojazdu. Klient podpisuje go na ekranie dotykowym. Możesz skonfigurować kilka szablonów aktywowanych dla różnych usług.',
+        },
+        {
+            heading: 'Protokół wydania (Check-out)',
+            body: 'Generowany przy wydaniu pojazdu po zakończeniu usługi. Potwierdza stan auta i zakres wykonanych prac.',
+        },
+        {
+            heading: 'Zgody marketingowe i RODO',
+            body: 'Zgody są zbierane jednorazowo per klient — system zapamiętuje je między wizytami i nie pyta ponownie, jeśli zgoda jest już aktywna.',
+        },
+        {
+            heading: 'Szablony dokumentów PDF',
+            body: 'Każdy szablon można podejrzeć w formacie PDF przed wdrożeniem. Dokumenty przechowywane są bezpiecznie i dostępne w historii zleceń.',
+        },
+    ],
+};
 
 const StagesGrid = styled.div`
     display: grid;
@@ -794,17 +783,12 @@ export function DocumentsSection() {
 
     return (
         <>
-            <SectionHead>
-                <HeadLeft>
-                    <EyeLabel>Komunikacja</EyeLabel>
-                    <SectionTitle>Dokumenty i podpisy</SectionTitle>
-                    <SectionDesc>
-                        Wzory dokumentów PDF podpisywanych przez klienta. Protokoły są generowane
-                        przy każdej wizycie; zgody marketingowe są zbierane jednorazowo per klient
-                        i pamiętane między wizytami.
-                    </SectionDesc>
-                </HeadLeft>
-            </SectionHead>
+            <SectionHeader
+                category="Komunikacja"
+                title="Dokumenty i podpisy"
+                description="Wzory dokumentów PDF podpisywanych elektronicznie przez klienta. Protokoły generowane są przy każdej wizycie; zgody zbierane są jednorazowo per klient."
+                help={HELP}
+            />
 
             {isLoading ? (
                 <Spinner />
