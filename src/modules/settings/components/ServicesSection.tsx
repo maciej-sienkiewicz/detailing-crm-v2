@@ -1076,7 +1076,7 @@ export const ServicesSection: React.FC = () => {
           ))
         ) : services.length === 0 ? (
           <EmptyWrap>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={st.border} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e2e8f0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
             </svg>
             <EmptyTitle>Brak usług</EmptyTitle>
@@ -1105,7 +1105,7 @@ export const ServicesSection: React.FC = () => {
 
                 {service.requireManualPrice ? (
                   <PriceCell>
-                    <PriceNet style={{ color: st.textMuted }}>–</PriceNet>
+                    <PriceNet style={{ color: '#94a3b8' }}>–</PriceNet>
                   </PriceCell>
                 ) : (
                   <PriceCell>
