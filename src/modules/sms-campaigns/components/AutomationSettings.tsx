@@ -13,6 +13,7 @@ const st = {
   shadowBlue:    '0 0 0 3px rgba(14,165,233,0.15)',
   borderFocus:   '#0ea5e9',
 } as const;
+
 import type { SmsAutomationConfig, SmsAutomationRule } from '../types';
 import { useAutomationConfig, useUpdateAutomationConfig } from '../hooks';
 import { SmsSelect } from './SmsSelect';
@@ -31,22 +32,117 @@ const expandDown = keyframes`
   to   { opacity: 1; transform: translateY(0); }
 `;
 
-// ─── Page layout ──────────────────────────────────────────────────────────────
+// ─── Layout ───────────────────────────────────────────────────────────────────
 
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 `;
 
-// ─── Rule card ────────────────────────────────────────────────────────────────
+// ─── Intro panel ──────────────────────────────────────────────────────────────
+
+const IntroPanel = styled.div`
+  background: ${st.bgCard};
+  border: 1px solid ${st.border};
+  border-radius: ${st.radius};
+  padding: 20px 22px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  box-shadow: ${st.shadowSm};
+`;
+
+const IntroPanelIcon = styled.div`
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: ${st.gradientBlue};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+`;
+
+const IntroPanelContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const IntroPanelTitle = styled.h2`
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: ${st.text};
+  letter-spacing: -0.2px;
+`;
+
+const IntroPanelDesc = styled.p`
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: ${st.textSecondary};
+  line-height: 1.6;
+`;
+
+const IntroPanelMeta = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const StatPill = styled.span<{ $active?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: ${p => p.$active ? st.accentBlueDim : st.bgCardAlt};
+  color: ${p => p.$active ? st.accentBlue : st.textMuted};
+  border: 1px solid ${p => p.$active ? 'rgba(14,165,233,0.22)' : st.border};
+`;
+
+// ─── Group section ────────────────────────────────────────────────────────────
+
+const GroupSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const GroupRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 2px;
+`;
+
+const GroupLabel = styled.span`
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: ${st.textMuted};
+  white-space: nowrap;
+`;
+
+const GroupRule = styled.div`
+  flex: 1;
+  height: 1px;
+  background: ${st.border};
+`;
+
+// ─── Card ─────────────────────────────────────────────────────────────────────
 
 const Card = styled.div<{ $enabled: boolean }>`
   background: ${st.bgCard};
-  border: 1px solid ${(p) => p.$enabled ? `${st.accentBlue}28` : st.border};
+  border: 1px solid ${p => p.$enabled ? `${st.accentBlue}28` : st.border};
   border-radius: ${st.radius};
   overflow: hidden;
-  box-shadow: ${(p) => p.$enabled
+  box-shadow: ${p => p.$enabled
     ? `0 0 0 1px ${st.accentBlue}14, ${st.shadowMd}`
     : st.shadowSm};
   transition:
@@ -54,17 +150,35 @@ const Card = styled.div<{ $enabled: boolean }>`
     box-shadow   ${st.transitionSlow};
 `;
 
-const CardHeader = styled.div`
+const CardHeaderRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px 20px;
+  padding: 14px 18px;
+  gap: 0;
   background: ${st.bgCard};
+`;
+
+const CardHeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
   cursor: pointer;
   user-select: none;
+  padding: 3px 12px 3px 3px;
+  margin: -3px -12px -3px -3px;
+  border-radius: 9px;
   transition: background ${st.transition};
 
-  &:hover { background: ${st.bg}; }
+  &:hover { background: rgba(0, 0, 0, 0.03); }
+`;
+
+const CardHeaderRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 `;
 
 const CardIconWrap = styled.div<{ $enabled: boolean }>`
@@ -75,11 +189,9 @@ const CardIconWrap = styled.div<{ $enabled: boolean }>`
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: ${(p) => p.$enabled ? st.gradientBlue : st.bgCardAlt};
-  color: ${(p) => p.$enabled ? '#fff' : st.textMuted};
-  transition:
-    background ${st.transitionSlow},
-    color      ${st.transitionSlow};
+  background: ${p => p.$enabled ? st.gradientBlue : st.bgCardAlt};
+  color: ${p => p.$enabled ? '#fff' : st.textMuted};
+  transition: background ${st.transitionSlow}, color ${st.transitionSlow};
 `;
 
 const CardTitleGroup = styled.div`
@@ -88,11 +200,18 @@ const CardTitleGroup = styled.div`
 `;
 
 const CardTitle = styled.h3`
-  margin: 0 0 4px;
+  margin: 0 0 2px;
   font-size: ${st.fontSm};
   font-weight: 700;
   color: ${st.text};
   line-height: 1.25;
+`;
+
+const CardDescription = styled.p`
+  margin: 0 0 5px;
+  font-size: 12px;
+  color: ${st.textMuted};
+  line-height: 1.45;
 `;
 
 const CardMeta = styled.div`
@@ -102,6 +221,17 @@ const CardMeta = styled.div`
   min-height: 18px;
 `;
 
+const ChevronWrap = styled.div<{ $open: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${st.textMuted};
+  transition: transform 220ms ease;
+  transform: rotate(${p => p.$open ? '180deg' : '0deg'});
+  flex-shrink: 0;
+  margin-left: 2px;
+`;
+
 const TimingBadge = styled.span`
   display: inline-flex;
   align-items: center;
@@ -109,6 +239,18 @@ const TimingBadge = styled.span`
   padding: 2px 8px;
   background: ${st.accentBlueDim};
   color: ${st.accentBlue};
+  border-radius: ${st.radiusFull};
+  font-size: ${st.fontXs};
+  font-weight: 600;
+`;
+
+const ImmediateBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: ${st.accentGreenDim};
+  color: ${st.accentGreen};
   border-radius: ${st.radiusFull};
   font-size: ${st.fontXs};
   font-weight: 600;
@@ -125,23 +267,27 @@ const ToggleTrack = styled.div<{ $on: boolean }>`
   width: 44px;
   height: 24px;
   flex-shrink: 0;
-  background: ${(p) => p.$on ? st.accentBlue : st.bgCardAlt};
-  border: 1px solid ${(p) => p.$on ? st.accentBlue : st.border};
+  background: ${p => p.$on ? st.accentBlue : st.bgCardAlt};
+  border: 1px solid ${p => p.$on ? st.accentBlue : st.border};
   border-radius: ${st.radiusFull};
   position: relative;
+  cursor: pointer;
   transition: background ${st.transition}, border-color ${st.transition};
+
+  &:hover { opacity: 0.88; }
 `;
 
 const ToggleThumb = styled.div<{ $on: boolean }>`
   width: 18px;
   height: 18px;
-  background: ${(p) => p.$on ? '#fff' : st.textMuted};
+  background: ${p => p.$on ? '#fff' : st.textMuted};
   border-radius: 50%;
   position: absolute;
   top: 2px;
-  left: ${(p) => p.$on ? '22px' : '2px'};
+  left: ${p => p.$on ? '22px' : '2px'};
   transition: left ${st.transition}, background ${st.transition};
   box-shadow: ${st.shadowXs};
+  pointer-events: none;
 `;
 
 // ─── Card body ────────────────────────────────────────────────────────────────
@@ -149,18 +295,32 @@ const ToggleThumb = styled.div<{ $on: boolean }>`
 const BodyDivider = styled.div`
   height: 1px;
   background: ${st.border};
-  margin: 0 20px;
+  margin: 0 18px;
 `;
 
-const CardBody = styled.div`
-  padding: 20px;
+const CardBody = styled.div<{ $muted?: boolean }>`
+  padding: 18px 18px 20px;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 20px;
   animation: ${expandDown} 220ms ease both;
+  background: ${p => p.$muted ? '#fafbfc' : st.bgCard};
 `;
 
-// ─── Timing sentence ──────────────────────────────────────────────────────────
+const DisabledHint = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 13px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 12px;
+  color: ${st.textMuted};
+  font-weight: 500;
+`;
+
+// ─── Timing section ───────────────────────────────────────────────────────────
 
 const SectionLabel = styled.div`
   font-size: 12px;
@@ -236,6 +396,7 @@ const ChipsRow = styled.div`
   align-items: center;
   gap: 5px;
   flex-wrap: wrap;
+  margin-bottom: 8px;
 `;
 
 const ChipsLead = styled.span`
@@ -262,7 +423,7 @@ const VarChip = styled.button`
   &:hover {
     background: ${st.accentBlueDim};
     color: ${st.accentBlue};
-    border-color: rgba(14,165,233,0.3);
+    border-color: rgba(14, 165, 233, 0.3);
   }
 `;
 
@@ -273,7 +434,7 @@ const Textarea = styled.textarea<{ $over: boolean }>`
   font-size: ${st.fontSm};
   line-height: 1.65;
   font-family: inherit;
-  border: 1px solid ${(p) => p.$over ? st.accentRed : st.border};
+  border: 1px solid ${p => p.$over ? st.accentRed : st.border};
   border-radius: ${st.radiusSm};
   background: ${st.bgCard};
   color: ${st.text};
@@ -283,8 +444,8 @@ const Textarea = styled.textarea<{ $over: boolean }>`
   transition: border-color ${st.transition}, box-shadow ${st.transition};
 
   &:focus {
-    border-color: ${(p) => p.$over ? st.accentRed : st.accentBlue};
-    box-shadow: ${(p) => p.$over
+    border-color: ${p => p.$over ? st.accentRed : st.accentBlue};
+    box-shadow: ${p => p.$over
       ? '0 0 0 3px rgba(239,68,68,0.12)'
       : st.shadowBlue};
   }
@@ -299,28 +460,51 @@ const TextareaFooter = styled.div`
 
 const SmsCountLabel = styled.span<{ $multi: boolean }>`
   font-size: ${st.fontXs};
-  color: ${(p) => p.$multi ? st.accentAmber : st.textMuted};
-  font-weight: ${(p) => p.$multi ? 600 : 400};
+  color: ${p => p.$multi ? st.accentAmber : st.textMuted};
+  font-weight: ${p => p.$multi ? 600 : 400};
 `;
 
 const CharCountLabel = styled.span<{ $warn: boolean }>`
   font-size: ${st.fontXs};
   font-variant-numeric: tabular-nums;
-  color: ${(p) => p.$warn ? st.accentRed : st.textMuted};
-  font-weight: ${(p) => p.$warn ? 700 : 400};
+  color: ${p => p.$warn ? st.accentRed : st.textMuted};
+  font-weight: ${p => p.$warn ? 700 : 400};
 `;
-
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
 const SkeletonBox = styled.div<{ $w?: string; $h?: string }>`
-  width: ${(p) => p.$w ?? '100%'};
-  height: ${(p) => p.$h ?? '14px'};
+  width: ${p => p.$w ?? '100%'};
+  height: ${p => p.$h ?? '14px'};
   background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
   background-size: 200% 100%;
   animation: ${shimmer} 1.5s infinite;
   border-radius: 4px;
 `;
+
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
+const SmsIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    <line x1="9" y1="10" x2="15" y2="10"/>
+    <line x1="9" y1="14" x2="13" y2="14"/>
+  </svg>
+);
+
+const ChevronIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9"/>
+  </svg>
+);
+
+const InfoIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="12" y1="8" x2="12" y2="12"/>
+    <line x1="12" y1="16" x2="12.01" y2="16"/>
+  </svg>
+);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -341,23 +525,11 @@ function valueToMinutes(value: number, unit: Unit): number {
 function formatTimingBadge(minutes: number, direction: 'before' | 'after'): string {
   const { value, unit } = minutesToValue(minutes);
   const unitStr =
-    unit === 'days'    ? (value === 1 ? 'dzień'    : 'dni')    :
-    unit === 'hours'   ? (value === 1 ? 'godzinę'  : 'godzin') :
-    /* minutes */        (value === 1 ? 'minutę'   : 'minut');
+    unit === 'days'  ? (value === 1 ? 'dzień'   : 'dni')    :
+    unit === 'hours' ? (value === 1 ? 'godzinę' : 'godzin') :
+    /* minutes */      (value === 1 ? 'minutę'  : 'minut');
   return `${value} ${unitStr} ${direction === 'before' ? 'przed wizytą' : 'po wizycie'}`;
 }
-
-const ImmediateBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  background: ${st.accentGreenDim};
-  color: ${st.accentGreen};
-  border-radius: ${st.radiusFull};
-  font-size: ${st.fontXs};
-  font-weight: 600;
-`;
 
 const VARS: { key: string; label: string }[] = [
   { key: '{{imie}}',     label: 'imię'     },
@@ -370,11 +542,11 @@ const VARS: { key: string; label: string }[] = [
 // ─── RuleEditor ───────────────────────────────────────────────────────────────
 
 interface RuleEditorProps {
-  rule:        SmsAutomationRule;
-  direction?:  'before' | 'after';
+  rule:            SmsAutomationRule;
+  direction?:      'before' | 'after';
   directionLabel?: string;
-  showTiming?: boolean;
-  onChange:    (rule: SmsAutomationRule) => void;
+  showTiming?:     boolean;
+  onChange:        (rule: SmsAutomationRule) => void;
 }
 
 const RuleEditor: React.FC<RuleEditorProps> = ({
@@ -398,7 +570,6 @@ const RuleEditor: React.FC<RuleEditorProps> = ({
 
   return (
     <>
-      {/* ── Timing ── */}
       {showTiming && (
         <div>
           <SectionLabel>Czas wysyłki</SectionLabel>
@@ -408,12 +579,12 @@ const RuleEditor: React.FC<RuleEditorProps> = ({
               type="number"
               min={1}
               value={value}
-              onChange={(e) => setOffset(Math.max(1, Number(e.target.value)), unit)}
+              onChange={e => setOffset(Math.max(1, Number(e.target.value)), unit)}
             />
             <UnitSelectWrap>
               <SmsSelect
                 value={unit}
-                onChange={(val) => setOffset(value, val as Unit)}
+                onChange={val => setOffset(value, val as Unit)}
                 options={[
                   { value: 'minutes', label: 'minut'  },
                   { value: 'hours',   label: 'godzin' },
@@ -428,7 +599,6 @@ const RuleEditor: React.FC<RuleEditorProps> = ({
         </div>
       )}
 
-      {/* ── Message ── */}
       <MessageSection>
         <div>
           <SectionLabel>Treść wiadomości</SectionLabel>
@@ -445,7 +615,7 @@ const RuleEditor: React.FC<RuleEditorProps> = ({
         <Textarea
           $over={isOver}
           value={rule.messageTemplate}
-          onChange={(e) => onChange({ ...rule, messageTemplate: e.target.value })}
+          onChange={e => onChange({ ...rule, messageTemplate: e.target.value })}
           maxLength={320}
           placeholder="Wpisz treść wiadomości SMS…"
         />
@@ -463,13 +633,13 @@ const RuleEditor: React.FC<RuleEditorProps> = ({
   );
 };
 
-// ─── Defaults for fields that may be absent from older API responses ──────────
+// ─── Defaults ─────────────────────────────────────────────────────────────────
 
 const CONFIG_DEFAULTS: SmsAutomationConfig = {
-  preVisit:              { enabled: false, offsetMinutes: 60, messageTemplate: '' },
-  postVisit:             { enabled: false, offsetMinutes: 30, messageTemplate: '' },
-  bookingConfirmation:   { enabled: false,                    messageTemplate: 'Drogi/a {{imie}}, potwierdzamy rezerwację w {{studio}} na {{data}} o godz. {{godzina}}. Czekamy na Ciebie!' },
-  rescheduleConfirmation:{ enabled: false,                    messageTemplate: 'Drogi/a {{imie}}, termin Twojej wizyty w {{studio}} został zmieniony na {{data}} o godz. {{godzina}}. Do zobaczenia!' },
+  preVisit:               { enabled: false, offsetMinutes: 60,  messageTemplate: '' },
+  postVisit:              { enabled: false, offsetMinutes: 30,  messageTemplate: '' },
+  bookingConfirmation:    { enabled: false, messageTemplate: 'Drogi/a {{imie}}, potwierdzamy rezerwację w {{studio}} na {{data}} o godz. {{godzina}}. Czekamy na Ciebie!' },
+  rescheduleConfirmation: { enabled: false, messageTemplate: 'Drogi/a {{imie}}, termin Twojej wizyty w {{studio}} został zmieniony na {{data}} o godz. {{godzina}}. Do zobaczenia!' },
 };
 
 function mergeWithDefaults(config: Partial<SmsAutomationConfig>): SmsAutomationConfig {
@@ -481,6 +651,104 @@ function mergeWithDefaults(config: Partial<SmsAutomationConfig>): SmsAutomationC
   };
 }
 
+// ─── Card subcomponent ────────────────────────────────────────────────────────
+
+interface RuleCardProps {
+  ruleKey:         keyof SmsAutomationConfig;
+  rule:            SmsAutomationRule;
+  open:            boolean;
+  title:           string;
+  description:     string;
+  icon:            React.ReactNode;
+  meta:            React.ReactNode;
+  onToggleOpen:    () => void;
+  onToggleEnabled: (e: React.MouseEvent) => void;
+  onChange:        (rule: SmsAutomationRule) => void;
+  showTiming?:     boolean;
+  direction?:      'before' | 'after';
+}
+
+const RuleCard: React.FC<RuleCardProps> = ({
+  rule, open, title, description, icon, meta,
+  onToggleOpen, onToggleEnabled, onChange,
+  showTiming = false, direction,
+}) => (
+  <Card $enabled={rule.enabled}>
+    <CardHeaderRow>
+      <CardHeaderLeft onClick={onToggleOpen}>
+        <CardIconWrap $enabled={rule.enabled}>
+          {icon}
+        </CardIconWrap>
+        <CardTitleGroup>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>{description}</CardDescription>
+          <CardMeta>{meta}</CardMeta>
+        </CardTitleGroup>
+      </CardHeaderLeft>
+
+      <CardHeaderRight>
+        <ToggleTrack $on={rule.enabled} onClick={onToggleEnabled}>
+          <ToggleThumb $on={rule.enabled} />
+        </ToggleTrack>
+        <ChevronWrap $open={open} onClick={onToggleOpen} style={{ cursor: 'pointer' }}>
+          <ChevronIcon />
+        </ChevronWrap>
+      </CardHeaderRight>
+    </CardHeaderRow>
+
+    {open && (
+      <>
+        <BodyDivider />
+        <CardBody $muted={!rule.enabled}>
+          {!rule.enabled && (
+            <DisabledHint>
+              <InfoIcon />
+              Reguła jest wyłączona — możesz edytować szablon, ale wiadomości nie będą wysyłane.
+            </DisabledHint>
+          )}
+          <RuleEditor
+            rule={rule}
+            direction={direction}
+            showTiming={showTiming}
+            onChange={onChange}
+          />
+        </CardBody>
+      </>
+    )}
+  </Card>
+);
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
+const CardTitleGroup2 = styled.div`flex: 1;`;
+
+const SkeletonList: React.FC = () => (
+  <Container>
+    <Card $enabled={false}>
+      <CardHeaderRow style={{ cursor: 'default' }}>
+        <SkeletonBox $w="42px" $h="42px" style={{ borderRadius: '11px', flexShrink: 0 }} />
+        <CardTitleGroup2>
+          <SkeletonBox $w="55%" $h="13px" style={{ marginBottom: 6 }} />
+          <SkeletonBox $w="75%" $h="11px" />
+        </CardTitleGroup2>
+      </CardHeaderRow>
+    </Card>
+    {[52, 46, 44, 50].map((w, i) => (
+      <Card key={i} $enabled={false}>
+        <CardHeaderRow style={{ cursor: 'default' }}>
+          <SkeletonBox $w="36px" $h="36px" style={{ borderRadius: '10px', flexShrink: 0 }} />
+          <CardTitleGroup2>
+            <SkeletonBox $w={`${w}%`} $h="13px" style={{ marginBottom: 6 }} />
+            <SkeletonBox $w="65%" $h="11px" style={{ marginBottom: 6 }} />
+            <SkeletonBox $w={`${w - 20}%`} $h="11px" />
+          </CardTitleGroup2>
+          <SkeletonBox $w="44px" $h="24px" style={{ borderRadius: '9999px', flexShrink: 0, marginLeft: 12 }} />
+        </CardHeaderRow>
+      </Card>
+    ))}
+  </Container>
+);
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export const AutomationSettings: React.FC = () => {
@@ -488,28 +756,50 @@ export const AutomationSettings: React.FC = () => {
   const { config, isLoading } = useAutomationConfig();
   const updateMutation = useUpdateAutomationConfig();
 
-  const [localConfig, setLocalConfig] = useState<SmsAutomationConfig | null>(null);
-  const [savedConfig, setSavedConfig] = useState<SmsAutomationConfig | null>(null);
-  const [dirty, setDirty] = useState(false);
+  const [localConfig, setLocalConfig]   = useState<SmsAutomationConfig | null>(null);
+  const [savedConfig, setSavedConfig]   = useState<SmsAutomationConfig | null>(null);
+  const [dirty, setDirty]               = useState(false);
+  const [openCards, setOpenCards]       = useState<Set<keyof SmsAutomationConfig>>(new Set());
 
   useEffect(() => {
     if (config && !localConfig) {
       const merged = mergeWithDefaults(config);
       setLocalConfig(merged);
       setSavedConfig(merged);
+      // Auto-open enabled rules on first load
+      const initialOpen = new Set<keyof SmsAutomationConfig>(
+        (Object.keys(merged) as (keyof SmsAutomationConfig)[]).filter(k => merged[k].enabled)
+      );
+      setOpenCards(initialOpen);
     }
   }, [config, localConfig]);
 
-  const makeUpdater = (key: keyof SmsAutomationConfig) => (rule: SmsAutomationRule) => {
+  const toggleCardOpen = (key: keyof SmsAutomationConfig) => {
+    setOpenCards(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const makeRuleUpdater = (key: keyof SmsAutomationConfig) => (rule: SmsAutomationRule) => {
     if (!localConfig) return;
     setLocalConfig({ ...localConfig, [key]: rule });
     setDirty(true);
   };
 
-  const updatePreVisit       = makeUpdater('preVisit');
-  const updatePostVisit      = makeUpdater('postVisit');
-  const updateBookingConf    = makeUpdater('bookingConfirmation');
-  const updateRescheduleConf = makeUpdater('rescheduleConfirmation');
+  const makeToggleEnabled = (key: keyof SmsAutomationConfig) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!localConfig) return;
+    const rule = localConfig[key];
+    const newEnabled = !rule.enabled;
+    setLocalConfig({ ...localConfig, [key]: { ...rule, enabled: newEnabled } });
+    setDirty(true);
+    if (newEnabled) {
+      setOpenCards(prev => new Set([...prev, key]));
+    }
+  };
 
   const handleSave = async () => {
     if (!localConfig) return;
@@ -525,234 +815,156 @@ export const AutomationSettings: React.FC = () => {
     }
   };
 
-  // ── Loading skeleton ──
-  if (isLoading || !localConfig) {
-    return (
-      <Container>
-        {[48, 42, 44, 50].map((w, i) => (
-          <Card key={i} $enabled={false}>
-            <CardHeader style={{ cursor: 'default' }}>
-              <SkeletonBox $w="36px" $h="36px" style={{ borderRadius: '10px', flexShrink: 0 }} />
-              <CardTitleGroup>
-                <SkeletonBox $w={`${w}%`} $h="14px" style={{ marginBottom: 8 }} />
-                <SkeletonBox $w={`${w - 18}%`} $h="11px" />
-              </CardTitleGroup>
-              <SkeletonBox $w="44px" $h="24px" style={{ borderRadius: '9999px', flexShrink: 0 }} />
-            </CardHeader>
-          </Card>
-        ))}
-      </Container>
-    );
-  }
+  if (isLoading || !localConfig) return <SkeletonList />;
+
+  const activeCount = (Object.values(localConfig) as SmsAutomationRule[]).filter(r => r.enabled).length;
 
   return (
     <LockedSection
       locked={!smsFeature.enabled}
       message="Twój abonament nie obsługuje automatycznych wiadomości SMS."
     >
-    <Container>
-      {/* ── Pre-visit ── */}
-      <Card $enabled={localConfig.preVisit.enabled}>
-        <CardHeader
-          onClick={() =>
-            updatePreVisit({ ...localConfig.preVisit, enabled: !localConfig.preVisit.enabled })
-          }
-        >
-          <CardIconWrap $enabled={localConfig.preVisit.enabled}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-          </CardIconWrap>
+      <Container>
+        {/* ── Intro ── */}
+        <IntroPanel>
+          <IntroPanelIcon>
+            <SmsIcon />
+          </IntroPanelIcon>
+          <IntroPanelContent>
+            <IntroPanelTitle>Automatyzacja SMS</IntroPanelTitle>
+            <IntroPanelDesc>
+              Konfiguruj wiadomości SMS wysyłane automatycznie do klientów na różnych etapach wizyty.
+              Każdą regułę możesz edytować niezależnie — nawet bez jej włączania.
+            </IntroPanelDesc>
+            <IntroPanelMeta>
+              <StatPill $active={activeCount > 0}>
+                {activeCount}/4 aktywnych
+              </StatPill>
+              <StatPill>Kanał: SMS</StatPill>
+            </IntroPanelMeta>
+          </IntroPanelContent>
+        </IntroPanel>
 
-          <CardTitleGroup>
-            <CardTitle>Przypomnienie przed wizytą</CardTitle>
-            <CardMeta>
-              {localConfig.preVisit.enabled ? (
-                <TimingBadge>
-                  {formatTimingBadge(localConfig.preVisit.offsetMinutes ?? 60, 'before')}
-                </TimingBadge>
-              ) : (
-                <InactiveLabel>Nieaktywne</InactiveLabel>
-              )}
-            </CardMeta>
-          </CardTitleGroup>
+        {/* ── Group: timing-based ── */}
+        <GroupSection>
+          <GroupRow>
+            <GroupLabel>Z opóźnieniem</GroupLabel>
+            <GroupRule />
+          </GroupRow>
 
-          <ToggleTrack
-            $on={localConfig.preVisit.enabled}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ToggleThumb $on={localConfig.preVisit.enabled} />
-          </ToggleTrack>
-        </CardHeader>
+          <RuleCard
+            ruleKey="preVisit"
+            rule={localConfig.preVisit}
+            open={openCards.has('preVisit')}
+            title="Przypomnienie przed wizytą"
+            description="Wyślij klientowi SMS z przypomnieniem na kilka godzin lub dni przed zaplanowaną wizytą."
+            icon={
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+            }
+            meta={
+              localConfig.preVisit.enabled
+                ? <TimingBadge>{formatTimingBadge(localConfig.preVisit.offsetMinutes ?? 60, 'before')}</TimingBadge>
+                : <InactiveLabel>Nieaktywne</InactiveLabel>
+            }
+            onToggleOpen={() => toggleCardOpen('preVisit')}
+            onToggleEnabled={makeToggleEnabled('preVisit')}
+            onChange={makeRuleUpdater('preVisit')}
+            showTiming
+            direction="before"
+          />
 
-        {localConfig.preVisit.enabled && (
-          <>
-            <BodyDivider />
-            <CardBody>
-              <RuleEditor
-                rule={localConfig.preVisit}
-                direction="before"
-                onChange={updatePreVisit}
-              />
-            </CardBody>
-          </>
-        )}
-      </Card>
+          <RuleCard
+            ruleKey="postVisit"
+            rule={localConfig.postVisit}
+            open={openCards.has('postVisit')}
+            title="Wiadomość po wizycie"
+            description="Podziękuj klientowi za wizytę i zachęć do ponownego skorzystania z usług lub wystawienia opinii."
+            icon={
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            }
+            meta={
+              localConfig.postVisit.enabled
+                ? <TimingBadge>{formatTimingBadge(localConfig.postVisit.offsetMinutes ?? 30, 'after')}</TimingBadge>
+                : <InactiveLabel>Nieaktywne</InactiveLabel>
+            }
+            onToggleOpen={() => toggleCardOpen('postVisit')}
+            onToggleEnabled={makeToggleEnabled('postVisit')}
+            onChange={makeRuleUpdater('postVisit')}
+            showTiming
+            direction="after"
+          />
+        </GroupSection>
 
-      {/* ── Post-visit ── */}
-      <Card $enabled={localConfig.postVisit.enabled}>
-        <CardHeader
-          onClick={() =>
-            updatePostVisit({ ...localConfig.postVisit, enabled: !localConfig.postVisit.enabled })
-          }
-        >
-          <CardIconWrap $enabled={localConfig.postVisit.enabled}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-          </CardIconWrap>
+        {/* ── Group: immediate ── */}
+        <GroupSection>
+          <GroupRow>
+            <GroupLabel>Natychmiastowe</GroupLabel>
+            <GroupRule />
+          </GroupRow>
 
-          <CardTitleGroup>
-            <CardTitle>Wiadomość po wizycie</CardTitle>
-            <CardMeta>
-              {localConfig.postVisit.enabled ? (
-                <TimingBadge>
-                  {formatTimingBadge(localConfig.postVisit.offsetMinutes ?? 30, 'after')}
-                </TimingBadge>
-              ) : (
-                <InactiveLabel>Nieaktywne</InactiveLabel>
-              )}
-            </CardMeta>
-          </CardTitleGroup>
+          <RuleCard
+            ruleKey="bookingConfirmation"
+            rule={localConfig.bookingConfirmation}
+            open={openCards.has('bookingConfirmation')}
+            title="Potwierdzenie rezerwacji"
+            description="Klient otrzyma SMS z potwierdzeniem natychmiast po dokonaniu rezerwacji."
+            icon={
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+                <polyline points="9 16 11 18 15 14"/>
+              </svg>
+            }
+            meta={
+              localConfig.bookingConfirmation.enabled
+                ? <ImmediateBadge>Natychmiast po rezerwacji</ImmediateBadge>
+                : <InactiveLabel>Nieaktywne</InactiveLabel>
+            }
+            onToggleOpen={() => toggleCardOpen('bookingConfirmation')}
+            onToggleEnabled={makeToggleEnabled('bookingConfirmation')}
+            onChange={makeRuleUpdater('bookingConfirmation')}
+            showTiming={false}
+          />
 
-          <ToggleTrack
-            $on={localConfig.postVisit.enabled}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ToggleThumb $on={localConfig.postVisit.enabled} />
-          </ToggleTrack>
-        </CardHeader>
+          <RuleCard
+            ruleKey="rescheduleConfirmation"
+            rule={localConfig.rescheduleConfirmation}
+            open={openCards.has('rescheduleConfirmation')}
+            title="Potwierdzenie zmiany terminu"
+            description="Poinformuj klienta o nowym terminie natychmiast po zmianie lub przełożeniu wizyty."
+            icon={
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 4v6h-6"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+            }
+            meta={
+              localConfig.rescheduleConfirmation.enabled
+                ? <ImmediateBadge>Natychmiast po zmianie</ImmediateBadge>
+                : <InactiveLabel>Nieaktywne</InactiveLabel>
+            }
+            onToggleOpen={() => toggleCardOpen('rescheduleConfirmation')}
+            onToggleEnabled={makeToggleEnabled('rescheduleConfirmation')}
+            onChange={makeRuleUpdater('rescheduleConfirmation')}
+            showTiming={false}
+          />
+        </GroupSection>
+      </Container>
 
-        {localConfig.postVisit.enabled && (
-          <>
-            <BodyDivider />
-            <CardBody>
-              <RuleEditor
-                rule={localConfig.postVisit}
-                direction="after"
-                onChange={updatePostVisit}
-              />
-            </CardBody>
-          </>
-        )}
-      </Card>
-
-      {/* ── Booking confirmation ── */}
-      <Card $enabled={localConfig.bookingConfirmation.enabled}>
-        <CardHeader
-          onClick={() =>
-            updateBookingConf({ ...localConfig.bookingConfirmation, enabled: !localConfig.bookingConfirmation.enabled })
-          }
-        >
-          <CardIconWrap $enabled={localConfig.bookingConfirmation.enabled}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-              <line x1="16" y1="2" x2="16" y2="6"/>
-              <line x1="8" y1="2" x2="8" y2="6"/>
-              <line x1="3" y1="10" x2="21" y2="10"/>
-              <polyline points="9 16 11 18 15 14"/>
-            </svg>
-          </CardIconWrap>
-
-          <CardTitleGroup>
-            <CardTitle>Potwierdzenie rezerwacji</CardTitle>
-            <CardMeta>
-              {localConfig.bookingConfirmation.enabled ? (
-                <ImmediateBadge>Natychmiast po rezerwacji</ImmediateBadge>
-              ) : (
-                <InactiveLabel>Nieaktywne</InactiveLabel>
-              )}
-            </CardMeta>
-          </CardTitleGroup>
-
-          <ToggleTrack
-            $on={localConfig.bookingConfirmation.enabled}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ToggleThumb $on={localConfig.bookingConfirmation.enabled} />
-          </ToggleTrack>
-        </CardHeader>
-
-        {localConfig.bookingConfirmation.enabled && (
-          <>
-            <BodyDivider />
-            <CardBody>
-              <RuleEditor
-                rule={localConfig.bookingConfirmation}
-                showTiming={false}
-                onChange={updateBookingConf}
-              />
-            </CardBody>
-          </>
-        )}
-      </Card>
-
-      {/* ── Reschedule confirmation ── */}
-      <Card $enabled={localConfig.rescheduleConfirmation.enabled}>
-        <CardHeader
-          onClick={() =>
-            updateRescheduleConf({ ...localConfig.rescheduleConfirmation, enabled: !localConfig.rescheduleConfirmation.enabled })
-          }
-        >
-          <CardIconWrap $enabled={localConfig.rescheduleConfirmation.enabled}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M23 4v6h-6"/>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-            </svg>
-          </CardIconWrap>
-
-          <CardTitleGroup>
-            <CardTitle>Potwierdzenie zmiany terminu</CardTitle>
-            <CardMeta>
-              {localConfig.rescheduleConfirmation.enabled ? (
-                <ImmediateBadge>Natychmiast po zmianie</ImmediateBadge>
-              ) : (
-                <InactiveLabel>Nieaktywne</InactiveLabel>
-              )}
-            </CardMeta>
-          </CardTitleGroup>
-
-          <ToggleTrack
-            $on={localConfig.rescheduleConfirmation.enabled}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ToggleThumb $on={localConfig.rescheduleConfirmation.enabled} />
-          </ToggleTrack>
-        </CardHeader>
-
-        {localConfig.rescheduleConfirmation.enabled && (
-          <>
-            <BodyDivider />
-            <CardBody>
-              <RuleEditor
-                rule={localConfig.rescheduleConfirmation}
-                showTiming={false}
-                onChange={updateRescheduleConf}
-              />
-            </CardBody>
-          </>
-        )}
-      </Card>
-
-    </Container>
-    <UnsavedChangesBanner
-      visible={dirty}
-      onSave={handleSave}
-      onDiscard={handleDiscard}
-      isSaving={updateMutation.isPending}
-      sectionName="Szablony SMS"
-    />
+      <UnsavedChangesBanner
+        visible={dirty}
+        onSave={handleSave}
+        onDiscard={handleDiscard}
+        isSaving={updateMutation.isPending}
+        sectionName="Szablony SMS"
+      />
     </LockedSection>
   );
 };
