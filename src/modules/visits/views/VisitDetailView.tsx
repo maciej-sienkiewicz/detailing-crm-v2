@@ -70,8 +70,8 @@ const ContentArea = styled.div`
         padding: 24px 32px 48px;
     }
 
-    @media (max-width: 640px) {
-        padding: 16px 16px 32px;
+    @media (max-width: 767px) {
+        padding: 16px 16px 88px;
     }
 `;
 
@@ -89,6 +89,10 @@ const MainGrid = styled.div`
         flex-direction: row;
         gap: 20px;
     }
+
+    @media (max-width: 767px) {
+        gap: 0;
+    }
 `;
 
 const MainColumn = styled.div`
@@ -99,7 +103,7 @@ const MainColumn = styled.div`
     gap: 14px;
 `;
 
-const Sidebar = styled.aside`
+const Sidebar = styled.aside<{ $mobileVisible?: boolean }>`
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -112,6 +116,10 @@ const Sidebar = styled.aside`
 
     @media (min-width: ${props => props.theme.breakpoints.xl}) {
         width: 340px;
+    }
+
+    @media (max-width: 767px) {
+        display: ${p => p.$mobileVisible ? 'flex' : 'none'};
     }
 `;
 
@@ -505,6 +513,76 @@ const ScheduleSmsNoPhone = styled.p`
     line-height: 1.4;
 `;
 
+// ─── Mobile tab navigation ────────────────────────────────────────────────────
+
+type MobileTab = 'services' | 'info' | 'docs' | 'communication' | 'history';
+
+const MobileTabPanel = styled.div<{ $visible: boolean }>`
+    @media (max-width: 767px) {
+        display: ${p => p.$visible ? 'block' : 'none'};
+    }
+`;
+
+const MobileBottomNav = styled.nav`
+    display: none;
+
+    @media (max-width: 767px) {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 200;
+        background: #ffffff;
+        border-top: 1px solid ${st.border};
+        padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.07);
+    }
+`;
+
+const MobileNavBtn = styled.button<{ $active: boolean }>`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 4px 2px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: ${p => p.$active ? BRAND : '#94a3b8'};
+    transition: color 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+
+    svg { width: 22px; height: 22px; flex-shrink: 0; }
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 28px;
+        height: 2px;
+        border-radius: 0 0 2px 2px;
+        background: ${p => p.$active ? BRAND : 'transparent'};
+        transition: background 0.15s ease;
+    }
+`;
+
+const MobileNavLabel = styled.span`
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+`;
+
 // ─── View ─────────────────────────────────────────────────────────────────────
 
 export const VisitDetailView = () => {
@@ -520,6 +598,14 @@ export const VisitDetailView = () => {
     const [isDocsOpen, setIsDocsOpen] = useState(false);
     const [isAuditOpen, setIsAuditOpen] = useState(false);
     const [isCommunicationOpen, setIsCommunicationOpen] = useState(true);
+    const [mobileTab, setMobileTab] = useState<MobileTab>('services');
+
+    const handleMobileTabChange = (tab: MobileTab) => {
+        setMobileTab(tab);
+        if (tab === 'docs') setIsDocsOpen(true);
+        if (tab === 'history') setIsAuditOpen(true);
+        if (tab === 'communication') setIsCommunicationOpen(true);
+    };
     const docFileInputRef = useRef<HTMLInputElement>(null);
 
     const { visitDetail, isLoading, isError, refetch } = useVisitDetail(visitId!);
@@ -689,14 +775,17 @@ export const VisitDetailView = () => {
 
                 <MainGrid>
                     <MainColumn>
-                        <ServicesTable
-                            services={visit.services}
-                            visitStatus={visit.status}
-                            visitId={visitId!}
-                            highlightPending={highlightPendingServices}
-                        />
+                        <MobileTabPanel $visible={mobileTab === 'services'}>
+                            <ServicesTable
+                                services={visit.services}
+                                visitStatus={visit.status}
+                                visitId={visitId!}
+                                highlightPending={highlightPendingServices}
+                            />
+                        </MobileTabPanel>
 
                         {/* Komunikacja ──────────────────────────────────── */}
+                        <MobileTabPanel $visible={mobileTab === 'communication'}>
                         <Section>
                             <SectionHeader
                                 onClick={() => setIsCommunicationOpen(v => !v)}
@@ -729,8 +818,10 @@ export const VisitDetailView = () => {
                                 />
                             </SectionBody>
                         </Section>
+                        </MobileTabPanel>
 
                         {/* Dokumentacja ─────────────────────────────────── */}
+                        <MobileTabPanel $visible={mobileTab === 'docs'}>
                         <Section>
                             <DocsSectionHeader
                                 onClick={() => setIsDocsOpen(v => !v)}
@@ -808,8 +899,10 @@ export const VisitDetailView = () => {
                                 />
                             </SectionBody>
                         </Section>
+                        </MobileTabPanel>
 
                         {/* Historia zmian ───────────────────────────────── */}
+                        <MobileTabPanel $visible={mobileTab === 'history'}>
                         <Section>
                             <SectionHeader
                                 onClick={() => setIsAuditOpen(v => !v)}
@@ -833,9 +926,10 @@ export const VisitDetailView = () => {
                                 <AuditTimeline module="VISIT" entityId={visitId!} />
                             </SectionBody>
                         </Section>
+                        </MobileTabPanel>
                     </MainColumn>
 
-                    <Sidebar>
+                    <Sidebar $mobileVisible={mobileTab === 'info'}>
                         {pendingReminder && (
                             <ReminderCard>
                                 <ReminderCardHeader>
@@ -953,6 +1047,50 @@ export const VisitDetailView = () => {
                 existingReminder={smsReminderForEdit}
                 onClose={() => { setIsSmsReminderOpen(false); setSmsReminderForEdit(null); }}
             />
+
+            <MobileBottomNav aria-label="Nawigacja sekcji wizyty">
+                <MobileNavBtn $active={mobileTab === 'services'} onClick={() => handleMobileTabChange('services')} aria-label="Usługi">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                        <rect x="9" y="3" width="6" height="4" rx="1"/>
+                        <path d="M9 12h6M9 16h4"/>
+                    </svg>
+                    <MobileNavLabel>Usługi</MobileNavLabel>
+                </MobileNavBtn>
+
+                <MobileNavBtn $active={mobileTab === 'info'} onClick={() => handleMobileTabChange('info')} aria-label="Klient">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    <MobileNavLabel>Klient</MobileNavLabel>
+                </MobileNavBtn>
+
+                <MobileNavBtn $active={mobileTab === 'docs'} onClick={() => handleMobileTabChange('docs')} aria-label="Zdjęcia i dokumenty">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="7" height="7" rx="1"/>
+                        <rect x="14" y="3" width="7" height="7" rx="1"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1"/>
+                        <rect x="14" y="14" width="7" height="7" rx="1"/>
+                    </svg>
+                    <MobileNavLabel>Zdjęcia</MobileNavLabel>
+                </MobileNavBtn>
+
+                <MobileNavBtn $active={mobileTab === 'communication'} onClick={() => handleMobileTabChange('communication')} aria-label="Komunikacja">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <MobileNavLabel>Komunikacja</MobileNavLabel>
+                </MobileNavBtn>
+
+                <MobileNavBtn $active={mobileTab === 'history'} onClick={() => handleMobileTabChange('history')} aria-label="Historia zmian">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <MobileNavLabel>Historia</MobileNavLabel>
+                </MobileNavBtn>
+            </MobileBottomNav>
         </ViewContainer>
     );
 };
