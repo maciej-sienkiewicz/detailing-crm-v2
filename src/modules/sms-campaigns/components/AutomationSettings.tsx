@@ -55,7 +55,7 @@ const ModalOverlay = styled.div<{ $closing: boolean }>`
   inset: 0;
   z-index: 3000;
   pointer-events: all;
-  background: rgba(0, 0, 0, ${p => p.$closing ? 0 : 0.25});
+  background: rgba(0, 0, 0, ${p => p.$closing ? 0 : 0.18});
   transition: background 0.3s ease;
 `;
 
@@ -67,13 +67,12 @@ const ModalWindow = styled.div<{ $closing: boolean }>`
   display: flex;
   flex-direction: column;
   max-height: 80vh;
-  background: rgba(240, 242, 245, 0.97);
-  backdrop-filter: blur(24px) saturate(180%);
+  background: #f0f2f5;
   border-radius: 14px;
   box-shadow:
     0 0 0 0.5px rgba(0, 0, 0, 0.18),
-    0 24px 64px rgba(0, 0, 0, 0.36),
-    0 4px 12px rgba(0, 0, 0, 0.14);
+    0 24px 64px rgba(0, 0, 0, 0.28),
+    0 4px 12px rgba(0, 0, 0, 0.10);
   overflow: hidden;
   transform-origin: center center;
   pointer-events: all;

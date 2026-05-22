@@ -52,7 +52,7 @@ const ModalOverlay = styled.div<{ $closing: boolean }>`
   inset: 0;
   z-index: 3000;
   pointer-events: all;
-  background: rgba(0, 0, 0, ${p => p.$closing ? 0 : 0.25});
+  background: rgba(0, 0, 0, ${p => p.$closing ? 0 : 0.18});
   transition: background 0.3s ease;
 `;
 
@@ -64,13 +64,12 @@ const ModalWindow = styled.div<{ $closing: boolean }>`
   display: flex;
   flex-direction: column;
   max-height: 82vh;
-  background: rgba(240, 242, 245, 0.97);
-  backdrop-filter: blur(24px) saturate(180%);
+  background: #f0f2f5;
   border-radius: 14px;
   box-shadow:
     0 0 0 0.5px rgba(0, 0, 0, 0.18),
-    0 24px 64px rgba(0, 0, 0, 0.36),
-    0 4px 12px rgba(0, 0, 0, 0.14);
+    0 24px 64px rgba(0, 0, 0, 0.28),
+    0 4px 12px rgba(0, 0, 0, 0.10);
   overflow: hidden;
   transform-origin: center center;
   pointer-events: all;
@@ -141,31 +140,6 @@ const EmailClient = styled.div`
   border-radius: 10px;
   overflow: hidden;
   background: white;
-`;
-
-const EmailClientBar = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background: #f8fafc;
-  border-bottom: 1px solid #f1f5f9;
-`;
-
-const EmailClientDot = styled.span<{ $color: string }>`
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: ${p => p.$color};
-  flex-shrink: 0;
-`;
-
-const EmailClientTitle = styled.span`
-  font-size: 11px;
-  color: #94a3b8;
-  font-weight: 500;
-  flex: 1;
-  text-align: center;
 `;
 
 const EmailMeta = styled.div`
@@ -672,12 +646,6 @@ const RuleEditor: React.FC<RuleEditorProps> = ({ rule, studioName, onChange }) =
       {showPreview && (
         <PreviewModal title="Podgląd email" onClose={() => setShowPreview(false)}>
           <EmailClient>
-            <EmailClientBar>
-              <EmailClientDot $color="#ff5f57" />
-              <EmailClientDot $color="#febc2e" />
-              <EmailClientDot $color="#28c840" />
-              <EmailClientTitle>Podgląd wiadomości</EmailClientTitle>
-            </EmailClientBar>
             <EmailMeta>
               <EmailMetaRow>
                 <EmailMetaKey>Od:</EmailMetaKey>
