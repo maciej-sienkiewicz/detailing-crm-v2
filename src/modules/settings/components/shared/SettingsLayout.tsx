@@ -3,15 +3,16 @@ import styled, { keyframes } from 'styled-components';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface HelpSection {
-    heading: string;
-    body: string;
+export interface HelpItem {
+    id: string;
+    label: string;
+    description: string;
+    usedIn: string[];
 }
 
 export interface HelpContent {
     title: string;
-    lead: string;
-    sections: HelpSection[];
+    items: HelpItem[];
 }
 
 // ─── Animations ───────────────────────────────────────────────────────────────
@@ -21,12 +22,12 @@ const fadeIn = keyframes`
     to   { opacity: 1; }
 `;
 
-const slideFromRight = keyframes`
-    from { transform: translateX(100%); }
-    to   { transform: translateX(0); }
+const scaleIn = keyframes`
+    from { opacity: 0; transform: scale(0.96) translateY(8px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0);   }
 `;
 
-// ─── SectionHeader ─────────────────────────────────────────────────────────
+// ─── SectionHeader ────────────────────────────────────────────────────────────
 
 const HeaderWrap = styled.div`
     display: flex;
@@ -136,52 +137,62 @@ export function SectionHeader({ category, title, description, help, children }: 
                 </HeaderRight>
             </HeaderWrap>
 
-            {open && <HelpDrawer content={help} onClose={() => setOpen(false)} />}
+            {open && <HelpModal content={help} onClose={() => setOpen(false)} />}
         </>
     );
 }
 
-// ─── HelpDrawer ───────────────────────────────────────────────────────────────
+// ─── HelpModal ────────────────────────────────────────────────────────────────
 
-const Overlay = styled.div`
+const ModalOverlay = styled.div`
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.32);
+    background: rgba(15, 23, 42, 0.44);
     z-index: 3000;
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
     animation: ${fadeIn} 180ms ease;
 `;
 
-const Drawer = styled.div`
-    width: 420px;
-    max-width: 95vw;
-    height: 100%;
+const ModalCard = styled.div`
     background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 780px;
+    max-height: min(600px, 90vh);
     display: flex;
     flex-direction: column;
-    box-shadow: -4px 0 40px rgba(15, 23, 42, 0.16);
-    animation: ${slideFromRight} 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+    box-shadow: 0 24px 64px rgba(15, 23, 42, 0.22), 0 4px 16px rgba(15, 23, 42, 0.1);
+    animation: ${scaleIn} 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
     overflow: hidden;
 `;
 
-const DrawerHead = styled.div`
+const ModalHead = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px 24px;
+    padding: 18px 22px;
     border-bottom: 1px solid #f1f5f9;
     flex-shrink: 0;
 `;
 
-const DrawerTitle = styled.h3`
+const ModalTitle = styled.h3`
     font-size: 15px;
     font-weight: 700;
     color: #0f172a;
     margin: 0;
 `;
 
-const DrawerCloseBtn = styled.button`
+const ModalSubtitle = styled.span`
+    font-size: 12px;
+    font-weight: 400;
+    color: #94a3b8;
+    margin-left: 10px;
+`;
+
+const ModalCloseBtn = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
@@ -193,6 +204,7 @@ const DrawerCloseBtn = styled.button`
     color: #64748b;
     cursor: pointer;
     transition: all 150ms;
+    flex-shrink: 0;
 
     &:hover {
         background: #f8fafc;
@@ -201,87 +213,197 @@ const DrawerCloseBtn = styled.button`
     }
 `;
 
-const DrawerBody = styled.div`
+const ModalBody = styled.div`
+    display: grid;
+    grid-template-columns: 220px 1fr;
     flex: 1;
+    min-height: 0;
+    overflow: hidden;
+`;
+
+// ─── Left nav ─────────────────────────────────────────────────────────────────
+
+const NavSidebar = styled.nav`
+    border-right: 1px solid #f1f5f9;
     overflow-y: auto;
-    padding: 24px;
+    padding: 12px 8px;
     display: flex;
     flex-direction: column;
-    gap: 22px;
+    gap: 2px;
+    background: #fafbfc;
 `;
 
-const DrawerLead = styled.p`
-    font-size: 14px;
-    color: #475569;
-    line-height: 1.7;
-    margin: 0;
-    padding: 16px 18px;
-    background: #f0f9ff;
-    border-radius: 10px;
-    border-left: 3px solid #0ea5e9;
-`;
-
-const DrawerSection = styled.div`
+const NavItem = styled.button<{ $active: boolean }>`
     display: flex;
-    flex-direction: column;
-    gap: 7px;
-`;
-
-const DrawerSectionHead = styled.h4`
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 9px;
+    border: none;
+    background: ${p => p.$active ? '#fff' : 'transparent'};
+    font-family: inherit;
     font-size: 13px;
+    font-weight: ${p => p.$active ? 600 : 500};
+    color: ${p => p.$active ? '#0ea5e9' : '#475569'};
+    cursor: pointer;
+    text-align: left;
+    transition: all 150ms;
+    box-shadow: ${p => p.$active ? '0 1px 4px rgba(15,23,42,0.07)' : 'none'};
+    position: relative;
+
+    &:hover:not([data-active="true"]) {
+        background: #f1f5f9;
+        color: #0f172a;
+    }
+`;
+
+const NavItemDot = styled.span<{ $active: boolean }>`
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: ${p => p.$active ? '#0ea5e9' : '#cbd5e1'};
+    transition: background 150ms;
+`;
+
+// ─── Right content ────────────────────────────────────────────────────────────
+
+const ContentPanel = styled.div`
+    overflow-y: auto;
+    padding: 28px 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+`;
+
+const ContentTitle = styled.h4`
+    font-size: 17px;
     font-weight: 700;
     color: #0f172a;
     margin: 0;
+    letter-spacing: -0.3px;
+`;
+
+const ContentDesc = styled.p`
+    font-size: 14px;
+    color: #334155;
+    line-height: 1.75;
+    margin: 0;
+`;
+
+const UsedInSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+`;
+
+const UsedInLabel = styled.div`
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+`;
+
+const UsedInList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+`;
+
+const UsedInRow = styled.div`
     display: flex;
     align-items: center;
-    gap: 8px;
-`;
-
-const DrawerAccent = styled.span`
-    display: block;
-    width: 3px;
-    height: 14px;
-    border-radius: 2px;
-    background: #0ea5e9;
-    flex-shrink: 0;
-`;
-
-const DrawerSectionBody = styled.p`
+    gap: 10px;
     font-size: 13px;
-    color: #64748b;
-    line-height: 1.65;
-    margin: 0;
-    padding-left: 11px;
+    color: #334155;
 `;
 
-function HelpDrawer({ content, onClose }: { content: HelpContent; onClose: () => void }) {
+const UsedInIcon = styled.div`
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: rgba(14, 165, 233, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #0284c7;
+`;
+
+const CheckSmIcon = () => (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12" />
+    </svg>
+);
+
+const Divider = styled.div`
+    height: 1px;
+    background: #f1f5f9;
+`;
+
+function HelpModal({ content, onClose }: { content: HelpContent; onClose: () => void }) {
+    const [activeId, setActiveId] = useState(content.items[0]?.id ?? '');
+    const active = content.items.find(i => i.id === activeId) ?? content.items[0];
+
     return (
-        <Overlay onClick={e => e.target === e.currentTarget && onClose()}>
-            <Drawer>
-                <DrawerHead>
-                    <DrawerTitle>{content.title}</DrawerTitle>
-                    <DrawerCloseBtn onClick={onClose} aria-label="Zamknij">
+        <ModalOverlay onClick={e => e.target === e.currentTarget && onClose()}>
+            <ModalCard>
+                <ModalHead>
+                    <div>
+                        <ModalTitle>
+                            {content.title}
+                            <ModalSubtitle>— przewodnik po polach</ModalSubtitle>
+                        </ModalTitle>
+                    </div>
+                    <ModalCloseBtn onClick={onClose} aria-label="Zamknij">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
-                    </DrawerCloseBtn>
-                </DrawerHead>
+                    </ModalCloseBtn>
+                </ModalHead>
 
-                <DrawerBody>
-                    <DrawerLead>{content.lead}</DrawerLead>
+                <ModalBody>
+                    <NavSidebar>
+                        {content.items.map(item => (
+                            <NavItem
+                                key={item.id}
+                                $active={item.id === activeId}
+                                onClick={() => setActiveId(item.id)}
+                            >
+                                <NavItemDot $active={item.id === activeId} />
+                                {item.label}
+                            </NavItem>
+                        ))}
+                    </NavSidebar>
 
-                    {content.sections.map((s, i) => (
-                        <DrawerSection key={i}>
-                            <DrawerSectionHead>
-                                <DrawerAccent />
-                                {s.heading}
-                            </DrawerSectionHead>
-                            <DrawerSectionBody>{s.body}</DrawerSectionBody>
-                        </DrawerSection>
-                    ))}
-                </DrawerBody>
-            </Drawer>
-        </Overlay>
+                    {active && (
+                        <ContentPanel key={active.id}>
+                            <ContentTitle>{active.label}</ContentTitle>
+                            <Divider />
+                            <ContentDesc>{active.description}</ContentDesc>
+
+                            {active.usedIn.length > 0 && (
+                                <UsedInSection>
+                                    <UsedInLabel>Gdzie jest używane</UsedInLabel>
+                                    <UsedInList>
+                                        {active.usedIn.map((place, i) => (
+                                            <UsedInRow key={i}>
+                                                <UsedInIcon>
+                                                    <CheckSmIcon />
+                                                </UsedInIcon>
+                                                {place}
+                                            </UsedInRow>
+                                        ))}
+                                    </UsedInList>
+                                </UsedInSection>
+                            )}
+                        </ContentPanel>
+                    )}
+                </ModalBody>
+            </ModalCard>
+        </ModalOverlay>
     );
 }
 

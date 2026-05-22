@@ -18,24 +18,50 @@ import type { HelpContent } from './shared/SettingsLayout';
 // ─── Help content ─────────────────────────────────────────────────────────────
 
 const HELP: HelpContent = {
-    title: 'Dokumenty i podpisy — jak to działa',
-    lead: 'Protokoły zdawczo-odbiorcze i zgody marketingowe są podpisywane elektronicznie na tablecie lub smartfonie klienta podczas każdej wizyty.',
-    sections: [
+    title: 'Dokumenty i podpisy',
+    items: [
         {
-            heading: 'Protokół przyjęcia (Check-in)',
-            body: 'Generowany automatycznie przy rejestracji pojazdu. Klient podpisuje go na ekranie dotykowym. Możesz skonfigurować kilka szablonów aktywowanych dla różnych usług.',
+            id: 'checkin',
+            label: 'Protokół przyjęcia',
+            description: 'Dokument generowany automatycznie w momencie rejestracji pojazdu (etap Check-in). Klient podpisuje go elektronicznie na ekranie dotykowym — tablecie lub smartfonie. Możesz skonfigurować wiele szablonów: jeden globalny (zawsze generowany) oraz dodatkowe aktywowane tylko dla konkretnych usług.',
+            usedIn: [
+                'Generowany przy każdym przyjęciu pojazdu',
+                'Podpisywany elektronicznie przez klienta',
+                'Archiwizowany w historii zlecenia',
+                'Dostępny do pobrania jako PDF',
+            ],
         },
         {
-            heading: 'Protokół wydania (Check-out)',
-            body: 'Generowany przy wydaniu pojazdu po zakończeniu usługi. Potwierdza stan auta i zakres wykonanych prac.',
+            id: 'checkout',
+            label: 'Protokół wydania',
+            description: 'Dokument generowany przy wydaniu pojazdu klientowi (etap Check-out). Potwierdza stan pojazdu po wykonaniu usługi i zakres zrealizowanych prac. Klient podpisuje go przy odbiorze, co stanowi formalne potwierdzenie wykonania zlecenia.',
+            usedIn: [
+                'Generowany przy wydaniu pojazdu',
+                'Podpisywany elektronicznie przy odbiorze',
+                'Archiwizowany w historii zlecenia',
+                'Podstawa do ewentualnych roszczeń gwarancyjnych',
+            ],
         },
         {
-            heading: 'Zgody marketingowe i RODO',
-            body: 'Zgody są zbierane jednorazowo per klient — system zapamiętuje je między wizytami i nie pyta ponownie, jeśli zgoda jest już aktywna.',
+            id: 'templates',
+            label: 'Szablony PDF',
+            description: 'Każdy protokół oparty jest na szablonie dokumentu PDF. Szablon definiuje wygląd i treść dokumentu — możesz go podejrzeć przed wdrożeniem klikając ikonę oka. Nazwy szablonów możesz edytować bezpośrednio w widoku (ikona ołówka). Przesyłanie własnych szablonów wymaga kontaktu z pomocą techniczną.',
+            usedIn: [
+                'Bazowy projekt każdego protokołu',
+                'Widoczny w podglądzie PDF przed wysłaniem',
+                'Przechowywany bezpiecznie w chmurze',
+            ],
         },
         {
-            heading: 'Szablony dokumentów PDF',
-            body: 'Każdy szablon można podejrzeć w formacie PDF przed wdrożeniem. Dokumenty przechowywane są bezpiecznie i dostępne w historii zleceń.',
+            id: 'consents',
+            label: 'Zgody marketingowe',
+            description: 'Zgody na przetwarzanie danych w celach marketingowych lub RODO zbierane są jednorazowo per klient. System zapamiętuje, że klient już wyraził daną zgodę, i nie wyświetla jej przy kolejnych wizytach. Możesz oznaczyć zgodę jako obowiązkową (klient musi ją podpisać) lub opcjonalną.',
+            usedIn: [
+                'Wyświetlana klientowi raz przy pierwszej wizycie',
+                'Archiwizowana w profilu klienta',
+                'Dostępna do wglądu w historii klienta',
+                'Podstawa prawna dla działań marketingowych',
+            ],
         },
     ],
 };
