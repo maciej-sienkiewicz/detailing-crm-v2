@@ -60,11 +60,11 @@ const Th = styled.th`
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         &:nth-child(1) { width: 32px; padding: 8px 4px; }
-        &:nth-child(2) { width: auto; }
+        &:nth-child(2) { width: 220px; }
         &:nth-child(3) { width: 140px; }
-        &:nth-child(4) { width: 130px; }
+        &:nth-child(4) { width: 165px; }
         &:nth-child(5) { width: 160px; }
-        &:nth-child(6) { width: 48px; text-align: center; }
+        &:nth-child(6) { width: 56px; text-align: center; }
     }
 `;
 
@@ -134,6 +134,7 @@ const Td = styled.td<{ 'data-label'?: string }>`
     padding: 10px 14px;
     font-size: ${props => props.theme.fontSizes.sm};
     vertical-align: middle;
+    overflow: hidden;
 
     @media (max-width: ${props => props.theme.breakpoints.md}) {
         display: block;
@@ -352,6 +353,7 @@ const DiscountTypeTrigger = styled.button`
     width: 100%; display: flex; align-items: center; gap: 6px; padding: 5px 8px;
     border: 1px solid ${props => props.theme.colors.border}; border-radius: ${props => props.theme.radii.md};
     background: #f8fafc; cursor: pointer; font-size: 12px; color: #374151;
+    white-space: nowrap; overflow: hidden;
     &:hover { background: white; border-color: #cbd5e1; }
 `;
 const DiscountTypeMenu = styled.div<{ $top: number; $left: number; $width: number }>`
