@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { st as stBase } from '@/modules/statistics/components/StatisticsTheme';
+import { UnsavedChangesBanner } from '@/modules/settings/components/shared/SettingsLayout';
 
 const st = {
   ...stBase,
@@ -36,51 +37,6 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
-`;
-
-// ─── Intro banner ─────────────────────────────────────────────────────────────
-
-const IntroBanner = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 16px 20px;
-  background: ${st.bgCard};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radius};
-  box-shadow: ${st.shadowSm};
-`;
-
-const IntroIconWrap = styled.div`
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: ${st.gradientBlue};
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-top: 1px;
-`;
-
-const IntroContent = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
-const IntroTitle = styled.h2`
-  margin: 0 0 4px;
-  font-size: ${st.fontSm};
-  font-weight: 700;
-  color: ${st.text};
-`;
-
-const IntroDesc = styled.p`
-  margin: 0;
-  font-size: ${st.fontXs};
-  color: ${st.textSecondary};
-  line-height: 1.65;
 `;
 
 // ─── Rule card ────────────────────────────────────────────────────────────────
@@ -207,11 +163,9 @@ const CardBody = styled.div`
 // ─── Timing sentence ──────────────────────────────────────────────────────────
 
 const SectionLabel = styled.div`
-  font-size: ${st.fontXs};
-  font-weight: 700;
-  color: ${st.textSecondary};
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
   margin-bottom: 8px;
 `;
 
@@ -356,80 +310,6 @@ const CharCountLabel = styled.span<{ $warn: boolean }>`
   font-weight: ${(p) => p.$warn ? 700 : 400};
 `;
 
-// ─── Save bar ─────────────────────────────────────────────────────────────────
-
-const SaveBar = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 20px;
-  background: ${st.bgCard};
-  border: 1px solid ${st.border};
-  border-radius: ${st.radius};
-  box-shadow: ${st.shadowSm};
-`;
-
-const SaveBarInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-`;
-
-const SaveBarTitle = styled.span`
-  font-size: ${st.fontSm};
-  font-weight: 600;
-  color: ${st.text};
-`;
-
-const SaveBarHint = styled.span`
-  font-size: ${st.fontXs};
-  color: ${st.textMuted};
-`;
-
-const SaveBarActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-`;
-
-const SaveButton = styled.button`
-  padding: 9px 24px;
-  font-size: ${st.fontSm};
-  font-weight: 700;
-  background: ${st.accentBlue};
-  color: #fff;
-  border: none;
-  border-radius: 9px;
-  cursor: pointer;
-  box-shadow: ${st.shadowXs};
-  transition: all ${st.transition};
-  letter-spacing: 0.1px;
-  font-family: inherit;
-
-  &:hover:not(:disabled) {
-    background: #0284c7;
-    box-shadow: ${st.shadowSm};
-    transform: translateY(-1px);
-  }
-  &:active { transform: translateY(0); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-`;
-
-const SavedPill = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
-  background: ${st.accentGreenDim};
-  color: ${st.accentGreen};
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  border-radius: ${st.radiusFull};
-  font-size: ${st.fontXs};
-  font-weight: 700;
-`;
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
@@ -609,16 +489,21 @@ export const AutomationSettings: React.FC = () => {
   const updateMutation = useUpdateAutomationConfig();
 
   const [localConfig, setLocalConfig] = useState<SmsAutomationConfig | null>(null);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [savedConfig, setSavedConfig] = useState<SmsAutomationConfig | null>(null);
+  const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
-    if (config && !localConfig) setLocalConfig(mergeWithDefaults(config));
+    if (config && !localConfig) {
+      const merged = mergeWithDefaults(config);
+      setLocalConfig(merged);
+      setSavedConfig(merged);
+    }
   }, [config, localConfig]);
 
   const makeUpdater = (key: keyof SmsAutomationConfig) => (rule: SmsAutomationRule) => {
     if (!localConfig) return;
     setLocalConfig({ ...localConfig, [key]: rule });
-    setSavedAt(null);
+    setDirty(true);
   };
 
   const updatePreVisit       = makeUpdater('preVisit');
@@ -629,7 +514,15 @@ export const AutomationSettings: React.FC = () => {
   const handleSave = async () => {
     if (!localConfig) return;
     await updateMutation.mutateAsync(localConfig);
-    setSavedAt(Date.now());
+    setSavedConfig({ ...localConfig });
+    setDirty(false);
+  };
+
+  const handleDiscard = () => {
+    if (savedConfig) {
+      setLocalConfig({ ...savedConfig });
+      setDirty(false);
+    }
   };
 
   // ── Loading skeleton ──
@@ -658,21 +551,6 @@ export const AutomationSettings: React.FC = () => {
       message="Twój abonament nie obsługuje automatycznych wiadomości SMS."
     >
     <Container>
-      {/* ── Intro ── */}
-      <IntroBanner>
-        <IntroIconWrap>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-          </svg>
-        </IntroIconWrap>
-        <IntroContent>
-          <IntroTitle>Automatyczne wiadomości SMS</IntroTitle>
-          <IntroDesc>
-            Skonfiguruj wiadomości wysyłane automatycznie do klientów — przypomnienie przed wizytą i podziękowanie po jej zakończeniu. Każdą regułę możesz aktywować niezależnie i dostosować do swojego stylu komunikacji.
-          </IntroDesc>
-        </IntroContent>
-      </IntroBanner>
-
       {/* ── Pre-visit ── */}
       <Card $enabled={localConfig.preVisit.enabled}>
         <CardHeader
@@ -867,27 +745,14 @@ export const AutomationSettings: React.FC = () => {
         )}
       </Card>
 
-      {/* ── Save bar ── */}
-      <SaveBar>
-        <SaveBarInfo>
-          <SaveBarTitle>Ustawienia automatyzacji</SaveBarTitle>
-          <SaveBarHint>Zmiany zostaną zastosowane do wszystkich nowych wizyt</SaveBarHint>
-        </SaveBarInfo>
-        <SaveBarActions>
-          {savedAt && (
-            <SavedPill>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-              Zapisano
-            </SavedPill>
-          )}
-          <SaveButton onClick={handleSave} disabled={updateMutation.isPending}>
-            {updateMutation.isPending ? 'Zapisywanie…' : 'Zapisz ustawienia'}
-          </SaveButton>
-        </SaveBarActions>
-      </SaveBar>
     </Container>
+    <UnsavedChangesBanner
+      visible={dirty}
+      onSave={handleSave}
+      onDiscard={handleDiscard}
+      isSaving={updateMutation.isPending}
+      sectionName="Szablony SMS"
+    />
     </LockedSection>
   );
 };
