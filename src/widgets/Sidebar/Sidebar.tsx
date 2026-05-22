@@ -76,9 +76,7 @@ const buildMenuSections = (newLeadsCount: number): MenuSection[] => [
         title: 'Administracja',
         items: [
             { path: '/finances',   label: 'Finanse',    icon: FileText },
-            { path: '/reports',    label: 'Raporty',    icon: BarChart3 },
             { path: '/statistics', label: 'Statystyki', icon: TrendingUp },
-            { path: '/team',       label: 'Pracownicy', icon: UserCog },
             { path: '/gallery',    label: 'Galeria',    icon: Images },
             { path: '/settings',   label: 'Ustawienia', icon: Settings },
         ],

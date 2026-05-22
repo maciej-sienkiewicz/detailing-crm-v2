@@ -77,7 +77,6 @@ const NAV_GROUPS: NavGroup[] = [
         items: [
             { id: 'company',  label: 'Dane firmy',      icon: <BuildingIcon /> },
             { id: 'services', label: 'Cennik usług',     icon: <ListChecksIcon /> },
-            { id: 'team',     label: 'Pracownicy',       icon: <UsersIcon />, badge: '4' },
         ],
     },
     {
@@ -95,13 +94,6 @@ const NAV_GROUPS: NavGroup[] = [
             { id: 'credits',  label: 'Kredyty SMS i AI',       icon: <WalletIcon /> },
             { id: 'invoices', label: 'Faktury i płatności',    icon: <ReceiptIcon /> },
             { id: 'security', label: 'Bezpieczeństwo',         icon: <ShieldIcon /> },
-        ],
-    },
-    {
-        group: 'Integracje',
-        items: [
-            { id: 'integrations', label: 'Połączenia',     icon: <PlugIcon /> },
-            { id: 'api',          label: 'API i webhooks',  icon: <TerminalIcon /> },
         ],
     },
 ];

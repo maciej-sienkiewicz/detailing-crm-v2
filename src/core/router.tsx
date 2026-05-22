@@ -273,14 +273,6 @@ export const router = createBrowserRouter([
         ),
     },
     {
-        path: '/reports',
-        element: (
-            <ProtectedRoute>
-                <Layout><ComingSoonView pageName="Raporty" /></Layout>
-            </ProtectedRoute>
-        ),
-    },
-    {
         path: '/team',
         element: (
             <ProtectedRoute>
