@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import { st as stBase } from '@/modules/statistics/components/StatisticsTheme';
 import { UnsavedChangesBanner } from '@/modules/settings/components/shared/SettingsLayout';
@@ -12,7 +13,6 @@ const st = {
   radius:        '12px',
   radiusSm:      '9px',
   shadowBlue:    '0 0 0 3px rgba(14,165,233,0.14)',
-  borderFocus:   '#0ea5e9',
 } as const;
 
 import type { SmsAutomationConfig, SmsAutomationRule } from '../types';
@@ -21,7 +21,22 @@ import { SmsSelect } from './SmsSelect';
 import { LockedSection } from '@/common/components/LockedSection';
 import { useFeature } from '@/modules/subscription';
 
-// ─── Animations ───────────────────────────────────────────────────────────────
+// ─── Spring animations (identical to OfferComposer) ───────────────────────────
+
+const springOpen = keyframes`
+  0%   { transform: translate(-50%, -50%) scale(0.04); opacity: 0; }
+  38%  { transform: translate(-50%, -50%) scale(1.07); opacity: 1; }
+  58%  { transform: translate(-50%, -50%) scale(0.96); opacity: 1; }
+  74%  { transform: translate(-50%, -50%) scale(1.03); opacity: 1; }
+  88%  { transform: translate(-50%, -50%) scale(0.99); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1);    opacity: 1; }
+`;
+
+const springClose = keyframes`
+  0%   { transform: translate(-50%, -50%) scale(1);    opacity: 1; }
+  25%  { transform: translate(-50%, -50%) scale(1.04); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.04); opacity: 0; }
+`;
 
 const shimmer = keyframes`
   0%   { background-position: -200% 0; }
@@ -32,6 +47,210 @@ const expandDown = keyframes`
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: translateY(0); }
 `;
+
+// ─── Preview modal ────────────────────────────────────────────────────────────
+
+const ModalOverlay = styled.div<{ $closing: boolean }>`
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  pointer-events: all;
+  background: rgba(0, 0, 0, ${p => p.$closing ? 0 : 0.25});
+  transition: background 0.3s ease;
+`;
+
+const ModalWindow = styled.div<{ $closing: boolean }>`
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 460px;
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  background: rgba(240, 242, 245, 0.97);
+  backdrop-filter: blur(24px) saturate(180%);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.18),
+    0 24px 64px rgba(0, 0, 0, 0.36),
+    0 4px 12px rgba(0, 0, 0, 0.14);
+  overflow: hidden;
+  transform-origin: center center;
+  pointer-events: all;
+  animation: ${p => p.$closing ? springClose : springOpen}
+    ${p => p.$closing ? '200ms' : '500ms'}
+    cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+`;
+
+const ModalTitleBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px;
+  background: rgba(215, 218, 224, 0.85);
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.12);
+  user-select: none;
+  flex-shrink: 0;
+  cursor: default;
+`;
+
+const TrafficLights = styled.div`
+  display: flex;
+  gap: 7px;
+  flex-shrink: 0;
+`;
+
+const TrafficLight = styled.button<{ $color: 'red' | 'yellow' | 'green' }>`
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 0.5px solid ${p =>
+    p.$color === 'red'    ? 'rgba(200,40,30,0.3)'  :
+    p.$color === 'yellow' ? 'rgba(180,120,0,0.3)'  :
+                            'rgba(20,150,40,0.3)'};
+  padding: 0;
+  cursor: ${p => p.$color === 'red' ? 'pointer' : 'default'};
+  background: ${p =>
+    p.$color === 'red'    ? '#ff5f57' :
+    p.$color === 'yellow' ? '#febc2e' :
+                            '#28c840'};
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.3);
+  transition: filter 0.1s;
+  &:hover { filter: ${p => p.$color === 'red' ? 'brightness(0.88)' : 'none'}; }
+`;
+
+const ModalWindowTitle = styled.span`
+  flex: 1;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.72);
+  letter-spacing: -0.1px;
+`;
+
+const ModalScrollBody = styled.div`
+  overflow-y: auto;
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+// ─── Preview content (SMS bubble) ─────────────────────────────────────────────
+
+const SmsPreviewBox = styled.div`
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: white;
+`;
+
+const SmsPreviewBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+`;
+
+const SmsPreviewBubble = styled.div`
+  padding: 12px 14px 10px;
+  font-size: 13px;
+  color: #0f172a;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+`;
+
+const SmsPreviewEmpty = styled.div`
+  padding: 24px 14px;
+  text-align: center;
+  font-size: 13px;
+  color: #94a3b8;
+  font-style: italic;
+`;
+
+const SmsPreviewFooter = styled.div`
+  padding: 0 14px 10px;
+  font-size: 11px;
+  color: #94a3b8;
+  display: flex;
+  justify-content: space-between;
+`;
+
+const ModalMetaRow = styled.div`
+  font-size: 12px;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const ModalMetaLine = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const ModalMetaKey = styled.span`
+  font-weight: 600;
+  color: #94a3b8;
+  width: 56px;
+  flex-shrink: 0;
+`;
+
+const ModalMetaValue = styled.span`
+  color: #334155;
+`;
+
+// ─── PreviewModal component ───────────────────────────────────────────────────
+
+interface PreviewModalProps {
+  title:    string;
+  onClose:  () => void;
+  children: React.ReactNode;
+}
+
+const PreviewModal: React.FC<PreviewModalProps> = ({ title, onClose, children }) => {
+  const [closing, setClosing] = useState(false);
+
+  const handleClose = () => {
+    setClosing(true);
+    setTimeout(onClose, 200);
+  };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  return createPortal(
+    <>
+      <ModalOverlay $closing={closing} onClick={handleClose} />
+      <ModalWindow $closing={closing}>
+        <ModalTitleBar>
+          <TrafficLights>
+            <TrafficLight $color="red"    onClick={handleClose} />
+            <TrafficLight $color="yellow" onClick={() => {}} />
+            <TrafficLight $color="green"  onClick={() => {}} />
+          </TrafficLights>
+          <ModalWindowTitle>{title}</ModalWindowTitle>
+        </ModalTitleBar>
+        <ModalScrollBody>{children}</ModalScrollBody>
+      </ModalWindow>
+    </>,
+    document.body,
+  );
+};
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -51,9 +270,7 @@ const Card = styled.div<{ $enabled: boolean }>`
   box-shadow: ${p => p.$enabled
     ? `0 0 0 1px ${st.accentBlue}12, 0 4px 12px rgba(14,165,233,0.06), 0 2px 4px rgba(14,165,233,0.04)`
     : '0 1px 3px rgba(15,23,42,0.04), 0 1px 2px rgba(15,23,42,0.03)'};
-  transition:
-    border-color 300ms,
-    box-shadow   300ms;
+  transition: border-color 300ms, box-shadow 300ms;
 `;
 
 const CardHeaderRow = styled.div`
@@ -173,7 +390,6 @@ const ToggleTrack = styled.div<{ $on: boolean }>`
   position: relative;
   cursor: pointer;
   transition: background 180ms, border-color 180ms;
-
   &:hover { opacity: 0.88; }
 `;
 
@@ -220,7 +436,7 @@ const DisabledHint = styled.div`
   font-weight: 500;
 `;
 
-// ─── Form fields — aligned with CompanySection ────────────────────────────────
+// ─── Form fields ──────────────────────────────────────────────────────────────
 
 const SectionLabel = styled.label`
   display: block;
@@ -296,8 +512,6 @@ const DirectionTag = styled.span`
   white-space: nowrap;
 `;
 
-// ─── Message section ──────────────────────────────────────────────────────────
-
 const MessageSection = styled.div`
   display: flex;
   flex-direction: column;
@@ -358,9 +572,7 @@ const Textarea = styled.textarea<{ $over: boolean }>`
 
   &:focus {
     border-color: ${p => p.$over ? '#ef4444' : st.accentBlue};
-    box-shadow: ${p => p.$over
-      ? '0 0 0 3px rgba(239,68,68,0.12)'
-      : st.shadowBlue};
+    box-shadow: ${p => p.$over ? '0 0 0 3px rgba(239,68,68,0.12)' : st.shadowBlue};
   }
   &::placeholder { color: #94a3b8; }
 `;
@@ -384,79 +596,27 @@ const CharCountLabel = styled.span<{ $warn: boolean }>`
   font-weight: ${p => p.$warn ? 700 : 400};
 `;
 
-// ─── SMS Preview ──────────────────────────────────────────────────────────────
-
-const PreviewSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const PreviewHeader = styled.div`
-  display: flex;
+const PreviewBtn = styled.button`
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-`;
-
-const PreviewLbl = styled.div`
-  font-size: 12px;
-  font-weight: 600;
-  color: #334155;
-`;
-
-const PreviewBadge = styled.span`
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 9999px;
-  background: rgba(14,165,233,0.08);
-  color: #0284c7;
-  border: 1px solid rgba(14,165,233,0.18);
-`;
-
-const SmsPreviewBox = styled.div`
+  gap: 6px;
+  align-self: flex-start;
+  padding: 7px 14px;
+  border-radius: 9px;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  overflow: hidden;
   background: white;
-`;
-
-const SmsPreviewBar = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: #f8fafc;
-  border-bottom: 1px solid #f1f5f9;
-  font-size: 11px;
-  font-weight: 600;
-  color: #64748b;
-`;
-
-const SmsPreviewBubble = styled.div`
-  padding: 12px 14px 10px;
   font-size: 13px;
-  color: #0f172a;
-  line-height: 1.65;
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 44px;
-`;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 150ms, border-color 150ms;
+  white-space: nowrap;
 
-const SmsPreviewEmpty = styled.div`
-  padding: 18px 14px;
-  text-align: center;
-  font-size: 12px;
-  color: #94a3b8;
-  font-style: italic;
-`;
-
-const SmsPreviewFooter = styled.div`
-  padding: 0 14px 10px;
-  font-size: 11px;
-  color: #94a3b8;
-  display: flex;
-  justify-content: space-between;
+  &:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+  }
 `;
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
@@ -485,6 +645,13 @@ const InfoIcon = () => (
     <circle cx="12" cy="12" r="10"/>
     <line x1="12" y1="8" x2="12" y2="12"/>
     <line x1="12" y1="16" x2="12.01" y2="16"/>
+  </svg>
+);
+
+const EyeIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+    <circle cx="12" cy="12" r="3"/>
   </svg>
 );
 
@@ -550,6 +717,8 @@ interface RuleEditorProps {
 const RuleEditor: React.FC<RuleEditorProps> = ({
   rule, direction, directionLabel, showTiming = true, studioName, onChange,
 }) => {
+  const [showPreview, setShowPreview] = useState(false);
+
   const offsetMinutes = rule.offsetMinutes ?? 60;
   const { value, unit } = minutesToValue(offsetMinutes);
   const len     = rule.messageTemplate.length;
@@ -563,6 +732,7 @@ const RuleEditor: React.FC<RuleEditorProps> = ({
     onChange({ ...rule, messageTemplate: rule.messageTemplate + key });
 
   const resolvedText = resolveTemplate(rule.messageTemplate, studioName);
+  const resolvedLen  = resolvedText.length;
 
   return (
     <>
@@ -624,28 +794,41 @@ const RuleEditor: React.FC<RuleEditorProps> = ({
         </TextareaFooter>
       </MessageSection>
 
-      <PreviewSection>
-        <PreviewHeader>
-          <PreviewLbl>Podgląd</PreviewLbl>
-          <PreviewBadge>przykładowe dane</PreviewBadge>
-        </PreviewHeader>
-        <SmsPreviewBox>
-          <SmsPreviewBar>
-            <SmsPhoneIcon />
-            SMS · {studioName}
-          </SmsPreviewBar>
-          {rule.messageTemplate
-            ? <>
-                <SmsPreviewBubble>{resolvedText}</SmsPreviewBubble>
-                <SmsPreviewFooter>
-                  <span>{isMulti ? '2 SMS' : '1 SMS'}</span>
-                  <span>{resolvedText.length} znaków</span>
-                </SmsPreviewFooter>
-              </>
-            : <SmsPreviewEmpty>Treść wiadomości pojawi się tutaj…</SmsPreviewEmpty>
-          }
-        </SmsPreviewBox>
-      </PreviewSection>
+      <PreviewBtn type="button" onClick={() => setShowPreview(true)}>
+        <EyeIcon />
+        Podgląd wiadomości
+      </PreviewBtn>
+
+      {showPreview && (
+        <PreviewModal title="Podgląd SMS" onClose={() => setShowPreview(false)}>
+          <ModalMetaRow>
+            <ModalMetaLine>
+              <ModalMetaKey>Nadawca:</ModalMetaKey>
+              <ModalMetaValue>{studioName}</ModalMetaValue>
+            </ModalMetaLine>
+            <ModalMetaLine>
+              <ModalMetaKey>Odbiorca:</ModalMetaKey>
+              <ModalMetaValue>Jan Kowalski · +48 600 000 000</ModalMetaValue>
+            </ModalMetaLine>
+          </ModalMetaRow>
+          <SmsPreviewBox>
+            <SmsPreviewBar>
+              <SmsPhoneIcon />
+              SMS · {isMulti ? '2 wiadomości' : '1 wiadomość'}
+            </SmsPreviewBar>
+            {rule.messageTemplate
+              ? <>
+                  <SmsPreviewBubble>{resolvedText}</SmsPreviewBubble>
+                  <SmsPreviewFooter>
+                    <span>{isMulti ? '2 SMS' : '1 SMS'}</span>
+                    <span>{resolvedLen} znaków</span>
+                  </SmsPreviewFooter>
+                </>
+              : <SmsPreviewEmpty>Wpisz treść wiadomości, żeby zobaczyć podgląd.</SmsPreviewEmpty>
+            }
+          </SmsPreviewBox>
+        </PreviewModal>
+      )}
     </>
   );
 };
@@ -693,9 +876,7 @@ const RuleCard: React.FC<RuleCardProps> = ({
   <Card $enabled={rule.enabled}>
     <CardHeaderRow>
       <CardHeaderLeft onClick={onToggleOpen}>
-        <CardIconWrap $enabled={rule.enabled}>
-          {icon}
-        </CardIconWrap>
+        <CardIconWrap $enabled={rule.enabled}>{icon}</CardIconWrap>
         <CardTitleGroup>
           <CardTitle>{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
@@ -804,9 +985,7 @@ export const AutomationSettings: React.FC = () => {
     const newEnabled = !rule.enabled;
     setLocalConfig({ ...localConfig, [key]: { ...rule, enabled: newEnabled } });
     setDirty(true);
-    if (newEnabled) {
-      setOpenCards(prev => new Set([...prev, key]));
-    }
+    if (newEnabled) setOpenCards(prev => new Set([...prev, key]));
   };
 
   const handleSave = async () => {
