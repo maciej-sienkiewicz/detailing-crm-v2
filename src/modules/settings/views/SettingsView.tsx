@@ -234,6 +234,28 @@ const ComingSoonDesc = styled.p`
     line-height: 1.6;
 `;
 
+const HeaderActionWrap = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+`;
+
+const SectionBreadcrumb = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.32);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+`;
+
+const BreadcrumbSep = styled.span`
+    font-size: 10px;
+    opacity: 0.5;
+`;
+
 const ConstructionIcon = () => (
     <svg width={36} height={36} viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
         <path d="M4 3h16v2H4zM4 8l8 13 8-13H4z" />
@@ -266,6 +288,7 @@ export function SettingsView() {
     const [section, setSection] = useState<SectionId>(initialSection);
     const [helpOpen, setHelpOpen] = useState(false);
 
+    const activeGroup = NAV_GROUPS.find(g => g.items.some(i => i.id === section))?.group ?? '';
     const activeLabel = NAV_GROUPS.flatMap(g => g.items).find(i => i.id === section)?.label ?? '';
     const activeHelp  = SECTION_HELP[section] ?? null;
 
@@ -295,12 +318,21 @@ export function SettingsView() {
             <PageHeader
                 title="Ustawienia"
                 subtitle="Konfiguracja studia, automatyzacji i konta."
-                actions={activeHelp ? (
-                    <PageHeaderGhostButton onClick={() => setHelpOpen(true)}>
-                        <QuestionIcon />
-                        Dowiedz się więcej
-                    </PageHeaderGhostButton>
-                ) : undefined}
+                actions={
+                    <HeaderActionWrap>
+                        <SectionBreadcrumb>
+                            {activeGroup}
+                            <BreadcrumbSep>/</BreadcrumbSep>
+                            {activeLabel}
+                        </SectionBreadcrumb>
+                        {activeHelp && (
+                            <PageHeaderGhostButton onClick={() => setHelpOpen(true)}>
+                                <QuestionIcon />
+                                Dowiedz się więcej
+                            </PageHeaderGhostButton>
+                        )}
+                    </HeaderActionWrap>
+                }
             />
 
             <GridMain>
