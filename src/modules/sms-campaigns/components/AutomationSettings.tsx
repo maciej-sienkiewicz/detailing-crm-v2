@@ -67,7 +67,7 @@ const ModalWindow = styled.div<{ $closing: boolean }>`
   display: flex;
   flex-direction: column;
   max-height: 80vh;
-  background: rgba(240, 242, 245, 0.97);
+  background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(24px) saturate(180%);
   border-radius: 14px;
   box-shadow:
