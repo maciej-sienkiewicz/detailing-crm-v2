@@ -64,12 +64,12 @@ const ModalWindow = styled.div<{ $closing: boolean }>`
   display: flex;
   flex-direction: column;
   max-height: 82vh;
-  background: #f0f2f5;
+  background: white;
   border-radius: 14px;
   box-shadow:
-    0 0 0 0.5px rgba(0, 0, 0, 0.18),
-    0 24px 64px rgba(0, 0, 0, 0.28),
-    0 4px 12px rgba(0, 0, 0, 0.10);
+    0 0 0 0.5px rgba(0, 0, 0, 0.14),
+    0 24px 64px rgba(0, 0, 0, 0.22),
+    0 4px 12px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   transform-origin: center center;
   pointer-events: all;
@@ -83,7 +83,7 @@ const ModalTitleBar = styled.div`
   align-items: center;
   gap: 8px;
   padding: 11px 16px;
-  background: rgba(215, 218, 224, 0.85);
+  background: #f1f5f9;
   border-bottom: 0.5px solid rgba(0, 0, 0, 0.12);
   user-select: none;
   flex-shrink: 0;
