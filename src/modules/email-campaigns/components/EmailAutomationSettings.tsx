@@ -60,6 +60,7 @@ const ModalWindow = styled.div<{ $closing: boolean }>`
   position: fixed;
   left: 50%;
   top: 50%;
+  z-index: 3001;
   width: 560px;
   display: flex;
   flex-direction: column;
