@@ -31,9 +31,11 @@ const TableContainer = styled.div`
 const Table = styled.table`
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
 
     @media (max-width: ${props => props.theme.breakpoints.md}) {
         display: block;
+        table-layout: auto;
     }
 `;
 
@@ -60,7 +62,7 @@ const Th = styled.th`
         &:nth-child(1) { width: 32px; padding: 8px 4px; }
         &:nth-child(2) { width: auto; }
         &:nth-child(3) { width: 140px; }
-        &:nth-child(4) { width: 200px; }
+        &:nth-child(4) { width: 130px; }
         &:nth-child(5) { width: 160px; }
         &:nth-child(6) { width: 48px; text-align: center; }
     }
@@ -327,13 +329,15 @@ const DiscountInputWrapper = styled.div`
 `;
 
 const DiscountInput = styled.input`
-    width: 100%;
+    width: 56px;
+    min-width: 0;
     padding: 5px 6px;
     border: none;
     font-size: 13px;
     text-align: right;
     font-feature-settings: 'tnum';
     background: transparent;
+    overflow: hidden;
     &:focus { outline: none; }
 `;
 
