@@ -1,77 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { SectionHeader } from './shared/SettingsLayout';
-import type { HelpContent } from './shared/SettingsLayout';
-
-// ─── Help content ─────────────────────────────────────────────────────────────
-
-const HELP: HelpContent = {
-    title: 'Cennik usług',
-    items: [
-        {
-            id: 'name',
-            label: 'Nazwa usługi',
-            description: 'Pełna nazwa usługi wyświetlana w selektorze przy tworzeniu zlecenia, na fakturach i w historii wizyt. Powinna być jednoznaczna i zrozumiała dla klienta — ta sama nazwa pojawi się na protokole zdawczo-odbiorczym. Minimalna długość to 3 znaki, maksymalna 100 znaków.',
-            usedIn: [
-                'Selektor usług przy tworzeniu zlecenia',
-                'Faktury VAT — pozycja usługi',
-                'Protokoły zdawczo-odbiorcze',
-                'Raporty i statystyki sprzedaży',
-                'Historia wizyt klienta',
-            ],
-        },
-        {
-            id: 'net-price',
-            label: 'Cena netto',
-            description: 'Cena usługi bez podatku VAT, wyrażona w złotych. Jest to wartość bazowa, od której system automatycznie oblicza cenę brutto na podstawie wybranej stawki VAT. Zmiana ceny netto powoduje natychmiastowe przeliczenie ceny brutto.',
-            usedIn: [
-                'Faktury VAT — wartość netto pozycji',
-                'Raporty przychodów (wartości netto)',
-                'Wycena zlecenia',
-            ],
-        },
-        {
-            id: 'gross-price',
-            label: 'Cena brutto',
-            description: 'Cena usługi z uwzględnionym podatkiem VAT — kwota, którą zapłaci klient. Możesz wpisać cenę brutto zamiast netto, a system sam wyliczy wartość netto. Oba pola są ze sobą zsynchronizowane w czasie rzeczywistym.',
-            usedIn: [
-                'Wyświetlana klientowi przy wyborze usługi',
-                'Faktury VAT — wartość brutto pozycji',
-                'Wycena zlecenia — cena dla klienta',
-            ],
-        },
-        {
-            id: 'vat',
-            label: 'Stawka VAT',
-            description: 'Stawka podatku VAT stosowana do tej usługi. Zmiana stawki powoduje automatyczne przeliczenie ceny brutto. Dostępne stawki: 23% (podstawowa), 8% (obniżona), 5% (obniżona), 0% (zerowa) oraz „zw." (zwolniona z VAT — np. dla podmiotów korzystających ze zwolnienia podmiotowego).',
-            usedIn: [
-                'Faktury VAT — kolumna stawki podatku',
-                'Obliczanie ceny brutto',
-                'Deklaracje podatkowe',
-            ],
-        },
-        {
-            id: 'manual',
-            label: 'Wycena ręczna',
-            description: 'Gdy włączona, usługa nie ma z góry ustalonej ceny — pracownik wpisuje ją indywidualnie dla każdego zlecenia. Przydatne przy pracach, których koszt zależy od stanu pojazdu lub zakresu prac: np. korekta lakieru, kompleksowe detailing, usługi specjalistyczne. Na liście usług taka pozycja jest oznaczona etykietą „Wycena ręczna".',
-            usedIn: [
-                'Tworzenie zlecenia — pole ceny wymagane od pracownika',
-                'Faktury — cena wpisywana ręcznie',
-            ],
-        },
-        {
-            id: 'archive',
-            label: 'Archiwizacja',
-            description: 'Archiwizacja ukrywa usługę z listy wyboru przy tworzeniu nowych zleceń, nie usuwając jej z systemu. Wszystkie historyczne zlecenia i faktury zawierające tę usługę pozostają bez zmian. Możesz odkryć archiwalne usługi używając przełącznika „Pokaż archiwalne". Archiwizacji nie można cofnąć przez interfejs — skontaktuj się z pomocą techniczną.',
-            usedIn: [
-                'Wpływa na dostępność w selektorze zleceń',
-                'Nie wpływa na historyczne zlecenia ani faktury',
-                'Widoczna w raportach jako „archiwalna"',
-            ],
-        },
-    ],
-};
 import {
   useServices,
   useCreateService,
@@ -106,11 +35,6 @@ const Container = styled.div`
   gap: 16px;
 `;
 
-const SectionWrap = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-`;
 
 // ─── Toolbar ──────────────────────────────────────────────────────────────────
 
@@ -968,15 +892,7 @@ export const ServicesSection: React.FC = () => {
   const pageNumbers = buildPageNumbers(page, totalPages);
 
   return (
-    <SectionWrap>
-      <SectionHeader
-        category="Studio"
-        title="Cennik usług"
-        description="Zarządzaj listą usług oferowanych przez studio. Ceny i stawki VAT są automatycznie używane przy tworzeniu zleceń i faktur."
-        help={HELP}
-      />
-
-      <Container>
+    <Container>
       {/* ── Toolbar ── */}
       <Toolbar>
         <SearchWrap>
@@ -1282,7 +1198,6 @@ export const ServicesSection: React.FC = () => {
           </Dialog>
         </Overlay>
       )}
-      </Container>
-    </SectionWrap>
+    </Container>
   );
 };

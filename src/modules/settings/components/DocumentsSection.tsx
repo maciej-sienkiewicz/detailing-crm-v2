@@ -12,59 +12,6 @@ import type { ProtocolRule, ProtocolStage, ProtocolTemplate } from '@/modules/pr
 import type { ConsentResponse } from '@/modules/consents/types';
 import { AddDocumentModal } from './AddDocumentModal';
 import { AddConsentDocumentModal } from './AddConsentDocumentModal';
-import { SectionHeader } from './shared/SettingsLayout';
-import type { HelpContent } from './shared/SettingsLayout';
-
-// ─── Help content ─────────────────────────────────────────────────────────────
-
-const HELP: HelpContent = {
-    title: 'Dokumenty i podpisy',
-    items: [
-        {
-            id: 'checkin',
-            label: 'Protokół przyjęcia',
-            description: 'Dokument generowany automatycznie w momencie rejestracji pojazdu (etap Check-in). Klient podpisuje go elektronicznie na ekranie dotykowym — tablecie lub smartfonie. Możesz skonfigurować wiele szablonów: jeden globalny (zawsze generowany) oraz dodatkowe aktywowane tylko dla konkretnych usług.',
-            usedIn: [
-                'Generowany przy każdym przyjęciu pojazdu',
-                'Podpisywany elektronicznie przez klienta',
-                'Archiwizowany w historii zlecenia',
-                'Dostępny do pobrania jako PDF',
-            ],
-        },
-        {
-            id: 'checkout',
-            label: 'Protokół wydania',
-            description: 'Dokument generowany przy wydaniu pojazdu klientowi (etap Check-out). Potwierdza stan pojazdu po wykonaniu usługi i zakres zrealizowanych prac. Klient podpisuje go przy odbiorze, co stanowi formalne potwierdzenie wykonania zlecenia.',
-            usedIn: [
-                'Generowany przy wydaniu pojazdu',
-                'Podpisywany elektronicznie przy odbiorze',
-                'Archiwizowany w historii zlecenia',
-                'Podstawa do ewentualnych roszczeń gwarancyjnych',
-            ],
-        },
-        {
-            id: 'templates',
-            label: 'Szablony PDF',
-            description: 'Każdy protokół oparty jest na szablonie dokumentu PDF. Szablon definiuje wygląd i treść dokumentu — możesz go podejrzeć przed wdrożeniem klikając ikonę oka. Nazwy szablonów możesz edytować bezpośrednio w widoku (ikona ołówka). Przesyłanie własnych szablonów wymaga kontaktu z pomocą techniczną.',
-            usedIn: [
-                'Bazowy projekt każdego protokołu',
-                'Widoczny w podglądzie PDF przed wysłaniem',
-                'Przechowywany bezpiecznie w chmurze',
-            ],
-        },
-        {
-            id: 'consents',
-            label: 'Zgody marketingowe',
-            description: 'Zgody na przetwarzanie danych w celach marketingowych lub RODO zbierane są jednorazowo per klient. System zapamiętuje, że klient już wyraził daną zgodę, i nie wyświetla jej przy kolejnych wizytach. Możesz oznaczyć zgodę jako obowiązkową (klient musi ją podpisać) lub opcjonalną.',
-            usedIn: [
-                'Wyświetlana klientowi raz przy pierwszej wizycie',
-                'Archiwizowana w profilu klienta',
-                'Dostępna do wglądu w historii klienta',
-                'Podstawa prawna dla działań marketingowych',
-            ],
-        },
-    ],
-};
 
 const StagesGrid = styled.div`
     display: grid;
@@ -809,12 +756,6 @@ export function DocumentsSection() {
 
     return (
         <>
-            <SectionHeader
-                category="Komunikacja"
-                title="Dokumenty i podpisy"
-                description="Wzory dokumentów PDF podpisywanych elektronicznie przez klienta. Protokoły generowane są przy każdej wizycie; zgody zbierane są jednorazowo per klient."
-                help={HELP}
-            />
 
             {isLoading ? (
                 <Spinner />

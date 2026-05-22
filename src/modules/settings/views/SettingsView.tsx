@@ -9,7 +9,18 @@ import { AutomationSettings } from '@/modules/sms-campaigns/components/Automatio
 import { EmailAutomationSettings } from '@/modules/email-campaigns/components/EmailAutomationSettings';
 import { SmsCreditSection } from '../components/SmsCreditSection';
 import { InvoicesSection } from '../components/InvoicesSection';
-import { PageHeader } from '@/common/components/PageHeader';
+import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
+import { HelpModal } from '../components/shared/SettingsLayout';
+import type { HelpContent } from '../components/shared/SettingsLayout';
+import {
+    COMPANY_HELP,
+    SERVICES_HELP,
+    DOCUMENTS_HELP,
+    SMS_TEMPLATES_HELP,
+    EMAIL_TEMPLATES_HELP,
+    CREDITS_HELP,
+    INVOICES_HELP,
+} from '../helpContent';
 
 // ─── Nav definition ──────────────────────────────────────────────────────────
 
@@ -52,6 +63,13 @@ const ReceiptIcon    = () => <Icon d="M4 2h16v20l-2-1-2 1-2-1-2 1-2-1-2 1-2-1V2z
 const ShieldIcon     = () => <Icon d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />;
 const PlugIcon       = () => <Icon d="M7 16.9A7 7 0 1 1 16.9 7M7 16.9l9-9M9 9l6 6" />;
 const TerminalIcon   = () => <Icon d="M4 17l6-6-6-6M12 19h8" />;
+const QuestionIcon   = () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+        <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+);
 
 const NAV_GROUPS: NavGroup[] = [
     {
@@ -88,13 +106,25 @@ const NAV_GROUPS: NavGroup[] = [
     },
 ];
 
+// ─── Help content map ─────────────────────────────────────────────────────────
+
+const SECTION_HELP: Partial<Record<SectionId, HelpContent>> = {
+    company:         COMPANY_HELP,
+    services:        SERVICES_HELP,
+    documents:       DOCUMENTS_HELP,
+    templates:       SMS_TEMPLATES_HELP,
+    'email-templates': EMAIL_TEMPLATES_HELP,
+    credits:         CREDITS_HELP,
+    invoices:        INVOICES_HELP,
+};
+
 // ─── Styled components ───────────────────────────────────────────────────────
 
 const Page = styled.div`
     display: flex;
     flex-direction: column;
     gap: 22px;
-    padding: 22px 28px 40px;
+    padding: 22px 28px 80px;
     max-width: 1400px;
     margin: 0 auto;
     width: 100%;
@@ -234,8 +264,10 @@ export function SettingsView() {
     const tabParam = searchParams.get('tab') as SectionId | null;
     const initialSection: SectionId = tabParam && VALID_SECTIONS.has(tabParam) ? tabParam : 'company';
     const [section, setSection] = useState<SectionId>(initialSection);
+    const [helpOpen, setHelpOpen] = useState(false);
 
     const activeLabel = NAV_GROUPS.flatMap(g => g.items).find(i => i.id === section)?.label ?? '';
+    const activeHelp  = SECTION_HELP[section] ?? null;
 
     let content: React.ReactNode;
     if (section === 'company') {
@@ -263,6 +295,12 @@ export function SettingsView() {
             <PageHeader
                 title="Ustawienia"
                 subtitle="Konfiguracja studia, automatyzacji i konta."
+                actions={activeHelp ? (
+                    <PageHeaderGhostButton onClick={() => setHelpOpen(true)}>
+                        <QuestionIcon />
+                        Dowiedz się więcej
+                    </PageHeaderGhostButton>
+                ) : undefined}
             />
 
             <GridMain>
@@ -289,6 +327,10 @@ export function SettingsView() {
 
                 <Content>{content}</Content>
             </GridMain>
+
+            {helpOpen && activeHelp && (
+                <HelpModal content={activeHelp} onClose={() => setHelpOpen(false)} />
+            )}
         </Page>
     );
 }

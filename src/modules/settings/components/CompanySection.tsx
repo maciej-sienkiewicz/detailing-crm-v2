@@ -8,74 +8,7 @@ import {
     useDeleteCompanyLogo,
 } from '../hooks/useCompany';
 import type { UpdateCompanySettingsRequest } from '../types';
-import { SectionHeader, UnsavedChangesBanner } from './shared/SettingsLayout';
-import type { HelpContent } from './shared/SettingsLayout';
-
-// ─── Help content ─────────────────────────────────────────────────────────────
-
-const HELP: HelpContent = {
-    title: 'Dane firmy',
-    items: [
-        {
-            id: 'logo',
-            label: 'Logo firmy',
-            description: 'Logo reprezentuje markę studia we wszystkich materiałach generowanych przez system. Pojawia się jako element graficzny w nagłówkach — klienci widzą je przy podpisywaniu dokumentów i w otrzymywanych wiadomościach. Zalecany format to SVG lub PNG o minimalnej szerokości 400 px. Plik nie może przekraczać 2 MB.',
-            usedIn: [
-                'Nagłówki faktur VAT',
-                'Wiadomości e-mail do klientów',
-                'Protokoły zdawczo-odbiorcze (ekran podpisu)',
-                'Wydruki dokumentów PDF',
-            ],
-        },
-        {
-            id: 'nip-regon',
-            label: 'NIP & REGON',
-            description: 'Numery identyfikacyjne firmy wymagane przez polskie prawo na dokumentach finansowych. NIP (10 cyfr) to numer identyfikacji podatkowej — niezbędny do wystawiania faktur VAT. REGON (9 lub 14 cyfr) to numer w rejestrze podmiotów gospodarczych, wymagany m.in. przy integracji z KSeF.',
-            usedIn: [
-                'Faktury VAT — pole obowiązkowe',
-                'Protokoły — dane wystawcy',
-                'Integracja z KSeF (Krajowy System e-Faktur)',
-            ],
-        },
-        {
-            id: 'address',
-            label: 'Adres',
-            description: 'Pełny adres siedziby firmy składający się z ulicy z numerem, kodu pocztowego i miasta. Adres drukowany jest na dokumentach jako dane wystawcy i może być weryfikowany przez organy podatkowe. Upewnij się, że jest zgodny z wpisem w CEIDG lub KRS.',
-            usedIn: [
-                'Faktury VAT — dane sprzedawcy',
-                'Protokoły zdawczo-odbiorcze — dane firmy',
-            ],
-        },
-        {
-            id: 'contact',
-            label: 'Dane kontaktowe',
-            description: 'Telefon kontaktowy i firmowy adres e-mail. Klienci mogą kontaktować się pod tymi danymi w sprawach zleceń, reklamacji lub zapytań. Adres e-mail jest również nadawcą automatycznych wiadomości wysyłanych przez system (np. potwierdzenia przyjęcia pojazdu).',
-            usedIn: [
-                'Stopka automatycznych wiadomości e-mail',
-                'Protokoły zdawczo-odbiorcze — dane kontaktowe',
-                'Faktury VAT — dane sprzedawcy',
-                'Nadawca automatycznych powiadomień',
-            ],
-        },
-        {
-            id: 'website',
-            label: 'Strona www',
-            description: 'Adres strony internetowej studia (opcjonalnie). Pojawia się jako klikalny link w stopce automatycznych wiadomości e-mail i SMS, kierując klientów do Twojej witryny. Wpisz pełny adres URL wraz z protokołem, np. https://twojestudio.pl.',
-            usedIn: [
-                'Stopka automatycznych wiadomości e-mail',
-                'Stopka wiadomości SMS (jako skrócony link)',
-            ],
-        },
-        {
-            id: 'bank',
-            label: 'Konto bankowe',
-            description: 'Numer rachunku bankowego w formacie IBAN (26 cyfr dla kont polskich). Drukowany jest na fakturach jako informacja dla klienta o tym, gdzie dokonać przelewu za usługę. Pole jest opcjonalne — jeśli przyjmujesz wyłącznie płatności gotówkowe lub kartą, możesz je pominąć.',
-            usedIn: [
-                'Faktury VAT — dane do przelewu',
-            ],
-        },
-    ],
-};
+import { UnsavedChangesBanner } from './shared/SettingsLayout';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -416,13 +349,6 @@ export function CompanySection() {
 
     return (
         <Wrapper>
-            <SectionHeader
-                category="Studio"
-                title="Dane firmy"
-                description="Te dane pojawiają się na fakturach, w stopkach e-maili i na podpisywanych dokumentach."
-                help={HELP}
-            />
-
             {isLoading || !form ? (
                 <Panel><Spinner /></Panel>
             ) : (

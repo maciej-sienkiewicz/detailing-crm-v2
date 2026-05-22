@@ -343,7 +343,7 @@ const Divider = styled.div`
     background: #f1f5f9;
 `;
 
-function HelpModal({ content, onClose }: { content: HelpContent; onClose: () => void }) {
+export function HelpModal({ content, onClose }: { content: HelpContent; onClose: () => void }) {
     const [activeId, setActiveId] = useState(content.items[0]?.id ?? '');
     const active = content.items.find(i => i.id === activeId) ?? content.items[0];
 
