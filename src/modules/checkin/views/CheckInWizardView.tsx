@@ -58,34 +58,52 @@ const TitleBlock = styled.div``;
 
 const PageTitle = styled.h1`
     margin: 0;
-    font-size: ${st.fontLg};
+    font-size: ${st.fontMd};
     font-weight: 700;
     color: ${st.text};
     letter-spacing: -0.3px;
     line-height: 1.2;
+
+    @media (min-width: 768px) {
+        font-size: ${st.fontLg};
+    }
 `;
 
 const PageSubtitle = styled.p`
     margin: 3px 0 0;
     font-size: ${st.fontSm};
     color: ${st.textMuted};
+
+    @media (max-width: 479px) {
+        display: none;
+    }
 `;
 
 const StepPills = styled.div`
-    display: flex;
+    display: none;
     align-items: center;
     gap: 6px;
+
+    @media (min-width: 600px) {
+        display: flex;
+    }
 `;
 
 const StepPill = styled.div<{ $state: 'done' | 'active' | 'pending' }>`
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 5px 14px;
+    padding: 4px 10px;
     border-radius: ${st.radiusFull};
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     transition: all ${st.transition};
+    white-space: nowrap;
+
+    @media (min-width: 768px) {
+        padding: 5px 14px;
+        font-size: 12px;
+    }
 
     ${props => {
         switch (props.$state) {
@@ -130,7 +148,11 @@ const StepArrow = styled.span`
 
 const ScrollArea = styled.main`
     flex: 1;
-    padding: 28px 24px 120px;
+    padding: 20px 16px 160px;
+
+    @media (min-width: 640px) {
+        padding: 28px 24px 140px;
+    }
 
     @media (min-width: 768px) {
         padding: 32px 40px 120px;
@@ -178,16 +200,16 @@ const FooterInner = styled.div`
 `;
 
 const FooterStepHint = styled.div`
-    display: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: ${st.textMuted};
+    flex: 1;
+    min-width: 0;
 
     @media (min-width: 768px) {
-        display: flex;
-        align-items: center;
-        gap: 8px;
         font-size: 13px;
-        color: ${st.textMuted};
-        flex: 1;
-        min-width: 0;
     }
 `;
 
@@ -250,11 +272,17 @@ const FooterActions = styled.div`
     align-items: center;
     flex-shrink: 0;
     margin-left: auto;
+
+    @media (max-width: 767px) {
+        margin-left: 0;
+        width: 100%;
+    }
 `;
 
 const BackBtn = styled.button`
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     padding: 10px 18px;
     background: ${st.bgCard};
@@ -277,11 +305,16 @@ const BackBtn = styled.button`
         width: 14px;
         height: 14px;
     }
+
+    @media (max-width: 767px) {
+        flex: 1;
+    }
 `;
 
 const NextBtn = styled.button<{ $disabled?: boolean }>`
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     padding: 10px 22px;
     background: ${props => props.$disabled ? '#94A3B8' : st.accentBlue};
@@ -308,6 +341,10 @@ const NextBtn = styled.button<{ $disabled?: boolean }>`
     svg {
         width: 14px;
         height: 14px;
+    }
+
+    @media (max-width: 767px) {
+        flex: 1;
     }
 `;
 

@@ -44,11 +44,16 @@ const SectionHead = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 14px 20px;
+    gap: 10px;
+    padding: 12px 16px;
     border-bottom: 1px solid ${st.border};
     background: ${st.bg};
     flex-wrap: wrap;
+
+    @media (min-width: 640px) {
+        padding: 14px 20px;
+        gap: 12px;
+    }
 `;
 
 const SectionTitleRow = styled.div`
@@ -108,6 +113,7 @@ const SectionActions = styled.div`
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
+    flex-wrap: wrap;
 `;
 
 const ActionBtn = styled.button<{ $primary?: boolean }>`
@@ -138,7 +144,11 @@ const ActionBtn = styled.button<{ $primary?: boolean }>`
 `;
 
 const SectionBody = styled.div`
-    padding: 16px 20px 20px;
+    padding: 14px 16px 16px;
+
+    @media (min-width: 640px) {
+        padding: 16px 20px 20px;
+    }
 `;
 
 // ─── Collapsible panel ────────────────────────────────────────────────────────
@@ -297,8 +307,13 @@ const FilledBadge = styled.span`
 
 const DepositSection = styled.div`
     display: flex;
-    flex-direction: row;
-    gap: 12px;
+    flex-direction: column;
+    gap: 10px;
+
+    @media (min-width: 560px) {
+        flex-direction: row;
+        gap: 12px;
+    }
 `;
 
 const DepositItem = styled.div`

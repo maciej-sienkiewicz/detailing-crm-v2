@@ -32,10 +32,16 @@ const SectionHead = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 14px 20px;
+    gap: 10px;
+    padding: 12px 16px;
     border-bottom: 1px solid ${st.border};
     background: ${st.bg};
+    flex-wrap: wrap;
+
+    @media (min-width: 640px) {
+        padding: 14px 20px;
+        gap: 12px;
+    }
 `;
 
 const SectionTitleRow = styled.div`
@@ -89,7 +95,11 @@ const CountChip = styled.span`
 `;
 
 const SectionBody = styled.div`
-    padding: 20px;
+    padding: 14px 16px;
+
+    @media (min-width: 640px) {
+        padding: 20px;
+    }
 `;
 
 // ─── Upload zone ──────────────────────────────────────────────────────────────
