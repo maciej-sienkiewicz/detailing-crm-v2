@@ -121,12 +121,49 @@ const Tr = styled.tr<{ $isDragging?: boolean; $isOver?: boolean }>`
     }
 
     @media (max-width: ${props => props.theme.breakpoints.md}) {
-        display: block;
-        margin-bottom: ${props => props.theme.spacing.md};
+        display: grid;
+        grid-template-columns: 1fr 1fr 36px;
+        grid-template-rows: auto 1px auto auto;
+        grid-template-areas:
+            "name name del"
+            "sep  sep  sep"
+            "base final ."
+            "disc disc disc";
+        column-gap: 10px;
+        margin-bottom: 10px;
         background: ${props => props.theme.colors.surface};
         border: 1px solid ${props => props.theme.colors.border};
         border-radius: ${props => props.theme.radii.lg};
-        padding: ${props => props.theme.spacing.md};
+        padding: 12px;
+        opacity: ${p => p.$isDragging ? 0.35 : 1};
+
+        /* Separator line between header and price rows */
+        &::before {
+            content: '';
+            grid-area: sep;
+            background: ${props => props.theme.colors.border};
+        }
+
+        /* Grid area assignments for each column */
+        td:nth-child(1) { display: none; }
+        td:nth-child(2) { grid-area: name; padding: 0 0 10px 0; overflow: visible; }
+        td:nth-child(3) { grid-area: base; padding: 10px 0 0 0; overflow: visible; }
+        td:nth-child(4) { grid-area: disc; padding: 8px 0 0 0; overflow: visible; }
+        td:nth-child(5) { grid-area: final; padding: 10px 0 0 0; overflow: visible; }
+        td:nth-child(6) {
+            grid-area: del;
+            padding: 0;
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-end;
+            overflow: visible;
+        }
+
+        /* Hide data-label pseudo-element for name and delete cells */
+        td:nth-child(2)::before { display: none; }
+        td:nth-child(6)::before { display: none; }
+
+        &:last-child { border-bottom: 1px solid ${props => props.theme.colors.border}; }
     }
 `;
 
@@ -138,7 +175,7 @@ const Td = styled.td<{ 'data-label'?: string }>`
 
     @media (max-width: ${props => props.theme.breakpoints.md}) {
         display: block;
-        padding: ${props => props.theme.spacing.sm} 0;
+        padding: 0;
         text-align: left !important;
 
         &:before {
@@ -148,7 +185,7 @@ const Td = styled.td<{ 'data-label'?: string }>`
             font-size: ${props => props.theme.fontSizes.xs};
             color: ${props => props.theme.colors.textMuted};
             display: block;
-            margin-bottom: ${props => props.theme.spacing.xs};
+            margin-bottom: 5px;
         }
     }
 `;
@@ -162,11 +199,15 @@ const TotalRow = styled.tr`
 
     @media (max-width: ${props => props.theme.breakpoints.md}) {
         display: block;
-        margin-top: ${props => props.theme.spacing.md};
+        margin-top: 10px;
         background: ${props => props.theme.colors.surface};
         border: 1px solid ${props => props.theme.colors.border};
         border-radius: ${props => props.theme.radii.lg};
-        padding: ${props => props.theme.spacing.sm};
+        padding: 12px;
+
+        /* Hide empty placeholder cells */
+        td:first-child,
+        td:last-child { display: none; }
     }
 `;
 
@@ -180,7 +221,7 @@ const TotalLabel = styled(Td)`
 
     @media (max-width: ${props => props.theme.breakpoints.md}) {
         display: block;
-        padding: 0 0 ${props => props.theme.spacing.xs} 0;
+        padding: 0 0 8px 0;
     }
 `;
 
@@ -202,9 +243,10 @@ const TotalsContent = styled.div`
     width: 100%;
 
     @media (max-width: ${props => props.theme.breakpoints.md}) {
-        flex-direction: column;
-        align-items: stretch;
-        gap: ${props => props.theme.spacing.sm};
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 `;
 
@@ -214,7 +256,7 @@ const PriceGroup = styled.div`
     gap: ${props => props.theme.spacing.lg};
 
     @media (max-width: ${props => props.theme.breakpoints.md}) {
-        justify-content: space-between;
+        gap: 12px;
     }
 `;
 
@@ -431,6 +473,15 @@ const ActionButton = styled.button`
     transition: color 150ms ease, background 150ms ease;
     &:hover { color: ${props => props.theme.colors.error}; background: #fef2f2; }
     svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+    @media (max-width: ${props => props.theme.breakpoints.md}) {
+        width: 36px;
+        height: 36px;
+        margin: 0;
+        color: ${props => props.theme.colors.error};
+        background: #fef2f2;
+        border-radius: 8px;
+    }
 `;
 
 const CustomPriceLabel = styled.div`
