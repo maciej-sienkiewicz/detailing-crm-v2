@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { st as stBase } from '@/modules/statistics/components/StatisticsTheme';
+
+const st = {
+  ...stBase,
+  accentBlue:    '#0ea5e9',
+  accentBlueDim: 'rgba(14,165,233,0.12)',
+  gradientBlue:  'linear-gradient(135deg, #0ea5e9, #0369a1)',
+  radius:        '12px',
+  radiusSm:      '9px',
+  shadowBlue:    '0 0 0 3px rgba(14,165,233,0.15)',
+  borderFocus:   '#0ea5e9',
+} as const;
 import type { EmailAutomationConfig, EmailNotificationRule } from '../types';
 import { useEmailAutomationConfig, useUpdateEmailAutomationConfig } from '../hooks/useEmailCampaigns';
 
@@ -258,7 +269,7 @@ const VarChip = styled.button`
   &:hover {
     background: ${st.accentBlueDim};
     color: ${st.accentBlue};
-    border-color: rgba(59, 130, 246, 0.3);
+    border-color: rgba(14,165,233,0.3);
   }
 `;
 
@@ -331,14 +342,15 @@ const SaveButton = styled.button`
   background: ${st.accentBlue};
   color: #fff;
   border: none;
-  border-radius: ${st.radiusFull};
+  border-radius: 9px;
   cursor: pointer;
   box-shadow: ${st.shadowXs};
   transition: all ${st.transition};
   letter-spacing: 0.1px;
+  font-family: inherit;
 
   &:hover:not(:disabled) {
-    background: #2563EB;
+    background: #0284c7;
     box-shadow: ${st.shadowSm};
     transform: translateY(-1px);
   }

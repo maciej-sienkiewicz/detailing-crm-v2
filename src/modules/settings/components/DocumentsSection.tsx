@@ -83,7 +83,7 @@ const AddBtn = styled.button`
     color: #0284c7;
     background: transparent;
     border: 1px solid #0ea5e9;
-    border-radius: 8px;
+    border-radius: 9px;
     cursor: pointer;
     font-family: inherit;
     transition: all 180ms;
@@ -310,7 +310,7 @@ const EditActions = styled.div`
 
 const BtnSecondary = styled.button`
     padding: 8px 16px;
-    border-radius: 8px;
+    border-radius: 9px;
     border: 1px solid #e2e8f0;
     background: white;
     font-size: 13px;
@@ -324,7 +324,7 @@ const BtnSecondary = styled.button`
 
 const BtnPrimary = styled.button`
     padding: 8px 16px;
-    border-radius: 8px;
+    border-radius: 9px;
     border: none;
     background: #0ea5e9;
     font-size: 13px;
