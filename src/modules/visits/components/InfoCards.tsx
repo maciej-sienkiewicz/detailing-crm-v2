@@ -131,6 +131,8 @@ const ContactLink = styled.a`
     padding: 6px 0;
     transition: color ${st.transition};
     border-bottom: 1px solid ${st.border};
+    word-break: break-all;
+    min-width: 0;
 
     &:last-child { border-bottom: none; }
 
@@ -246,6 +248,8 @@ const KvRow = styled.div`
     font-size: 13px;
 
     &:last-child { border-bottom: none; }
+
+    @media (max-width: 400px) { grid-template-columns: 84px 1fr; }
 `;
 
 const KvLabel = styled.span`
@@ -260,6 +264,8 @@ const KvLabel = styled.span`
 const KvValue = styled.span`
     color: ${st.text};
     font-weight: 500;
+    word-break: break-word;
+    min-width: 0;
 `;
 
 const KvMissing = styled.span`

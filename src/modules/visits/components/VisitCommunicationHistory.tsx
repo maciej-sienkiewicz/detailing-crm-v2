@@ -25,6 +25,8 @@ const TimelineList = styled.ul`
     display: flex;
     flex-direction: column;
     gap: 0;
+
+    @media (max-width: 640px) { padding: 12px 16px; }
 `;
 
 const TimelineItem = styled.li<{ $last?: boolean }>`
@@ -101,6 +103,8 @@ const EntryCard = styled.button`
     }
 
     &:active { transform: translateY(0); }
+
+    @media (max-width: 480px) { flex-direction: column; gap: 8px; }
 `;
 
 const EntryMain = styled.div`
@@ -125,6 +129,8 @@ const EntryMeta = styled.span`
     display: flex;
     align-items: center;
     gap: 5px;
+    flex-wrap: wrap;
+    row-gap: 2px;
 `;
 
 const EntryRight = styled.div`
@@ -133,6 +139,8 @@ const EntryRight = styled.div`
     align-items: flex-end;
     gap: 4px;
     flex-shrink: 0;
+
+    @media (max-width: 480px) { flex-direction: row; align-items: center; gap: 8px; }
 `;
 
 const StatusBadge = styled.span<{ $status: string }>`

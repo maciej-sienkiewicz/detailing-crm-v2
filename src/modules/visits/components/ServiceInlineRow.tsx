@@ -29,9 +29,93 @@ export interface NewRow {
 
 /* ─── Styled components ───────────────────────────────────────────────────── */
 
+const InlineRow = styled.tr`
+    background: rgba(14, 165, 233, 0.04);
+    border-bottom: 1px solid ${st.border};
+
+    @media (max-width: 767px) {
+        display: flex;
+        flex-wrap: wrap;
+        padding: 14px 16px;
+
+        td:nth-child(1) {
+            flex: 0 0 100%;
+            padding: 0 0 12px;
+            border-bottom: 1px dashed ${st.border};
+            margin-bottom: 12px;
+        }
+
+        td:nth-child(2) {
+            flex: 1;
+            padding: 0 6px 0 0;
+            min-width: 0;
+        }
+        td:nth-child(2)::before {
+            content: 'Netto';
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            color: ${st.textMuted};
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 5px;
+        }
+
+        td:nth-child(3) {
+            flex: 0 0 52px;
+            padding: 0 8px;
+            text-align: center;
+            border-left: 1px solid ${st.border};
+            border-right: 1px solid ${st.border};
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding-bottom: 2px;
+        }
+        td:nth-child(3)::before {
+            content: 'VAT';
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            color: ${st.textMuted};
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        td:nth-child(4) {
+            flex: 1;
+            padding: 0 0 0 6px;
+            min-width: 0;
+        }
+        td:nth-child(4)::before {
+            content: 'Brutto';
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            color: ${st.textMuted};
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 5px;
+        }
+
+        td:nth-child(5) {
+            flex: 0 0 100%;
+            padding: 10px 0 0;
+            border-top: 1px dashed ${st.border};
+            margin-top: 4px;
+            display: flex;
+            justify-content: flex-end;
+        }
+    }
+`;
+
 const Cell = styled.td`
     padding: 8px 10px;
     vertical-align: middle;
+
+    @media (max-width: 767px) { padding: 0; vertical-align: top; }
 `;
 
 const NameWrap = styled.div`
@@ -42,6 +126,8 @@ const NameInput = styled.input`
     width: 100%;
     min-width: 180px;
     box-sizing: border-box;
+
+    @media (max-width: 767px) { min-width: 0; }
     padding: 7px 10px;
     border: 1.5px solid ${st.border};
     border-radius: 9px;
@@ -132,6 +218,8 @@ const PriceInput = styled.input`
         cursor: default;
         background: ${st.bg};
     }
+
+    @media (max-width: 767px) { width: 100%; }
 `;
 
 const RemoveBtn = styled.button`
@@ -155,6 +243,8 @@ const RemoveBtn = styled.button`
         color: ${st.textSecondary};
     }
     svg { width: 12px; height: 12px; }
+
+    @media (max-width: 767px) { padding: 8px 14px; font-size: 13px; min-height: 36px; }
 `;
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
@@ -310,7 +400,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom }: Props
     const priceReadOnly = row.serviceId !== null && !row.requireManualPrice;
 
     return (
-        <tr style={{ background: 'rgba(14, 165, 233, 0.04)', borderBottom: `1px solid ${st.border}` }}>
+        <InlineRow>
             {/* Usługa */}
             <Cell>
                 <NameWrap>
@@ -388,6 +478,6 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom }: Props
                     Usuń
                 </RemoveBtn>
             </Cell>
-        </tr>
+        </InlineRow>
     );
 };

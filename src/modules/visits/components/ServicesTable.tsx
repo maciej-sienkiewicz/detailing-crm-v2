@@ -119,6 +119,8 @@ const DeleteRowBtn = styled.button`
 
     &:hover { background: ${st.bg}; border-color: ${st.borderHover}; color: ${st.textSecondary}; }
     svg { width: 11px; height: 11px; }
+
+    @media (max-width: 767px) { padding: 8px 14px; font-size: ${st.fontSm}; min-height: 36px; }
 `;
 
 const EditPriceBtn = styled.button`
@@ -138,6 +140,8 @@ const EditPriceBtn = styled.button`
 
     &:hover { background: ${BRAND_DIM}; border-color: ${BRAND}; color: ${BRAND_DARK}; }
     svg { width: 11px; height: 11px; }
+
+    @media (max-width: 767px) { padding: 8px 14px; font-size: ${st.fontSm}; min-height: 36px; }
 `;
 
 const PriceEditInput = styled.input`
@@ -206,6 +210,8 @@ const EditedBadge = styled.span`
 const Table = styled.table`
     width: 100%;
     border-collapse: collapse;
+
+    @media (max-width: 767px) { display: block; }
 `;
 
 const Thead = styled.thead`
@@ -213,6 +219,8 @@ const Thead = styled.thead`
     position: sticky;
     top: 0;
     z-index: 1;
+
+    @media (max-width: 767px) { display: none; }
 `;
 
 const Th = styled.th`
@@ -229,12 +237,16 @@ const Th = styled.th`
 const ActionsCell = styled.td`
     padding: 12px 16px;
     text-align: right;
+
+    @media (max-width: 767px) { padding: 0; }
 `;
 
 const RowActions = styled.div`
     display: flex;
     justify-content: flex-end;
     gap: 8px;
+
+    @media (max-width: 767px) { flex-wrap: wrap; gap: 6px; justify-content: flex-start; }
 `;
 
 const ActionMenuWrapper = styled.div`
@@ -268,6 +280,8 @@ const ActionMenuBtn = styled.button`
         opacity: 0.45;
         cursor: not-allowed;
     }
+
+    @media (max-width: 767px) { padding: 8px 14px; font-size: ${st.fontSm}; min-height: 36px; }
 `;
 
 const ContextMenu = styled.div`
@@ -325,6 +339,12 @@ const ModalCard = styled.div`
     border-radius: 16px;
     box-shadow: ${st.shadowLg};
     overflow: hidden;
+
+    @media (max-width: 480px) {
+        margin: 16px;
+        max-width: calc(100% - 32px);
+        border-radius: 12px;
+    }
 `;
 
 const ModalHeader = styled.div`
@@ -388,7 +408,9 @@ const PrimaryBtn = styled.button<{ $danger?: boolean }>`
     &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
-const Tbody = styled.tbody``;
+const Tbody = styled.tbody`
+    @media (max-width: 767px) { display: block; }
+`;
 
 const Tr = styled.tr<{ $pendingOp?: 'ADD' | 'EDIT' | 'DELETE' | null; $highlight?: boolean }>`
     transition: background-color ${st.transition};
@@ -406,12 +428,93 @@ const Tr = styled.tr<{ $pendingOp?: 'ADD' | 'EDIT' | 'DELETE' | null; $highlight
     &:not(:last-child) {
         border-bottom: 1px solid ${st.border};
     }
+
+    @media (max-width: 767px) {
+        display: flex;
+        flex-wrap: wrap;
+        padding: 14px 16px;
+
+        /* Usługa — full width */
+        td:nth-child(1) {
+            flex: 0 0 100%;
+            padding: 0 0 12px;
+            border-bottom: 1px dashed ${st.border};
+            margin-bottom: 12px;
+        }
+
+        /* Netto */
+        td:nth-child(2) {
+            flex: 1;
+            padding: 0;
+            min-width: 0;
+        }
+        td:nth-child(2)::before {
+            content: 'Netto';
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            color: ${st.textMuted};
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 5px;
+        }
+
+        /* VAT */
+        td:nth-child(3) {
+            flex: 0 0 52px;
+            padding: 0 10px;
+            text-align: center;
+            border-left: 1px solid ${st.border};
+            border-right: 1px solid ${st.border};
+        }
+        td:nth-child(3)::before {
+            content: 'VAT';
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            color: ${st.textMuted};
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        /* Brutto */
+        td:nth-child(4) {
+            flex: 1;
+            padding: 0;
+            min-width: 0;
+            text-align: right;
+        }
+        td:nth-child(4)::before {
+            content: 'Brutto';
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            color: ${st.textMuted};
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 5px;
+            text-align: right;
+        }
+
+        /* Akcje */
+        td:nth-child(5) {
+            flex: 0 0 100%;
+            padding: 10px 0 0;
+            border-top: 1px dashed ${st.border};
+            margin-top: 10px;
+            text-align: left;
+        }
+    }
 `;
 
 const Td = styled.td`
     padding: 12px 16px;
     font-size: ${st.fontSm};
     color: ${st.text};
+
+    @media (max-width: 767px) { padding: 0; }
 `;
 
 const ServiceName = styled.div`

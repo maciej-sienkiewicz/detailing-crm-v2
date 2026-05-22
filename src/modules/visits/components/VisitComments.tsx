@@ -73,6 +73,8 @@ const TypeRow = styled.div`
     display: flex;
     gap: 6px;
     margin-bottom: 12px;
+
+    @media (max-width: 640px) { gap: 8px; }
 `;
 
 const TypeBtn = styled.button<{ $active: boolean; $kind: CommentType }>`
@@ -100,6 +102,8 @@ const TypeBtn = styled.button<{ $active: boolean; $kind: CommentType }>`
         background: ${p => p.$kind === 'INTERNAL' ? st.accentAmberDim : BRAND_DIM};
         color: ${p => p.$kind === 'INTERNAL' ? st.accentAmber : BRAND_DARK};
     }
+
+    @media (max-width: 640px) { padding: 8px 16px; font-size: ${st.fontSm}; flex: 1; }
 `;
 
 const NoteArea = styled.textarea`
@@ -132,6 +136,11 @@ const FormFooter = styled.div`
     justify-content: flex-end;
     gap: 8px;
     margin-top: 10px;
+
+    @media (max-width: 640px) {
+        flex-direction: column-reverse;
+        > * { width: 100%; justify-content: center; }
+    }
 `;
 
 const GhostBtn = styled.button`
@@ -313,6 +322,8 @@ const InlineBtn = styled.button<{ $danger?: boolean }>`
     }
 
     &:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    @media (max-width: 640px) { padding: 7px 14px; font-size: ${st.fontSm}; min-height: 36px; }
 `;
 
 const InlineEditArea = styled.textarea`
@@ -378,6 +389,8 @@ const RevDiff = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 5px;
+
+    @media (max-width: 400px) { grid-template-columns: 1fr; }
 `;
 
 const DiffCell = styled.div<{ $old: boolean }>`
