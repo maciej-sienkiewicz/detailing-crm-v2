@@ -59,6 +59,11 @@ const HeroHeader = styled.header`
         background: radial-gradient(circle, rgba(14,165,233,0.35) 0%, transparent 60%);
         pointer-events: none;
     }
+
+    @media (max-width: 640px) {
+        border-radius: 12px;
+        margin-bottom: 14px;
+    }
 `;
 
 const HeaderContent = styled.div`
@@ -77,8 +82,8 @@ const HeaderContent = styled.div`
     @media (max-width: 640px) {
         flex-direction: column;
         align-items: flex-start;
-        gap: 14px;
-        padding: 16px 16px 14px;
+        gap: 10px;
+        padding: 12px 14px 12px;
     }
 `;
 
@@ -87,6 +92,13 @@ const HeaderLeft = styled.div`
     flex-direction: column;
     gap: 0;
     min-width: 0;
+    width: 100%;
+
+    @media (max-width: 640px) {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+    }
 `;
 
 /* ── Breadcrumb ── */
@@ -96,6 +108,11 @@ const BreadcrumbRow = styled.div`
     align-items: center;
     gap: 6px;
     margin-bottom: 10px;
+
+    @media (max-width: 640px) {
+        margin-bottom: 0;
+        flex-shrink: 0;
+    }
 `;
 
 const BackBtn = styled.button`
@@ -128,6 +145,8 @@ const BreadcrumbCurrent = styled.span`
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 220px;
+
+    @media (max-width: 640px) { max-width: 130px; }
 `;
 
 /* ── Eyebrow ── */
@@ -142,6 +161,13 @@ const EyebrowRow = styled.div`
     text-transform: uppercase;
     letter-spacing: 0.1em;
     margin-bottom: 10px;
+
+    @media (max-width: 640px) {
+        margin-bottom: 0;
+        margin-left: auto;
+        font-size: 10px;
+        letter-spacing: 0.06em;
+    }
 `;
 
 const PulseDot = styled.div<{ $color: string; $glow: string; $animate: boolean }>`
@@ -162,6 +188,13 @@ const TitleRow = styled.div`
     gap: 10px;
     flex-wrap: wrap;
     margin-bottom: 10px;
+
+    @media (max-width: 640px) {
+        flex: 0 0 100%;
+        margin-top: 10px;
+        margin-bottom: 6px;
+        gap: 6px;
+    }
 `;
 
 const VisitTitle = styled.h1`
@@ -172,6 +205,13 @@ const VisitTitle = styled.h1`
     line-height: 1.15;
     color: #fff;
     white-space: nowrap;
+
+    @media (max-width: 640px) {
+        font-size: 18px;
+        white-space: normal;
+        word-break: break-word;
+        letter-spacing: -0.2px;
+    }
 `;
 
 const TitlePlaceholder = styled.h1`
@@ -183,6 +223,11 @@ const TitlePlaceholder = styled.h1`
     line-height: 1.15;
     color: rgba(148, 163, 184, 0.45);
     white-space: nowrap;
+
+    @media (max-width: 640px) {
+        font-size: 18px;
+        white-space: normal;
+    }
 `;
 
 const TitleMutedSep = styled.span`
@@ -211,6 +256,8 @@ const TitleEditInput = styled.input`
         background: rgba(255, 255, 255, 0.12);
         box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
     }
+
+    @media (max-width: 640px) { width: 100%; font-size: 17px; }
 `;
 
 const TitleIconBtn = styled.button`
@@ -258,6 +305,14 @@ const MetaRow = styled.div`
     gap: 18px;
     font-size: 13px;
     color: #94a3b8;
+
+    @media (max-width: 640px) {
+        flex: 0 0 100%;
+        gap: 8px;
+        row-gap: 3px;
+        font-size: 12px;
+        margin-bottom: 2px;
+    }
 `;
 
 const MetaItem = styled.span`
@@ -294,10 +349,11 @@ const HeaderRight = styled.div`
         width: 100%;
         flex-wrap: wrap;
         padding-top: 0;
+        gap: 6px;
     }
 `;
 
-const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger' }>`
+const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger'; $mobileHide?: boolean; $mobilePrimary?: boolean }>`
     display: inline-flex;
     align-items: center;
     gap: 7px;
@@ -314,6 +370,11 @@ const ActionButton = styled.button<{ $variant?: 'complete' | 'ghost' | 'danger' 
     &:disabled {
         opacity: 0.32;
         cursor: not-allowed;
+    }
+
+    @media (max-width: 640px) {
+        ${p => p.$mobileHide && 'display: none;'}
+        ${p => p.$mobilePrimary && 'width: 100%; justify-content: center; padding: 11px 18px; font-size: 14px;'}
     }
 
     ${p => {
@@ -515,14 +576,14 @@ export const VisitHeader = ({
 
                 {/* Actions */}
                 <HeaderRight>
-                    <ActionButton $variant="ghost" onClick={onGeneratePost} title="Generuj post Instagram">
+                    <ActionButton $variant="ghost" $mobileHide onClick={onGeneratePost} title="Generuj post Instagram">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5" />
                         </svg>
                         Generuj post
                     </ActionButton>
 
-                    <ActionButton $variant="ghost" onClick={onPrintProtocol} title="Drukuj protokół">
+                    <ActionButton $variant="ghost" $mobileHide onClick={onPrintProtocol} title="Drukuj protokół">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <polyline points="6 9 6 2 18 2 18 9" />
                             <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" />
@@ -533,6 +594,7 @@ export const VisitHeader = ({
 
                     <ActionButton
                         $variant="complete"
+                        $mobilePrimary
                         onClick={onCompleteVisit}
                         disabled={isTerminal}
                     >
@@ -544,6 +606,7 @@ export const VisitHeader = ({
 
                     <ActionButton
                         $variant="danger"
+                        $mobileHide
                         onClick={onCancelVisit}
                         disabled={isTerminal}
                     >
