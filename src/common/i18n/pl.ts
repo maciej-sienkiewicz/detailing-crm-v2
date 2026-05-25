@@ -635,6 +635,10 @@ export const pl: TranslationKeys = {
             submitting: 'Logowanie...',
             noAccount: 'Nie masz konta?',
             signupLink: 'Zarejestruj swoje studio',
+            demoSeparator: 'lub',
+            demoButton: 'Przetestuj na koncie DEMO',
+            demoSubmitting: 'Tworzenie konta DEMO...',
+            demoInfo: 'Konto testowe z przykładowymi danymi studia detailingu. Ważne przez 2 godziny.',
         },
         signup: {
             title: 'Załóż konto',

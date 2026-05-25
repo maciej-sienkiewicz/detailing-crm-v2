@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import { useLogin } from '../hooks/useAuth';
+import { useLogin, useDemoAccount } from '../hooks/useAuth';
 import { loginSchema, type LoginFormData } from '../utils/validators';
 import { PasswordInput } from '../components/PasswordInput';
 import { Checkbox } from '../components/Checkbox';
@@ -93,6 +93,72 @@ const ForgotLink = styled(Link)`
     }
 `;
 
+const DemoSection = styled.div`
+    margin-top: ${props => props.theme.spacing.xl};
+`;
+
+const DemoSeparator = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.md};
+    margin-bottom: ${props => props.theme.spacing.lg};
+
+    &::before,
+    &::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background-color: ${props => props.theme.colors.border};
+    }
+
+    span {
+        font-size: ${props => props.theme.fontSizes.sm};
+        color: ${props => props.theme.colors.textMuted};
+        white-space: nowrap;
+    }
+`;
+
+const DemoButton = styled.button<{ disabled?: boolean }>`
+    width: 100%;
+    padding: ${props => props.theme.spacing.lg} ${props => props.theme.spacing.xl};
+    border-radius: ${props => props.theme.radii.md};
+    font-size: ${props => props.theme.fontSizes.lg};
+    font-weight: ${props => props.theme.fontWeights.semibold};
+    cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+    transition: all ${props => props.theme.transitions.normal};
+    border: none;
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    color: white;
+    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
+    opacity: ${props => props.disabled ? 0.6 : 1};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: ${props => props.theme.spacing.sm};
+
+    &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(217, 119, 6, 0.45);
+    }
+
+    &:active:not(:disabled) {
+        transform: translateY(0);
+    }
+`;
+
+const DemoIcon = styled.span`
+    font-size: 20px;
+    line-height: 1;
+`;
+
+const DemoInfo = styled.p`
+    margin: ${props => props.theme.spacing.md} 0 0;
+    text-align: center;
+    font-size: ${props => props.theme.fontSizes.xs};
+    color: ${props => props.theme.colors.textMuted};
+    line-height: 1.4;
+`;
+
 const Footer = styled.div`
     margin-top: ${props => props.theme.spacing.xl};
     text-align: center;
@@ -123,6 +189,19 @@ export const LoginView = () => {
     const [apiError, setApiError] = useState<string>('');
 
     const loginMutation = useLogin();
+    const demoMutation = useDemoAccount();
+
+    const handleDemoLogin = async () => {
+        setApiError('');
+        try {
+            await demoMutation.mutateAsync();
+        } catch (error: any) {
+            const message = error?.response?.data?.message || t.auth.errors.serverError;
+            setApiError(message);
+        }
+    };
+
+    const isAnyPending = loginMutation.isPending || demoMutation.isPending;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -208,11 +287,26 @@ export const LoginView = () => {
                         $variant="primary"
                         $fullWidth
                         $size="lg"
-                        disabled={loginMutation.isPending}
+                        disabled={isAnyPending}
                     >
                         {loginMutation.isPending ? t.auth.login.submitting : t.auth.login.submitButton}
                     </Button>
                 </Form>
+
+                <DemoSection>
+                    <DemoSeparator>
+                        <span>{t.auth.login.demoSeparator}</span>
+                    </DemoSeparator>
+                    <DemoButton
+                        type="button"
+                        onClick={handleDemoLogin}
+                        disabled={isAnyPending}
+                    >
+                        <DemoIcon>▶</DemoIcon>
+                        {demoMutation.isPending ? t.auth.login.demoSubmitting : t.auth.login.demoButton}
+                    </DemoButton>
+                    <DemoInfo>{t.auth.login.demoInfo}</DemoInfo>
+                </DemoSection>
 
                 <Footer>
                     {t.auth.login.noAccount}{' '}

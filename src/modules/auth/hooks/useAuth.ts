@@ -54,3 +54,23 @@ export const useLogout = () => {
         },
     });
 };
+
+export const useDemoAccount = () => {
+    const navigate = useNavigate();
+    const { setAuthenticated, setUser } = useAuthContext();
+
+    return useMutation({
+        mutationFn: () => authApi.createDemoAccount(),
+        onSuccess: (data) => {
+            setAuthenticated(true);
+            if (data.auth.user) {
+                const { daysRemaining, ...rest } = data.auth.user;
+                setUser({
+                    ...rest,
+                    trialDaysRemaining: daysRemaining ?? 0,
+                });
+            }
+            navigate(data.auth.redirectUrl ?? '/dashboard');
+        },
+    });
+};

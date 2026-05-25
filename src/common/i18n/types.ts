@@ -38,6 +38,10 @@ export interface TranslationKeys {
             submitting: string;
             noAccount: string;
             signupLink: string;
+            demoSeparator: string;
+            demoButton: string;
+            demoSubmitting: string;
+            demoInfo: string;
         };
         signup: {
             title: string;

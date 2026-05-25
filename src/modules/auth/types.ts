@@ -51,3 +51,25 @@ export interface CheckAuthResponse {
     redirectUrl?: string | null;
     user: User | null;
 }
+
+export interface DemoAccountResponse {
+    success: boolean;
+    message: string;
+    expiresAt: string;
+    auth: {
+        success: boolean;
+        message: string | null;
+        redirectUrl: string | null;
+        user: {
+            userId: string;
+            studioId: string;
+            email: string;
+            firstName: string;
+            lastName: string;
+            role: string;
+            subscriptionStatus: string;
+            daysRemaining: number | null;
+            mobileToken: string | null;
+        } | null;
+    };
+}
