@@ -1,6 +1,6 @@
 // src/modules/auth/api/authApi.ts
 import { apiClient } from '@/core';
-import type { LoginCredentials, SignupCredentials, AuthResponse, CheckAuthResponse } from '../types';
+import type { LoginCredentials, SignupCredentials, AuthResponse, CheckAuthResponse, DemoAccountResponse } from '../types';
 
 const USE_MOCKS = false;
 
@@ -92,5 +92,10 @@ export const authApi = {
             isAuthenticated: response.data.success && response.data.user !== null,
             user: response.data.user ?? null,
         };
+    },
+
+    createDemoAccount: async (): Promise<DemoAccountResponse> => {
+        const response = await apiClient.post<DemoAccountResponse>('/v1/demo');
+        return response.data;
     },
 };
