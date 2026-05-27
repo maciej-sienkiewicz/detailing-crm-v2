@@ -1,6 +1,6 @@
 // src/modules/calendar/components/QuickEventModal/index.tsx
 
-import React, { forwardRef, useState, useEffect } from 'react';
+import React, { forwardRef, useState, useEffect, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
 import { createPortal } from 'react-dom';
 import { DateTimePicker } from '../DateTimePicker';
@@ -12,13 +12,14 @@ import { LockedSection } from '@/common/components/LockedSection';
 import * as S from '../QuickEventModalStyles';
 import { useQuickEventForm } from './useQuickEventForm';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
-import { roundTo2, calculateFinalPrice, distributeAdjustment } from './helpers';
+import { ServicesTable } from '@/common/components/ServicesTable';
+import type { ServiceLineItem } from '@/common/components/ServicesTable';
 import {
     IconClock, IconUser, IconCar, IconSettings, IconNote,
-    IconTrash, IconX, IconPalette, IconMessageSquare, IconPlus, IconPencil, IconCheck, IconPercent,
+    IconX, IconPalette, IconPlus, IconPencil, IconCheck,
 } from './icons';
 import { useFeature } from '@/modules/subscription';
-import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Service, AdjustmentType, ServiceAdjustment } from './types';
+import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Service, ServiceAdjustment } from './types';
 
 export type { QuickEventFormData, QuickEventInitialData } from './types';
 export type { QuickEventModalRef };
@@ -100,37 +101,53 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
     const [serviceDropdownPos, setServiceDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
     const [autoOpenModel, setAutoOpenModel] = useState(false);
-    const [expandedServiceDiscount, setExpandedServiceDiscount] = useState<string | null>(null);
-    const [discountDraftInputs, setDiscountDraftInputs] = useState<{ [id: string]: string }>({});
 
-    // Bulk discount modal state
-    const [bulkDiscountOpen, setBulkDiscountOpen] = useState(false);
-    const [bulkDiscountType, setBulkDiscountType] = useState<AdjustmentType>('PERCENT');
-    const [bulkDiscountValue, setBulkDiscountValue] = useState('');
+    const servicesAsLineItems = useMemo((): ServiceLineItem[] => {
+        return form.selectedServiceIds.map(id => {
+            let svc = form.services.find((s: Service) => s.id === id);
+            if (!svc && form.tempServices[id]) {
+                svc = { id, ...form.tempServices[id] } as Service;
+            }
+            if (!svc) return null;
+            const baseGross = form.servicePrices[id] ?? 0;
+            const vatRate = svc.vatRate ?? 23;
+            const basePriceNet = Math.round((baseGross / (1 + vatRate / 100)) * 100);
+            return {
+                id,
+                serviceId: svc.id || id,
+                serviceName: svc.name,
+                basePriceNet,
+                vatRate,
+                adjustment: (form.serviceAdjustments[id] ?? { type: 'PERCENT', value: 0 }) as ServiceAdjustment,
+                note: form.serviceNotes[id] ?? '',
+            } as ServiceLineItem;
+        }).filter((x): x is ServiceLineItem => x !== null);
+    }, [form.selectedServiceIds, form.services, form.tempServices, form.servicePrices, form.serviceAdjustments, form.serviceNotes]);
 
-    const DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
-        { type: 'PERCENT', label: '%' },
-        { type: 'FIXED_NET', label: '−Netto' },
-        { type: 'FIXED_GROSS', label: '−Brutto' },
-        { type: 'SET_NET', label: '=Netto' },
-        { type: 'SET_GROSS', label: '=Brutto' },
-    ];
-
-    const applyBulkDiscount = () => {
-        const val = parseFloat(bulkDiscountValue.replace(',', '.'));
-        if (isNaN(val) || val <= 0) return;
-        const valueInCents = bulkDiscountType === 'PERCENT' ? val : Math.round(val * 100);
-        const bases = form.selectedServiceIds.map(id => {
-            const svc = form.services.find((s: Service) => s.id === id) || form.tempServices[id];
-            return { basePriceNetCents: Math.round(roundTo2((form.servicePrices[id] ?? 0) / (1 + ((svc?.vatRate ?? 23) / 100))) * 100), vatRate: svc?.vatRate ?? 23 };
+    const handleServicesChange = useCallback((newItems: ServiceLineItem[]) => {
+        const newIds = new Set(newItems.map(i => i.id));
+        form.setSelectedServiceIds(newItems.map(i => i.id));
+        form.setServiceAdjustments(() => {
+            const next: { [id: string]: ServiceAdjustment } = {};
+            newItems.forEach(item => { next[item.id] = item.adjustment as ServiceAdjustment; });
+            return next;
         });
-        const adjustments = distributeAdjustment(bases, bulkDiscountType, valueInCents);
-        const next: { [id: string]: ServiceAdjustment } = {};
-        form.selectedServiceIds.forEach((id, i) => { next[id] = adjustments[i]; });
-        form.setServiceAdjustments(prev => ({ ...prev, ...next }));
-        setBulkDiscountOpen(false);
-        setBulkDiscountValue('');
-    };
+        form.setServiceNotes(() => {
+            const next: { [id: string]: string } = {};
+            newItems.forEach(item => { next[item.id] = item.note ?? ''; });
+            return next;
+        });
+        form.setServicePrices(prev => {
+            const next = { ...prev };
+            Object.keys(next).forEach(id => { if (!newIds.has(id)) delete next[id]; });
+            return next;
+        });
+        form.setServicePriceInputs(prev => {
+            const next = { ...prev };
+            Object.keys(next).forEach(id => { if (!newIds.has(id)) delete next[id]; });
+            return next;
+        });
+    }, [form]);
 
     useEffect(() => {
         if (!isOpen) setAutoOpenModel(false);
@@ -916,233 +933,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     {form.errors.services && <S.ErrorMessage>{form.errors.services}</S.ErrorMessage>}
                                     {form.errors.servicePrices && <S.ErrorMessage>{form.errors.servicePrices}</S.ErrorMessage>}
 
-                                    {form.selectedServiceIds.length > 0 && (
-                                        <S.ServicesBlock>
-                                            {/* Column headers */}
-                                            <S.ServicesTableHeader>
-                                                <S.ServicesHeaderCell>Usługa</S.ServicesHeaderCell>
-                                                <S.ServicesHeaderCell>Netto</S.ServicesHeaderCell>
-                                                <S.ServicesHeaderCell>Brutto</S.ServicesHeaderCell>
-                                                <S.ServicesHeaderCell />
-                                            </S.ServicesTableHeader>
-
-                                            <S.ServicesList>
-                                                {form.selectedServiceIds.map(id => {
-                                                    let service = form.services.find((s: Service) => s.id === id);
-                                                    if (!service && form.tempServices[id]) {
-                                                        service = { id, ...form.tempServices[id] };
-                                                    }
-                                                    if (!service) return null;
-
-                                                    const vatRate = service.vatRate || 23;
-                                                    const baseGross = form.servicePrices[id] ?? 0;
-                                                    const adjustment = form.serviceAdjustments[id] ?? { type: 'PERCENT' as AdjustmentType, value: 0 };
-                                                    const priceResult = calculateFinalPrice(baseGross, vatRate, adjustment);
-                                                    const { finalNet, finalGross, baseNet, hasDiscount } = priceResult;
-
-                                                    const isNoteExpanded = form.expandedServiceNote === id;
-                                                    const isDiscountExpanded = expandedServiceDiscount === id;
-                                                    const hasNote = !!(form.serviceNotes[id]?.length > 0);
-
-                                                    const discountSuffix = adjustment.type === 'PERCENT' ? '%' : 'zł';
-                                                    const discountDisplayValue = discountDraftInputs[id] !== undefined
-                                                        ? discountDraftInputs[id]
-                                                        : (adjustment.value === 0 ? ''
-                                                            : adjustment.type === 'PERCENT'
-                                                                ? String(Math.abs(adjustment.value))
-                                                                : String(adjustment.value / 100));
-
-                                                    const limitDecimals = (raw: string) => {
-                                                        const sepIdx = Math.max(raw.indexOf('.'), raw.indexOf(','));
-                                                        if (sepIdx === -1) return raw;
-                                                        return raw.slice(0, sepIdx + 3);
-                                                    };
-
-                                                    const applyDiscountValue = (raw: string) => {
-                                                        const val = parseFloat(raw.replace(',', '.'));
-                                                        const storeVal = isNaN(val) ? 0
-                                                            : adjustment.type === 'PERCENT'
-                                                                ? -Math.abs(val)
-                                                                : Math.round(val * 100);
-                                                        form.setServiceAdjustments(prev => ({
-                                                            ...prev,
-                                                            [id]: { ...adjustment, value: storeVal },
-                                                        }));
-                                                    };
-
-                                                    const commitDiscount = () => {
-                                                        setDiscountDraftInputs(prev => { const n = { ...prev }; delete n[id]; return n; });
-                                                    };
-
-                                                    return (
-                                                        <S.ServiceItem key={id} $hasDiscount={hasDiscount}>
-                                                            <S.ServiceItemRow>
-                                                                <S.ServiceName title={service.name}>{service.name}</S.ServiceName>
-
-                                                                <S.PriceDisplay>
-                                                                    <S.PriceDisplayMain $isDiscounted={hasDiscount}>{finalNet.toFixed(2)}</S.PriceDisplayMain>
-                                                                    {hasDiscount && <S.PriceDisplayOriginal>{baseNet.toFixed(2)}</S.PriceDisplayOriginal>}
-                                                                </S.PriceDisplay>
-                                                                <S.PriceDisplay>
-                                                                    <S.PriceDisplayMain $isBrutto $isDiscounted={hasDiscount}>{finalGross.toFixed(2)}</S.PriceDisplayMain>
-                                                                    {hasDiscount && <S.PriceDisplayOriginal>{baseGross.toFixed(2)}</S.PriceDisplayOriginal>}
-                                                                </S.PriceDisplay>
-
-                                                                <S.ServiceActions>
-                                                                    <S.DiscountButton
-                                                                        type="button"
-                                                                        onClick={() => setExpandedServiceDiscount(isDiscountExpanded ? null : id)}
-                                                                        $active={hasDiscount}
-                                                                        title={hasDiscount ? 'Edytuj rabat' : 'Dodaj rabat'}
-                                                                    >
-                                                                        <IconPercent />
-                                                                    </S.DiscountButton>
-                                                                    <S.IconButton
-                                                                        type="button"
-                                                                        onClick={() => form.setExpandedServiceNote(isNoteExpanded ? null : id)}
-                                                                        $active={hasNote}
-                                                                        title="Notatka do usługi"
-                                                                    >
-                                                                        <IconMessageSquare />
-                                                                    </S.IconButton>
-                                                                    <S.DeleteButton
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            form.setSelectedServiceIds(prev => prev.filter(i => i !== id));
-                                                                            form.setServicePrices(prev => { const n = { ...prev }; delete n[id]; return n; });
-                                                                            form.setServicePriceInputs(prev => { const n = { ...prev }; delete n[id]; return n; });
-                                                                            form.setServiceAdjustments(prev => { const n = { ...prev }; delete n[id]; return n; });
-                                                                            form.setServiceNotes(prev => { const n = { ...prev }; delete n[id]; return n; });
-                                                                            if (form.expandedServiceNote === id) form.setExpandedServiceNote(null);
-                                                                            if (expandedServiceDiscount === id) setExpandedServiceDiscount(null);
-                                                                            setDiscountDraftInputs(prev => { const n = { ...prev }; delete n[id]; return n; });
-                                                                        }}
-                                                                    >
-                                                                        <IconTrash />
-                                                                    </S.DeleteButton>
-                                                                </S.ServiceActions>
-                                                            </S.ServiceItemRow>
-
-                                                            {isDiscountExpanded && (
-                                                                <S.DiscountPanel>
-                                                                    <S.DiscountTypeRow>
-                                                                        {DISCOUNT_TYPES.map(({ type, label }) => (
-                                                                            <S.DiscountTypePill
-                                                                                key={type}
-                                                                                type="button"
-                                                                                $selected={adjustment.type === type}
-                                                                                onClick={() => {
-                                                                                    form.setServiceAdjustments(prev => ({
-                                                                                        ...prev,
-                                                                                        [id]: { type, value: 0 },
-                                                                                    }));
-                                                                                    setDiscountDraftInputs(prev => ({ ...prev, [id]: '' }));
-                                                                                }}
-                                                                            >
-                                                                                {label}
-                                                                            </S.DiscountTypePill>
-                                                                        ))}
-                                                                    </S.DiscountTypeRow>
-                                                                    <S.DiscountValueRow>
-                                                                        <S.DiscountValueInput
-                                                                            type="text"
-                                                                            inputMode="decimal"
-                                                                            placeholder="0"
-                                                                            value={discountDisplayValue}
-                                                                            onChange={(e) => {
-                                                                                const limited = limitDecimals(e.target.value);
-                                                                                setDiscountDraftInputs(prev => ({ ...prev, [id]: limited }));
-                                                                                applyDiscountValue(limited);
-                                                                            }}
-                                                                            onBlur={commitDiscount}
-                                                                        />
-                                                                        <S.DiscountValueSuffix>{discountSuffix}</S.DiscountValueSuffix>
-                                                                        <S.DiscountActionButtons>
-                                                                            {hasDiscount && (
-                                                                                <S.DiscountRemoveButton
-                                                                                    type="button"
-                                                                                    onClick={() => {
-                                                                                        form.setServiceAdjustments(prev => ({
-                                                                                            ...prev,
-                                                                                            [id]: { type: 'PERCENT', value: 0 },
-                                                                                        }));
-                                                                                        setDiscountDraftInputs(prev => { const n = { ...prev }; delete n[id]; return n; });
-                                                                                    }}
-                                                                                >
-                                                                                    Usuń rabat
-                                                                                </S.DiscountRemoveButton>
-                                                                            )}
-                                                                            <S.DiscountHideButton
-                                                                                type="button"
-                                                                                onClick={() => setExpandedServiceDiscount(null)}
-                                                                            >
-                                                                                Ukryj
-                                                                            </S.DiscountHideButton>
-                                                                        </S.DiscountActionButtons>
-                                                                    </S.DiscountValueRow>
-                                                                </S.DiscountPanel>
-                                                            )}
-
-                                                            {isNoteExpanded && (
-                                                                <S.ServiceNoteContainer>
-                                                                    <S.ServiceNoteTextarea
-                                                                        placeholder="Notatka do usługi..."
-                                                                        value={form.serviceNotes[id] || ''}
-                                                                        onChange={(e) => form.setServiceNotes(prev => ({ ...prev, [id]: e.target.value }))}
-                                                                        rows={2}
-                                                                    />
-                                                                </S.ServiceNoteContainer>
-                                                            )}
-                                                        </S.ServiceItem>
-                                                    );
-                                                })}
-                                            </S.ServicesList>
-
-                                            {/* Summary — integrated into the same block */}
-                                            {(() => {
-                                                let totalNet = 0;
-                                                let totalGross = 0;
-                                                form.selectedServiceIds.forEach(id => {
-                                                    const svc = form.services.find((s: Service) => s.id === id) || form.tempServices[id];
-                                                    if (!svc) return;
-                                                    const baseGross = form.servicePrices[id] ?? 0;
-                                                    const vat = svc.vatRate || 23;
-                                                    const adj = form.serviceAdjustments[id] ?? { type: 'PERCENT', value: 0 };
-                                                    const p = calculateFinalPrice(baseGross, vat, adj);
-                                                    totalNet += p.finalNet;
-                                                    totalGross += p.finalGross;
-                                                });
-                                                totalNet = roundTo2(totalNet);
-                                                totalGross = roundTo2(totalGross);
-                                                const totalVat = roundTo2(totalGross - totalNet);
-                                                return (
-                                                    <S.SummarySection>
-                                                        <S.BulkDiscountTrigger
-                                                            type="button"
-                                                            onClick={() => { setBulkDiscountOpen(true); setBulkDiscountValue(''); }}
-                                                            title="Zastosuj rabat do wszystkich usług"
-                                                        >
-                                                            <IconPercent />
-                                                            Rabatuj wszystko
-                                                        </S.BulkDiscountTrigger>
-                                                        <S.SummaryTotals>
-                                                            <S.SummaryItem>
-                                                                <S.SummaryLabel>Netto</S.SummaryLabel>
-                                                                <S.SummaryValue>{totalNet.toFixed(2)} zł</S.SummaryValue>
-                                                            </S.SummaryItem>
-                                                            <S.SummaryItem>
-                                                                <S.SummaryLabel>VAT</S.SummaryLabel>
-                                                                <S.SummaryValue>{totalVat.toFixed(2)} zł</S.SummaryValue>
-                                                            </S.SummaryItem>
-                                                            <S.SummaryItem>
-                                                                <S.SummaryLabel>Łącznie</S.SummaryLabel>
-                                                                <S.SummaryValue $isTotal>{totalGross.toFixed(2)} zł</S.SummaryValue>
-                                                            </S.SummaryItem>
-                                                        </S.SummaryTotals>
-                                                    </S.SummarySection>
-                                                );
-                                            })()}
-                                        </S.ServicesBlock>
+                                    {servicesAsLineItems.length > 0 && (
+                                        <ServicesTable
+                                            services={servicesAsLineItems}
+                                            onChange={handleServicesChange}
+                                        />
                                     )}
                                 </S.RowContent>
                             </S.Row>
@@ -1287,58 +1082,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 onColorCreate={form.handleQuickColorCreate}
             />
 
-            {/* ── Bulk discount modal ─────────────────────────────────── */}
-            {bulkDiscountOpen && (
-                <S.BulkDiscountOverlay onClick={() => setBulkDiscountOpen(false)}>
-                    <S.BulkDiscountCard onClick={(e) => e.stopPropagation()}>
-                        <S.BulkDiscountHeader>
-                            <S.BulkDiscountTitle>Rabatuj wszystko</S.BulkDiscountTitle>
-                            <S.ChipClear type="button" onClick={() => setBulkDiscountOpen(false)}>
-                                <IconX />
-                            </S.ChipClear>
-                        </S.BulkDiscountHeader>
-                        <S.BulkDiscountBody>
-                            <S.DiscountTypeRow>
-                                {DISCOUNT_TYPES.map(({ type, label }) => (
-                                    <S.DiscountTypePill
-                                        key={type}
-                                        type="button"
-                                        $selected={bulkDiscountType === type}
-                                        onClick={() => { setBulkDiscountType(type); setBulkDiscountValue(''); }}
-                                    >
-                                        {label}
-                                    </S.DiscountTypePill>
-                                ))}
-                            </S.DiscountTypeRow>
-                            <S.DiscountValueRow>
-                                <S.DiscountValueInput
-                                    type="text"
-                                    inputMode="decimal"
-                                    placeholder="0"
-                                    value={bulkDiscountValue}
-                                    onChange={(e) => setBulkDiscountValue(e.target.value)}
-                                    autoFocus
-                                />
-                                <S.DiscountValueSuffix>
-                                    {bulkDiscountType === 'PERCENT' ? '%' : 'zł'}
-                                </S.DiscountValueSuffix>
-                            </S.DiscountValueRow>
-                        </S.BulkDiscountBody>
-                        <S.BulkDiscountFooter>
-                            <S.BulkDiscountCancelBtn type="button" onClick={() => setBulkDiscountOpen(false)}>
-                                Anuluj
-                            </S.BulkDiscountCancelBtn>
-                            <S.BulkDiscountApplyBtn
-                                type="button"
-                                onClick={applyBulkDiscount}
-                                disabled={!bulkDiscountValue || parseFloat(bulkDiscountValue.replace(',', '.')) <= 0}
-                            >
-                                Zastosuj
-                            </S.BulkDiscountApplyBtn>
-                        </S.BulkDiscountFooter>
-                    </S.BulkDiscountCard>
-                </S.BulkDiscountOverlay>
-            )}
         </>
     );
 });
