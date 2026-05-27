@@ -179,7 +179,7 @@ export const PriceInput = ({
                             inputMode="decimal"
                             value={netValue}
                             onChange={(e) => handleNetChange(e.target.value)}
-                            onFocus={() => setNetFocused(true)}
+                            onFocus={(e) => { setNetFocused(true); e.target.select(); }}
                             onBlur={handleBlur}
                             placeholder="0.00"
                         />
@@ -195,7 +195,7 @@ export const PriceInput = ({
                             inputMode="decimal"
                             value={grossValue}
                             onChange={(e) => handleGrossChange(e.target.value)}
-                            onFocus={() => setGrossFocused(true)}
+                            onFocus={(e) => { setGrossFocused(true); e.target.select(); }}
                             onBlur={handleBlur}
                             placeholder="0.00"
                         />

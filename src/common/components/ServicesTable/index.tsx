@@ -55,10 +55,21 @@ const IconX = () => (
     </svg>
 );
 
+const IconCheck = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12" />
+    </svg>
+);
+
 export const ServicesTable = ({ services, onChange }: Props) => {
-    const [expandedDiscount, setExpandedDiscount] = useState<string | null>(null);
-    const [discountDrafts, setDiscountDrafts] = useState<Record<string, string>>({});
     const [expandedNote, setExpandedNote] = useState<string | null>(null);
+
+    // Per-service discount modal state
+    const [discountModalId, setDiscountModalId] = useState<string | null>(null);
+    const [discountModalType, setDiscountModalType] = useState<AdjustmentType>('PERCENT');
+    const [discountModalValue, setDiscountModalValue] = useState('');
+
+    // Bulk discount modal state
     const [bulkDiscountOpen, setBulkDiscountOpen] = useState(false);
     const [bulkDiscountType, setBulkDiscountType] = useState<AdjustmentType>('PERCENT');
     const [bulkDiscountValue, setBulkDiscountValue] = useState('');
@@ -73,6 +84,46 @@ export const ServicesTable = ({ services, onChange }: Props) => {
             finalGross: result.finalGrossCents / 100,
             hasDiscount: result.hasDiscount,
         };
+    };
+
+    const openDiscountModal = (service: ServiceLineItem) => {
+        const adj = service.adjustment;
+        setDiscountModalId(service.id);
+        setDiscountModalType(adj.type);
+        setDiscountModalValue(
+            adj.value === 0 ? ''
+                : adj.type === 'PERCENT'
+                    ? String(Math.abs(adj.value))
+                    : String(adj.value / 100)
+        );
+    };
+
+    const closeDiscountModal = () => {
+        setDiscountModalId(null);
+        setDiscountModalValue('');
+    };
+
+    const applyServiceDiscount = () => {
+        if (!discountModalId) return;
+        const val = parseFloat(discountModalValue.replace(',', '.'));
+        const storeVal = isNaN(val) ? 0
+            : discountModalType === 'PERCENT'
+                ? -Math.abs(val)
+                : Math.round(val * 100);
+        onChange(services.map(s => s.id === discountModalId
+            ? { ...s, adjustment: { type: discountModalType, value: storeVal } }
+            : s
+        ));
+        closeDiscountModal();
+    };
+
+    const removeServiceDiscount = () => {
+        if (!discountModalId) return;
+        onChange(services.map(s => s.id === discountModalId
+            ? { ...s, adjustment: { type: 'PERCENT', value: 0 } }
+            : s
+        ));
+        closeDiscountModal();
     };
 
     const applyBulkDiscount = () => {
@@ -97,6 +148,11 @@ export const ServicesTable = ({ services, onChange }: Props) => {
     totalNet = Math.round(totalNet * 100) / 100;
     totalGross = Math.round(totalGross * 100) / 100;
 
+    const discountModalService = discountModalId ? services.find(s => s.id === discountModalId) : null;
+    const discountModalHasDiscount = discountModalService
+        ? getServicePrice(discountModalService).hasDiscount
+        : false;
+
     return (
         <>
             <S.ServicesBlock>
@@ -111,18 +167,8 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                     {services.map(service => {
                         const prices = getServicePrice(service);
                         const { hasDiscount, finalNet, finalGross, baseNet, baseGross } = prices;
-                        const isDiscountExpanded = expandedDiscount === service.id;
                         const isNoteExpanded = expandedNote === service.id;
                         const hasNote = !!(service.note && service.note.length > 0);
-
-                        const adj = service.adjustment;
-                        const discountSuffix = adj.type === 'PERCENT' ? '%' : 'zł';
-                        const discountDisplayValue = discountDrafts[service.id] !== undefined
-                            ? discountDrafts[service.id]
-                            : (adj.value === 0 ? ''
-                                : adj.type === 'PERCENT'
-                                    ? String(Math.abs(adj.value))
-                                    : String(adj.value / 100));
 
                         return (
                             <S.ServiceItem key={service.id} $hasDiscount={hasDiscount}>
@@ -141,7 +187,7 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                                     <S.ServiceActions>
                                         <S.DiscountButton
                                             type="button"
-                                            onClick={() => setExpandedDiscount(isDiscountExpanded ? null : service.id)}
+                                            onClick={() => openDiscountModal(service)}
                                             $active={hasDiscount}
                                             title={hasDiscount ? 'Edytuj rabat' : 'Dodaj rabat'}
                                         >
@@ -159,85 +205,13 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                                             type="button"
                                             onClick={() => {
                                                 onChange(services.filter(s => s.id !== service.id));
-                                                if (expandedDiscount === service.id) setExpandedDiscount(null);
                                                 if (expandedNote === service.id) setExpandedNote(null);
-                                                setDiscountDrafts(prev => { const n = { ...prev }; delete n[service.id]; return n; });
                                             }}
                                         >
                                             <IconTrash />
                                         </S.DeleteButton>
                                     </S.ServiceActions>
                                 </S.ServiceItemRow>
-
-                                {isDiscountExpanded && (
-                                    <S.DiscountPanel>
-                                        <S.DiscountTypeRow>
-                                            {DISCOUNT_TYPES.map(({ type, label }) => (
-                                                <S.DiscountTypePill
-                                                    key={type}
-                                                    type="button"
-                                                    $selected={adj.type === type}
-                                                    onClick={() => {
-                                                        onChange(services.map(s => s.id === service.id
-                                                            ? { ...s, adjustment: { type, value: 0 } }
-                                                            : s
-                                                        ));
-                                                        setDiscountDrafts(prev => ({ ...prev, [service.id]: '' }));
-                                                    }}
-                                                >
-                                                    {label}
-                                                </S.DiscountTypePill>
-                                            ))}
-                                        </S.DiscountTypeRow>
-                                        <S.DiscountValueRow>
-                                            <S.DiscountValueInput
-                                                type="text"
-                                                inputMode="decimal"
-                                                placeholder="0"
-                                                value={discountDisplayValue}
-                                                onChange={(e) => {
-                                                    const raw = e.target.value;
-                                                    setDiscountDrafts(prev => ({ ...prev, [service.id]: raw }));
-                                                    const val = parseFloat(raw.replace(',', '.'));
-                                                    const storeVal = isNaN(val) ? 0
-                                                        : adj.type === 'PERCENT'
-                                                            ? -Math.abs(val)
-                                                            : Math.round(val * 100);
-                                                    onChange(services.map(s => s.id === service.id
-                                                        ? { ...s, adjustment: { ...s.adjustment, value: storeVal } }
-                                                        : s
-                                                    ));
-                                                }}
-                                                onBlur={() => {
-                                                    setDiscountDrafts(prev => { const n = { ...prev }; delete n[service.id]; return n; });
-                                                }}
-                                            />
-                                            <S.DiscountValueSuffix>{discountSuffix}</S.DiscountValueSuffix>
-                                            <S.DiscountActionButtons>
-                                                {hasDiscount && (
-                                                    <S.DiscountRemoveButton
-                                                        type="button"
-                                                        onClick={() => {
-                                                            onChange(services.map(s => s.id === service.id
-                                                                ? { ...s, adjustment: { type: 'PERCENT', value: 0 } }
-                                                                : s
-                                                            ));
-                                                            setDiscountDrafts(prev => { const n = { ...prev }; delete n[service.id]; return n; });
-                                                        }}
-                                                    >
-                                                        Usuń rabat
-                                                    </S.DiscountRemoveButton>
-                                                )}
-                                                <S.DiscountHideButton
-                                                    type="button"
-                                                    onClick={() => setExpandedDiscount(null)}
-                                                >
-                                                    Ukryj
-                                                </S.DiscountHideButton>
-                                            </S.DiscountActionButtons>
-                                        </S.DiscountValueRow>
-                                    </S.DiscountPanel>
-                                )}
 
                                 {isNoteExpanded && (
                                     <S.ServiceNoteContainer>
@@ -249,7 +223,15 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                                                 : s
                                             ))}
                                             rows={2}
+                                            autoFocus
                                         />
+                                        <S.NoteConfirmButton
+                                            type="button"
+                                            onClick={() => setExpandedNote(null)}
+                                        >
+                                            <IconCheck />
+                                            Zatwierdź
+                                        </S.NoteConfirmButton>
                                     </S.ServiceNoteContainer>
                                 )}
                             </S.ServiceItem>
@@ -284,6 +266,72 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                 </S.SummarySection>
             </S.ServicesBlock>
 
+            {/* Per-service discount modal */}
+            {discountModalId && discountModalService && (
+                <S.BulkDiscountOverlay onClick={closeDiscountModal}>
+                    <S.BulkDiscountCard onClick={(e) => e.stopPropagation()}>
+                        <S.BulkDiscountHeader>
+                            <div>
+                                <S.BulkDiscountTitle>Rabat dla usługi</S.BulkDiscountTitle>
+                                <S.DiscountModalServiceName>{discountModalService.serviceName}</S.DiscountModalServiceName>
+                            </div>
+                            <S.CloseIconButton type="button" onClick={closeDiscountModal}>
+                                <IconX />
+                            </S.CloseIconButton>
+                        </S.BulkDiscountHeader>
+                        <S.BulkDiscountBody>
+                            <S.DiscountTypeRow>
+                                {DISCOUNT_TYPES.map(({ type, label }) => (
+                                    <S.DiscountTypePill
+                                        key={type}
+                                        type="button"
+                                        $selected={discountModalType === type}
+                                        onClick={() => { setDiscountModalType(type); setDiscountModalValue(''); }}
+                                    >
+                                        {label}
+                                    </S.DiscountTypePill>
+                                ))}
+                            </S.DiscountTypeRow>
+                            <S.DiscountValueRow>
+                                <S.DiscountValueInput
+                                    type="text"
+                                    inputMode="decimal"
+                                    placeholder="0"
+                                    value={discountModalValue}
+                                    onChange={(e) => setDiscountModalValue(e.target.value)}
+                                    autoFocus
+                                />
+                                <S.DiscountValueSuffix>
+                                    {discountModalType === 'PERCENT' ? '%' : 'zł'}
+                                </S.DiscountValueSuffix>
+                            </S.DiscountValueRow>
+                        </S.BulkDiscountBody>
+                        <S.BulkDiscountFooter>
+                            {discountModalHasDiscount && (
+                                <S.DiscountRemoveButton
+                                    type="button"
+                                    onClick={removeServiceDiscount}
+                                    style={{ marginRight: 'auto' }}
+                                >
+                                    Usuń rabat
+                                </S.DiscountRemoveButton>
+                            )}
+                            <S.BulkDiscountCancelBtn type="button" onClick={closeDiscountModal}>
+                                Anuluj
+                            </S.BulkDiscountCancelBtn>
+                            <S.BulkDiscountApplyBtn
+                                type="button"
+                                onClick={applyServiceDiscount}
+                                disabled={!discountModalValue || parseFloat(discountModalValue.replace(',', '.')) <= 0}
+                            >
+                                Zastosuj
+                            </S.BulkDiscountApplyBtn>
+                        </S.BulkDiscountFooter>
+                    </S.BulkDiscountCard>
+                </S.BulkDiscountOverlay>
+            )}
+
+            {/* Bulk discount modal */}
             {bulkDiscountOpen && (
                 <S.BulkDiscountOverlay onClick={() => setBulkDiscountOpen(false)}>
                     <S.BulkDiscountCard onClick={(e) => e.stopPropagation()}>

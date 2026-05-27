@@ -444,3 +444,34 @@ export const CloseIconButton = styled.button`
     &:hover { color: #ef4444; background: #fef2f2; }
     svg { width: 14px; height: 14px; }
 `;
+
+export const DiscountModalServiceName = styled.p`
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 260px;
+`;
+
+export const NoteConfirmButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 8px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffffff;
+    background: #16a34a;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 150ms ease;
+
+    svg { width: 12px; height: 12px; }
+    &:hover { background: #15803d; }
+`;
