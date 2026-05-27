@@ -361,7 +361,7 @@ export const BulkDiscountOverlay = styled.div`
 `;
 
 export const BulkDiscountCard = styled.div`
-    width: 340px;
+    width: min(400px, calc(100vw - 32px));
     background: #ffffff;
     border-radius: 16px;
     overflow: hidden;
@@ -395,7 +395,8 @@ export const BulkDiscountFooter = styled.div`
     background: #f8fafc;
     border-top: 1px solid #f1f5f9;
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
 `;
 
@@ -450,39 +451,66 @@ export const DiscountModalServiceName = styled.p`
     font-size: 12px;
     color: #64748b;
     font-weight: 400;
-    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 260px;
+    white-space: nowrap;
+    max-width: 320px;
 `;
 
-export const DiscountBasePriceRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 10px;
+/* ── "Od kwoty" box ── */
+export const DiscountFromBox = styled.div`
+    padding: 10px 14px;
     background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 12px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
 `;
 
-export const DiscountBasePriceLabel = styled.span`
+export const DiscountFromBoxLabel = styled.div`
+    font-size: 10px;
+    font-weight: 700;
     color: #94a3b8;
-    font-weight: 500;
-    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
 `;
 
-export const DiscountBasePriceValue = styled.span`
+export const DiscountFromPrices = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+`;
+
+export const DiscountFromPrice = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+`;
+
+export const DiscountFromPriceValue = styled.span`
+    font-size: 17px;
+    font-weight: 700;
     color: #0f172a;
-    font-weight: 600;
     font-variant-numeric: tabular-nums;
-    white-space: nowrap;
+    font-feature-settings: 'tnum';
+    line-height: 1.2;
 `;
 
-export const DiscountBasePriceSep = styled.span`
-    color: #cbd5e1;
+export const DiscountFromPriceLabel = styled.span`
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+`;
+
+/* ── Section labels inside body ── */
+export const DiscountSectionLabel = styled.div`
     font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
 `;
 
 export const NoteConfirmButton = styled.button`

@@ -285,40 +285,51 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                         </S.BulkDiscountHeader>
                         <S.BulkDiscountBody>
                             {discountModalPrices && (
-                                <S.DiscountBasePriceRow>
-                                    <S.DiscountBasePriceLabel>Cena bazowa:</S.DiscountBasePriceLabel>
-                                    <S.DiscountBasePriceValue>{discountModalPrices.baseNet.toFixed(2)} zł</S.DiscountBasePriceValue>
-                                    <S.DiscountBasePriceLabel>netto</S.DiscountBasePriceLabel>
-                                    <S.DiscountBasePriceSep>·</S.DiscountBasePriceSep>
-                                    <S.DiscountBasePriceValue>{discountModalPrices.baseGross.toFixed(2)} zł</S.DiscountBasePriceValue>
-                                    <S.DiscountBasePriceLabel>brutto</S.DiscountBasePriceLabel>
-                                </S.DiscountBasePriceRow>
+                                <S.DiscountFromBox>
+                                    <S.DiscountFromBoxLabel>Od kwoty</S.DiscountFromBoxLabel>
+                                    <S.DiscountFromPrices>
+                                        <S.DiscountFromPrice>
+                                            <S.DiscountFromPriceValue>{discountModalPrices.baseNet.toFixed(2)} zł</S.DiscountFromPriceValue>
+                                            <S.DiscountFromPriceLabel>Netto</S.DiscountFromPriceLabel>
+                                        </S.DiscountFromPrice>
+                                        <S.DiscountFromPrice>
+                                            <S.DiscountFromPriceValue>{discountModalPrices.baseGross.toFixed(2)} zł</S.DiscountFromPriceValue>
+                                            <S.DiscountFromPriceLabel>Brutto</S.DiscountFromPriceLabel>
+                                        </S.DiscountFromPrice>
+                                    </S.DiscountFromPrices>
+                                </S.DiscountFromBox>
                             )}
-                            <S.DiscountTypeRow>
-                                {DISCOUNT_TYPES.map(({ type, label }) => (
-                                    <S.DiscountTypePill
-                                        key={type}
-                                        type="button"
-                                        $selected={discountModalType === type}
-                                        onClick={() => { setDiscountModalType(type); setDiscountModalValue(''); }}
-                                    >
-                                        {label}
-                                    </S.DiscountTypePill>
-                                ))}
-                            </S.DiscountTypeRow>
-                            <S.DiscountValueRow>
-                                <S.DiscountValueInput
-                                    type="text"
-                                    inputMode="decimal"
-                                    placeholder="0"
-                                    value={discountModalValue}
-                                    onChange={(e) => setDiscountModalValue(e.target.value)}
-                                    autoFocus
-                                />
-                                <S.DiscountValueSuffix>
-                                    {discountModalType === 'PERCENT' ? '%' : 'zł'}
-                                </S.DiscountValueSuffix>
-                            </S.DiscountValueRow>
+                            <div>
+                                <S.DiscountSectionLabel>Rodzaj rabatu</S.DiscountSectionLabel>
+                                <S.DiscountTypeRow>
+                                    {DISCOUNT_TYPES.map(({ type, label }) => (
+                                        <S.DiscountTypePill
+                                            key={type}
+                                            type="button"
+                                            $selected={discountModalType === type}
+                                            onClick={() => { setDiscountModalType(type); setDiscountModalValue(''); }}
+                                        >
+                                            {label}
+                                        </S.DiscountTypePill>
+                                    ))}
+                                </S.DiscountTypeRow>
+                            </div>
+                            <div>
+                                <S.DiscountSectionLabel>Wartość</S.DiscountSectionLabel>
+                                <S.DiscountValueRow>
+                                    <S.DiscountValueInput
+                                        type="text"
+                                        inputMode="decimal"
+                                        placeholder="0"
+                                        value={discountModalValue}
+                                        onChange={(e) => setDiscountModalValue(e.target.value)}
+                                        autoFocus
+                                    />
+                                    <S.DiscountValueSuffix>
+                                        {discountModalType === 'PERCENT' ? '%' : 'zł'}
+                                    </S.DiscountValueSuffix>
+                                </S.DiscountValueRow>
+                            </div>
                         </S.BulkDiscountBody>
                         <S.BulkDiscountFooter>
                             {discountModalHasDiscount && (
@@ -356,39 +367,50 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                             </S.CloseIconButton>
                         </S.BulkDiscountHeader>
                         <S.BulkDiscountBody>
-                            <S.DiscountBasePriceRow>
-                                <S.DiscountBasePriceLabel>Łącznie przed rabatem:</S.DiscountBasePriceLabel>
-                                <S.DiscountBasePriceValue>{bulkBaseNet.toFixed(2)} zł</S.DiscountBasePriceValue>
-                                <S.DiscountBasePriceLabel>netto</S.DiscountBasePriceLabel>
-                                <S.DiscountBasePriceSep>·</S.DiscountBasePriceSep>
-                                <S.DiscountBasePriceValue>{bulkBaseGross.toFixed(2)} zł</S.DiscountBasePriceValue>
-                                <S.DiscountBasePriceLabel>brutto</S.DiscountBasePriceLabel>
-                            </S.DiscountBasePriceRow>
-                            <S.DiscountTypeRow>
-                                {DISCOUNT_TYPES.map(({ type, label }) => (
-                                    <S.DiscountTypePill
-                                        key={type}
-                                        type="button"
-                                        $selected={bulkDiscountType === type}
-                                        onClick={() => { setBulkDiscountType(type); setBulkDiscountValue(''); }}
-                                    >
-                                        {label}
-                                    </S.DiscountTypePill>
-                                ))}
-                            </S.DiscountTypeRow>
-                            <S.DiscountValueRow>
-                                <S.DiscountValueInput
-                                    type="text"
-                                    inputMode="decimal"
-                                    placeholder="0"
-                                    value={bulkDiscountValue}
-                                    onChange={(e) => setBulkDiscountValue(e.target.value)}
-                                    autoFocus
-                                />
-                                <S.DiscountValueSuffix>
-                                    {bulkDiscountType === 'PERCENT' ? '%' : 'zł'}
-                                </S.DiscountValueSuffix>
-                            </S.DiscountValueRow>
+                            <S.DiscountFromBox>
+                                <S.DiscountFromBoxLabel>Łącznie przed rabatem</S.DiscountFromBoxLabel>
+                                <S.DiscountFromPrices>
+                                    <S.DiscountFromPrice>
+                                        <S.DiscountFromPriceValue>{bulkBaseNet.toFixed(2)} zł</S.DiscountFromPriceValue>
+                                        <S.DiscountFromPriceLabel>Netto</S.DiscountFromPriceLabel>
+                                    </S.DiscountFromPrice>
+                                    <S.DiscountFromPrice>
+                                        <S.DiscountFromPriceValue>{bulkBaseGross.toFixed(2)} zł</S.DiscountFromPriceValue>
+                                        <S.DiscountFromPriceLabel>Brutto</S.DiscountFromPriceLabel>
+                                    </S.DiscountFromPrice>
+                                </S.DiscountFromPrices>
+                            </S.DiscountFromBox>
+                            <div>
+                                <S.DiscountSectionLabel>Rodzaj rabatu</S.DiscountSectionLabel>
+                                <S.DiscountTypeRow>
+                                    {DISCOUNT_TYPES.map(({ type, label }) => (
+                                        <S.DiscountTypePill
+                                            key={type}
+                                            type="button"
+                                            $selected={bulkDiscountType === type}
+                                            onClick={() => { setBulkDiscountType(type); setBulkDiscountValue(''); }}
+                                        >
+                                            {label}
+                                        </S.DiscountTypePill>
+                                    ))}
+                                </S.DiscountTypeRow>
+                            </div>
+                            <div>
+                                <S.DiscountSectionLabel>Wartość</S.DiscountSectionLabel>
+                                <S.DiscountValueRow>
+                                    <S.DiscountValueInput
+                                        type="text"
+                                        inputMode="decimal"
+                                        placeholder="0"
+                                        value={bulkDiscountValue}
+                                        onChange={(e) => setBulkDiscountValue(e.target.value)}
+                                        autoFocus
+                                    />
+                                    <S.DiscountValueSuffix>
+                                        {bulkDiscountType === 'PERCENT' ? '%' : 'zł'}
+                                    </S.DiscountValueSuffix>
+                                </S.DiscountValueRow>
+                            </div>
                         </S.BulkDiscountBody>
                         <S.BulkDiscountFooter>
                             <S.BulkDiscountCancelBtn type="button" onClick={() => setBulkDiscountOpen(false)}>
