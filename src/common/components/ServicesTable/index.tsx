@@ -19,6 +19,8 @@ interface Props {
     onChange: (services: ServiceLineItem[]) => void;
 }
 
+const MAX_2_DECIMALS = /^\d*[.,]?\d{0,2}$/;
+
 const DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
     { type: 'PERCENT', label: '%' },
     { type: 'FIXED_NET', label: '−Netto' },
@@ -322,7 +324,7 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                                         inputMode="decimal"
                                         placeholder="0"
                                         value={discountModalValue}
-                                        onChange={(e) => setDiscountModalValue(e.target.value)}
+                                        onChange={(e) => { if (MAX_2_DECIMALS.test(e.target.value)) setDiscountModalValue(e.target.value); }}
                                         autoFocus
                                     />
                                     <S.DiscountValueSuffix>
@@ -403,7 +405,7 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                                         inputMode="decimal"
                                         placeholder="0"
                                         value={bulkDiscountValue}
-                                        onChange={(e) => setBulkDiscountValue(e.target.value)}
+                                        onChange={(e) => { if (MAX_2_DECIMALS.test(e.target.value)) setBulkDiscountValue(e.target.value); }}
                                         autoFocus
                                     />
                                     <S.DiscountValueSuffix>
