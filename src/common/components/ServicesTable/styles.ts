@@ -456,6 +456,35 @@ export const DiscountModalServiceName = styled.p`
     max-width: 260px;
 `;
 
+export const DiscountBasePriceRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 12px;
+`;
+
+export const DiscountBasePriceLabel = styled.span`
+    color: #94a3b8;
+    font-weight: 500;
+    white-space: nowrap;
+`;
+
+export const DiscountBasePriceValue = styled.span`
+    color: #0f172a;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+`;
+
+export const DiscountBasePriceSep = styled.span`
+    color: #cbd5e1;
+    font-size: 11px;
+`;
+
 export const NoteConfirmButton = styled.button`
     display: flex;
     align-items: center;

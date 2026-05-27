@@ -149,9 +149,13 @@ export const ServicesTable = ({ services, onChange }: Props) => {
     totalGross = Math.round(totalGross * 100) / 100;
 
     const discountModalService = discountModalId ? services.find(s => s.id === discountModalId) : null;
-    const discountModalHasDiscount = discountModalService
-        ? getServicePrice(discountModalService).hasDiscount
-        : false;
+    const discountModalPrices = discountModalService ? getServicePrice(discountModalService) : null;
+    const discountModalHasDiscount = discountModalPrices?.hasDiscount ?? false;
+
+    const bulkBaseNet = Math.round(services.reduce((sum, s) => sum + s.basePriceNet, 0)) / 100;
+    const bulkBaseGross = Math.round(services.reduce((sum, s) => {
+        return sum + s.basePriceNet + Math.round(s.basePriceNet * s.vatRate / 100);
+    }, 0)) / 100;
 
     return (
         <>
@@ -280,6 +284,16 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                             </S.CloseIconButton>
                         </S.BulkDiscountHeader>
                         <S.BulkDiscountBody>
+                            {discountModalPrices && (
+                                <S.DiscountBasePriceRow>
+                                    <S.DiscountBasePriceLabel>Cena bazowa:</S.DiscountBasePriceLabel>
+                                    <S.DiscountBasePriceValue>{discountModalPrices.baseNet.toFixed(2)} zł</S.DiscountBasePriceValue>
+                                    <S.DiscountBasePriceLabel>netto</S.DiscountBasePriceLabel>
+                                    <S.DiscountBasePriceSep>·</S.DiscountBasePriceSep>
+                                    <S.DiscountBasePriceValue>{discountModalPrices.baseGross.toFixed(2)} zł</S.DiscountBasePriceValue>
+                                    <S.DiscountBasePriceLabel>brutto</S.DiscountBasePriceLabel>
+                                </S.DiscountBasePriceRow>
+                            )}
                             <S.DiscountTypeRow>
                                 {DISCOUNT_TYPES.map(({ type, label }) => (
                                     <S.DiscountTypePill
@@ -342,6 +356,14 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                             </S.CloseIconButton>
                         </S.BulkDiscountHeader>
                         <S.BulkDiscountBody>
+                            <S.DiscountBasePriceRow>
+                                <S.DiscountBasePriceLabel>Łącznie przed rabatem:</S.DiscountBasePriceLabel>
+                                <S.DiscountBasePriceValue>{bulkBaseNet.toFixed(2)} zł</S.DiscountBasePriceValue>
+                                <S.DiscountBasePriceLabel>netto</S.DiscountBasePriceLabel>
+                                <S.DiscountBasePriceSep>·</S.DiscountBasePriceSep>
+                                <S.DiscountBasePriceValue>{bulkBaseGross.toFixed(2)} zł</S.DiscountBasePriceValue>
+                                <S.DiscountBasePriceLabel>brutto</S.DiscountBasePriceLabel>
+                            </S.DiscountBasePriceRow>
                             <S.DiscountTypeRow>
                                 {DISCOUNT_TYPES.map(({ type, label }) => (
                                     <S.DiscountTypePill
