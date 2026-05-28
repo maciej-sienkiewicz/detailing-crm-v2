@@ -16,7 +16,7 @@ import { ServicesTable } from '@/common/components/ServicesTable';
 import type { ServiceLineItem } from '@/common/components/ServicesTable';
 import {
     IconClock, IconUser, IconCar, IconSettings, IconNote,
-    IconX, IconPalette, IconPlus, IconPencil, IconCheck,
+    IconX, IconPalette, IconPlus, IconPencil, IconCheck, IconMessageSquare,
 } from './icons';
 import { useFeature } from '@/modules/subscription';
 import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Service, ServiceAdjustment } from './types';
