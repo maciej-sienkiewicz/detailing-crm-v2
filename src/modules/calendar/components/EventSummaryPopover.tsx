@@ -36,10 +36,16 @@ const PopoverContainer = styled.div<{ $x: number; $y: number }>`
     display: flex;
     flex-direction: column;
 
+    @media (max-height: 800px) {
+        width: 340px;
+        border-radius: 14px;
+    }
+
     @media (max-width: 480px) {
         width: calc(100vw - 24px);
         left: 12px !important;
         max-height: 80vh;
+        border-radius: 14px;
     }
 `;
 
@@ -60,6 +66,10 @@ const PopoverHeader = styled.div<{ $color: string }>`
         bottom: 0;
         background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
         pointer-events: none;
+    }
+
+    @media (max-height: 800px) {
+        padding: 14px 18px;
     }
 `;
 
@@ -94,6 +104,10 @@ const EventTitle = styled.h3`
     color: inherit;
     position: relative;
     z-index: 1;
+
+    @media (max-height: 800px) {
+        font-size: 15px;
+    }
 `;
 
 const EventType = styled.div`
@@ -111,6 +125,10 @@ const PopoverBody = styled.div`
     padding: 22px 24px;
     overflow-y: auto;
     flex: 1;
+
+    @media (max-height: 800px) {
+        padding: 14px 18px;
+    }
 `;
 
 const Section = styled.div`
@@ -118,6 +136,10 @@ const Section = styled.div`
 
     &:last-child {
         margin-bottom: 0;
+    }
+
+    @media (max-height: 800px) {
+        margin-bottom: 12px;
     }
 `;
 
@@ -130,6 +152,11 @@ const InfoColumns = styled.div`
     @media (max-width: 400px) {
         grid-template-columns: 1fr;
         gap: 12px;
+    }
+
+    @media (max-height: 800px) {
+        gap: 10px;
+        margin-bottom: 12px;
     }
 `;
 
@@ -273,6 +300,10 @@ const PopoverFooter = styled.div`
     border-top: 1px solid rgba(0, 0, 0, 0.05);
     background: rgba(248, 250, 252, 0.6);
     flex-shrink: 0;
+
+    @media (max-height: 800px) {
+        padding: 10px 14px;
+    }
 `;
 
 const FooterActions = styled.div`
@@ -372,13 +403,14 @@ const ManageButton = styled.button`
         background: linear-gradient(135deg, #4f46e5, #4338ca);
     }
 
-    &:active {
-        transform: scale(0.98);
-    }
+    &:active { transform: scale(0.98); }
 
-    svg {
-        width: 18px;
-        height: 18px;
+    svg { width: 18px; height: 18px; }
+
+    @media (max-height: 800px) {
+        padding: 10px 16px;
+        font-size: 13px;
+        border-radius: 10px;
     }
 `;
 
@@ -407,6 +439,12 @@ const SecondaryButton = styled.button`
     &:active { transform: scale(0.98); }
 
     svg { width: 15px; height: 15px; }
+
+    @media (max-height: 800px) {
+        padding: 8px 16px;
+        font-size: 12px;
+        border-radius: 10px;
+    }
 `;
 
 const EmptyState = styled.div`

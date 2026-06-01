@@ -568,7 +568,7 @@ export const WeekKanbanView = ({
         const { event } = slot;
         const props = event.extendedProps as AppointmentEventData | VisitEventData;
         const rect  = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        const popoverWidth = 380;
+        const popoverWidth = window.innerHeight <= 800 ? 340 : 380;
         const margin = 16;
 
         let x = rect.right + 10;
