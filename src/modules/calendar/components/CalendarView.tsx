@@ -917,9 +917,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
         // Calculate popover position near the clicked event
         const rect = clickInfo.el.getBoundingClientRect();
-        const popoverWidth = 380;
-        const popoverMaxHeight = 600; // Estimated max height
-        const margin = 16; // Margin from screen edges
+        const popoverWidth = window.innerHeight <= 800 ? 340 : 380;
+        const popoverMaxHeight = 580;
+        const margin = 16;
 
         // Try to position to the right of the event
         let x = rect.right + 10;

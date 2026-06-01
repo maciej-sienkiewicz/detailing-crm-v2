@@ -568,7 +568,7 @@ export const WeekKanbanView = ({
         const { event } = slot;
         const props = event.extendedProps as AppointmentEventData | VisitEventData;
         const rect  = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        const popoverWidth = 380;
+        const popoverWidth = window.innerHeight <= 800 ? 340 : 380;
         const margin = 16;
 
         let x = rect.right + 10;
@@ -576,8 +576,8 @@ export const WeekKanbanView = ({
             x = Math.max(margin, rect.left - popoverWidth - 10);
         }
         let y = rect.top;
-        if (y + 520 + margin > window.innerHeight) {
-            y = Math.max(margin, window.innerHeight - 520 - margin);
+        if (y + 580 + margin > window.innerHeight) {
+            y = Math.max(margin, window.innerHeight - 580 - margin);
         }
 
         onEventClick(props, { x, y });
