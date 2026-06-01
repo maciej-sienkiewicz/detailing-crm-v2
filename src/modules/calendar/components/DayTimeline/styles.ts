@@ -60,6 +60,7 @@ export const Board = styled.div`
     grid-template-columns: repeat(4, 1fr);
     overflow: hidden;
     min-height: 0;
+    height: 0;
 `;
 
 export const KanbanCol = styled.div`
@@ -67,6 +68,7 @@ export const KanbanCol = styled.div`
     flex-direction: column;
     border-right: 1px solid rgba(15, 23, 42, 0.06);
     min-height: 0;
+    overflow: hidden;
 
     &:last-child { border-right: none; }
 `;

@@ -250,6 +250,7 @@ const BoardScroll = styled.div`
     flex: 1;
     overflow-x: auto;
     overflow-y: hidden;
+    min-height: 0;
     -webkit-overflow-scrolling: touch;
 
     &::-webkit-scrollbar { height: 6px; }
@@ -262,6 +263,8 @@ const Board = styled.div`
     grid-template-columns: repeat(7, minmax(168px, 1fr));
     height: 100%;
     min-width: 1176px;
+    min-height: 0;
+    align-items: stretch;
 `;
 
 /* ── Day column ── */
@@ -271,6 +274,8 @@ const DayCol = styled.div<{ $isToday: boolean }>`
     flex-direction: column;
     border-right: 1px solid rgba(15, 23, 42, 0.06);
     background: ${p => p.$isToday ? 'rgba(99, 102, 241, 0.02)' : 'transparent'};
+    min-height: 0;
+    overflow: hidden;
 
     &:last-child { border-right: none; }
 `;
