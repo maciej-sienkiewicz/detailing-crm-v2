@@ -382,6 +382,33 @@ const ManageButton = styled.button`
     }
 `;
 
+const SecondaryButton = styled.button`
+    width: 100%;
+    padding: 10px 20px;
+    background: transparent;
+    color: #6366f1;
+    border: 1.5px solid rgba(99, 102, 241, 0.3);
+    border-radius: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    letter-spacing: 0.2px;
+
+    &:hover {
+        background: rgba(99, 102, 241, 0.07);
+        border-color: rgba(99, 102, 241, 0.5);
+    }
+
+    &:active { transform: scale(0.98); }
+
+    svg { width: 15px; height: 15px; }
+`;
+
 const EmptyState = styled.div`
     padding: 12px 14px;
     color: #94a3b8;
@@ -673,6 +700,7 @@ interface EventSummaryPopoverProps {
     onCancelReservationClick?: () => void;
     onRestoreAppointmentClick?: () => void;
     onDeleteAppointmentClick?: () => void;
+    onEditEndDateClick?: () => void;
 }
 
 export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
@@ -685,6 +713,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
     onCancelReservationClick,
     onRestoreAppointmentClick,
     onDeleteAppointmentClick,
+    onEditEndDateClick,
 }) => {
     const navigate = useNavigate();
     const isAppointment = event.type === 'APPOINTMENT';
@@ -929,14 +958,26 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                             )}
                         </FooterActions>
                     ) : (
-                        <ManageButton onClick={onManageClick}>
-                            <>
+                        <>
+                            <ManageButton onClick={onManageClick}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M9 5l7 7-7 7" />
                                 </svg>
                                 Przejdź do wizyty
-                            </>
-                        </ManageButton>
+                            </ManageButton>
+                            {onEditEndDateClick && (
+                                <SecondaryButton onClick={onEditEndDateClick} style={{ marginTop: 8 }}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" />
+                                        <line x1="16" y1="2" x2="16" y2="6" />
+                                        <line x1="8" y1="2" x2="8" y2="6" />
+                                        <line x1="3" y1="10" x2="21" y2="10" />
+                                        <path d="M15.5 14.5l1.5-1.5 1.5 1.5-3.5 3.5H13v-1.5l2.5-2.5z" fill="currentColor" stroke="none"/>
+                                    </svg>
+                                    Edytuj datę zakończenia
+                                </SecondaryButton>
+                            )}
+                        </>
                     )}
                 </PopoverFooter>
             </PopoverContainer>

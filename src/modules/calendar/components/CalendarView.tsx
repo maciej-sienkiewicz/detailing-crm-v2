@@ -11,6 +11,9 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { operationApi } from '@/modules/operations';
 import { useToast } from '@/common/components/Toast';
+import { visitApi } from '@/modules/visits/api/visitApi';
+import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { useCalendarFilters } from '../hooks/useCalendarFilters';
@@ -751,7 +754,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const navigate = useNavigate();
     const { isCollapsed } = useSidebar();
     const queryClient = useQueryClient();
-    const { showSuccess } = useToast();
+    const { showSuccess, showError } = useToast();
     const calendarRef = useRef<FullCalendar>(null);
     const quickEventModalRef = useRef<QuickEventModalRef>(null);
     const [dateRange, setDateRange] = useState<DateRange | null>(null);
@@ -805,6 +808,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const [popoverOpen, setPopoverOpen] = useState(false);
     const [popoverEvent, setPopoverEvent] = useState<AppointmentEventData | VisitEventData | null>(null);
     const [popoverPosition, setPopoverPosition] = useState({ x: 0, y: 0 });
+
+    const [endDateModalOpen, setEndDateModalOpen] = useState(false);
+    const [endDateDraft, setEndDateDraft] = useState('');
+    const [isSavingEndDate, setIsSavingEndDate] = useState(false);
 
     // Fix .fc-more-popover clipping: CalendarWrapper has overflow:hidden which
     // clips FullCalendar's absolutely-positioned popover. Watch for it being
@@ -982,6 +989,31 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
             setPopoverOpen(false);
         }
     }, [popoverEvent, navigate]);
+
+    const handleEditEndDateClick = useCallback(() => {
+        if (!popoverEvent || popoverEvent.type !== 'VISIT') return;
+        const visit = popoverEvent as VisitEventData;
+        const current = (visit as any).estimatedCompletionDate
+            ? new Date((visit as any).estimatedCompletionDate).toISOString().slice(0, 16)
+            : '';
+        setEndDateDraft(current);
+        setEndDateModalOpen(true);
+    }, [popoverEvent]);
+
+    const handleSaveEndDate = async () => {
+        if (!popoverEvent || !endDateDraft || isSavingEndDate) return;
+        setIsSavingEndDate(true);
+        try {
+            await visitApi.updateEstimatedCompletionDate(popoverEvent.id, new Date(endDateDraft).toISOString());
+            showSuccess('Data zakończenia zaktualizowana');
+            setEndDateModalOpen(false);
+            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+        } catch {
+            showError('Nie udało się zaktualizować daty');
+        } finally {
+            setIsSavingEndDate(false);
+        }
+    };
 
     /**
      * Handle edit reservation from popover actions
@@ -1442,8 +1474,44 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     onCancelReservationClick={handleCancelReservationClick}
                     onRestoreAppointmentClick={handleRestoreAppointmentClick}
                     onDeleteAppointmentClick={handleDeleteAppointmentClick}
+                    onEditEndDateClick={popoverEvent?.type === 'VISIT' ? handleEditEndDateClick : undefined}
                 />
             )}
+
+            <ModalShell isOpen={endDateModalOpen} onClose={() => setEndDateModalOpen(false)} size="sm">
+                <ModalHeader>
+                    <ModalTitleGroup>
+                        <ModalTitle>Planowana data zakończenia</ModalTitle>
+                    </ModalTitleGroup>
+                    <CloseBtn onClick={() => setEndDateModalOpen(false)} />
+                </ModalHeader>
+                <ModalContent>
+                    <input
+                        type="datetime-local"
+                        value={endDateDraft}
+                        onChange={e => setEndDateDraft(e.target.value)}
+                        onClick={e => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                        onKeyDown={e => { if (e.key === 'Enter') handleSaveEndDate(); }}
+                        autoFocus
+                        style={{
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            padding: '9px 12px',
+                            border: '1.5px solid #e2e8f0',
+                            borderRadius: 8,
+                            fontSize: 15,
+                            color: '#0f172a',
+                            outline: 'none',
+                        }}
+                    />
+                </ModalContent>
+                <ModalFooter>
+                    <SharedButton $variant="secondary" onClick={() => setEndDateModalOpen(false)}>Anuluj</SharedButton>
+                    <SharedButton $variant="primary" onClick={handleSaveEndDate} disabled={!endDateDraft || isSavingEndDate}>
+                        {isSavingEndDate ? 'Zapisywanie…' : 'Zapisz'}
+                    </SharedButton>
+                </ModalFooter>
+            </ModalShell>
         </CalendarContainer>
     );
 };
