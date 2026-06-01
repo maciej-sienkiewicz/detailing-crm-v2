@@ -1,22 +1,62 @@
 // src/modules/calendar/components/EventSummaryPopover.tsx
 
-import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
+import React, { useState, useEffect, useRef } from 'react';
+import styled, { keyframes, css } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AppointmentEventData, VisitEventData, SmsSendStatus, CalendarSmsInfo } from '../types';
 import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
 
-const Overlay = styled.div`
+// ─── Animations ───────────────────────────────────────────────────────────────
+
+const overlayIn = keyframes`
+    from { opacity: 0; }
+    to   { opacity: 1; }
+`;
+
+const overlayOut = keyframes`
+    from { opacity: 1; }
+    to   { opacity: 0; }
+`;
+
+const popoverIn = keyframes`
+    from {
+        opacity: 0;
+        transform: scale(0.91) translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+`;
+
+const popoverOut = keyframes`
+    from {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.94) translateY(6px);
+    }
+`;
+
+const ENTER_MS = 240;
+const EXIT_MS  = 160;
+
+const Overlay = styled.div<{ $closing: boolean }>`
     position: fixed;
     inset: 0;
     z-index: 999;
     background: rgba(15, 23, 42, 0.1);
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
+    animation: ${p => p.$closing
+        ? css`${overlayOut} ${EXIT_MS}ms ease forwards`
+        : css`${overlayIn}  ${ENTER_MS}ms ease forwards`};
 `;
 
-const PopoverContainer = styled.div<{ $x: number; $y: number }>`
+const PopoverContainer = styled.div<{ $x: number; $y: number; $closing: boolean }>`
     position: fixed;
     left: ${props => props.$x}px;
     top: ${props => props.$y}px;
@@ -35,6 +75,10 @@ const PopoverContainer = styled.div<{ $x: number; $y: number }>`
     border: 1px solid rgba(255, 255, 255, 0.8);
     display: flex;
     flex-direction: column;
+    transform-origin: top left;
+    animation: ${p => p.$closing
+        ? css`${popoverOut} ${EXIT_MS}ms cubic-bezier(0.4, 0, 1, 1) forwards`
+        : css`${popoverIn}  ${ENTER_MS}ms cubic-bezier(0.34, 1.3, 0.64, 1) forwards`};
 
     @media (max-height: 800px) {
         width: 340px;
@@ -755,12 +799,22 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
 }) => {
     const navigate = useNavigate();
     const isAppointment = event.type === 'APPOINTMENT';
+    const [closing, setClosing] = useState(false);
+    const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const handleClose = () => {
+        if (closing) return;
+        setClosing(true);
+        closeTimer.current = setTimeout(onClose, EXIT_MS);
+    };
+
+    useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
 
     useEffect(() => {
-        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose(); };
         document.addEventListener('keydown', handler);
         return () => document.removeEventListener('keydown', handler);
-    }, [onClose]);
+    }, [closing]);
 
     // Check if appointment is cancelled/abandoned - don't show "Porzuć" button
     const appointmentStatus = isAppointment ? (event as AppointmentEventData).status : undefined;
@@ -804,10 +858,10 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
 
     return (
         <>
-            <Overlay onClick={onClose} />
-            <PopoverContainer $x={position.x} $y={position.y}>
+            <Overlay $closing={closing} onClick={handleClose} />
+            <PopoverContainer $x={position.x} $y={position.y} $closing={closing}>
                 <PopoverHeader $color={event.colorHex || '#3b82f6'}>
-                    <HeaderCloseButton type="button" onClick={onClose} title="Zamknij (Esc)">
+                    <HeaderCloseButton type="button" onClick={handleClose} title="Zamknij (Esc)">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                         </svg>
@@ -848,7 +902,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                         <div>
                             <SectionTitle>Klient</SectionTitle>
                             {event.customerId ? (
-                                <InfoRowLink onClick={() => { onClose(); navigate(`/customers/${event.customerId}`); }}>
+                                <InfoRowLink onClick={() => { handleClose(); setTimeout(() => navigate(`/customers/${event.customerId}`), EXIT_MS); }}>
                                     <InfoIcon>
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
@@ -889,7 +943,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                         <div>
                             <SectionTitle>Pojazd</SectionTitle>
                             {event.vehicleId ? (
-                                <InfoRowLink onClick={() => { onClose(); navigate(`/vehicles/${event.vehicleId}`); }}>
+                                <InfoRowLink onClick={() => { handleClose(); setTimeout(() => navigate(`/vehicles/${event.vehicleId}`), EXIT_MS); }}>
                                     <InfoIcon>
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <path d="M5 17h14v-4H5v4zM3 7l2-3h14l2 3v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
