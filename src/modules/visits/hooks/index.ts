@@ -398,6 +398,27 @@ export const useUpdateVisitTitle = (visitId: string) => {
     };
 };
 
+export const useUpdateEstimatedCompletionDate = (visitId: string) => {
+    const queryClient = useQueryClient();
+    const { showSuccess, showError } = useToast();
+
+    const { mutateAsync, isPending } = useMutation({
+        mutationFn: (date: string) => visitApi.updateEstimatedCompletionDate(visitId, date),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: visitDetailQueryKey(visitId) });
+            showSuccess('Planowana data zakończenia zaktualizowana');
+        },
+        onError: () => {
+            showError('Nie udało się zaktualizować daty zakończenia');
+        },
+    });
+
+    return {
+        updateEstimatedCompletionDate: mutateAsync,
+        isUpdating: isPending,
+    };
+};
+
 export const useRejectServiceChange = (visitId: string) => {
     const queryClient = useQueryClient();
 

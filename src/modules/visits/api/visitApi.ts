@@ -523,6 +523,10 @@ export const visitApi = {
         await apiClient.patch(`${BASE_PATH}/${visitId}/title`, { title });
     },
 
+    updateEstimatedCompletionDate: async (visitId: string, date: string): Promise<void> => {
+        await apiClient.patch(`${BASE_PATH}/${visitId}/estimated-completion-date`, { estimatedCompletionDate: date });
+    },
+
     confirmDraftVisit: async (visitId: string, options?: ConfirmVisitOptions): Promise<{ visitId: string; message: string }> => {
         if (USE_MOCKS) {
             await new Promise(resolve => setTimeout(resolve, 600));

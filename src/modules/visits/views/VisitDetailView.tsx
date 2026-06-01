@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { useVisitDetail, useVisitDocuments, useVisitPhotos } from '../hooks';
-import { useUpdateVisit, useUpdateVisitTitle } from '../hooks';
+import { useUpdateVisit, useUpdateVisitTitle, useUpdateEstimatedCompletionDate } from '../hooks';
 import { useUploadDocument, useUploadPhoto, useDeleteDocument, useDeletePhoto } from '../hooks';
 import { useVisitComments, useVisitCommunication } from '../hooks';
 import { useUpdateServiceStatus } from '../hooks';
@@ -615,6 +615,7 @@ export const VisitDetailView = () => {
     const { photos: visitPhotos, isLoading: isLoadingPhotos } = useVisitPhotos(visitId!);
     const { updateVisit } = useUpdateVisit(visitId!);
     const { updateTitle } = useUpdateVisitTitle(visitId!);
+    const { updateEstimatedCompletionDate } = useUpdateEstimatedCompletionDate(visitId!);
     const { uploadDocument, isUploading } = useUploadDocument(visitId!);
     const { uploadPhoto, isUploading: isUploadingPhoto } = useUploadPhoto(visitId!);
     const { deleteDocument } = useDeleteDocument(visitId!);
@@ -772,6 +773,7 @@ export const VisitDetailView = () => {
                     onCancelVisit={handleCancelVisit}
                     onGeneratePost={() => setIsGeneratePostOpen(true)}
                     onTitleUpdate={updateTitle}
+                    onEstimatedCompletionDateUpdate={updateEstimatedCompletionDate}
                 />
 
                 <StatusStepper currentStatus={visit.status} />
