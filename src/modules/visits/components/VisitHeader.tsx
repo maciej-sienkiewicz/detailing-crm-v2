@@ -589,7 +589,7 @@ export const VisitHeader = ({
                                 <line x1="8" y1="2" x2="8" y2="6" />
                                 <line x1="3" y1="10" x2="21" y2="10" />
                             </svg>
-                            {formatDateRange(visit.scheduledDate, visit.scheduledEndDate)}
+                            {formatDateRange(visit.scheduledDate, visit.estimatedCompletionDate)}
                         </MetaItem>
                         {visit.vehicle.licensePlate && (
                             <WizPlate>{visit.vehicle.licensePlate}</WizPlate>

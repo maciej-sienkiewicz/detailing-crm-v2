@@ -106,7 +106,7 @@ export interface Visit {
     visitNumber: string;
     status: VisitStatus;
     scheduledDate: string;
-    scheduledEndDate?: string;
+    estimatedCompletionDate?: string;
     completedDate?: string;
     vehicle: VehicleInfo;
     customer: CustomerInfo;

@@ -73,7 +73,7 @@ const mockVisitDetail: VisitDetailResponse = {
         visitNumber: 'VIS-2025-00042',
         status: 'READY_FOR_PICKUP',
         scheduledDate: '2025-01-15T09:00:00Z',
-        scheduledEndDate: '2025-01-17T17:00:00Z',
+        estimatedCompletionDate: '2025-01-17T17:00:00Z',
         vehicle: {
             id: 'veh_1',
             licensePlate: 'WA 12345',
