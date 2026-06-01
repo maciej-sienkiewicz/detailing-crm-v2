@@ -17,6 +17,29 @@ const formatDate = (dateStr: string): string => {
     }
 };
 
+const formatDateRange = (startStr: string, endStr?: string): string => {
+    try {
+        const start = new Date(startStr);
+        if (!endStr) return formatDate(startStr);
+        const end = new Date(endStr);
+        const sameYear = start.getFullYear() === end.getFullYear();
+        const sameMonth = sameYear && start.getMonth() === end.getMonth();
+        const startFmt = start.toLocaleDateString('pl-PL', {
+            day: 'numeric',
+            month: sameMonth ? undefined : 'long',
+            year: sameYear ? undefined : 'numeric',
+        });
+        const endFmt = end.toLocaleDateString('pl-PL', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        });
+        return `${startFmt} – ${endFmt}`;
+    } catch {
+        return formatDate(startStr);
+    }
+};
+
 // ─── Status & dot config ──────────────────────────────────────────────────────
 
 const COMPLETE_LABEL: Partial<Record<VisitStatus, string>> = {
@@ -566,7 +589,7 @@ export const VisitHeader = ({
                                 <line x1="8" y1="2" x2="8" y2="6" />
                                 <line x1="3" y1="10" x2="21" y2="10" />
                             </svg>
-                            {formatDate(visit.scheduledDate)}
+                            {formatDateRange(visit.scheduledDate, visit.scheduledEndDate)}
                         </MetaItem>
                         {visit.vehicle.licensePlate && (
                             <WizPlate>{visit.vehicle.licensePlate}</WizPlate>
