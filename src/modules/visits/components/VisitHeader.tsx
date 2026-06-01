@@ -607,7 +607,7 @@ export const VisitHeader = ({
                                     </VisitTitle>
                                 ) : (
                                     <TitlePlaceholder onClick={onTitleUpdate ? startEditTitle : undefined} style={onTitleUpdate ? { cursor: 'pointer' } : undefined}>
-                                        Uzupełnij tytuł wizyty...
+                                        Kliknij, że ustawić tytuł...
                                         {vehicleLabel && (
                                             <> <TitleMutedSep></TitleMutedSep> {vehicleLabel}</>
                                         )}
