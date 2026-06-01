@@ -29,7 +29,7 @@ const PopoverContainer = styled.div<{ $x: number; $y: number }>`
         0 12px 24px rgba(0, 0, 0, 0.06),
         0 24px 48px rgba(0, 0, 0, 0.08);
     width: 390px;
-    max-height: 580px;
+    max-height: min(580px, calc(100vh - ${props => props.$y}px - 16px));
     z-index: 1000;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.8);
