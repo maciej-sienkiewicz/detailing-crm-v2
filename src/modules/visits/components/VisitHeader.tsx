@@ -709,6 +709,7 @@ export const VisitHeader = ({
                         value={draftDate}
                         onChange={e => setDraftDate(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') saveDateModal(); }}
+                        onClick={e => (e.currentTarget as HTMLInputElement).showPicker?.()}
                         autoFocus
                     />
                 </ModalContent>
