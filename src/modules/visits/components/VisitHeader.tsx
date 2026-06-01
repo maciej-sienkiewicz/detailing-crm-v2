@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes, css } from 'styled-components';
 import type { Visit, VisitStatus } from '../types';
+import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
+import { SharedButton } from '@/common/styles';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -361,97 +363,21 @@ const WizPlate = styled.span`
 
 /* ── Date edit modal ── */
 
-const ModalOverlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(4px);
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-`;
-
-const ModalBox = styled.div`
-    background: #1e293b;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 14px;
-    padding: 24px;
-    width: 340px;
-    max-width: 100%;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-`;
-
-const ModalTitle = styled.h2`
-    margin: 0;
-    font-size: 16px;
-    font-weight: 700;
-    color: #f1f5f9;
-    letter-spacing: -0.2px;
-`;
-
-const ModalLabel = styled.label`
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #94a3b8;
-`;
-
-const DateInput = styled.input`
-    background: rgba(255, 255, 255, 0.07);
-    border: 1.5px solid rgba(255, 255, 255, 0.12);
-    border-radius: 8px;
-    color: #f1f5f9;
-    font-size: 15px;
-    font-weight: 500;
-    padding: 9px 12px;
-    outline: none;
-    transition: border-color 180ms ease, box-shadow 180ms ease;
+const DateInputField = styled.input`
     width: 100%;
     box-sizing: border-box;
-    color-scheme: dark;
+    padding: 9px 12px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 15px;
+    color: #0f172a;
+    outline: none;
+    transition: border-color 180ms ease, box-shadow 180ms ease;
 
     &:focus {
-        border-color: rgba(14, 165, 233, 0.7);
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
     }
-`;
-
-const ModalActions = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-`;
-
-const ModalBtn = styled.button<{ $primary?: boolean }>`
-    padding: 8px 18px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 160ms ease;
-    border: 1px solid;
-
-    ${p => p.$primary ? `
-        background: #0ea5e9;
-        border-color: #0ea5e9;
-        color: #fff;
-        &:hover:not(:disabled) { background: #0284c7; }
-        &:disabled { opacity: 0.4; cursor: not-allowed; }
-    ` : `
-        background: transparent;
-        border-color: rgba(255,255,255,0.12);
-        color: #94a3b8;
-        &:hover { color: #f1f5f9; background: rgba(255,255,255,0.06); }
-    `}
 `;
 
 /* ── Right actions ── */
@@ -770,29 +696,29 @@ export const VisitHeader = ({
                 </HeaderRight>
             </HeaderContent>
 
-            {isDateModalOpen && (
-                <ModalOverlay onClick={() => setIsDateModalOpen(false)}>
-                    <ModalBox onClick={e => e.stopPropagation()}>
+            <ModalShell isOpen={isDateModalOpen} onClose={() => setIsDateModalOpen(false)} size="sm">
+                <ModalHeader>
+                    <ModalTitleGroup>
                         <ModalTitle>Planowana data zakończenia</ModalTitle>
-                        <ModalLabel>
-                            Data i godzina
-                            <DateInput
-                                type="datetime-local"
-                                value={draftDate}
-                                onChange={e => setDraftDate(e.target.value)}
-                                onKeyDown={e => { if (e.key === 'Enter') saveDateModal(); if (e.key === 'Escape') setIsDateModalOpen(false); }}
-                                autoFocus
-                            />
-                        </ModalLabel>
-                        <ModalActions>
-                            <ModalBtn onClick={() => setIsDateModalOpen(false)}>Anuluj</ModalBtn>
-                            <ModalBtn $primary onClick={saveDateModal} disabled={!draftDate || isSavingDate}>
-                                {isSavingDate ? 'Zapisywanie…' : 'Zapisz'}
-                            </ModalBtn>
-                        </ModalActions>
-                    </ModalBox>
-                </ModalOverlay>
-            )}
+                    </ModalTitleGroup>
+                    <CloseBtn onClick={() => setIsDateModalOpen(false)} />
+                </ModalHeader>
+                <ModalContent>
+                    <DateInputField
+                        type="datetime-local"
+                        value={draftDate}
+                        onChange={e => setDraftDate(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') saveDateModal(); }}
+                        autoFocus
+                    />
+                </ModalContent>
+                <ModalFooter>
+                    <SharedButton $variant="secondary" onClick={() => setIsDateModalOpen(false)}>Anuluj</SharedButton>
+                    <SharedButton $variant="primary" onClick={saveDateModal} disabled={!draftDate || isSavingDate}>
+                        {isSavingDate ? 'Zapisywanie…' : 'Zapisz'}
+                    </SharedButton>
+                </ModalFooter>
+            </ModalShell>
         </HeroHeader>
     );
 };
