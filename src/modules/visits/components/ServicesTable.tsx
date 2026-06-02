@@ -760,8 +760,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
     const epln = (c: number) => c / 100;
     const eCents = (v: number) => Math.round(v * 100);
-    const eGrossFromNet = (net: number, vat: number) => net * (1 + vat / 100);
-    const eNetFromGross = (gross: number, vat: number) => gross / (1 + vat / 100);
+    const eGrossFromNet = (net: number, vat: number) => vat <= 0 ? net : net * (1 + vat / 100);
+    const eNetFromGross = (gross: number, vat: number) => vat <= 0 ? gross : gross / (1 + vat / 100);
     const eFmt = (v: number) => v.toFixed(2);
     const eParse = (raw: string) => { const v = parseFloat(raw.replace(',', '.')); return isNaN(v) || v < 0 ? null : v; };
 
@@ -918,7 +918,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 totalOriginalGross += gross;
             } else if (editedPrices[service.id] !== undefined) {
                 const net = editedPrices[service.id].basePriceNet;
-                const gross = Math.round(net * (1 + service.vatRate / 100));
+                const gross = service.vatRate <= 0 ? net : Math.round(net * (1 + service.vatRate / 100));
                 totalFinalNet += net;
                 totalFinalGross += gross;
                 totalVat += Math.max(gross - net, 0);
@@ -933,7 +933,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         });
 
         newRows.filter(r => r.serviceName.trim()).forEach(r => {
-            const gross = Math.round(r.basePriceNet * (1 + r.vatRate / 100));
+            const gross = r.vatRate <= 0 ? r.basePriceNet : Math.round(r.basePriceNet * (1 + r.vatRate / 100));
             totalFinalNet += r.basePriceNet;
             totalFinalGross += gross;
             totalVat += Math.max(gross - r.basePriceNet, 0);
@@ -1095,7 +1095,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                     </PriceStack>
                                 </Td>
                                 <Td>
-                                    <PriceValue>{service.vatRate}%</PriceValue>
+                                    <PriceValue>{service.vatRate === -1 ? 'zw.' : `${service.vatRate}%`}</PriceValue>
                                 </Td>
                                 <Td>
                                     <PriceStack>
@@ -1138,7 +1138,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                                 );
                                             }
                                             if (hasEditedPrice) {
-                                                const editedGross = Math.round(editedPrices[service.id].basePriceNet * (1 + service.vatRate / 100));
+                                                const editedGross = service.vatRate <= 0 ? editedPrices[service.id].basePriceNet : Math.round(editedPrices[service.id].basePriceNet * (1 + service.vatRate / 100));
                                                 return (
                                                     <EditedPriceWrap>
                                                         <PriceValue>{formatCurrency(editedGross / 100)}</PriceValue>

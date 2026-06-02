@@ -4,6 +4,12 @@ import { PLN } from '@dinero.js/currencies';
 import { interpolate, t } from '@/common/i18n';
 import type { ServiceLineItem, MoneyAmount } from '../types';
 
+const netToGross = (netCents: number, vatRate: number): number =>
+    vatRate <= 0 ? netCents : netCents + Math.round(netCents * vatRate / 100);
+
+const grossToNet = (grossCents: number, vatRate: number): number =>
+    vatRate <= 0 ? grossCents : Math.round((grossCents * 100) / (100 + vatRate));
+
 export interface PricingResult {
     originalPriceNet: MoneyAmount;
     originalPriceGross: MoneyAmount;
@@ -27,7 +33,7 @@ export const useServicePricing = () => {
 
         const baseNetMoney = createMoney(basePriceNet);
 
-        const originalVatAmount = Math.round((basePriceNet * vatRate) / 100);
+        const originalVatAmount = netToGross(basePriceNet, vatRate) - basePriceNet;
         const originalVat = createMoney(originalVatAmount);
         const originalGrossMoney = add(baseNetMoney, originalVat);
 
@@ -64,7 +70,7 @@ export const useServicePricing = () => {
                     const targetGrossMoney = subtract(originalGrossMoney, adjustmentMoney);
 
                     const targetGrossAmount = toMoneyAmount(targetGrossMoney);
-                    const finalNetAmount = Math.round((targetGrossAmount * 100) / (100 + vatRate));
+                    const finalNetAmount = grossToNet(targetGrossAmount, vatRate);
                     finalNetMoney = createMoney(finalNetAmount);
                 }
                 break;
@@ -76,8 +82,7 @@ export const useServicePricing = () => {
             }
             case 'SET_GROSS': {
                 hasDiscount = true;
-                const targetGrossAmount = adjustment.value;
-                const finalNetAmount = Math.round((targetGrossAmount * 100) / (100 + vatRate));
+                const finalNetAmount = grossToNet(adjustment.value, vatRate);
                 finalNetMoney = createMoney(finalNetAmount);
                 break;
             }
@@ -96,7 +101,7 @@ export const useServicePricing = () => {
             const finalVatAmount = adjustment.value - toMoneyAmount(finalNetMoney);
             finalVat = createMoney(finalVatAmount);
         } else {
-            const finalVatAmount = Math.round((toMoneyAmount(finalNetMoney) * vatRate) / 100);
+            const finalVatAmount = netToGross(toMoneyAmount(finalNetMoney), vatRate) - toMoneyAmount(finalNetMoney);
             finalVat = createMoney(finalVatAmount);
             finalGrossMoney = add(finalNetMoney, finalVat);
         }
