@@ -40,6 +40,7 @@ export const ModalWithPanel = styled.div`
 `;
 
 export const ModalContainer = styled(ModalBox).attrs<{ $isOpen: boolean }>({})`
+    width: 700px;
     max-width: 700px;
     max-height: 88vh;
     box-shadow: none;

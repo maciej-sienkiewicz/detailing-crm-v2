@@ -1,15 +1,8 @@
 // src/modules/calendar/components/QuickEventModal/RecurrenceSidePanel.tsx
 
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
 import { FormInput } from '@/common/styles';
 import type { RecurrenceRuleRequest, DayOfWeek } from '@/modules/appointments/types';
-
-// ─── Animations ───────────────────────────────────────────────────────────────
-
-const slideIn = keyframes`
-    from { opacity: 0; transform: translateX(-10px); }
-    to   { opacity: 1; transform: translateX(0); }
-`;
 
 // ─── Panel container ──────────────────────────────────────────────────────────
 
@@ -29,7 +22,6 @@ export const SidePanelInner = styled.div`
     display: flex;
     flex-direction: column;
     gap: 16px;
-    animation: ${slideIn} 220ms ease both;
     overflow-y: auto;
 
     &::-webkit-scrollbar { width: 3px; }

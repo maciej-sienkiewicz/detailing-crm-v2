@@ -183,7 +183,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         <>
             <S.Overlay $isOpen={isOpen} $contentLeft={sidebarWidth} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
                 <S.ModalWithPanel>
-                <S.ModalContainer $isOpen={isOpen} style={{ borderRadius: isRecurring ? '16px 0 0 16px' : '16px' }}>
+                <S.ModalContainer $isOpen={isOpen}>
                     <form
                         onSubmit={form.handleSubmit}
                         onKeyDown={(e) => {
@@ -1072,15 +1072,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
                 {/* ── Recurrence side panel ──────────────────────────── */}
                 <SidePanelWrapper $visible={isRecurring}>
-                    {isRecurring && (
-                        <SidePanelInner>
-                            <RecurrenceSidePanel
-                                rule={recurrenceRule}
-                                onChange={setRecurrenceRule}
-                                startDateTime={form.startDateTime}
-                            />
-                        </SidePanelInner>
-                    )}
+                    <SidePanelInner>
+                        <RecurrenceSidePanel
+                            rule={recurrenceRule}
+                            onChange={setRecurrenceRule}
+                            startDateTime={form.startDateTime}
+                        />
+                    </SidePanelInner>
                 </SidePanelWrapper>
 
                 </S.ModalWithPanel>
