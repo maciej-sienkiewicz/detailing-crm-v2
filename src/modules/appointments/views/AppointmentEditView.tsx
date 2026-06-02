@@ -1,7 +1,7 @@
 // src/modules/appointments/views/AppointmentEditView.tsx
 
 import styled from 'styled-components';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
@@ -101,6 +101,7 @@ const FooterActions = styled.div`
 export const AppointmentEditView = () => {
     const { appointmentId } = useParams<{ appointmentId: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
     const queryClient = useQueryClient();
     const { showSuccess, showInfo } = useToast();
 
@@ -359,7 +360,7 @@ export const AppointmentEditView = () => {
         const payload = buildPayload();
         if (!payload) return;
 
-        const recurrenceInfo: RecurrenceInfo | null = appointment?.recurrenceInfo ?? null;
+        const recurrenceInfo: RecurrenceInfo | null = appointment?.recurrenceInfo ?? (location.state as any)?.recurrenceInfo ?? null;
 
         if (recurrenceInfo) {
             const origStart = initialFormDataRef.current?.visitStartAt ?? '';

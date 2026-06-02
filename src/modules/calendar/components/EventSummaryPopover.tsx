@@ -783,6 +783,7 @@ interface EventSummaryPopoverProps {
     onRestoreAppointmentClick?: () => void;
     onDeleteAppointmentClick?: () => void;
     onEditEndDateClick?: () => void;
+    onDeleteClick?: () => void;
 }
 
 export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
@@ -796,6 +797,7 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
     onRestoreAppointmentClick,
     onDeleteAppointmentClick,
     onEditEndDateClick,
+    onDeleteClick,
 }) => {
     const navigate = useNavigate();
     const isAppointment = event.type === 'APPOINTMENT';
@@ -1046,6 +1048,9 @@ export const EventSummaryPopover: React.FC<EventSummaryPopoverProps> = ({
                                     <IconActionButton onClick={onEditReservationClick} title="Edytuj rezerwację">EDYTUJ</IconActionButton>
                                     <IconActionButton $variant="primary" onClick={onStartVisitClick} title="Rozpocznij wizytę">ROZPOCZNIJ</IconActionButton>
                                     <IconActionButton $variant="danger" onClick={onCancelReservationClick} title="Anuluj rezerwację">PORZUĆ</IconActionButton>
+                                    {onDeleteClick && (
+                                        <IconActionButton $variant="danger" onClick={onDeleteClick} title="Usuń rezerwację">USUŃ</IconActionButton>
+                                    )}
                                 </>
                             )}
                         </FooterActions>

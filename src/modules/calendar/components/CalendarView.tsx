@@ -20,6 +20,7 @@ import { useCalendarFilters } from '../hooks/useCalendarFilters';
 import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
 import { QuickEventModal, type QuickEventFormData, type QuickEventModalRef } from './QuickEventModal';
 import { EventSummaryPopover } from './EventSummaryPopover';
+import { DeleteRecurringModal } from '@/modules/operations/components/DeleteRecurringModal';
 import { CalendarFilterBar } from './CalendarFilterBar';
 import { CalendarSearchModal } from './CalendarSearchModal';
 import { WeekKanbanView } from './WeekKanbanView';
@@ -859,6 +860,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const [endDateModalOpen, setEndDateModalOpen] = useState(false);
     const [endDateDraft, setEndDateDraft] = useState('');
     const [isSavingEndDate, setIsSavingEndDate] = useState(false);
+    const [deleteRecurringTarget, setDeleteRecurringTarget] = useState<Operation | null>(null);
 
     const [searchOpen, setSearchOpen] = useState(false);
     const [highlightedEventId, setHighlightedEventId] = useState<string | null>(null);
@@ -1071,7 +1073,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
      */
     const handleEditReservationClick = useCallback(() => {
         if (!popoverEvent || popoverEvent.type !== 'APPOINTMENT') return;
-        navigate(`/appointments/${popoverEvent.id}/edit`);
+        navigate(`/appointments/${popoverEvent.id}/edit`, { state: { recurrenceInfo: (popoverEvent as AppointmentEventData).recurrenceInfo ?? null } });
         setPopoverOpen(false);
     }, [popoverEvent, navigate]);
 
@@ -1160,6 +1162,29 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
             console.error('Failed to delete appointment:', error);
         }
     }, [popoverEvent, showSuccess, queryClient]);
+
+    const handleDeleteFromPopover = useCallback(() => {
+        if (!popoverEvent || popoverEvent.type !== 'APPOINTMENT') return;
+        const appt = popoverEvent as AppointmentEventData;
+        if (appt.recurrenceInfo) {
+            const op: Operation = {
+                id: appt.id,
+                type: 'APPOINTMENT',
+                title: appt.title,
+                customerName: appt.customerName,
+                vehicleInfo: appt.vehicleInfo ?? '',
+                startDate: '',
+                endDate: '',
+                status: 'SCHEDULED',
+                services: [],
+                recurrenceInfo: appt.recurrenceInfo,
+            };
+            setPopoverOpen(false);
+            setDeleteRecurringTarget(op);
+        } else {
+            handleDeleteAppointmentClick();
+        }
+    }, [popoverEvent, handleDeleteAppointmentClick]);
 
     return (
         <CalendarContainer>
@@ -1573,6 +1598,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     onRestoreAppointmentClick={handleRestoreAppointmentClick}
                     onDeleteAppointmentClick={handleDeleteAppointmentClick}
                     onEditEndDateClick={popoverEvent?.type === 'VISIT' ? handleEditEndDateClick : undefined}
+                    onDeleteClick={handleDeleteFromPopover}
+                />
+            )}
+
+            {deleteRecurringTarget && (
+                <DeleteRecurringModal
+                    isOpen
+                    operation={deleteRecurringTarget}
+                    onClose={() => setDeleteRecurringTarget(null)}
+                    onDeleted={() => {
+                        setDeleteRecurringTarget(null);
+                        queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+                        queryClient.invalidateQueries({ queryKey: ['operations'] });
+                    }}
                 />
             )}
 

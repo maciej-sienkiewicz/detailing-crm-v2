@@ -82,6 +82,7 @@ const transformAppointment = (appointment: AppointmentResponse): CalendarEvent =
         status: appointment.status,
         note: appointment.note,
         smsInfo: appointment.smsInfo,
+        recurrenceInfo: appointment.recurrenceInfo ?? null,
     };
 
     return {

@@ -60,6 +60,7 @@ export interface AppointmentEventData extends CalendarEventData {
     status?: string;
     note?: string;
     smsInfo?: CalendarSmsInfo;
+    recurrenceInfo?: { seriesId: string; recurrenceIndex: number; totalInSeries: number; isDetached: boolean } | null;
 }
 
 /**
@@ -118,6 +119,7 @@ export interface AppointmentResponse {
     totalVat: number;
     note?: string;
     smsInfo?: CalendarSmsInfo;
+    recurrenceInfo?: { seriesId: string; recurrenceIndex: number; totalInSeries: number; isDetached: boolean } | null;
 }
 
 /**

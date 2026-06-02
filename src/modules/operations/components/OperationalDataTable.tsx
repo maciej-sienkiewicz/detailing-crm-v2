@@ -701,7 +701,7 @@ export const OperationalDataTable = ({
         if (op.type === 'VISIT') {
             navigate(`/visits/${op.id}`);
         } else if (op.type === 'RESERVATION' && op.status === 'CREATED') {
-            navigate(`/appointments/${op.id}/edit`);
+            navigate(`/appointments/${op.id}/edit`, { state: { recurrenceInfo: op.recurrenceInfo ?? null } });
         }
     }, [navigate]);
 
