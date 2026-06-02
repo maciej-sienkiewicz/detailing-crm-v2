@@ -119,7 +119,9 @@ export async function buildAppointmentPayload(data: QuickEventFormData): Promise
 
     if (customPriceGross !== undefined) {
       const customPriceInCents = Math.round(customPriceGross * 100);
-      const basePriceGross = Math.round(service.basePriceNet * (1 + service.vatRate / 100));
+      const basePriceGross = service.vatRate <= 0
+        ? service.basePriceNet
+        : Math.round(service.basePriceNet * (1 + service.vatRate / 100));
       adjustment = customPriceInCents === basePriceGross
         ? { type: 'FIXED_GROSS', value: 0 }
         : { type: 'SET_GROSS', value: customPriceInCents };
