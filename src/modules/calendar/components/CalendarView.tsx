@@ -10,6 +10,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { operationApi } from '@/modules/operations';
+import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
 import { useToast } from '@/common/components/Toast';
 import { visitApi } from '@/modules/visits/api/visitApi';
 import { ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalContent, ModalFooter, CloseBtn } from '@/common/components/ModalKit';
@@ -1163,10 +1164,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         }
     }, [popoverEvent, showSuccess, queryClient]);
 
-    const handleDeleteFromPopover = useCallback(() => {
+    const handleDeleteFromPopover = useCallback(async () => {
         if (!popoverEvent || popoverEvent.type !== 'APPOINTMENT') return;
         const appt = popoverEvent as AppointmentEventData;
-        if (appt.recurrenceInfo) {
+
+        // recurrenceInfo may not be in calendar event data (e.g. for cancelled appointments);
+        // fall back to fetching full appointment details
+        let recurrenceInfo = appt.recurrenceInfo ?? null;
+        if (!recurrenceInfo) {
+            try {
+                const detail = await appointmentApi.getAppointment(appt.id);
+                recurrenceInfo = detail?.recurrenceInfo ?? null;
+            } catch {
+                // ignore — will fall through to direct delete
+            }
+        }
+
+        if (recurrenceInfo) {
             const op: Operation = {
                 id: appt.id,
                 type: 'APPOINTMENT',
@@ -1175,14 +1189,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 vehicleInfo: appt.vehicleInfo ?? '',
                 startDate: '',
                 endDate: '',
-                status: 'SCHEDULED',
+                status: (appt.status as Operation['status']) || 'SCHEDULED',
                 services: [],
-                recurrenceInfo: appt.recurrenceInfo,
+                recurrenceInfo,
             };
             setPopoverOpen(false);
             setDeleteRecurringTarget(op);
         } else {
-            handleDeleteAppointmentClick();
+            await handleDeleteAppointmentClick();
         }
     }, [popoverEvent, handleDeleteAppointmentClick]);
 
@@ -1598,7 +1612,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     onRestoreAppointmentClick={handleRestoreAppointmentClick}
                     onDeleteAppointmentClick={handleDeleteFromPopover}
                     onEditEndDateClick={popoverEvent?.type === 'VISIT' ? handleEditEndDateClick : undefined}
-                    onDeleteClick={handleDeleteFromPopover}
                 />
             )}
 
