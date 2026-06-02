@@ -1,5 +1,5 @@
 import type { EventCreationData } from '../../types';
-import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/types';
+import type { SelectedCustomer, SelectedVehicle, RecurrenceRuleRequest } from '@/modules/appointments/types';
 
 export type { EventCreationData };
 
@@ -50,6 +50,7 @@ export interface QuickEventFormData {
     notes?: string;
     sendConfirmationSms: boolean;
     sendReminderSms: boolean;
+    recurrence?: RecurrenceRuleRequest | null;
 }
 
 export interface QuickEventModalRef {

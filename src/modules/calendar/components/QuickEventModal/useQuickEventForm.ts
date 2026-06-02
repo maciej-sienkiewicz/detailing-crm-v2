@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/core';
 import { useToast } from '@/common/components/Toast';
 import { useCustomerVehicles, useCustomerSearch as useAppointmentCustomerSearch } from '@/modules/appointments/hooks/useAppointmentForm';
-import type { SelectedCustomer, SelectedVehicle } from '@/modules/appointments/types';
+import type { SelectedCustomer, SelectedVehicle, RecurrenceRuleRequest } from '@/modules/appointments/types';
 import { appointmentColorApi } from '@/modules/appointment-colors/api/appointmentColorApi';
 import { useDebounce } from '@/common/hooks';
 import { formatDateTimeLocal, formatDate, roundTo2, calculateFinalPrice } from './helpers';
@@ -112,6 +112,15 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     // ─── SMS state ─────────────────────────────────────────────────────────────
     const [sendConfirmationSms, setSendConfirmationSms] = useState(false);
     const [sendReminderSms, setSendReminderSms] = useState(false);
+
+    const [isRecurring, setIsRecurring] = useState(false);
+    const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRuleRequest>({
+        type: 'WEEKLY',
+        intervalWeeks: 1,
+        daysOfWeek: ['MONDAY'],
+        endType: 'COUNT',
+        maxOccurrences: 12,
+    });
 
     // ─── Sub-modal state ───────────────────────────────────────────────────────
     const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
@@ -311,6 +320,8 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         setTempServices({});
         setSendConfirmationSms(false);
         setSendReminderSms(false);
+        setIsRecurring(false);
+        setRecurrenceRule({ type: 'WEEKLY', intervalWeeks: 1, daysOfWeek: ['MONDAY'], endType: 'COUNT', maxOccurrences: 12 });
     };
 
     useImperativeHandle(ref, () => ({ clearForm }));
@@ -477,6 +488,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
                 notes,
                 sendConfirmationSms: bookingConfirmationEnabled && sendConfirmationSms,
                 sendReminderSms: preVisitEnabled && sendReminderSms,
+                recurrence: isRecurring ? recurrenceRule : null,
             }));
         } catch (err: any) {
             let message = 'Wystąpił nieoczekiwany błąd podczas zapisu.';
@@ -880,6 +892,10 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         sendReminderSms, setSendReminderSms,
         preVisitEnabled,
         bookingConfirmationEnabled,
+
+        // Recurrence
+        isRecurring, setIsRecurring,
+        recurrenceRule, setRecurrenceRule,
 
         // Handlers
         handleAllDayToggle,

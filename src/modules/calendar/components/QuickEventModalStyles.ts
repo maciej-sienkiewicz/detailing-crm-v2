@@ -29,9 +29,26 @@ export const Overlay = styled(ModalOverlay)<{ $contentLeft?: number }>`
     left: ${p => p.$contentLeft ?? 0}px;
 `;
 
+// Wrapper łączący główny modal + panel boczny cykliczności
+export const ModalWithPanel = styled.div`
+    display: flex;
+    align-items: stretch;
+    max-height: 88vh;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+`;
+
 export const ModalContainer = styled(ModalBox).attrs<{ $isOpen: boolean }>({})`
     max-width: 700px;
     max-height: 88vh;
+    box-shadow: none;
+    border-radius: 0;
+    flex-shrink: 0;
+
+    &:first-child {
+        border-radius: 16px 0 0 16px;
+    }
 `;
 
 // ─── Header ───────────────────────────────────────────────────────────────────
