@@ -213,7 +213,7 @@ export const CheckInWizardWrapper = () => {
             serviceId: service.serviceId,
             serviceName: service.serviceName || service.name,
             basePriceNet: service.basePriceNet || service.priceNet || 0,
-            vatRate: service.vatRate || 23,
+            vatRate: service.vatRate ?? 23,
             adjustment: service.adjustment || { type: 'PERCENT', value: 0 },
             note: service.note,
         })) || [],
