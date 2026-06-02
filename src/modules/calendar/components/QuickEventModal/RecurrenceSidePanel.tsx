@@ -1,63 +1,69 @@
 // src/modules/calendar/components/QuickEventModal/RecurrenceSidePanel.tsx
-//
-// Panel boczny cykliczności dla QuickEventModal.
-// Wysuwa się z prawej strony głównego modalu po kliknięciu kafla.
 
-import styled, { keyframes, css } from 'styled-components';
+import styled, { keyframes } from 'styled-components';
+import { FormInput } from '@/common/styles';
 import type { RecurrenceRuleRequest, DayOfWeek } from '@/modules/appointments/types';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
 const slideIn = keyframes`
-    from { opacity: 0; transform: translateX(-12px); }
+    from { opacity: 0; transform: translateX(-10px); }
     to   { opacity: 1; transform: translateX(0); }
 `;
 
 // ─── Panel container ──────────────────────────────────────────────────────────
 
 export const SidePanelWrapper = styled.div<{ $visible: boolean }>`
-    width: ${p => p.$visible ? '300px' : '0'};
+    width: ${p => p.$visible ? '280px' : '0'};
     overflow: hidden;
     transition: width 280ms cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
 `;
 
 export const SidePanelInner = styled.div`
-    width: 300px;
-    background: #0F172A;
-    border-radius: 0 16px 16px 0;
-    padding: 20px;
+    width: 280px;
+    background: #f8fafc;
+    border-left: 1px solid #e2e8f0;
+    padding: 20px 18px;
     min-height: 100%;
     display: flex;
     flex-direction: column;
-    gap: 18px;
-    animation: ${slideIn} 240ms ease both;
+    gap: 16px;
+    animation: ${slideIn} 220ms ease both;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar { width: 3px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
 `;
 
-export const PanelTitle = styled.div`
-    font-size: 13px;
+// ─── Internal styles ──────────────────────────────────────────────────────────
+
+const PanelTitle = styled.div`
+    font-size: 11px;
     font-weight: 700;
-    color: #94A3B8;
+    color: #94a3b8;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
 
     svg {
-        width: 14px;
-        height: 14px;
-        color: #7C3AED;
+        width: 13px;
+        height: 13px;
+        color: #0ea5e9;
+        flex-shrink: 0;
     }
 `;
 
 const SectionLabel = styled.div`
     font-size: 11px;
     font-weight: 600;
-    color: #64748B;
+    color: #94a3b8;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    margin-bottom: 8px;
+    margin-bottom: 7px;
 `;
 
 const TypeRow = styled.div`
@@ -67,43 +73,48 @@ const TypeRow = styled.div`
 
 const TypeBtn = styled.button<{ $active: boolean }>`
     flex: 1;
-    padding: 8px 0;
+    padding: 7px 0;
     border-radius: 8px;
-    border: 1.5px solid ${p => p.$active ? '#7C3AED' : '#1E293B'};
-    background: ${p => p.$active ? 'rgba(124, 58, 237, 0.15)' : '#1E293B'};
-    color: ${p => p.$active ? '#A78BFA' : '#64748B'};
+    border: 1.5px solid ${p => p.$active ? '#0ea5e9' : '#e2e8f0'};
+    background: ${p => p.$active ? '#f0f9ff' : '#ffffff'};
+    color: ${p => p.$active ? '#0284c7' : '#94a3b8'};
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: all 150ms ease;
+    font-family: inherit;
 
     &:hover {
-        border-color: #7C3AED;
-        color: #A78BFA;
+        border-color: #0ea5e9;
+        color: #0284c7;
+        background: #f0f9ff;
     }
 `;
 
 const DaysRow = styled.div`
     display: flex;
-    gap: 5px;
+    gap: 4px;
+    flex-wrap: wrap;
 `;
 
 const DayPill = styled.button<{ $active: boolean }>`
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    border: 1.5px solid ${p => p.$active ? '#7C3AED' : '#1E293B'};
-    background: ${p => p.$active ? '#7C3AED' : '#1E293B'};
-    color: ${p => p.$active ? '#fff' : '#475569'};
+    border: 1.5px solid ${p => p.$active ? '#0ea5e9' : '#e2e8f0'};
+    background: ${p => p.$active ? '#0ea5e9' : '#ffffff'};
+    color: ${p => p.$active ? '#ffffff' : '#94a3b8'};
     font-size: 11px;
     font-weight: 700;
     cursor: pointer;
     transition: all 150ms ease;
     flex-shrink: 0;
+    font-family: inherit;
 
     &:hover {
-        border-color: #7C3AED;
-        color: ${p => p.$active ? '#fff' : '#A78BFA'};
+        border-color: #0ea5e9;
+        color: ${p => p.$active ? '#ffffff' : '#0284c7'};
+        background: ${p => p.$active ? '#0284c7' : '#f0f9ff'};
     }
 `;
 
@@ -113,36 +124,29 @@ const InlineRow = styled.div`
     gap: 8px;
 `;
 
-const DarkInput = styled.input`
-    background: #1E293B;
-    border: 1.5px solid #334155;
-    border-radius: 8px;
-    color: #E2E8F0;
-    font-size: 13px;
-    padding: 7px 10px;
-    outline: none;
+const NumInput = styled(FormInput)`
+    width: 60px;
     text-align: center;
-    transition: border-color 140ms;
-
-    &:focus { border-color: #7C3AED; }
-
-    &[type="date"] {
-        text-align: left;
-        width: 100%;
-        color-scheme: dark;
-    }
+    padding: 6px 8px;
+    font-size: 13px;
 `;
 
-const DarkLabel = styled.span`
+const DateInput = styled(FormInput).attrs({ type: 'date' })`
+    width: 150px;
+    color-scheme: light;
+    font-size: 13px;
+`;
+
+const InputLabel = styled.span`
     font-size: 12px;
-    color: #64748B;
+    color: #64748b;
     white-space: nowrap;
 `;
 
 const EndTypeCol = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 7px;
 `;
 
 const RadioRow = styled.label`
@@ -152,17 +156,18 @@ const RadioRow = styled.label`
     cursor: pointer;
 `;
 
-const DarkRadio = styled.input.attrs({ type: 'radio' })`
+const StyledRadio = styled.input.attrs({ type: 'radio' })`
     width: 14px;
     height: 14px;
-    accent-color: #7C3AED;
+    accent-color: #0ea5e9;
     cursor: pointer;
     flex-shrink: 0;
 `;
 
 const RadioLabel = styled.span`
     font-size: 12px;
-    color: #94A3B8;
+    color: #475569;
+    font-weight: 500;
 `;
 
 const InlineEndRow = styled.div`
@@ -170,35 +175,38 @@ const InlineEndRow = styled.div`
     align-items: center;
     gap: 8px;
     margin-left: 22px;
-    margin-top: 4px;
+    margin-top: 2px;
 `;
 
 const PanelDivider = styled.div`
     height: 1px;
-    background: #1E293B;
+    background: #e2e8f0;
+    margin: 2px 0;
 `;
 
 const PreviewBox = styled.div`
-    background: #1E293B;
-    border-radius: 8px;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 10px;
     padding: 10px 12px;
 `;
 
 const PreviewLine = styled.div`
     font-size: 12px;
-    color: #64748B;
+    color: #64748b;
     line-height: 1.6;
 
     strong {
-        color: #E2E8F0;
+        color: #0f172a;
         font-weight: 600;
     }
 `;
 
 const ValidationNote = styled.div`
     font-size: 11px;
-    color: #EF4444;
+    color: #ef4444;
     margin-top: 4px;
+    font-weight: 500;
 `;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -337,15 +345,14 @@ export const RecurrenceSidePanel = ({ rule, onChange, startDateTime }: Recurrenc
                     <div>
                         <SectionLabel>Powtarzaj co</SectionLabel>
                         <InlineRow>
-                            <DarkInput
+                            <NumInput
                                 type="number"
                                 min={1}
                                 max={52}
                                 value={rule.intervalWeeks ?? 1}
-                                onChange={e => update({ intervalWeeks: Math.max(1, Math.min(52, Number(e.target.value))) })}
-                                style={{ width: '60px' }}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => update({ intervalWeeks: Math.max(1, Math.min(52, Number(e.target.value))) })}
                             />
-                            <DarkLabel>{intervalLabel()}</DarkLabel>
+                            <InputLabel>{intervalLabel()}</InputLabel>
                         </InlineRow>
                     </div>
                     <div>
@@ -374,15 +381,14 @@ export const RecurrenceSidePanel = ({ rule, onChange, startDateTime }: Recurrenc
                 <div>
                     <SectionLabel>Dzień miesiąca</SectionLabel>
                     <InlineRow>
-                        <DarkInput
+                        <NumInput
                             type="number"
                             min={1}
                             max={28}
                             value={rule.dayOfMonth ?? 1}
-                            onChange={e => update({ dayOfMonth: Math.max(1, Math.min(28, Number(e.target.value))) })}
-                            style={{ width: '60px' }}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => update({ dayOfMonth: Math.max(1, Math.min(28, Number(e.target.value))) })}
                         />
-                        <DarkLabel>dzień (maks. 28)</DarkLabel>
+                        <InputLabel>dzień (maks. 28)</InputLabel>
                     </InlineRow>
                 </div>
             )}
@@ -394,7 +400,7 @@ export const RecurrenceSidePanel = ({ rule, onChange, startDateTime }: Recurrenc
                 <SectionLabel>Koniec serii</SectionLabel>
                 <EndTypeCol>
                     <RadioRow>
-                        <DarkRadio
+                        <StyledRadio
                             name="qem-endType"
                             checked={rule.endType === 'COUNT'}
                             onChange={() => update({ endType: 'COUNT', maxOccurrences: rule.maxOccurrences ?? 12, endDate: undefined })}
@@ -403,20 +409,19 @@ export const RecurrenceSidePanel = ({ rule, onChange, startDateTime }: Recurrenc
                     </RadioRow>
                     {rule.endType === 'COUNT' && (
                         <InlineEndRow>
-                            <DarkInput
+                            <NumInput
                                 type="number"
                                 min={1}
                                 max={104}
                                 value={rule.maxOccurrences ?? 12}
-                                onChange={e => update({ maxOccurrences: Math.max(1, Math.min(104, Number(e.target.value))) })}
-                                style={{ width: '60px' }}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => update({ maxOccurrences: Math.max(1, Math.min(104, Number(e.target.value))) })}
                             />
-                            <DarkLabel>wizyt (max 104)</DarkLabel>
+                            <InputLabel>wizyt (max 104)</InputLabel>
                         </InlineEndRow>
                     )}
 
                     <RadioRow>
-                        <DarkRadio
+                        <StyledRadio
                             name="qem-endType"
                             checked={rule.endType === 'DATE'}
                             onChange={() => update({ endType: 'DATE', endDate: rule.endDate ?? '', maxOccurrences: undefined })}
@@ -425,17 +430,15 @@ export const RecurrenceSidePanel = ({ rule, onChange, startDateTime }: Recurrenc
                     </RadioRow>
                     {rule.endType === 'DATE' && (
                         <InlineEndRow>
-                            <DarkInput
-                                type="date"
+                            <DateInput
                                 value={rule.endDate ?? ''}
-                                onChange={e => update({ endDate: e.target.value })}
-                                style={{ width: '140px', textAlign: 'left' }}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => update({ endDate: e.target.value })}
                             />
                         </InlineEndRow>
                     )}
 
                     <RadioRow>
-                        <DarkRadio
+                        <StyledRadio
                             name="qem-endType"
                             checked={rule.endType === 'OPEN'}
                             onChange={() => update({ endType: 'OPEN', maxOccurrences: undefined, endDate: undefined })}

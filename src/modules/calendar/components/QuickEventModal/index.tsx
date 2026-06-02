@@ -27,36 +27,6 @@ import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Servic
 export type { QuickEventFormData, QuickEventInitialData } from './types';
 export type { QuickEventModalRef };
 
-// ─── Recurrence tile in footer ─────────────────────────────────────────────
-
-const RecurrenceTile = styled.button<{ $active: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 6px 14px;
-    border-radius: 8px;
-    border: 1.5px solid ${p => p.$active ? '#7C3AED' : '#e2e8f0'};
-    background: ${p => p.$active ? 'rgba(124, 58, 237, 0.08)' : 'transparent'};
-    color: ${p => p.$active ? '#7C3AED' : '#94a3b8'};
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 160ms ease;
-    white-space: nowrap;
-
-    &:hover {
-        border-color: #7C3AED;
-        color: #7C3AED;
-        background: rgba(124, 58, 237, 0.06);
-    }
-
-    svg {
-        width: 13px;
-        height: 13px;
-        flex-shrink: 0;
-    }
-`;
-
 const SmsCheckList = styled.div`
     display: flex;
     flex-direction: column;
@@ -294,7 +264,13 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                     <IconClock />
                                 </S.IconWrapper>
                                 <S.RowContent>
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px' }}>
+                                        <Toggle
+                                            checked={isRecurring}
+                                            onChange={setIsRecurring}
+                                            label="Cykliczna"
+                                            size="sm"
+                                        />
                                         <Toggle
                                             checked={form.isAllDay}
                                             onChange={form.handleAllDayToggle}
@@ -1044,20 +1020,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
                         {/* ── Footer ─────────────────────────────────────────────── */}
                         <S.Footer>
-                            <RecurrenceTile
-                                type="button"
-                                $active={isRecurring}
-                                onClick={() => setIsRecurring(!isRecurring)}
-                                title={isRecurring ? 'Wyłącz cykliczność' : 'Ustaw wizytę cykliczną'}
-                            >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="17 1 21 5 17 9" />
-                                    <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-                                    <polyline points="7 23 3 19 7 15" />
-                                    <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-                                </svg>
-                                {isRecurring ? 'Cykliczna ✓' : 'Cykliczna'}
-                            </RecurrenceTile>
                             <S.ColorPickerWrapper>
                                 <S.ColorPickerSection ref={form.colorSectionRef} $hasError={!!form.errors.color}>
                                     <IconPalette />
