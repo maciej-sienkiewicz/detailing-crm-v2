@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useOperations } from '../hooks/useOperations';
 import { useOperationSearch } from '../hooks/useOperationSearch';
 import { useOperationPagination } from '../hooks/useOperationPagination';
@@ -52,8 +52,35 @@ const ContentCard = styled.section`
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+const SeriesBanner = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: rgba(139, 92, 246, 0.08);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 13px;
+    color: #5B21B6;
+`;
+
+const SeriesBannerBtn = styled.button`
+    font-size: 12px;
+    font-weight: 600;
+    color: #7C3AED;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    flex-shrink: 0;
+`;
+
 export const OperationListView = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const seriesIdFilter = searchParams.get('seriesId');
     const { searchInput, debouncedSearch, handleSearchChange } = useOperationSearch();
     const { page, limit, goToPage, resetPagination } = useOperationPagination();
     const {
@@ -116,6 +143,15 @@ export const OperationListView = () => {
                 }
             />
 
+            {seriesIdFilter && (
+                <SeriesBanner>
+                    <span>🔁 Wyświetlasz wizyty z jednej serii cyklicznej</span>
+                    <SeriesBannerBtn onClick={() => navigate('/operations')}>
+                        Pokaż wszystkie
+                    </SeriesBannerBtn>
+                </SeriesBanner>
+            )}
+
             <ContentCard>
                 <OperationFilterBar
                     search={searchInput}
@@ -134,6 +170,7 @@ export const OperationListView = () => {
                     type={apiFilters.type}
                     status={apiFilters.status}
                     scheduledDate={selectedDate}
+                    seriesId={seriesIdFilter ?? undefined}
                 />
 
                 {pagination && pagination.totalPages > 1 && (

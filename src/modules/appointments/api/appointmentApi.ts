@@ -1,5 +1,9 @@
 import { apiClient } from '@/core';
-import type { AppointmentCreateRequest, Service, Customer, Vehicle, AppointmentColor, AppointmentSmsInfo } from '../types';
+import type {
+    AppointmentCreateRequest,
+    Service, Customer, Vehicle, AppointmentColor, AppointmentSmsInfo,
+    RecurrenceEditScope, CreateRecurringAppointmentResponse, RecurrenceSeriesResponse,
+} from '../types';
 import type { Customer as CustomerFull, CustomerListResponse } from '@/modules/customers/types';
 
 const USE_MOCKS = false
@@ -141,5 +145,36 @@ export const appointmentApi = {
     getSmsInfo: async (appointmentId: string): Promise<AppointmentSmsInfo> => {
         const response = await apiClient.get(`/v1/appointments/${appointmentId}`);
         return response.data.smsInfo;
+    },
+
+    createRecurringAppointment: async (
+        data: AppointmentCreateRequest & { recurrence: NonNullable<AppointmentCreateRequest['recurrence']> }
+    ): Promise<CreateRecurringAppointmentResponse> => {
+        const response = await apiClient.post('/v1/appointments/recurring', data);
+        return response.data;
+    },
+
+    updateAppointmentWithScope: async (
+        appointmentId: string,
+        data: AppointmentCreateRequest,
+        scope: RecurrenceEditScope
+    ): Promise<{ id: string }> => {
+        const response = await apiClient.put(
+            `/v1/appointments/${appointmentId}?scope=${scope}`,
+            data
+        );
+        return response.data;
+    },
+
+    deleteAppointmentWithScope: async (
+        appointmentId: string,
+        scope: RecurrenceEditScope
+    ): Promise<void> => {
+        await apiClient.delete(`/v1/appointments/${appointmentId}?scope=${scope}`);
+    },
+
+    getRecurrenceSeries: async (seriesId: string): Promise<RecurrenceSeriesResponse> => {
+        const response = await apiClient.get(`/v1/appointments/series/${seriesId}`);
+        return response.data;
     },
 };

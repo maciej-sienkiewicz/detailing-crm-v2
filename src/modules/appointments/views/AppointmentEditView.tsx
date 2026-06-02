@@ -15,13 +15,42 @@ import { t } from '@/common/i18n';
 import { toInstant, fromInstantToLocalInput } from '@/common/dateTime';
 import { toApiServiceLineItem } from '@/common/utils/priceAdjustment';
 import { SmsReminderEditSection } from '../components/SmsReminderEditSection';
-import type { AppointmentSmsInfo } from '../types';
+import { RecurrenceEditScopeModal } from '../components/RecurrenceEditScopeModal';
+import type { AppointmentSmsInfo, RecurrenceEditScope, RecurrenceInfo } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
 const SmsSeparator = styled.div`
     height: 1px;
     background: ${st.border};
     margin: 8px 0;
+`;
+
+const RecurrenceBanner = styled.div<{ $detached?: boolean }>`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: ${p => p.$detached ? 'rgba(234, 179, 8, 0.07)' : 'rgba(59, 130, 246, 0.07)'};
+    border: 1px solid ${p => p.$detached ? 'rgba(234, 179, 8, 0.3)' : 'rgba(59, 130, 246, 0.25)'};
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: ${p => p.$detached ? '#92400E' : '#1E40AF'};
+    line-height: 1.5;
+`;
+
+const DetachedBadge = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(234, 179, 8, 0.12);
+    color: #92400E;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
 `;
 
 const Container = styled.div`
@@ -186,15 +215,34 @@ export const AppointmentEditView = () => {
         }
     }, [initialData, formData, appointment]);
 
+    const [scopeModal, setScopeModal] = useState<{
+        isOpen: boolean;
+        pendingPayload: AppointmentCreateRequest | null;
+        isDateChanged: boolean;
+    }>({ isOpen: false, pendingPayload: null, isDateChanged: false });
+
+    const invalidateAll = () => {
+        queryClient.invalidateQueries({ queryKey: ['appointments'] });
+        queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+        queryClient.invalidateQueries({ queryKey: ['operations'] });
+    };
+
     const updateMutation = useMutation({
         mutationFn: (payload: AppointmentCreateRequest) => appointmentApi.updateAppointment(appointmentId!, payload),
         onSuccess: () => {
             navigate('/calendar');
             showSuccess('Pomyślnie zapisano wprowadzone zmiany', 'Teraz możesz przejść do widoku kalendarza lub wprowadzić kolejne zmiany.');
-            // Unieważnij cache rezerwacji – następne wejście w edycję załaduje świeże dane z serwera
-            queryClient.invalidateQueries({ queryKey: ['appointments'] });
-            // Unieważnij cache kalendarza, żeby zmiany były widoczne od razu po przekierowaniu
-            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+            invalidateAll();
+        },
+    });
+
+    const updateWithScopeMutation = useMutation({
+        mutationFn: ({ payload, scope }: { payload: AppointmentCreateRequest; scope: RecurrenceEditScope }) =>
+            appointmentApi.updateAppointmentWithScope(appointmentId!, payload, scope),
+        onSuccess: () => {
+            navigate('/calendar');
+            showSuccess('Pomyślnie zapisano zmiany w serii', 'Zmiany zostały zastosowane do wybranych wizyt.');
+            invalidateAll();
         },
     });
 
@@ -206,16 +254,9 @@ export const AppointmentEditView = () => {
         setFormData(prev => (prev ? { ...prev, services } : prev));
     };
 
-    const handleSave = () => {
-        if (!formData) return;
+    const buildPayload = (): AppointmentCreateRequest | null => {
+        if (!formData) return null;
 
-        if (JSON.stringify(formData) === JSON.stringify(initialFormDataRef.current)) {
-            showInfo('Nie wprowadzono żadnych zmian.');
-            return;
-        }
-
-        // build update payload using CheckIn-like state + preserved schedule
-        // Convert local input values to Instant (UTC ISO with 'Z') before sending to backend
         let startInstant = '';
         let endInstant = '';
         try {
@@ -223,7 +264,7 @@ export const AppointmentEditView = () => {
             endInstant = toInstant(formData.visitEndAt || '');
         } catch (e) {
             console.error('Błąd konwersji daty do Instant (edit):', e);
-            return;
+            return null;
         }
 
         const payload: AppointmentCreateRequest = {
@@ -302,11 +343,47 @@ export const AppointmentEditView = () => {
             appointmentColorId: formData.appointmentColorId,
         };
 
-        // basic guard
-        if (!payload.customer || !payload.appointmentColorId || payload.services.length === 0 || !formData.visitStartAt || !formData.visitEndAt) return;
+        if (!payload.customer || !payload.appointmentColorId || payload.services.length === 0 || !formData.visitStartAt || !formData.visitEndAt) return null;
 
-        updateMutation.mutate(payload);
+        return payload;
     };
+
+    const handleSave = () => {
+        if (!formData) return;
+
+        if (JSON.stringify(formData) === JSON.stringify(initialFormDataRef.current)) {
+            showInfo('Nie wprowadzono żadnych zmian.');
+            return;
+        }
+
+        const payload = buildPayload();
+        if (!payload) return;
+
+        const recurrenceInfo: RecurrenceInfo | null = appointment?.recurrenceInfo ?? null;
+
+        if (recurrenceInfo) {
+            const origStart = initialFormDataRef.current?.visitStartAt ?? '';
+            const origEnd = initialFormDataRef.current?.visitEndAt ?? '';
+            const isDateChanged = formData.visitStartAt !== origStart || formData.visitEndAt !== origEnd;
+
+            if (isDateChanged) {
+                // Date changed → force THIS scope, no dialog
+                updateWithScopeMutation.mutate({ payload, scope: 'THIS' });
+            } else {
+                setScopeModal({ isOpen: true, pendingPayload: payload, isDateChanged: false });
+            }
+        } else {
+            updateMutation.mutate(payload);
+        }
+    };
+
+    const handleScopeConfirm = (scope: RecurrenceEditScope) => {
+        if (!scopeModal.pendingPayload) return;
+        setScopeModal(prev => ({ ...prev, isOpen: false }));
+        updateWithScopeMutation.mutate({ payload: scopeModal.pendingPayload, scope });
+    };
+
+    const isAnyMutating = updateMutation.isPending || updateWithScopeMutation.isPending;
 
     if (isLoadingAppointment || isLoadingColors || !formData || isError) {
         return (
@@ -322,12 +399,28 @@ export const AppointmentEditView = () => {
         );
     }
 
+    const recurrenceInfo: RecurrenceInfo | null = appointment?.recurrenceInfo ?? null;
+
     return (
         <Container>
             <ContentWrapper>
                 <Header>
                     <Title>{'Edytuj rezerwację'}</Title>
                 </Header>
+
+                {recurrenceInfo && (
+                    <RecurrenceBanner $detached={recurrenceInfo.isDetached}>
+                        <span>
+                            {recurrenceInfo.isDetached
+                                ? `Ta wizyta (${recurrenceInfo.recurrenceIndex + 1} z ${recurrenceInfo.totalInSeries}) była indywidualnie edytowana i nie podlega seryjnym zmianom.`
+                                : `Ta wizyta (${recurrenceInfo.recurrenceIndex + 1} z ${recurrenceInfo.totalInSeries}) należy do serii cyklicznej.`
+                            }
+                        </span>
+                        {recurrenceInfo.isDetached && (
+                            <DetachedBadge>✂ Odłączona</DetachedBadge>
+                        )}
+                    </RecurrenceBanner>
+                )}
 
                 <VerificationStep
                     formData={formData}
@@ -358,14 +451,25 @@ export const AppointmentEditView = () => {
                 )}
 
                 <FooterActions>
-                    <Button $variant="secondary" onClick={() => navigate('/appointments')} disabled={updateMutation.isPending}>
+                    <Button $variant="secondary" onClick={() => navigate('/appointments')} disabled={isAnyMutating}>
                         {t.common.cancel}
                     </Button>
-                    <Button $variant="primary" onClick={handleSave} disabled={updateMutation.isPending}>
-                        {updateMutation.isPending ? (t.appointments?.createView?.submitting || 'Zapisywanie...') : 'Zapisz zmiany'}
+                    <Button $variant="primary" onClick={handleSave} disabled={isAnyMutating}>
+                        {isAnyMutating ? (t.appointments?.createView?.submitting || 'Zapisywanie...') : 'Zapisz zmiany'}
                     </Button>
                 </FooterActions>
             </ContentWrapper>
+
+            {recurrenceInfo && (
+                <RecurrenceEditScopeModal
+                    isOpen={scopeModal.isOpen}
+                    onClose={() => setScopeModal(prev => ({ ...prev, isOpen: false }))}
+                    onConfirm={handleScopeConfirm}
+                    recurrenceInfo={recurrenceInfo}
+                    isDateChanged={scopeModal.isDateChanged}
+                    isSubmitting={updateWithScopeMutation.isPending}
+                />
+            )}
         </Container>
     );
 };

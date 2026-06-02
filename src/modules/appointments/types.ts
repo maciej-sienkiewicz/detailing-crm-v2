@@ -102,6 +102,7 @@ export interface AppointmentCreateRequest {
     appointmentColorId: string;
     sendConfirmationSms?: boolean;
     sendReminderSms?: boolean;
+    recurrence?: RecurrenceRuleRequest;
 }
 
 export type SmsStatus = 'PENDING' | 'SENT' | 'FAILED';
@@ -170,4 +171,56 @@ export interface SelectedVehicle {
     model: string;
     year?: number;
     isNew: boolean;
+}
+
+// ─── Recurrence types ─────────────────────────────────────────────────────────
+
+export type RecurrenceType = 'WEEKLY' | 'MONTHLY';
+export type RecurrenceEndType = 'COUNT' | 'DATE' | 'OPEN';
+export type RecurrenceEditScope = 'THIS' | 'THIS_AND_FUTURE' | 'ALL';
+
+export type DayOfWeek =
+    | 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY'
+    | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
+
+export interface RecurrenceRuleRequest {
+    type: RecurrenceType;
+    // WEEKLY only
+    intervalWeeks?: number;
+    daysOfWeek?: DayOfWeek[];
+    // MONTHLY only
+    dayOfMonth?: number;
+    // End condition
+    endType: RecurrenceEndType;
+    maxOccurrences?: number;
+    endDate?: string;
+}
+
+export interface RecurrenceInfo {
+    seriesId: string;
+    recurrenceIndex: number;
+    totalInSeries: number;
+    isDetached: boolean;
+}
+
+export interface CreateRecurringAppointmentResponse {
+    seriesId: string;
+    occurrenceCount: number;
+    firstAppointmentId: string;
+    customerId: string;
+    vehicleId: string | null;
+}
+
+export interface RecurrenceSeriesResponse {
+    id: string;
+    type: RecurrenceType;
+    intervalWeeks: number | null;
+    daysOfWeek: DayOfWeek[] | null;
+    dayOfMonth: number | null;
+    endType: RecurrenceEndType;
+    endDate: string | null;
+    maxOccurrences: number | null;
+    isOpenEnded: boolean;
+    totalOccurrences: number;
+    createdAt: string;
 }

@@ -1,4 +1,5 @@
 // src/modules/operations/types.ts
+import type { RecurrenceInfo } from '@/modules/appointments/types';
 
 // Statusy wizyt
 export type VisitStatus =
@@ -74,6 +75,7 @@ export interface Operation {
     financials: OperationFinancials;
     lastModification: LastModification;
     smsInfo?: OperationSmsInfo;
+    recurrenceInfo?: RecurrenceInfo | null;
 }
 
 export interface OperationListResponse {

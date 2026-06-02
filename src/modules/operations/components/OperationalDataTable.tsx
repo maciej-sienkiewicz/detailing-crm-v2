@@ -9,8 +9,10 @@ import { useDeleteOperation } from '../hooks/useDeleteOperation';
 import { useUpdateReservationDate, useCancelReservation, useUpdateOperationTitle } from '../hooks/useReservationActions';
 import { OperationStatusBadge, getStatusAccentColor, getStatusIcon } from './OperationStatusBadge';
 import { DeleteOperationModal } from './DeleteOperationModal';
+import { DeleteRecurringModal } from './DeleteRecurringModal';
 import { ChangeDateModal } from './ChangeDateModal';
 import { CancelReservationModal } from './CancelReservationModal';
+import type { RecurrenceEditScope } from '@/modules/appointments/types';
 import { formatCurrency, formatDate } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { Operation, OperationType, OperationStatus, SmsSendStatus } from '../types';
@@ -438,6 +440,31 @@ const DropdownDivider = styled.div`
     margin: 4px 0;
 `;
 
+// Recurrence badge
+const RecurrencePill = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    background: rgba(139, 92, 246, 0.10);
+    color: #7C3AED;
+    flex-shrink: 0;
+`;
+
+const DetachedDot = styled.span`
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #D97706;
+    flex-shrink: 0;
+    display: inline-block;
+    margin-left: 2px;
+`;
+
 // Empty state
 const EmptyWrap = styled.div`
     padding: 60px 24px;
@@ -563,6 +590,15 @@ const XIcon = () => (
     </svg>
 );
 
+const RepeatIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+        <polyline points="17 1 21 5 17 9" />
+        <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+        <polyline points="7 23 3 19 7 15" />
+        <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+    </svg>
+);
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface OperationalDataTableProps {
@@ -572,6 +608,7 @@ interface OperationalDataTableProps {
     type?: OperationType;
     status?: OperationStatus;
     scheduledDate?: string;
+    seriesId?: string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -583,6 +620,7 @@ export const OperationalDataTable = ({
     type,
     status,
     scheduledDate,
+    seriesId,
 }: OperationalDataTableProps) => {
     const navigate = useNavigate();
 
@@ -592,6 +630,9 @@ export const OperationalDataTable = ({
     const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; op: Operation | null }>({
         isOpen: false, op: null,
     });
+    const [deleteRecurringModal, setDeleteRecurringModal] = useState<{ isOpen: boolean; op: Operation | null }>({
+        isOpen: false, op: null,
+    });
     const [changeDateModal, setChangeDateModal] = useState<{ isOpen: boolean; op: Operation | null }>({
         isOpen: false, op: null,
     });
@@ -599,7 +640,7 @@ export const OperationalDataTable = ({
         isOpen: false, op: null,
     });
 
-    const { operations, isLoading } = useOperations({
+    const { operations: rawOperations, isLoading } = useOperations({
         search,
         page,
         limit,
@@ -610,7 +651,12 @@ export const OperationalDataTable = ({
         sortDirection: 'desc',
     });
 
-    const { deleteOperation, isDeleting } = useDeleteOperation();
+    // Client-side filter by seriesId until backend supports ?seriesId param
+    const operations = seriesId
+        ? rawOperations.filter(op => op.recurrenceInfo?.seriesId === seriesId)
+        : rawOperations;
+
+    const { deleteOperation, deleteWithScope, isDeleting } = useDeleteOperation();
     const { updateDate, isUpdating } = useUpdateReservationDate();
     const { cancelReservation, isCancelling } = useCancelReservation();
     const { updateOperationTitle, isUpdatingTitle, updatingId } = useUpdateOperationTitle();
@@ -675,15 +721,25 @@ export const OperationalDataTable = ({
         }
     };
 
-    // Delete
+    // Delete (single or recurring)
     const openDelete = (op: Operation) => {
         setOpenMenuId(null);
-        setDeleteModal({ isOpen: true, op });
+        if (op.recurrenceInfo) {
+            setDeleteRecurringModal({ isOpen: true, op });
+        } else {
+            setDeleteModal({ isOpen: true, op });
+        }
     };
     const confirmDelete = () => {
         if (!deleteModal.op) return;
         deleteOperation(deleteModal.op.id, {
             onSuccess: () => setDeleteModal({ isOpen: false, op: null }),
+        });
+    };
+    const confirmDeleteRecurring = (scope: RecurrenceEditScope) => {
+        if (!deleteRecurringModal.op) return;
+        deleteWithScope(deleteRecurringModal.op.id, scope, {
+            onSuccess: () => setDeleteRecurringModal({ isOpen: false, op: null }),
         });
     };
 
@@ -819,6 +875,13 @@ export const OperationalDataTable = ({
                                             )}
                                             <RowMeta>
                                                 <OperationStatusBadge status={op.status} />
+                                                {op.recurrenceInfo && (
+                                                    <RecurrencePill title={op.recurrenceInfo.isDetached ? 'Odłączona od serii' : 'Wizyta cykliczna'}>
+                                                        <RepeatIcon />
+                                                        {op.recurrenceInfo.recurrenceIndex + 1}/{op.recurrenceInfo.totalInSeries}
+                                                        {op.recurrenceInfo.isDetached && <DetachedDot title="Odłączona od serii" />}
+                                                    </RecurrencePill>
+                                                )}
                                             </RowMeta>
                                             {!isVisit && op.smsInfo && (
                                                 <SmsInfoRow>
@@ -903,6 +966,15 @@ export const OperationalDataTable = ({
                                                             <XIcon />
                                                             Anuluj rezerwację
                                                         </DropdownItem>
+                                                        {op.recurrenceInfo && (
+                                                            <DropdownItem onClick={() => {
+                                                                setOpenMenuId(null);
+                                                                navigate(`/operations?seriesId=${op.recurrenceInfo!.seriesId}`);
+                                                            }}>
+                                                                <RepeatIcon />
+                                                                Pokaż całą serię
+                                                            </DropdownItem>
+                                                        )}
                                                         <DropdownDivider />
                                                     </>
                                                 )}
@@ -948,6 +1020,16 @@ export const OperationalDataTable = ({
                 isCancelling={isCancelling}
                 reservation={cancelModal.op}
             />
+
+            {deleteRecurringModal.op && (
+                <DeleteRecurringModal
+                    isOpen={deleteRecurringModal.isOpen}
+                    onClose={() => setDeleteRecurringModal({ isOpen: false, op: null })}
+                    onConfirm={confirmDeleteRecurring}
+                    isDeleting={isDeleting}
+                    operation={deleteRecurringModal.op}
+                />
+            )}
         </>
     );
 };

@@ -12,6 +12,7 @@ import { VehicleModal } from '../components/VehicleModal';
 import { InvoiceSummary } from '../components/InvoiceSummary';
 import {LoadingSkeleton} from "@/modules/appointments/components/common";
 import { SmsNotificationsSection } from '../components/SmsNotificationsSection';
+import { RecurrenceSection } from '../components/RecurrenceSection';
 
 const Container = styled.div`
     min-height: 100vh;
@@ -99,6 +100,10 @@ export const AppointmentCreateView = () => {
         setSendConfirmationSms,
         sendReminderSms,
         setSendReminderSms,
+        isRecurring,
+        setIsRecurring,
+        recurrenceRule,
+        setRecurrenceRule,
     } = useAppointmentCreation();
 
     if (isLoading) {
@@ -151,6 +156,14 @@ export const AppointmentCreateView = () => {
                             onSendConfirmationSmsChange={setSendConfirmationSms}
                             sendReminderSms={sendReminderSms}
                             onSendReminderSmsChange={setSendReminderSms}
+                        />
+
+                        <RecurrenceSection
+                            enabled={isRecurring}
+                            onEnabledChange={setIsRecurring}
+                            recurrence={recurrenceRule}
+                            onRecurrenceChange={setRecurrenceRule}
+                            startDateTime={startDateTime}
                         />
                     </LeftColumn>
 

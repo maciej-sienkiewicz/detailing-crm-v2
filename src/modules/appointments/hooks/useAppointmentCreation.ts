@@ -1,16 +1,28 @@
 // src/modules/appointments/hooks/useAppointmentCreation.ts
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppointmentForm, useAppointmentServices, useAppointmentColors, useCustomerVehicles } from './useAppointmentForm';
-import type { SelectedCustomer, SelectedVehicle, ServiceLineItem } from '../types';
+import type { SelectedCustomer, SelectedVehicle, ServiceLineItem, RecurrenceRuleRequest } from '../types';
 import { toInstant, fromInstantToLocalInput } from '@/common/dateTime';
+import { appointmentApi } from '../api/appointmentApi';
 
 export const useAppointmentCreation = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+    const queryClient = useQueryClient();
     const { createMutation } = useAppointmentForm();
     const { data: availableServices, isLoading: servicesLoading } = useAppointmentServices();
     const { data: appointmentColors, isLoading: colorsLoading } = useAppointmentColors();
+
+    const createRecurringMutation = useMutation({
+        mutationFn: appointmentApi.createRecurringAppointment,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['operations'] });
+            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+            navigate('/appointments');
+        },
+    });
 
     // Get URL params for pre-filling
     const startDateTimeParam = searchParams.get('startDateTime');
@@ -28,6 +40,9 @@ export const useAppointmentCreation = () => {
 
     const [sendConfirmationSms, setSendConfirmationSms] = useState(false);
     const [sendReminderSms, setSendReminderSms] = useState(false);
+
+    const [isRecurring, setIsRecurring] = useState(false);
+    const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRuleRequest | null>(null);
 
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
@@ -119,11 +134,15 @@ export const useAppointmentCreation = () => {
             sendReminderSms,
         };
 
-        createMutation.mutate(data, {
-            onSuccess: () => {
-                navigate('/appointments');
-            },
-        });
+        if (isRecurring && recurrenceRule) {
+            createRecurringMutation.mutate({ ...data, recurrence: recurrenceRule });
+        } else {
+            createMutation.mutate(data, {
+                onSuccess: () => {
+                    navigate('/appointments');
+                },
+            });
+        }
     };
 
     const canSubmit = selectedCustomer && selectedColorId && serviceItems.length > 0 && startDateTime && endDateTime;
@@ -155,11 +174,15 @@ export const useAppointmentCreation = () => {
         isLoading: servicesLoading || colorsLoading,
         handleSubmit,
         canSubmit,
-        isSubmitting: createMutation.isPending,
-        submitError: createMutation.isError,
+        isSubmitting: createMutation.isPending || createRecurringMutation.isPending,
+        submitError: createMutation.isError || createRecurringMutation.isError,
         sendConfirmationSms,
         setSendConfirmationSms,
         sendReminderSms,
         setSendReminderSms,
+        isRecurring,
+        setIsRecurring,
+        recurrenceRule,
+        setRecurrenceRule,
     };
 };

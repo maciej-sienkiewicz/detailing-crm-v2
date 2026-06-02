@@ -2,6 +2,7 @@
 
 import { apiClient } from '@/core';
 import type { OperationListResponse, OperationFilters, Operation, AppointmentStatus, VisitStatus } from '../types';
+import type { RecurrenceEditScope } from '@/modules/appointments/types';
 
 const USE_MOCKS_FOR_VISITS = false; // Wizyty nadal zamockowane
 const USE_MOCKS_FOR_RESERVATIONS = false; // Rezerwacje z serwera
@@ -37,6 +38,16 @@ interface AppointmentResponse {
     totalVat: number;
     createdAt: string;
     updatedAt: string;
+    recurrenceInfo?: {
+        seriesId: string;
+        recurrenceIndex: number;
+        totalInSeries: number;
+        isDetached: boolean;
+    } | null;
+    smsInfo?: {
+        confirmationSms: { status: 'SENT' | 'FAILED'; sentAt: string } | null;
+        reminderSms: { requested: boolean; status: string | null; sentAt: string | null; editable: boolean };
+    };
 }
 
 interface AppointmentsListResponse {
@@ -104,17 +115,19 @@ const mapAppointmentToOperation = (appointment: AppointmentResponse): Operation 
         startDateTime: appointment.schedule.startDateTime,
         endDateTime: appointment.schedule.endDateTime,
         financials: {
-            netAmount: appointment.totalNet / 100, // Konwersja z groszy na złotówki
-            grossAmount: appointment.totalGross / 100, // Konwersja z groszy na złotówki
+            netAmount: appointment.totalNet / 100,
+            grossAmount: appointment.totalGross / 100,
             currency: 'PLN',
         },
         lastModification: {
             timestamp: appointment.updatedAt,
             performedBy: {
-                firstName: 'System', // Backend nie zwraca tej informacji
+                firstName: 'System',
                 lastName: '',
             },
         },
+        recurrenceInfo: appointment.recurrenceInfo ?? null,
+        smsInfo: appointment.smsInfo as Operation['smsInfo'],
     };
 };
 
@@ -522,5 +535,12 @@ export const operationApi = {
 
     deleteAppointment: async (appointmentId: string): Promise<void> => {
         await apiClient.delete(`/v1/appointments/${appointmentId}`);
+    },
+
+    deleteAppointmentWithScope: async (
+        appointmentId: string,
+        scope: RecurrenceEditScope
+    ): Promise<void> => {
+        await apiClient.delete(`/v1/appointments/${appointmentId}?scope=${scope}`);
     },
 };
