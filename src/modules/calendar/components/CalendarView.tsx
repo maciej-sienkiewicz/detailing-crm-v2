@@ -1596,7 +1596,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     onStartVisitClick={handleStartVisitClick}
                     onCancelReservationClick={handleCancelReservationClick}
                     onRestoreAppointmentClick={handleRestoreAppointmentClick}
-                    onDeleteAppointmentClick={handleDeleteAppointmentClick}
+                    onDeleteAppointmentClick={handleDeleteFromPopover}
                     onEditEndDateClick={popoverEvent?.type === 'VISIT' ? handleEditEndDateClick : undefined}
                     onDeleteClick={handleDeleteFromPopover}
                 />
