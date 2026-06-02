@@ -22,6 +22,13 @@ export interface ServicePriceBase {
     vatRate: number; // e.g. 23 for 23 %
 }
 
+// vatRate=-1 means "zwolniony" (exempt) — gross equals net, no VAT applied
+const netToGross = (netCents: number, vatRate: number): number =>
+    vatRate <= 0 ? netCents : netCents + Math.round(netCents * vatRate / 100);
+
+const grossToNet = (grossCents: number, vatRate: number): number =>
+    vatRate <= 0 ? grossCents : Math.round((grossCents * 100) / (100 + vatRate));
+
 // ─── Single-service calculation ───────────────────────────────────────────────
 
 /**
@@ -50,15 +57,15 @@ export const applyAdjustment = (
             finalNetCents = basePriceNetCents - adjustment.value;
             break;
         case 'FIXED_GROSS': {
-            const baseGrossCents = basePriceNetCents + Math.round(basePriceNetCents * vatRate / 100);
-            finalNetCents = Math.round(((baseGrossCents - adjustment.value) * 100) / (100 + vatRate));
+            const baseGrossCents = netToGross(basePriceNetCents, vatRate);
+            finalNetCents = grossToNet(baseGrossCents - adjustment.value, vatRate);
             break;
         }
         case 'SET_NET':
             finalNetCents = adjustment.value;
             break;
         case 'SET_GROSS':
-            finalNetCents = Math.round((adjustment.value * 100) / (100 + vatRate));
+            finalNetCents = grossToNet(adjustment.value, vatRate);
             break;
     }
 
@@ -67,7 +74,7 @@ export const applyAdjustment = (
     const finalGrossCents =
         adjustment.type === 'SET_GROSS'
             ? adjustment.value
-            : finalNetCents + Math.round((finalNetCents * vatRate) / 100);
+            : netToGross(finalNetCents, vatRate);
 
     return {
         finalNetCents,

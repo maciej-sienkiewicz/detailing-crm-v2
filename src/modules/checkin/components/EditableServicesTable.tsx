@@ -85,7 +85,7 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
         const s = pendingManualPriceService;
         const valueCents = Math.round(parsed * 100);
         const basePriceNet = manualPriceMode === 'GROSS'
-            ? Math.round(valueCents / (1 + s.vatRate / 100))
+            ? (s.vatRate <= 0 ? valueCents : Math.round((valueCents * 100) / (100 + s.vatRate)))
             : valueCents;
         onChange([...services, {
             id: `${s.id}_${Date.now()}`,

@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { applyAdjustment, distributeAdjustment } from '@/common/utils/priceAdjustment';
+
+const netToGross = (netCents: number, vatRate: number): number =>
+    vatRate <= 0 ? netCents : netCents + Math.round(netCents * vatRate / 100);
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
 import * as S from './styles';
 
@@ -78,7 +81,7 @@ export const ServicesTable = ({ services, onChange }: Props) => {
 
     const getServicePrice = (service: ServiceLineItem) => {
         const result = applyAdjustment(service.basePriceNet, service.vatRate, service.adjustment);
-        const baseGrossCents = service.basePriceNet + Math.round(service.basePriceNet * service.vatRate / 100);
+        const baseGrossCents = netToGross(service.basePriceNet, service.vatRate);
         return {
             baseNet: service.basePriceNet / 100,
             baseGross: baseGrossCents / 100,
@@ -156,7 +159,7 @@ export const ServicesTable = ({ services, onChange }: Props) => {
 
     const bulkBaseNet = Math.round(services.reduce((sum, s) => sum + s.basePriceNet, 0)) / 100;
     const bulkBaseGross = Math.round(services.reduce((sum, s) => {
-        return sum + s.basePriceNet + Math.round(s.basePriceNet * s.vatRate / 100);
+        return sum + netToGross(s.basePriceNet, s.vatRate);
     }, 0)) / 100;
 
     return (
