@@ -19,6 +19,7 @@ import {
     IconX, IconPalette, IconPlus, IconPencil, IconCheck, IconMessageSquare,
 } from './icons';
 import { useFeature } from '@/modules/subscription';
+import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import type { QuickEventModalProps, QuickEventModalRef, AppointmentColor, Service, ServiceAdjustment } from './types';
 
 export type { QuickEventFormData, QuickEventInitialData } from './types';
@@ -98,6 +99,8 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 }, ref) => {
     const form = useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, initialData });
     const smsFeature = useFeature('SMS_EMAIL');
+    const { isCollapsed } = useSidebar();
+    const sidebarWidth = isCollapsed ? 64 : 240;
 
     const [serviceDropdownPos, setServiceDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
     const [autoOpenModel, setAutoOpenModel] = useState(false);
@@ -174,7 +177,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
     return (
         <>
-            <S.Overlay $isOpen={isOpen} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+            <S.Overlay $isOpen={isOpen} $contentLeft={sidebarWidth} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
                 <S.ModalContainer $isOpen={isOpen}>
                     <form
                         onSubmit={form.handleSubmit}

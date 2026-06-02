@@ -37,8 +37,9 @@ import {
 
 // ─── Overlay & container ──────────────────────────────────────────────────────
 
-export const Overlay = styled(ModalOverlay)`
+export const Overlay = styled(ModalOverlay)<{ $contentLeft?: number }>`
     z-index: 50;
+    left: ${p => p.$contentLeft ?? 0}px;
 `;
 
 export const ModalContainer = styled(ModalBox).attrs<{ $isOpen: boolean }>({})`
