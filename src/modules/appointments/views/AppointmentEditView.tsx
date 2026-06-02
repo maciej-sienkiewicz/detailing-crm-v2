@@ -400,7 +400,7 @@ export const AppointmentEditView = () => {
         );
     }
 
-    const recurrenceInfo: RecurrenceInfo | null = appointment?.recurrenceInfo ?? null;
+    const recurrenceInfo: RecurrenceInfo | null = appointment?.recurrenceInfo ?? (location.state as any)?.recurrenceInfo ?? null;
 
     return (
         <Container>
