@@ -23,6 +23,7 @@ import {
     FormFieldGroup,
     FormLabel,
     FormInput,
+    FormSelect,
     FormErrorMessage,
     FormSubmitError,
     FormCheckboxCard,
@@ -80,6 +81,8 @@ export const FieldGroup = styled(FormFieldGroup)``;
 export const Label = styled(FormLabel)``;
 
 export const Input = styled(FormInput)``;
+
+export const Select = styled(FormSelect)``;
 
 export const ErrorMessage = styled(FormErrorMessage)``;
 

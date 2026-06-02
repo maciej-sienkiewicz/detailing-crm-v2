@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { PriceInput } from '@/modules/services/components/PriceInput';
 import { useCreateService } from '@/modules/services/hooks/useServices';
+import type { VatRate } from '@/modules/services/types';
 import {
     Overlay,
     ModalContainer,
@@ -14,6 +15,7 @@ import {
     FieldGroup,
     Label,
     Input,
+    Select,
     ErrorMessage,
     CheckboxContainer,
     CheckboxLabel,
@@ -26,6 +28,14 @@ import {
     Button,
 } from './QuickServiceModalStyles';
 
+const VAT_OPTIONS: { value: VatRate; label: string }[] = [
+    { value: 23, label: '23%' },
+    { value: 8, label: '8%' },
+    { value: 5, label: '5%' },
+    { value: 0, label: '0%' },
+    { value: -1, label: 'zw.' },
+];
+
 const IconX = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="18" y1="6" x2="6" y2="18"/>
@@ -36,7 +46,7 @@ const IconX = () => (
 interface QuickServiceModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onServiceCreate: (service: { id?: string; name: string; basePriceNet: number; vatRate: 23 }) => void;
+    onServiceCreate: (service: { id?: string; name: string; basePriceNet: number; vatRate: VatRate }) => void;
     initialServiceName?: string;
 }
 
@@ -50,6 +60,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
     const contentLeft = typeof window !== 'undefined' ? (isCollapsed ? 64 : 240) : 0;
     const [serviceName, setServiceName] = useState(initialServiceName);
     const [basePriceNet, setBasePriceNet] = useState(0);
+    const [vatRate, setVatRate] = useState<VatRate>(23);
     const [saveToDatabase, setSaveToDatabase] = useState(false);
     const [requireManualPrice, setRequireManualPrice] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -60,6 +71,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
         if (isOpen) {
             setServiceName(initialServiceName);
             setBasePriceNet(0);
+            setVatRate(23);
             setSaveToDatabase(false);
             setRequireManualPrice(false);
             setErrors({});
@@ -87,7 +99,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                 const result = await createMutation.mutateAsync({
                     name: serviceName,
                     basePriceNet,
-                    vatRate: 23,
+                    vatRate,
                     requireManualPrice,
                 });
                 createdServiceId = result.id;
@@ -97,7 +109,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                 id: createdServiceId,
                 name: serviceName,
                 basePriceNet,
-                vatRate: 23,
+                vatRate,
             });
 
             onClose();
@@ -144,9 +156,21 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                         </FieldGroup>
 
                         <FieldGroup>
+                            <Label>Stawka VAT</Label>
+                            <Select
+                                value={vatRate}
+                                onChange={(e) => setVatRate(Number(e.target.value) as VatRate)}
+                            >
+                                {VAT_OPTIONS.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                            </Select>
+                        </FieldGroup>
+
+                        <FieldGroup>
                             <PriceInput
                                 netAmount={basePriceNet}
-                                vatRate={23}
+                                vatRate={vatRate}
                                 onChange={setBasePriceNet}
                                 netLabel="Cena netto"
                                 grossLabel="Cena brutto"
