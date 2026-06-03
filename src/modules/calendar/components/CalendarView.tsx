@@ -21,9 +21,10 @@ import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
 import { QuickEventModal, type QuickEventFormData, type QuickEventModalRef } from './QuickEventModal';
 import { EventSummaryPopover } from './EventSummaryPopover';
 import { CalendarFilterBar } from './CalendarFilterBar';
+import { CalendarSearchModal } from './CalendarSearchModal';
 import { WeekKanbanView } from './WeekKanbanView';
 import { DayTimelineView } from './DayTimeline';
-import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData } from '../types';
+import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData, CalendarEvent } from '../types';
 import type { Operation } from '@/modules/operations/types';
 import '../calendar.css';
 
@@ -722,6 +723,28 @@ const ViewSwitchBtn = styled.button<{ $active: boolean }>`
     }
 `;
 
+const SearchBtn = styled.button`
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #475569;
+    transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+
+    &:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        color: #0f172a;
+    }
+
+    svg { width: 16px; height: 16px; }
+`;
+
 const NewEventBtn = styled.button`
     display: inline-flex;
     align-items: center;
@@ -812,6 +835,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const [endDateModalOpen, setEndDateModalOpen] = useState(false);
     const [endDateDraft, setEndDateDraft] = useState('');
     const [isSavingEndDate, setIsSavingEndDate] = useState(false);
+
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [highlightedEventId, setHighlightedEventId] = useState<string | null>(null);
 
     // Fix .fc-more-popover clipping: CalendarWrapper has overflow:hidden which
     // clips FullCalendar's absolutely-positioned popover. Watch for it being
@@ -1066,6 +1092,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     }, [popoverEvent, showSuccess, queryClient]);
 
     /**
+     * Handle event selected from search modal — navigate calendar to its date and highlight it
+     */
+    const handleSearchSelect = useCallback((event: CalendarEvent) => {
+        const eventDate = new Date(event.start as string);
+        const calApi = calendarRef.current?.getApi();
+        if (calApi) {
+            // Switch to month view and go to the event's date
+            calApi.changeView('dayGridMonth');
+            calApi.gotoDate(eventDate);
+        }
+        setCurrentView('dayGridMonth');
+        setHighlightedEventId(event.id);
+        // Remove highlight after 3s
+        setTimeout(() => setHighlightedEventId(null), 3000);
+    }, []);
+
+    /**
      * Handle delete appointment from popover actions (soft delete)
      */
     const handleDeleteAppointmentClick = useCallback(async () => {
@@ -1153,6 +1196,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                         </PageTitle>
                     </div>
                     <PageHeaderRight>
+                        <SearchBtn onClick={() => setSearchOpen(true)} aria-label="Szukaj wizyt">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="11" cy="11" r="8" />
+                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            </svg>
+                        </SearchBtn>
                         <MonthNavGroup>
                             <NavIconBtn
                                 onClick={() => calendarRef.current?.getApi().prev()}
@@ -1361,6 +1411,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     const status = props.status as string | undefined;
                     const isCancelled = status === 'ABANDONED' || status === 'CANCELLED';
                     const color = arg.event.backgroundColor || '#6366f1';
+                    const isHighlighted = highlightedEventId === arg.event.id;
 
                     // Daygrid month view: chip style matching prototype (time + title, alpha bg, left border)
                     if (arg.view.type === 'dayGridMonth') {
@@ -1375,13 +1426,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                                 gap: '5px',
                                 width: '100%',
                                 padding: '3px 6px 3px 4px',
-                                background: `${color}14`,
+                                background: isHighlighted ? `${color}40` : `${color}14`,
                                 borderLeft: `3px solid ${color}`,
                                 borderRadius: '5px',
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
                                 textOverflow: 'ellipsis',
                                 lineHeight: 1.2,
+                                outline: isHighlighted ? `2px solid ${color}` : 'none',
+                                outlineOffset: '1px',
+                                transition: 'background 0.3s, outline 0.3s',
                             }}>
                                 {timeStr && (
                                     <span style={{
@@ -1475,6 +1529,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     onRestoreAppointmentClick={handleRestoreAppointmentClick}
                     onDeleteAppointmentClick={handleDeleteAppointmentClick}
                     onEditEndDateClick={popoverEvent?.type === 'VISIT' ? handleEditEndDateClick : undefined}
+                />
+            )}
+
+            {searchOpen && (
+                <CalendarSearchModal
+                    onClose={() => setSearchOpen(false)}
+                    onSelectEvent={handleSearchSelect}
                 />
             )}
 
