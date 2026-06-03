@@ -227,6 +227,22 @@ export const PanelLinkBtn = styled(Link)`
   svg { width: 13px; height: 13px; }
 `;
 
+export const PanelActionBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #0284c7;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color 180ms ease;
+  &:hover { color: #0369a1; }
+  svg { width: 13px; height: 13px; }
+`;
+
 // ─── Identity panel ───────────────────────────────────────────────────────────
 
 export const IdentityRow = styled.div`

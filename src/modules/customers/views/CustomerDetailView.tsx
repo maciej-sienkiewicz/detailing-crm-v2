@@ -29,7 +29,7 @@ import {
     PageHeader, HeaderLeft, HeaderMetaRow, PageTitle, MetaText, HeaderActions,
     TierBadge,
     TwoColGrid, LeftRail, MainCol,
-    Panel, PanelHead, PanelTitle, PanelBody, PanelBodyFlush, PanelCountBadge, PanelLinkBtn,
+    Panel, PanelHead, PanelTitle, PanelBody, PanelBodyFlush, PanelCountBadge, PanelLinkBtn, PanelActionBtn,
     IdentityRow, Avatar, IdentityMeta, IdentityName, IdentityId,
     ContactList, ContactRow,
     VehicleItem, VehicleInfo, VehicleName, VehicleSub,
@@ -397,7 +397,7 @@ export const CustomerDetailView = () => {
                                     Pojazdy
                                 </PanelTitle>
                                 <PanelCountBadge>{vehicles.length}</PanelCountBadge>
-                                <PanelLinkBtn onClick={() => setIsAddVehicleOpen(true)}>+ Dodaj</PanelLinkBtn>
+                                <PanelActionBtn onClick={() => setIsAddVehicleOpen(true)}>+ Dodaj</PanelActionBtn>
                             </PanelHead>
                             <PanelBodyFlush>
                                 {vehiclesLoading ? (
