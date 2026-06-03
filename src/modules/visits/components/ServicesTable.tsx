@@ -876,11 +876,14 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 adjustment: { type: 'FIXED_NET', value: 0 },
                 note: '',
             })),
-            updated: Object.entries(editedPrices).map(([serviceLineItemId, { basePriceNet, adjustment }]) => ({
-                serviceLineItemId,
-                basePriceNet,
-                adjustment,
-            })),
+            updated: Object.entries(editedPrices).map(([serviceLineItemId, { adjustment }]) => {
+                const originalService = services.find(s => s.id === serviceLineItemId);
+                return {
+                    serviceLineItemId,
+                    basePriceNet: originalService?.basePriceNet ?? 0,
+                    adjustment,
+                };
+            }),
             deleted: Array.from(deletedIds).map(id => ({ serviceLineItemId: id })),
         };
         saveServicesChanges(payload, {
