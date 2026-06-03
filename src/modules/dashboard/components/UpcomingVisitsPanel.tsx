@@ -367,7 +367,7 @@ interface ContextMenuState {
   y: number;
 }
 
-const VISIBLE_LIMIT = 10;
+const VISIBLE_LIMIT = 5;
 
 export const UpcomingVisitsPanel = () => {
   const navigate = useNavigate();
