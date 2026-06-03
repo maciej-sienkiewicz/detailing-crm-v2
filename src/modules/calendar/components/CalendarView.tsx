@@ -254,7 +254,7 @@ const CalendarContainer = styled.div`
         inset: -2px;
         border-radius: 7px;
         background-color: #0ea5e9;
-        animation: fc-search-pulse 1.0s ease-in-out 3;
+        animation: fc-search-pulse 1.0s ease-in-out 7;
         z-index: 1;
         pointer-events: none;
     }
@@ -1139,8 +1139,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
             setIsNavigating(false);
             setTimeout(() => {
                 setHighlightedEventId(event.id);
-                // Pulse runs 3 iterations × 1s → remove class after ~3.2s
-                setTimeout(() => setHighlightedEventId(null), 3200);
+                // Pulse runs 7 iterations × 1s → remove class after ~7.2s
+                setTimeout(() => setHighlightedEventId(null), 7200);
             }, 50); // tiny delay so FC has rendered before highlight fires
         }, 220);
     }, []);
