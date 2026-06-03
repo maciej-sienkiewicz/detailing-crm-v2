@@ -190,8 +190,8 @@ export const mapBackendReservationToReservation = (appointment: BackendAppointme
         licensePlate: appointment.vehicle?.licensePlate,
         status: appointment.status.toUpperCase() as Reservation['status'],
         totalCost: {
-            netAmount: appointment.totalNet,
-            grossAmount: appointment.totalGross,
+            netAmount: appointment.totalNet / 100,
+            grossAmount: appointment.totalGross / 100,
             currency: 'PLN',
         },
     };
