@@ -480,8 +480,8 @@ export const customerDetailApi = {
         const raw = response.data;
         return {
             ...raw,
-            buckets: raw.buckets,
-            total: raw.total,
+            buckets: raw.buckets.map(b => ({ ...b, grossAmount: b.grossAmount / 100 })),
+            total: { ...raw.total, grossAmount: raw.total.grossAmount / 100, netAmount: raw.total.netAmount / 100 },
         };
     },
 
