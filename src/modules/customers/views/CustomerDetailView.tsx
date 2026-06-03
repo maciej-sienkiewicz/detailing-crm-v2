@@ -15,6 +15,7 @@ import { DocumentsManager } from '../components/DocumentsManager';
 import { CustomerConsentsSection } from '../components/CustomerConsentsSection';
 import { AuditTimeline } from '@/common/components/AuditTimeline';
 import { EditCustomerModal } from '../components/EditCustomerModal';
+import { AddVehicleModal } from '../components/AddVehicleModal';
 import { SharedButton } from '@/common/styles/sharedButtonStyles';
 import { formatCurrency } from '../utils/customerMappers';
 import { formatDate } from '@/common/utils';
@@ -134,6 +135,7 @@ export const CustomerDetailView = () => {
     const navigate = useNavigate();
 
     const [isEditModalOpen,   setIsEditModalOpen]   = useState(false);
+    const [isAddVehicleOpen,  setIsAddVehicleOpen]  = useState(false);
     const [editModalInitialTab, setEditModalInitialTab] = useState<'basic' | 'address' | 'company'>('basic');
     const [isDocsOpen,             setIsDocsOpen]             = useState(false);
     const [isCommOpen,             setIsCommOpen]             = useState(false);
@@ -395,6 +397,7 @@ export const CustomerDetailView = () => {
                                     Pojazdy
                                 </PanelTitle>
                                 <PanelCountBadge>{vehicles.length}</PanelCountBadge>
+                                <PanelLinkBtn onClick={() => setIsAddVehicleOpen(true)}>+ Dodaj</PanelLinkBtn>
                             </PanelHead>
                             <PanelBodyFlush>
                                 {vehiclesLoading ? (
@@ -767,6 +770,13 @@ export const CustomerDetailView = () => {
                 customer={customer}
                 initialTab={editModalInitialTab}
             />
+
+            {isAddVehicleOpen && (
+                <AddVehicleModal
+                    customerId={customerId!}
+                    onClose={() => setIsAddVehicleOpen(false)}
+                />
+            )}
 
             {reservationMenu && (
                 <ReservationContextMenu
