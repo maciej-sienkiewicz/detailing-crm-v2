@@ -172,7 +172,7 @@ const DayLabel = styled.div`
     z-index: 1;
 `;
 
-const ResultRow = styled.button`
+const ResultRow = styled.button<{ $muted?: boolean }>`
     display: grid;
     grid-template-columns: 1fr auto;
     align-items: start;
@@ -185,6 +185,7 @@ const ResultRow = styled.button`
     text-align: left;
     font-family: inherit;
     transition: background 0.1s;
+    opacity: ${p => p.$muted ? 0.42 : 1};
 
     &:hover {
         background: #f8fafc;
@@ -202,11 +203,11 @@ const ResultLeft = styled.div`
     min-width: 0;
 `;
 
-const ColorDot = styled.div<{ $color: string }>`
+const ColorDot = styled.div<{ $color: string; $muted?: boolean }>`
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: ${p => p.$color};
+    background: ${p => p.$muted ? '#cbd5e1' : p.$color};
     flex-shrink: 0;
     margin-top: 3px;
 `;
@@ -309,6 +310,13 @@ function formatDayLabel(date: Date): string {
 function formatPrice(amount: number | undefined, currency = 'PLN'): string {
     if (!amount) return '—';
     return `${(amount / 100).toFixed(2)} ${currency}`;
+}
+
+const FINISHED_STATUSES = new Set(['COMPLETED', 'ARCHIVED', 'ABANDONED', 'CANCELLED']);
+
+function isFinished(event: CalendarEvent): boolean {
+    const status = (event.extendedProps as AppointmentEventData | VisitEventData).status;
+    return !!status && FINISHED_STATUSES.has(status);
 }
 
 function matchesQuery(event: CalendarEvent, q: string): boolean {
@@ -478,10 +486,11 @@ export const CalendarSearchModal: React.FC<CalendarSearchModalProps> = ({ onClos
                                         const vehicle = (props as VisitEventData).licensePlate
                                             ? `${props.vehicleInfo} · ${(props as VisitEventData).licensePlate}`
                                             : props.vehicleInfo;
+                                        const muted = isFinished(event);
                                         return (
-                                            <ResultRow key={event.id} onClick={() => handleSelect(event)}>
+                                            <ResultRow key={event.id} $muted={muted} onClick={() => handleSelect(event)}>
                                                 <ResultLeft>
-                                                    <ColorDot $color={event.backgroundColor || '#6366f1'} />
+                                                    <ColorDot $color={event.backgroundColor || '#6366f1'} $muted={muted} />
                                                     <ResultContent>
                                                         <ResultTitle>{event.title}</ResultTitle>
                                                         <ResultMeta>{props.customerName} · {vehicle}</ResultMeta>
