@@ -92,7 +92,7 @@ export const AddVehicleModal = ({ customerId, onClose }: Props) => {
     };
 
     return (
-        <ModalShell onClose={onClose}>
+        <ModalShell isOpen onClose={onClose}>
             <form onSubmit={handleSubmit}>
                 <ModalHeader>
                     <ModalTitleGroup>
