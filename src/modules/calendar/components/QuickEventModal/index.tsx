@@ -705,9 +705,6 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                     </>
                                                 )}
                                             </S.ChipInfo>
-                                            <S.ChipEdit type="button" onClick={form.handleEnterVehicleEditMode} title="Popraw dane pojazdu">
-                                                <IconPencil />
-                                            </S.ChipEdit>
                                             <S.ChipClear
                                                 type="button"
                                                 onClick={() => {
