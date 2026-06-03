@@ -238,6 +238,27 @@ const CalendarContainer = styled.div`
         pointer-events: none;
     }
 
+    /* Search result highlight */
+    @keyframes fc-search-pulse {
+        0%, 100% { opacity: 0; }
+        40%, 60% { opacity: 1; }
+    }
+
+    .fc-event-search-highlight {
+        overflow: visible !important;
+    }
+
+    .fc-event-search-highlight::after {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 7px;
+        background-color: #0ea5e9;
+        animation: fc-search-pulse 1.0s ease-in-out 3;
+        z-index: 1;
+        pointer-events: none;
+    }
+
     /* ===================== TIME GRID ===================== */
     .fc-timegrid-slot {
         height: 48px;
@@ -838,6 +859,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
     const [searchOpen, setSearchOpen] = useState(false);
     const [highlightedEventId, setHighlightedEventId] = useState<string | null>(null);
+    const [isNavigating, setIsNavigating] = useState(false);
 
     // Fix .fc-more-popover clipping: CalendarWrapper has overflow:hidden which
     // clips FullCalendar's absolutely-positioned popover. Watch for it being
@@ -1092,20 +1114,32 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     }, [popoverEvent, showSuccess, queryClient]);
 
     /**
-     * Handle event selected from search modal — navigate calendar to its date and highlight it
+     * Handle event selected from search modal — navigate calendar to its date and highlight it.
+     * Uses a fade-out → navigate → fade-in transition for a smooth UX.
      */
     const handleSearchSelect = useCallback((event: CalendarEvent) => {
         const eventDate = new Date(event.start as string);
-        const calApi = calendarRef.current?.getApi();
-        if (calApi) {
-            // Switch to month view and go to the event's date
-            calApi.changeView('dayGridMonth');
-            calApi.gotoDate(eventDate);
-        }
-        setCurrentView('dayGridMonth');
-        setHighlightedEventId(event.id);
-        // Remove highlight after 3s
-        setTimeout(() => setHighlightedEventId(null), 3000);
+
+        // Phase 1: fade out the calendar grid
+        setIsNavigating(true);
+
+        setTimeout(() => {
+            // Phase 2: navigate (invisible to user)
+            const calApi = calendarRef.current?.getApi();
+            if (calApi) {
+                calApi.changeView('dayGridMonth');
+                calApi.gotoDate(eventDate);
+            }
+            setCurrentView('dayGridMonth');
+
+            // Phase 3: fade back in, then start highlight pulse
+            setIsNavigating(false);
+            setTimeout(() => {
+                setHighlightedEventId(event.id);
+                // Pulse runs 3 iterations × 1s → remove class after ~3.2s
+                setTimeout(() => setHighlightedEventId(null), 3200);
+            }, 50); // tiny delay so FC has rendered before highlight fires
+        }, 220);
     }, []);
 
     /**
@@ -1332,10 +1366,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 )}
 
                 {/* FullCalendar – always mounted so its API & state machine stay active.
-                    Hidden when custom views are active (height:0 keeps JS running). */}
+                    Hidden when custom views are active (height:0 keeps JS running).
+                    opacity transition gives a smooth fade during search navigation. */}
                 <div style={currentView === 'timeGridWeek' || currentView === 'timeGridDay'
                     ? { height: 0, overflow: 'hidden', pointerEvents: 'none' }
-                    : { height: '100%' }
+                    : {
+                        height: '100%',
+                        opacity: isNavigating ? 0 : 1,
+                        transition: 'opacity 0.22s ease',
+                        pointerEvents: isNavigating ? 'none' : undefined,
+                    }
                 }>
                 <FullCalendar
                 ref={calendarRef}
@@ -1406,12 +1446,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 displayEventTime={false}
 
                 // Custom event content
+                eventClassNames={(arg) =>
+                    highlightedEventId === arg.event.id ? ['fc-event-search-highlight'] : []
+                }
+
                 eventContent={(arg) => {
                     const props = arg.event.extendedProps as AppointmentEventData | VisitEventData;
                     const status = props.status as string | undefined;
                     const isCancelled = status === 'ABANDONED' || status === 'CANCELLED';
                     const color = arg.event.backgroundColor || '#6366f1';
-                    const isHighlighted = highlightedEventId === arg.event.id;
 
                     // Daygrid month view: chip style matching prototype (time + title, alpha bg, left border)
                     if (arg.view.type === 'dayGridMonth') {
@@ -1426,16 +1469,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                                 gap: '5px',
                                 width: '100%',
                                 padding: '3px 6px 3px 4px',
-                                background: isHighlighted ? `${color}40` : `${color}14`,
+                                background: `${color}14`,
                                 borderLeft: `3px solid ${color}`,
                                 borderRadius: '5px',
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
                                 textOverflow: 'ellipsis',
                                 lineHeight: 1.2,
-                                outline: isHighlighted ? `2px solid ${color}` : 'none',
-                                outlineOffset: '1px',
-                                transition: 'background 0.3s, outline 0.3s',
                             }}>
                                 {timeStr && (
                                     <span style={{
