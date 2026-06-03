@@ -745,16 +745,19 @@ const ViewSwitchBtn = styled.button<{ $active: boolean }>`
 `;
 
 const SearchBtn = styled.button`
-    width: 34px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 14px 0 10px;
     height: 34px;
     border-radius: 10px;
     border: 1px solid #e2e8f0;
     background: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     cursor: pointer;
     color: #475569;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
     transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
 
     &:hover {
@@ -763,7 +766,7 @@ const SearchBtn = styled.button`
         color: #0f172a;
     }
 
-    svg { width: 16px; height: 16px; }
+    svg { width: 15px; height: 15px; flex-shrink: 0; }
 `;
 
 const NewEventBtn = styled.button`
@@ -1236,6 +1239,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                                 <circle cx="11" cy="11" r="8" />
                                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
                             </svg>
+                            Wyszukaj
                         </SearchBtn>
                         <MonthNavGroup>
                             <NavIconBtn
