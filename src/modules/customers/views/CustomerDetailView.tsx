@@ -47,6 +47,28 @@ import {
 
 // ─── Local styled components ──────────────────────────────────────────────────
 
+const AddVehicleButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border: 1.5px solid ${st.accentBlue};
+    border-radius: ${st.radiusFull};
+    background: transparent;
+    color: ${st.accentBlue};
+    font-size: ${st.fontXs};
+    font-weight: 600;
+    cursor: pointer;
+    transition: all ${st.transition};
+
+    &:hover {
+        background: ${st.accentBlue};
+        color: white;
+    }
+
+    svg { width: 12px; height: 12px; }
+`;
+
 
 const PaginationBar = styled.div`
   display: flex;
@@ -397,7 +419,13 @@ export const CustomerDetailView = () => {
                                     Pojazdy
                                 </PanelTitle>
                                 <PanelCountBadge>{vehicles.length}</PanelCountBadge>
-                                <PanelActionBtn onClick={() => setIsAddVehicleOpen(true)}>+ Dodaj</PanelActionBtn>
+                                <AddVehicleButton onClick={() => setIsAddVehicleOpen(true)}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <line x1="12" y1="5" x2="12" y2="19" />
+                                        <line x1="5" y1="12" x2="19" y2="12" />
+                                    </svg>
+                                    Dodaj
+                                </AddVehicleButton>
                             </PanelHead>
                             <PanelBodyFlush>
                                 {vehiclesLoading ? (
