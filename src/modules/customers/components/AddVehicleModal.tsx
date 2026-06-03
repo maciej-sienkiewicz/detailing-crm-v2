@@ -11,6 +11,7 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
+import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { useAddVehicle } from '../hooks/useAddVehicle';
 import type { AddVehiclePayload } from '../types';
 
@@ -87,6 +88,7 @@ export const AddVehicleModal = ({ customerId, onClose }: Props) => {
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
+        if (!form.make || !form.model || !form.licensePlate) return;
         const ok = await addVehicle(form);
         if (ok) onClose();
     };
@@ -105,24 +107,19 @@ export const AddVehicleModal = ({ customerId, onClose }: Props) => {
                 <ModalContent>
                     <FormGrid>
                         <FieldWrap>
-                            <Label htmlFor="make">Marka *</Label>
-                            <Input
-                                id="make"
+                            <Label>Marka *</Label>
+                            <BrandSelect
                                 value={form.make}
-                                onChange={set('make')}
-                                placeholder="np. BMW"
-                                required
+                                onChange={brand => setForm(prev => ({ ...prev, make: brand, model: '' }))}
                             />
                         </FieldWrap>
 
                         <FieldWrap>
-                            <Label htmlFor="model">Model *</Label>
-                            <Input
-                                id="model"
+                            <Label>Model *</Label>
+                            <ModelSelect
+                                brand={form.make}
                                 value={form.model}
-                                onChange={set('model')}
-                                placeholder="np. M3"
-                                required
+                                onChange={model => setForm(prev => ({ ...prev, model }))}
                             />
                         </FieldWrap>
 
