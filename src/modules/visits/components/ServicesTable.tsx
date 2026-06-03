@@ -1,7 +1,7 @@
 import styled, { keyframes, css } from 'styled-components';
 import { useState } from 'react';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
-import { netPlnToGrossPln, grossPlnToNetPln } from '@/common/utils/priceAdjustment';
+import { netPlnToGrossPln, grossPlnToNetPln, netToGross } from '@/common/utils/priceAdjustment';
 import { formatCurrency } from '@/common/utils';
 import type { ServiceLineItem, VisitStatus } from '../types';
 import type { ServicesChangesPayload } from '../types';
@@ -143,6 +143,19 @@ const EditPriceBtn = styled.button`
     svg { width: 11px; height: 11px; }
 
     @media (max-width: 767px) { padding: 8px 14px; font-size: ${st.fontSm}; min-height: 36px; }
+`;
+
+const VatEditSelect = styled.select`
+    padding: 4px 6px;
+    border: 1.5px solid ${BRAND};
+    border-radius: 7px;
+    font-size: 13px;
+    font-family: inherit;
+    color: ${st.text};
+    background: ${st.bgCard};
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+    cursor: pointer;
 `;
 
 const PriceEditInput = styled.input`
@@ -757,7 +770,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const [editNetStr, setEditNetStr] = useState('');
     const [editGrossStr, setEditGrossStr] = useState('');
     const [editLastField, setEditLastField] = useState<'net' | 'gross'>('gross');
-    const [editedPrices, setEditedPrices] = useState<Record<string, { basePriceNet: number; adjustment: { type: 'SET_NET' | 'SET_GROSS'; value: number } }>>({}); // id → price override
+    const [editedPrices, setEditedPrices] = useState<Record<string, { basePriceNet: number; vatRate: number; adjustment: { type: 'SET_NET' | 'SET_GROSS'; value: number } }>>({}); // id → price override
+    const [editVatRate, setEditVatRate] = useState<number>(23);
 
     const epln = (c: number) => c / 100;
     const eCents = (v: number) => Math.round(v * 100);
@@ -769,10 +783,12 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const startEditPrice = (service: ServiceLineItem) => {
         const pricing = calculateServicePrice(service);
         const netCents = editedPrices[service.id]?.basePriceNet ?? pricing.finalPriceNet;
+        const currentVat = editedPrices[service.id]?.vatRate ?? service.vatRate;
         const netPln = epln(netCents);
         setEditingId(service.id);
+        setEditVatRate(currentVat);
         setEditNetStr(eFmt(netPln));
-        setEditGrossStr(eFmt(eGrossFromNet(netPln, service.vatRate)));
+        setEditGrossStr(eFmt(eGrossFromNet(netPln, currentVat)));
     };
 
     const confirmEditPrice = (serviceId: string) => {
@@ -782,27 +798,33 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             const adjustment = editLastField === 'gross' && gross !== null
                 ? { type: 'SET_GROSS' as const, value: eCents(gross) }
                 : { type: 'SET_NET' as const, value: eCents(net) };
-            setEditedPrices(prev => ({ ...prev, [serviceId]: { basePriceNet: eCents(net), adjustment } }));
+            setEditedPrices(prev => ({ ...prev, [serviceId]: { basePriceNet: eCents(net), vatRate: editVatRate, adjustment } }));
         }
         setEditingId(null);
     };
 
+    const handleEditVatChange = (vat: number) => {
+        setEditVatRate(vat);
+        const net = eParse(editNetStr);
+        if (net !== null) setEditGrossStr(eFmt(eGrossFromNet(net, vat)));
+    };
+
     const cancelEditPrice = () => setEditingId(null);
 
-    const handleEditNetChange = (val: string, vatRate: number) => {
+    const handleEditNetChange = (val: string) => {
         if (val && !/^[0-9]*[,.]?[0-9]{0,2}$/.test(val)) return;
         setEditLastField('net');
         setEditNetStr(val);
         const n = eParse(val);
-        if (n !== null) setEditGrossStr(eFmt(eGrossFromNet(n, vatRate)));
+        if (n !== null) setEditGrossStr(eFmt(eGrossFromNet(n, editVatRate)));
     };
 
-    const handleEditGrossChange = (val: string, vatRate: number) => {
+    const handleEditGrossChange = (val: string) => {
         if (val && !/^[0-9]*[,.]?[0-9]{0,2}$/.test(val)) return;
         setEditLastField('gross');
         setEditGrossStr(val);
         const g = eParse(val);
-        if (g !== null) setEditNetStr(eFmt(eNetFromGross(g, vatRate)));
+        if (g !== null) setEditNetStr(eFmt(eNetFromGross(g, editVatRate)));
     };
 
     const addNewRow = () => {
@@ -876,11 +898,12 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 adjustment: { type: 'FIXED_NET', value: 0 },
                 note: '',
             })),
-            updated: Object.entries(editedPrices).map(([serviceLineItemId, { adjustment }]) => {
+            updated: Object.entries(editedPrices).map(([serviceLineItemId, { vatRate, adjustment }]) => {
                 const originalService = services.find(s => s.id === serviceLineItemId);
                 return {
                     serviceLineItemId,
                     basePriceNet: originalService?.basePriceNet ?? 0,
+                    vatRate,
                     adjustment,
                 };
             }),
@@ -922,7 +945,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 totalOriginalGross += gross;
             } else if (editedPrices[service.id] !== undefined) {
                 const net = editedPrices[service.id].basePriceNet;
-                const gross = service.vatRate <= 0 ? net : Math.round(net * (1 + service.vatRate / 100));
+                const gross = netToGross(net, editedPrices[service.id].vatRate);
                 totalFinalNet += net;
                 totalFinalGross += gross;
                 totalVat += Math.max(gross - net, 0);
@@ -1068,7 +1091,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                                 return (
                                                     <PriceEditInput
                                                         value={editNetStr}
-                                                        onChange={e => handleEditNetChange(e.target.value, service.vatRate)}
+                                                        onChange={e => handleEditNetChange(e.target.value)}
                                                         onKeyDown={e => { if (e.key === 'Enter') confirmEditPrice(service.id); if (e.key === 'Escape') cancelEditPrice(); }}
                                                         autoFocus
                                                         placeholder="0.00"
@@ -1099,7 +1122,23 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                     </PriceStack>
                                 </Td>
                                 <Td>
-                                    <PriceValue>{service.vatRate === -1 ? 'zw.' : `${service.vatRate}%`}</PriceValue>
+                                    {isEditing ? (
+                                        <VatEditSelect
+                                            value={editVatRate}
+                                            onChange={e => handleEditVatChange(Number(e.target.value))}
+                                        >
+                                            <option value={23}>23%</option>
+                                            <option value={8}>8%</option>
+                                            <option value={5}>5%</option>
+                                            <option value={0}>0%</option>
+                                            <option value={-1}>zw.</option>
+                                        </VatEditSelect>
+                                    ) : (
+                                        <PriceValue>{editedPrices[service.id]?.vatRate !== undefined
+                                            ? (editedPrices[service.id].vatRate === -1 ? 'zw.' : `${editedPrices[service.id].vatRate}%`)
+                                            : (service.vatRate === -1 ? 'zw.' : `${service.vatRate}%`)
+                                        }</PriceValue>
+                                    )}
                                 </Td>
                                 <Td>
                                     <PriceStack>
@@ -1135,14 +1174,15 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                                 return (
                                                     <PriceEditInput
                                                         value={editGrossStr}
-                                                        onChange={e => handleEditGrossChange(e.target.value, service.vatRate)}
+                                                        onChange={e => handleEditGrossChange(e.target.value)}
                                                         onKeyDown={e => { if (e.key === 'Enter') confirmEditPrice(service.id); if (e.key === 'Escape') cancelEditPrice(); }}
                                                         placeholder="0.00"
                                                     />
                                                 );
                                             }
                                             if (hasEditedPrice) {
-                                                const editedGross = service.vatRate <= 0 ? editedPrices[service.id].basePriceNet : Math.round(editedPrices[service.id].basePriceNet * (1 + service.vatRate / 100));
+                                                const editedVat = editedPrices[service.id].vatRate;
+                                                const editedGross = netToGross(editedPrices[service.id].basePriceNet, editedVat);
                                                 return (
                                                     <EditedPriceWrap>
                                                         <PriceValue>{formatCurrency(editedGross / 100)}</PriceValue>
