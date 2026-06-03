@@ -88,7 +88,7 @@ export const AddVehicleModal = ({ customerId, onClose }: Props) => {
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
-        if (!form.make || !form.model || !form.licensePlate) return;
+        if (!form.make || !form.model) return;
         const ok = await addVehicle(form);
         if (ok) onClose();
     };
@@ -124,7 +124,7 @@ export const AddVehicleModal = ({ customerId, onClose }: Props) => {
                         </FieldWrap>
 
                         <FieldWrap>
-                            <Label htmlFor="year">Rok produkcji *</Label>
+                            <Label htmlFor="year">Rok produkcji</Label>
                             <Input
                                 id="year"
                                 type="number"
@@ -137,13 +137,12 @@ export const AddVehicleModal = ({ customerId, onClose }: Props) => {
                         </FieldWrap>
 
                         <FieldWrap>
-                            <Label htmlFor="licensePlate">Nr rejestracyjny *</Label>
+                            <Label htmlFor="licensePlate">Nr rejestracyjny</Label>
                             <Input
                                 id="licensePlate"
                                 value={form.licensePlate}
                                 onChange={set('licensePlate')}
                                 placeholder="np. WA12345"
-                                required
                             />
                         </FieldWrap>
 
