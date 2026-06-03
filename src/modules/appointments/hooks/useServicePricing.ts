@@ -2,13 +2,8 @@
 import { dinero, add, subtract, toDecimal } from 'dinero.js';
 import { PLN } from '@dinero.js/currencies';
 import { interpolate, t } from '@/common/i18n';
+import { netToGross, grossToNet } from '@/common/utils/priceAdjustment';
 import type { ServiceLineItem, MoneyAmount } from '../types';
-
-const netToGross = (netCents: number, vatRate: number): number =>
-    vatRate <= 0 ? netCents : netCents + Math.round(netCents * vatRate / 100);
-
-const grossToNet = (grossCents: number, vatRate: number): number =>
-    vatRate <= 0 ? grossCents : Math.round((grossCents * 100) / (100 + vatRate));
 
 export interface PricingResult {
     originalPriceNet: MoneyAmount;

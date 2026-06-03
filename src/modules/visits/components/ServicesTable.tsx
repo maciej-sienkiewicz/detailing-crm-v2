@@ -1,6 +1,7 @@
 import styled, { keyframes, css } from 'styled-components';
 import { useState } from 'react';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
+import { netPlnToGrossPln, grossPlnToNetPln } from '@/common/utils/priceAdjustment';
 import { formatCurrency } from '@/common/utils';
 import type { ServiceLineItem, VisitStatus } from '../types';
 import type { ServicesChangesPayload } from '../types';
@@ -760,8 +761,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
     const epln = (c: number) => c / 100;
     const eCents = (v: number) => Math.round(v * 100);
-    const eGrossFromNet = (net: number, vat: number) => vat <= 0 ? net : net * (1 + vat / 100);
-    const eNetFromGross = (gross: number, vat: number) => vat <= 0 ? gross : gross / (1 + vat / 100);
+    const eGrossFromNet = netPlnToGrossPln;
+    const eNetFromGross = grossPlnToNetPln;
     const eFmt = (v: number) => v.toFixed(2);
     const eParse = (raw: string) => { const v = parseFloat(raw.replace(',', '.')); return isNaN(v) || v < 0 ? null : v; };
 

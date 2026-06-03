@@ -14,6 +14,7 @@ import { useQuickEventForm } from './useQuickEventForm';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { ServicesTable } from '@/common/components/ServicesTable';
 import type { ServiceLineItem } from '@/common/components/ServicesTable';
+import { netToGross } from '@/common/utils/priceAdjustment';
 import {
     IconClock, IconUser, IconCar, IconSettings, IconNote,
     IconX, IconPalette, IconPlus, IconPencil, IconCheck, IconMessageSquare,
@@ -910,7 +911,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             <S.ServiceDropdownManualBadge>WYCENA</S.ServiceDropdownManualBadge>
                                                         ) : (
                                                             <S.ServiceDropdownPrices>
-                                                                <S.ServiceDropdownGross>{(service.vatRate <= 0 ? service.basePriceNet / 100 : (service.basePriceNet / 100) * (100 + service.vatRate) / 100).toFixed(2)} zł brutto</S.ServiceDropdownGross>
+                                                                <S.ServiceDropdownGross>{(netToGross(service.basePriceNet, service.vatRate) / 100).toFixed(2)} zł brutto</S.ServiceDropdownGross>
                                                                 <S.ServiceDropdownNet>{(service.basePriceNet / 100).toFixed(2)} zł netto</S.ServiceDropdownNet>
                                                             </S.ServiceDropdownPrices>
                                                         )}

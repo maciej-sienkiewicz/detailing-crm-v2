@@ -1,6 +1,7 @@
 // src/modules/services/utils/priceCalculator.ts
 import { dinero, add, toDecimal } from 'dinero.js';
 import { PLN } from '@dinero.js/currencies';
+import { netToGross, grossToNet } from '@/common/utils/priceAdjustment';
 import type { VatRate, ServicePriceCalculation } from '../types';
 
 const createMoney = (amount: number) => dinero({ amount, currency: PLN });
@@ -11,35 +12,19 @@ const toMoneyAmount = (money: ReturnType<typeof dinero>): number => {
 };
 
 export const calculateGrossFromNet = (netAmount: number, vatRate: VatRate): ServicePriceCalculation => {
-    const netMoney = createMoney(netAmount);
-
-    const vatAmount = vatRate === -1 ? 0 : Math.round((netAmount * vatRate) / 100);
-    const vatMoney = createMoney(vatAmount);
-
-    const grossMoney = add(netMoney, vatMoney);
-
+    const grossAmount = netToGross(netAmount, vatRate);
     return {
         priceNet: netAmount,
-        vatAmount,
-        priceGross: toMoneyAmount(grossMoney),
+        vatAmount: grossAmount - netAmount,
+        priceGross: grossAmount,
     };
 };
 
 export const calculateNetFromGross = (grossAmount: number, vatRate: VatRate): ServicePriceCalculation => {
-    if (vatRate === -1 || vatRate === 0) {
-        return {
-            priceNet: grossAmount,
-            vatAmount: 0,
-            priceGross: grossAmount,
-        };
-    }
-
-    const netAmount = Math.round((grossAmount * 100) / (100 + vatRate));
-    const vatAmount = grossAmount - netAmount;
-
+    const netAmount = grossToNet(grossAmount, vatRate);
     return {
         priceNet: netAmount,
-        vatAmount,
+        vatAmount: grossAmount - netAmount,
         priceGross: grossAmount,
     };
 };

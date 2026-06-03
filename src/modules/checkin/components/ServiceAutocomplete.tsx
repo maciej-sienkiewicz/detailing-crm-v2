@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@/common/hooks';
 import { Input } from '@/common/components/Form';
 import { formatCurrency } from '@/common/utils';
+import { netToGross } from '@/common/utils/priceAdjustment';
 import { servicesApi } from '@/modules/services/api/servicesApi';
 import type { Service } from '@/modules/services/types';
 
@@ -175,9 +176,7 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
                             {services.length > 0 ? (
                                 services.map((service) => {
                                     const priceNet = service.basePriceNet / 100;
-                                    const priceGross = service.vatRate <= 0
-                                        ? priceNet
-                                        : (service.basePriceNet * (100 + service.vatRate)) / 10000;
+                                    const priceGross = netToGross(service.basePriceNet, service.vatRate) / 100;
 
                                     return (
                                         <SuggestionItem

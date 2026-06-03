@@ -1,8 +1,5 @@
 import { useState } from 'react';
-import { applyAdjustment, distributeAdjustment } from '@/common/utils/priceAdjustment';
-
-const netToGross = (netCents: number, vatRate: number): number =>
-    vatRate <= 0 ? netCents : netCents + Math.round(netCents * vatRate / 100);
+import { applyAdjustment, distributeAdjustment, netToGross } from '@/common/utils/priceAdjustment';
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
 import * as S from './styles';
 

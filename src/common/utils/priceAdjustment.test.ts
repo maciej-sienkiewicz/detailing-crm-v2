@@ -1,5 +1,96 @@
 import { describe, it, expect } from 'vitest';
-import { applyAdjustment, distributeAdjustment, toApiServiceLineItem } from './priceAdjustment';
+import {
+    netToGross, grossToNet,
+    netPlnToGrossPln, grossPlnToNetPln,
+    applyAdjustment, distributeAdjustment, toApiServiceLineItem,
+} from './priceAdjustment';
+
+// ─── netToGross ───────────────────────────────────────────────────────────────
+
+describe('netToGross', () => {
+    it('standard VAT 23%', () => {
+        expect(netToGross(10000, 23)).toBe(12300);
+    });
+
+    it('standard VAT 8%', () => {
+        expect(netToGross(10000, 8)).toBe(10800);
+    });
+
+    it('VAT 0% — gross equals net', () => {
+        expect(netToGross(10000, 0)).toBe(10000);
+    });
+
+    it('VAT ZW (-1) — gross equals net', () => {
+        expect(netToGross(100000, -1)).toBe(100000);
+    });
+
+    it('rounding: 1000 net at 23% → 1230 (no remainder)', () => {
+        expect(netToGross(1000, 23)).toBe(1230);
+    });
+
+    it('rounding: 1 cent net at 23% → 1 (rounds down)', () => {
+        expect(netToGross(1, 23)).toBe(1);
+    });
+});
+
+// ─── grossToNet ───────────────────────────────────────────────────────────────
+
+describe('grossToNet', () => {
+    it('standard VAT 23%', () => {
+        expect(grossToNet(12300, 23)).toBe(10000);
+    });
+
+    it('standard VAT 8%', () => {
+        expect(grossToNet(10800, 8)).toBe(10000);
+    });
+
+    it('VAT 0% — net equals gross', () => {
+        expect(grossToNet(10000, 0)).toBe(10000);
+    });
+
+    it('VAT ZW (-1) — net equals gross', () => {
+        expect(grossToNet(100000, -1)).toBe(100000);
+    });
+
+    it('grossToNet is inverse of netToGross for standard rates', () => {
+        const net = 15000;
+        expect(grossToNet(netToGross(net, 23), 23)).toBe(net);
+        expect(grossToNet(netToGross(net, 8), 8)).toBe(net);
+        expect(grossToNet(netToGross(net, 5), 5)).toBe(net);
+    });
+});
+
+// ─── netPlnToGrossPln ─────────────────────────────────────────────────────────
+
+describe('netPlnToGrossPln', () => {
+    it('standard VAT 23%', () => {
+        expect(netPlnToGrossPln(1000, 23)).toBe(1230);
+    });
+
+    it('VAT ZW (-1) — gross equals net', () => {
+        expect(netPlnToGrossPln(1260, -1)).toBe(1260);
+    });
+
+    it('VAT 0% — gross equals net', () => {
+        expect(netPlnToGrossPln(500, 0)).toBe(500);
+    });
+});
+
+// ─── grossPlnToNetPln ─────────────────────────────────────────────────────────
+
+describe('grossPlnToNetPln', () => {
+    it('standard VAT 23%', () => {
+        expect(grossPlnToNetPln(1230, 23)).toBeCloseTo(1000, 5);
+    });
+
+    it('VAT ZW (-1) — net equals gross', () => {
+        expect(grossPlnToNetPln(1260, -1)).toBe(1260);
+    });
+
+    it('VAT 0% — net equals gross', () => {
+        expect(grossPlnToNetPln(500, 0)).toBe(500);
+    });
+});
 
 // ─── applyAdjustment ─────────────────────────────────────────────────────────
 

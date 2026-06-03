@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import { useDebounce } from '@/common/hooks';
 import { formatCurrency } from '@/common/utils';
+import { netPlnToGrossPln, grossPlnToNetPln } from '@/common/utils/priceAdjustment';
 import { servicesApi } from '@/modules/services/api/servicesApi';
 import type { Service } from '@/modules/services/types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -251,8 +252,8 @@ const RemoveBtn = styled.button`
 
 function pln(cents: number): number { return cents / 100; }
 function cents(pln: number): number { return Math.round(pln * 100); }
-function grossFromNet(netPln: number, vatRate: number): number { return netPln * (1 + vatRate / 100); }
-function netFromGross(grossPln: number, vatRate: number): number { return grossPln / (1 + vatRate / 100); }
+const grossFromNet = netPlnToGrossPln;
+const netFromGross = grossPlnToNetPln;
 function fmtPrice(val: number): string { return val.toFixed(2); }
 function parsePln(raw: string): number | null {
     const v = parseFloat(raw.replace(',', '.'));
