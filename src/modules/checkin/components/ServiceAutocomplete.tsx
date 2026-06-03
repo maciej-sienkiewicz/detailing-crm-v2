@@ -1,5 +1,6 @@
 // src/modules/checkin/components/ServiceAutocomplete.tsx
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@/common/hooks';
@@ -19,17 +20,14 @@ const StyledInput = styled(Input)`
 `;
 
 const DropdownContainer = styled.div`
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
+    position: fixed;
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     box-shadow: 0 4px 16px rgba(15, 23, 42, 0.10), 0 1px 4px rgba(15, 23, 42, 0.06);
     max-height: 240px;
     overflow-y: auto;
-    z-index: 1000;
+    z-index: 2001;
 `;
 
 const SuggestionItem = styled.div`
@@ -114,9 +112,34 @@ interface ServiceAutocompleteProps {
 export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteProps) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isOpen, setIsOpen] = useState(false);
+    const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
     const debouncedQuery = useDebounce(searchQuery, 300);
+
+    const updatePosition = useCallback(() => {
+        const el = inputRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom - 4;
+        if (spaceBelow < 150) {
+            setDropdownStyle({ bottom: window.innerHeight - rect.top + 4, left: rect.left, width: rect.width });
+        } else {
+            setDropdownStyle({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        updatePosition();
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
+        return () => {
+            window.removeEventListener('scroll', updatePosition, true);
+            window.removeEventListener('resize', updatePosition);
+        };
+    }, [isOpen, updatePosition]);
 
     const { data: servicesResponse, isLoading } = useQuery({
         queryKey: ['services', debouncedQuery],
@@ -132,7 +155,10 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+            const target = event.target as Node;
+            const insideContainer = containerRef.current?.contains(target);
+            const insideDropdown = dropdownRef.current?.contains(target);
+            if (!insideContainer && !insideDropdown) {
                 setIsOpen(false);
             }
         };
@@ -167,8 +193,8 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
                 onFocus={() => setIsOpen(true)}
             />
 
-            {showDropdown && (
-                <DropdownContainer>
+            {showDropdown && createPortal(
+                <DropdownContainer ref={dropdownRef} style={dropdownStyle}>
                     {isLoading ? (
                         <EmptyState>Wyszukiwanie...</EmptyState>
                     ) : (
@@ -221,7 +247,8 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
                             )}
                         </>
                     )}
-                </DropdownContainer>
+                </DropdownContainer>,
+                document.body
             )}
         </AutocompleteContainer>
     );
