@@ -910,7 +910,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             <S.ServiceDropdownManualBadge>WYCENA</S.ServiceDropdownManualBadge>
                                                         ) : (
                                                             <S.ServiceDropdownPrices>
-                                                                <S.ServiceDropdownGross>{((service.basePriceNet / 100) * (100 + service.vatRate) / 100).toFixed(2)} zł brutto</S.ServiceDropdownGross>
+                                                                <S.ServiceDropdownGross>{(service.vatRate <= 0 ? service.basePriceNet / 100 : (service.basePriceNet / 100) * (100 + service.vatRate) / 100).toFixed(2)} zł brutto</S.ServiceDropdownGross>
                                                                 <S.ServiceDropdownNet>{(service.basePriceNet / 100).toFixed(2)} zł netto</S.ServiceDropdownNet>
                                                             </S.ServiceDropdownPrices>
                                                         )}

@@ -175,7 +175,9 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
                             {services.length > 0 ? (
                                 services.map((service) => {
                                     const priceNet = service.basePriceNet / 100;
-                                    const priceGross = (service.basePriceNet * (100 + service.vatRate)) / 10000;
+                                    const priceGross = service.vatRate <= 0
+                                        ? priceNet
+                                        : (service.basePriceNet * (100 + service.vatRate)) / 10000;
 
                                     return (
                                         <SuggestionItem
