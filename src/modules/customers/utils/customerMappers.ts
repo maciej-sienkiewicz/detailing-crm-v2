@@ -167,8 +167,8 @@ export const mapBackendVisitToVisit = (backendVisit: BackendVisit): Visit => {
         vehicleName: backendVisit.vehicleName,
         description: backendVisit.description,
         totalCost: {
-            netAmount: backendVisit.totalCost.netAmount / 100,
-            grossAmount: backendVisit.totalCost.grossAmount / 100,
+            netAmount: backendVisit.totalCost.netAmount,
+            grossAmount: backendVisit.totalCost.grossAmount,
             currency: backendVisit.totalCost.currency,
         },
         status: visitStatus,
@@ -190,8 +190,8 @@ export const mapBackendReservationToReservation = (appointment: BackendAppointme
         licensePlate: appointment.vehicle?.licensePlate,
         status: appointment.status.toUpperCase() as Reservation['status'],
         totalCost: {
-            netAmount: appointment.totalNet / 100,
-            grossAmount: appointment.totalGross / 100,
+            netAmount: appointment.totalNet,
+            grossAmount: appointment.totalGross,
             currency: 'PLN',
         },
     };
