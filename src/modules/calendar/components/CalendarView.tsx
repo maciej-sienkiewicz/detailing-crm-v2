@@ -900,61 +900,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const [dashboardHighlightId, setDashboardHighlightId] = useState<string | null>(null);
     const [isNavigating, setIsNavigating] = useState(false);
 
+    // ID waiting to be matched in eventDidMount — stored in a ref so the
+    // FullCalendar callback always sees the current value without stale closure.
+    const pendingHighlightRef = useRef<string | null>(
+        (location.state as { highlightEventId?: string } | null)?.highlightEventId ?? null
+    );
+
     // Navigate to highlighted event from dashboard
     useEffect(() => {
         const state = location.state as { highlightEventId?: string; highlightDate?: string } | null;
         if (!state?.highlightEventId) return;
 
-        const eventId = state.highlightEventId;
-        const eventDate = state.highlightDate ? new Date(state.highlightDate) : new Date();
-
         // Clear router state so back-navigation doesn't re-trigger
         navigate(location.pathname, { replace: true, state: null });
-
-        // FullCalendar already starts at the correct month via initialDate prop.
-        // Just ensure the view state is in sync.
         setCurrentView('dayGridMonth');
-
-        const applyHighlight = (el: HTMLElement) => {
-            const rect = el.getBoundingClientRect();
-            setDashboardHighlightId(eventId);
-            reportTargetRect(rect);
-            setTimeout(() => setDashboardHighlightId(null), 7200);
-        };
-
-        const fallback = () => {
-            const center = new DOMRect(window.innerWidth / 2 - 150, window.innerHeight / 2 - 34, 300, 68);
-            reportTargetRect(center);
-            setDashboardHighlightId(eventId);
-            setTimeout(() => setDashboardHighlightId(null), 7200);
-        };
-
-        // Use MutationObserver so we catch the element however long the API fetch takes.
-        // Observe the calendar container for added nodes and check each time.
-        const timeoutId = setTimeout(() => {
-            // Start by checking if already in DOM (current month case)
-            const existing = document.querySelector(`[data-fc-event-id="${eventId}"]`) as HTMLElement | null;
-            if (existing) { applyHighlight(existing); return; }
-
-            const container = document.querySelector('.fc') as HTMLElement | null;
-            if (!container) { fallback(); return; }
-
-            // Give up after 10s
-            const giveUpId = setTimeout(() => { observer.disconnect(); fallback(); }, 10_000);
-
-            const observer = new MutationObserver(() => {
-                const el = document.querySelector(`[data-fc-event-id="${eventId}"]`) as HTMLElement | null;
-                if (el) {
-                    observer.disconnect();
-                    clearTimeout(giveUpId);
-                    applyHighlight(el);
-                }
-            });
-
-            observer.observe(container, { childList: true, subtree: true });
-        }, 120);
-
-        return () => clearTimeout(timeoutId);
+        // pendingHighlightRef is already set from the initial render above;
+        // eventDidMount will call reportTargetRect when it mounts the matching event.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -1569,9 +1530,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 // Events data
                 events={events}
 
-                // Stamp each event element with its id so we can find it for the fly-in animation
                 eventDidMount={(arg) => {
-                    arg.el.dataset.fcEventId = arg.event.id;
+                    // If this is the event the fly-in animation is waiting for,
+                    // grab its rect immediately and trigger the to-cell phase.
+                    if (pendingHighlightRef.current && arg.event.id === pendingHighlightRef.current) {
+                        const id = pendingHighlightRef.current;
+                        pendingHighlightRef.current = null;
+                        // rAF ensures layout is complete and rect is stable
+                        requestAnimationFrame(() => {
+                            const rect = arg.el.getBoundingClientRect();
+                            setDashboardHighlightId(id);
+                            reportTargetRect(rect);
+                            setTimeout(() => setDashboardHighlightId(null), 7200);
+                        });
+                    }
                 }}
 
                 // Button text
