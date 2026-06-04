@@ -258,7 +258,7 @@ function computePreview(rule: RecurrenceRuleRequest, startIso: string): { count:
         const dom = rule.dayOfMonth ?? base.getDate();
         let y = base.getFullYear(), m = base.getMonth();
         while (dates.length < limit) {
-            const d = new Date(y, m, Math.min(dom, 28));
+            const d = new Date(y, m, Math.min(dom, 31));
             if (d >= base) {
                 if (endDate && d > endDate) break;
                 dates.push(d);
@@ -376,11 +376,11 @@ export const RecurrenceSidePanel = ({ rule, onChange, startDateTime }: Recurrenc
                         <NumInput
                             type="number"
                             min={1}
-                            max={28}
+                            max={31}
                             value={rule.dayOfMonth ?? 1}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => update({ dayOfMonth: Math.max(1, Math.min(28, Number(e.target.value))) })}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => update({ dayOfMonth: Math.max(1, Math.min(31, Number(e.target.value))) })}
                         />
-                        <InputLabel>dzień (maks. 28)</InputLabel>
+                        <InputLabel>dzień (maks. 31)</InputLabel>
                     </InlineRow>
                 </div>
             )}
