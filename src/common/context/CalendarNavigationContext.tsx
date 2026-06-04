@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -62,6 +62,7 @@ export const CalendarNavigationProvider = ({ children }: { children: React.React
 
     // Card arrives at center
     schedule(() => setPhase('centered'), 520);
+
   };
 
   const reportTargetRect = (rect: DOMRect) => {
@@ -81,6 +82,14 @@ export const CalendarNavigationProvider = ({ children }: { children: React.React
     setCard(null);
     setTargetRect(null);
   };
+
+  // Safety net: if card stays at 'centered' for more than 8s (event never found),
+  // auto-dismiss so the card doesn't hang on screen forever.
+  useEffect(() => {
+    if (phase !== 'centered') return;
+    const id = setTimeout(() => finish(), 8_000);
+    return () => clearTimeout(id);
+  }, [phase]);
 
   return (
     <CalendarNavigationContext.Provider value={{ phase, card, targetRect, start, reportTargetRect, finish }}>
