@@ -822,6 +822,10 @@ interface CalendarViewProps {
     onViewChange?: (view: CalendarViewType) => void;
 }
 
+// Module-level singleton — survives React StrictMode double-mount.
+// Holds dashboard navigation state captured before navigate() clears location.state.
+let _dashboardPendingHighlight: { id: string; date: string } | null = null;
+
 export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -830,11 +834,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const { showSuccess, showError } = useToast();
     const { deleteWithScope, isDeleting: isDeletingRecurring } = useDeleteOperation();
 
-    // If navigated from dashboard with a highlight date, start the calendar at that month
-    const dashboardState = location.state as { highlightEventId?: string; highlightDate?: string } | null;
-    const initialDate = dashboardState?.highlightDate
-        ? new Date(dashboardState.highlightDate)
-        : undefined;
     const { phase: navPhase, card: navCard, reportTargetRect } = useCalendarNavigation();
     const calendarRef = useRef<FullCalendar>(null);
     const quickEventModalRef = useRef<QuickEventModalRef>(null);
@@ -900,22 +899,29 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const [dashboardHighlightId, setDashboardHighlightId] = useState<string | null>(null);
     const [isNavigating, setIsNavigating] = useState(false);
 
-    // ID waiting to be matched in eventDidMount — stored in a ref so the
-    // FullCalendar callback always sees the current value without stale closure.
-    const pendingHighlightRef = useRef<string | null>(
-        (location.state as { highlightEventId?: string } | null)?.highlightEventId ?? null
-    );
+    // Module-level capture survives React StrictMode double-mount.
+    // We write it synchronously at render time (before effects run) so even
+    // if the component unmounts/remounts (StrictMode), the value is still there.
+    const pendingHighlightRef = useRef<string | null>(null);
+    const pendingGotoDateRef = useRef<string | null>(null);
+
+    // Capture from location.state at the FIRST render only (module-level guard).
+    const _stateRef = (location.state as { highlightEventId?: string; highlightDate?: string } | null);
+    if (_stateRef?.highlightEventId && !_dashboardPendingHighlight) {
+        _dashboardPendingHighlight = { id: _stateRef.highlightEventId, date: _stateRef.highlightDate ?? '' };
+    }
 
     // Navigate to highlighted event from dashboard
     useEffect(() => {
-        const state = location.state as { highlightEventId?: string; highlightDate?: string } | null;
-        if (!state?.highlightEventId) return;
+        if (!_dashboardPendingHighlight) return;
 
-        // Clear router state so back-navigation doesn't re-trigger
+        const { id, date } = _dashboardPendingHighlight;
+        _dashboardPendingHighlight = null;
+
+        pendingHighlightRef.current = id;
+        pendingGotoDateRef.current = date;
+
         navigate(location.pathname, { replace: true, state: null });
-        setCurrentView('dayGridMonth');
-        // pendingHighlightRef is already set from the initial render above;
-        // eventDidMount will call reportTargetRect when it mounts the matching event.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -991,7 +997,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         setCalendarTitle(arg.view.title);
         setCurrentView(arg.view.type as CalendarViewType);
 
-        // Notify parent of view change
+        // If we have a pending dashboard highlight, navigate to its month if not already visible.
+        if (pendingGotoDateRef.current) {
+            const targetDate = new Date(pendingGotoDateRef.current);
+            const viewStart = new Date(arg.start);
+            const viewEnd = new Date(arg.end);
+            if (targetDate < viewStart || targetDate >= viewEnd) {
+                const gotoDate = pendingGotoDateRef.current;
+                pendingGotoDateRef.current = null;
+                // gotoDate triggers another datesSet; pendingGotoDateRef is already null so no loop.
+                calendarRef.current?.getApi().gotoDate(new Date(gotoDate));
+            } else {
+                // Target already visible — clear the pending goto.
+                pendingGotoDateRef.current = null;
+            }
+        }
+
         if (onViewChange) {
             onViewChange(arg.view.type as CalendarViewType);
         }
@@ -1478,7 +1499,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
                 // Initial view
                 initialView="dayGridMonth"
-                {...(initialDate ? { initialDate } : {})}
 
                 // Header configuration
                 headerToolbar={{
@@ -1531,12 +1551,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 events={events}
 
                 eventDidMount={(arg) => {
-                    // If this is the event the fly-in animation is waiting for,
-                    // grab its rect immediately and trigger the to-cell phase.
                     if (pendingHighlightRef.current && arg.event.id === pendingHighlightRef.current) {
                         const id = pendingHighlightRef.current;
                         pendingHighlightRef.current = null;
-                        // rAF ensures layout is complete and rect is stable
                         requestAnimationFrame(() => {
                             const rect = arg.el.getBoundingClientRect();
                             setDashboardHighlightId(id);
