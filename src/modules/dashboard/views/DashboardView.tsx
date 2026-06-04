@@ -372,8 +372,6 @@ export const DashboardView = () => {
         <TasksPanel />
       </TwoColGrid>
 
-      <CompetitorStoriesSection />
-
     </ViewContainer>
   );
 };

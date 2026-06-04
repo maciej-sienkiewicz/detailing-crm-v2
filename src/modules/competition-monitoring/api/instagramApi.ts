@@ -552,15 +552,4 @@ export const instagramApi = {
         return response.data;
     },
 
-    getStories: async (hoursBack: number = 72): Promise<InstagramStory[]> => {
-        if (USE_MOCKS) {
-            await delay(400);
-            const cutoff = Date.now() - hoursBack * 3_600_000;
-            return mockStories.filter(s => new Date(s.takenAt).getTime() >= cutoff);
-        }
-        const response = await apiClient.get<InstagramStory[]>('/v1/instagram/stories', {
-            params: { hoursBack },
-        });
-        return response.data;
-    },
 };
