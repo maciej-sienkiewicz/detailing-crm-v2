@@ -902,23 +902,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     // Capture from location.state into module-level var (survives StrictMode double-mount).
     // Read at render time so it's available before any effects run.
     const _stateRef = (location.state as { highlightEventId?: string; highlightDate?: string } | null);
-    console.log('[CV] render — location.state:', _stateRef, '| _dashboardPendingHighlight:', _dashboardPendingHighlight);
     if (_stateRef?.highlightEventId && !_dashboardPendingHighlight) {
         _dashboardPendingHighlight = { id: _stateRef.highlightEventId, date: _stateRef.highlightDate ?? '' };
-        console.log('[CV] render — captured _dashboardPendingHighlight:', _dashboardPendingHighlight);
     }
 
     // Clear router state so back-navigation doesn't replay the animation.
     // Safety timeout: auto-clear _dashboardPendingHighlight after 10s in case
     // eventDidMount never fires (event not found / wrong month).
     useEffect(() => {
-        console.log('[CV] mount effect — _dashboardPendingHighlight:', _dashboardPendingHighlight);
         if (!_dashboardPendingHighlight) return;
         navigate(location.pathname, { replace: true, state: null });
-        const t = setTimeout(() => {
-            console.log('[CV] safety timeout — clearing _dashboardPendingHighlight');
-            _dashboardPendingHighlight = null;
-        }, 10_000);
+        const t = setTimeout(() => { _dashboardPendingHighlight = null; }, 10_000);
         return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -998,15 +992,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         // If we have a pending dashboard highlight, navigate to its month if not in view.
         // IMPORTANT: use arg.view.calendar (not calendarRef) — the ref is not yet set
         // when datesSet fires from FullCalendar's componentDidMount.
-        console.log('[CV] datesSet — view:', arg.startStr, '→', arg.endStr, '| _dashboardPendingHighlight:', _dashboardPendingHighlight, '| calendarRef:', !!calendarRef.current);
         if (_dashboardPendingHighlight?.date) {
             const targetDate = new Date(_dashboardPendingHighlight.date);
             const viewStart = new Date(arg.start);
             const viewEnd = new Date(arg.end);
-            const inView = targetDate >= viewStart && targetDate < viewEnd;
-            console.log('[CV] datesSet — targetDate:', targetDate.toISOString(), '| inView:', inView);
-            if (!inView) {
-                console.log('[CV] datesSet — calling gotoDate via arg.view.calendar');
+            if (targetDate < viewStart || targetDate >= viewEnd) {
                 arg.view.calendar.gotoDate(targetDate);
             }
         }
@@ -1549,15 +1539,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 events={events}
 
                 eventDidMount={(arg) => {
-                    if (_dashboardPendingHighlight?.id) {
-                        console.log('[CV] eventDidMount — event.id:', arg.event.id, '| pending:', _dashboardPendingHighlight.id, '| match:', arg.event.id === _dashboardPendingHighlight.id);
-                    }
                     if (_dashboardPendingHighlight?.id && arg.event.id === _dashboardPendingHighlight.id) {
                         const id = _dashboardPendingHighlight.id;
                         _dashboardPendingHighlight = null;
                         requestAnimationFrame(() => {
                             const rect = arg.el.getBoundingClientRect();
-                            console.log('[CV] eventDidMount — MATCH, rect:', rect);
                             setDashboardHighlightId(id);
                             reportTargetRect(rect);
                             setTimeout(() => setDashboardHighlightId(null), 7200);
