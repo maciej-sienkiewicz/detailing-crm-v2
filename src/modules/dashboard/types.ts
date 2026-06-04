@@ -176,6 +176,8 @@ export interface UpcomingVisit {
   type: 'VISIT' | 'RESERVATION';
   time: string;
   dateLabel: string;
+  /** ISO date string (YYYY-MM-DD) used to render the calendar chip */
+  isoDate: string;
   serviceName: string;
   customerName: string;
   vehicleName: string;

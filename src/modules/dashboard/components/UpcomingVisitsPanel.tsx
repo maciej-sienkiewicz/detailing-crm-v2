@@ -8,6 +8,15 @@ import { useUpcomingVisits } from '../hooks/useUpcomingVisits';
 import { useUpdateOperationTitle } from '@/modules/operations/hooks/useReservationActions';
 import type { UpcomingVisit, VisitStatusKind } from '../types';
 
+// ─── Calendar chip helpers ────────────────────────────────────────────────────
+
+const PL_MONTHS = ['STY','LUT','MAR','KWI','MAJ','CZE','LIP','SIE','WRZ','PAŹ','LIS','GRU'];
+
+function parseChip(isoDate: string): { day: string; month: string } {
+  const [, m, d] = isoDate.split('-');
+  return { day: String(parseInt(d, 10)), month: PL_MONTHS[parseInt(m, 10) - 1] ?? '' };
+}
+
 // ─── Badge config ─────────────────────────────────────────────────────────────
 
 const BADGE_CONFIG: Record<VisitStatusKind, { bg: string; color: string }> = {
@@ -63,7 +72,7 @@ const PanelLink = styled.button`
 
 const VisitRow = styled.div`
   display: grid;
-  grid-template-columns: 60px 1fr auto auto;
+  grid-template-columns: 52px 1fr auto auto;
   gap: 14px;
   padding: 13px 22px;
   align-items: center;
@@ -76,23 +85,61 @@ const VisitRow = styled.div`
   &:hover [data-pencil] { opacity: 1; }
 `;
 
-const VisitTime = styled.div`
-  font-size: 14px;
-  font-weight: 700;
-  color: ${p => p.theme.colors.text};
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.3px;
-  line-height: 1.2;
+const CalChipWrap = styled.div<{ $today: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 44px;
 `;
 
-const VisitDateLabel = styled.span`
+const CalChipCard = styled.div<{ $today: boolean }>`
+  width: 44px;
+  border-radius: 8px;
+  border: 1px solid ${p => p.$today ? '#fca5a5' : '#e2e8f0'};
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.07);
+`;
+
+const CalChipHeader = styled.div<{ $today: boolean }>`
+  background: ${p => p.$today ? '#ef4444' : '#334155'};
+  height: 7px;
+`;
+
+const CalChipBody = styled.div<{ $today: boolean }>`
+  background: ${p => p.$today ? '#fff5f5' : '#ffffff'};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 2px 5px;
+  gap: 1px;
+`;
+
+const CalChipDay = styled.span<{ $today: boolean }>`
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  color: ${p => p.$today ? '#ef4444' : '#1e293b'};
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+`;
+
+const CalChipMonth = styled.span<{ $today: boolean }>`
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: ${p => p.$today ? '#ef4444' : '#64748b'};
+`;
+
+const CalChipTime = styled.div`
   font-size: 10px;
   font-weight: 600;
   color: ${p => p.theme.colors.textMuted};
-  display: block;
-  margin-top: 2px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.2px;
+  text-align: center;
+  line-height: 1;
 `;
 
 const VisitTitle = styled.div`
@@ -251,7 +298,9 @@ const Bone = styled.div<{ $w?: string; $h?: string }>`
 
 const SkeletonRow = () => (
   <VisitRow as="div" style={{ cursor: 'default' }}>
-    <div><Bone $h="14px" $w="40px" /><Bone $h="10px" $w="28px" style={{ marginTop: 6 }} /></div>
+    <div>
+      <Bone $h="52px" $w="44px" style={{ borderRadius: 8 }} />
+    </div>
     <div><Bone $h="13px" $w="70%" style={{ marginBottom: 6 }} /><Bone $h="11px" $w="50%" /></div>
     <Bone $h="22px" $w="72px" style={{ borderRadius: 99 }} />
     <Bone $h="14px" $w="64px" />
@@ -300,10 +349,22 @@ const VisitRowItem = ({
   inputRef,
 }: VisitRowItemProps) => (
   <VisitRow onClick={e => !isEditing && onRowClick(visit, e)}>
-    <VisitTime>
-      {visit.time}
-      <VisitDateLabel>{visit.dateLabel}</VisitDateLabel>
-    </VisitTime>
+    {(() => {
+      const { day, month } = parseChip(visit.isoDate);
+      const isToday = visit.dateLabel === 'DZISIAJ';
+      return (
+        <CalChipWrap $today={isToday}>
+          <CalChipCard $today={isToday}>
+            <CalChipHeader $today={isToday} />
+            <CalChipBody $today={isToday}>
+              <CalChipDay $today={isToday}>{day}</CalChipDay>
+              <CalChipMonth $today={isToday}>{month}</CalChipMonth>
+            </CalChipBody>
+          </CalChipCard>
+          {visit.time ? <CalChipTime>{visit.time}</CalChipTime> : null}
+        </CalChipWrap>
+      );
+    })()}
     <div style={{ minWidth: 0 }}>
       {isEditing ? (
         <TitleEditRow>
