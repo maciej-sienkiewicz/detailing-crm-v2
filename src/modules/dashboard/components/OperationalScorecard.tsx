@@ -24,6 +24,7 @@ import { formatCurrency, formatPhoneNumber, formatDate } from '@/common/utils/fo
 import type { OperationalStats, VisitDetail } from '../types';
 import { StatTile, StatTileSkeleton } from '@/common/components/StatTile';
 import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
+import { visitApi } from '@/modules/visits/api/visitApi';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -629,7 +630,27 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
     setActiveKey(prev => (prev === key ? null : key));
 
   const navigateToCalendar = (visit: VisitDetail, variant: CardVariant, rect?: DOMRect) => {
-    console.log('[OperationalScorecard] navigateToCalendar — visit:', visit);
+    // date may be missing from the stats API — use a mutable box so doNavigate
+    // (which fires 320ms later) captures the resolved value.
+    const dateBox = { value: visit.scheduledDate ?? '' };
+
+    // For in-progress / ready-for-pickup visits the stats endpoint omits scheduledDate.
+    // Fire a background fetch; it typically resolves well within the 320ms window.
+    if (!visit.scheduledDate && (variant === 'inProgress' || variant === 'readyForPickup')) {
+      visitApi.getVisitDetail(visit.id)
+        .then(detail => {
+          const raw = detail.visit?.scheduledDate;
+          if (raw) {
+            const d = new Date(raw);
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            dateBox.value = `${y}-${m}-${day}`;
+          }
+        })
+        .catch(() => {/* best-effort */});
+    }
+
     const snap = {
       id: visit.id,
       label: `${visit.brand} ${visit.model ?? ''}`.trim() || visit.name,
@@ -637,9 +658,10 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
       amount: formatCurrency(visit.amount),
       accentColor: CARD_CONFIG[variant].accentColor,
       sourceRect: rect ?? new DOMRect(window.innerWidth / 2 - 150, window.innerHeight / 2 - 34, 300, 68),
-      scheduledDate: visit.scheduledDate,
+      scheduledDate: dateBox.value || undefined,
     };
-    const doNavigate = () => navigate('/calendar', { state: { highlightEventId: visit.id, highlightDate: visit.scheduledDate } });
+    // doNavigate fires at 320ms — by then dateBox.value should be populated.
+    const doNavigate = () => navigate('/calendar', { state: { highlightEventId: visit.id, highlightDate: dateBox.value || undefined } });
     startNavAnim(snap, doNavigate);
     setActiveKey(null);
   };
