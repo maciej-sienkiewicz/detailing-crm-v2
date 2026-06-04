@@ -822,9 +822,11 @@ interface CalendarViewProps {
     onViewChange?: (view: CalendarViewType) => void;
 }
 
-// Module-level singleton — survives React StrictMode double-mount.
-// Holds dashboard navigation state captured before navigate() clears location.state.
+// Module-level singletons — survive React StrictMode double-mount.
 let _dashboardPendingHighlight: { id: string; date: string } | null = null;
+// Set when a search result is selected; used to detect the same-month case where
+// eventDidMount won't fire (event already rendered) and fall back to eventElMapRef.
+let _searchPendingHighlight: { id: string } | null = null;
 
 export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const navigate = useNavigate();
@@ -834,9 +836,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const { showSuccess, showError } = useToast();
     const { deleteWithScope, isDeleting: isDeletingRecurring } = useDeleteOperation();
 
-    const { phase: navPhase, card: navCard, reportTargetRect } = useCalendarNavigation();
+    const { phase: navPhase, card: navCard, start: startNavAnim, reportTargetRect } = useCalendarNavigation();
     const calendarRef = useRef<FullCalendar>(null);
     const quickEventModalRef = useRef<QuickEventModalRef>(null);
+    // Maps event id → DOM element; populated via eventDidMount/eventWillUnmount.
+    // Used to locate already-rendered events for the search same-month animation case.
+    const eventElMapRef = useRef<Map<string, HTMLElement>>(new Map());
     const [dateRange, setDateRange] = useState<DateRange | null>(null);
     const [quickModalOpen, setQuickModalOpen] = useState(false);
     const [selectedEventData, setSelectedEventData] = useState<EventCreationData | null>(null);
@@ -916,6 +921,27 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Same-month search case: when the animation card reaches center and the target event
+    // is already rendered (eventDidMount won't fire), look it up in eventElMapRef.
+    useEffect(() => {
+        if (navPhase !== 'centered') return;
+        if (!_searchPendingHighlight) return;
+
+        const el = eventElMapRef.current.get(_searchPendingHighlight.id);
+        if (!el) return;
+
+        const id = _searchPendingHighlight.id;
+        _searchPendingHighlight = null;
+        _dashboardPendingHighlight = null;
+
+        requestAnimationFrame(() => {
+            const rect = el.getBoundingClientRect();
+            setHighlightedEventId(id);
+            reportTargetRect(rect);
+            setTimeout(() => setHighlightedEventId(null), 7200);
+        });
+    }, [navPhase, reportTargetRect]);
 
     // Fix .fc-more-popover clipping: CalendarWrapper has overflow:hidden which
     // clips FullCalendar's absolutely-positioned popover. Watch for it being
@@ -1181,33 +1207,42 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     }, [popoverEvent, showSuccess, queryClient]);
 
     /**
-     * Handle event selected from search modal — navigate calendar to its date and highlight it.
-     * Uses a fade-out → navigate → fade-in transition for a smooth UX.
+     * Handle event selected from search modal — fly-in animation identical to dashboard navigation.
+     * Two cases:
+     *  - Different month: gotoDate → eventDidMount fires for new events → reportTargetRect
+     *  - Same month: event already rendered, useEffect on navPhase==='centered' fires instead
      */
-    const handleSearchSelect = useCallback((event: CalendarEvent) => {
+    const handleSearchSelect = useCallback((event: CalendarEvent, sourceRect: DOMRect) => {
         const eventDate = new Date(event.start as string);
+        const isoDate = eventDate.toISOString().slice(0, 10);
+        const props = event.extendedProps as AppointmentEventData | VisitEventData;
+        const price = props.totalPrice
+            ? `${(props.totalPrice / 100).toFixed(2)} ${props.currency ?? 'PLN'}`
+            : '—';
 
-        // Phase 1: fade out the calendar grid
-        setIsNavigating(true);
+        _dashboardPendingHighlight = { id: event.id, date: isoDate };
+        _searchPendingHighlight = { id: event.id };
 
-        setTimeout(() => {
-            // Phase 2: navigate (invisible to user)
+        const snap = {
+            id: event.id,
+            label: event.title,
+            customer: props.customerName ?? '',
+            amount: price,
+            accentColor: event.backgroundColor || '#6366f1',
+            sourceRect,
+        };
+
+        const doNavigate = () => {
             const calApi = calendarRef.current?.getApi();
             if (calApi) {
                 calApi.changeView('dayGridMonth');
                 calApi.gotoDate(eventDate);
             }
             setCurrentView('dayGridMonth');
+        };
 
-            // Phase 3: fade back in, then start highlight pulse
-            setIsNavigating(false);
-            setTimeout(() => {
-                setHighlightedEventId(event.id);
-                // Pulse runs 7 iterations × 1s → remove class after ~7.2s
-                setTimeout(() => setHighlightedEventId(null), 7200);
-            }, 50); // tiny delay so FC has rendered before highlight fires
-        }, 220);
-    }, []);
+        startNavAnim(snap, doNavigate);
+    }, [startNavAnim]);
 
     /**
      * Handle delete appointment from popover actions (soft delete)
@@ -1539,6 +1574,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 events={events}
 
                 eventDidMount={(arg) => {
+                    eventElMapRef.current.set(arg.event.id, arg.el);
+
+                    if (_searchPendingHighlight?.id && arg.event.id === _searchPendingHighlight.id) {
+                        const id = _searchPendingHighlight.id;
+                        _searchPendingHighlight = null;
+                        _dashboardPendingHighlight = null;
+                        requestAnimationFrame(() => {
+                            const rect = arg.el.getBoundingClientRect();
+                            setHighlightedEventId(id);
+                            reportTargetRect(rect);
+                            setTimeout(() => setHighlightedEventId(null), 7200);
+                        });
+                        return;
+                    }
+
                     if (_dashboardPendingHighlight?.id && arg.event.id === _dashboardPendingHighlight.id) {
                         const id = _dashboardPendingHighlight.id;
                         _dashboardPendingHighlight = null;
@@ -1549,6 +1599,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                             setTimeout(() => setDashboardHighlightId(null), 7200);
                         });
                     }
+                }}
+
+                eventWillUnmount={(arg) => {
+                    eventElMapRef.current.delete(arg.event.id);
                 }}
 
                 // Button text
@@ -1712,7 +1766,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
             {searchOpen && (
                 <CalendarSearchModal
                     onClose={() => setSearchOpen(false)}
-                    onSelectEvent={handleSearchSelect}
+                    onSelectEvent={(event, rect) => handleSearchSelect(event, rect)}
                 />
             )}
 
