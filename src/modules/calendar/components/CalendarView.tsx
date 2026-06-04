@@ -996,16 +996,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         setCurrentView(arg.view.type as CalendarViewType);
 
         // If we have a pending dashboard highlight, navigate to its month if not in view.
-        console.log('[CV] datesSet — view:', arg.startStr, '→', arg.endStr, '| _dashboardPendingHighlight:', _dashboardPendingHighlight);
+        // IMPORTANT: use arg.view.calendar (not calendarRef) — the ref is not yet set
+        // when datesSet fires from FullCalendar's componentDidMount.
+        console.log('[CV] datesSet — view:', arg.startStr, '→', arg.endStr, '| _dashboardPendingHighlight:', _dashboardPendingHighlight, '| calendarRef:', !!calendarRef.current);
         if (_dashboardPendingHighlight?.date) {
             const targetDate = new Date(_dashboardPendingHighlight.date);
             const viewStart = new Date(arg.start);
             const viewEnd = new Date(arg.end);
             const inView = targetDate >= viewStart && targetDate < viewEnd;
-            console.log('[CV] datesSet — targetDate:', targetDate.toISOString(), '| inView:', inView, '| calendarRef:', !!calendarRef.current);
+            console.log('[CV] datesSet — targetDate:', targetDate.toISOString(), '| inView:', inView);
             if (!inView) {
-                console.log('[CV] datesSet — calling gotoDate:', targetDate.toISOString());
-                calendarRef.current?.getApi().gotoDate(targetDate);
+                console.log('[CV] datesSet — calling gotoDate via arg.view.calendar');
+                arg.view.calendar.gotoDate(targetDate);
             }
         }
 
