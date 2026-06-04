@@ -629,6 +629,7 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
     setActiveKey(prev => (prev === key ? null : key));
 
   const navigateToCalendar = (visit: VisitDetail, variant: CardVariant, rect?: DOMRect) => {
+    console.log('[OperationalScorecard] navigateToCalendar — visit:', visit);
     const snap = {
       id: visit.id,
       label: `${visit.brand} ${visit.model ?? ''}`.trim() || visit.name,
