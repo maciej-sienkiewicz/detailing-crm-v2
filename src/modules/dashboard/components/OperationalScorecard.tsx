@@ -630,25 +630,27 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
     setActiveKey(prev => (prev === key ? null : key));
 
   const navigateToCalendar = (visit: VisitDetail, variant: CardVariant, rect?: DOMRect) => {
-    // date may be missing from the stats API — use a mutable box so doNavigate
-    // (which fires 320ms later) captures the resolved value.
     const dateBox = { value: visit.scheduledDate ?? '' };
+    console.log('[Scorecard] navigateToCalendar START — id:', visit.id, '| variant:', variant, '| scheduledDate:', visit.scheduledDate, '| dateBox.value:', dateBox.value);
 
-    // For in-progress / ready-for-pickup visits the stats endpoint omits scheduledDate.
-    // Fire a background fetch; it typically resolves well within the 320ms window.
     if (!visit.scheduledDate && (variant === 'inProgress' || variant === 'readyForPickup')) {
+      console.log('[Scorecard] scheduledDate missing — fetching visitDetail for id:', visit.id);
       visitApi.getVisitDetail(visit.id)
         .then(detail => {
           const raw = detail.visit?.scheduledDate;
+          console.log('[Scorecard] visitDetail fetched — raw scheduledDate:', raw, '| detail.visit:', detail.visit);
           if (raw) {
             const d = new Date(raw);
             const y = d.getFullYear();
             const m = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
             dateBox.value = `${y}-${m}-${day}`;
+            console.log('[Scorecard] dateBox.value set to:', dateBox.value);
+          } else {
+            console.warn('[Scorecard] raw scheduledDate is empty/null in visitDetail');
           }
         })
-        .catch(() => {/* best-effort */});
+        .catch(err => console.error('[Scorecard] visitDetail fetch failed:', err));
     }
 
     const snap = {
@@ -660,8 +662,10 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
       sourceRect: rect ?? new DOMRect(window.innerWidth / 2 - 150, window.innerHeight / 2 - 34, 300, 68),
       scheduledDate: dateBox.value || undefined,
     };
-    // doNavigate fires at 320ms — by then dateBox.value should be populated.
-    const doNavigate = () => navigate('/calendar', { state: { highlightEventId: visit.id, highlightDate: dateBox.value || undefined } });
+    const doNavigate = () => {
+      console.log('[Scorecard] doNavigate fired — dateBox.value:', dateBox.value, '| highlightDate:', dateBox.value || undefined);
+      navigate('/calendar', { state: { highlightEventId: visit.id, highlightDate: dateBox.value || undefined } });
+    };
     startNavAnim(snap, doNavigate);
     setActiveKey(null);
   };
