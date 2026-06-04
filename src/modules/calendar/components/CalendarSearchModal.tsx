@@ -353,7 +353,7 @@ function groupByDay(results: SearchResult[]): GroupedResults[] {
 
 interface CalendarSearchModalProps {
     onClose: () => void;
-    onSelectEvent: (event: CalendarEvent) => void;
+    onSelectEvent: (event: CalendarEvent, sourceRect: DOMRect) => void;
 }
 
 export const CalendarSearchModal: React.FC<CalendarSearchModalProps> = ({ onClose, onSelectEvent }) => {
@@ -409,8 +409,9 @@ export const CalendarSearchModal: React.FC<CalendarSearchModalProps> = ({ onClos
 
     const grouped = groupByDay(filteredResults);
 
-    const handleSelect = useCallback((event: CalendarEvent) => {
-        onSelectEvent(event);
+    const handleSelect = useCallback((event: CalendarEvent, e: React.MouseEvent<HTMLButtonElement>) => {
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        onSelectEvent(event, rect);
         onClose();
     }, [onSelectEvent, onClose]);
 
@@ -488,7 +489,7 @@ export const CalendarSearchModal: React.FC<CalendarSearchModalProps> = ({ onClos
                                             : props.vehicleInfo;
                                         const muted = isFinished(event);
                                         return (
-                                            <ResultRow key={event.id} $muted={muted} onClick={() => handleSelect(event)}>
+                                            <ResultRow key={event.id} $muted={muted} onClick={(e) => handleSelect(event, e)}>
                                                 <ResultLeft>
                                                     <ColorDot $color={event.backgroundColor || '#6366f1'} $muted={muted} />
                                                     <ResultContent>
