@@ -6,6 +6,7 @@ import { formatCurrency } from '@/common/utils/formatters';
 import { ReservationContextMenu } from '@/common/components/ReservationContextMenu';
 import { useUpcomingVisits } from '../hooks/useUpcomingVisits';
 import { useUpdateOperationTitle } from '@/modules/operations/hooks/useReservationActions';
+import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
 import type { UpcomingVisit, VisitStatusKind } from '../types';
 
 // ─── Calendar chip helpers ────────────────────────────────────────────────────
@@ -422,10 +423,20 @@ const VisitRowItem = ({
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+// accent colours matching BADGE_CONFIG for the animation card
+const KIND_ACCENT: Record<VisitStatusKind, string> = {
+  info:    '#1d4ed8',
+  warn:    '#d97706',
+  neutral: '#475569',
+  success: '#059669',
+  err:     '#dc2626',
+};
+
 interface ContextMenuState {
-  visitId: string;
+  visit: UpcomingVisit;
   x: number;
   y: number;
+  sourceRect: DOMRect;
 }
 
 const VISIBLE_LIMIT = 5;
@@ -434,6 +445,7 @@ export const UpcomingVisitsPanel = () => {
   const navigate = useNavigate();
   const { data: visits = [], isLoading, isError } = useUpcomingVisits();
   const { updateOperationTitle, isUpdatingTitle, updatingId } = useUpdateOperationTitle();
+  const { start: startNavAnim } = useCalendarNavigation();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState('');
@@ -448,13 +460,26 @@ export const UpcomingVisitsPanel = () => {
   const hasMore = visits.length > VISIBLE_LIMIT;
 
   const handleRowClick = (visit: UpcomingVisit, e: React.MouseEvent) => {
-    if (visit.type === 'VISIT') {
-      navigate(`/visits/${visit.id}`);
-      return;
-    }
     e.preventDefault();
     e.stopPropagation();
-    setContextMenu({ visitId: visit.id, x: e.clientX, y: e.clientY });
+    const sourceRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setContextMenu({ visit, x: e.clientX, y: e.clientY, sourceRect });
+  };
+
+  const handleShowInCalendar = (visit: UpcomingVisit, sourceRect: DOMRect) => {
+    const snap = {
+      id: visit.id,
+      label: visit.vehicleName,
+      customer: visit.customerName,
+      amount: formatCurrency(visit.price),
+      accentColor: KIND_ACCENT[visit.statusKind],
+      sourceRect,
+      scheduledDate: visit.isoDate,
+    };
+    const doNavigate = () => navigate('/calendar', {
+      state: { highlightEventId: visit.id, highlightDate: visit.isoDate },
+    });
+    startNavAnim(snap, doNavigate);
   };
 
   const handleStartEdit = (visit: UpcomingVisit, e: React.MouseEvent) => {
@@ -532,10 +557,15 @@ export const UpcomingVisitsPanel = () => {
 
       {contextMenu && (
         <ReservationContextMenu
-          appointmentId={contextMenu.visitId}
+          appointmentId={contextMenu.visit.id}
           x={contextMenu.x}
           y={contextMenu.y}
+          visitOnly={contextMenu.visit.type === 'VISIT'}
           onClose={() => setContextMenu(null)}
+          onShowInCalendar={() => {
+            setContextMenu(null);
+            handleShowInCalendar(contextMenu.visit, contextMenu.sourceRect);
+          }}
         />
       )}
     </Panel>
