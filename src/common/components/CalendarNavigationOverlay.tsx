@@ -28,6 +28,7 @@ const CardWrap = styled.div<{
   $height: number;
   $phase: string;
   $accentColor: string;
+  $animate: boolean;
 }>`
   position: fixed;
   z-index: 9999;
@@ -39,12 +40,14 @@ const CardWrap = styled.div<{
   width: ${p => p.$width}px;
   height: ${p => p.$height}px;
 
-  transition:
+  /* Transitions only active after the card has been placed at source */
+  transition: ${p => p.$animate ? `
     top 480ms cubic-bezier(0.34, 1.56, 0.64, 1),
     left 480ms cubic-bezier(0.34, 1.56, 0.64, 1),
     width 480ms cubic-bezier(0.34, 1.56, 0.64, 1),
     height 480ms cubic-bezier(0.34, 1.56, 0.64, 1),
-    opacity 300ms ease;
+    opacity 300ms ease
+  ` : 'none'};
 
   ${p => p.$phase === 'to-cell' && css`
     transition:
@@ -176,10 +179,11 @@ function rectGeometry(r: DOMRect): Geometry {
 export const CalendarNavigationOverlay = () => {
   const { phase, card, targetRect } = useCalendarNavigation();
 
-  // current rendered geometry (CSS top/left/width/height)
   const [geo, setGeo] = useState<Geometry>({ top: 0, left: 0, width: 0, height: 0 });
+  // animate=false → transitions disabled (card snaps instantly to position)
+  // animate=true  → transitions enabled (card flies smoothly)
+  const [animate, setAnimate] = useState(false);
 
-  // track previous phase to detect transitions
   const prevPhaseRef = useRef<string>('idle');
 
   useEffect(() => {
@@ -187,13 +191,17 @@ export const CalendarNavigationOverlay = () => {
     prevPhaseRef.current = phase;
 
     if (phase === 'to-center' && card) {
-      // Start at source, then immediately jump — browser needs one frame at source
-      // before we move, so set source first then transition to center.
-      const src = rectGeometry(card.sourceRect);
-      setGeo(src);
-      // Move to center in next animation frame so CSS transition triggers
+      // Step 1: snap to source rect with NO transition so card appears right there
+      setAnimate(false);
+      setGeo(rectGeometry(card.sourceRect));
+
+      // Step 2: after browser paints the card at source, enable transitions
+      // and fly to center
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => setGeo(centerGeometry()));
+        requestAnimationFrame(() => {
+          setAnimate(true);
+          setGeo(centerGeometry());
+        });
       });
     }
 
@@ -220,6 +228,7 @@ export const CalendarNavigationOverlay = () => {
         $height={geo.height}
         $phase={phase}
         $accentColor={card.accentColor}
+        $animate={animate}
       >
         <Card $phase={phase} $accentColor={card.accentColor}>
           <Avatar $color={card.accentColor}>
