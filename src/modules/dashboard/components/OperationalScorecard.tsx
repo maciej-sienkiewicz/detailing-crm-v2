@@ -631,26 +631,20 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
 
   const navigateToCalendar = (visit: VisitDetail, variant: CardVariant, rect?: DOMRect) => {
     const dateBox = { value: visit.scheduledDate ?? '' };
-    console.log('[Scorecard] navigateToCalendar START — id:', visit.id, '| variant:', variant, '| scheduledDate:', visit.scheduledDate, '| dateBox.value:', dateBox.value);
 
     if (!visit.scheduledDate && (variant === 'inProgress' || variant === 'readyForPickup')) {
-      console.log('[Scorecard] scheduledDate missing — fetching visitDetail for id:', visit.id);
       visitApi.getVisitDetail(visit.id)
         .then(detail => {
           const raw = detail.visit?.scheduledDate;
-          console.log('[Scorecard] visitDetail fetched — raw scheduledDate:', raw, '| detail.visit:', detail.visit);
           if (raw) {
             const d = new Date(raw);
             const y = d.getFullYear();
             const m = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
             dateBox.value = `${y}-${m}-${day}`;
-            console.log('[Scorecard] dateBox.value set to:', dateBox.value);
-          } else {
-            console.warn('[Scorecard] raw scheduledDate is empty/null in visitDetail');
           }
         })
-        .catch(err => console.error('[Scorecard] visitDetail fetch failed:', err));
+        .catch(() => {/* best-effort */});
     }
 
     const snap = {
@@ -662,10 +656,7 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
       sourceRect: rect ?? new DOMRect(window.innerWidth / 2 - 150, window.innerHeight / 2 - 34, 300, 68),
       scheduledDate: dateBox.value || undefined,
     };
-    const doNavigate = () => {
-      console.log('[Scorecard] doNavigate fired — dateBox.value:', dateBox.value, '| highlightDate:', dateBox.value || undefined);
-      navigate('/calendar', { state: { highlightEventId: visit.id, highlightDate: dateBox.value || undefined } });
-    };
+    const doNavigate = () => navigate('/calendar', { state: { highlightEventId: visit.id, highlightDate: dateBox.value || undefined } });
     startNavAnim(snap, doNavigate);
     setActiveKey(null);
   };

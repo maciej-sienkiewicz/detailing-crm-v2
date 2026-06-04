@@ -52,16 +52,12 @@ export const CalendarNavigationProvider = ({ children }: { children: React.React
   };
 
   const start = (snap: CardSnapshot, doNavigate: () => void) => {
-    console.log('[NavCtx] start — snap.id:', snap.id, '| snap.scheduledDate:', snap.scheduledDate);
     clearTimers();
     setTargetRect(null);
     setCard(snap);
     setPhase('to-center');
 
-    schedule(() => {
-      console.log('[NavCtx] doNavigate firing at 320ms');
-      doNavigate();
-    }, 320);
+    schedule(doNavigate, 320);
 
     schedule(() => setPhase('centered'), 520);
   };
