@@ -22,6 +22,7 @@ import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
 import { QuickEventModal, type QuickEventFormData, type QuickEventModalRef } from './QuickEventModal';
 import { EventSummaryPopover } from './EventSummaryPopover';
 import { DeleteRecurringModal } from '@/modules/operations/components/DeleteRecurringModal';
+import { useDeleteOperation } from '@/modules/operations/hooks/useDeleteOperation';
 import { CalendarFilterBar } from './CalendarFilterBar';
 import { CalendarSearchModal } from './CalendarSearchModal';
 import { WeekKanbanView } from './WeekKanbanView';
@@ -804,6 +805,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const { isCollapsed } = useSidebar();
     const queryClient = useQueryClient();
     const { showSuccess, showError } = useToast();
+    const { deleteWithScope, isDeleting: isDeletingRecurring } = useDeleteOperation();
     const calendarRef = useRef<FullCalendar>(null);
     const quickEventModalRef = useRef<QuickEventModalRef>(null);
     const [dateRange, setDateRange] = useState<DateRange | null>(null);
@@ -1619,11 +1621,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 <DeleteRecurringModal
                     isOpen
                     operation={deleteRecurringTarget}
+                    isDeleting={isDeletingRecurring}
                     onClose={() => setDeleteRecurringTarget(null)}
-                    onDeleted={() => {
-                        setDeleteRecurringTarget(null);
-                        queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
-                        queryClient.invalidateQueries({ queryKey: ['operations'] });
+                    onConfirm={(scope) => {
+                        deleteWithScope(deleteRecurringTarget.id, scope, {
+                            onSuccess: () => {
+                                setDeleteRecurringTarget(null);
+                                queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+                                queryClient.invalidateQueries({ queryKey: ['operations'] });
+                            },
+                        });
                     }}
                 />
             )}
