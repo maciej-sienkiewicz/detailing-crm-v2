@@ -1,4 +1,5 @@
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
+import { useLocation } from 'react-router-dom';
 import { Sidebar } from '@/widgets/Sidebar';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 
@@ -29,18 +30,37 @@ const ContentWrapper = styled.div<{ $isCollapsed: boolean }>`
     }
 `;
 
+const fadeIn = keyframes`
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+`;
+
+const PageSlot = styled.div`
+    animation: ${fadeIn} 260ms cubic-bezier(0.4, 0, 0.2, 1) both;
+    min-height: 100vh;
+`;
+
 interface LayoutProps {
     children: React.ReactNode;
 }
 
 export const Layout = ({ children }: LayoutProps) => {
     const { isCollapsed } = useSidebar();
+    const { pathname } = useLocation();
 
     return (
         <LayoutContainer>
             <Sidebar />
             <ContentWrapper $isCollapsed={isCollapsed}>
-                {children}
+                <PageSlot key={pathname}>
+                    {children}
+                </PageSlot>
             </ContentWrapper>
         </LayoutContainer>
     );
