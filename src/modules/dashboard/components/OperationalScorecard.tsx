@@ -422,7 +422,7 @@ const VisitRow = ({
 }: {
   visit: VisitDetail;
   variant: CardVariant;
-  onRowClick?: (id: string, e: React.MouseEvent) => void;
+  onRowClick?: (id: string, scheduledDate?: string) => void;
 }) => {
   const isOverdue = Boolean(
     visit.estimatedCompletionDate && new Date(visit.estimatedCompletionDate) < new Date()
@@ -432,7 +432,7 @@ const VisitRow = ({
     <VisitItem
       $overdue={isOverdue}
       $clickable={!!onRowClick}
-      onClick={e => onRowClick?.(visit.id, e)}
+      onClick={() => onRowClick?.(visit.id, visit.scheduledDate)}
     >
       <BrandAvatar $variant={variant}>{visit.brand.charAt(0).toUpperCase()}</BrandAvatar>
 
@@ -542,7 +542,7 @@ interface DrawerData {
   label: string;
   subtitle: string;
   visits: VisitDetail[];
-  onRowClick?: (id: string, e: React.MouseEvent) => void;
+  onRowClick?: (id: string, scheduledDate?: string) => void;
   footerLabel?: string;
   footerPath?: string;
 }
@@ -630,13 +630,13 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
     if (!activeKey || !stats) return null;
     switch (activeKey) {
       case 'inProgress':
-        return { variant: 'inProgress', label: t.dashboard.stats.inProgress, subtitle: 'Lista wizyt', visits: stats.inProgressDetails ?? [], onRowClick: (id) => navigate(`/visits/${id}`) };
+        return { variant: 'inProgress', label: t.dashboard.stats.inProgress, subtitle: 'Lista wizyt', visits: stats.inProgressDetails ?? [], onRowClick: (id, scheduledDate) => navigate('/calendar', { state: { highlightEventId: id, highlightDate: scheduledDate } }) };
       case 'readyForPickup':
-        return { variant: 'readyForPickup', label: t.dashboard.stats.readyForPickup, subtitle: 'Lista wizyt', visits: stats.readyForPickupDetails ?? [], onRowClick: (id) => navigate(`/visits/${id}`) };
+        return { variant: 'readyForPickup', label: t.dashboard.stats.readyForPickup, subtitle: 'Lista wizyt', visits: stats.readyForPickupDetails ?? [], onRowClick: (id, scheduledDate) => navigate('/calendar', { state: { highlightEventId: id, highlightDate: scheduledDate } }) };
       case 'incomingToday':
-        return { variant: 'incomingToday', label: t.dashboard.stats.arrivals, subtitle: 'Lista wizyt', visits: stats.incomingTodayDetails ?? [], onRowClick: (id, e) => setCtxMenu({ id, x: e.clientX, y: e.clientY }) };
+        return { variant: 'incomingToday', label: t.dashboard.stats.arrivals, subtitle: 'Lista wizyt', visits: stats.incomingTodayDetails ?? [], onRowClick: (id, scheduledDate) => navigate('/calendar', { state: { highlightEventId: id, highlightDate: scheduledDate ?? new Date().toISOString() } }) };
       case 'abandoned':
-        return { variant: 'abandoned', label: t.dashboard.stats.abandoned, subtitle: 'Ostatnie 30 dni · Porzucone i Anulowane', visits: stats.abandonedDetails ?? [], onRowClick: (id) => navigate(`/appointments/${id}`), footerLabel: 'Pokaż rezerwacje', footerPath: '/appointments' };
+        return { variant: 'abandoned', label: t.dashboard.stats.abandoned, subtitle: 'Ostatnie 30 dni · Porzucone i Anulowane', visits: stats.abandonedDetails ?? [], onRowClick: (id, scheduledDate) => navigate('/calendar', { state: { highlightEventId: id, highlightDate: scheduledDate } }), footerLabel: 'Pokaż rezerwacje', footerPath: '/appointments' };
       default:
         return null;
     }

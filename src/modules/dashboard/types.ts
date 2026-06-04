@@ -24,6 +24,8 @@ export interface VisitDetail {
   phoneNumber?: string;
   /** Estimated completion date (ISO) */
   estimatedCompletionDate?: string;
+  /** Scheduled/start date of the visit or appointment (ISO) */
+  scheduledDate?: string;
 }
 
 /**

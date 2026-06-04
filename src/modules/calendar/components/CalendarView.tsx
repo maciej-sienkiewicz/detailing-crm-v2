@@ -7,7 +7,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import type { DateSelectArg, EventClickArg, DatesSetArg } from '@fullcalendar/core';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { operationApi } from '@/modules/operations';
 import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
@@ -258,6 +258,27 @@ const CalendarContainer = styled.div`
         border-radius: 7px;
         background-color: #0ea5e9;
         animation: fc-search-pulse 1.0s ease-in-out 7;
+        z-index: 1;
+        pointer-events: none;
+    }
+
+    /* Dashboard navigation highlight */
+    @keyframes fc-dashboard-pulse {
+        0%, 100% { opacity: 0; }
+        40%, 60% { opacity: 1; }
+    }
+
+    .fc-event-dashboard-highlight {
+        overflow: visible !important;
+    }
+
+    .fc-event-dashboard-highlight::after {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 7px;
+        background-color: #f59e0b;
+        animation: fc-dashboard-pulse 1.0s ease-in-out 7;
         z-index: 1;
         pointer-events: none;
     }
@@ -802,6 +823,7 @@ interface CalendarViewProps {
 
 export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { isCollapsed } = useSidebar();
     const queryClient = useQueryClient();
     const { showSuccess, showError } = useToast();
@@ -867,7 +889,36 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
     const [searchOpen, setSearchOpen] = useState(false);
     const [highlightedEventId, setHighlightedEventId] = useState<string | null>(null);
+    const [dashboardHighlightId, setDashboardHighlightId] = useState<string | null>(null);
     const [isNavigating, setIsNavigating] = useState(false);
+
+    // Navigate to highlighted event from dashboard
+    useEffect(() => {
+        const state = location.state as { highlightEventId?: string; highlightDate?: string } | null;
+        if (!state?.highlightEventId) return;
+
+        const eventId = state.highlightEventId;
+        const eventDate = state.highlightDate ? new Date(state.highlightDate) : new Date();
+
+        // Clear the state so a back-navigation doesn't re-trigger the highlight
+        navigate(location.pathname, { replace: true, state: null });
+
+        setIsNavigating(true);
+        setTimeout(() => {
+            const calApi = calendarRef.current?.getApi();
+            if (calApi) {
+                calApi.changeView('dayGridMonth');
+                calApi.gotoDate(eventDate);
+            }
+            setCurrentView('dayGridMonth');
+            setIsNavigating(false);
+            setTimeout(() => {
+                setDashboardHighlightId(eventId);
+                setTimeout(() => setDashboardHighlightId(null), 7200);
+            }, 50);
+        }, 220);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Fix .fc-more-popover clipping: CalendarWrapper has overflow:hidden which
     // clips FullCalendar's absolutely-positioned popover. Watch for it being
@@ -1491,9 +1542,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 displayEventTime={false}
 
                 // Custom event content
-                eventClassNames={(arg) =>
-                    highlightedEventId === arg.event.id ? ['fc-event-search-highlight'] : []
-                }
+                eventClassNames={(arg) => {
+                    if (highlightedEventId === arg.event.id) return ['fc-event-search-highlight'];
+                    if (dashboardHighlightId === arg.event.id) return ['fc-event-dashboard-highlight'];
+                    return [];
+                }}
 
                 eventContent={(arg) => {
                     const props = arg.event.extendedProps as AppointmentEventData | VisitEventData;
