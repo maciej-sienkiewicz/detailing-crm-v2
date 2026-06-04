@@ -23,6 +23,7 @@ import { t } from '@/common/i18n';
 import { formatCurrency, formatPhoneNumber, formatDate } from '@/common/utils/formatters';
 import type { OperationalStats, VisitDetail } from '../types';
 import { StatTile, StatTileSkeleton } from '@/common/components/StatTile';
+import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -422,7 +423,7 @@ const VisitRow = ({
 }: {
   visit: VisitDetail;
   variant: CardVariant;
-  onRowClick?: (id: string, scheduledDate?: string) => void;
+  onRowClick?: (id: string, scheduledDate?: string, rect?: DOMRect) => void;
 }) => {
   const isOverdue = Boolean(
     visit.estimatedCompletionDate && new Date(visit.estimatedCompletionDate) < new Date()
@@ -432,7 +433,7 @@ const VisitRow = ({
     <VisitItem
       $overdue={isOverdue}
       $clickable={!!onRowClick}
-      onClick={() => onRowClick?.(visit.id, visit.scheduledDate)}
+      onClick={e => onRowClick?.(visit.id, visit.scheduledDate, (e.currentTarget as HTMLElement).getBoundingClientRect())}
     >
       <BrandAvatar $variant={variant}>{visit.brand.charAt(0).toUpperCase()}</BrandAvatar>
 
@@ -542,7 +543,7 @@ interface DrawerData {
   label: string;
   subtitle: string;
   visits: VisitDetail[];
-  onRowClick?: (id: string, scheduledDate?: string) => void;
+  onRowClick?: (id: string, scheduledDate?: string, rect?: DOMRect) => void;
   footerLabel?: string;
   footerPath?: string;
 }
@@ -622,21 +623,37 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [ctxMenu, setCtxMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const navigate = useNavigate();
+  const { start: startNavAnim } = useCalendarNavigation();
 
   const toggle = (key: string) =>
     setActiveKey(prev => (prev === key ? null : key));
+
+  const navigateToCalendar = (visit: VisitDetail, variant: CardVariant, rect?: DOMRect) => {
+    const snap = {
+      id: visit.id,
+      label: `${visit.brand} ${visit.model ?? ''}`.trim() || visit.name,
+      customer: `${visit.customerFirstName} ${visit.customerLastName}`.trim(),
+      amount: formatCurrency(visit.amount),
+      accentColor: CARD_CONFIG[variant].accentColor,
+      sourceRect: rect ?? new DOMRect(window.innerWidth / 2 - 150, window.innerHeight / 2 - 34, 300, 68),
+      scheduledDate: visit.scheduledDate,
+    };
+    const doNavigate = () => navigate('/calendar', { state: { highlightEventId: visit.id, highlightDate: visit.scheduledDate } });
+    startNavAnim(snap, doNavigate);
+    setActiveKey(null);
+  };
 
   const getDrawerData = (): DrawerData | null => {
     if (!activeKey || !stats) return null;
     switch (activeKey) {
       case 'inProgress':
-        return { variant: 'inProgress', label: t.dashboard.stats.inProgress, subtitle: 'Lista wizyt', visits: stats.inProgressDetails ?? [], onRowClick: (id, scheduledDate) => navigate('/calendar', { state: { highlightEventId: id, highlightDate: scheduledDate } }) };
+        return { variant: 'inProgress', label: t.dashboard.stats.inProgress, subtitle: 'Lista wizyt', visits: stats.inProgressDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.inProgressDetails?.find(x => x.id === id); if (v) navigateToCalendar(v, 'inProgress', rect); } };
       case 'readyForPickup':
-        return { variant: 'readyForPickup', label: t.dashboard.stats.readyForPickup, subtitle: 'Lista wizyt', visits: stats.readyForPickupDetails ?? [], onRowClick: (id, scheduledDate) => navigate('/calendar', { state: { highlightEventId: id, highlightDate: scheduledDate } }) };
+        return { variant: 'readyForPickup', label: t.dashboard.stats.readyForPickup, subtitle: 'Lista wizyt', visits: stats.readyForPickupDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.readyForPickupDetails?.find(x => x.id === id); if (v) navigateToCalendar(v, 'readyForPickup', rect); } };
       case 'incomingToday':
-        return { variant: 'incomingToday', label: t.dashboard.stats.arrivals, subtitle: 'Lista wizyt', visits: stats.incomingTodayDetails ?? [], onRowClick: (id, scheduledDate) => navigate('/calendar', { state: { highlightEventId: id, highlightDate: scheduledDate ?? new Date().toISOString() } }) };
+        return { variant: 'incomingToday', label: t.dashboard.stats.arrivals, subtitle: 'Lista wizyt', visits: stats.incomingTodayDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.incomingTodayDetails?.find(x => x.id === id); if (v) navigateToCalendar(v, 'incomingToday', rect); } };
       case 'abandoned':
-        return { variant: 'abandoned', label: t.dashboard.stats.abandoned, subtitle: 'Ostatnie 30 dni · Porzucone i Anulowane', visits: stats.abandonedDetails ?? [], onRowClick: (id, scheduledDate) => navigate('/calendar', { state: { highlightEventId: id, highlightDate: scheduledDate } }), footerLabel: 'Pokaż rezerwacje', footerPath: '/appointments' };
+        return { variant: 'abandoned', label: t.dashboard.stats.abandoned, subtitle: 'Ostatnie 30 dni · Porzucone i Anulowane', visits: stats.abandonedDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.abandonedDetails?.find(x => x.id === id); if (v) navigateToCalendar(v, 'abandoned', rect); }, footerLabel: 'Pokaż rezerwacje', footerPath: '/appointments' };
       default:
         return null;
     }

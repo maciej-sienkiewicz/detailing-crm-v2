@@ -2,6 +2,8 @@ import styled, { keyframes } from 'styled-components';
 import { useLocation } from 'react-router-dom';
 import { Sidebar } from '@/widgets/Sidebar';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
+import { CalendarNavigationProvider } from '@/common/context/CalendarNavigationContext';
+import { CalendarNavigationOverlay } from '@/common/components/CalendarNavigationOverlay';
 
 const LayoutContainer = styled.div`
     display: flex;
@@ -55,13 +57,16 @@ export const Layout = ({ children }: LayoutProps) => {
     const { pathname } = useLocation();
 
     return (
-        <LayoutContainer>
-            <Sidebar />
-            <ContentWrapper $isCollapsed={isCollapsed}>
-                <PageSlot key={pathname}>
-                    {children}
-                </PageSlot>
-            </ContentWrapper>
-        </LayoutContainer>
+        <CalendarNavigationProvider>
+            <LayoutContainer>
+                <Sidebar />
+                <ContentWrapper $isCollapsed={isCollapsed}>
+                    <PageSlot key={pathname}>
+                        {children}
+                    </PageSlot>
+                </ContentWrapper>
+            </LayoutContainer>
+            <CalendarNavigationOverlay />
+        </CalendarNavigationProvider>
     );
 };
