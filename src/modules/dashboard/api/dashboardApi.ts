@@ -545,7 +545,7 @@ export const dashboardApi = {
           price: (a.totalGross ?? 0) / 100,
           priceNetto: (a.totalNet ?? 0) / 100,
           statusKind,
-          statusLabel: label === 'DZISIAJ' ? 'Oczekująca' : 'Zaplanowana',
+          statusLabel: label === 'DZISIAJ' ? 'Zaplanowana' : 'Zaplanowana',
         },
       };
     });

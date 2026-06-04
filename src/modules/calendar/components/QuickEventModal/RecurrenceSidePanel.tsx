@@ -295,7 +295,7 @@ export const RecurrenceSidePanel = ({ rule, onChange, startDateTime }: Recurrenc
 
     const intervalLabel = () => {
         const n = rule.intervalWeeks ?? 1;
-        return n === 1 ? 'tygodniu' : n < 5 ? 'tygodnie' : 'tygodni';
+        return n === 1 ? 'tydzień' : n < 5 ? 'tygodnie' : 'tygodni';
     };
 
     return (
