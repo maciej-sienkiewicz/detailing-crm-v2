@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useLocation } from 'react-router-dom';
 import { Sidebar } from '@/widgets/Sidebar';
@@ -13,13 +14,9 @@ const LayoutContainer = styled.div`
 
 const ContentWrapper = styled.div<{ $isCollapsed: boolean }>`
     flex: 1;
-    /* Without min-width: 0 a flex-row item's minimum size defaults to its
-       min-content width, which can be thousands of pixels when the page
-       contains a wide table.  Setting it to 0 lets the sidebar + content
-       share the viewport correctly and keeps wide tables from making the
-       whole page horizontally scrollable. */
     min-width: 0;
     min-height: 100vh;
+    position: relative;
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         margin-left: ${props => props.$isCollapsed ? '64px' : '248px'};
@@ -32,20 +29,20 @@ const ContentWrapper = styled.div<{ $isCollapsed: boolean }>`
     }
 `;
 
-const fadeIn = keyframes`
-    from {
-        opacity: 0;
-        transform: translateY(6px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+// Sibling overlay that fades out — the content itself is never animated,
+// so no compositing layer is created and backdrop-filter works everywhere.
+const fadeOut = keyframes`
+    from { opacity: 1; }
+    to   { opacity: 0; }
 `;
 
-const PageSlot = styled.div`
-    animation: ${fadeIn} 260ms cubic-bezier(0.4, 0, 0.2, 1) both;
-    min-height: 100vh;
+const RouteFlash = styled.div`
+    position: absolute;
+    inset: 0;
+    z-index: 500;
+    background: ${props => props.theme.colors.background};
+    animation: ${fadeOut} 240ms cubic-bezier(0.4, 0, 0.2, 1) both;
+    pointer-events: none;
 `;
 
 interface LayoutProps {
@@ -55,15 +52,17 @@ interface LayoutProps {
 export const Layout = ({ children }: LayoutProps) => {
     const { isCollapsed } = useSidebar();
     const { pathname } = useLocation();
+    const keyRef = useRef(0);
+    keyRef.current += 1;
+    const flashKey = keyRef.current;
 
     return (
         <CalendarNavigationProvider>
             <LayoutContainer>
                 <Sidebar />
                 <ContentWrapper $isCollapsed={isCollapsed}>
-                    <PageSlot key={pathname}>
-                        {children}
-                    </PageSlot>
+                    {children}
+                    <RouteFlash key={`${pathname}-${flashKey}`} />
                 </ContentWrapper>
             </LayoutContainer>
             <CalendarNavigationOverlay />
