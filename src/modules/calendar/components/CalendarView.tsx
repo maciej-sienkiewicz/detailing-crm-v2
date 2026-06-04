@@ -829,6 +829,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const queryClient = useQueryClient();
     const { showSuccess, showError } = useToast();
     const { deleteWithScope, isDeleting: isDeletingRecurring } = useDeleteOperation();
+
+    // If navigated from dashboard with a highlight date, start the calendar at that month
+    const dashboardState = location.state as { highlightEventId?: string; highlightDate?: string } | null;
+    const initialDate = dashboardState?.highlightDate
+        ? new Date(dashboardState.highlightDate)
+        : undefined;
     const { phase: navPhase, card: navCard, reportTargetRect } = useCalendarNavigation();
     const calendarRef = useRef<FullCalendar>(null);
     const quickEventModalRef = useRef<QuickEventModalRef>(null);
@@ -905,12 +911,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         // Clear router state so back-navigation doesn't re-trigger
         navigate(location.pathname, { replace: true, state: null });
 
-        // Navigate calendar to the right month (calendar is already fading in behind the overlay)
-        const calApi = calendarRef.current?.getApi();
-        if (calApi) {
-            calApi.changeView('dayGridMonth');
-            calApi.gotoDate(eventDate);
-        }
+        // FullCalendar already starts at the correct month via initialDate prop.
+        // Just ensure the view state is in sync.
         setCurrentView('dayGridMonth');
 
         const applyHighlight = (el: HTMLElement) => {
@@ -1515,6 +1517,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
 
                 // Initial view
                 initialView="dayGridMonth"
+                {...(initialDate ? { initialDate } : {})}
 
                 // Header configuration
                 headerToolbar={{
