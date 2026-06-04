@@ -467,6 +467,7 @@ export const UpcomingVisitsPanel = () => {
   };
 
   const handleShowInCalendar = (visit: UpcomingVisit, sourceRect: DOMRect) => {
+    console.log('[UpcomingVisitsPanel] handleShowInCalendar — visit:', visit);
     const snap = {
       id: visit.id,
       label: visit.vehicleName,
