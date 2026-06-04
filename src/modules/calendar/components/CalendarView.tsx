@@ -899,29 +899,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const [dashboardHighlightId, setDashboardHighlightId] = useState<string | null>(null);
     const [isNavigating, setIsNavigating] = useState(false);
 
-    // Module-level capture survives React StrictMode double-mount.
-    // We write it synchronously at render time (before effects run) so even
-    // if the component unmounts/remounts (StrictMode), the value is still there.
-    const pendingHighlightRef = useRef<string | null>(null);
-    const pendingGotoDateRef = useRef<string | null>(null);
-
-    // Capture from location.state at the FIRST render only (module-level guard).
+    // Capture from location.state into module-level var (survives StrictMode double-mount).
+    // Read at render time so it's available before any effects run.
     const _stateRef = (location.state as { highlightEventId?: string; highlightDate?: string } | null);
     if (_stateRef?.highlightEventId && !_dashboardPendingHighlight) {
         _dashboardPendingHighlight = { id: _stateRef.highlightEventId, date: _stateRef.highlightDate ?? '' };
     }
 
-    // Navigate to highlighted event from dashboard
+    // Clear router state so back-navigation doesn't replay the animation.
+    // Safety timeout: auto-clear _dashboardPendingHighlight after 10s in case
+    // eventDidMount never fires (event not found / wrong month).
     useEffect(() => {
         if (!_dashboardPendingHighlight) return;
-
-        const { id, date } = _dashboardPendingHighlight;
-        _dashboardPendingHighlight = null;
-
-        pendingHighlightRef.current = id;
-        pendingGotoDateRef.current = date;
-
         navigate(location.pathname, { replace: true, state: null });
+        const t = setTimeout(() => { _dashboardPendingHighlight = null; }, 10_000);
+        return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -997,20 +989,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         setCalendarTitle(arg.view.title);
         setCurrentView(arg.view.type as CalendarViewType);
 
-        // If we have a pending dashboard highlight, navigate to its month if not already visible.
-        if (pendingGotoDateRef.current) {
-            const targetDate = new Date(pendingGotoDateRef.current);
+        // If we have a pending dashboard highlight, navigate to its month if not in view.
+        // Using module-level var (not a ref) so it's always up-to-date even when this
+        // callback fires before the mount useEffect (FullCalendar children run effects first).
+        if (_dashboardPendingHighlight?.date) {
+            const targetDate = new Date(_dashboardPendingHighlight.date);
             const viewStart = new Date(arg.start);
             const viewEnd = new Date(arg.end);
             if (targetDate < viewStart || targetDate >= viewEnd) {
-                const gotoDate = pendingGotoDateRef.current;
-                pendingGotoDateRef.current = null;
-                // gotoDate triggers another datesSet; pendingGotoDateRef is already null so no loop.
-                calendarRef.current?.getApi().gotoDate(new Date(gotoDate));
-            } else {
-                // Target already visible — clear the pending goto.
-                pendingGotoDateRef.current = null;
+                // Not in view — jump to correct month.
+                // gotoDate triggers another datesSet; on that call target will be in view → no loop.
+                calendarRef.current?.getApi().gotoDate(targetDate);
             }
+            // else: already visible, eventDidMount will pick it up.
         }
 
         if (onViewChange) {
@@ -1551,9 +1542,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                 events={events}
 
                 eventDidMount={(arg) => {
-                    if (pendingHighlightRef.current && arg.event.id === pendingHighlightRef.current) {
-                        const id = pendingHighlightRef.current;
-                        pendingHighlightRef.current = null;
+                    if (_dashboardPendingHighlight?.id && arg.event.id === _dashboardPendingHighlight.id) {
+                        const id = _dashboardPendingHighlight.id;
+                        _dashboardPendingHighlight = null;
                         requestAnimationFrame(() => {
                             const rect = arg.el.getBoundingClientRect();
                             setDashboardHighlightId(id);
