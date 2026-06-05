@@ -122,6 +122,19 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         maxOccurrences: 12,
     });
 
+    const getDayOfWeekFromDate = (dateStr: string): string => {
+        const date = new Date(dateStr);
+        return (['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'] as const)[date.getDay()];
+    };
+
+    useEffect(() => {
+        if (isRecurring && startDateTime) {
+            const day = getDayOfWeekFromDate(startDateTime);
+            setRecurrenceRule(prev => ({ ...prev, daysOfWeek: [day as any] }));
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isRecurring]);
+
     // ─── Sub-modal state ───────────────────────────────────────────────────────
     const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
     const [isPriceInputModalOpen, setIsPriceInputModalOpen] = useState(false);
