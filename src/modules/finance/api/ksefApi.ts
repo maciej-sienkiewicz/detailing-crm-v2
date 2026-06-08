@@ -19,13 +19,7 @@ export const ksefApi = {
   // ── Credentials ────────────────────────────────────────────────────────────
 
   getCredentials: async (): Promise<KsefCredentials | null> => {
-    try {
-      const response = await apiClient.get(`${BASE}/credentials`);
-      return response.data;
-    } catch (err: any) {
-      if (err?.response?.status === 404) return null;
-      throw err;
-    }
+    return null
   },
 
   saveCredentials: async (data: SaveKsefCredentialsRequest): Promise<KsefCredentials> => {
