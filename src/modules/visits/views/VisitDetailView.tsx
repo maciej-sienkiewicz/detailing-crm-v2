@@ -22,6 +22,9 @@ import { GeneratePostModal } from '@/modules/competition-monitoring/components/G
 import type { GeneratePostPrefill } from '@/modules/competition-monitoring/components/GeneratePostModal';
 import type { DocumentType, ServiceStatus } from '../types';
 import { useToast } from '@/common/components/Toast';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { visitApi } from '../api/visitApi';
+import { DeleteOperationModal } from '@/modules/operations/components/DeleteOperationModal';
 import { AuditTimeline } from '@/common/components/AuditTimeline';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useAutomationConfig } from '@/modules/sms-campaigns/hooks';
@@ -592,6 +595,7 @@ export const VisitDetailView = () => {
     const navigate = useNavigate();
 
     const [isTransitionWizardOpen, setIsTransitionWizardOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [transitionType, setTransitionType] = useState<'in_progress_to_ready' | 'ready_to_completed' | null>(null);
     const [isGeneratePostOpen, setIsGeneratePostOpen] = useState(false);
     const [isSmsReminderOpen, setIsSmsReminderOpen] = useState(false);
@@ -725,7 +729,19 @@ export const VisitDetailView = () => {
         return { topic, context, serviceType: detectedServiceType };
     };
 
-    const handleCancelVisit = () => { showInfo('To jeszcze nie działa, trzeba obgadać'); };
+    const queryClient = useQueryClient();
+    const { mutate: deleteVisit, isPending: isDeleting } = useMutation({
+        mutationFn: () => visitApi.cancelDraftVisit(visitId!),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['operations'] });
+            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+            navigate('/operations');
+        },
+        onError: () => showWarning('Nie udało się usunąć wizyty. Spróbuj ponownie.'),
+    });
+
+    const handleCancelVisit = () => setIsDeleteModalOpen(true);
+    const handleConfirmDelete = () => deleteVisit();
 
     const handleMileageChange = (mileage: number) => { updateVisit({ mileageAtArrival: mileage }); };
     const handleKeysToggle = (checked: boolean) => { updateVisit({ keysHandedOver: checked }); };
@@ -1051,6 +1067,14 @@ export const VisitDetailView = () => {
                 customer={visit.customer}
                 existingReminder={smsReminderForEdit}
                 onClose={() => { setIsSmsReminderOpen(false); setSmsReminderForEdit(null); }}
+            />
+
+            <DeleteOperationModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleConfirmDelete}
+                isDeleting={isDeleting}
+                operationName={`${visit.customer.firstName} ${visit.customer.lastName}`}
             />
         </ViewContainer>
 
