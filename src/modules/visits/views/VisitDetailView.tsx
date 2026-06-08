@@ -632,6 +632,17 @@ export const VisitDetailView = () => {
     const { config: smsConfig } = useAutomationConfig();
     const smsPreVisitDisabled = smsConfig !== null && !smsConfig.preVisit.enabled;
 
+    const queryClient = useQueryClient();
+    const { mutate: deleteVisit, isPending: isDeleting } = useMutation({
+        mutationFn: () => visitApi.cancelDraftVisit(visitId!),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['operations'] });
+            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+            navigate('/operations');
+        },
+        onError: () => showWarning('Nie udało się usunąć wizyty. Spróbuj ponownie.'),
+    });
+
     if (isLoading) {
         return (
             <ViewContainer>
@@ -728,17 +739,6 @@ export const VisitDetailView = () => {
 
         return { topic, context, serviceType: detectedServiceType };
     };
-
-    const queryClient = useQueryClient();
-    const { mutate: deleteVisit, isPending: isDeleting } = useMutation({
-        mutationFn: () => visitApi.cancelDraftVisit(visitId!),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['operations'] });
-            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
-            navigate('/operations');
-        },
-        onError: () => showWarning('Nie udało się usunąć wizyty. Spróbuj ponownie.'),
-    });
 
     const handleCancelVisit = () => setIsDeleteModalOpen(true);
     const handleConfirmDelete = () => deleteVisit();
