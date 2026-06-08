@@ -510,6 +510,10 @@ export const operationApi = {
         await apiClient.delete(`${BASE_PATH}/${id}`);
     },
 
+    deleteVisit: async (visitId: string): Promise<void> => {
+        await apiClient.delete(`/visits/${visitId}`);
+    },
+
     updateReservationDate: async (
         reservationId: string,
         startDateTime: string,

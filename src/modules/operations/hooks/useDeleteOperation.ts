@@ -12,8 +12,13 @@ export const useDeleteOperation = () => {
         queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
     };
 
-    const mutation = useMutation({
-        mutationFn: (id: string) => operationApi.deleteOperation(id),
+    const visitMutation = useMutation({
+        mutationFn: (id: string) => operationApi.deleteVisit(id),
+        onSuccess: invalidate,
+    });
+
+    const reservationMutation = useMutation({
+        mutationFn: (id: string) => operationApi.deleteAppointment(id),
         onSuccess: invalidate,
     });
 
@@ -24,12 +29,13 @@ export const useDeleteOperation = () => {
     });
 
     return {
-        deleteOperation: mutation.mutate,
+        deleteVisit: visitMutation.mutate,
+        deleteReservation: reservationMutation.mutate,
         deleteWithScope: (
             id: string,
             scope: RecurrenceEditScope,
             options?: Parameters<typeof scopeMutation.mutate>[1]
         ) => scopeMutation.mutate({ id, scope }, options),
-        isDeleting: mutation.isPending || scopeMutation.isPending,
+        isDeleting: visitMutation.isPending || reservationMutation.isPending || scopeMutation.isPending,
     };
 };

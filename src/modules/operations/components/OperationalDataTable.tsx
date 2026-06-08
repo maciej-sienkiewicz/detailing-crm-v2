@@ -656,7 +656,7 @@ export const OperationalDataTable = ({
         ? rawOperations.filter(op => op.recurrenceInfo?.seriesId === seriesId)
         : rawOperations;
 
-    const { deleteOperation, deleteWithScope, isDeleting } = useDeleteOperation();
+    const { deleteVisit, deleteReservation, deleteWithScope, isDeleting } = useDeleteOperation();
     const { updateDate, isUpdating } = useUpdateReservationDate();
     const { cancelReservation, isCancelling } = useCancelReservation();
     const { updateOperationTitle, isUpdatingTitle, updatingId } = useUpdateOperationTitle();
@@ -732,9 +732,13 @@ export const OperationalDataTable = ({
     };
     const confirmDelete = () => {
         if (!deleteModal.op) return;
-        deleteOperation(deleteModal.op.id, {
-            onSuccess: () => setDeleteModal({ isOpen: false, op: null }),
-        });
+        const op = deleteModal.op;
+        const onSuccess = () => setDeleteModal({ isOpen: false, op: null });
+        if (op.type === 'VISIT') {
+            deleteVisit(op.id, { onSuccess });
+        } else {
+            deleteReservation(op.id, { onSuccess });
+        }
     };
     const confirmDeleteRecurring = (scope: RecurrenceEditScope) => {
         if (!deleteRecurringModal.op) return;
