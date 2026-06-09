@@ -22,6 +22,7 @@ import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
 import { QuickEventModal, type QuickEventFormData, type QuickEventModalRef } from './QuickEventModal';
 import { EventSummaryPopover } from './EventSummaryPopover';
 import { DeleteRecurringModal } from '@/modules/operations/components/DeleteRecurringModal';
+import { DeleteOperationModal } from '@/modules/operations/components/DeleteOperationModal';
 import { useDeleteOperation } from '@/modules/operations/hooks/useDeleteOperation';
 import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
 import { CalendarFilterBar } from './CalendarFilterBar';
@@ -898,6 +899,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     const [endDateDraft, setEndDateDraft] = useState('');
     const [isSavingEndDate, setIsSavingEndDate] = useState(false);
     const [deleteRecurringTarget, setDeleteRecurringTarget] = useState<Operation | null>(null);
+    const [pendingDelete, setPendingDelete] = useState<{ id: string; type: 'VISIT' | 'APPOINTMENT'; name: string } | null>(null);
+    const [isConfirmDeleting, setIsConfirmDeleting] = useState(false);
 
     const [searchOpen, setSearchOpen] = useState(false);
     const [highlightedEventId, setHighlightedEventId] = useState<string | null>(null);
@@ -1247,31 +1250,37 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
     /**
      * Handle delete appointment from popover actions (soft delete)
      */
-    const handleDeleteAppointmentClick = useCallback(async () => {
+    const handleDeleteAppointmentClick = useCallback(() => {
         if (!popoverEvent || popoverEvent.type !== 'APPOINTMENT') return;
+        setPendingDelete({ id: popoverEvent.id, type: 'APPOINTMENT', name: popoverEvent.title ?? '' });
+    }, [popoverEvent]);
 
-        try {
-            await operationApi.deleteAppointment(popoverEvent.id);
-            setPopoverOpen(false);
-            showSuccess('Rezerwacja usunięta', 'Rezerwacja została usunięta.');
-            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
-        } catch (error) {
-            console.error('Failed to delete appointment:', error);
-        }
-    }, [popoverEvent, showSuccess, queryClient]);
-
-    const handleDeleteVisitFromPopover = useCallback(async () => {
+    const handleDeleteVisitFromPopover = useCallback(() => {
         if (!popoverEvent || popoverEvent.type !== 'VISIT') return;
+        setPendingDelete({ id: popoverEvent.id, type: 'VISIT', name: popoverEvent.title ?? '' });
+    }, [popoverEvent]);
+
+    const handleConfirmPendingDelete = useCallback(async () => {
+        if (!pendingDelete) return;
+        setIsConfirmDeleting(true);
         try {
-            await visitApi.cancelDraftVisit(popoverEvent.id);
+            if (pendingDelete.type === 'VISIT') {
+                await visitApi.cancelDraftVisit(pendingDelete.id);
+                showSuccess('Wizyta usunięta', 'Wizyta została usunięta.');
+            } else {
+                await operationApi.deleteAppointment(pendingDelete.id);
+                showSuccess('Rezerwacja usunięta', 'Rezerwacja została usunięta.');
+            }
+            setPendingDelete(null);
             setPopoverOpen(false);
-            showSuccess('Wizyta usunięta', 'Wizyta została usunięta.');
             queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
             queryClient.invalidateQueries({ queryKey: ['operations'] });
         } catch (error) {
-            console.error('Failed to delete visit:', error);
+            console.error('Failed to delete:', error);
+        } finally {
+            setIsConfirmDeleting(false);
         }
-    }, [popoverEvent, showSuccess, queryClient]);
+    }, [pendingDelete, showSuccess, queryClient]);
 
     const handleDeleteFromPopover = useCallback(async () => {
         if (!popoverEvent || popoverEvent.type !== 'APPOINTMENT') return;
@@ -1758,6 +1767,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     onEditEndDateClick={popoverEvent?.type === 'VISIT' ? handleEditEndDateClick : undefined}
                 />
             )}
+
+            <DeleteOperationModal
+                isOpen={!!pendingDelete}
+                onClose={() => setPendingDelete(null)}
+                onConfirm={handleConfirmPendingDelete}
+                isDeleting={isConfirmDeleting}
+                operationName={pendingDelete?.name ?? ''}
+            />
 
             {deleteRecurringTarget && (
                 <DeleteRecurringModal
