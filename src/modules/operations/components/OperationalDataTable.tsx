@@ -395,6 +395,13 @@ const MenuBtn = styled.button`
     }
 `;
 
+const DeletedAtLabel = styled.span`
+    font-size: 11px;
+    color: #9F1239;
+    white-space: nowrap;
+    opacity: 0.8;
+`;
+
 const DropdownMenu = styled.div`
     position: fixed;
     min-width: 188px;
@@ -706,7 +713,7 @@ export const OperationalDataTable = ({
     }, [navigate]);
 
     const isRowClickable = (op: Operation) =>
-        op.type === 'VISIT' || (op.type === 'RESERVATION' && op.status === 'CREATED');
+        !op.deletedAt && (op.type === 'VISIT' || (op.type === 'RESERVATION' && op.status === 'CREATED'));
 
     const toggleMenu = (id: string, e: React.MouseEvent) => {
         e.preventDefault();
@@ -804,7 +811,8 @@ export const OperationalDataTable = ({
                     ) : (
                         operations.map(op => {
                             const clickable = isRowClickable(op);
-                            const accentColor = getStatusAccentColor(op.status);
+                            const isDeleted = !!op.deletedAt;
+                            const accentColor = isDeleted ? '#94A3B8' : getStatusAccentColor(op.status);
                             const isVisit = op.type === 'VISIT';
                             const hasName = !!(op.customerFirstName?.trim() || op.customerLastName?.trim());
                             const customerLabel = hasName
@@ -951,14 +959,20 @@ export const OperationalDataTable = ({
 
                                     {/* Actions */}
                                     <ActionsCellWrap onClick={e => e.stopPropagation()}>
+                                        {isDeleted && op.deletedAt ? (
+                                            <DeletedAtLabel title={`Usunięto: ${new Date(op.deletedAt).toLocaleString('pl-PL')}`}>
+                                                usunięto {new Date(op.deletedAt).toLocaleDateString('pl-PL')}
+                                            </DeletedAtLabel>
+                                        ) : (
                                         <MenuBtn
                                             onClick={e => toggleMenu(op.id, e)}
                                             title="Akcje"
                                         >
                                             <DotsIcon />
                                         </MenuBtn>
+                                        )}
 
-                                        {openMenuId === op.id && menuPos && createPortal(
+                                        {!isDeleted && openMenuId === op.id && menuPos && createPortal(
                                             <DropdownMenu style={{ top: menuPos.top, right: menuPos.right }}>
                                                 {isReservationCreated && (
                                                     <>

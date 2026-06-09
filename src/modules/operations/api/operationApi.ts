@@ -85,6 +85,7 @@ interface VisitResponse {
     totalGross: number; // w groszach
     createdAt: string;
     updatedAt: string;
+    deletedAt?: string | null;
 }
 
 interface VisitsListResponse {
@@ -160,6 +161,7 @@ const mapVisitToOperation = (visit: VisitResponse): Operation => {
                 lastName: '',
             },
         },
+        deletedAt: visit.deletedAt ?? null,
     };
 };
 
@@ -284,6 +286,40 @@ const mockDeleteOperation = async (id: string): Promise<void> => {
 
 export const operationApi = {
     getOperations: async (filters: OperationFilters): Promise<OperationListResponse> => {
+        // Usunięte wizyty - osobny endpoint
+        if (filters.deleted) {
+            const params = new URLSearchParams({
+                page: filters.page.toString(),
+                size: filters.limit.toString(),
+            });
+            if (filters.scheduledDate) params.append('scheduledDate', filters.scheduledDate);
+
+            const response = await apiClient.get<VisitsListResponse>(
+                `/visits/deleted?${params.toString()}`
+            );
+
+            let mappedData = response.data.visits.map(mapVisitToOperation);
+            if (filters.search) {
+                const s = filters.search.toLowerCase();
+                mappedData = mappedData.filter(op =>
+                    op.customerLastName.toLowerCase().includes(s) ||
+                    op.customerFirstName.toLowerCase().includes(s) ||
+                    op.customerPhone.includes(filters.search) ||
+                    (op.vehicle?.licensePlate?.toLowerCase().includes(s) ?? false)
+                );
+            }
+
+            return {
+                data: mappedData,
+                pagination: {
+                    currentPage: response.data.pagination.page,
+                    totalPages: response.data.pagination.totalPages,
+                    totalItems: response.data.pagination.total,
+                    itemsPerPage: response.data.pagination.pageSize,
+                },
+            };
+        }
+
         // Jeśli filtrujemy tylko wizyty - pobierz z /api/visits
         if (filters.type === 'VISIT') {
             if (USE_MOCKS_FOR_VISITS) {

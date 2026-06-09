@@ -36,6 +36,7 @@ interface BackendVisit {
     status: string;
     createdBy?: string;
     notes: string;
+    deletedAt?: string | null;
 }
 
 // Backend visits response
@@ -175,6 +176,7 @@ export const mapBackendVisitToVisit = (backendVisit: BackendVisit): Visit => {
         createdBy: backendVisit.createdBy || '',
         technician: backendVisit.createdBy || '',
         notes: backendVisit.notes,
+        deletedAt: backendVisit.deletedAt ?? null,
     };
 };
 

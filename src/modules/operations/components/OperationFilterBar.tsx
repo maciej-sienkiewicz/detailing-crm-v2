@@ -14,6 +14,7 @@ const chipColor: Record<FilterStatus | 'ALL', string> = {
     COMPLETED:        '#059669',
     REJECTED:         '#DC2626',
     ARCHIVED:         '#94A3B8',
+    DELETED:          '#9F1239',
 };
 
 // ─── Styled components ────────────────────────────────────────────────────────
@@ -214,6 +215,7 @@ const FILTERS: { value: FilterStatus; label: string }[] = [
     { value: 'READY_FOR_PICKUP', label: 'Do odbioru'   },
     { value: 'COMPLETED',        label: 'Zakończone'   },
     { value: 'REJECTED',         label: 'Odrzucone'    },
+    { value: 'DELETED',          label: 'Usunięte'     },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────

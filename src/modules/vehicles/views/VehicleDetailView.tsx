@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useVehicleDetail } from '../hooks/useVehicleDetail';
 import { useVehicleHistory } from '../hooks/useVehicleHistory';
 import type { VehicleHistoryEvent } from '../hooks/useVehicleHistory';
+import { useVehicleDeletedVisits } from '../hooks/useVehicleDeletedVisits';
 import { VehicleDocuments } from '../components/VehicleDocuments';
 import { VehiclePhotoGallery } from '../components/VehiclePhotoGallery';
 import { VehicleNotes } from '../components/VehicleNotes';
@@ -36,6 +37,43 @@ import {
     SectionIconWrap, CollapsibleTitle, CollapsibleBadge, ChevronIcon, CollapsibleBody,
     CenteredBox, SpinnerEl, LoadingText, ErrorTitle, ErrorMsg,
 } from './VehicleDetailView.styles';
+import styled from 'styled-components';
+
+const DeletedToggleWrap = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+`;
+
+const DeletedToggleLabel = styled.span`
+    font-size: 12px;
+    color: #64748b;
+    white-space: nowrap;
+`;
+
+const ToggleSwitch = styled.button<{ $active: boolean }>`
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    border: none;
+    background: ${p => p.$active ? '#9F1239' : '#cbd5e1'};
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    transition: background 150ms ease;
+    flex-shrink: 0;
+`;
+
+const ToggleThumb = styled.span<{ $active: boolean }>`
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    transform: translateX(${p => p.$active ? '16px' : '0'});
+    transition: transform 150ms ease;
+`;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -88,9 +126,11 @@ export const VehicleDetailView = () => {
     const [isCommentsOpen,  setIsCommentsOpen]  = useState(false);
     const [isEditModalOpen,       setIsEditModalOpen]       = useState(false);
     const [isEditOwnersModalOpen, setIsEditOwnersModalOpen] = useState(false);
+    const [showDeletedVisits, setShowDeletedVisits] = useState(false);
 
     const { vehicleDetail, isLoading, isError, refetch } = useVehicleDetail(vehicleId!);
     const { events: historyEvents } = useVehicleHistory(vehicleId!);
+    const { events: deletedVisitEvents } = useVehicleDeletedVisits(vehicleId!, showDeletedVisits);
 
     // ── Loading ──────────────────────────────────────────────────────────────
 
@@ -132,7 +172,8 @@ export const VehicleDetailView = () => {
     const lastVisit    = vehicle.stats?.lastVisitDate ?? null;
     const avgCost      = vehicle.stats?.averageVisitCost ?? { grossAmount: 0, currency: 'PLN' };
 
-    const recentVisits = historyEvents.slice(0, 6);
+    const activeEvents = showDeletedVisits ? deletedVisitEvents : historyEvents;
+    const recentVisits = activeEvents.slice(0, 6);
 
     return (
         <ViewContainer>
@@ -403,13 +444,23 @@ export const VehicleDetailView = () => {
                                         <circle cx="12" cy="12" r="10"/>
                                         <polyline points="12 6 12 12 16 14"/>
                                     </svg>
-                                    Historia wizyt
+                                    {showDeletedVisits ? 'Usunięte wizyty' : 'Historia wizyt'}
                                 </PanelTitle>
-                                {historyEvents.length > 6 && (
+                                {!showDeletedVisits && activeEvents.length > 6 && (
                                     <span style={{ fontSize: 12, color: '#64748b' }}>
-                                        Łącznie: <strong style={{ color: '#0f172a' }}>{historyEvents.length}</strong>
+                                        Łącznie: <strong style={{ color: '#0f172a' }}>{activeEvents.length}</strong>
                                     </span>
                                 )}
+                                <DeletedToggleWrap>
+                                    <DeletedToggleLabel>Wyświetl usunięte</DeletedToggleLabel>
+                                    <ToggleSwitch
+                                        $active={showDeletedVisits}
+                                        onClick={() => setShowDeletedVisits(v => !v)}
+                                        title={showDeletedVisits ? 'Pokaż aktywne wizyty' : 'Pokaż usunięte wizyty'}
+                                    >
+                                        <ToggleThumb $active={showDeletedVisits} />
+                                    </ToggleSwitch>
+                                </DeletedToggleWrap>
                             </PanelHead>
                             <PanelBodyFlush>
                                 {recentVisits.length === 0 ? (
@@ -417,17 +468,19 @@ export const VehicleDetailView = () => {
                                         <NoteText>Brak historii wizyt dla tego pojazdu.</NoteText>
                                     </PanelBody>
                                 ) : (
-                                    recentVisits.map((event: VehicleHistoryEvent) => {
+                                    recentVisits.map((event: VehicleHistoryEvent & { deletedAt?: string }) => {
                                         const d = new Date(event.date);
                                         const { label, kind } = visitStatusBadge(event.status);
+                                        const isDeleted = !!event.deletedAt;
                                         return (
                                             <VisitRow
                                                 key={event.id}
                                                 $active={event.status === 'IN_PROGRESS'}
-                                                onClick={() => event.type === 'VISIT'
+                                                onClick={() => !isDeleted && event.type === 'VISIT'
                                                     ? navigate(`/visits/${event.id}`)
                                                     : undefined
                                                 }
+                                                style={isDeleted ? { opacity: 0.6, cursor: 'default' } : undefined}
                                             >
                                                 <VisitDateCol>
                                                     <VisitDateMain>

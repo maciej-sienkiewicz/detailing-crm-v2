@@ -71,6 +71,7 @@ interface BackendVisit {
     status: string;
     createdBy?: string;
     notes: string;
+    deletedAt?: string | null;
 }
 
 // Backend visits response
@@ -456,7 +457,7 @@ export const customerDetailApi = {
         return mapBackendVehiclesResponse(response.data);
     },
 
-    getCustomerVisits: async (customerId: string, page: number = 1, limit: number = 10): Promise<CustomerVisitsResponse> => {
+    getCustomerVisits: async (customerId: string, page: number = 1, limit: number = 10, includeDeleted = false): Promise<CustomerVisitsResponse> => {
         if (USE_MOCKS) {
             return mockGetCustomerVisits(customerId);
         }
@@ -465,6 +466,7 @@ export const customerDetailApi = {
             page: page.toString(),
             limit: limit.toString(),
         });
+        if (includeDeleted) params.append('includeDeleted', 'true');
 
         const response = await apiClient.get<BackendVisitsResponse>(
             `${CUSTOMERS_BASE_PATH}/${customerId}/visits?${params.toString()}`

@@ -20,7 +20,7 @@ export type OperationStatus = VisitStatus | AppointmentStatus;
 
 export type OperationType = 'VISIT' | 'RESERVATION';
 
-export type FilterStatus = VisitStatus | 'RESERVATIONS';
+export type FilterStatus = VisitStatus | 'RESERVATIONS' | 'DELETED';
 
 export interface OperationVehicle {
     brand: string;
@@ -76,6 +76,7 @@ export interface Operation {
     lastModification: LastModification;
     smsInfo?: OperationSmsInfo;
     recurrenceInfo?: RecurrenceInfo | null;
+    deletedAt?: string | null;
 }
 
 export interface OperationListResponse {
@@ -97,4 +98,5 @@ export interface OperationFilters {
     scheduledDate?: string;
     sortBy?: 'startDateTime' | 'customerLastName' | 'grossAmount' | 'lastModification';
     sortDirection?: 'asc' | 'desc';
+    deleted?: boolean;
 }

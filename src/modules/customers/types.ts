@@ -163,6 +163,7 @@ export interface Visit {
     status: 'completed' | 'in-progress' | 'ready-for-pickup' | 'scheduled' | 'cancelled';
     createdBy: string;
     notes: string;
+    deletedAt?: string | null;
 }
 
 export type ReservationStatus = 'CREATED' | 'ABANDONED' | 'CANCELLED' | 'CONVERTED';

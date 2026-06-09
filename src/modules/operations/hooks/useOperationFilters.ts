@@ -23,19 +23,23 @@ export const useOperationFilters = () => {
 
     const getApiFilters = useCallback(() => {
         if (!selectedFilter) {
-            return { type: undefined, status: undefined };
+            return { type: undefined, status: undefined, deleted: undefined };
+        }
+
+        if (selectedFilter === 'DELETED') {
+            return { type: undefined, status: undefined, deleted: true };
         }
 
         if (selectedFilter === 'RESERVATIONS') {
-            return { type: 'RESERVATION' as OperationType, status: undefined };
+            return { type: 'RESERVATION' as OperationType, status: undefined, deleted: undefined };
         }
 
         // REJECTED pokazuje zarówno odrzucone wizyty jak i porzucone rezerwacje (ABANDONED)
         if (selectedFilter === 'REJECTED') {
-            return { type: undefined, status: 'REJECTED' as VisitStatus };
+            return { type: undefined, status: 'REJECTED' as VisitStatus, deleted: undefined };
         }
 
-        return { type: 'VISIT' as OperationType, status: selectedFilter as VisitStatus };
+        return { type: 'VISIT' as OperationType, status: selectedFilter as VisitStatus, deleted: undefined };
     }, [selectedFilter]);
 
     return {

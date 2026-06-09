@@ -103,6 +103,42 @@ const PaginationBtn = styled.button<{ $disabled?: boolean }>`
   &:hover:not([disabled]) { background: ${st.bgCardAlt}; }
 `;
 
+const DeletedToggleWrap = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+`;
+
+const DeletedToggleLabel = styled.span`
+    font-size: 12px;
+    color: #64748b;
+    white-space: nowrap;
+`;
+
+const ToggleSwitch = styled.button<{ $active: boolean }>`
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    border: none;
+    background: ${p => p.$active ? '#9F1239' : '#cbd5e1'};
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    transition: background 150ms ease;
+    flex-shrink: 0;
+`;
+
+const ToggleThumb = styled.span<{ $active: boolean }>`
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    transform: translateX(${p => p.$active ? '16px' : '0'});
+    transition: transform 150ms ease;
+`;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const MONTH_LABELS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
@@ -164,12 +200,13 @@ export const CustomerDetailView = () => {
     const [isAuditOpen,            setIsAuditOpen]            = useState(false);
     const [reservationMenu, setReservationMenu] = useState<{ id: string; x: number; y: number } | null>(null);
     const [visitsPage, setVisitsPage] = useState(0);
+    const [showDeletedVisits, setShowDeletedVisits] = useState(false);
 
     const VISITS_PAGE_SIZE = 4;
 
     const { customerDetail, isLoading, isError, refetch }   = useCustomerDetail(customerId!);
     const { vehicles, isLoading: vehiclesLoading }           = useCustomerVehicles(customerId!);
-    const { visits: rawVisits }                              = useCustomerVisits(customerId!, 1, 50);
+    const { visits: rawVisits }                              = useCustomerVisits(customerId!, 1, 50, showDeletedVisits);
     const { reservations }                                   = useCustomerReservations(customerId!);
     const { entries: commEntries }                           = useCustomerCommunication(customerId!);
     const { data: revenueSummary }                           = useCustomerRevenue(customerId!);
@@ -622,11 +659,18 @@ export const CustomerDetailView = () => {
                                         <circle cx="12" cy="12" r="10"/>
                                         <polyline points="12 6 12 12 16 14"/>
                                     </svg>
-                                    Ostatnie wizyty
+                                    {showDeletedVisits ? 'Usunięte wizyty' : 'Ostatnie wizyty'}
                                 </PanelTitle>
-                                {visits.length > 0 && (
-                                    <PanelCountBadge>{visits.length}</PanelCountBadge>
-                                )}
+                                <DeletedToggleWrap>
+                                    <DeletedToggleLabel>Wyświetl usunięte</DeletedToggleLabel>
+                                    <ToggleSwitch
+                                        $active={showDeletedVisits}
+                                        onClick={() => { setShowDeletedVisits(v => !v); setVisitsPage(0); }}
+                                        title={showDeletedVisits ? 'Pokaż aktywne wizyty' : 'Pokaż usunięte wizyty'}
+                                    >
+                                        <ToggleThumb $active={showDeletedVisits} />
+                                    </ToggleSwitch>
+                                </DeletedToggleWrap>
                             </PanelHead>
                             <PanelBodyFlush>
                                 {visits.length === 0 ? (
@@ -637,11 +681,13 @@ export const CustomerDetailView = () => {
                                     recentVisits.map((visit: Visit & { licensePlate?: string }) => {
                                         const d = new Date(visit.date);
                                         const { label, kind } = visitStatusBadge(visit.status);
+                                        const isDeleted = !!visit.deletedAt;
                                         return (
                                             <VisitRow
                                                 key={visit.id}
                                                 $active={visit.status === 'in-progress'}
-                                                onClick={() => navigate(`/visits/${visit.id}`)}
+                                                onClick={() => !isDeleted && navigate(`/visits/${visit.id}`)}
+                                                style={isDeleted ? { opacity: 0.6, cursor: 'default' } : undefined}
                                             >
                                                 <VisitDateCol>
                                                     <VisitDateMain>
