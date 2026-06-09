@@ -12,13 +12,13 @@ export const useVehicleDeletedVisits = (vehicleId: string, enabled: boolean) => 
     const events: (VehicleHistoryEvent & { deletedAt: string })[] = (data?.visits ?? []).map(v => ({
         id: v.id,
         type: 'VISIT' as const,
-        date: v.scheduledDate,
-        title: v.title || v.visitNumber,
-        customerName: v.customerName ?? `${v.customer?.firstName ?? ''} ${v.customer?.lastName ?? ''}`.trim(),
+        date: v.date,
+        title: v.title || v.description || v.id,
+        customerName: v.customerName,
         status: v.status,
-        grossAmount: (v.totalGross ?? 0) / 100,
-        currency: 'PLN',
-        deletedAt: v.deletedAt,
+        grossAmount: (v.totalCost?.grossAmount ?? 0) / 100,
+        currency: v.totalCost?.currency ?? 'PLN',
+        deletedAt: v.deletedAt ?? v.date,
     }));
 
     return { events, isLoading, isError };
