@@ -170,6 +170,7 @@ export const OperationListView = () => {
                     limit={limit}
                     type={apiFilters.type}
                     status={apiFilters.status}
+                    deleted={apiFilters.deleted}
                     scheduledDate={selectedDate}
                     seriesId={seriesIdFilter ?? undefined}
                 />

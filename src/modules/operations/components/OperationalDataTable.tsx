@@ -616,6 +616,7 @@ interface OperationalDataTableProps {
     status?: OperationStatus;
     scheduledDate?: string;
     seriesId?: string;
+    deleted?: boolean;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -628,6 +629,7 @@ export const OperationalDataTable = ({
     status,
     scheduledDate,
     seriesId,
+    deleted,
 }: OperationalDataTableProps) => {
     const navigate = useNavigate();
 
@@ -654,6 +656,7 @@ export const OperationalDataTable = ({
         type,
         status,
         scheduledDate,
+        deleted,
         sortBy: 'startDateTime',
         sortDirection: 'desc',
     });
