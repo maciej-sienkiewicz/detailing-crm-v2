@@ -470,8 +470,10 @@ export const VehicleDetailView = () => {
                                 ) : (
                                     recentVisits.map((event: VehicleHistoryEvent & { deletedAt?: string }) => {
                                         const d = new Date(event.date);
-                                        const { label, kind } = visitStatusBadge(event.status);
                                         const isDeleted = !!event.deletedAt;
+                                        const { label, kind } = isDeleted
+                                            ? { label: 'Usunięta', kind: 'error' as const }
+                                            : visitStatusBadge(event.status);
                                         return (
                                             <VisitRow
                                                 key={event.id}
@@ -480,7 +482,7 @@ export const VehicleDetailView = () => {
                                                     ? navigate(`/visits/${event.id}`)
                                                     : undefined
                                                 }
-                                                style={isDeleted ? { opacity: 0.6, cursor: 'default' } : undefined}
+                                                style={isDeleted ? { opacity: 0.55, cursor: 'default' } : undefined}
                                             >
                                                 <VisitDateCol>
                                                     <VisitDateMain>

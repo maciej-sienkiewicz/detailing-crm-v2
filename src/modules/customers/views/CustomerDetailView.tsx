@@ -680,14 +680,16 @@ export const CustomerDetailView = () => {
                                 ) : (
                                     recentVisits.map((visit: Visit & { licensePlate?: string }) => {
                                         const d = new Date(visit.date);
-                                        const { label, kind } = visitStatusBadge(visit.status);
                                         const isDeleted = !!visit.deletedAt;
+                                        const { label, kind } = isDeleted
+                                            ? { label: 'Usunięta', kind: 'error' as const }
+                                            : visitStatusBadge(visit.status);
                                         return (
                                             <VisitRow
                                                 key={visit.id}
                                                 $active={visit.status === 'in-progress'}
                                                 onClick={() => !isDeleted && navigate(`/visits/${visit.id}`)}
-                                                style={isDeleted ? { opacity: 0.6, cursor: 'default' } : undefined}
+                                                style={isDeleted ? { opacity: 0.55, cursor: 'default' } : undefined}
                                             >
                                                 <VisitDateCol>
                                                     <VisitDateMain>
