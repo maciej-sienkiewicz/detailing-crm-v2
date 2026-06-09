@@ -206,15 +206,26 @@ export const CustomerDetailView = () => {
 
     const { customerDetail, isLoading, isError, refetch }   = useCustomerDetail(customerId!);
     const { vehicles, isLoading: vehiclesLoading }           = useCustomerVehicles(customerId!);
-    const { visits: rawVisits }                              = useCustomerVisits(customerId!, 1, 50, showDeletedVisits);
+    const { visits: regularVisits }                          = useCustomerVisits(customerId!, 1, 50, false);
+    const { visits: deletedVisits }                          = useCustomerVisits(customerId!, 1, 50, true);
     const { reservations }                                   = useCustomerReservations(customerId!);
     const { entries: commEntries }                           = useCustomerCommunication(customerId!);
     const { data: revenueSummary }                           = useCustomerRevenue(customerId!);
 
-    const visits = useMemo(() => rawVisits.map(v => ({
-        ...v,
-        licensePlate: v.licensePlate || vehicles.find(vh => vh.id === v.vehicleId)?.licensePlate,
-    })), [rawVisits, vehicles]);
+    const visits = useMemo(() => {
+        const base = regularVisits.map(v => ({
+            ...v,
+            licensePlate: v.licensePlate || vehicles.find(vh => vh.id === v.vehicleId)?.licensePlate,
+            _deleted: false,
+        }));
+        if (!showDeletedVisits) return base;
+        const deleted = deletedVisits.map(v => ({
+            ...v,
+            licensePlate: v.licensePlate || vehicles.find(vh => vh.id === v.vehicleId)?.licensePlate,
+            _deleted: true,
+        }));
+        return [...base, ...deleted].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [regularVisits, deletedVisits, vehicles, showDeletedVisits]);
 
     const monthlyRevenue = useMemo(
         () => revenueSummary?.buckets.map(b => b.grossAmount) ?? Array(12).fill(0),
@@ -659,8 +670,11 @@ export const CustomerDetailView = () => {
                                         <circle cx="12" cy="12" r="10"/>
                                         <polyline points="12 6 12 12 16 14"/>
                                     </svg>
-                                    {showDeletedVisits ? 'Usunięte wizyty' : 'Ostatnie wizyty'}
+                                    Ostatnie wizyty
                                 </PanelTitle>
+                                {visits.length > 0 && (
+                                    <PanelCountBadge>{visits.length}</PanelCountBadge>
+                                )}
                                 <DeletedToggleWrap>
                                     <DeletedToggleLabel>Wyświetl usunięte</DeletedToggleLabel>
                                     <ToggleSwitch
@@ -678,18 +692,18 @@ export const CustomerDetailView = () => {
                                         <NoteText>Brak historii wizyt.</NoteText>
                                     </PanelBody>
                                 ) : (
-                                    recentVisits.map((visit: Visit & { licensePlate?: string }) => {
+                                    recentVisits.map((visit: Visit & { licensePlate?: string; _deleted?: boolean }) => {
                                         const d = new Date(visit.date);
-                                        const isDeleted = !!visit.deletedAt;
+                                        const isDeleted = !!visit._deleted;
                                         const { label, kind } = isDeleted
                                             ? { label: 'Usunięta', kind: 'error' as const }
                                             : visitStatusBadge(visit.status);
                                         return (
                                             <VisitRow
                                                 key={visit.id}
-                                                $active={visit.status === 'in-progress'}
+                                                $active={!isDeleted && visit.status === 'in-progress'}
                                                 onClick={() => !isDeleted && navigate(`/visits/${visit.id}`)}
-                                                style={isDeleted ? { opacity: 0.55, cursor: 'default' } : undefined}
+                                                style={isDeleted ? { opacity: 0.4, cursor: 'default' } : undefined}
                                             >
                                                 <VisitDateCol>
                                                     <VisitDateMain>
