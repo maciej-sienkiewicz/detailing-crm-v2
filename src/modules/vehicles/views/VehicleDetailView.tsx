@@ -172,8 +172,10 @@ export const VehicleDetailView = () => {
     const lastVisit    = vehicle.stats?.lastVisitDate ?? null;
     const avgCost      = vehicle.stats?.averageVisitCost ?? { grossAmount: 0, currency: 'PLN' };
 
-    const activeEvents = showDeletedVisits ? deletedVisitEvents : historyEvents;
-    const recentVisits = activeEvents.slice(0, 6);
+    const allEvents = showDeletedVisits
+        ? [...historyEvents, ...deletedVisitEvents].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        : historyEvents;
+    const recentVisits = allEvents.slice(0, 6);
 
     return (
         <ViewContainer>
@@ -444,11 +446,11 @@ export const VehicleDetailView = () => {
                                         <circle cx="12" cy="12" r="10"/>
                                         <polyline points="12 6 12 12 16 14"/>
                                     </svg>
-                                    {showDeletedVisits ? 'Usunięte wizyty' : 'Historia wizyt'}
+                                    Historia wizyt
                                 </PanelTitle>
-                                {!showDeletedVisits && activeEvents.length > 6 && (
+                                {allEvents.length > 6 && (
                                     <span style={{ fontSize: 12, color: '#64748b' }}>
-                                        Łącznie: <strong style={{ color: '#0f172a' }}>{activeEvents.length}</strong>
+                                        Łącznie: <strong style={{ color: '#0f172a' }}>{allEvents.length}</strong>
                                     </span>
                                 )}
                                 <DeletedToggleWrap>
