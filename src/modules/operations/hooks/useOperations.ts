@@ -14,6 +14,7 @@ export const operationsQueryKey = (filters: OperationFilters) => [
     filters.scheduledDate,
     filters.sortBy,
     filters.sortDirection,
+    filters.deleted ?? false,
 ];
 
 export const useOperations = (filters: OperationFilters) => {

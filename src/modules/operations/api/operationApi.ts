@@ -292,30 +292,25 @@ export const operationApi = {
                 page: filters.page.toString(),
                 size: filters.limit.toString(),
             });
+            if (filters.search) params.append('search', filters.search);
             if (filters.scheduledDate) params.append('scheduledDate', filters.scheduledDate);
 
             const response = await apiClient.get<VisitsListResponse>(
                 `/visits/deleted?${params.toString()}`
             );
 
-            let mappedData = response.data.visits.map(mapVisitToOperation);
-            if (filters.search) {
-                const s = filters.search.toLowerCase();
-                mappedData = mappedData.filter(op =>
-                    op.customerLastName.toLowerCase().includes(s) ||
-                    op.customerFirstName.toLowerCase().includes(s) ||
-                    op.customerPhone.includes(filters.search) ||
-                    (op.vehicle?.licensePlate?.toLowerCase().includes(s) ?? false)
-                );
-            }
+            const p = response.data.pagination as any;
+            const mappedData = response.data.visits.map(v =>
+                mapVisitToOperation({ ...v, deletedAt: (v as any).deletedAt ?? null })
+            );
 
             return {
                 data: mappedData,
                 pagination: {
-                    currentPage: response.data.pagination.page,
-                    totalPages: response.data.pagination.totalPages,
-                    totalItems: response.data.pagination.total,
-                    itemsPerPage: response.data.pagination.pageSize,
+                    currentPage: p.page ?? p.currentPage ?? 1,
+                    totalPages: p.totalPages ?? 1,
+                    totalItems: p.total ?? p.totalItems ?? mappedData.length,
+                    itemsPerPage: p.pageSize ?? p.itemsPerPage ?? filters.limit,
                 },
             };
         }
