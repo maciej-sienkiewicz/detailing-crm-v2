@@ -238,7 +238,7 @@ export const CustomerDetailView = () => {
     const revenueMax = useMemo(() => Math.max(...monthlyRevenue, 1), [monthlyRevenue]);
 
     const activeVisit = useMemo(
-        () => visits.find(v => v.status === 'in-progress'),
+        () => visits.find(v => v.status === 'in-progress' && !(v as any)._deleted),
         [visits],
     );
 
