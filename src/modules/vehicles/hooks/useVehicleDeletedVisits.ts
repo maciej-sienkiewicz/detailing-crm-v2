@@ -13,7 +13,7 @@ export const useVehicleDeletedVisits = (vehicleId: string, enabled: boolean) => 
         id: v.id,
         type: 'VISIT' as const,
         date: v.date,
-        title: v.title || v.description || v.id,
+        title: v.title || v.description || 'Wizyta',
         customerName: v.customerName,
         status: v.status,
         grossAmount: (v.totalCost?.grossAmount ?? 0) / 100,

@@ -201,6 +201,7 @@ export interface VehicleVisit {
     date: string;
     customerId: string;
     customerName: string;
+    title?: string;
     description: string;
     totalCost: {
         netAmount: number;
