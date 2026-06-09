@@ -395,11 +395,18 @@ const MenuBtn = styled.button`
     }
 `;
 
-const DeletedAtLabel = styled.span`
-    font-size: 11px;
+const DeletedAtMain = styled.div`
+    font-size: 13px;
+    font-weight: 600;
     color: #9F1239;
     white-space: nowrap;
-    opacity: 0.8;
+`;
+
+const DeletedAtSub = styled.div`
+    font-size: 12px;
+    color: #be123c;
+    opacity: 0.7;
+    white-space: nowrap;
 `;
 
 const DropdownMenu = styled.div`
@@ -963,9 +970,10 @@ export const OperationalDataTable = ({
                                     {/* Actions */}
                                     <ActionsCellWrap onClick={e => e.stopPropagation()}>
                                         {isDeleted && op.deletedAt ? (
-                                            <DeletedAtLabel title={`Usunięto: ${new Date(op.deletedAt).toLocaleString('pl-PL')}`}>
-                                                usunięto {new Date(op.deletedAt).toLocaleDateString('pl-PL')}
-                                            </DeletedAtLabel>
+                                            <DateCellWrap title={new Date(op.deletedAt).toLocaleString('pl-PL')}>
+                                                <DeletedAtMain>{new Date(op.deletedAt).toLocaleDateString('pl-PL')}</DeletedAtMain>
+                                                <DeletedAtSub>usunięto {new Date(op.deletedAt).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}</DeletedAtSub>
+                                            </DateCellWrap>
                                         ) : (
                                         <MenuBtn
                                             onClick={e => toggleMenu(op.id, e)}
