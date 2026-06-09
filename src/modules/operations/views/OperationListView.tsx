@@ -101,11 +101,12 @@ export const OperationListView = () => {
             limit,
             type: apiFilters.type,
             status: apiFilters.status,
+            deleted: apiFilters.deleted,
             scheduledDate: selectedDate,
             sortBy: 'startDateTime' as const,
             sortDirection: 'desc' as const,
         }),
-        [debouncedSearch, page, limit, apiFilters.type, apiFilters.status, selectedDate]
+        [debouncedSearch, page, limit, apiFilters.type, apiFilters.status, apiFilters.deleted, selectedDate]
     );
 
     const { pagination } = useOperations(filters);
