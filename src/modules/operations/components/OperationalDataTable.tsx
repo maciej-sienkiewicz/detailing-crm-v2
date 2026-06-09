@@ -395,6 +395,29 @@ const MenuBtn = styled.button`
     }
 `;
 
+const DeletedBadge = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(159, 18, 57, 0.10);
+    color: #9F1239;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+    white-space: nowrap;
+    line-height: 1;
+`;
+
+const DeletedBadgeDot = styled.span`
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #9F1239;
+    flex-shrink: 0;
+`;
+
 const DeletedAtMain = styled.div`
     font-size: 13px;
     font-weight: 600;
@@ -896,7 +919,10 @@ export const OperationalDataTable = ({
                                                 </TitleEditRow>
                                             )}
                                             <RowMeta>
-                                                <OperationStatusBadge status={op.status} />
+                                                {isDeleted
+                                                    ? <DeletedBadge><DeletedBadgeDot />Usunięto</DeletedBadge>
+                                                    : <OperationStatusBadge status={op.status} />
+                                                }
                                                 {op.recurrenceInfo && (
                                                     <RecurrencePill title={op.recurrenceInfo.isDetached ? 'Odłączona od serii' : 'Wizyta cykliczna'}>
                                                         <RepeatIcon />
