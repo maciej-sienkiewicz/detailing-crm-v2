@@ -14,7 +14,7 @@ export const useVehicleDeletedVisits = (vehicleId: string, enabled: boolean) => 
         type: 'VISIT' as const,
         date: v.scheduledDate,
         title: v.title || v.visitNumber,
-        customerName: `${v.customer.firstName} ${v.customer.lastName}`,
+        customerName: v.customerName ?? `${v.customer?.firstName ?? ''} ${v.customer?.lastName ?? ''}`.trim(),
         status: v.status,
         grossAmount: (v.totalGross ?? 0) / 100,
         currency: 'PLN',
