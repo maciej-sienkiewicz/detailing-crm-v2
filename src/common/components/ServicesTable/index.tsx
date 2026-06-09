@@ -179,7 +179,10 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                         return (
                             <S.ServiceItem key={service.id} $hasDiscount={hasDiscount}>
                                 <S.ServiceItemRow>
-                                    <S.ServiceName title={service.serviceName}>{service.serviceName}</S.ServiceName>
+                                    <S.ServiceNameWrap>
+                                        <S.ServiceName title={service.serviceName}>{service.serviceName}</S.ServiceName>
+                                        {hasNote && <S.ServiceNoteInline title={service.note}>{service.note}</S.ServiceNoteInline>}
+                                    </S.ServiceNameWrap>
 
                                     <S.PriceDisplay>
                                         <S.PriceDisplayMain $isDiscounted={hasDiscount}>{finalNet.toFixed(2)}</S.PriceDisplayMain>

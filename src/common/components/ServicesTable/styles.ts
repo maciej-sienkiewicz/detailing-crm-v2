@@ -52,6 +52,13 @@ export const ServiceItemRow = styled.div`
     padding: 8px 8px 8px 14px;
 `;
 
+export const ServiceNameWrap = styled.div`
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding-right: 4px;
+`;
+
 export const ServiceName = styled.span`
     font-size: 14px;
     font-weight: 500;
@@ -60,7 +67,14 @@ export const ServiceName = styled.span`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding-right: 4px;
+`;
+
+export const ServiceNoteInline = styled.span`
+    font-size: 11px;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 `;
 
 export const PriceDisplay = styled.div`
