@@ -110,6 +110,7 @@ const PopoverHeader = styled.div<{ $color: string }>`
         bottom: 0;
         background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
         pointer-events: none;
+        z-index: 0;
     }
 
     @media (max-height: 800px) {
@@ -121,7 +122,7 @@ const HeaderCloseButton = styled.button`
     position: absolute;
     top: 10px;
     right: 10px;
-    z-index: 1;
+    z-index: 2;
     width: 28px;
     height: 28px;
     display: flex;
@@ -135,6 +136,7 @@ const HeaderCloseButton = styled.button`
     transition: background 150ms ease;
     line-height: 1;
     font-size: 16px;
+    pointer-events: auto;
 
     &:hover { background: rgba(255, 255, 255, 0.32); }
 
@@ -145,7 +147,7 @@ const HeaderDeleteButton = styled.button`
     position: absolute;
     top: 10px;
     right: 46px;
-    z-index: 1;
+    z-index: 2;
     width: 28px;
     height: 28px;
     display: flex;
@@ -157,6 +159,7 @@ const HeaderDeleteButton = styled.button`
     color: white;
     cursor: pointer;
     transition: background 150ms ease;
+    pointer-events: auto;
 
     &:hover { background: rgba(239, 68, 68, 0.55); }
 
