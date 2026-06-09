@@ -1260,6 +1260,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
         }
     }, [popoverEvent, showSuccess, queryClient]);
 
+    const handleDeleteVisitFromPopover = useCallback(async () => {
+        if (!popoverEvent || popoverEvent.type !== 'VISIT') return;
+        try {
+            await visitApi.cancelDraftVisit(popoverEvent.id);
+            setPopoverOpen(false);
+            showSuccess('Wizyta usunięta', 'Wizyta została usunięta.');
+            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+            queryClient.invalidateQueries({ queryKey: ['operations'] });
+        } catch (error) {
+            console.error('Failed to delete visit:', error);
+        }
+    }, [popoverEvent, showSuccess, queryClient]);
+
     const handleDeleteFromPopover = useCallback(async () => {
         if (!popoverEvent || popoverEvent.type !== 'APPOINTMENT') return;
         const appt = popoverEvent as AppointmentEventData;
@@ -1741,6 +1754,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onViewChange }) => {
                     onCancelReservationClick={handleCancelReservationClick}
                     onRestoreAppointmentClick={handleRestoreAppointmentClick}
                     onDeleteAppointmentClick={handleDeleteFromPopover}
+                    onDeleteVisitClick={handleDeleteVisitFromPopover}
                     onEditEndDateClick={popoverEvent?.type === 'VISIT' ? handleEditEndDateClick : undefined}
                 />
             )}
