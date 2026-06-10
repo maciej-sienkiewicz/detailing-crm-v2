@@ -1387,7 +1387,9 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 </Thead>
                 <Tbody>
                     {services.map(service => {
-                        const pricing = calculateServicePrice(service);
+                        const ep = editedPrices[service.id];
+                        const effectiveService = ep ? { ...service, ...ep } : service;
+                        const pricing = calculateServicePrice(effectiveService);
                         const showDiscount = pricing.hasDiscount && service.basePriceNet !== 0;
                         const isMarkedForDelete = deletedIds.has(service.id);
                         const isPendingRow = service.hasPendingChange ?? (service.status === 'PENDING');
