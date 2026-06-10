@@ -1102,15 +1102,18 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const cancelEditPrice = () => setEditingId(null);
 
     /* ── Discount helpers ── */
-    const openDiscountModal = (service: ServiceLineItem, overrideBase?: { basePriceNet: number; vatRate: number }) => {
-        const existing = overrideBase ? null : editedPrices[service.id];
+    const openDiscountModal = (service: ServiceLineItem) => {
+        // Base is ALWAYS the original service price — discounts stack/replace on top of it,
+        // never compound on a previously-discounted value.
+        const originalBase = { basePriceNet: service.basePriceNet, vatRate: service.vatRate };
+        const existing = editedPrices[service.id];
         const adj = existing?.adjustment ?? service.adjustment;
         const isInlinePriceEdit = adj.type === 'SET_NET' || adj.type === 'SET_GROSS';
         setDiscountModalId(service.id);
-        setDiscountModalBase(overrideBase ?? (existing ? { basePriceNet: existing.basePriceNet, vatRate: existing.vatRate } : { basePriceNet: service.basePriceNet, vatRate: service.vatRate }));
-        setDiscountModalType(isInlinePriceEdit || overrideBase ? 'PERCENT' : adj.type);
+        setDiscountModalBase(originalBase);
+        setDiscountModalType(isInlinePriceEdit ? 'PERCENT' : adj.type);
         setDiscountModalValue(
-            isInlinePriceEdit || overrideBase || adj.value === 0 ? ''
+            isInlinePriceEdit || adj.value === 0 ? ''
                 : adj.type === 'PERCENT'
                     ? String(Math.abs(adj.value))
                     : String(adj.value / 100)
@@ -1124,6 +1127,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         const val = parseFloat(discountModalValue.replace(',', '.'));
         const storeVal = isNaN(val) ? 0
             : discountModalType === 'PERCENT' ? -Math.abs(val) : Math.round(val * 100);
+        // Preserve original basePriceNet so future discounts always re-base from it
         setEditedPrices(prev => ({
             ...prev,
             [discountModalId]: { ...discountModalBase, adjustment: { type: discountModalType, value: storeVal } },
@@ -1145,18 +1149,15 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         if (isNaN(val) || val <= 0) return;
         const valueInCents = bulkDiscountType === 'PERCENT' ? val : Math.round(val * 100);
         const eligible = services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING')));
-        const bases = eligible.map(s => {
-            const ep = editedPrices[s.id];
-            return { basePriceNetCents: ep?.basePriceNet ?? s.basePriceNet, vatRate: ep?.vatRate ?? s.vatRate };
-        });
+        // Always distribute against original service base prices
+        const bases = eligible.map(s => ({ basePriceNetCents: s.basePriceNet, vatRate: s.vatRate }));
         const adjustments = distributeAdjustment(bases, bulkDiscountType, valueInCents);
         setEditedPrices(prev => {
             const next = { ...prev };
             eligible.forEach((s, i) => {
-                const ep = prev[s.id];
                 next[s.id] = {
-                    basePriceNet: ep?.basePriceNet ?? s.basePriceNet,
-                    vatRate: ep?.vatRate ?? s.vatRate,
+                    basePriceNet: s.basePriceNet,
+                    vatRate: s.vatRate,
                     adjustment: adjustments[i],
                 };
             });
@@ -1580,11 +1581,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                                     <RabatujBtn
                                                         onClick={() => {
                                                             confirmEditPrice(service.id);
-                                                            const net = eParse(editNetStr);
-                                                            const overrideBase = net !== null
-                                                                ? { basePriceNet: eCents(net), vatRate: editVatRate }
-                                                                : undefined;
-                                                            openDiscountModal(service, overrideBase);
+                                                            openDiscountModal(service);
                                                         }}
                                                     >
                                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
