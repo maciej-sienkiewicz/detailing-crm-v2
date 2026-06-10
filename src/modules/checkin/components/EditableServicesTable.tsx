@@ -13,41 +13,6 @@ import styled from 'styled-components';
 import type { ServiceLineItem } from '../types';
 import type { Service } from '@/modules/services/types';
 
-const ServicesSectionHeader = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-`;
-
-const AutocompleteWrap = styled.div`
-    flex: 1;
-    min-width: 0;
-`;
-
-const RabatujCalosc = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 0 12px;
-    height: 38px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #92400e;
-    background: #fef3c7;
-    border: 1.5px solid #fde68a;
-    border-radius: 8px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 150ms ease;
-    white-space: nowrap;
-    flex-shrink: 0;
-
-    svg { width: 13px; height: 13px; }
-    &:hover { background: #fde68a; border-color: #f59e0b; }
-    &:disabled { opacity: 0.45; cursor: not-allowed; }
-`;
-
 const ModalFieldLabel = styled.p`
     margin: 0 0 6px;
     font-size: 12px;
@@ -84,14 +49,6 @@ const PriceModeBtn = styled.button<{ $active: boolean }>`
     &:hover { background: ${p => p.$active ? '#1d4ed8' : '#f1f5f9'}; }
 `;
 
-const IconPercent = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <line x1="19" y1="5" x2="5" y2="19" />
-        <circle cx="6.5" cy="6.5" r="2.5" />
-        <circle cx="17.5" cy="17.5" r="2.5" />
-    </svg>
-);
-
 export const EditableServicesTable = ({ services, onChange }: { services: ServiceLineItem[], onChange: (s: ServiceLineItem[]) => void }) => {
     const [isQuickServiceModalOpen, setIsQuickServiceModalOpen] = useState(false);
     const [quickServiceInitialName, setQuickServiceInitialName] = useState('');
@@ -99,7 +56,6 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
     const [pendingManualPriceService, setPendingManualPriceService] = useState<Service | null>(null);
     const [manualPriceInput, setManualPriceInput] = useState('');
     const [manualPriceMode, setManualPriceMode] = useState<'NET' | 'GROSS'>('GROSS');
-    const [bulkDiscountOpen, setBulkDiscountOpen] = useState(false);
     const queryClient = useQueryClient();
 
     const handleServiceSelect = (s: Service) => {
@@ -148,30 +104,14 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
 
     return (
         <>
-            <ServicesSectionHeader>
-                <AutocompleteWrap>
-                    <ServiceAutocomplete
-                        onSelect={handleServiceSelect}
-                        onAddNew={(q) => { setQuickServiceInitialName(q); setIsQuickServiceModalOpen(true); }}
-                    />
-                </AutocompleteWrap>
-                <RabatujCalosc
-                    type="button"
-                    disabled={services.length === 0}
-                    onClick={() => setBulkDiscountOpen(true)}
-                    title="Zastosuj rabat do wszystkich usług"
-                >
-                    <IconPercent />
-                    Rabatuj całość
-                </RabatujCalosc>
-            </ServicesSectionHeader>
-
-            <ServicesTable
-                services={services}
-                onChange={onChange}
-                bulkDiscountOpen={bulkDiscountOpen}
-                onBulkDiscountOpenChange={setBulkDiscountOpen}
+            <ServiceAutocomplete
+                onSelect={handleServiceSelect}
+                onAddNew={(q) => { setQuickServiceInitialName(q); setIsQuickServiceModalOpen(true); }}
             />
+
+            <div style={{ marginTop: 12 }}>
+                <ServicesTable services={services} onChange={onChange} />
+            </div>
 
             <QuickServiceModal
                 isOpen={isQuickServiceModalOpen}

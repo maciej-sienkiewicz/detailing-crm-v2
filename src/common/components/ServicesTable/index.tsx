@@ -17,8 +17,6 @@ export interface ServiceLineItem {
 interface Props {
     services: ServiceLineItem[];
     onChange: (services: ServiceLineItem[]) => void;
-    bulkDiscountOpen?: boolean;
-    onBulkDiscountOpenChange?: (open: boolean) => void;
 }
 
 const MAX_2_DECIMALS = /^\d*[.,]?\d{0,2}$/;
@@ -65,22 +63,16 @@ const IconCheck = () => (
     </svg>
 );
 
-export const ServicesTable = ({ services, onChange, bulkDiscountOpen: bulkDiscountOpenProp, onBulkDiscountOpenChange }: Props) => {
+export const ServicesTable = ({ services, onChange }: Props) => {
     const [expandedNote, setExpandedNote] = useState<string | null>(null);
-    const [expandedEdit, setExpandedEdit] = useState<string | null>(null);
 
     // Per-service discount modal state
     const [discountModalId, setDiscountModalId] = useState<string | null>(null);
     const [discountModalType, setDiscountModalType] = useState<AdjustmentType>('PERCENT');
     const [discountModalValue, setDiscountModalValue] = useState('');
 
-    // Bulk discount modal state — controlled externally when prop is provided
-    const [bulkDiscountInternal, setBulkDiscountInternal] = useState(false);
-    const bulkDiscountOpen = bulkDiscountOpenProp !== undefined ? bulkDiscountOpenProp : bulkDiscountInternal;
-    const setBulkDiscountOpen = (val: boolean) => {
-        if (onBulkDiscountOpenChange) onBulkDiscountOpenChange(val);
-        else setBulkDiscountInternal(val);
-    };
+    // Bulk discount modal state
+    const [bulkDiscountOpen, setBulkDiscountOpen] = useState(false);
     const [bulkDiscountType, setBulkDiscountType] = useState<AdjustmentType>('PERCENT');
     const [bulkDiscountValue, setBulkDiscountValue] = useState('');
 
@@ -202,17 +194,6 @@ export const ServicesTable = ({ services, onChange, bulkDiscountOpen: bulkDiscou
                                     </S.PriceDisplay>
 
                                     <S.ServiceActions>
-                                        <S.EditPriceButton
-                                            type="button"
-                                            onClick={() => {
-                                                setExpandedEdit(expandedEdit === service.id ? null : service.id);
-                                                if (expandedNote === service.id) setExpandedNote(null);
-                                            }}
-                                            $active={expandedEdit === service.id}
-                                            title="Edytuj cenę"
-                                        >
-                                            Edytuj cenę
-                                        </S.EditPriceButton>
                                         <S.DiscountButton
                                             type="button"
                                             onClick={() => openDiscountModal(service)}
@@ -234,39 +215,12 @@ export const ServicesTable = ({ services, onChange, bulkDiscountOpen: bulkDiscou
                                             onClick={() => {
                                                 onChange(services.filter(s => s.id !== service.id));
                                                 if (expandedNote === service.id) setExpandedNote(null);
-                                                if (expandedEdit === service.id) setExpandedEdit(null);
                                             }}
                                         >
                                             <IconTrash />
                                         </S.DeleteButton>
                                     </S.ServiceActions>
                                 </S.ServiceItemRow>
-
-                                {expandedEdit === service.id && (
-                                    <S.EditPricePanel>
-                                        <S.EditPricePanelRow>
-                                            <S.EditPricePanelInfo>
-                                                <S.EditPricePanelLabel>Netto</S.EditPricePanelLabel>
-                                                <S.EditPricePanelValue>{finalNet.toFixed(2)} zł</S.EditPricePanelValue>
-                                            </S.EditPricePanelInfo>
-                                            <S.EditPricePanelInfo>
-                                                <S.EditPricePanelLabel>Brutto</S.EditPricePanelLabel>
-                                                <S.EditPricePanelValue>{finalGross.toFixed(2)} zł</S.EditPricePanelValue>
-                                            </S.EditPricePanelInfo>
-                                            <S.RabatujButton
-                                                type="button"
-                                                onClick={() => {
-                                                    openDiscountModal(service);
-                                                    setExpandedEdit(null);
-                                                }}
-                                                $hasDiscount={hasDiscount}
-                                            >
-                                                <IconPercent />
-                                                {hasDiscount ? 'Edytuj rabat' : 'Rabatuj'}
-                                            </S.RabatujButton>
-                                        </S.EditPricePanelRow>
-                                    </S.EditPricePanel>
-                                )}
 
                                 {isNoteExpanded && (
                                     <S.ServiceNoteContainer>
