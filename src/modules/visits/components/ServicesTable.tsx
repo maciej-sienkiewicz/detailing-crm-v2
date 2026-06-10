@@ -1,7 +1,8 @@
 import styled, { keyframes, css } from 'styled-components';
 import { useState } from 'react';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
-import { netPlnToGrossPln, grossPlnToNetPln, netToGross } from '@/common/utils/priceAdjustment';
+import { netPlnToGrossPln, grossPlnToNetPln, netToGross, applyAdjustment, distributeAdjustment } from '@/common/utils/priceAdjustment';
+import type { AdjustmentType } from '@/common/utils/priceAdjustment';
 import { formatCurrency } from '@/common/utils';
 import type { ServiceLineItem, VisitStatus } from '../types';
 import type { ServicesChangesPayload } from '../types';
@@ -651,6 +652,283 @@ const BreakdownItem = styled.div`
     font-feature-settings: 'tnum';
 `;
 
+const RabatujCaoscBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontSm};
+    font-weight: 700;
+    cursor: pointer;
+    transition: all ${st.transition};
+    white-space: nowrap;
+    box-shadow: ${st.shadowXs};
+
+    svg { width: 13px; height: 13px; }
+    &:hover:not(:disabled) { background: #fde68a; border-color: #f59e0b; transform: translateY(-1px); }
+    &:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    @media (max-width: 640px) { width: 100%; justify-content: center; }
+`;
+
+const RabatujBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 9px;
+    border: 1px solid #fde68a;
+    border-radius: ${st.radiusFull};
+    background: #fef3c7;
+    color: #92400e;
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 150ms, border-color 150ms;
+    white-space: nowrap;
+
+    &:hover { background: #fde68a; border-color: #f59e0b; }
+    svg { width: 11px; height: 11px; }
+
+    @media (max-width: 767px) { padding: 8px 14px; font-size: ${st.fontSm}; min-height: 36px; }
+`;
+
+const DiscountModalOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+`;
+
+const DiscountModalCard = styled.div`
+    width: min(400px, calc(100vw - 32px));
+    background: #ffffff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0,0,0,0.06);
+`;
+
+const DiscountModalHeader = styled.div`
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+`;
+
+const DiscountModalTitle = styled.h4`
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+`;
+
+const DiscountModalSubtitle = styled.p`
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: #64748b;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 300px;
+`;
+
+const DiscountModalBody = styled.div`
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+`;
+
+const DiscountModalFooter = styled.div`
+    padding: 12px 20px;
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+`;
+
+const DiscountFromBox = styled.div`
+    padding: 10px 14px;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+`;
+
+const DiscountFromBoxLabel = styled.div`
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+`;
+
+const DiscountFromPrices = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+`;
+
+const DiscountFromPrice = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+`;
+
+const DiscountFromPriceValue = styled.span`
+    font-size: 17px;
+    font-weight: 700;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+`;
+
+const DiscountFromPriceLabel = styled.span`
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+`;
+
+const DiscountSectionLabel = styled.div`
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+`;
+
+const DiscountTypeRow = styled.div`
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+`;
+
+const DiscountTypePill = styled.button<{ $selected?: boolean }>`
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: ${p => p.$selected ? 700 : 500};
+    color: ${p => p.$selected ? '#92400e' : '#78716c'};
+    background: ${p => p.$selected ? '#fde68a' : '#f5f5f4'};
+    border: 1.5px solid ${p => p.$selected ? '#f59e0b' : '#e7e5e4'};
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 120ms ease;
+    white-space: nowrap;
+    font-family: inherit;
+    &:hover { background: #fde68a; color: #92400e; border-color: #f59e0b; }
+`;
+
+const DiscountValueRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 7px;
+`;
+
+const DiscountValueInput = styled.input`
+    width: 110px;
+    padding: 5px 8px;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: right;
+    background: #ffffff;
+    border: 1.5px solid #f59e0b;
+    border-radius: 8px;
+    color: #0f172a;
+    outline: none;
+    font-family: inherit;
+    transition: all 150ms ease;
+    &:focus { box-shadow: 0 0 0 2px rgba(245,158,11,0.20); }
+    &::placeholder { color: #d1cdc7; }
+`;
+
+const DiscountValueSuffix = styled.span`
+    font-size: 13px;
+    font-weight: 600;
+    color: #92400e;
+    min-width: 20px;
+`;
+
+const DiscountCloseBtn = styled.button`
+    flex-shrink: 0;
+    padding: 4px;
+    color: #94a3b8;
+    background: none;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 150ms ease;
+    &:hover { color: #ef4444; background: #fef2f2; }
+    svg { width: 14px; height: 14px; }
+`;
+
+const DiscountApplyBtn = styled.button`
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #ffffff;
+    background: #d97706;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 150ms ease;
+    &:hover { background: #b45309; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+const DiscountCancelBtn = styled.button`
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #64748b;
+    background: transparent;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 150ms ease;
+    &:hover { background: #f1f5f9; }
+`;
+
+const DiscountRemoveBtn = styled.button`
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    background: transparent;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    margin-right: auto;
+    transition: all 150ms ease;
+    &:hover { color: #ef4444; border-color: #fca5a5; background: #fef2f2; }
+`;
+
+const DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
+    { type: 'PERCENT', label: '%' },
+    { type: 'FIXED_NET', label: '−Netto' },
+    { type: 'FIXED_GROSS', label: '−Brutto' },
+    { type: 'SET_NET', label: '=Netto' },
+    { type: 'SET_GROSS', label: '=Brutto' },
+];
+
+const MAX_2_DECIMALS = /^\d*[.,]?\d{0,2}$/;
+
 const DraftBar = styled.div`
     display: flex;
     align-items: center;
@@ -770,8 +1048,20 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const [editNetStr, setEditNetStr] = useState('');
     const [editGrossStr, setEditGrossStr] = useState('');
     const [editLastField, setEditLastField] = useState<'net' | 'gross'>('gross');
-    const [editedPrices, setEditedPrices] = useState<Record<string, { basePriceNet: number; vatRate: number; adjustment: { type: 'SET_NET' | 'SET_GROSS'; value: number } }>>({}); // id → price override
+    const [editedPrices, setEditedPrices] = useState<Record<string, { basePriceNet: number; vatRate: number; adjustment: { type: AdjustmentType; value: number } }>>({}); // id → price override
     const [editVatRate, setEditVatRate] = useState<number>(23);
+
+    /* ── Per-service discount modal ── */
+    const [discountModalId, setDiscountModalId] = useState<string | null>(null);
+    const [discountModalType, setDiscountModalType] = useState<AdjustmentType>('PERCENT');
+    const [discountModalValue, setDiscountModalValue] = useState('');
+    // Snapshot of basePriceNet/vatRate at modal open time (may differ from state if just-edited)
+    const [discountModalBase, setDiscountModalBase] = useState<{ basePriceNet: number; vatRate: number } | null>(null);
+
+    /* ── Bulk discount modal ── */
+    const [bulkDiscountOpen, setBulkDiscountOpen] = useState(false);
+    const [bulkDiscountType, setBulkDiscountType] = useState<AdjustmentType>('PERCENT');
+    const [bulkDiscountValue, setBulkDiscountValue] = useState('');
 
     const epln = (c: number) => c / 100;
     const eCents = (v: number) => Math.round(v * 100);
@@ -810,6 +1100,71 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     };
 
     const cancelEditPrice = () => setEditingId(null);
+
+    /* ── Discount helpers ── */
+    const openDiscountModal = (service: ServiceLineItem, overrideBase?: { basePriceNet: number; vatRate: number }) => {
+        const existing = overrideBase ? null : editedPrices[service.id];
+        const adj = existing?.adjustment ?? service.adjustment;
+        const isInlinePriceEdit = adj.type === 'SET_NET' || adj.type === 'SET_GROSS';
+        setDiscountModalId(service.id);
+        setDiscountModalBase(overrideBase ?? (existing ? { basePriceNet: existing.basePriceNet, vatRate: existing.vatRate } : { basePriceNet: service.basePriceNet, vatRate: service.vatRate }));
+        setDiscountModalType(isInlinePriceEdit || overrideBase ? 'PERCENT' : adj.type);
+        setDiscountModalValue(
+            isInlinePriceEdit || overrideBase || adj.value === 0 ? ''
+                : adj.type === 'PERCENT'
+                    ? String(Math.abs(adj.value))
+                    : String(adj.value / 100)
+        );
+    };
+
+    const closeDiscountModal = () => { setDiscountModalId(null); setDiscountModalValue(''); setDiscountModalBase(null); };
+
+    const applyServiceDiscount = () => {
+        if (!discountModalId || !discountModalBase) return;
+        const val = parseFloat(discountModalValue.replace(',', '.'));
+        const storeVal = isNaN(val) ? 0
+            : discountModalType === 'PERCENT' ? -Math.abs(val) : Math.round(val * 100);
+        setEditedPrices(prev => ({
+            ...prev,
+            [discountModalId]: { ...discountModalBase, adjustment: { type: discountModalType, value: storeVal } },
+        }));
+        closeDiscountModal();
+    };
+
+    const removeServiceDiscount = () => {
+        if (!discountModalId || !discountModalBase) return;
+        setEditedPrices(prev => ({
+            ...prev,
+            [discountModalId]: { ...discountModalBase, adjustment: { type: 'PERCENT', value: 0 } },
+        }));
+        closeDiscountModal();
+    };
+
+    const applyBulkDiscount = () => {
+        const val = parseFloat(bulkDiscountValue.replace(',', '.'));
+        if (isNaN(val) || val <= 0) return;
+        const valueInCents = bulkDiscountType === 'PERCENT' ? val : Math.round(val * 100);
+        const eligible = services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING')));
+        const bases = eligible.map(s => {
+            const ep = editedPrices[s.id];
+            return { basePriceNetCents: ep?.basePriceNet ?? s.basePriceNet, vatRate: ep?.vatRate ?? s.vatRate };
+        });
+        const adjustments = distributeAdjustment(bases, bulkDiscountType, valueInCents);
+        setEditedPrices(prev => {
+            const next = { ...prev };
+            eligible.forEach((s, i) => {
+                const ep = prev[s.id];
+                next[s.id] = {
+                    basePriceNet: ep?.basePriceNet ?? s.basePriceNet,
+                    vatRate: ep?.vatRate ?? s.vatRate,
+                    adjustment: adjustments[i],
+                };
+            });
+            return next;
+        });
+        setBulkDiscountOpen(false);
+        setBulkDiscountValue('');
+    };
 
     const handleEditNetChange = (val: string) => {
         if (val && !/^[0-9]*[,.]?[0-9]{0,2}$/.test(val)) return;
@@ -898,15 +1253,12 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 adjustment: { type: 'FIXED_NET', value: 0 },
                 note: '',
             })),
-            updated: Object.entries(editedPrices).map(([serviceLineItemId, { vatRate, adjustment }]) => {
-                const originalService = services.find(s => s.id === serviceLineItemId);
-                return {
-                    serviceLineItemId,
-                    basePriceNet: originalService?.basePriceNet ?? 0,
-                    vatRate,
-                    adjustment,
-                };
-            }),
+            updated: Object.entries(editedPrices).map(([serviceLineItemId, { basePriceNet, vatRate, adjustment }]) => ({
+                serviceLineItemId,
+                basePriceNet,
+                vatRate,
+                adjustment,
+            })),
             deleted: Array.from(deletedIds).map(id => ({ serviceLineItemId: id })),
         };
         saveServicesChanges(payload, {
@@ -944,12 +1296,13 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 totalVat += Math.max(gross - net, 0);
                 totalOriginalGross += gross;
             } else if (editedPrices[service.id] !== undefined) {
-                const net = editedPrices[service.id].basePriceNet;
-                const gross = netToGross(net, editedPrices[service.id].vatRate);
-                totalFinalNet += net;
-                totalFinalGross += gross;
-                totalVat += Math.max(gross - net, 0);
-                totalOriginalGross += gross;
+                const ep = editedPrices[service.id];
+                const result = applyAdjustment(ep.basePriceNet, ep.vatRate, ep.adjustment);
+                const originalGross = netToGross(ep.basePriceNet, ep.vatRate);
+                totalFinalNet += result.finalNetCents;
+                totalFinalGross += result.finalGrossCents;
+                totalVat += Math.max(result.finalGrossCents - result.finalNetCents, 0);
+                totalOriginalGross += originalGross;
             } else {
                 const pricing = calculateServicePrice(service);
                 totalFinalNet += pricing.finalPriceNet;
@@ -1000,13 +1353,25 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                     </TableSubtitle>
                 </TableHeaderLeft>
                 {canEdit && (
-                    <AddBtn onClick={addNewRow} disabled={isSaving}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <line x1="12" y1="5" x2="12" y2="19" />
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg>
-                        Dodaj usługę
-                    </AddBtn>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <RabatujCaoscBtn
+                            onClick={() => { setBulkDiscountOpen(true); setBulkDiscountValue(''); }}
+                            disabled={isSaving || services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING'))).length === 0}
+                            title="Zastosuj rabat do wszystkich usług"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="19" y1="5" x2="5" y2="19" /><circle cx="6.5" cy="6.5" r="2.5" /><circle cx="17.5" cy="17.5" r="2.5" />
+                            </svg>
+                            Rabatuj całość
+                        </RabatujCaoscBtn>
+                        <AddBtn onClick={addNewRow} disabled={isSaving}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            Dodaj usługę
+                        </AddBtn>
+                    </div>
                 )}
             </TableHeader>
 
@@ -1210,6 +1575,21 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                         <RowActions>
                                             {isEditing && (
                                                 <>
+                                                    <RabatujBtn
+                                                        onClick={() => {
+                                                            confirmEditPrice(service.id);
+                                                            const net = eParse(editNetStr);
+                                                            const overrideBase = net !== null
+                                                                ? { basePriceNet: eCents(net), vatRate: editVatRate }
+                                                                : undefined;
+                                                            openDiscountModal(service, overrideBase);
+                                                        }}
+                                                    >
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                                            <line x1="19" y1="5" x2="5" y2="19" /><circle cx="6.5" cy="6.5" r="2.5" /><circle cx="17.5" cy="17.5" r="2.5" />
+                                                        </svg>
+                                                        Rabatuj
+                                                    </RabatujBtn>
                                                     <EditConfirmBtn onClick={() => confirmEditPrice(service.id)} title="Zatwierdź">
                                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                                                             <polyline points="20 6 9 17 4 12" />
@@ -1351,6 +1731,149 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 initialServiceName={quickServicePrefill}
             />
         </div>
+
+        {/* Per-service discount modal */}
+        {discountModalId && discountModalBase && (() => {
+            const svc = services.find(s => s.id === discountModalId);
+            if (!svc) return null;
+            const result = applyAdjustment(discountModalBase.basePriceNet, discountModalBase.vatRate, { type: 'PERCENT', value: 0 });
+            const baseNet = result.finalNetCents / 100;
+            const baseGross = result.finalGrossCents / 100;
+            const ep = editedPrices[discountModalId];
+            const adj = ep?.adjustment ?? svc.adjustment;
+            const hasExistingDiscount = adj.type !== 'SET_NET' && adj.type !== 'SET_GROSS' && adj.value !== 0;
+            return (
+                <DiscountModalOverlay onClick={closeDiscountModal}>
+                    <DiscountModalCard onClick={e => e.stopPropagation()}>
+                        <DiscountModalHeader>
+                            <div>
+                                <DiscountModalTitle>Rabat dla usługi</DiscountModalTitle>
+                                <DiscountModalSubtitle>{svc.serviceName}</DiscountModalSubtitle>
+                            </div>
+                            <DiscountCloseBtn type="button" onClick={closeDiscountModal}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                            </DiscountCloseBtn>
+                        </DiscountModalHeader>
+                        <DiscountModalBody>
+                            <DiscountFromBox>
+                                <DiscountFromBoxLabel>Od kwoty</DiscountFromBoxLabel>
+                                <DiscountFromPrices>
+                                    <DiscountFromPrice>
+                                        <DiscountFromPriceValue>{baseNet.toFixed(2)} zł</DiscountFromPriceValue>
+                                        <DiscountFromPriceLabel>Netto</DiscountFromPriceLabel>
+                                    </DiscountFromPrice>
+                                    <DiscountFromPrice>
+                                        <DiscountFromPriceValue>{baseGross.toFixed(2)} zł</DiscountFromPriceValue>
+                                        <DiscountFromPriceLabel>Brutto</DiscountFromPriceLabel>
+                                    </DiscountFromPrice>
+                                </DiscountFromPrices>
+                            </DiscountFromBox>
+                            <div>
+                                <DiscountSectionLabel>Rodzaj rabatu</DiscountSectionLabel>
+                                <DiscountTypeRow>
+                                    {DISCOUNT_TYPES.map(({ type, label }) => (
+                                        <DiscountTypePill key={type} type="button" $selected={discountModalType === type}
+                                            onClick={() => { setDiscountModalType(type); setDiscountModalValue(''); }}>
+                                            {label}
+                                        </DiscountTypePill>
+                                    ))}
+                                </DiscountTypeRow>
+                            </div>
+                            <div>
+                                <DiscountSectionLabel>Wartość</DiscountSectionLabel>
+                                <DiscountValueRow>
+                                    <DiscountValueInput
+                                        type="text" inputMode="decimal" placeholder="0" autoFocus
+                                        value={discountModalValue}
+                                        onChange={e => { if (MAX_2_DECIMALS.test(e.target.value)) setDiscountModalValue(e.target.value); }}
+                                    />
+                                    <DiscountValueSuffix>{discountModalType === 'PERCENT' ? '%' : 'zł'}</DiscountValueSuffix>
+                                </DiscountValueRow>
+                            </div>
+                        </DiscountModalBody>
+                        <DiscountModalFooter>
+                            {hasExistingDiscount && (
+                                <DiscountRemoveBtn type="button" onClick={removeServiceDiscount}>Usuń rabat</DiscountRemoveBtn>
+                            )}
+                            <DiscountCancelBtn type="button" onClick={closeDiscountModal}>Anuluj</DiscountCancelBtn>
+                            <DiscountApplyBtn type="button" onClick={applyServiceDiscount}
+                                disabled={!discountModalValue || parseFloat(discountModalValue.replace(',', '.')) <= 0}>
+                                Zastosuj
+                            </DiscountApplyBtn>
+                        </DiscountModalFooter>
+                    </DiscountModalCard>
+                </DiscountModalOverlay>
+            );
+        })()}
+
+        {/* Bulk discount modal */}
+        {bulkDiscountOpen && (() => {
+            const eligible = services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING')));
+            const bulkBaseNet = eligible.reduce((sum, s) => {
+                const ep = editedPrices[s.id];
+                return sum + (ep?.basePriceNet ?? s.basePriceNet);
+            }, 0) / 100;
+            const bulkBaseGross = eligible.reduce((sum, s) => {
+                const ep = editedPrices[s.id];
+                return sum + netToGross(ep?.basePriceNet ?? s.basePriceNet, ep?.vatRate ?? s.vatRate);
+            }, 0) / 100;
+            return (
+                <DiscountModalOverlay onClick={() => setBulkDiscountOpen(false)}>
+                    <DiscountModalCard onClick={e => e.stopPropagation()}>
+                        <DiscountModalHeader>
+                            <DiscountModalTitle>Rabatuj całość</DiscountModalTitle>
+                            <DiscountCloseBtn type="button" onClick={() => setBulkDiscountOpen(false)}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                            </DiscountCloseBtn>
+                        </DiscountModalHeader>
+                        <DiscountModalBody>
+                            <DiscountFromBox>
+                                <DiscountFromBoxLabel>Łącznie przed rabatem</DiscountFromBoxLabel>
+                                <DiscountFromPrices>
+                                    <DiscountFromPrice>
+                                        <DiscountFromPriceValue>{bulkBaseNet.toFixed(2)} zł</DiscountFromPriceValue>
+                                        <DiscountFromPriceLabel>Netto</DiscountFromPriceLabel>
+                                    </DiscountFromPrice>
+                                    <DiscountFromPrice>
+                                        <DiscountFromPriceValue>{bulkBaseGross.toFixed(2)} zł</DiscountFromPriceValue>
+                                        <DiscountFromPriceLabel>Brutto</DiscountFromPriceLabel>
+                                    </DiscountFromPrice>
+                                </DiscountFromPrices>
+                            </DiscountFromBox>
+                            <div>
+                                <DiscountSectionLabel>Rodzaj rabatu</DiscountSectionLabel>
+                                <DiscountTypeRow>
+                                    {DISCOUNT_TYPES.map(({ type, label }) => (
+                                        <DiscountTypePill key={type} type="button" $selected={bulkDiscountType === type}
+                                            onClick={() => { setBulkDiscountType(type); setBulkDiscountValue(''); }}>
+                                            {label}
+                                        </DiscountTypePill>
+                                    ))}
+                                </DiscountTypeRow>
+                            </div>
+                            <div>
+                                <DiscountSectionLabel>Wartość</DiscountSectionLabel>
+                                <DiscountValueRow>
+                                    <DiscountValueInput
+                                        type="text" inputMode="decimal" placeholder="0" autoFocus
+                                        value={bulkDiscountValue}
+                                        onChange={e => { if (MAX_2_DECIMALS.test(e.target.value)) setBulkDiscountValue(e.target.value); }}
+                                    />
+                                    <DiscountValueSuffix>{bulkDiscountType === 'PERCENT' ? '%' : 'zł'}</DiscountValueSuffix>
+                                </DiscountValueRow>
+                            </div>
+                        </DiscountModalBody>
+                        <DiscountModalFooter>
+                            <DiscountCancelBtn type="button" onClick={() => setBulkDiscountOpen(false)}>Anuluj</DiscountCancelBtn>
+                            <DiscountApplyBtn type="button" onClick={applyBulkDiscount}
+                                disabled={!bulkDiscountValue || parseFloat(bulkDiscountValue.replace(',', '.')) <= 0}>
+                                Zastosuj
+                            </DiscountApplyBtn>
+                        </DiscountModalFooter>
+                    </DiscountModalCard>
+                </DiscountModalOverlay>
+            );
+        })()}
 
         {isConfirmOpen && targetService && (
             <ModalOverlay onClick={(e) => { if (e.target === e.currentTarget) closeConfirm(); }}>
