@@ -1468,7 +1468,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                             if (hasEditedPrice) {
                                                 return (
                                                     <EditedPriceWrap>
-                                                        <PriceValue>{formatCurrency(editedPrices[service.id].basePriceNet / 100)}</PriceValue>
+                                                        {showDiscount && <PriceValue $strikethrough>{formatCurrency(pricing.originalPriceNet / 100)}</PriceValue>}
+                                                        <PriceValue>{formatCurrency(pricing.finalPriceNet / 100)}</PriceValue>
                                                         <EditedBadge>Zmieniona</EditedBadge>
                                                     </EditedPriceWrap>
                                                 );
@@ -1548,11 +1549,10 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                                 );
                                             }
                                             if (hasEditedPrice) {
-                                                const editedVat = editedPrices[service.id].vatRate;
-                                                const editedGross = netToGross(editedPrices[service.id].basePriceNet, editedVat);
                                                 return (
                                                     <EditedPriceWrap>
-                                                        <PriceValue>{formatCurrency(editedGross / 100)}</PriceValue>
+                                                        {showDiscount && <PriceValue $strikethrough>{formatCurrency(pricing.originalPriceGross / 100)}</PriceValue>}
+                                                        <PriceValue>{formatCurrency(pricing.finalPriceGross / 100)}</PriceValue>
                                                         <EditedBadge>Zmieniona</EditedBadge>
                                                     </EditedPriceWrap>
                                                 );
