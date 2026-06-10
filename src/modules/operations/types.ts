@@ -65,6 +65,8 @@ export interface Operation {
     id: string;
     type: OperationType;
     title?: string;
+    customerId?: string;
+    vehicleId?: string | null;
     customerFirstName: string;
     customerLastName: string;
     customerPhone: string;

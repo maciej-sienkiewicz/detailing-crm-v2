@@ -230,7 +230,7 @@ const RowMeta = styled.div`
     flex-wrap: wrap;
 `;
 
-const LicensePlate = styled.span`
+const LicensePlate = styled.span<{ $clickable?: boolean }>`
     display: inline-flex;
     align-items: center;
     padding: 2px 8px;
@@ -242,6 +242,12 @@ const LicensePlate = styled.span`
     letter-spacing: 0.6px;
     font-family: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
     line-height: 1.4;
+    ${({ $clickable }) => $clickable && `
+        cursor: pointer;
+        &:hover {
+            background: #3b82f6;
+        }
+    `}
 `;
 
 const TypeTag = styled.span<{ $isVisit: boolean }>`
@@ -295,13 +301,20 @@ const SmsInfoRow = styled.div`
     flex-wrap: wrap;
 `;
 
-const CustomerName = styled.div`
+const CustomerName = styled.div<{ $clickable?: boolean }>`
     font-size: 13px;
     font-weight: 600;
     color: ${st.text};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    ${({ $clickable }) => $clickable && `
+        cursor: pointer;
+        &:hover {
+            color: #3b82f6;
+            text-decoration: underline;
+        }
+    `}
 `;
 
 const CustomerPhone = styled.div`
@@ -957,7 +970,12 @@ export const OperationalDataTable = ({
                                         {op.vehicle ? (
                                             <>
                                                 {op.vehicle.licensePlate && (
-                                                    <LicensePlate>{op.vehicle.licensePlate}</LicensePlate>
+                                                    <LicensePlate
+                                                        $clickable={!!op.vehicleId}
+                                                        onClick={op.vehicleId ? (e) => { e.stopPropagation(); navigate(`/vehicles/${op.vehicleId}`); } : undefined}
+                                                    >
+                                                        {op.vehicle.licensePlate}
+                                                    </LicensePlate>
                                                 )}
                                                 <VehicleSubInfo>
                                                     {op.vehicle.brand && <span>{op.vehicle.brand}</span>}
@@ -971,7 +989,12 @@ export const OperationalDataTable = ({
 
                                     {/* Customer */}
                                     <div>
-                                        <CustomerName>{customerLabel}</CustomerName>
+                                        <CustomerName
+                                            $clickable={!!op.customerId}
+                                            onClick={op.customerId ? (e) => { e.stopPropagation(); navigate(`/customers/${op.customerId}`); } : undefined}
+                                        >
+                                            {customerLabel}
+                                        </CustomerName>
                                         {op.customerPhone && (
                                             <CustomerPhone>{op.customerPhone}</CustomerPhone>
                                         )}
