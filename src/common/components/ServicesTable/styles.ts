@@ -11,7 +11,7 @@ export const ServicesBlock = styled.div`
 
 export const ServicesTableHeader = styled.div`
     display: grid;
-    grid-template-columns: 1fr 74px 74px 90px;
+    grid-template-columns: 1fr 74px 74px 160px;
     align-items: center;
     gap: 4px;
     padding: 7px 8px 7px 14px;
@@ -46,7 +46,7 @@ export const ServiceItem = styled.div<{ $hasDiscount?: boolean }>`
 
 export const ServiceItemRow = styled.div`
     display: grid;
-    grid-template-columns: 1fr 74px 74px 90px;
+    grid-template-columns: 1fr 74px 74px 160px;
     align-items: center;
     gap: 4px;
     padding: 8px 8px 8px 14px;
@@ -525,6 +525,78 @@ export const DiscountSectionLabel = styled.div`
     text-transform: uppercase;
     letter-spacing: 0.06em;
     margin-bottom: 6px;
+`;
+
+export const EditPriceButton = styled.button<{ $active?: boolean }>`
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: ${p => p.$active ? '#0284c7' : '#64748b'};
+    background: ${p => p.$active ? '#e0f2fe' : 'transparent'};
+    border: 1.5px solid ${p => p.$active ? '#7dd3fc' : '#e2e8f0'};
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 120ms ease;
+    white-space: nowrap;
+
+    &:hover { background: #e0f2fe; color: #0284c7; border-color: #7dd3fc; }
+`;
+
+export const EditPricePanel = styled.div`
+    padding: 8px 10px 10px 14px;
+    background: #f0f9ff;
+    border-top: 1px dashed #bae6fd;
+    animation: slideDown 200ms ease-out forwards;
+`;
+
+export const EditPricePanelRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+`;
+
+export const EditPricePanelInfo = styled.div`
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+`;
+
+export const EditPricePanelLabel = styled.span`
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+`;
+
+export const EditPricePanelValue = styled.span`
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+`;
+
+export const RabatujButton = styled.button<{ $hasDiscount?: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: ${p => p.$hasDiscount ? '#92400e' : '#92400e'};
+    background: #fef3c7;
+    border: 1.5px solid #fde68a;
+    border-radius: 7px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 150ms ease;
+    white-space: nowrap;
+    margin-left: auto;
+
+    svg { width: 11px; height: 11px; }
+    &:hover { background: #fde68a; border-color: #f59e0b; }
 `;
 
 export const NoteConfirmButton = styled.button`
