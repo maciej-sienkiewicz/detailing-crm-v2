@@ -230,23 +230,37 @@ const RowMeta = styled.div`
     flex-wrap: wrap;
 `;
 
+const NavArrow = styled.span`
+    display: inline-flex;
+    align-items: center;
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    color: #60a5fa;
+    font-size: 11px;
+    line-height: 1;
+    flex-shrink: 0;
+`;
+
 const VehicleNavBlock = styled.div<{ $clickable?: boolean }>`
     display: inline-flex;
     flex-direction: column;
     border-radius: 6px;
     padding: 4px 6px;
     margin: -4px -6px;
-    transition: background 0.15s ease;
+    transition: background 0.18s ease;
     ${({ $clickable }) => $clickable && `
         cursor: pointer;
         &:hover {
-            background: rgba(148, 163, 184, 0.08);
+            background: rgba(96, 165, 250, 0.07);
         }
         &:hover ${LicensePlate} {
-            background: #2d3f55;
+            background: #1e3a5f;
+            box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.3);
         }
-        &:hover ${VehicleSubInfo} {
-            color: #94a3b8;
+        &:hover ${NavArrow} {
+            opacity: 1;
+            transform: translateX(0);
         }
     `}
 `;
@@ -263,7 +277,7 @@ const LicensePlate = styled.span`
     letter-spacing: 0.6px;
     font-family: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
     line-height: 1.4;
-    transition: background 0.15s ease;
+    transition: background 0.18s ease, box-shadow 0.18s ease;
     align-self: flex-start;
 `;
 
@@ -318,20 +332,31 @@ const SmsInfoRow = styled.div`
     flex-wrap: wrap;
 `;
 
+const CustomerNameRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+`;
+
 const CustomerBlock = styled.div<{ $clickable?: boolean }>`
     display: inline-flex;
     flex-direction: column;
     border-radius: 6px;
     padding: 4px 6px;
     margin: -4px -6px;
-    transition: background 0.15s ease;
+    transition: background 0.18s ease;
     ${({ $clickable }) => $clickable && `
         cursor: pointer;
         &:hover {
-            background: rgba(148, 163, 184, 0.08);
+            background: rgba(96, 165, 250, 0.07);
         }
-        &:hover > span:first-child {
-            color: #94a3b8;
+        &:hover ${CustomerName} {
+            color: #e2e8f0;
+        }
+        &:hover ${NavArrow} {
+            opacity: 1;
+            transform: translateX(0);
         }
     `}
 `;
@@ -343,7 +368,7 @@ const CustomerName = styled.span`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    transition: color 0.15s ease;
+    transition: color 0.18s ease;
 `;
 
 const CustomerPhone = styled.span`
@@ -363,7 +388,6 @@ const VehicleSubInfo = styled.div`
     font-weight: 600;
     color: ${st.text};
     line-height: 1.5;
-    transition: color 0.15s ease;
 `;
 
 // Date cell
@@ -1002,9 +1026,12 @@ export const OperationalDataTable = ({
                                                 $clickable={!!op.vehicleId}
                                                 onClick={op.vehicleId ? (e) => { e.stopPropagation(); navigate(`/vehicles/${op.vehicleId}`); } : undefined}
                                             >
-                                                {op.vehicle.licensePlate && (
-                                                    <LicensePlate>{op.vehicle.licensePlate}</LicensePlate>
-                                                )}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                    {op.vehicle.licensePlate && (
+                                                        <LicensePlate>{op.vehicle.licensePlate}</LicensePlate>
+                                                    )}
+                                                    {op.vehicleId && <NavArrow>↗</NavArrow>}
+                                                </div>
                                                 <VehicleSubInfo>
                                                     {op.vehicle.brand && <span>{op.vehicle.brand}</span>}
                                                     {op.vehicle.model && <span>{op.vehicle.model}</span>}
@@ -1021,7 +1048,10 @@ export const OperationalDataTable = ({
                                             $clickable={!!op.customerId}
                                             onClick={op.customerId ? (e) => { e.stopPropagation(); navigate(`/customers/${op.customerId}`); } : undefined}
                                         >
-                                            <CustomerName>{customerLabel}</CustomerName>
+                                            <CustomerNameRow>
+                                                <CustomerName>{customerLabel}</CustomerName>
+                                                {op.customerId && <NavArrow>↗</NavArrow>}
+                                            </CustomerNameRow>
                                             {op.customerPhone && (
                                                 <CustomerPhone>{op.customerPhone}</CustomerPhone>
                                             )}
