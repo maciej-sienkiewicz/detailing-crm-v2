@@ -144,27 +144,6 @@ const DragHandle = styled.span`
     margin-right: 2px;
 `;
 
-const BarCell = styled.td`
-    padding: 11px 16px;
-    width: 80px;
-`;
-
-const BarTrack = styled.div`
-    width: 100%;
-    height: 4px;
-    background: ${st.border};
-    border-radius: ${st.radiusFull};
-    overflow: hidden;
-`;
-
-const BarFill = styled.div<{ $pct: number; $color: string }>`
-    height: 100%;
-    width: ${props => props.$pct}%;
-    background-color: ${props => props.$color};
-    border-radius: ${st.radiusFull};
-    transition: width 0.4s ease;
-`;
-
 const ShareText = styled.span`
     font-size: ${st.fontXs};
     color: ${st.textMuted};
@@ -240,11 +219,10 @@ export const BreakdownTable = ({
     const sorted = [...rows].sort((a, b) => b.totalRevenueGross - a.totalRevenueGross);
     const totalRevenue = rows.reduce((sum, r) => sum + r.totalRevenueGross, 0);
     const totalOrders = rows.reduce((sum, r) => sum + r.orderCount, 0);
-    const maxRevenue = Math.max(...rows.map(r => r.totalRevenueGross), 1);
 
     const hasSelection = selectedId != null;
     const hasActions = !!rowActions;
-    const colSpan = 5 + (hasActions ? 1 : 0);
+    const colSpan = 4 + (hasActions ? 1 : 0);
 
     return (
         <Wrapper
@@ -258,7 +236,6 @@ export const BreakdownTable = ({
                 <Thead>
                     <tr>
                         <Th>{t.statistics.breakdown.name}</Th>
-                        <Th>{t.statistics.breakdown.bar}</Th>
                         <Th $align="right">{t.statistics.breakdown.orders}</Th>
                         <Th $align="right">{t.statistics.breakdown.revenue}</Th>
                         <Th $align="right">{t.statistics.breakdown.share}</Th>
@@ -283,7 +260,6 @@ export const BreakdownTable = ({
                     )}
 
                     {!isLoading && sorted.map(row => {
-                        const pct = maxRevenue > 0 ? (row.totalRevenueGross / maxRevenue) * 100 : 0;
                         const share = totalRevenue > 0
                             ? ((row.totalRevenueGross / totalRevenue) * 100).toFixed(1)
                             : '0.0';
@@ -332,11 +308,6 @@ export const BreakdownTable = ({
                                         )}
                                     </NameCell>
                                 </Td>
-                                <BarCell>
-                                    <BarTrack>
-                                        <BarFill $pct={pct} $color={barColor} />
-                                    </BarTrack>
-                                </BarCell>
                                 <Td $align="right">{row.orderCount}</Td>
                                 <Td $align="right">
                                     <RevenueText>{formatRevenue(row.totalRevenueGross)}</RevenueText>
@@ -357,7 +328,6 @@ export const BreakdownTable = ({
                     <tfoot>
                         <TotalsRow>
                             <Td style={{ fontWeight: 700, color: st.text }}>{t.statistics.breakdown.total}</Td>
-                            <BarCell />
                             <Td $align="right" style={{ fontWeight: 700 }}>{totalOrders}</Td>
                             <Td $align="right">
                                 <RevenueText>{formatRevenue(totalRevenue)}</RevenueText>
