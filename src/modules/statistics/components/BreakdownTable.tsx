@@ -23,12 +23,13 @@ const Wrapper = styled.div`
     background: ${st.bgCard};
     border: 1px solid ${st.border};
     border-radius: ${st.radius};
-    overflow: hidden;
+    overflow-x: auto;
     box-shadow: ${st.shadowSm};
 `;
 
 const Table = styled.table`
     width: 100%;
+    min-width: 560px;
     border-collapse: collapse;
 `;
 
