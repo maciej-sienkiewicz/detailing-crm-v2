@@ -1,7 +1,7 @@
 export type TransitionType = 'in_progress_to_ready' | 'ready_to_completed';
 
-export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'blik_number' | 'blik_terminal';
-export type InvoiceType = 'vat' | 'receipt' | 'other';
+export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER' | 'BLIK_NA_NUMER' | 'BLIK_TERMINAL' | 'OTHER';
+export type InvoiceType = 'INVOICE' | 'RECEIPT' | 'other';
 
 export interface QualityCheckItem {
     id: string;

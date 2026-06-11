@@ -109,11 +109,11 @@ interface PaymentStepProps {
 }
 
 const paymentMethods: Array<{ value: PaymentMethod; label: string; icon: React.ReactNode }> = [
-    { value: 'cash',          label: 'Gotówka',       icon: <Banknote size={13} /> },
-    { value: 'card',          label: 'Karta',         icon: <CreditCard size={13} /> },
-    { value: 'transfer',      label: 'Przelew',       icon: <ArrowLeftRight size={13} /> },
-    { value: 'blik_number',   label: 'BLIK na numer', icon: <Smartphone size={13} /> },
-    { value: 'blik_terminal', label: 'BLIK terminal', icon: <MonitorSmartphone size={13} /> },
+    { value: 'CASH',          label: 'Gotówka',       icon: <Banknote size={13} /> },
+    { value: 'CARD',          label: 'Karta',         icon: <CreditCard size={13} /> },
+    { value: 'TRANSFER',      label: 'Przelew',       icon: <ArrowLeftRight size={13} /> },
+    { value: 'BLIK_NA_NUMER', label: 'BLIK na numer', icon: <Smartphone size={13} /> },
+    { value: 'BLIK_TERMINAL', label: 'BLIK terminal', icon: <MonitorSmartphone size={13} /> },
 ];
 
 const invoiceTypes: Array<{ value: InvoiceType; label: string; icon: React.ReactNode }> = [
@@ -123,7 +123,7 @@ const invoiceTypes: Array<{ value: InvoiceType; label: string; icon: React.React
 ];
 
 export const PaymentStep = ({ netAmount, grossAmount, currency, onComplete }: PaymentStepProps) => {
-    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CARD');
     const [invoiceType, setInvoiceType]     = useState<InvoiceType>('INVOICE');
 
     const vatAmount = grossAmount - netAmount;
