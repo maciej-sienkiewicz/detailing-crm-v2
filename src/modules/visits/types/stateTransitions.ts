@@ -1,6 +1,6 @@
 export type TransitionType = 'in_progress_to_ready' | 'ready_to_completed';
 
-export type PaymentMethod = 'cash' | 'card' | 'transfer';
+export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'blik_number' | 'blik_terminal';
 export type InvoiceType = 'vat' | 'receipt' | 'other';
 
 export interface QualityCheckItem {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Banknote, CreditCard, ArrowLeftRight, FileText, Receipt, File } from 'lucide-react';
+import { Banknote, CreditCard, ArrowLeftRight, FileText, Receipt, File, Smartphone, MonitorSmartphone } from 'lucide-react';
 import { formatCurrency } from '@/common/utils';
 import type { PaymentMethod, InvoiceType, PaymentDetails } from '../../hooks/useStateTransition';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -109,9 +109,11 @@ interface PaymentStepProps {
 }
 
 const paymentMethods: Array<{ value: PaymentMethod; label: string; icon: React.ReactNode }> = [
-    { value: 'cash',     label: 'Gotówka', icon: <Banknote size={13} /> },
-    { value: 'card',     label: 'Karta',   icon: <CreditCard size={13} /> },
-    { value: 'transfer', label: 'Przelew', icon: <ArrowLeftRight size={13} /> },
+    { value: 'cash',          label: 'Gotówka',       icon: <Banknote size={13} /> },
+    { value: 'card',          label: 'Karta',         icon: <CreditCard size={13} /> },
+    { value: 'transfer',      label: 'Przelew',       icon: <ArrowLeftRight size={13} /> },
+    { value: 'blik_number',   label: 'BLIK na numer', icon: <Smartphone size={13} /> },
+    { value: 'blik_terminal', label: 'BLIK terminal', icon: <MonitorSmartphone size={13} /> },
 ];
 
 const invoiceTypes: Array<{ value: InvoiceType; label: string; icon: React.ReactNode }> = [
