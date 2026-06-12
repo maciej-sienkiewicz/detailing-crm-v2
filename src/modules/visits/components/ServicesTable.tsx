@@ -1603,23 +1603,10 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                     </PriceStack>
                                 </Td>
                                 <Td>
-                                    {isEditing ? (
-                                        <VatEditSelect
-                                            value={editVatRate}
-                                            onChange={e => handleEditVatChange(Number(e.target.value))}
-                                        >
-                                            <option value={23}>23%</option>
-                                            <option value={8}>8%</option>
-                                            <option value={5}>5%</option>
-                                            <option value={0}>0%</option>
-                                            <option value={-1}>zw.</option>
-                                        </VatEditSelect>
-                                    ) : (
-                                        <PriceValue>{editedPrices[service.id]?.vatRate !== undefined
-                                            ? (editedPrices[service.id].vatRate === -1 ? 'zw.' : `${editedPrices[service.id].vatRate}%`)
-                                            : (service.vatRate === -1 ? 'zw.' : `${service.vatRate}%`)
-                                        }</PriceValue>
-                                    )}
+                                    <PriceValue>{editedPrices[service.id]?.vatRate !== undefined
+                                        ? (editedPrices[service.id].vatRate === -1 ? 'zw.' : `${editedPrices[service.id].vatRate}%`)
+                                        : (service.vatRate === -1 ? 'zw.' : `${service.vatRate}%`)
+                                    }</PriceValue>
                                 </Td>
                                 <Td>
                                     <PriceStack>
