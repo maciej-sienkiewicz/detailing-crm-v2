@@ -1,6 +1,7 @@
 // src/modules/leads/views/LeadListView.tsx
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useAuth } from '@/core';
 import styled, { css, keyframes } from 'styled-components';
 import {
   Inbox,
@@ -3035,10 +3036,11 @@ interface EmployeePickerModalProps {
   onClose: () => void;
   onSelect: (emp: EmployeeListItem) => void;
   onUnassign: () => void;
+  onAssignSelf: () => void;
   hasAssigned: boolean;
 }
 
-const EmployeePickerModal: React.FC<EmployeePickerModalProps> = ({ isOpen, onClose, onSelect, onUnassign, hasAssigned }) => {
+const EmployeePickerModal: React.FC<EmployeePickerModalProps> = ({ isOpen, onClose, onSelect, onUnassign, onAssignSelf, hasAssigned }) => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
@@ -3078,6 +3080,12 @@ const EmployeePickerModal: React.FC<EmployeePickerModalProps> = ({ isOpen, onClo
           />
         </PickerSearchWrap>
         <PickerList>
+          <PickerCustomerRow onClick={() => { onAssignSelf(); onClose(); }} style={{ color: '#0ea5e9' }}>
+            <UserCheck size={16} style={{ color: '#0ea5e9' }} />
+            <div>
+              <PickerCustomerName style={{ color: '#0ea5e9' }}>Przypisz mnie</PickerCustomerName>
+            </div>
+          </PickerCustomerRow>
           {hasAssigned && (
             <PickerCustomerRow onClick={() => { onUnassign(); onClose(); }} style={{ color: '#dc2626' }}>
               <UserX size={16} />
@@ -3121,6 +3129,7 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan, autoOpenEmploy
   const assignUser   = useAssignLeadUser(lead.id);
   const setLostReason = useSetLostReason(lead.id);
   const { showSuccess } = useToast();
+  const { user: authUser } = useAuth();
 
   const [isEmployeePickerOpen, setIsEmployeePickerOpen] = useState(!!autoOpenEmployeePicker);
   const [isEditingLostReason, setIsEditingLostReason] = useState(false);
@@ -3180,28 +3189,6 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan, autoOpenEmploy
                 <MessageBox>{lead.initialMessage}</MessageBox>
               </div>
             )}
-
-            {/* Assign user */}
-            <PanelSection>
-              <PanelLabel style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <UserCog size={13} /> Przypisany pracownik
-              </PanelLabel>
-              {lead.assignedUserName ? (
-                <AssignedUserCard>
-                  <AssignedUserAvatar>
-                    {lead.assignedUserName.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)}
-                  </AssignedUserAvatar>
-                  <AssignedUserName>{lead.assignedUserName}</AssignedUserName>
-                  <AssignBtn onClick={() => setIsEmployeePickerOpen(true)}>
-                    <UserCheck size={13} /> Zmień
-                  </AssignBtn>
-                </AssignedUserCard>
-              ) : (
-                <AssignBtn onClick={() => setIsEmployeePickerOpen(true)}>
-                  <UserCheck size={13} /> Przypisz pracownika
-                </AssignBtn>
-              )}
-            </PanelSection>
 
             {/* Lost reason — only when LOST */}
             {lead.status === LeadStatus.LOST && (
@@ -3377,6 +3364,14 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan, autoOpenEmploy
             { onSuccess: () => showSuccess('Pracownik przypisany') }
           );
         }}
+        onAssignSelf={() => {
+          if (!authUser) return;
+          const name = [authUser.firstName, authUser.lastName].filter(Boolean).join(' ') || authUser.userId;
+          assignUser.mutate(
+            { userId: authUser.userId, userName: name },
+            { onSuccess: () => showSuccess('Przypisano do Ciebie') }
+          );
+        }}
         onUnassign={() => {
           assignUser.mutate(
             { userId: null },
@@ -3408,6 +3403,8 @@ export const LeadListView: React.FC = () => {
   const [pickerLeadId, setPickerLeadId]     = useState<string | null>(null);
   const [statusMenuLeadId, setStatusMenuLeadId] = useState<string | null>(null);
   const [statusMenuPos, setStatusMenuPos]       = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [lostReasonPrompt, setLostReasonPrompt] = useState<{ leadId: string } | null>(null);
+  const [lostReasonInput, setLostReasonInput]   = useState('');
 
   // ─── Value range filter ────────────────────────────────────────────────────
   const [isValueFilterOpen, setIsValueFilterOpen] = useState(false);
@@ -3493,6 +3490,7 @@ export const LeadListView: React.FC = () => {
   const { showError: showBookingError } = useToast();
 
   const updateStatus = useUpdateLeadStatus();
+  const setLostReasonMutation = useSetLostReason(lostReasonPrompt?.leadId ?? '');
 
   const buildInitialData = (detail: LeadDetail): QuickEventInitialData => {
     const c = detail.assignedCustomer;
@@ -4330,8 +4328,15 @@ export const LeadListView: React.FC = () => {
                 $color={color}
                 disabled={updateStatus.isPending}
                 onClick={() => {
-                  updateStatus.mutate({ id: menuLead.id, status });
-                  setStatusMenuLeadId(null);
+                  if (status === LeadStatus.LOST) {
+                    setLostReasonInput('');
+                    setLostReasonPrompt({ leadId: menuLead.id });
+                    setStatusMenuLeadId(null);
+                    updateStatus.mutate({ id: menuLead.id, status });
+                  } else {
+                    updateStatus.mutate({ id: menuLead.id, status });
+                    setStatusMenuLeadId(null);
+                  }
                 }}
               >
                 {label}
@@ -4375,6 +4380,43 @@ export const LeadListView: React.FC = () => {
         isOpen={isAnalyticsOpen}
         onClose={() => setIsAnalyticsOpen(false)}
       />
+
+      <Modal
+        isOpen={!!lostReasonPrompt}
+        onClose={() => setLostReasonPrompt(null)}
+        title="Powód utraty leada"
+        maxWidth="480px"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '4px 0' }}>
+          <p style={{ margin: 0, fontSize: 14, color: st.textMuted }}>
+            Możesz podać powód, dla którego lead został utracony. To pole jest opcjonalne.
+          </p>
+          <LostReasonTextarea
+            autoFocus
+            placeholder="Np. klient wybrał konkurencję, za wysoka cena…"
+            value={lostReasonInput}
+            onChange={e => setLostReasonInput(e.target.value)}
+            rows={3}
+          />
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <AssignBtn onClick={() => setLostReasonPrompt(null)}>
+              Pomiń
+            </AssignBtn>
+            <SaveBtn
+              onClick={() => {
+                if (!lostReasonPrompt) return;
+                setLostReasonMutation.mutate(
+                  { lostReason: lostReasonInput.trim() || null },
+                  { onSuccess: () => setLostReasonPrompt(null) }
+                );
+              }}
+              disabled={setLostReasonMutation.isPending}
+            >
+              Zapisz powód
+            </SaveBtn>
+          </div>
+        </div>
+      </Modal>
     </ViewContainer>
   );
 };
