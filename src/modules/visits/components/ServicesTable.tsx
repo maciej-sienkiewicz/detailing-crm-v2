@@ -1,5 +1,5 @@
+import React, { useState } from 'react';
 import styled, { keyframes, css } from 'styled-components';
-import { useState } from 'react';
 import { useServicePricing } from '@/modules/appointments/hooks/useServicePricing';
 import { netPlnToGrossPln, grossPlnToNetPln, netToGross, applyAdjustment, distributeAdjustment } from '@/common/utils/priceAdjustment';
 import type { AdjustmentType } from '@/common/utils/priceAdjustment';
@@ -562,6 +562,34 @@ const ServiceNote = styled.div`
     font-style: italic;
 `;
 
+const PackageSubTr = styled.tr<{ $last?: boolean }>`
+    background: rgba(37, 99, 235, 0.025);
+
+    td {
+        border-bottom: ${props => props.$last
+            ? '2px solid rgba(37, 99, 235, 0.08)'
+            : '1px solid rgba(37, 99, 235, 0.06)'} !important;
+    }
+`;
+
+const PackageSubTd = styled.td`
+    padding: 6px 16px 6px 36px !important;
+    font-size: 12px;
+    font-weight: 500;
+    color: #475569;
+`;
+
+const PackageSubDot = styled.span`
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.4);
+    margin-right: 8px;
+    vertical-align: middle;
+    flex-shrink: 0;
+`;
+
 const PackageBadge = styled.span`
     display: inline-flex;
     align-items: center;
@@ -578,35 +606,6 @@ const PackageBadge = styled.span`
     flex-shrink: 0;
 `;
 
-const PackageItems = styled.div`
-    margin-top: 6px;
-    background: rgba(37, 99, 235, 0.03);
-    border: 1px solid rgba(37, 99, 235, 0.10);
-    border-radius: 8px;
-    overflow: hidden;
-`;
-
-const PackageItem = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 10px;
-    border-bottom: 1px solid rgba(37, 99, 235, 0.06);
-    font-size: 12px;
-    font-weight: 500;
-    color: #475569;
-
-    &:last-child { border-bottom: none; }
-
-    &::before {
-        content: '';
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
-        background: rgba(37, 99, 235, 0.35);
-        flex-shrink: 0;
-    }
-`;
 
 const ServiceStatusBadge = styled.div<{ $status: 'CONFIRMED' | 'PENDING' }>`
     display: inline-flex;
@@ -1557,9 +1556,14 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                         const canEditPrice = canEdit && !isPendingRow && !isMarkedForDelete && !isEditing;
                         const hasEditedPrice = editedPrices[service.id] !== undefined;
 
+                        const colSpan = showActionsCol ? 5 : 4;
+                        const packageSubRows = service.isPackage && service.packageItems && service.packageItems.length > 0
+                            ? service.packageItems
+                            : null;
+
                         return (
+                            <React.Fragment key={service.id}>
                             <Tr
-                                key={service.id}
                                 $pendingOp={isMarkedForDelete ? 'DELETE' : (isPendingRow ? (service.pendingOperation || 'EDIT') : null)}
                                 $highlight={highlightPending && service.status === 'PENDING'}
                                 style={isMarkedForDelete ? { opacity: 0.5 } : undefined}
@@ -1571,13 +1575,6 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                                 <ServiceName style={{ marginBottom: 0 }}>{service.serviceName}</ServiceName>
                                                 {service.isPackage && <PackageBadge>Pakiet</PackageBadge>}
                                             </div>
-                                            {service.isPackage && service.packageItems && service.packageItems.length > 0 && (
-                                                <PackageItems>
-                                                    {service.packageItems.map(item => (
-                                                        <PackageItem key={item.serviceId}>{item.serviceName}</PackageItem>
-                                                    ))}
-                                                </PackageItems>
-                                            )}
                                             {service.note && <ServiceNote>{service.note}</ServiceNote>}
                                             {showDiscount && (
                                                 <DiscountBadge>{pricing.discountLabel}</DiscountBadge>
@@ -1807,6 +1804,15 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                     </ActionsCell>
                                 )}
                             </Tr>
+                            {packageSubRows && packageSubRows.map((item, idx) => (
+                                <PackageSubTr key={item.serviceId} $last={idx === packageSubRows.length - 1}>
+                                    <PackageSubTd colSpan={colSpan}>
+                                        <PackageSubDot />
+                                        {item.serviceName}
+                                    </PackageSubTd>
+                                </PackageSubTr>
+                            ))}
+                            </React.Fragment>
                         );
                     })}
                     {newRows.map(row => (
