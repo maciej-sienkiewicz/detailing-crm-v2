@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ksefApi } from '../api/ksefApi';
+import { FINANCE_SUMMARY_KEY } from './useFinance';
 import type {
   KsefExpenseListFilters,
   CreateExpenseRequest,
@@ -124,6 +125,7 @@ export const useExcludeExpense = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KSEF_EXPENSES_KEY });
       queryClient.invalidateQueries({ queryKey: KSEF_STATISTICS_KEY });
+      queryClient.invalidateQueries({ queryKey: FINANCE_SUMMARY_KEY });
     },
   });
 };
@@ -136,6 +138,7 @@ export const useRestoreExpense = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KSEF_EXPENSES_KEY });
       queryClient.invalidateQueries({ queryKey: KSEF_STATISTICS_KEY });
+      queryClient.invalidateQueries({ queryKey: FINANCE_SUMMARY_KEY });
     },
   });
 };
@@ -148,6 +151,7 @@ export const useUpdateExpensePaymentStatus = () => {
       ksefApi.updateExpensePaymentStatus(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KSEF_EXPENSES_KEY });
+      queryClient.invalidateQueries({ queryKey: FINANCE_SUMMARY_KEY });
     },
   });
 };
