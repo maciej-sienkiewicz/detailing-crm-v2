@@ -35,6 +35,14 @@ export interface RelatedVisit {
 }
 
 /**
+ * Service tag attached to a lead (manual categorization)
+ */
+export interface ServiceTag {
+  serviceId: string | null;
+  serviceName: string;
+}
+
+/**
  * Lead entity representing an inquiry from various sources
  */
 export interface Lead {
@@ -72,6 +80,9 @@ export interface Lead {
   /** ID of appointment created from this lead (set when status → CONFIRMED) */
   appointmentId?: string | null;
 
+  /** ID of visit linked to this lead */
+  visitId?: string | null;
+
   /**
    * Potential revenue in grosze (cents) for decimal precision
    * e.g., 250000 = 2500.00 PLN
@@ -85,6 +96,18 @@ export interface Lead {
 
   /** Customer from the database assigned to this lead */
   assignedCustomer?: CustomerSnapshot | null;
+
+  /** UUID of the studio user responsible for this lead */
+  assignedUserId?: string | null;
+
+  /** Display name of the assigned user (denormalized) */
+  assignedUserName?: string | null;
+
+  /** Reason why the lead was lost (set when status → LOST) */
+  lostReason?: string | null;
+
+  /** Service tags manually assigned to this lead */
+  serviceTags?: ServiceTag[];
 }
 
 /**
@@ -126,6 +149,14 @@ export interface LeadListFilters {
   limit: number;
   sortBy?: keyof Lead;
   sortDirection?: 'asc' | 'desc';
+  /** Filter by min estimated value (grosze) */
+  valueMin?: number;
+  /** Filter by max estimated value (grosze) */
+  valueMax?: number;
+  /** Filter by assigned user UUID */
+  assignedUserId?: string;
+  /** Filter by service UUIDs (leads tagged with any of these services) */
+  serviceIds?: string[];
 }
 
 /**
@@ -304,4 +335,57 @@ export interface LeadDetail extends Lead {
 export interface GenerateQuoteReplyResponse {
   title: string;
   reply: string;
+}
+
+// ---------------------------------------------------------------------------
+// Service analytics (GET /api/v1/leads/service-analytics)
+// ---------------------------------------------------------------------------
+
+export interface ServiceAnalyticsItem {
+  serviceId: string | null;
+  serviceName: string;
+  wonCount: number;
+  lostCount: number;
+  totalCount: number;
+  winRate: number;
+}
+
+// ---------------------------------------------------------------------------
+// Employee stats (GET /api/v1/leads/employee-stats)
+// ---------------------------------------------------------------------------
+
+export interface EmployeeStats {
+  userId: string;
+  userName: string;
+  totalLeads: number;
+  converted: number;
+  lost: number;
+  conversionRate: number;
+  avgLeadValueCents: number;
+}
+
+// ---------------------------------------------------------------------------
+// Lead alert configuration (GET/PATCH /api/v1/company/lead-alert-config)
+// ---------------------------------------------------------------------------
+
+export interface LeadAlertConfig {
+  leadStagnantOurThresholdHours: number;
+  leadStagnantClientThresholdHours: number;
+}
+
+// ---------------------------------------------------------------------------
+// Request types for new endpoints
+// ---------------------------------------------------------------------------
+
+export interface AssignLeadUserRequest {
+  userId: string | null;
+  userName?: string;
+}
+
+export interface SetLostReasonRequest {
+  lostReason: string | null;
+}
+
+export interface SetServiceTagsRequest {
+  tags: ServiceTag[];
 }

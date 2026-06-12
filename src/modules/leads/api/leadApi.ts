@@ -16,6 +16,13 @@ import type {
   LeadSource,
   SaveUserQuoteRequest,
   GenerateQuoteReplyResponse,
+  ServiceAnalyticsItem,
+  EmployeeStats,
+  LeadAlertConfig,
+  AssignLeadUserRequest,
+  SetLostReasonRequest,
+  SetServiceTagsRequest,
+  ServiceTag,
 } from '../types';
 
 const USE_MOCKS = false;
@@ -470,12 +477,22 @@ export const leadApi = {
     });
 
     if (filters.search) params.append('search', filters.search);
-    if (filters.status?.length) params.append('status', filters.status.join(','));
-    if (filters.source?.length) params.append('source', filters.source.join(','));
+    if (filters.status?.length) {
+      filters.status.forEach(s => params.append('status', s));
+    }
+    if (filters.source?.length) {
+      filters.source.forEach(s => params.append('source', s));
+    }
     if (filters.sortBy) params.append('sortBy', filters.sortBy);
     if (filters.sortDirection) params.append('sortDirection', filters.sortDirection);
     if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
     if (filters.dateTo) params.append('dateTo', filters.dateTo);
+    if (filters.valueMin !== undefined) params.append('valueMin', String(filters.valueMin));
+    if (filters.valueMax !== undefined) params.append('valueMax', String(filters.valueMax));
+    if (filters.assignedUserId) params.append('assignedUserId', filters.assignedUserId);
+    if (filters.serviceIds?.length) {
+      filters.serviceIds.forEach(id => params.append('serviceIds', id));
+    }
 
     const response = await apiClient.get(`${BASE_PATH}?${params}`);
     return response.data;
@@ -625,6 +642,76 @@ export const leadApi = {
 
   generateQuoteReply: async (leadId: LeadId): Promise<GenerateQuoteReplyResponse> => {
     const response = await apiClient.post(`${BASE_PATH}/${leadId}/quote-reply`);
+    return response.data;
+  },
+
+  /**
+   * Assign or unassign a studio user to a lead.
+   * Pass userId: null to unassign.
+   */
+  assignUser: async (leadId: LeadId, req: AssignLeadUserRequest): Promise<void> => {
+    await apiClient.patch(`${BASE_PATH}/${leadId}/assign`, req);
+  },
+
+  /**
+   * Set or clear the lost reason for a lead.
+   * Pass lostReason: null to clear.
+   */
+  setLostReason: async (leadId: LeadId, req: SetLostReasonRequest): Promise<void> => {
+    await apiClient.patch(`${BASE_PATH}/${leadId}/lost-reason`, req);
+  },
+
+  /**
+   * Replace all service tags for a lead.
+   * Send empty tags array to remove all tags.
+   */
+  setServiceTags: async (leadId: LeadId, req: SetServiceTagsRequest): Promise<ServiceTag[]> => {
+    const response = await apiClient.put(`${BASE_PATH}/${leadId}/service-tags`, req);
+    return response.data;
+  },
+
+  /**
+   * Get win/loss analytics per service.
+   */
+  getServiceAnalytics: async (
+    dateFrom?: string,
+    dateTo?: string,
+    source?: LeadSource[],
+  ): Promise<ServiceAnalyticsItem[]> => {
+    const params = new URLSearchParams();
+    if (dateFrom) params.append('dateFrom', dateFrom);
+    if (dateTo) params.append('dateTo', dateTo);
+    if (source?.length) source.forEach(s => params.append('source', s));
+    const qs = params.toString();
+    const response = await apiClient.get(`${BASE_PATH}/service-analytics${qs ? `?${qs}` : ''}`);
+    return response.data;
+  },
+
+  /**
+   * Get conversion statistics per employee.
+   */
+  getEmployeeStats: async (dateFrom?: string, dateTo?: string): Promise<EmployeeStats[]> => {
+    const params = new URLSearchParams();
+    if (dateFrom) params.append('dateFrom', dateFrom);
+    if (dateTo) params.append('dateTo', dateTo);
+    const qs = params.toString();
+    const response = await apiClient.get(`${BASE_PATH}/employee-stats${qs ? `?${qs}` : ''}`);
+    return response.data;
+  },
+
+  /**
+   * Get stagnant lead alert thresholds for the current studio.
+   */
+  getLeadAlertConfig: async (): Promise<LeadAlertConfig> => {
+    const response = await apiClient.get('/v1/company/lead-alert-config');
+    return response.data;
+  },
+
+  /**
+   * Update stagnant lead alert thresholds.
+   */
+  updateLeadAlertConfig: async (config: Partial<LeadAlertConfig>): Promise<LeadAlertConfig> => {
+    const response = await apiClient.patch('/v1/company/lead-alert-config', config);
     return response.data;
   },
 };

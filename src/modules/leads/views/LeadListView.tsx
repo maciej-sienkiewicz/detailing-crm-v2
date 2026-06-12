@@ -28,9 +28,18 @@ import {
   Edit3,
   CalendarDays,
   Check,
+  BarChart2,
+  Tag,
+  MessageSquare,
+  UserCog,
+  SlidersHorizontal,
+  DollarSign,
 } from 'lucide-react';
 import { customerApi } from '@/modules/customers/api/customerApi';
 import type { Customer } from '@/modules/customers/types';
+import { employeeApi } from '@/modules/employees/api/employeeApi';
+import type { EmployeeListItem } from '@/modules/employees/types';
+import { LeadAnalyticsModal } from '../components/LeadAnalyticsModal';
 import { useToast } from '@/common/components/Toast';
 import { servicesApi } from '@/modules/services/api/servicesApi';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -58,9 +67,12 @@ import {
   useSaveUserQuote,
   useDeleteUserQuote,
   useLeadAppointmentCreation,
+  useAssignLeadUser,
+  useSetLostReason,
+  useSetServiceTags,
 } from '../hooks';
 import { LeadStatus, LeadSource } from '../types';
-import type { Lead, LeadDetail, LeadListFilters, CustomerSnapshot, LeadUserQuote, LeadEstimationItem, SaveUserQuoteItemRequest } from '../types';
+import type { Lead, LeadDetail, LeadListFilters, CustomerSnapshot, LeadUserQuote, LeadEstimationItem, SaveUserQuoteItemRequest, ServiceTag } from '../types';
 import { QuickEventModal } from '@/modules/calendar/components/QuickEventModal';
 import type { QuickEventFormData, QuickEventInitialData } from '@/modules/calendar/components/QuickEventModal';
 import {
@@ -2330,6 +2342,256 @@ const VisitPreviewModal: React.FC<VisitPreviewModalProps> = ({ visitId, onClose 
   );
 };
 
+// ─── Service tags ─────────────────────────────────────────────────────────────
+
+const TagsRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+`;
+
+const ServiceTagChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  color: #0369a1;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+`;
+
+const TagRemoveBtn = styled.button`
+  display: flex;
+  align-items: center;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: #7dd3fc;
+  line-height: 1;
+  &:hover { color: #dc2626; }
+  svg { width: 10px; height: 10px; }
+`;
+
+const AddTagBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  background: transparent;
+  border: 1.5px dashed #cbd5e1;
+  color: #94a3b8;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all ${st.transition};
+  &:hover { border-color: #0ea5e9; color: #0ea5e9; }
+  svg { width: 11px; height: 11px; }
+`;
+
+// ─── Lost reason ──────────────────────────────────────────────────────────────
+
+const LostReasonBox = styled.div`
+  padding: 10px 14px;
+  background: #fef3f2;
+  border: 1px solid #fecaca;
+  border-left: 3px solid #dc2626;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #7f1d1d;
+  line-height: 1.5;
+`;
+
+const LostReasonEditBox = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const LostReasonTextarea = styled.textarea`
+  width: 100%;
+  min-height: 72px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  border: 1.5px solid ${st.border};
+  border-radius: 10px;
+  background: #fff;
+  color: ${st.text};
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color ${st.transition};
+  &:focus { border-color: #0ea5e9; }
+  &::placeholder { color: ${st.textMuted}; }
+`;
+
+const LostReasonActions = styled.div`
+  display: flex;
+  gap: 6px;
+`;
+
+// ─── User assignment ──────────────────────────────────────────────────────────
+
+const AssignedUserCard = styled.div`
+  background: #fff;
+  border: 1px solid ${st.border};
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+const AssignedUserAvatar = styled.div`
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #f0f9ff;
+  color: #0369a1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+`;
+
+const AssignedUserName = styled.div`
+  font-size: 13px;
+  font-weight: 600;
+  color: ${st.text};
+  flex: 1;
+`;
+
+// ─── Value range filter ────────────────────────────────────────────────────────
+
+const ValueFilterWrap = styled.div`
+  position: relative;
+  flex-shrink: 0;
+`;
+
+const ValueFilterBtn = styled.button<{ $active: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  border: 1.5px solid ${p => p.$active ? '#0ea5e9' : st.border};
+  background: ${p => p.$active ? '#f0f9ff' : '#f8fafc'};
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: ${p => p.$active ? '#0369a1' : st.textSecondary};
+  cursor: pointer;
+  transition: all 180ms ease;
+  white-space: nowrap;
+
+  &:hover { border-color: #0ea5e9; background: #f0f9ff; color: #0369a1; }
+  svg { flex-shrink: 0; }
+`;
+
+const ValueFilterPanel = styled.div`
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 500;
+  width: 260px;
+  background: #fff;
+  border: 1px solid ${st.border};
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const ValueFilterRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const ValueFilterLabel = styled.label`
+  font-size: 11px;
+  font-weight: 600;
+  color: ${st.textMuted};
+  min-width: 34px;
+`;
+
+const ValueFilterInput = styled.input`
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  border: 1.5px solid ${st.border};
+  border-radius: 8px;
+  background: #f8fafc;
+  color: ${st.text};
+  outline: none;
+  transition: border-color ${st.transition};
+  &:focus { border-color: #0ea5e9; }
+`;
+
+const ValueFilterSuffix = styled.span`
+  font-size: 11px;
+  color: ${st.textMuted};
+  flex-shrink: 0;
+`;
+
+// ─── Employee filter ──────────────────────────────────────────────────────────
+
+const EmpFilterWrap = styled.div`
+  position: relative;
+  flex-shrink: 0;
+`;
+
+const EmpFilterBtn = styled(StatusFilterBtn)``;
+
+const EmpFilterPanel = styled(StatusDropdownMenu)`
+  min-width: 220px;
+`;
+
+const EmpFilterRow = styled.button<{ $checked: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: ${p => p.$checked ? '#f0f9ff' : 'transparent'};
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: ${p => p.$checked ? 600 : 400};
+  color: ${p => p.$checked ? '#0369a1' : st.text};
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+  &:hover { background: #f0f9ff; }
+`;
+
+const EmpAvatar = styled.div`
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: #1d4ed8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  flex-shrink: 0;
+`;
+
 // ─── Static config ────────────────────────────────────────────────────────────
 
 const TILE_CONFIGS = {
@@ -2820,6 +3082,85 @@ const UserQuoteEditor: React.FC<UserQuoteEditorProps> = ({ leadId, existingQuote
   );
 };
 
+// ─── Employee picker modal for user assignment ────────────────────────────────
+
+interface EmployeePickerModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelect: (emp: EmployeeListItem) => void;
+  onUnassign: () => void;
+  hasAssigned: boolean;
+}
+
+const EmployeePickerModal: React.FC<EmployeePickerModalProps> = ({ isOpen, onClose, onSelect, onUnassign, hasAssigned }) => {
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    if (!isOpen) { setSearch(''); setDebouncedSearch(''); }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['employee-picker', debouncedSearch],
+    queryFn: () => employeeApi.listEmployees({ search: debouncedSearch, page: 1, limit: 15, includeTerminated: false }),
+    enabled: isOpen,
+  });
+
+  const employees = data?.items ?? [];
+
+  if (!isOpen) return null;
+
+  return (
+    <PickerOverlay onClick={onClose}>
+      <PickerBox onClick={e => e.stopPropagation()}>
+        <PickerHeader>
+          <PickerTitle>Przypisz pracownika</PickerTitle>
+          <PickerCloseBtn onClick={onClose}><X /></PickerCloseBtn>
+        </PickerHeader>
+        <PickerSearchWrap>
+          <PickerSearchIcon><Search /></PickerSearchIcon>
+          <PickerSearchInput
+            autoFocus
+            placeholder="Szukaj pracownika…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </PickerSearchWrap>
+        <PickerList>
+          {hasAssigned && (
+            <PickerCustomerRow onClick={() => { onUnassign(); onClose(); }} style={{ color: '#dc2626' }}>
+              <UserX size={16} />
+              <div>
+                <PickerCustomerName style={{ color: '#dc2626' }}>Odepnij pracownika</PickerCustomerName>
+              </div>
+            </PickerCustomerRow>
+          )}
+          {isLoading ? (
+            <PickerEmpty>Ładowanie…</PickerEmpty>
+          ) : employees.length === 0 ? (
+            <PickerEmpty>Brak pracowników</PickerEmpty>
+          ) : employees.map(emp => (
+            <PickerCustomerRow key={emp.id} onClick={() => { onSelect(emp); onClose(); }}>
+              <PickerCustomerAvatar>
+                {emp.firstName?.[0]}{emp.lastName?.[0]}
+              </PickerCustomerAvatar>
+              <div>
+                <PickerCustomerName>{emp.fullName}</PickerCustomerName>
+                {emp.position && <PickerCustomerSub>{emp.position}</PickerCustomerSub>}
+              </div>
+            </PickerCustomerRow>
+          ))}
+        </PickerList>
+      </PickerBox>
+    </PickerOverlay>
+  );
+};
+
 // ─── Expanded row component ───────────────────────────────────────────────────
 
 interface ExpandedRowProps {
@@ -2830,6 +3171,17 @@ interface ExpandedRowProps {
 const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
   const { lead: detail, isLoading: isDetailLoading } = useLead(lead.id);
   const updateValue = useUpdateLeadValue();
+  const assignUser   = useAssignLeadUser(lead.id);
+  const setLostReason = useSetLostReason(lead.id);
+  const setServiceTags = useSetServiceTags(lead.id);
+  const { showSuccess } = useToast();
+
+  const [isEmployeePickerOpen, setIsEmployeePickerOpen] = useState(false);
+  const [isEditingLostReason, setIsEditingLostReason] = useState(false);
+  const [lostReasonDraft, setLostReasonDraft] = useState(lead.lostReason ?? '');
+  const [isEditingTags, setIsEditingTags] = useState(false);
+  const [tagSearch, setTagSearch] = useState('');
+  const tagSearchRef = useRef<HTMLInputElement>(null);
 
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -2855,9 +3207,39 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
   const userQuote     = detail?.userQuote ?? null;
   const relatedVisits = estimation?.relatedVisits ?? detail?.relatedVisits ?? lead.relatedVisits ?? [];
   const hasQuote      = !!userQuote;
+  const serviceTags   = lead.serviceTags ?? [];
 
   // AI is dimmed when user has their own quote
   const aiDimmed = hasQuote;
+
+  const tagSuggestQuery = useQuery({
+    queryKey: ['service-suggest-tags', tagSearch],
+    queryFn: () => servicesApi.getServices({ search: tagSearch, page: 1, limit: 8, showInactive: false }),
+    enabled: isEditingTags && tagSearch.length >= 1,
+  });
+  const tagSuggestions = tagSuggestQuery.data?.services ?? [];
+
+  const handleAddTag = (tag: ServiceTag) => {
+    const already = serviceTags.some(t => t.serviceId === tag.serviceId && t.serviceName === tag.serviceName);
+    if (already || serviceTags.length >= 20) return;
+    const next = [...serviceTags, tag];
+    setServiceTags.mutate({ tags: next }, {
+      onSuccess: () => showSuccess('Tag dodany'),
+    });
+    setTagSearch('');
+  };
+
+  const handleRemoveTag = (idx: number) => {
+    const next = serviceTags.filter((_, i) => i !== idx);
+    setServiceTags.mutate({ tags: next });
+  };
+
+  const handleSaveLostReason = () => {
+    setLostReason.mutate(
+      { lostReason: lostReasonDraft.trim() || null },
+      { onSuccess: () => { showSuccess('Powód zapisany'); setIsEditingLostReason(false); } }
+    );
+  };
 
   // Silently sync estimatedValue when quote is saved or deleted
   const handleQuoteSaved = (totalGross: number) => {
@@ -2879,6 +3261,152 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
                 <PanelLabel>Wiadomość od klienta</PanelLabel>
                 <MessageBox>{lead.initialMessage}</MessageBox>
               </div>
+            )}
+
+            {/* Service tags + Assign user — side by side */}
+            <BottomGrid>
+              {/* Service tags */}
+              <PanelSection>
+                <PanelLabel style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Tag size={13} /> Tagi usług
+                  </span>
+                  <AssignBtn
+                    style={{ padding: '3px 9px', fontSize: 11 }}
+                    onClick={() => { setIsEditingTags(p => !p); setTagSearch(''); }}
+                  >
+                    {isEditingTags ? 'Gotowe' : 'Edytuj'}
+                  </AssignBtn>
+                </PanelLabel>
+
+                <div style={{ position: 'relative' }}>
+                  <TagsRow>
+                    {serviceTags.map((tag, i) => (
+                      <ServiceTagChip key={i}>
+                        {tag.serviceName}
+                        {isEditingTags && (
+                          <TagRemoveBtn onClick={() => handleRemoveTag(i)} title="Usuń tag">
+                            <X />
+                          </TagRemoveBtn>
+                        )}
+                      </ServiceTagChip>
+                    ))}
+                    {isEditingTags && serviceTags.length < 20 && (
+                      <div style={{ position: 'relative' }}>
+                        <AssignBtn
+                          as="div"
+                          style={{ cursor: 'text', display: 'inline-flex', alignItems: 'center' }}
+                        >
+                          <Plus size={11} />
+                          <input
+                            ref={tagSearchRef}
+                            value={tagSearch}
+                            onChange={e => setTagSearch(e.target.value)}
+                            placeholder="Dodaj usługę…"
+                            style={{
+                              border: 'none', background: 'none', outline: 'none',
+                              fontFamily: 'inherit', fontSize: 11, color: '#0ea5e9',
+                              width: tagSearch ? Math.max(80, tagSearch.length * 7) : 90,
+                            }}
+                          />
+                        </AssignBtn>
+                        {tagSuggestions.length > 0 && (
+                          <SuggestBox style={{ minWidth: 200 }}>
+                            {tagSuggestions.map(svc => (
+                              <SuggestRow
+                                key={svc.id}
+                                onMouseDown={e => {
+                                  e.preventDefault();
+                                  handleAddTag({ serviceId: svc.id, serviceName: svc.name });
+                                }}
+                              >
+                                <SuggestName>{svc.name}</SuggestName>
+                              </SuggestRow>
+                            ))}
+                          </SuggestBox>
+                        )}
+                      </div>
+                    )}
+                    {serviceTags.length === 0 && !isEditingTags && (
+                      <span style={{ fontSize: 12, color: st.textMuted, fontStyle: 'italic' }}>
+                        Brak tagów — kliknij Edytuj
+                      </span>
+                    )}
+                  </TagsRow>
+                </div>
+              </PanelSection>
+
+              {/* Assign user */}
+              <PanelSection>
+                <PanelLabel style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <UserCog size={13} /> Przypisany pracownik
+                </PanelLabel>
+                {lead.assignedUserName ? (
+                  <AssignedUserCard>
+                    <AssignedUserAvatar>
+                      {lead.assignedUserName.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)}
+                    </AssignedUserAvatar>
+                    <AssignedUserName>{lead.assignedUserName}</AssignedUserName>
+                    <AssignBtn onClick={() => setIsEmployeePickerOpen(true)}>
+                      <UserCheck size={13} /> Zmień
+                    </AssignBtn>
+                  </AssignedUserCard>
+                ) : (
+                  <AssignBtn onClick={() => setIsEmployeePickerOpen(true)}>
+                    <UserCheck size={13} /> Przypisz pracownika
+                  </AssignBtn>
+                )}
+              </PanelSection>
+            </BottomGrid>
+
+            {/* Lost reason — only when LOST */}
+            {lead.status === LeadStatus.LOST && (
+              <PanelSection>
+                <PanelLabel style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <MessageSquare size={13} /> Powód utraty
+                  </span>
+                  {!isEditingLostReason && (
+                    <AssignBtn
+                      style={{ padding: '3px 9px', fontSize: 11 }}
+                      onClick={() => { setLostReasonDraft(lead.lostReason ?? ''); setIsEditingLostReason(true); }}
+                    >
+                      {lead.lostReason ? 'Edytuj' : 'Dodaj powód'}
+                    </AssignBtn>
+                  )}
+                </PanelLabel>
+                {isEditingLostReason ? (
+                  <LostReasonEditBox>
+                    <LostReasonTextarea
+                      autoFocus
+                      value={lostReasonDraft}
+                      onChange={e => setLostReasonDraft(e.target.value)}
+                      placeholder="Dlaczego klient odpadł? (np. zbyt wysoka cena, wybrał konkurencję…)"
+                      maxLength={500}
+                    />
+                    <LostReasonActions>
+                      <QuoteSaveBtn
+                        onClick={handleSaveLostReason}
+                        disabled={setLostReason.isPending}
+                      >
+                        {setLostReason.isPending ? 'Zapisywanie…' : 'Zapisz'}
+                      </QuoteSaveBtn>
+                      <QuoteDeleteBtn
+                        style={{ fontSize: 12, padding: '6px 12px' }}
+                        onClick={() => setIsEditingLostReason(false)}
+                      >
+                        Anuluj
+                      </QuoteDeleteBtn>
+                    </LostReasonActions>
+                  </LostReasonEditBox>
+                ) : lead.lostReason ? (
+                  <LostReasonBox>{lead.lostReason}</LostReasonBox>
+                ) : (
+                  <span style={{ fontSize: 12, color: st.textMuted, fontStyle: 'italic' }}>
+                    Brak powodu utraty
+                  </span>
+                )}
+              </PanelSection>
             )}
 
             {/* Estimations — always side by side; labels in row 1, cards in row 2 */}
@@ -2989,6 +3517,24 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
         visitId={previewVisitId}
         onClose={() => setPreviewVisitId(null)}
       />
+
+      <EmployeePickerModal
+        isOpen={isEmployeePickerOpen}
+        onClose={() => setIsEmployeePickerOpen(false)}
+        hasAssigned={!!lead.assignedUserName}
+        onSelect={emp => {
+          assignUser.mutate(
+            { userId: emp.linkedUserId ?? emp.id, userName: emp.fullName },
+            { onSuccess: () => showSuccess('Pracownik przypisany') }
+          );
+        }}
+        onUnassign={() => {
+          assignUser.mutate(
+            { userId: null },
+            { onSuccess: () => showSuccess('Pracownik odpięty') }
+          );
+        }}
+      />
     </>
   );
 };
@@ -3002,6 +3548,7 @@ export const LeadListView: React.FC = () => {
 
   const [expandedId, setExpandedId]         = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen]         = useState(false);
+  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState<LeadStatus[]>([]);
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
@@ -3011,6 +3558,80 @@ export const LeadListView: React.FC = () => {
   const [pickerLeadId, setPickerLeadId]     = useState<string | null>(null);
   const [statusMenuLeadId, setStatusMenuLeadId] = useState<string | null>(null);
   const [statusMenuPos, setStatusMenuPos]       = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+
+  // ─── Value range filter ────────────────────────────────────────────────────
+  const [isValueFilterOpen, setIsValueFilterOpen] = useState(false);
+  const [valueMinInput, setValueMinInput]   = useState('');
+  const [valueMaxInput, setValueMaxInput]   = useState('');
+  const [appliedValueMin, setAppliedValueMin] = useState<number | undefined>(undefined);
+  const [appliedValueMax, setAppliedValueMax] = useState<number | undefined>(undefined);
+  const valueFilterRef = useRef<HTMLDivElement>(null);
+
+  const handleApplyValueFilter = () => {
+    const min = valueMinInput ? Math.round(parseFloat(valueMinInput) * 100) : undefined;
+    const max = valueMaxInput ? Math.round(parseFloat(valueMaxInput) * 100) : undefined;
+    setAppliedValueMin(min);
+    setAppliedValueMax(max);
+    setFilters(p => ({ ...p, valueMin: min, valueMax: max, page: 1 }));
+    setIsValueFilterOpen(false);
+  };
+
+  const handleClearValueFilter = () => {
+    setValueMinInput(''); setValueMaxInput('');
+    setAppliedValueMin(undefined); setAppliedValueMax(undefined);
+    setFilters(p => ({ ...p, valueMin: undefined, valueMax: undefined, page: 1 }));
+  };
+
+  const isValueFilterActive = appliedValueMin !== undefined || appliedValueMax !== undefined;
+
+  useEffect(() => {
+    if (!isValueFilterOpen) return;
+    const handle = (e: MouseEvent) => {
+      if (valueFilterRef.current && !valueFilterRef.current.contains(e.target as Node)) {
+        setIsValueFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [isValueFilterOpen]);
+
+  // ─── Employee filter ───────────────────────────────────────────────────────
+  const [isEmpFilterOpen, setIsEmpFilterOpen] = useState(false);
+  const [selectedEmpId, setSelectedEmpId]   = useState<string | undefined>(undefined);
+  const [selectedEmpName, setSelectedEmpName] = useState('');
+  const empFilterRef = useRef<HTMLDivElement>(null);
+
+  const { data: empListData } = useQuery({
+    queryKey: ['employee-filter-list'],
+    queryFn: () => employeeApi.listEmployees({ search: '', page: 1, limit: 50, includeTerminated: false }),
+  });
+  const empList = empListData?.items ?? [];
+
+  const handleSelectEmp = (emp: EmployeeListItem) => {
+    const uid = emp.linkedUserId ?? emp.id;
+    setSelectedEmpId(uid);
+    setSelectedEmpName(emp.fullName);
+    setFilters(p => ({ ...p, assignedUserId: uid, page: 1 }));
+    setIsEmpFilterOpen(false);
+  };
+
+  const handleClearEmp = () => {
+    setSelectedEmpId(undefined);
+    setSelectedEmpName('');
+    setFilters(p => ({ ...p, assignedUserId: undefined, page: 1 }));
+    setIsEmpFilterOpen(false);
+  };
+
+  useEffect(() => {
+    if (!isEmpFilterOpen) return;
+    const handle = (e: MouseEvent) => {
+      if (empFilterRef.current && !empFilterRef.current.contains(e.target as Node)) {
+        setIsEmpFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [isEmpFilterOpen]);
 
   // ─── Booking modal state ───────────────────────────────────────────────────
   const [bookingLeadId, setBookingLeadId]           = useState<string | null>(null);
@@ -3486,6 +4107,11 @@ export const LeadListView: React.FC = () => {
             )}
           </DatePickerWrap>
 
+          <SecondaryBtn onClick={() => setIsAnalyticsOpen(true)}>
+            <BarChart2 size={14} />
+            Analityka
+          </SecondaryBtn>
+
           <PageHeaderPrimaryButton onClick={() => setIsFormOpen(true)}>
             <Plus />
             Dodaj lead
@@ -3598,6 +4224,107 @@ export const LeadListView: React.FC = () => {
             </TabGroup>
 
             <Spacer />
+
+            {/* Value range filter */}
+            <ValueFilterWrap ref={valueFilterRef}>
+              <ValueFilterBtn
+                $active={isValueFilterActive}
+                onClick={() => setIsValueFilterOpen(p => !p)}
+              >
+                <DollarSign size={13} />
+                {isValueFilterActive
+                  ? `${appliedValueMin !== undefined ? (appliedValueMin / 100).toFixed(0) : '0'}–${appliedValueMax !== undefined ? (appliedValueMax / 100).toFixed(0) : '∞'} PLN`
+                  : 'Wartość'
+                }
+                {isValueFilterActive && (
+                  <span
+                    style={{ marginLeft: 2, lineHeight: 1, cursor: 'pointer' }}
+                    onClick={e => { e.stopPropagation(); handleClearValueFilter(); }}
+                    title="Wyczyść"
+                  >
+                    <X size={11} />
+                  </span>
+                )}
+              </ValueFilterBtn>
+
+              {isValueFilterOpen && (
+                <ValueFilterPanel>
+                  <ValueFilterRow>
+                    <ValueFilterLabel>Od</ValueFilterLabel>
+                    <ValueFilterInput
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      value={valueMinInput}
+                      onChange={e => setValueMinInput(e.target.value)}
+                    />
+                    <ValueFilterSuffix>PLN</ValueFilterSuffix>
+                  </ValueFilterRow>
+                  <ValueFilterRow>
+                    <ValueFilterLabel>Do</ValueFilterLabel>
+                    <ValueFilterInput
+                      type="number"
+                      min="0"
+                      placeholder="∞"
+                      value={valueMaxInput}
+                      onChange={e => setValueMaxInput(e.target.value)}
+                    />
+                    <ValueFilterSuffix>PLN</ValueFilterSuffix>
+                  </ValueFilterRow>
+                  <ApplyBtn onClick={handleApplyValueFilter}>
+                    Zastosuj
+                  </ApplyBtn>
+                </ValueFilterPanel>
+              )}
+            </ValueFilterWrap>
+
+            {/* Employee filter */}
+            <EmpFilterWrap ref={empFilterRef}>
+              <EmpFilterBtn
+                $active={!!selectedEmpId}
+                onClick={() => setIsEmpFilterOpen(p => !p)}
+              >
+                <UserCheck size={13} />
+                {selectedEmpName || 'Pracownik'}
+                {selectedEmpId && (
+                  <span
+                    style={{ marginLeft: 2, lineHeight: 1, cursor: 'pointer' }}
+                    onClick={e => { e.stopPropagation(); handleClearEmp(); }}
+                    title="Wyczyść"
+                  >
+                    <X size={11} />
+                  </span>
+                )}
+              </EmpFilterBtn>
+
+              {isEmpFilterOpen && (
+                <EmpFilterPanel>
+                  {selectedEmpId && (
+                    <>
+                      <ClearAllBtn onClick={handleClearEmp}>
+                        <X size={12} /> Wyczyść filtr
+                      </ClearAllBtn>
+                      <StatusDropdownDivider />
+                    </>
+                  )}
+                  {empList.length === 0
+                    ? <div style={{ padding: '10px 12px', fontSize: 12, color: st.textMuted }}>Brak pracowników</div>
+                    : empList.map(emp => (
+                      <EmpFilterRow
+                        key={emp.id}
+                        $checked={(emp.linkedUserId ?? emp.id) === selectedEmpId}
+                        onClick={() => handleSelectEmp(emp)}
+                      >
+                        <EmpAvatar>
+                          {emp.firstName?.[0]}{emp.lastName?.[0]}
+                        </EmpAvatar>
+                        {emp.fullName}
+                      </EmpFilterRow>
+                    ))
+                  }
+                </EmpFilterPanel>
+              )}
+            </EmpFilterWrap>
 
             <StatusFilterWrap ref={statusDropdownRef}>
               <StatusFilterBtn
@@ -3773,6 +4500,11 @@ export const LeadListView: React.FC = () => {
         initialData={bookingInitialData}
         onClose={handleBookingClose}
         onSave={handleBookingSave}
+      />
+
+      <LeadAnalyticsModal
+        isOpen={isAnalyticsOpen}
+        onClose={() => setIsAnalyticsOpen(false)}
       />
     </ViewContainer>
   );

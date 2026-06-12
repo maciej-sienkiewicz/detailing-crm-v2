@@ -16,11 +16,21 @@ import type {
   LeadStatus,
   LeadSource,
   SaveUserQuoteRequest,
+  ServiceAnalyticsItem,
+  EmployeeStats,
+  LeadAlertConfig,
+  AssignLeadUserRequest,
+  SetLostReasonRequest,
+  SetServiceTagsRequest,
+  ServiceTag,
 } from '../types';
 
 // Query keys
 export const LEADS_KEY = ['leads'];
 export const LEAD_PIPELINE_KEY = ['leads', 'pipeline'];
+export const LEAD_SERVICE_ANALYTICS_KEY = ['leads', 'service-analytics'];
+export const LEAD_EMPLOYEE_STATS_KEY = ['leads', 'employee-stats'];
+export const LEAD_ALERT_CONFIG_KEY = ['leads', 'alert-config'];
 
 // Type for mutation context
 type MutationContext = {
@@ -334,6 +344,101 @@ export const useDeleteUserQuote = (leadId: LeadId) => {
     mutationFn: () => leadApi.deleteUserQuote(leadId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'detail', leadId] });
+    },
+  });
+};
+
+/**
+ * Hook for assigning / unassigning a studio user to a lead
+ */
+export const useAssignLeadUser = (leadId: LeadId) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, AssignLeadUserRequest>({
+    mutationFn: (req) => leadApi.assignUser(leadId, req),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'detail', leadId] });
+      queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'list'] });
+    },
+  });
+};
+
+/**
+ * Hook for setting or clearing the lost reason on a lead
+ */
+export const useSetLostReason = (leadId: LeadId) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, SetLostReasonRequest>({
+    mutationFn: (req) => leadApi.setLostReason(leadId, req),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'detail', leadId] });
+      queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'list'] });
+    },
+  });
+};
+
+/**
+ * Hook for replacing service tags on a lead
+ */
+export const useSetServiceTags = (leadId: LeadId) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<ServiceTag[], Error, SetServiceTagsRequest>({
+    mutationFn: (req) => leadApi.setServiceTags(leadId, req),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'detail', leadId] });
+      queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'list'] });
+    },
+  });
+};
+
+/**
+ * Hook for fetching service win/loss analytics
+ */
+export const useServiceAnalytics = (dateFrom?: string, dateTo?: string, source?: LeadSource[]) => {
+  const { data, isLoading, isError, refetch } = useQuery<ServiceAnalyticsItem[]>({
+    queryKey: [...LEAD_SERVICE_ANALYTICS_KEY, { dateFrom, dateTo, source }],
+    queryFn: () => leadApi.getServiceAnalytics(dateFrom, dateTo, source),
+  });
+
+  return { data: data ?? [], isLoading, isError, refetch };
+};
+
+/**
+ * Hook for fetching employee conversion statistics
+ */
+export const useEmployeeStats = (dateFrom?: string, dateTo?: string) => {
+  const { data, isLoading, isError, refetch } = useQuery<EmployeeStats[]>({
+    queryKey: [...LEAD_EMPLOYEE_STATS_KEY, { dateFrom, dateTo }],
+    queryFn: () => leadApi.getEmployeeStats(dateFrom, dateTo),
+  });
+
+  return { data: data ?? [], isLoading, isError, refetch };
+};
+
+/**
+ * Hook for reading the stagnant lead alert config
+ */
+export const useLeadAlertConfig = () => {
+  const { data, isLoading, isError } = useQuery<LeadAlertConfig>({
+    queryKey: LEAD_ALERT_CONFIG_KEY,
+    queryFn: () => leadApi.getLeadAlertConfig(),
+  });
+
+  return { config: data, isLoading, isError };
+};
+
+/**
+ * Hook for updating the stagnant lead alert config
+ */
+export const useUpdateLeadAlertConfig = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<LeadAlertConfig, Error, Partial<LeadAlertConfig>>({
+    mutationFn: (config) => leadApi.updateLeadAlertConfig(config),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: LEAD_ALERT_CONFIG_KEY });
     },
   });
 };
