@@ -29,7 +29,6 @@ import {
   CalendarDays,
   Check,
   BarChart2,
-  Tag,
   MessageSquare,
   UserCog,
   SlidersHorizontal,
@@ -70,10 +69,9 @@ import {
   useLeadAppointmentCreation,
   useAssignLeadUser,
   useSetLostReason,
-  useSetServiceTags,
 } from '../hooks';
 import { LeadStatus, LeadSource } from '../types';
-import type { Lead, LeadDetail, LeadListFilters, CustomerSnapshot, LeadUserQuote, LeadEstimationItem, SaveUserQuoteItemRequest, ServiceTag } from '../types';
+import type { Lead, LeadDetail, LeadListFilters, CustomerSnapshot, LeadUserQuote, LeadEstimationItem, SaveUserQuoteItemRequest } from '../types';
 import { QuickEventModal } from '@/modules/calendar/components/QuickEventModal';
 import type { QuickEventFormData, QuickEventInitialData } from '@/modules/calendar/components/QuickEventModal';
 import {
@@ -2343,59 +2341,6 @@ const VisitPreviewModal: React.FC<VisitPreviewModalProps> = ({ visitId, onClose 
   );
 };
 
-// ─── Service tags ─────────────────────────────────────────────────────────────
-
-const TagsRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-`;
-
-const ServiceTagChip = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
-  color: #0369a1;
-  border-radius: 9999px;
-  font-size: 11px;
-  font-weight: 600;
-`;
-
-const TagRemoveBtn = styled.button`
-  display: flex;
-  align-items: center;
-  border: none;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-  color: #7dd3fc;
-  line-height: 1;
-  &:hover { color: #dc2626; }
-  svg { width: 10px; height: 10px; }
-`;
-
-const AddTagBtn = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  background: transparent;
-  border: 1.5px dashed #cbd5e1;
-  color: #94a3b8;
-  border-radius: 9999px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all ${st.transition};
-  &:hover { border-color: #0ea5e9; color: #0ea5e9; }
-  svg { width: 11px; height: 11px; }
-`;
-
 // ─── Lost reason ──────────────────────────────────────────────────────────────
 
 const LostReasonBox = styled.div`
@@ -3174,16 +3119,11 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
   const updateValue = useUpdateLeadValue();
   const assignUser   = useAssignLeadUser(lead.id);
   const setLostReason = useSetLostReason(lead.id);
-  const setServiceTags = useSetServiceTags(lead.id);
   const { showSuccess } = useToast();
 
   const [isEmployeePickerOpen, setIsEmployeePickerOpen] = useState(false);
   const [isEditingLostReason, setIsEditingLostReason] = useState(false);
   const [lostReasonDraft, setLostReasonDraft] = useState(lead.lostReason ?? '');
-  const [isEditingTags, setIsEditingTags] = useState(false);
-  const [tagSearch, setTagSearch] = useState('');
-  const tagSearchRef = useRef<HTMLInputElement>(null);
-
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Scroll so the full expanded panel is visible after mount
@@ -3208,32 +3148,8 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
   const userQuote     = detail?.userQuote ?? null;
   const relatedVisits = estimation?.relatedVisits ?? detail?.relatedVisits ?? lead.relatedVisits ?? [];
   const hasQuote      = !!userQuote;
-  const serviceTags   = lead.serviceTags ?? [];
-
   // AI is dimmed when user has their own quote
   const aiDimmed = hasQuote;
-
-  const tagSuggestQuery = useQuery({
-    queryKey: ['service-suggest-tags', tagSearch],
-    queryFn: () => servicesApi.getServices({ search: tagSearch, page: 1, limit: 8, showInactive: false }),
-    enabled: isEditingTags && tagSearch.length >= 1,
-  });
-  const tagSuggestions = tagSuggestQuery.data?.services ?? [];
-
-  const handleAddTag = (tag: ServiceTag) => {
-    const already = serviceTags.some(t => t.serviceId === tag.serviceId && t.serviceName === tag.serviceName);
-    if (already || serviceTags.length >= 20) return;
-    const next = [...serviceTags, tag];
-    setServiceTags.mutate({ tags: next }, {
-      onSuccess: () => showSuccess('Tag dodany'),
-    });
-    setTagSearch('');
-  };
-
-  const handleRemoveTag = (idx: number) => {
-    const next = serviceTags.filter((_, i) => i !== idx);
-    setServiceTags.mutate({ tags: next });
-  };
 
   const handleSaveLostReason = () => {
     setLostReason.mutate(
@@ -3264,101 +3180,27 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
               </div>
             )}
 
-            {/* Service tags + Assign user — side by side */}
-            <BottomGrid>
-              {/* Service tags */}
-              <PanelSection>
-                <PanelLabel style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Tag size={13} /> Tagi usług
-                  </span>
-                  <AssignBtn
-                    style={{ padding: '3px 9px', fontSize: 11 }}
-                    onClick={() => { setIsEditingTags(p => !p); setTagSearch(''); }}
-                  >
-                    {isEditingTags ? 'Gotowe' : 'Edytuj'}
-                  </AssignBtn>
-                </PanelLabel>
-
-                <div style={{ position: 'relative' }}>
-                  <TagsRow>
-                    {serviceTags.map((tag, i) => (
-                      <ServiceTagChip key={i}>
-                        {tag.serviceName}
-                        {isEditingTags && (
-                          <TagRemoveBtn onClick={() => handleRemoveTag(i)} title="Usuń tag">
-                            <X />
-                          </TagRemoveBtn>
-                        )}
-                      </ServiceTagChip>
-                    ))}
-                    {isEditingTags && serviceTags.length < 20 && (
-                      <div style={{ position: 'relative' }}>
-                        <AssignBtn
-                          as="div"
-                          style={{ cursor: 'text', display: 'inline-flex', alignItems: 'center' }}
-                        >
-                          <Plus size={11} />
-                          <input
-                            ref={tagSearchRef}
-                            value={tagSearch}
-                            onChange={e => setTagSearch(e.target.value)}
-                            placeholder="Dodaj usługę…"
-                            style={{
-                              border: 'none', background: 'none', outline: 'none',
-                              fontFamily: 'inherit', fontSize: 11, color: '#0ea5e9',
-                              width: tagSearch ? Math.max(80, tagSearch.length * 7) : 90,
-                            }}
-                          />
-                        </AssignBtn>
-                        {tagSuggestions.length > 0 && (
-                          <SuggestBox style={{ minWidth: 200 }}>
-                            {tagSuggestions.map(svc => (
-                              <SuggestRow
-                                key={svc.id}
-                                onMouseDown={e => {
-                                  e.preventDefault();
-                                  handleAddTag({ serviceId: svc.id, serviceName: svc.name });
-                                }}
-                              >
-                                <SuggestName>{svc.name}</SuggestName>
-                              </SuggestRow>
-                            ))}
-                          </SuggestBox>
-                        )}
-                      </div>
-                    )}
-                    {serviceTags.length === 0 && !isEditingTags && (
-                      <span style={{ fontSize: 12, color: st.textMuted, fontStyle: 'italic' }}>
-                        Brak tagów — kliknij Edytuj
-                      </span>
-                    )}
-                  </TagsRow>
-                </div>
-              </PanelSection>
-
-              {/* Assign user */}
-              <PanelSection>
-                <PanelLabel style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <UserCog size={13} /> Przypisany pracownik
-                </PanelLabel>
-                {lead.assignedUserName ? (
-                  <AssignedUserCard>
-                    <AssignedUserAvatar>
-                      {lead.assignedUserName.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)}
-                    </AssignedUserAvatar>
-                    <AssignedUserName>{lead.assignedUserName}</AssignedUserName>
-                    <AssignBtn onClick={() => setIsEmployeePickerOpen(true)}>
-                      <UserCheck size={13} /> Zmień
-                    </AssignBtn>
-                  </AssignedUserCard>
-                ) : (
+            {/* Assign user */}
+            <PanelSection>
+              <PanelLabel style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <UserCog size={13} /> Przypisany pracownik
+              </PanelLabel>
+              {lead.assignedUserName ? (
+                <AssignedUserCard>
+                  <AssignedUserAvatar>
+                    {lead.assignedUserName.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)}
+                  </AssignedUserAvatar>
+                  <AssignedUserName>{lead.assignedUserName}</AssignedUserName>
                   <AssignBtn onClick={() => setIsEmployeePickerOpen(true)}>
-                    <UserCheck size={13} /> Przypisz pracownika
+                    <UserCheck size={13} /> Zmień
                   </AssignBtn>
-                )}
-              </PanelSection>
-            </BottomGrid>
+                </AssignedUserCard>
+              ) : (
+                <AssignBtn onClick={() => setIsEmployeePickerOpen(true)}>
+                  <UserCheck size={13} /> Przypisz pracownika
+                </AssignBtn>
+              )}
+            </PanelSection>
 
             {/* Lost reason — only when LOST */}
             {lead.status === LeadStatus.LOST && (
@@ -3936,11 +3778,9 @@ export const LeadListView: React.FC = () => {
           </Td>
 
           <Td>
-            {lead.summary
-              ? <CellNote title={lead.summary}>{lead.summary}</CellNote>
-              : lead.initialMessage
-                ? <CellNote title={lead.initialMessage}>{lead.initialMessage}</CellNote>
-                : <CellSub style={{ fontStyle: 'italic' }}>—</CellSub>
+            {lead.assignedUserName
+              ? <CellMain>{lead.assignedUserName}</CellMain>
+              : <CellSub style={{ fontStyle: 'italic' }}>—</CellSub>
             }
           </Td>
 
@@ -4395,7 +4235,7 @@ export const LeadListView: React.FC = () => {
               <tr>
                 <ThIcon />
                 <Th>Klient</Th>
-                <Th>Kontekst</Th>
+                <Th>Obsługuje</Th>
                 <Th>Utworzono</Th>
                 <Th style={{ width: '130px' }}>Status</Th>
                 <Th style={{ width: '120px' }}>Wartość</Th>
