@@ -1151,26 +1151,48 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         if (isNaN(val) || val <= 0) return;
         const valueInCents = bulkDiscountType === 'PERCENT' ? val : Math.round(val * 100);
         const eligible = services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING')));
-        const bases = eligible.map(s => {
-            const ep = bulkDiscountUseEdited ? editedPrices[s.id] : undefined;
-            return {
-                basePriceNetCents: ep?.basePriceNet ?? s.basePriceNet,
-                vatRate: ep?.vatRate ?? s.vatRate,
-            };
-        });
-        const adjustments = distributeAdjustment(bases, bulkDiscountType, valueInCents);
-        setEditedPrices(prev => {
-            const next = { ...prev };
-            eligible.forEach((s, i) => {
-                const ep = bulkDiscountUseEdited ? editedPrices[s.id] : undefined;
-                next[s.id] = {
-                    basePriceNet: ep?.basePriceNet ?? s.basePriceNet,
-                    vatRate: ep?.vatRate ?? s.vatRate,
-                    adjustment: adjustments[i],
-                };
+
+        if (bulkDiscountUseEdited) {
+            // Distribute against current effective prices (respecting manual edits),
+            // but preserve original basePriceNet — store result as SET_NET.
+            const effectiveBases = eligible.map(s => {
+                const ep = editedPrices[s.id];
+                if (ep) {
+                    const { finalNetCents } = applyAdjustment(ep.basePriceNet, ep.vatRate, ep.adjustment);
+                    return { basePriceNetCents: finalNetCents, vatRate: ep.vatRate };
+                }
+                return { basePriceNetCents: s.basePriceNet, vatRate: s.vatRate };
             });
-            return next;
-        });
+            const adjustments = distributeAdjustment(effectiveBases, bulkDiscountType, valueInCents);
+            setEditedPrices(prev => {
+                const next = { ...prev };
+                eligible.forEach((s, i) => {
+                    const vatRate = editedPrices[s.id]?.vatRate ?? s.vatRate;
+                    const { finalNetCents } = applyAdjustment(effectiveBases[i].basePriceNetCents, vatRate, adjustments[i]);
+                    next[s.id] = {
+                        basePriceNet: s.basePriceNet, // always keep original base
+                        vatRate,
+                        adjustment: { type: 'SET_NET', value: Math.max(0, finalNetCents) },
+                    };
+                });
+                return next;
+            });
+        } else {
+            const bases = eligible.map(s => ({ basePriceNetCents: s.basePriceNet, vatRate: s.vatRate }));
+            const adjustments = distributeAdjustment(bases, bulkDiscountType, valueInCents);
+            setEditedPrices(prev => {
+                const next = { ...prev };
+                eligible.forEach((s, i) => {
+                    next[s.id] = {
+                        basePriceNet: s.basePriceNet,
+                        vatRate: s.vatRate,
+                        adjustment: adjustments[i],
+                    };
+                });
+                return next;
+            });
+        }
+
         setBulkDiscountOpen(false);
         setBulkDiscountValue('');
     };
