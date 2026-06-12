@@ -71,25 +71,19 @@ const TableSubtitle = styled.p`
 const BulkVatTrigger = styled.button`
     display: inline-flex;
     align-items: center;
-    gap: 3px;
-    padding: 2px 5px;
-    margin-left: 5px;
+    padding: 0;
+    margin-left: 3px;
     background: transparent;
     color: ${st.textMuted};
-    border: 1px solid transparent;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 600;
+    border: none;
     cursor: pointer;
-    transition: all ${st.transition};
+    opacity: 0.5;
     vertical-align: middle;
-    opacity: 0.6;
-    letter-spacing: 0.03em;
-    text-transform: none;
+    line-height: 1;
 
-    svg { width: 10px; height: 10px; flex-shrink: 0; }
-    &:hover:not(:disabled) { opacity: 1; background: ${st.bgHover ?? '#f3f4f6'}; border-color: ${st.border}; color: ${st.text}; }
-    &:disabled { opacity: 0.3; cursor: not-allowed; }
+    svg { width: 9px; height: 9px; display: block; }
+    &:hover:not(:disabled) { opacity: 1; }
+    &:disabled { opacity: 0.2; cursor: not-allowed; }
 `;
 
 const AddBtn = styled.button`
@@ -1251,19 +1245,18 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         }
     };
 
-    const applyBulkVat = () => {
+    const applyBulkVat = (rate: number) => {
         const eligible = services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING')));
         setEditedPrices(prev => {
             const next = { ...prev };
             eligible.forEach(s => {
                 const ep = prev[s.id];
-                // Recalculate effective net price and keep it via SET_NET; base stays original
                 const currentNet = ep
                     ? applyAdjustment(ep.basePriceNet, ep.vatRate, ep.adjustment).finalNetCents
                     : applyAdjustment(s.basePriceNet, s.vatRate, s.adjustment).finalNetCents;
                 next[s.id] = {
                     basePriceNet: s.basePriceNet,
-                    vatRate: bulkVatRate,
+                    vatRate: rate,
                     adjustment: { type: 'SET_NET', value: currentNet },
                 };
             });
@@ -1486,7 +1479,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                     <Tr>
                         <Th>Usługa</Th>
                         <Th>Cena netto</Th>
-                        <Th>
+                        <Th style={{ whiteSpace: 'nowrap' }}>
                             VAT
                             {canEdit && (
                                 <BulkVatTrigger
@@ -1496,10 +1489,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                     title="Zmień stawkę VAT dla wszystkich usług"
                                 >
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                        <polyline points="6 9 12 15 18 9" />
                                     </svg>
-                                    zmień wszystkie
                                 </BulkVatTrigger>
                             )}
                         </Th>
@@ -1931,32 +1922,25 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             <DiscountModalOverlay onClick={() => setBulkVatOpen(false)}>
                 <DiscountModalCard onClick={e => e.stopPropagation()}>
                     <DiscountModalHeader>
-                        <DiscountModalTitle>Zmień VAT dla wszystkich usług</DiscountModalTitle>
+                        <DiscountModalTitle>VAT dla wszystkich usług</DiscountModalTitle>
                         <DiscountCloseBtn type="button" onClick={() => setBulkVatOpen(false)}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                         </DiscountCloseBtn>
                     </DiscountModalHeader>
                     <DiscountModalBody>
-                        <div>
-                            <DiscountSectionLabel>Stawka VAT</DiscountSectionLabel>
-                            <DiscountTypeRow>
-                                {([23, 8, 5, 0, -1] as const).map(rate => (
-                                    <DiscountTypePill
-                                        key={rate}
-                                        type="button"
-                                        $selected={bulkVatRate === rate}
-                                        onClick={() => setBulkVatRate(rate)}
-                                    >
-                                        {rate === -1 ? 'zw.' : `${rate}%`}
-                                    </DiscountTypePill>
-                                ))}
-                            </DiscountTypeRow>
-                        </div>
+                        <DiscountTypeRow>
+                            {([23, 8, 5, 0, -1] as const).map(rate => (
+                                <DiscountTypePill
+                                    key={rate}
+                                    type="button"
+                                    $selected={bulkVatRate === rate}
+                                    onClick={() => { setBulkVatRate(rate); applyBulkVat(rate); }}
+                                >
+                                    {rate === -1 ? 'zw.' : `${rate}%`}
+                                </DiscountTypePill>
+                            ))}
+                        </DiscountTypeRow>
                     </DiscountModalBody>
-                    <DiscountModalFooter>
-                        <DiscountCancelBtn type="button" onClick={() => setBulkVatOpen(false)}>Anuluj</DiscountCancelBtn>
-                        <DiscountApplyBtn type="button" onClick={applyBulkVat}>Zastosuj</DiscountApplyBtn>
-                    </DiscountModalFooter>
                 </DiscountModalCard>
             </DiscountModalOverlay>
         )}
