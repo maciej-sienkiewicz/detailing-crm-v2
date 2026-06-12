@@ -3112,16 +3112,17 @@ const EmployeePickerModal: React.FC<EmployeePickerModalProps> = ({ isOpen, onClo
 interface ExpandedRowProps {
   lead: Lead;
   colSpan: number;
+  autoOpenEmployeePicker?: boolean;
 }
 
-const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
+const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan, autoOpenEmployeePicker }) => {
   const { lead: detail, isLoading: isDetailLoading } = useLead(lead.id);
   const updateValue = useUpdateLeadValue();
   const assignUser   = useAssignLeadUser(lead.id);
   const setLostReason = useSetLostReason(lead.id);
   const { showSuccess } = useToast();
 
-  const [isEmployeePickerOpen, setIsEmployeePickerOpen] = useState(false);
+  const [isEmployeePickerOpen, setIsEmployeePickerOpen] = useState(!!autoOpenEmployeePicker);
   const [isEditingLostReason, setIsEditingLostReason] = useState(false);
   const [lostReasonDraft, setLostReasonDraft] = useState(lead.lostReason ?? '');
   const panelRef = useRef<HTMLDivElement>(null);
@@ -3395,6 +3396,7 @@ export const LeadListView: React.FC = () => {
   const queryClient = useQueryClient();
 
   const [expandedId, setExpandedId]         = useState<string | null>(null);
+  const [autoPickerLeadId, setAutoPickerLeadId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen]         = useState(false);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState<LeadStatus[]>([]);
@@ -3666,7 +3668,10 @@ export const LeadListView: React.FC = () => {
   }, []);
 
   const toggleExpand = useCallback((id: string) => {
-    setExpandedId(prev => prev === id ? null : id);
+    setExpandedId(prev => {
+      if (prev === id) { setAutoPickerLeadId(null); return null; }
+      return id;
+    });
   }, []);
 
   const COL_SPAN = 7;
@@ -3780,7 +3785,20 @@ export const LeadListView: React.FC = () => {
           <Td>
             {lead.assignedUserName
               ? <CellMain>{lead.assignedUserName}</CellMain>
-              : <CellSub style={{ fontStyle: 'italic' }}>—</CellSub>
+              : (
+                <AssignBtn
+                  style={{ fontSize: 11, padding: '3px 8px' }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    setAutoPickerLeadId(lead.id);
+                    setExpandedId(lead.id);
+                    // Clear after ExpandedRow mounts and reads the flag
+                    setTimeout(() => setAutoPickerLeadId(null), 0);
+                  }}
+                >
+                  <UserCheck size={12} /> Przypisz pracownika
+                </AssignBtn>
+              )
             }
           </Td>
 
@@ -3843,7 +3861,12 @@ export const LeadListView: React.FC = () => {
 
       if (isExpanded) {
         rows.push(
-          <ExpandedRow key={`${lead.id}-expanded`} lead={lead} colSpan={COL_SPAN} />
+          <ExpandedRow
+            key={`${lead.id}-expanded`}
+            lead={lead}
+            colSpan={COL_SPAN}
+            autoOpenEmployeePicker={autoPickerLeadId === lead.id}
+          />
         );
       }
 
