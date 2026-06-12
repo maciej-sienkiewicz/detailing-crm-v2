@@ -3,6 +3,12 @@ import { applyAdjustment, distributeAdjustment, netToGross } from '@/common/util
 import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjustment';
 import * as S from './styles';
 
+export interface PackageItemSnapshot {
+    serviceId: string;
+    serviceName: string;
+    position: number;
+}
+
 export interface ServiceLineItem {
     id: string;
     serviceId: string | null;
@@ -12,6 +18,8 @@ export interface ServiceLineItem {
     adjustment: PriceAdjustment;
     note?: string;
     requireManualPrice?: boolean;
+    isPackage?: boolean;
+    packageItems?: PackageItemSnapshot[] | null;
 }
 
 interface Props {
