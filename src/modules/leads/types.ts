@@ -445,7 +445,9 @@ export interface LeadStatusHistoryEntry {
   action: LeadHistoryAction;
   changedByUserId: string;
   changedByName: string;
-  fromStatus: LeadStatus | null;
-  toStatus: LeadStatus | null;
+  /** @deprecated Backend now puts status in changes[]. Keep for backward compat. */
+  fromStatus?: LeadStatus | null;
+  /** @deprecated Backend now puts status in changes[]. Keep for backward compat. */
+  toStatus?: LeadStatus | null;
   changes?: FieldChange[];
 }

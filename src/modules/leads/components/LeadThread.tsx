@@ -731,41 +731,57 @@ interface HistoryTabProps {
   leadId: LeadId;
 }
 
-const renderChanges = (changes: FieldChange[] | undefined, action: LeadHistoryAction) => {
-  if (!changes?.length) return null;
+const renderChangeField = (c: FieldChange, i: number) => {
+  // status field — render colored pills FROM → TO
+  if (c.field === 'status') {
+    const fromColor = STATUS_COLORS[c.oldValue as LeadStatus] ?? '#64748b';
+    const toColor   = STATUS_COLORS[c.newValue as LeadStatus] ?? '#64748b';
+    const fromLabel = STATUS_LABELS[c.oldValue as LeadStatus] ?? c.oldValue ?? '?';
+    const toLabel   = STATUS_LABELS[c.newValue as LeadStatus] ?? c.newValue ?? '?';
+    return (
+      <StatusChange key={i}>
+        {c.oldValue && <StatusPill $color={fromColor}>{fromLabel}</StatusPill>}
+        {c.oldValue && <ArrowRight size={11} style={{ color: st.textMuted, flexShrink: 0 }} />}
+        {c.newValue && <StatusPill $color={toColor}>{toLabel}</StatusPill>}
+      </StatusChange>
+    );
+  }
 
+  // items field (LEAD_QUOTE_UPDATED) — newValue is backend-formatted summary string
+  if (c.field === 'items') {
+    return (
+      <ChangeRow key={i}>
+        <ChangeField>Pozycje</ChangeField>
+        <ChangeValue title={c.newValue ?? undefined}>
+          {c.newValue ? truncate(c.newValue, 90) : '(brak pozycji)'}
+        </ChangeValue>
+      </ChangeRow>
+    );
+  }
+
+  // Generic field: oldValue → newValue
+  const label = FIELD_LABELS[c.field] ?? c.field;
+  return (
+    <ChangeRow key={i}>
+      <ChangeField>{label}</ChangeField>
+      {c.oldValue !== null && (
+        <>
+          <ChangeValue $dim title={c.oldValue}>{truncate(c.oldValue)}</ChangeValue>
+          <ChangeArrow><ChevronRight /></ChangeArrow>
+        </>
+      )}
+      <ChangeValue title={c.newValue ?? undefined}>
+        {c.newValue !== null ? truncate(c.newValue) : '(usunięto)'}
+      </ChangeValue>
+    </ChangeRow>
+  );
+};
+
+const renderChanges = (changes: FieldChange[] | undefined) => {
+  if (!changes?.length) return null;
   return (
     <ChangeList>
-      {changes.map((c, i) => {
-        const label = FIELD_LABELS[c.field] ?? c.field;
-
-        // LEAD_QUOTE_UPDATED — changes likely has a single entry with serialized items
-        if (action === 'LEAD_QUOTE_UPDATED') {
-          return (
-            <ChangeRow key={i}>
-              <ChangeField>Kosztorys</ChangeField>
-              <ChangeValue title={c.newValue ?? undefined}>
-                {truncate(c.newValue, 80)}
-              </ChangeValue>
-            </ChangeRow>
-          );
-        }
-
-        return (
-          <ChangeRow key={i}>
-            <ChangeField>{label}</ChangeField>
-            {c.oldValue !== null && (
-              <>
-                <ChangeValue $dim title={c.oldValue}>{truncate(c.oldValue)}</ChangeValue>
-                <ChangeArrow><ChevronRight /></ChangeArrow>
-              </>
-            )}
-            <ChangeValue title={c.newValue ?? undefined}>
-              {c.newValue !== null ? truncate(c.newValue) : '(usunięto)'}
-            </ChangeValue>
-          </ChangeRow>
-        );
-      })}
+      {changes.map((c, i) => renderChangeField(c, i))}
     </ChangeList>
   );
 };
@@ -809,17 +825,17 @@ const HistoryTab: React.FC<HistoryTabProps> = ({ leadId }) => {
               <TlContent>
                 <TlAction>{ACTION_LABELS[entry.action] ?? entry.action}</TlAction>
 
-                {/* Status change pills */}
-                {entry.fromStatus !== null && entry.toStatus !== null && (
+                {/* All changes (status pills, field diffs) — driven by changes[] */}
+                {renderChanges(entry.changes)}
+
+                {/* Fallback: legacy fromStatus/toStatus when no changes array */}
+                {!entry.changes?.length && entry.fromStatus && entry.toStatus && (
                   <StatusChange>
                     {renderStatusPill(entry.fromStatus)}
                     <ArrowRight size={11} style={{ color: st.textMuted, flexShrink: 0 }} />
                     {renderStatusPill(entry.toStatus)}
                   </StatusChange>
                 )}
-
-                {/* Field-level changes */}
-                {renderChanges(entry.changes, entry.action)}
 
                 <TlMeta>
                   <span title={formatDateTime(entry.changedAt)}>
