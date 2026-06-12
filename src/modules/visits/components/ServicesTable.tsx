@@ -1214,7 +1214,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         const eligible = services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING')));
         const hasManualPriceEdits = eligible.some(s => {
             const ep = editedPrices[s.id];
-            return ep && (ep.basePriceNet !== s.basePriceNet || ep.vatRate !== s.vatRate);
+            return ep && (ep.adjustment.type === 'SET_NET' || ep.adjustment.type === 'SET_GROSS');
         });
         if (hasManualPriceEdits) {
             setBulkDiscountConflictOpen(true);
