@@ -1062,6 +1062,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const [bulkDiscountOpen, setBulkDiscountOpen] = useState(false);
     const [bulkDiscountType, setBulkDiscountType] = useState<AdjustmentType>('PERCENT');
     const [bulkDiscountValue, setBulkDiscountValue] = useState('');
+    const [bulkDiscountConflictOpen, setBulkDiscountConflictOpen] = useState(false);
 
     const epln = (c: number) => c / 100;
     const eCents = (v: number) => Math.round(v * 100);
@@ -1144,27 +1145,48 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         closeDiscountModal();
     };
 
-    const applyBulkDiscount = () => {
+    const applyBulkDiscount = (useEdited = false) => {
         const val = parseFloat(bulkDiscountValue.replace(',', '.'));
         if (isNaN(val) || val <= 0) return;
         const valueInCents = bulkDiscountType === 'PERCENT' ? val : Math.round(val * 100);
         const eligible = services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING')));
-        // Always distribute against original service base prices
-        const bases = eligible.map(s => ({ basePriceNetCents: s.basePriceNet, vatRate: s.vatRate }));
+        const bases = eligible.map(s => {
+            const ep = useEdited ? editedPrices[s.id] : undefined;
+            return {
+                basePriceNetCents: ep?.basePriceNet ?? s.basePriceNet,
+                vatRate: ep?.vatRate ?? s.vatRate,
+            };
+        });
         const adjustments = distributeAdjustment(bases, bulkDiscountType, valueInCents);
         setEditedPrices(prev => {
             const next = { ...prev };
             eligible.forEach((s, i) => {
+                const ep = useEdited ? editedPrices[s.id] : undefined;
                 next[s.id] = {
-                    basePriceNet: s.basePriceNet,
-                    vatRate: s.vatRate,
+                    basePriceNet: ep?.basePriceNet ?? s.basePriceNet,
+                    vatRate: ep?.vatRate ?? s.vatRate,
                     adjustment: adjustments[i],
                 };
             });
             return next;
         });
         setBulkDiscountOpen(false);
+        setBulkDiscountConflictOpen(false);
         setBulkDiscountValue('');
+    };
+
+    const handleApplyBulkDiscountClick = () => {
+        const eligible = services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING')));
+        const hasManualPriceEdits = eligible.some(s => {
+            const ep = editedPrices[s.id];
+            return ep && (ep.basePriceNet !== s.basePriceNet || ep.vatRate !== s.vatRate);
+        });
+        if (hasManualPriceEdits) {
+            setBulkDiscountOpen(false);
+            setBulkDiscountConflictOpen(true);
+        } else {
+            applyBulkDiscount(false);
+        }
     };
 
     const handleEditNetChange = (val: string) => {
@@ -1864,7 +1886,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                         </DiscountModalBody>
                         <DiscountModalFooter>
                             <DiscountCancelBtn type="button" onClick={() => setBulkDiscountOpen(false)}>Anuluj</DiscountCancelBtn>
-                            <DiscountApplyBtn type="button" onClick={applyBulkDiscount}
+                            <DiscountApplyBtn type="button" onClick={handleApplyBulkDiscountClick}
                                 disabled={!bulkDiscountValue || parseFloat(bulkDiscountValue.replace(',', '.')) <= 0}>
                                 Zastosuj
                             </DiscountApplyBtn>
@@ -1873,6 +1895,23 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 </DiscountModalOverlay>
             );
         })()}
+
+        {bulkDiscountConflictOpen && (
+            <ModalOverlay onClick={() => setBulkDiscountConflictOpen(false)}>
+                <ModalCard role="dialog" aria-modal="true" aria-labelledby="bulk-conflict-title" onClick={e => e.stopPropagation()}>
+                    <ModalHeader>
+                        <ModalTitle id="bulk-conflict-title">Naniesione poprawki cen</ModalTitle>
+                    </ModalHeader>
+                    <ModalBody>
+                        Niektóre usługi mają ręcznie zmienione ceny lub stawki VAT. Czy rabat powinien zostać naliczony od zmienionych wartości, czy nadpisać wszystkie dotychczasowe zmiany i naliczyć od cen pierwotnych?
+                    </ModalBody>
+                    <ModalFooter>
+                        <SecondaryBtn onClick={() => applyBulkDiscount(false)}>Nadpisz zmiany</SecondaryBtn>
+                        <PrimaryBtn $danger={false} onClick={() => applyBulkDiscount(true)}>Uwzględnij poprawki</PrimaryBtn>
+                    </ModalFooter>
+                </ModalCard>
+            </ModalOverlay>
+        )}
 
         {isConfirmOpen && targetService && (
             <ModalOverlay onClick={(e) => { if (e.target === e.currentTarget) closeConfirm(); }}>
