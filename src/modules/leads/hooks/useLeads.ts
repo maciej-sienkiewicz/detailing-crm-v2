@@ -23,6 +23,10 @@ import type {
   SetLostReasonRequest,
   SetServiceTagsRequest,
   ServiceTag,
+  LeadCommentDto,
+  AddCommentRequest,
+  EditCommentRequest,
+  LeadStatusHistoryEntry,
 } from '../types';
 
 // Query keys
@@ -31,6 +35,9 @@ export const LEAD_PIPELINE_KEY = ['leads', 'pipeline'];
 export const LEAD_SERVICE_ANALYTICS_KEY = ['leads', 'service-analytics'];
 export const LEAD_EMPLOYEE_STATS_KEY = ['leads', 'employee-stats'];
 export const LEAD_ALERT_CONFIG_KEY = ['leads', 'alert-config'];
+
+const leadCommentKey = (leadId: LeadId) => ['leads', 'comments', leadId];
+const leadHistoryKey = (leadId: LeadId) => ['leads', 'history', leadId];
 
 // Type for mutation context
 type MutationContext = {
@@ -441,6 +448,63 @@ export const useUpdateLeadAlertConfig = () => {
       queryClient.invalidateQueries({ queryKey: LEAD_ALERT_CONFIG_KEY });
     },
   });
+};
+
+// ─── Comments ──────────────────────────────────────────────────────────────────
+
+export const useLeadComments = (leadId: LeadId) => {
+  const { data, isLoading, isError } = useQuery<LeadCommentDto[]>({
+    queryKey: leadCommentKey(leadId),
+    queryFn: () => leadApi.getComments(leadId),
+    enabled: !!leadId,
+  });
+
+  return { comments: data ?? [], isLoading, isError };
+};
+
+export const useAddComment = (leadId: LeadId) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<LeadCommentDto, Error, AddCommentRequest>({
+    mutationFn: (req) => leadApi.addComment(leadId, req),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: leadCommentKey(leadId) });
+    },
+  });
+};
+
+export const useEditComment = (leadId: LeadId) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<LeadCommentDto, Error, { commentId: string; req: EditCommentRequest }>({
+    mutationFn: ({ commentId, req }) => leadApi.editComment(leadId, commentId, req),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: leadCommentKey(leadId) });
+    },
+  });
+};
+
+export const useDeleteComment = (leadId: LeadId) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: (commentId) => leadApi.deleteComment(leadId, commentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: leadCommentKey(leadId) });
+    },
+  });
+};
+
+// ─── Status history ─────────────────────────────────────────────────────────────
+
+export const useLeadStatusHistory = (leadId: LeadId) => {
+  const { data, isLoading, isError } = useQuery<LeadStatusHistoryEntry[]>({
+    queryKey: leadHistoryKey(leadId),
+    queryFn: () => leadApi.getStatusHistory(leadId),
+    enabled: !!leadId,
+  });
+
+  return { history: data ?? [], isLoading, isError };
 };
 
 /**

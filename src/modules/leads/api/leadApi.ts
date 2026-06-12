@@ -23,6 +23,10 @@ import type {
   SetLostReasonRequest,
   SetServiceTagsRequest,
   ServiceTag,
+  LeadCommentDto,
+  AddCommentRequest,
+  EditCommentRequest,
+  LeadStatusHistoryEntry,
 } from '../types';
 
 const USE_MOCKS = false;
@@ -712,6 +716,34 @@ export const leadApi = {
    */
   updateLeadAlertConfig: async (config: Partial<LeadAlertConfig>): Promise<LeadAlertConfig> => {
     const response = await apiClient.patch('/v1/company/lead-alert-config', config);
+    return response.data;
+  },
+
+  // ─── Comments ──────────────────────────────────────────────────────────────
+
+  getComments: async (leadId: LeadId): Promise<LeadCommentDto[]> => {
+    const response = await apiClient.get(`${BASE_PATH}/${leadId}/comments`);
+    return response.data;
+  },
+
+  addComment: async (leadId: LeadId, req: AddCommentRequest): Promise<LeadCommentDto> => {
+    const response = await apiClient.post(`${BASE_PATH}/${leadId}/comments`, req);
+    return response.data;
+  },
+
+  editComment: async (leadId: LeadId, commentId: string, req: EditCommentRequest): Promise<LeadCommentDto> => {
+    const response = await apiClient.patch(`${BASE_PATH}/${leadId}/comments/${commentId}`, req);
+    return response.data;
+  },
+
+  deleteComment: async (leadId: LeadId, commentId: string): Promise<void> => {
+    await apiClient.delete(`${BASE_PATH}/${leadId}/comments/${commentId}`);
+  },
+
+  // ─── Status history ────────────────────────────────────────────────────────
+
+  getStatusHistory: async (leadId: LeadId): Promise<LeadStatusHistoryEntry[]> => {
+    const response = await apiClient.get(`${BASE_PATH}/${leadId}/status-history`);
     return response.data;
   },
 };

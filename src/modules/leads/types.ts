@@ -389,3 +389,50 @@ export interface SetLostReasonRequest {
 export interface SetServiceTagsRequest {
   tags: ServiceTag[];
 }
+
+// ---------------------------------------------------------------------------
+// Comments (GET|POST /api/v1/leads/{id}/comments, PATCH|DELETE .../comments/{commentId})
+// ---------------------------------------------------------------------------
+
+export interface LeadCommentDto {
+  id: string;
+  content: string;
+  createdBy: string;
+  createdByName: string;
+  createdAt: string;
+  updatedBy: string | null;
+  updatedByName: string | null;
+  updatedAt: string | null;
+}
+
+export interface AddCommentRequest {
+  content: string;
+}
+
+export interface EditCommentRequest {
+  content: string;
+}
+
+// ---------------------------------------------------------------------------
+// Status history (GET /api/v1/leads/{id}/status-history)
+// ---------------------------------------------------------------------------
+
+export type LeadHistoryAction =
+  | 'CREATE'
+  | 'STATUS_CHANGE'
+  | 'LEAD_CONFIRMED'
+  | 'LEAD_COMPLETED'
+  | 'LEAD_LOST'
+  | 'LEAD_NO_SHOW'
+  | 'LEAD_CONVERTED'
+  | 'LEAD_ABANDONED'
+  | 'LEAD_APPOINTMENT_CREATED';
+
+export interface LeadStatusHistoryEntry {
+  changedAt: string;
+  action: LeadHistoryAction;
+  changedByUserId: string;
+  changedByName: string;
+  fromStatus: LeadStatus | null;
+  toStatus: LeadStatus | null;
+}

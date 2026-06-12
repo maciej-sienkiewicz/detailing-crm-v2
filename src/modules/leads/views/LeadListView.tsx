@@ -40,6 +40,7 @@ import type { Customer } from '@/modules/customers/types';
 import { employeeApi } from '@/modules/employees/api/employeeApi';
 import type { EmployeeListItem } from '@/modules/employees/types';
 import { LeadAnalyticsModal } from '../components/LeadAnalyticsModal';
+import { LeadThread } from '../components/LeadThread';
 import { useToast } from '@/common/components/Toast';
 import { servicesApi } from '@/modules/services/api/servicesApi';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -3507,6 +3508,11 @@ const ExpandedRow: React.FC<ExpandedRowProps> = ({ lead, colSpan }) => {
             {/* Offer composer — EMAIL leads only */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 4 }}>
               <OfferComposer lead={lead} />
+            </div>
+
+            {/* Comments & status history thread */}
+            <div style={{ borderTop: `1px solid ${st.border}`, paddingTop: 16 }}>
+              <LeadThread leadId={lead.id} />
             </div>
 
           </ExpandedPanel>
