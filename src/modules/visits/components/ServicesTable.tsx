@@ -68,25 +68,28 @@ const TableSubtitle = styled.p`
     color: ${st.textMuted};
 `;
 
-const BulkVatBtn = styled.button`
+const BulkVatTrigger = styled.button`
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    background: #eff6ff;
-    color: #1e40af;
-    border: 1px solid #bfdbfe;
-    border-radius: ${st.radiusFull};
-    font-size: ${st.fontSm};
-    font-weight: 700;
+    gap: 3px;
+    padding: 2px 5px;
+    margin-left: 5px;
+    background: transparent;
+    color: ${st.textMuted};
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
     cursor: pointer;
     transition: all ${st.transition};
-    white-space: nowrap;
-    box-shadow: ${st.shadowXs};
+    vertical-align: middle;
+    opacity: 0.6;
+    letter-spacing: 0.03em;
+    text-transform: none;
 
-    svg { width: 13px; height: 13px; }
-    &:hover:not(:disabled) { background: #dbeafe; border-color: #93c5fd; transform: translateY(-1px); }
-    &:disabled { opacity: 0.45; cursor: not-allowed; }
+    svg { width: 10px; height: 10px; flex-shrink: 0; }
+    &:hover:not(:disabled) { opacity: 1; background: ${st.bgHover ?? '#f3f4f6'}; border-color: ${st.border}; color: ${st.text}; }
+    &:disabled { opacity: 0.3; cursor: not-allowed; }
 `;
 
 const AddBtn = styled.button`
@@ -1457,17 +1460,6 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 </TableHeaderLeft>
                 {canEdit && (
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        <BulkVatBtn
-                            onClick={() => setBulkVatOpen(true)}
-                            disabled={isSaving || services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING'))).length === 0}
-                            title="Zmień stawkę VAT dla wszystkich usług"
-                        >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M9 14l6-6" /><circle cx="9.5" cy="9.5" r="1.5" /><circle cx="14.5" cy="14.5" r="1.5" />
-                                <rect x="3" y="3" width="18" height="18" rx="2" />
-                            </svg>
-                            Zmień VAT
-                        </BulkVatBtn>
                         <RabatujCaoscBtn
                             onClick={openBulkDiscountModal}
                             disabled={isSaving || services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING'))).length === 0}
@@ -1494,7 +1486,23 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                     <Tr>
                         <Th>Usługa</Th>
                         <Th>Cena netto</Th>
-                        <Th>VAT</Th>
+                        <Th>
+                            VAT
+                            {canEdit && (
+                                <BulkVatTrigger
+                                    type="button"
+                                    onClick={() => setBulkVatOpen(true)}
+                                    disabled={isSaving || services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING'))).length === 0}
+                                    title="Zmień stawkę VAT dla wszystkich usług"
+                                >
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                    </svg>
+                                    zmień wszystkie
+                                </BulkVatTrigger>
+                            )}
+                        </Th>
                         <Th>Cena brutto</Th>
                         {showActionsCol && <Th style={{ textAlign: 'right' }}>Akcje</Th>}
                     </Tr>
