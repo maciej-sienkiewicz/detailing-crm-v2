@@ -11,6 +11,12 @@ import {
   Check,
   ArrowRight,
   Clock,
+  UserCheck,
+  User,
+  AlertCircle,
+  FileText,
+  MessageCircle,
+  ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '@/core';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -22,7 +28,7 @@ import {
   useLeadStatusHistory,
 } from '../hooks';
 import { formatRelativeTime, formatDateTime } from '../utils/formatters';
-import type { LeadId, LeadHistoryAction, LeadStatus } from '../types';
+import type { LeadId, LeadHistoryAction, LeadStatus, FieldChange } from '../types';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -592,16 +598,64 @@ const StatusChange = styled.div`
   flex-wrap: wrap;
 `;
 
+const ChangeList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 5px;
+`;
+
+const ChangeRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  font-size: 11px;
+  color: ${st.textSecondary};
+  line-height: 1.4;
+`;
+
+const ChangeField = styled.span`
+  font-weight: 700;
+  color: ${st.textMuted};
+  flex-shrink: 0;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  padding-top: 1px;
+`;
+
+const ChangeValue = styled.span<{ $dim?: boolean }>`
+  color: ${p => p.$dim ? st.textMuted : st.text};
+  font-style: ${p => p.$dim ? 'italic' : 'normal'};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+`;
+
+const ChangeArrow = styled.span`
+  color: ${st.textMuted};
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  svg { width: 10px; height: 10px; }
+`;
+
 const ACTION_LABELS: Record<LeadHistoryAction, string> = {
-  CREATE:                    'Lead utworzony',
-  STATUS_CHANGE:             'Zmiana statusu',
-  LEAD_CONFIRMED:            'Rezerwacja potwierdzona',
-  LEAD_COMPLETED:            'Wizyta zrealizowana',
-  LEAD_LOST:                 'Lead utracony',
-  LEAD_NO_SHOW:              'Klient się nie pojawił',
-  LEAD_APPOINTMENT_CREATED:  'Wizyta umówiona',
-  LEAD_CONVERTED:            'Lead skonwertowany',
-  LEAD_ABANDONED:            'Lead porzucony',
+  CREATE:                      'Lead utworzony',
+  STATUS_CHANGE:               'Zmiana statusu',
+  LEAD_CONFIRMED:              'Rezerwacja potwierdzona',
+  LEAD_COMPLETED:              'Wizyta zrealizowana',
+  LEAD_LOST:                   'Lead utracony',
+  LEAD_NO_SHOW:                'Klient się nie pojawił',
+  LEAD_APPOINTMENT_CREATED:    'Wizyta umówiona',
+  LEAD_CONVERTED:              'Lead skonwertowany',
+  LEAD_ABANDONED:              'Lead porzucony',
+  LEAD_USER_ASSIGNED:          'Przypisanie pracownika',
+  LEAD_CUSTOMER_ASSIGNED:      'Przypisanie klienta',
+  LEAD_LOST_REASON_UPDATED:    'Zmiana powodu utraty',
+  LEAD_QUOTE_UPDATED:          'Aktualizacja kosztorysu',
+  LEAD_COMMENT_UPDATED:        'Edycja komentarza',
 };
 
 const STATUS_COLORS: Partial<Record<LeadStatus, string>> = {
@@ -623,20 +677,98 @@ const STATUS_LABELS: Partial<Record<LeadStatus, string>> = {
 };
 
 const ACTION_COLOR: Record<LeadHistoryAction, string> = {
-  CREATE:                    '#6366f1',
-  STATUS_CHANGE:             '#0ea5e9',
-  LEAD_CONFIRMED:            '#16a34a',
-  LEAD_COMPLETED:            '#059669',
-  LEAD_LOST:                 '#64748b',
-  LEAD_NO_SHOW:              '#92400e',
-  LEAD_APPOINTMENT_CREATED:  '#0284c7',
-  LEAD_CONVERTED:            '#10b981',
-  LEAD_ABANDONED:            '#dc2626',
+  CREATE:                      '#6366f1',
+  STATUS_CHANGE:               '#0ea5e9',
+  LEAD_CONFIRMED:              '#16a34a',
+  LEAD_COMPLETED:              '#059669',
+  LEAD_LOST:                   '#64748b',
+  LEAD_NO_SHOW:                '#92400e',
+  LEAD_APPOINTMENT_CREATED:    '#0284c7',
+  LEAD_CONVERTED:              '#10b981',
+  LEAD_ABANDONED:              '#dc2626',
+  LEAD_USER_ASSIGNED:          '#7c3aed',
+  LEAD_CUSTOMER_ASSIGNED:      '#0891b2',
+  LEAD_LOST_REASON_UPDATED:    '#b45309',
+  LEAD_QUOTE_UPDATED:          '#0ea5e9',
+  LEAD_COMMENT_UPDATED:        '#64748b',
+};
+
+// Maps each action to a lucide icon component
+const ACTION_ICON: Record<LeadHistoryAction, React.FC<{ size?: number }>> = {
+  CREATE:                      Clock,
+  STATUS_CHANGE:               ArrowRight,
+  LEAD_CONFIRMED:              Check,
+  LEAD_COMPLETED:              Check,
+  LEAD_LOST:                   X,
+  LEAD_NO_SHOW:                AlertCircle,
+  LEAD_APPOINTMENT_CREATED:    Clock,
+  LEAD_CONVERTED:              Check,
+  LEAD_ABANDONED:              X,
+  LEAD_USER_ASSIGNED:          UserCheck,
+  LEAD_CUSTOMER_ASSIGNED:      User,
+  LEAD_LOST_REASON_UPDATED:    AlertCircle,
+  LEAD_QUOTE_UPDATED:          FileText,
+  LEAD_COMMENT_UPDATED:        MessageCircle,
+};
+
+const FIELD_LABELS: Record<string, string> = {
+  assignedUserName:  'Pracownik',
+  assignedUserId:    'Pracownik',
+  customerName:      'Klient',
+  customerId:        'Klient',
+  lostReason:        'Powód utraty',
+  content:           'Treść',
+  quote:             'Kosztorys',
+  totalGross:        'Wartość brutto',
+};
+
+const truncate = (s: string | null, max = 60): string => {
+  if (!s) return '(brak)';
+  return s.length > max ? s.slice(0, max) + '…' : s;
 };
 
 interface HistoryTabProps {
   leadId: LeadId;
 }
+
+const renderChanges = (changes: FieldChange[] | undefined, action: LeadHistoryAction) => {
+  if (!changes?.length) return null;
+
+  return (
+    <ChangeList>
+      {changes.map((c, i) => {
+        const label = FIELD_LABELS[c.field] ?? c.field;
+
+        // LEAD_QUOTE_UPDATED — changes likely has a single entry with serialized items
+        if (action === 'LEAD_QUOTE_UPDATED') {
+          return (
+            <ChangeRow key={i}>
+              <ChangeField>Kosztorys</ChangeField>
+              <ChangeValue title={c.newValue ?? undefined}>
+                {truncate(c.newValue, 80)}
+              </ChangeValue>
+            </ChangeRow>
+          );
+        }
+
+        return (
+          <ChangeRow key={i}>
+            <ChangeField>{label}</ChangeField>
+            {c.oldValue !== null && (
+              <>
+                <ChangeValue $dim title={c.oldValue}>{truncate(c.oldValue)}</ChangeValue>
+                <ChangeArrow><ChevronRight /></ChangeArrow>
+              </>
+            )}
+            <ChangeValue title={c.newValue ?? undefined}>
+              {c.newValue !== null ? truncate(c.newValue) : '(usunięto)'}
+            </ChangeValue>
+          </ChangeRow>
+        );
+      })}
+    </ChangeList>
+  );
+};
 
 const HistoryTab: React.FC<HistoryTabProps> = ({ leadId }) => {
   const { history, isLoading } = useLeadStatusHistory(leadId);
@@ -667,14 +799,17 @@ const HistoryTab: React.FC<HistoryTabProps> = ({ leadId }) => {
       ) : (
         history.map((entry, i) => {
           const color = ACTION_COLOR[entry.action] ?? '#0ea5e9';
+          const Icon = ACTION_ICON[entry.action] ?? Clock;
           return (
             <TimelineEntry key={i}>
               <TlLine />
               <TlDot $color={color}>
-                <Clock />
+                <Icon size={12} />
               </TlDot>
               <TlContent>
                 <TlAction>{ACTION_LABELS[entry.action] ?? entry.action}</TlAction>
+
+                {/* Status change pills */}
                 {entry.fromStatus !== null && entry.toStatus !== null && (
                   <StatusChange>
                     {renderStatusPill(entry.fromStatus)}
@@ -682,6 +817,10 @@ const HistoryTab: React.FC<HistoryTabProps> = ({ leadId }) => {
                     {renderStatusPill(entry.toStatus)}
                   </StatusChange>
                 )}
+
+                {/* Field-level changes */}
+                {renderChanges(entry.changes, entry.action)}
+
                 <TlMeta>
                   <span title={formatDateTime(entry.changedAt)}>
                     {formatRelativeTime(entry.changedAt)}

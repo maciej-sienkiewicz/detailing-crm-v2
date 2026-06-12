@@ -426,7 +426,19 @@ export type LeadHistoryAction =
   | 'LEAD_NO_SHOW'
   | 'LEAD_CONVERTED'
   | 'LEAD_ABANDONED'
-  | 'LEAD_APPOINTMENT_CREATED';
+  | 'LEAD_APPOINTMENT_CREATED'
+  | 'LEAD_USER_ASSIGNED'
+  | 'LEAD_CUSTOMER_ASSIGNED'
+  | 'LEAD_LOST_REASON_UPDATED'
+  | 'LEAD_QUOTE_UPDATED'
+  | 'LEAD_COMMENT_UPDATED';
+
+/** Single field change within a history entry */
+export interface FieldChange {
+  field: string;
+  oldValue: string | null;
+  newValue: string | null;
+}
 
 export interface LeadStatusHistoryEntry {
   changedAt: string;
@@ -435,4 +447,5 @@ export interface LeadStatusHistoryEntry {
   changedByName: string;
   fromStatus: LeadStatus | null;
   toStatus: LeadStatus | null;
+  changes?: FieldChange[];
 }
