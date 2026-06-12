@@ -216,6 +216,8 @@ export const CheckInWizardWrapper = () => {
             vatRate: service.vatRate ?? 23,
             adjustment: service.adjustment || { type: 'PERCENT', value: 0 },
             note: service.note,
+            isPackage: service.isPackage ?? false,
+            packageItems: service.packageItems ?? null,
         })) || [],
         status: reservationData.status,
         appointmentColor: reservationData.appointmentColor,
