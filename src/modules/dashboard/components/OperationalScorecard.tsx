@@ -629,23 +629,14 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
   const toggle = (key: string) =>
     setActiveKey(prev => (prev === key ? null : key));
 
-  const navigateToCalendar = (visit: VisitDetail, variant: CardVariant, rect?: DOMRect) => {
-    const dateBox = { value: visit.scheduledDate ?? '' };
-
-    if (!visit.scheduledDate && (variant === 'inProgress' || variant === 'readyForPickup')) {
-      visitApi.getVisitDetail(visit.id)
-        .then(detail => {
-          const raw = detail.visit?.scheduledDate;
-          if (raw) {
-            const d = new Date(raw);
-            const y = d.getFullYear();
-            const m = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            dateBox.value = `${y}-${m}-${day}`;
-          }
-        })
-        .catch(() => {/* best-effort */});
+  const navigateToVisitOrCalendar = (visit: VisitDetail, variant: CardVariant, rect?: DOMRect) => {
+    if (variant === 'inProgress' || variant === 'readyForPickup') {
+      setActiveKey(null);
+      navigate(`/visits/${visit.id}`);
+      return;
     }
+
+    const dateBox = { value: visit.scheduledDate ?? '' };
 
     const snap = {
       id: visit.id,
@@ -665,13 +656,13 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
     if (!activeKey || !stats) return null;
     switch (activeKey) {
       case 'inProgress':
-        return { variant: 'inProgress', label: t.dashboard.stats.inProgress, subtitle: 'Lista wizyt', visits: stats.inProgressDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.inProgressDetails?.find(x => x.id === id); if (v) navigateToCalendar(v, 'inProgress', rect); } };
+        return { variant: 'inProgress', label: t.dashboard.stats.inProgress, subtitle: 'Lista wizyt', visits: stats.inProgressDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.inProgressDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'inProgress', rect); } };
       case 'readyForPickup':
-        return { variant: 'readyForPickup', label: t.dashboard.stats.readyForPickup, subtitle: 'Lista wizyt', visits: stats.readyForPickupDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.readyForPickupDetails?.find(x => x.id === id); if (v) navigateToCalendar(v, 'readyForPickup', rect); } };
+        return { variant: 'readyForPickup', label: t.dashboard.stats.readyForPickup, subtitle: 'Lista wizyt', visits: stats.readyForPickupDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.readyForPickupDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'readyForPickup', rect); } };
       case 'incomingToday':
-        return { variant: 'incomingToday', label: t.dashboard.stats.arrivals, subtitle: 'Lista wizyt', visits: stats.incomingTodayDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.incomingTodayDetails?.find(x => x.id === id); if (v) navigateToCalendar(v, 'incomingToday', rect); } };
+        return { variant: 'incomingToday', label: t.dashboard.stats.arrivals, subtitle: 'Lista wizyt', visits: stats.incomingTodayDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.incomingTodayDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'incomingToday', rect); } };
       case 'abandoned':
-        return { variant: 'abandoned', label: t.dashboard.stats.abandoned, subtitle: 'Ostatnie 30 dni · Porzucone i Anulowane', visits: stats.abandonedDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.abandonedDetails?.find(x => x.id === id); if (v) navigateToCalendar(v, 'abandoned', rect); }, footerLabel: 'Pokaż rezerwacje', footerPath: '/appointments' };
+        return { variant: 'abandoned', label: t.dashboard.stats.abandoned, subtitle: 'Ostatnie 30 dni · Porzucone i Anulowane', visits: stats.abandonedDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.abandonedDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'abandoned', rect); }, footerLabel: 'Pokaż rezerwacje', footerPath: '/appointments' };
       default:
         return null;
     }
