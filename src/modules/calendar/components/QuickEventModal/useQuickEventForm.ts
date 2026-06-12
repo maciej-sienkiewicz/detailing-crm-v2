@@ -763,7 +763,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
 
     const handlePriceConfirm = (priceNet: number) => {
         if (!pendingService) return;
-        const vatRate = pendingService.vatRate || 23;
+        const vatRate = pendingService.vatRate ?? 23;
         const gross = roundTo2((priceNet / 100) * (100 + vatRate) / 100);
         setSelectedServiceIds(prev => [...prev, pendingService.id]);
         setServicePrices(prev => ({ ...prev, [pendingService.id]: gross }));
@@ -776,7 +776,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         setPendingService(null);
     };
 
-    const handleQuickServiceCreate = (service: { id?: string; name: string; basePriceNet: number; vatRate: 23 }) => {
+    const handleQuickServiceCreate = (service: { id?: string; name: string; basePriceNet: number; vatRate: number }) => {
         if (service.id) {
             queryClient.invalidateQueries({ queryKey: ['services'] });
         }
@@ -788,7 +788,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         if (!service.id) {
             setTempServices(prev => ({
                 ...prev,
-                [serviceId]: { name: service.name, basePriceNet: service.basePriceNet, vatRate: 23 },
+                [serviceId]: { name: service.name, basePriceNet: service.basePriceNet, vatRate: service.vatRate },
             }));
         }
         setServiceSearch('');

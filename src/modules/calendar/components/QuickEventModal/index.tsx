@@ -1095,7 +1095,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             <PriceInputModal
                 isOpen={form.isPriceInputModalOpen}
                 serviceName={form.pendingService?.name || ''}
-                vatRate={form.pendingService?.vatRate || 23}
+                vatRate={form.pendingService?.vatRate ?? 23}
                 onClose={form.handlePriceInputModalClose}
                 onConfirm={form.handlePriceConfirm}
             />

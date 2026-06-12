@@ -1254,12 +1254,19 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 adjustment: { type: 'FIXED_NET', value: 0 },
                 note: '',
             })),
-            updated: Object.entries(editedPrices).map(([serviceLineItemId, { basePriceNet, vatRate, adjustment }]) => ({
-                serviceLineItemId,
-                basePriceNet,
-                vatRate,
-                adjustment,
-            })),
+            updated: Object.entries(editedPrices).map(([serviceLineItemId, { basePriceNet, vatRate, adjustment }]) => {
+                // Backend only accepts SET_NET or SET_GROSS; convert relative types to absolute values
+                const { finalNetCents, finalGrossCents } = applyAdjustment(basePriceNet, vatRate, adjustment);
+                const normalizedAdjustment = adjustment.type === 'SET_GROSS'
+                    ? { type: 'SET_GROSS' as const, value: finalGrossCents }
+                    : { type: 'SET_NET' as const, value: finalNetCents };
+                return {
+                    serviceLineItemId,
+                    basePriceNet,
+                    vatRate,
+                    adjustment: normalizedAdjustment,
+                };
+            }),
             deleted: Array.from(deletedIds).map(id => ({ serviceLineItemId: id })),
         };
         saveServicesChanges(payload, {
