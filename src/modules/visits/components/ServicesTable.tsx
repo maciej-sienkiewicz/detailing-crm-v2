@@ -1073,14 +1073,24 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const eParse = (raw: string) => { const v = parseFloat(raw.replace(',', '.')); return isNaN(v) || v < 0 ? null : v; };
 
     const startEditPrice = (service: ServiceLineItem) => {
-        const pricing = calculateServicePrice(service);
-        const netCents = editedPrices[service.id]?.basePriceNet ?? pricing.finalPriceNet;
-        const currentVat = editedPrices[service.id]?.vatRate ?? service.vatRate;
+        const ep = editedPrices[service.id];
+        let netCents: number;
+        let vatRate: number;
+        if (ep) {
+            // Show current effective price (after adjustment), not the stored base
+            const { finalNetCents } = applyAdjustment(ep.basePriceNet, ep.vatRate, ep.adjustment);
+            netCents = finalNetCents;
+            vatRate = ep.vatRate;
+        } else {
+            const pricing = calculateServicePrice(service);
+            netCents = pricing.finalPriceNet;
+            vatRate = service.vatRate;
+        }
         const netPln = epln(netCents);
         setEditingId(service.id);
-        setEditVatRate(currentVat);
+        setEditVatRate(vatRate);
         setEditNetStr(eFmt(netPln));
-        setEditGrossStr(eFmt(eGrossFromNet(netPln, currentVat)));
+        setEditGrossStr(eFmt(eGrossFromNet(netPln, vatRate)));
     };
 
     const confirmEditPrice = (serviceId: string) => {
@@ -1090,7 +1100,10 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             const adjustment = editLastField === 'gross' && gross !== null
                 ? { type: 'SET_GROSS' as const, value: eCents(gross) }
                 : { type: 'SET_NET' as const, value: eCents(net) };
-            setEditedPrices(prev => ({ ...prev, [serviceId]: { basePriceNet: eCents(net), vatRate: editVatRate, adjustment } }));
+            // Always preserve the original server basePriceNet so the "before discount" price stays correct
+            const service = services.find(s => s.id === serviceId);
+            const originalBaseNet = service?.basePriceNet ?? eCents(net);
+            setEditedPrices(prev => ({ ...prev, [serviceId]: { basePriceNet: originalBaseNet, vatRate: editVatRate, adjustment } }));
         }
         setEditingId(null);
     };
