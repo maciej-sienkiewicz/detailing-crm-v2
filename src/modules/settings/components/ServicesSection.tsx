@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import {
   useServices,
   useCreateService,
   useUpdateService,
   useArchiveService,
+  useCreatePackage,
+  useUpdatePackage,
+  useSyncItemName,
 } from '@/modules/services/hooks/useServices';
 import {
   calculateGrossFromNet,
@@ -12,7 +15,7 @@ import {
   formatMoneyAmount,
   parseMoneyInput,
 } from '@/modules/services/utils/priceCalculator';
-import type { Service, VatRate } from '@/modules/services/types';
+import type { Service, VatRate, AffectedPackage } from '@/modules/services/types';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -688,6 +691,146 @@ const DangerBtn = styled.button`
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
+// ─── Package-specific styles ──────────────────────────────────────────────────
+
+const PackageBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(37,99,235,0.08);
+  color: #2563eb;
+  border: 1px solid rgba(37,99,235,0.25);
+  border-radius: 9999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+`;
+
+const PackageItemsHint = styled.div`
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 340px;
+`;
+
+const AddPackageButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 18px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: inherit;
+  transition: opacity 150ms, transform 100ms;
+
+  &:hover:not(:disabled) { opacity: 0.9; }
+  &:active { transform: scale(0.98); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+`;
+
+const ServicePickerWrap = styled.div`
+  position: relative;
+`;
+
+const ServicePickerDropdown = styled.div`
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9px;
+  box-shadow: 0 4px 16px rgba(15,23,42,0.10);
+  max-height: 180px;
+  overflow-y: auto;
+  z-index: 100;
+`;
+
+const ServicePickerOption = styled.div`
+  padding: 9px 14px;
+  font-size: 13px;
+  color: #0f172a;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: #f8fafc; }
+`;
+
+const SelectedServicesList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+`;
+
+const SelectedServiceItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(37,99,235,0.04);
+  border: 1px solid rgba(37,99,235,0.15);
+  border-radius: 8px;
+  font-size: 13px;
+`;
+
+const PositionDot = styled.span`
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+`;
+
+const SelectedServiceName = styled.span`
+  flex: 1;
+  color: #0f172a;
+`;
+
+const RemoveServiceBtn = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-size: 16px;
+  color: #94a3b8;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 150ms;
+  &:hover { color: #ef4444; }
+`;
+
+const PackageInfoBox = styled.div`
+  padding: 10px 14px;
+  background: rgba(245,158,11,0.06);
+  border: 1px solid rgba(245,158,11,0.25);
+  border-radius: 8px;
+  font-size: 12px;
+  color: #92400e;
+  line-height: 1.55;
+`;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const VAT_OPTIONS: { value: VatRate; label: string }[] = [
@@ -781,6 +924,70 @@ function validateForm(v: FormValues): FormErrors {
   return errors;
 }
 
+interface PackageFormValues {
+  name: string;
+  netInput: string;
+  grossInput: string;
+  vatRate: VatRate;
+  requireManualPrice: boolean;
+  selectedServices: Service[];
+}
+
+interface PackageFormErrors {
+  name?: string;
+  netInput?: string;
+  services?: string;
+}
+
+const EMPTY_PKG_FORM: PackageFormValues = {
+  name: '',
+  netInput: '',
+  grossInput: '',
+  vatRate: 23,
+  requireManualPrice: false,
+  selectedServices: [],
+};
+
+function packageToForm(pkg: Service): PackageFormValues {
+  const selectedServices: Service[] = (pkg.packageItems || []).map(item => ({
+    id: item.serviceId,
+    name: item.serviceName,
+    basePriceNet: 0,
+    vatRate: 23,
+    requireManualPrice: false,
+    isActive: true,
+    isPackage: false,
+    packageItems: null,
+    createdAt: '', updatedAt: '',
+    createdByFirstName: '', createdByLastName: '',
+    updatedBy: '', replacesServiceId: null,
+  }));
+  if (pkg.requireManualPrice) {
+    return { name: pkg.name, netInput: '', grossInput: '', vatRate: pkg.vatRate, requireManualPrice: true, selectedServices };
+  }
+  return {
+    name: pkg.name,
+    netInput: formatDecimalInput(pkg.basePriceNet),
+    grossInput: formatDecimalInput(calculateGrossFromNet(pkg.basePriceNet, pkg.vatRate).priceGross),
+    vatRate: pkg.vatRate,
+    requireManualPrice: false,
+    selectedServices,
+  };
+}
+
+function validatePackageForm(v: PackageFormValues): PackageFormErrors {
+  const errors: PackageFormErrors = {};
+  const name = v.name.trim();
+  if (!name) errors.name = 'Nazwa jest wymagana';
+  else if (name.length < 3) errors.name = 'Nazwa musi mieć co najmniej 3 znaki';
+  if (!v.requireManualPrice) {
+    const amount = parseMoneyInput(v.netInput);
+    if (isNaN(amount) || amount < 0) errors.netInput = 'Podaj poprawną cenę netto';
+  }
+  if (v.selectedServices.length < 2) errors.services = 'Pakiet musi zawierać co najmniej 2 usługi';
+  return errors;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 type FormMode = 'add' | 'edit';
@@ -798,6 +1005,20 @@ export const ServicesSection: React.FC = () => {
   const [formValues, setFormValues]       = useState<FormValues>(EMPTY_FORM);
   const [formErrors, setFormErrors]       = useState<FormErrors>({});
 
+  // Package form state
+  const [pkgFormMode, setPkgFormMode]           = useState<FormMode | null>(null);
+  const [pkgEditTarget, setPkgEditTarget]       = useState<Service | null>(null);
+  const [pkgFormValues, setPkgFormValues]       = useState<PackageFormValues>(EMPTY_PKG_FORM);
+  const [pkgFormErrors, setPkgFormErrors]       = useState<PackageFormErrors>({});
+  const [pkgServiceSearch, setPkgServiceSearch] = useState('');
+  const [pkgDropdownOpen, setPkgDropdownOpen]   = useState(false);
+  const pkgDropdownRef                          = useRef<HTMLDivElement>(null);
+
+  // affectedPackages dialog after service update
+  const [affectedPackages, setAffectedPackages]       = useState<AffectedPackage[] | null>(null);
+  const [updatedServiceId, setUpdatedServiceId]       = useState<string | null>(null);
+  const [updatedServiceName, setUpdatedServiceName]   = useState('');
+
   const [archiveTarget, setArchiveTarget] = useState<Service | null>(null);
 
   useEffect(() => {
@@ -805,19 +1026,49 @@ export const ServicesSection: React.FC = () => {
     return () => clearTimeout(t);
   }, [search]);
 
+  // Service picker search for package form
+  const { services: pickerServices } = useServices({
+    search: pkgServiceSearch,
+    page: 1,
+    limit: 50,
+    showInactive: false,
+  });
+
+  const availablePickerServices = pickerServices.filter(
+    s => !s.isPackage && !pkgFormValues.selectedServices.some(sel => sel.id === s.id)
+  );
+
+  // Close package service picker on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (pkgDropdownRef.current && !pkgDropdownRef.current.contains(e.target as Node)) {
+        setPkgDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   const filters = { search: debouncedSearch, page, limit: PAGE_SIZE, showInactive };
   const { services, pagination, isLoading } = useServices(filters);
 
   const createMutation  = useCreateService();
   const updateMutation  = useUpdateService();
   const archiveMutation = useArchiveService();
+  const createPkgMutation = useCreatePackage();
+  const updatePkgMutation = useUpdatePackage();
+  const syncItemName      = useSyncItemName();
 
-  const isSaving   = createMutation.isPending || updateMutation.isPending;
-  const totalItems = pagination?.totalItems ?? 0;
-  const totalPages = pagination?.totalPages ?? 1;
+  const isSaving    = createMutation.isPending || updateMutation.isPending;
+  const isPkgSaving = createPkgMutation.isPending || updatePkgMutation.isPending;
+  const totalItems  = pagination?.totalItems ?? 0;
+  const totalPages  = pagination?.totalPages ?? 1;
 
   // ── Form handlers ──
+  const anyFormOpen = formMode !== null || pkgFormMode !== null;
+
   const openAdd = () => {
+    setPkgFormMode(null);
     setFormMode('add');
     setEditTarget(null);
     setFormValues(EMPTY_FORM);
@@ -825,13 +1076,107 @@ export const ServicesSection: React.FC = () => {
   };
 
   const openEdit = (s: Service) => {
-    setFormMode('edit');
-    setEditTarget(s);
-    setFormValues(serviceToForm(s));
-    setFormErrors({});
+    if (s.isPackage) {
+      setFormMode(null);
+      setPkgFormMode('edit');
+      setPkgEditTarget(s);
+      setPkgFormValues(packageToForm(s));
+      setPkgFormErrors({});
+      setPkgServiceSearch('');
+    } else {
+      setPkgFormMode(null);
+      setFormMode('edit');
+      setEditTarget(s);
+      setFormValues(serviceToForm(s));
+      setFormErrors({});
+    }
   };
 
   const closeForm = () => { setFormMode(null); setEditTarget(null); };
+
+  // ── Package form handlers ──
+  const openAddPackage = () => {
+    setFormMode(null);
+    setPkgFormMode('add');
+    setPkgEditTarget(null);
+    setPkgFormValues(EMPTY_PKG_FORM);
+    setPkgFormErrors({});
+    setPkgServiceSearch('');
+  };
+
+  const closePkgForm = () => { setPkgFormMode(null); setPkgEditTarget(null); };
+
+  const setPkgField = <K extends keyof PackageFormValues>(key: K, value: PackageFormValues[K]) => {
+    setPkgFormValues(prev => ({ ...prev, [key]: value }));
+    if (key in pkgFormErrors) setPkgFormErrors(prev => ({ ...prev, [key]: undefined }));
+  };
+
+  const handlePkgNetChange = (raw: string) => {
+    if (!isValidPriceInput(raw)) return;
+    const net = parseMoneyInput(raw);
+    const grossStr = raw.trim() === '' || net <= 0
+      ? ''
+      : formatDecimalInput(calculateGrossFromNet(net, pkgFormValues.vatRate).priceGross);
+    setPkgFormValues(prev => ({ ...prev, netInput: raw, grossInput: grossStr }));
+    setPkgFormErrors(prev => ({ ...prev, netInput: undefined }));
+  };
+
+  const handlePkgGrossChange = (raw: string) => {
+    if (!isValidPriceInput(raw)) return;
+    const gross = parseMoneyInput(raw);
+    const netStr = raw.trim() === '' || gross <= 0
+      ? ''
+      : formatDecimalInput(calculateNetFromGross(gross, pkgFormValues.vatRate).priceNet);
+    setPkgFormValues(prev => ({ ...prev, grossInput: raw, netInput: netStr }));
+    setPkgFormErrors(prev => ({ ...prev, netInput: undefined }));
+  };
+
+  const handlePkgVatChange = (vatRate: VatRate) => {
+    const net = parseMoneyInput(pkgFormValues.netInput);
+    const grossStr = pkgFormValues.netInput.trim() === '' || isNaN(net) || net <= 0
+      ? ''
+      : formatDecimalInput(calculateGrossFromNet(net, vatRate).priceGross);
+    setPkgFormValues(prev => ({ ...prev, vatRate, grossInput: grossStr }));
+  };
+
+  const addServiceToPkg = (svc: Service) => {
+    setPkgFormValues(prev => ({ ...prev, selectedServices: [...prev.selectedServices, svc] }));
+    setPkgServiceSearch('');
+    setPkgDropdownOpen(false);
+    setPkgFormErrors(prev => ({ ...prev, services: undefined }));
+  };
+
+  const removeServiceFromPkg = (id: string) => {
+    setPkgFormValues(prev => ({ ...prev, selectedServices: prev.selectedServices.filter(s => s.id !== id) }));
+  };
+
+  const handlePkgSubmit = async () => {
+    const errors = validatePackageForm(pkgFormValues);
+    if (Object.keys(errors).length > 0) { setPkgFormErrors(errors); return; }
+
+    const basePriceNet = pkgFormValues.requireManualPrice ? 0 : parseMoneyInput(pkgFormValues.netInput);
+    const serviceIds = pkgFormValues.selectedServices.map(s => s.id);
+
+    if (pkgFormMode === 'add') {
+      await createPkgMutation.mutateAsync({
+        name: pkgFormValues.name.trim(),
+        basePriceNet,
+        vatRate: pkgFormValues.vatRate,
+        requireManualPrice: pkgFormValues.requireManualPrice,
+        serviceIds,
+      });
+    } else if (pkgEditTarget) {
+      await updatePkgMutation.mutateAsync({
+        originalPackageId: pkgEditTarget.id,
+        name: pkgFormValues.name.trim(),
+        basePriceNet,
+        vatRate: pkgFormValues.vatRate,
+        requireManualPrice: pkgFormValues.requireManualPrice,
+        serviceIds,
+      });
+    }
+    closePkgForm();
+  };
 
   const setField = <K extends keyof FormValues>(key: K, value: FormValues[K]) => {
     setFormValues(prev => ({ ...prev, [key]: value }));
@@ -888,16 +1233,38 @@ export const ServicesSection: React.FC = () => {
         vatRate: formValues.vatRate,
         requireManualPrice: formValues.requireManualPrice,
       });
+      closeForm();
     } else if (editTarget) {
-      await updateMutation.mutateAsync({
+      const result = await updateMutation.mutateAsync({
         originalServiceId: editTarget.id,
         name: formValues.name.trim(),
         basePriceNet,
         vatRate: formValues.vatRate,
         requireManualPrice: formValues.requireManualPrice,
       });
+      closeForm();
+      if (result.affectedPackages && result.affectedPackages.length > 0) {
+        setAffectedPackages(result.affectedPackages);
+        setUpdatedServiceId(result.id);
+        setUpdatedServiceName(result.name);
+      }
     }
-    closeForm();
+  };
+
+  const handleSyncPackages = async (confirm: boolean) => {
+    if (confirm && affectedPackages && updatedServiceId) {
+      await Promise.all(
+        affectedPackages.map(pkg =>
+          syncItemName.mutateAsync({
+            packageId: pkg.packageId,
+            data: { serviceId: updatedServiceId, newName: updatedServiceName },
+          })
+        )
+      );
+    }
+    setAffectedPackages(null);
+    setUpdatedServiceId(null);
+    setUpdatedServiceName('');
   };
 
   const handleArchiveConfirm = async () => {
@@ -942,12 +1309,19 @@ export const ServicesSection: React.FC = () => {
           Pokaż archiwalne
         </ToggleFilterBtn>
 
-        <AddButton onClick={openAdd} disabled={formMode !== null}>
+        <AddButton onClick={openAdd} disabled={anyFormOpen}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
           Dodaj usługę
         </AddButton>
+
+        <AddPackageButton onClick={openAddPackage} disabled={anyFormOpen}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+          </svg>
+          Utwórz pakiet
+        </AddPackageButton>
       </Toolbar>
 
       {/* ── Stats ── */}
@@ -1051,6 +1425,147 @@ export const ServicesSection: React.FC = () => {
         </FormPanel>
       )}
 
+      {/* ── Package form panel ── */}
+      {pkgFormMode !== null && (
+        <FormPanel>
+          <FormHeader>
+            <FormTitle>
+              {pkgFormMode === 'add' ? 'Nowy pakiet' : `Edytuj pakiet: ${pkgEditTarget?.name}`}
+            </FormTitle>
+            <CloseBtn onClick={closePkgForm} aria-label="Zamknij">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </CloseBtn>
+          </FormHeader>
+
+          <FormBody>
+            {/* Nazwa */}
+            <FormField>
+              <FieldLabel>Nazwa pakietu</FieldLabel>
+              <FieldInput
+                placeholder="np. Pakiet Premium"
+                value={pkgFormValues.name}
+                onChange={e => setPkgField('name', e.target.value)}
+                $error={!!pkgFormErrors.name}
+                autoFocus
+              />
+              {pkgFormErrors.name && <ErrorMsg>{pkgFormErrors.name}</ErrorMsg>}
+            </FormField>
+
+            {/* Cena / VAT */}
+            <FormRow>
+              <FormField>
+                <FieldLabel>Cena netto pakietu</FieldLabel>
+                <FieldInput
+                  placeholder={pkgFormValues.requireManualPrice ? 'Wycena ręczna' : 'np. 250,00'}
+                  value={pkgFormValues.netInput}
+                  onChange={e => handlePkgNetChange(e.target.value)}
+                  disabled={pkgFormValues.requireManualPrice}
+                  $error={!!pkgFormErrors.netInput}
+                />
+                {pkgFormErrors.netInput && <ErrorMsg>{pkgFormErrors.netInput}</ErrorMsg>}
+              </FormField>
+
+              <FormField>
+                <FieldLabel>Cena brutto</FieldLabel>
+                <FieldInput
+                  placeholder={pkgFormValues.requireManualPrice ? 'Wycena ręczna' : 'np. 307,50'}
+                  value={pkgFormValues.grossInput}
+                  onChange={e => handlePkgGrossChange(e.target.value)}
+                  disabled={pkgFormValues.requireManualPrice}
+                />
+              </FormField>
+
+              <FormField>
+                <FieldLabel>Stawka VAT</FieldLabel>
+                <FieldSelect
+                  value={pkgFormValues.vatRate}
+                  onChange={e => handlePkgVatChange(Number(e.target.value) as VatRate)}
+                  disabled={pkgFormValues.requireManualPrice}
+                >
+                  {VAT_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </FieldSelect>
+              </FormField>
+            </FormRow>
+
+            {/* Wycena ręczna */}
+            <ManualRow onClick={() => {
+              setPkgFormValues(prev =>
+                prev.requireManualPrice
+                  ? { ...prev, requireManualPrice: false }
+                  : { ...prev, requireManualPrice: true, netInput: '', grossInput: '', vatRate: 23 }
+              );
+            }}>
+              <ToggleTrack $on={pkgFormValues.requireManualPrice}>
+                <ToggleThumb $on={pkgFormValues.requireManualPrice} />
+              </ToggleTrack>
+              <ManualTextWrap>
+                <ManualLabel>Wycena ręczna</ManualLabel>
+                <ManualDesc>Cena będzie ustalana indywidualnie podczas tworzenia zlecenia</ManualDesc>
+              </ManualTextWrap>
+            </ManualRow>
+
+            {/* Usługi w pakiecie */}
+            <div>
+              <FieldLabel style={{ marginBottom: 8 }}>Usługi wchodzące w skład pakietu</FieldLabel>
+              <PackageInfoBox>
+                Pakiet musi zawierać co najmniej 2 usługi. Cena pakietu jest ustawiana całościowo — składowe nie mają własnych cen w kontekście pakietu.
+              </PackageInfoBox>
+
+              <FormField style={{ marginTop: 10 }}>
+                <FieldLabel>Dodaj usługę</FieldLabel>
+                <ServicePickerWrap ref={pkgDropdownRef}>
+                  <FieldInput
+                    placeholder="Wpisz nazwę usługi…"
+                    value={pkgServiceSearch}
+                    onChange={e => { setPkgServiceSearch(e.target.value); setPkgDropdownOpen(true); }}
+                    onFocus={() => setPkgDropdownOpen(true)}
+                    $error={!!pkgFormErrors.services && pkgFormValues.selectedServices.length === 0}
+                  />
+                  {pkgDropdownOpen && availablePickerServices.length > 0 && (
+                    <ServicePickerDropdown>
+                      {availablePickerServices.map(svc => (
+                        <ServicePickerOption
+                          key={svc.id}
+                          onMouseDown={() => addServiceToPkg(svc)}
+                        >
+                          {svc.name}
+                        </ServicePickerOption>
+                      ))}
+                    </ServicePickerDropdown>
+                  )}
+                </ServicePickerWrap>
+                {pkgFormErrors.services && <ErrorMsg>{pkgFormErrors.services}</ErrorMsg>}
+              </FormField>
+
+              {pkgFormValues.selectedServices.length > 0 && (
+                <SelectedServicesList>
+                  {pkgFormValues.selectedServices.map((svc, index) => (
+                    <SelectedServiceItem key={svc.id}>
+                      <PositionDot>{index + 1}</PositionDot>
+                      <SelectedServiceName>{svc.name}</SelectedServiceName>
+                      <RemoveServiceBtn type="button" onClick={() => removeServiceFromPkg(svc.id)}>×</RemoveServiceBtn>
+                    </SelectedServiceItem>
+                  ))}
+                </SelectedServicesList>
+              )}
+            </div>
+          </FormBody>
+
+          <FormFooter>
+            <CancelBtn onClick={closePkgForm}>Anuluj</CancelBtn>
+            <SubmitBtn onClick={handlePkgSubmit} disabled={isPkgSaving} style={{ background: '#2563eb' }}>
+              {isPkgSaving
+                ? (pkgFormMode === 'add' ? 'Tworzenie…' : 'Zapisywanie…')
+                : (pkgFormMode === 'add' ? 'Utwórz pakiet' : 'Zapisz pakiet')}
+            </SubmitBtn>
+          </FormFooter>
+        </FormPanel>
+      )}
+
       {/* ── List ── */}
       <ServiceList>
         <ListHeader>
@@ -1094,9 +1609,17 @@ export const ServicesSection: React.FC = () => {
 
             return (
               <ServiceRow key={service.id}>
-                <RowNameCell>
-                  <ServiceName $muted={!service.isActive}>{service.name}</ServiceName>
-                  {service.requireManualPrice && <ManualBadge>Wycena ręczna</ManualBadge>}
+                <RowNameCell style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <ServiceName $muted={!service.isActive}>{service.name}</ServiceName>
+                    {service.isPackage && <PackageBadge>Pakiet</PackageBadge>}
+                    {service.requireManualPrice && <ManualBadge>Wycena ręczna</ManualBadge>}
+                  </div>
+                  {service.isPackage && service.packageItems && service.packageItems.length > 0 && (
+                    <PackageItemsHint>
+                      {service.packageItems.map(i => i.serviceName).join(' · ')}
+                    </PackageItemsHint>
+                  )}
                 </RowNameCell>
 
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -1126,7 +1649,7 @@ export const ServicesSection: React.FC = () => {
                     <>
                       <ActionBtn
                         title="Edytuj"
-                        disabled={formMode !== null}
+                        disabled={anyFormOpen}
                         onClick={() => openEdit(service)}
                       >
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1191,6 +1714,27 @@ export const ServicesSection: React.FC = () => {
           </Pager>
         )}
       </ServiceList>
+
+      {/* ── Affected packages dialog ── */}
+      {affectedPackages && affectedPackages.length > 0 && (
+        <Overlay onClick={e => e.target === e.currentTarget && handleSyncPackages(false)}>
+          <Dialog>
+            <DialogTitle>Zaktualizować nazwy w pakietach?</DialogTitle>
+            <DialogText>
+              Zmieniono nazwę na <strong>„{updatedServiceName}"</strong>.
+              Usługa ta wchodzi w skład{' '}
+              {affectedPackages.length === 1 ? 'pakietu' : 'pakietów'}:{' '}
+              <strong>{affectedPackages.map(p => p.packageName).join(', ')}</strong>.
+              Czy zaktualizować nazwę w{' '}
+              {affectedPackages.length === 1 ? 'tym pakiecie' : 'tych pakietach'}?
+            </DialogText>
+            <DialogActions>
+              <CancelBtn onClick={() => handleSyncPackages(false)}>Nie, zostaw stare nazwy</CancelBtn>
+              <SubmitBtn onClick={() => handleSyncPackages(true)}>Tak, zaktualizuj</SubmitBtn>
+            </DialogActions>
+          </Dialog>
+        </Overlay>
+      )}
 
       {/* ── Archive dialog ── */}
       {archiveTarget && (
