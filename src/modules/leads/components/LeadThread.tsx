@@ -624,13 +624,13 @@ const ChangeField = styled.span`
   padding-top: 1px;
 `;
 
-const ChangeValue = styled.span<{ $dim?: boolean }>`
+const ChangeValue = styled.span<{ $dim?: boolean; $wrap?: boolean }>`
   color: ${p => p.$dim ? st.textMuted : st.text};
   font-style: ${p => p.$dim ? 'italic' : 'normal'};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 220px;
+  ${p => p.$wrap
+    ? `white-space: pre-wrap; word-break: break-word;`
+    : `overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px;`
+  }
 `;
 
 const ChangeArrow = styled.span`
@@ -747,19 +747,35 @@ const renderChangeField = (c: FieldChange, i: number) => {
     );
   }
 
-  // items field (LEAD_QUOTE_UPDATED) — newValue is backend-formatted summary string
+  // items field (LEAD_QUOTE_UPDATED) — backend-formatted list, show in full
   if (c.field === 'items') {
     return (
-      <ChangeRow key={i}>
+      <ChangeRow key={i} style={{ alignItems: 'flex-start' }}>
         <ChangeField>Pozycje</ChangeField>
-        <ChangeValue title={c.newValue ?? undefined}>
-          {c.newValue ? truncate(c.newValue, 90) : '(brak pozycji)'}
+        <ChangeValue $wrap>
+          {c.newValue ?? '(brak pozycji)'}
         </ChangeValue>
       </ChangeRow>
     );
   }
 
-  // Generic field: oldValue → newValue
+  // content field (LEAD_COMMENT_UPDATED) — show full text, wrap
+  if (c.field === 'content') {
+    return (
+      <ChangeRow key={i} style={{ alignItems: 'flex-start', flexDirection: 'column', gap: 3 }}>
+        <ChangeField>Treść</ChangeField>
+        {c.oldValue !== null && (
+          <ChangeValue $dim $wrap>{c.oldValue}</ChangeValue>
+        )}
+        {c.oldValue !== null && (
+          <ChangeArrow style={{ alignSelf: 'center' }}><ChevronRight /></ChangeArrow>
+        )}
+        <ChangeValue $wrap>{c.newValue ?? '(usunięto)'}</ChangeValue>
+      </ChangeRow>
+    );
+  }
+
+  // Generic field: oldValue → newValue (truncated for short values)
   const label = FIELD_LABELS[c.field] ?? c.field;
   return (
     <ChangeRow key={i}>
