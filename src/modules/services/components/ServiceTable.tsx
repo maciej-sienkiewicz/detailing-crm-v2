@@ -1,4 +1,5 @@
 // src/modules/services/components/ServiceTable.tsx
+import { useState } from 'react';
 import styled from 'styled-components';
 import { Badge } from '@/common/components/Badge';
 import { formatMoneyAmount, calculateGrossFromNet } from '../utils/priceCalculator';
@@ -56,9 +57,88 @@ const TableCell = styled.td<{ $align?: 'left' | 'right' | 'center' }>`
     text-align: ${props => props.$align || 'left'};
 `;
 
+const ServiceNameCell = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
+const ServiceNameRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: ${props => props.theme.spacing.sm};
+`;
+
 const ServiceName = styled.div`
     font-weight: ${props => props.theme.fontWeights.medium};
     color: ${props => props.theme.colors.text};
+`;
+
+const PackageBadge = styled.span`
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    background: rgb(239, 246, 255);
+    color: rgb(37, 99, 235);
+    border: 1px solid rgb(191, 219, 254);
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
+`;
+
+const PackageItemsToggle = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-size: ${props => props.theme.fontSizes.xs};
+    color: ${props => props.theme.colors.primary};
+    font-weight: 500;
+    transition: opacity 150ms ease;
+
+    &:hover { opacity: 0.75; }
+
+    svg {
+        width: 12px;
+        height: 12px;
+        flex-shrink: 0;
+    }
+`;
+
+const PackageItemsList = styled.ul`
+    margin: 4px 0 0;
+    padding: 6px 10px;
+    list-style: none;
+    background: rgb(248, 250, 252);
+    border: 1px solid rgb(226, 232, 240);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+`;
+
+const PackageItem = styled.li`
+    font-size: ${props => props.theme.fontSizes.xs};
+    color: ${props => props.theme.colors.textMuted};
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    &::before {
+        content: '';
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: ${props => props.theme.colors.textMuted};
+        flex-shrink: 0;
+    }
 `;
 
 const MoneyValue = styled.div`
@@ -74,7 +154,7 @@ const VatInfo = styled.div`
     gap: 2px;
 `;
 
-const VatRate = styled.div`
+const VatRateLabel = styled.div`
     font-size: ${props => props.theme.fontSizes.xs};
     color: ${props => props.theme.colors.textMuted};
     font-variant-numeric: tabular-nums;
@@ -93,7 +173,6 @@ const GrossPrice = styled.div`
     color: ${props => props.theme.colors.text};
     font-size: ${props => props.theme.fontSizes.md};
 `;
-
 
 const ActionButtons = styled.div`
     display: flex;
@@ -142,6 +221,18 @@ const ArchiveButton = styled.button`
     }
 `;
 
+const ChevronDown = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <polyline points="6 9 12 15 18 9" />
+    </svg>
+);
+
+const ChevronUp = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <polyline points="18 15 12 9 6 15" />
+    </svg>
+);
+
 interface ServiceTableProps {
     services: Service[];
     onEdit: (service: Service) => void;
@@ -150,6 +241,17 @@ interface ServiceTableProps {
 }
 
 export const ServiceTable = ({ services, onEdit, onArchive, isArchiving }: ServiceTableProps) => {
+    const [expandedPackages, setExpandedPackages] = useState<Set<string>>(new Set());
+
+    const togglePackage = (id: string) => {
+        setExpandedPackages(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
     return (
         <TableWrapper>
             <Table>
@@ -167,18 +269,47 @@ export const ServiceTable = ({ services, onEdit, onArchive, isArchiving }: Servi
                     {services.map((service) => {
                         const calc = calculateGrossFromNet(service.basePriceNet, service.vatRate);
                         const vatRateLabel = service.vatRate === -1 ? 'zw.' : `${service.vatRate}%`;
+                        const isExpanded = expandedPackages.has(service.id);
+                        const items = service.packageItems;
 
                         return (
                             <TableRow key={service.id}>
                                 <TableCell $align="left">
-                                    <ServiceName>{service.name}</ServiceName>
+                                    <ServiceNameCell>
+                                        <ServiceNameRow>
+                                            <ServiceName>{service.name}</ServiceName>
+                                            {service.isPackage && <PackageBadge>Pakiet</PackageBadge>}
+                                        </ServiceNameRow>
+                                        {service.isPackage && items && items.length > 0 && (
+                                            <>
+                                                <PackageItemsToggle
+                                                    type="button"
+                                                    onClick={() => togglePackage(service.id)}
+                                                >
+                                                    {isExpanded ? <ChevronUp /> : <ChevronDown />}
+                                                    {isExpanded
+                                                        ? 'Ukryj skład'
+                                                        : `Pokaż skład (${items.length})`}
+                                                </PackageItemsToggle>
+                                                {isExpanded && (
+                                                    <PackageItemsList>
+                                                        {items.map(item => (
+                                                            <PackageItem key={item.serviceId}>
+                                                                {item.serviceName}
+                                                            </PackageItem>
+                                                        ))}
+                                                    </PackageItemsList>
+                                                )}
+                                            </>
+                                        )}
+                                    </ServiceNameCell>
                                 </TableCell>
                                 <TableCell $align="right">
                                     <MoneyValue>{formatMoneyAmount(calc.priceNet)} PLN</MoneyValue>
                                 </TableCell>
                                 <TableCell $align="right">
                                     <VatInfo>
-                                        <VatRate>{vatRateLabel}</VatRate>
+                                        <VatRateLabel>{vatRateLabel}</VatRateLabel>
                                         <VatAmount>{formatMoneyAmount(calc.vatAmount)} PLN</VatAmount>
                                     </VatInfo>
                                 </TableCell>

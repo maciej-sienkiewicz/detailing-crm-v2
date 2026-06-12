@@ -74,6 +74,8 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
                 adjustment: { type: 'PERCENT', value: 0 },
                 note: '',
                 requireManualPrice: false,
+                isPackage: s.isPackage || false,
+                packageItems: s.packageItems ?? null,
             }]);
         }
     };
@@ -96,6 +98,8 @@ export const EditableServicesTable = ({ services, onChange }: { services: Servic
             adjustment: { type: 'PERCENT', value: 0 },
             note: '',
             requireManualPrice: true,
+            isPackage: s.isPackage || false,
+            packageItems: s.packageItems ?? null,
         }]);
         setIsManualPriceModalOpen(false);
         setPendingManualPriceService(null);

@@ -2,6 +2,17 @@
 
 export type VatRate = 0 | 5 | 8 | 23 | -1;
 
+export interface PackageItemDto {
+    serviceId: string;
+    serviceName: string;
+    position: number;
+}
+
+export interface AffectedPackage {
+    packageId: string;
+    packageName: string;
+}
+
 export interface Service {
     id: string;
     name: string;
@@ -9,6 +20,9 @@ export interface Service {
     vatRate: VatRate;
     requireManualPrice: boolean;
     isActive: boolean;
+    isPackage: boolean;
+    packageItems: PackageItemDto[] | null;
+    affectedPackages?: AffectedPackage[];
     createdAt: string;
     updatedAt: string;
     createdByFirstName: string;
@@ -47,6 +61,23 @@ export interface CreateServiceRequest {
 
 export interface UpdateServiceRequest extends CreateServiceRequest {
     originalServiceId: string;
+}
+
+export interface CreatePackageRequest {
+    name: string;
+    basePriceNet: number;
+    vatRate: VatRate;
+    requireManualPrice: boolean;
+    serviceIds: string[];
+}
+
+export interface UpdatePackageRequest extends CreatePackageRequest {
+    originalPackageId: string;
+}
+
+export interface SyncItemNameRequest {
+    serviceId: string;
+    newName: string;
 }
 
 export interface ServicePriceCalculation {

@@ -6,6 +6,9 @@ import type {
     ServiceListResponse,
     CreateServiceRequest,
     UpdateServiceRequest,
+    CreatePackageRequest,
+    UpdatePackageRequest,
+    SyncItemNameRequest,
 } from '../types';
 
 const USE_MOCKS = false;
@@ -19,6 +22,8 @@ const mockServices: Service[] = [
         vatRate: 23,
         requireManualPrice: false,
         isActive: true,
+        isPackage: false,
+        packageItems: null,
         createdAt: '2024-01-15T10:00:00Z',
         updatedAt: '2024-01-15T10:00:00Z',
         replacesServiceId: null,
@@ -33,6 +38,8 @@ const mockServices: Service[] = [
         vatRate: 23,
         requireManualPrice: false,
         isActive: true,
+        isPackage: false,
+        packageItems: null,
         createdAt: '2024-01-16T11:00:00Z',
         updatedAt: '2024-01-16T11:00:00Z',
         replacesServiceId: null,
@@ -47,6 +54,8 @@ const mockServices: Service[] = [
         vatRate: 23,
         requireManualPrice: false,
         isActive: true,
+        isPackage: false,
+        packageItems: null,
         createdAt: '2024-01-17T09:00:00Z',
         updatedAt: '2024-01-17T09:00:00Z',
         replacesServiceId: null,
@@ -61,6 +70,8 @@ const mockServices: Service[] = [
         vatRate: 23,
         requireManualPrice: false,
         isActive: true,
+        isPackage: false,
+        packageItems: null,
         createdAt: '2024-01-18T14:00:00Z',
         updatedAt: '2024-01-18T14:00:00Z',
         replacesServiceId: null,
@@ -75,8 +86,29 @@ const mockServices: Service[] = [
         vatRate: 23,
         requireManualPrice: false,
         isActive: true,
+        isPackage: false,
+        packageItems: null,
         createdAt: '2024-01-19T10:30:00Z',
         updatedAt: '2024-01-19T10:30:00Z',
+        replacesServiceId: null,
+        createdByFirstName: 'System',
+        createdByLastName: 'Admin',
+        updatedBy: 'System Admin',
+    },
+    {
+        id: 'pkg-1',
+        name: 'Pakiet Kompleksowy',
+        basePriceNet: 60000,
+        vatRate: 23,
+        requireManualPrice: false,
+        isActive: true,
+        isPackage: true,
+        packageItems: [
+            { serviceId: '1', serviceName: 'Mycie ręczne premium', position: 0 },
+            { serviceId: '5', serviceName: 'Czyszczenie wnętrza', position: 1 },
+        ],
+        createdAt: '2024-02-01T10:00:00Z',
+        updatedAt: '2024-02-01T10:00:00Z',
         replacesServiceId: null,
         createdByFirstName: 'System',
         createdByLastName: 'Admin',
@@ -139,6 +171,8 @@ const mockCreateService = async (data: CreateServiceRequest): Promise<Service> =
                 vatRate: data.vatRate,
                 requireManualPrice: data.requireManualPrice,
                 isActive: true,
+                isPackage: false,
+                packageItems: null,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 replacesServiceId: null,
@@ -159,8 +193,12 @@ const mockUpdateService = async (data: UpdateServiceRequest): Promise<Service> =
             if (oldServiceIndex !== -1) {
                 mockServicesStore[oldServiceIndex].isActive = false;
             }
-
             const oldService = oldServiceIndex !== -1 ? mockServicesStore[oldServiceIndex] : null;
+
+            // Detect which packages contain this service
+            const affectedPackages = mockServicesStore
+                .filter(s => s.isPackage && s.packageItems?.some(item => item.serviceId === data.originalServiceId))
+                .map(s => ({ packageId: s.id, packageName: s.name }));
 
             const newService: Service = {
                 id: String(mockIdCounter++),
@@ -169,6 +207,9 @@ const mockUpdateService = async (data: UpdateServiceRequest): Promise<Service> =
                 vatRate: data.vatRate,
                 requireManualPrice: data.requireManualPrice,
                 isActive: true,
+                isPackage: false,
+                packageItems: null,
+                affectedPackages,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 replacesServiceId: data.originalServiceId,
@@ -178,6 +219,66 @@ const mockUpdateService = async (data: UpdateServiceRequest): Promise<Service> =
             };
             mockServicesStore.push(newService);
             resolve(newService);
+        }, 800);
+    });
+};
+
+const mockCreatePackage = async (data: CreatePackageRequest): Promise<Service> => {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            const packageItems = data.serviceIds.map((id, index) => {
+                const svc = mockServicesStore.find(s => s.id === id);
+                return { serviceId: id, serviceName: svc?.name || id, position: index };
+            });
+            const newPkg: Service = {
+                id: `pkg-${mockIdCounter++}`,
+                name: data.name,
+                basePriceNet: data.basePriceNet,
+                vatRate: data.vatRate,
+                requireManualPrice: data.requireManualPrice,
+                isActive: true,
+                isPackage: true,
+                packageItems,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                replacesServiceId: null,
+                createdByFirstName: 'System',
+                createdByLastName: 'Admin',
+                updatedBy: 'System Admin',
+            };
+            mockServicesStore.push(newPkg);
+            resolve(newPkg);
+        }, 800);
+    });
+};
+
+const mockUpdatePackage = async (data: UpdatePackageRequest): Promise<Service> => {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            const oldIdx = mockServicesStore.findIndex(s => s.id === data.originalPackageId);
+            if (oldIdx !== -1) mockServicesStore[oldIdx].isActive = false;
+            const packageItems = data.serviceIds.map((id, index) => {
+                const svc = mockServicesStore.find(s => s.id === id);
+                return { serviceId: id, serviceName: svc?.name || id, position: index };
+            });
+            const newPkg: Service = {
+                id: `pkg-${mockIdCounter++}`,
+                name: data.name,
+                basePriceNet: data.basePriceNet,
+                vatRate: data.vatRate,
+                requireManualPrice: data.requireManualPrice,
+                isActive: true,
+                isPackage: true,
+                packageItems,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                replacesServiceId: data.originalPackageId,
+                createdByFirstName: 'System',
+                createdByLastName: 'Admin',
+                updatedBy: 'System Admin',
+            };
+            mockServicesStore.push(newPkg);
+            resolve(newPkg);
         }, 800);
     });
 };
@@ -218,5 +319,33 @@ export const servicesApi = {
 
     archiveService: async (serviceId: string): Promise<void> => {
         await apiClient.patch(`${BASE_PATH}/${serviceId}/archive`);
+    },
+
+    createPackage: async (data: CreatePackageRequest): Promise<Service> => {
+        if (USE_MOCKS) {
+            return mockCreatePackage(data);
+        }
+        const response = await apiClient.post(`${BASE_PATH}/packages`, data);
+        return response.data;
+    },
+
+    updatePackage: async (data: UpdatePackageRequest): Promise<Service> => {
+        if (USE_MOCKS) {
+            return mockUpdatePackage(data);
+        }
+        const response = await apiClient.post(`${BASE_PATH}/packages/update`, data);
+        return response.data;
+    },
+
+    syncItemName: async (packageId: string, data: SyncItemNameRequest): Promise<void> => {
+        if (USE_MOCKS) {
+            const pkg = mockServicesStore.find(s => s.id === packageId);
+            if (pkg?.packageItems) {
+                const item = pkg.packageItems.find(i => i.serviceId === data.serviceId);
+                if (item) item.serviceName = data.newName;
+            }
+            return;
+        }
+        await apiClient.post(`${BASE_PATH}/packages/${packageId}/sync-item-name`, data);
     },
 };

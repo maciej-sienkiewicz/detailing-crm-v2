@@ -30,6 +30,12 @@ export interface DamagePoint {
     note: string;
 }
 
+export interface PackageItemSnapshot {
+    serviceId: string;
+    serviceName: string;
+    position: number;
+}
+
 export interface ServiceLineItem {
     id: string;
     serviceId: string | null;
@@ -39,6 +45,8 @@ export interface ServiceLineItem {
     adjustment: PriceAdjustment;
     note?: string;
     requireManualPrice?: boolean;
+    isPackage?: boolean;
+    packageItems?: PackageItemSnapshot[] | null;
 }
 
 export interface CheckInFormData {

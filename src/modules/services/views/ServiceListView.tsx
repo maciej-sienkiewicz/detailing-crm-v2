@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { useServices, useArchiveService } from '../hooks/useServices';
 import { ServiceTable } from '../components/ServiceTable';
 import { ServiceFormModal } from '../components/ServiceFormModal';
+import { PackageFormModal } from '../components/PackageFormModal';
 import { EmptyState } from '@/common/components/EmptyState';
 import { Toggle } from '@/common/components/Toggle';
 import { useDebounce } from '@/common/hooks';
@@ -181,6 +182,8 @@ export const ServiceListView = () => {
     const [showInactive, setShowInactive] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingService, setEditingService] = useState<Service | undefined>();
+    const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
+    const [editingPackage, setEditingPackage] = useState<Service | undefined>();
 
     const debouncedSearch = useDebounce(searchInput, 300);
 
@@ -205,13 +208,23 @@ export const ServiceListView = () => {
     };
 
     const handleEditService = (service: Service) => {
-        setEditingService(service);
-        setIsModalOpen(true);
+        if (service.isPackage) {
+            setEditingPackage(service);
+            setIsPackageModalOpen(true);
+        } else {
+            setEditingService(service);
+            setIsModalOpen(true);
+        }
     };
 
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setEditingService(undefined);
+    };
+
+    const handleClosePackageModal = () => {
+        setIsPackageModalOpen(false);
+        setEditingPackage(undefined);
     };
 
     const handleArchiveService = (service: Service) => {
@@ -276,6 +289,13 @@ export const ServiceListView = () => {
                         <span>+</span>
                         {t.services.addService}
                     </AddButton>
+                    <AddButton
+                        onClick={() => { setEditingPackage(undefined); setIsPackageModalOpen(true); }}
+                        style={{ background: 'rgb(37,99,235)' }}
+                    >
+                        <span>+</span>
+                        Utwórz pakiet
+                    </AddButton>
                 </ActionsBar>
             </ViewHeader>
 
@@ -295,6 +315,13 @@ export const ServiceListView = () => {
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
                 service={editingService}
+                onSuccess={refetch}
+            />
+
+            <PackageFormModal
+                isOpen={isPackageModalOpen}
+                onClose={handleClosePackageModal}
+                package={editingPackage}
                 onSuccess={refetch}
             />
         </ViewContainer>

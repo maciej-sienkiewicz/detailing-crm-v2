@@ -40,6 +40,12 @@ export interface MoneyAmount {
     currency: string;
 }
 
+export interface PackageItemSnapshot {
+    serviceId: string;
+    serviceName: string;
+    position: number;
+}
+
 export interface ServiceLineItem {
     id: string;
     serviceId: string;
@@ -55,6 +61,8 @@ export interface ServiceLineItem {
     finalPriceNet: number;
     finalPriceGross: number;
     status: ServiceStatus;
+    isPackage?: boolean;
+    packageItems?: PackageItemSnapshot[] | null;
     // New approval workflow fields (optional for backward compatibility)
     pendingOperation?: 'ADD' | 'EDIT' | 'DELETE' | null;
     hasPendingChange?: boolean;

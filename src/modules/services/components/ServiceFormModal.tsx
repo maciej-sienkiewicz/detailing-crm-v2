@@ -14,11 +14,11 @@ import { SharedButton } from '@/common/styles';
 import { Input, Label, FieldGroup, ErrorMessage, Select } from '@/common/components/Form';
 import { Toggle } from '@/common/components/Toggle';
 import { PriceInput } from './PriceInput';
-import { useCreateService, useUpdateService } from '../hooks/useServices';
+import { useCreateService, useUpdateService, useSyncItemName } from '../hooks/useServices';
 import { serviceSchema } from '../utils/validators';
 import { t } from '@/common/i18n';
 import { useProtocolTemplates, useProtocolRulesByService } from '@/modules/protocols/api/useProtocols';
-import type { Service, VatRate } from '../types';
+import type { Service, VatRate, AffectedPackage } from '../types';
 
 const Toast = styled.div<{ $show: boolean }>`
     position: fixed;
@@ -188,9 +188,13 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
     const [showToast, setShowToast] = useState(false);
     const [selectedProtocols, setSelectedProtocols] = useState<string[]>([]);
     const [showProtocolSection, setShowProtocolSection] = useState(false);
+    const [pendingAffectedPackages, setPendingAffectedPackages] = useState<AffectedPackage[] | null>(null);
+    const [updatedServiceId, setUpdatedServiceId] = useState<string | null>(null);
+    const [updatedServiceName, setUpdatedServiceName] = useState<string>('');
 
     const createMutation = useCreateService();
     const updateMutation = useUpdateService();
+    const syncItemName = useSyncItemName();
 
     // Fetch protocol templates
     const { data: protocolTemplates = [] } = useProtocolTemplates();
@@ -249,7 +253,7 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
 
         try {
             if (service) {
-                await updateMutation.mutateAsync({
+                const result = await updateMutation.mutateAsync({
                     originalServiceId: service.id,
                     name,
                     basePriceNet,
@@ -258,6 +262,12 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
                 });
                 setShowToast(true);
                 setTimeout(() => setShowToast(false), 4000);
+                if (result.affectedPackages && result.affectedPackages.length > 0) {
+                    setPendingAffectedPackages(result.affectedPackages);
+                    setUpdatedServiceId(result.id);
+                    setUpdatedServiceName(result.name);
+                    return; // modal stays open until user handles dialog
+                }
             } else {
                 await createMutation.mutateAsync({
                     name,
@@ -271,6 +281,24 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
         } catch (error) {
             console.error('Failed to save service:', error);
         }
+    };
+
+    const handleSyncPackages = async (confirm: boolean) => {
+        if (confirm && pendingAffectedPackages && updatedServiceId) {
+            await Promise.all(
+                pendingAffectedPackages.map(pkg =>
+                    syncItemName.mutateAsync({
+                        packageId: pkg.packageId,
+                        data: { serviceId: updatedServiceId, newName: updatedServiceName },
+                    })
+                )
+            );
+        }
+        setPendingAffectedPackages(null);
+        setUpdatedServiceId(null);
+        setUpdatedServiceName('');
+        onSuccess?.();
+        onClose();
     };
 
     const isSubmitting = createMutation.isPending || updateMutation.isPending;
@@ -453,6 +481,38 @@ export const ServiceFormModal = ({ isOpen, onClose, service, onSuccess }: Servic
             <Toast $show={showToast}>
                 {t.services.success.updated}
             </Toast>
+
+            {pendingAffectedPackages && pendingAffectedPackages.length > 0 && (
+                <ModalShell isOpen onClose={() => handleSyncPackages(false)} maxWidth="480px">
+                    <ModalHeader>
+                        <ModalTitleGroup>
+                            <ModalTitle>Zaktualizować nazwy w pakietach?</ModalTitle>
+                        </ModalTitleGroup>
+                        <CloseBtn onClick={() => handleSyncPackages(false)} />
+                    </ModalHeader>
+                    <ModalContent>
+                        <InfoBox>
+                            <InfoIcon />
+                            <div>
+                                Zmieniono nazwę na <strong>„{updatedServiceName}"</strong>.
+                                Usługa ta wchodzi w skład{' '}
+                                {pendingAffectedPackages.length === 1 ? 'pakietu' : 'pakietów'}:{' '}
+                                <strong>{pendingAffectedPackages.map(p => p.packageName).join(', ')}</strong>.
+                                Czy zaktualizować nazwę w{' '}
+                                {pendingAffectedPackages.length === 1 ? 'tym pakiecie' : 'tych pakietach'}?
+                            </div>
+                        </InfoBox>
+                    </ModalContent>
+                    <ModalFooter>
+                        <SharedButton $variant="secondary" type="button" onClick={() => handleSyncPackages(false)}>
+                            Nie, zostaw stare nazwy
+                        </SharedButton>
+                        <SharedButton $variant="primary" type="button" onClick={() => handleSyncPackages(true)}>
+                            Tak, zaktualizuj
+                        </SharedButton>
+                    </ModalFooter>
+                </ModalShell>
+            )}
         </>
     );
 };

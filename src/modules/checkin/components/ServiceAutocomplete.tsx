@@ -73,6 +73,31 @@ const PriceLabel = styled.span`
     color: #94a3b8;
 `;
 
+const PackageBadge = styled.span`
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    background: rgb(239, 246, 255);
+    color: rgb(37, 99, 235);
+    border: 1px solid rgb(191, 219, 254);
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
+`;
+
+const PackageItemsHint = styled.div`
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+`;
+
 const EmptyState = styled.div`
     padding: 12px 14px;
     text-align: center;
@@ -209,7 +234,17 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
                                             key={service.id}
                                             onClick={() => handleServiceSelect(service)}
                                         >
-                                            <ServiceName>{service.name}</ServiceName>
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                    <ServiceName>{service.name}</ServiceName>
+                                                    {service.isPackage && <PackageBadge>Pakiet</PackageBadge>}
+                                                </div>
+                                                {service.isPackage && service.packageItems && service.packageItems.length > 0 && (
+                                                    <PackageItemsHint>
+                                                        {service.packageItems.map(i => i.serviceName).join(' · ')}
+                                                    </PackageItemsHint>
+                                                )}
+                                            </div>
                                             {service.requireManualPrice ? (
                                                 <PriceInfo>
                                                     <div style={{ fontWeight: 600, color: '#f59e0b' }}>NIESTANDARDOWA</div>
