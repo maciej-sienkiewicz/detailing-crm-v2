@@ -562,6 +562,52 @@ const ServiceNote = styled.div`
     font-style: italic;
 `;
 
+const PackageBadge = styled.span`
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    background: rgba(37, 99, 235, 0.08);
+    color: #2563eb;
+    border: 1px solid rgba(37, 99, 235, 0.18);
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
+`;
+
+const PackageItems = styled.div`
+    margin-top: 6px;
+    background: rgba(37, 99, 235, 0.03);
+    border: 1px solid rgba(37, 99, 235, 0.10);
+    border-radius: 8px;
+    overflow: hidden;
+`;
+
+const PackageItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    border-bottom: 1px solid rgba(37, 99, 235, 0.06);
+    font-size: 12px;
+    font-weight: 500;
+    color: #475569;
+
+    &:last-child { border-bottom: none; }
+
+    &::before {
+        content: '';
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: rgba(37, 99, 235, 0.35);
+        flex-shrink: 0;
+    }
+`;
+
 const ServiceStatusBadge = styled.div<{ $status: 'CONFIRMED' | 'PENDING' }>`
     display: inline-flex;
     align-items: center;
@@ -1521,30 +1567,16 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                 <Td>
                                     <div style={{ display: 'flex', alignItems: 'center' }}>
                                         <div style={{ flex: 1 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                                                <ServiceName>{service.serviceName}</ServiceName>
-                                                {service.isPackage && (
-                                                    <span style={{
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        padding: '1px 6px',
-                                                        background: 'rgb(239,246,255)',
-                                                        color: 'rgb(37,99,235)',
-                                                        border: '1px solid rgb(191,219,254)',
-                                                        borderRadius: 999,
-                                                        fontSize: 10,
-                                                        fontWeight: 700,
-                                                        letterSpacing: '0.04em',
-                                                        textTransform: 'uppercase',
-                                                        whiteSpace: 'nowrap',
-                                                        flexShrink: 0,
-                                                    }}>Pakiet</span>
-                                                )}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
+                                                <ServiceName style={{ marginBottom: 0 }}>{service.serviceName}</ServiceName>
+                                                {service.isPackage && <PackageBadge>Pakiet</PackageBadge>}
                                             </div>
                                             {service.isPackage && service.packageItems && service.packageItems.length > 0 && (
-                                                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
-                                                    {service.packageItems.map(i => i.serviceName).join(' · ')}
-                                                </div>
+                                                <PackageItems>
+                                                    {service.packageItems.map(item => (
+                                                        <PackageItem key={item.serviceId}>{item.serviceName}</PackageItem>
+                                                    ))}
+                                                </PackageItems>
                                             )}
                                             {service.note && <ServiceNote>{service.note}</ServiceNote>}
                                             {showDiscount && (

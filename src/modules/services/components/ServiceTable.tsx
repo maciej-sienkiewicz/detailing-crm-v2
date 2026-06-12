@@ -78,13 +78,13 @@ const PackageBadge = styled.span`
     display: inline-flex;
     align-items: center;
     padding: 2px 7px;
-    background: rgb(239, 246, 255);
-    color: rgb(37, 99, 235);
-    border: 1px solid rgb(191, 219, 254);
-    border-radius: 999px;
+    background: rgba(37, 99, 235, 0.08);
+    color: #2563eb;
+    border: 1px solid rgba(37, 99, 235, 0.18);
+    border-radius: 6px;
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
     white-space: nowrap;
     flex-shrink: 0;
@@ -112,31 +112,32 @@ const PackageItemsToggle = styled.button`
     }
 `;
 
-const PackageItemsList = styled.ul`
-    margin: 4px 0 0;
-    padding: 6px 10px;
-    list-style: none;
-    background: rgb(248, 250, 252);
-    border: 1px solid rgb(226, 232, 240);
-    border-radius: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
+const PackageItemsList = styled.div`
+    margin-top: 8px;
+    background: rgba(37, 99, 235, 0.03);
+    border: 1px solid rgba(37, 99, 235, 0.10);
+    border-radius: 8px;
+    overflow: hidden;
 `;
 
-const PackageItem = styled.li`
-    font-size: ${props => props.theme.fontSizes.xs};
-    color: ${props => props.theme.colors.textMuted};
+const PackageItem = styled.div`
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    padding: 5px 10px;
+    border-bottom: 1px solid rgba(37, 99, 235, 0.06);
+    font-size: 12px;
+    font-weight: 500;
+    color: #475569;
+
+    &:last-child { border-bottom: none; }
 
     &::before {
         content: '';
-        width: 4px;
-        height: 4px;
+        width: 5px;
+        height: 5px;
         border-radius: 50%;
-        background: ${props => props.theme.colors.textMuted};
+        background: rgba(37, 99, 235, 0.35);
         flex-shrink: 0;
     }
 `;

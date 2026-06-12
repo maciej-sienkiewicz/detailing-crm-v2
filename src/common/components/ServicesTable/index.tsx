@@ -237,13 +237,10 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                                     <S.PackageSubRows>
                                         {service.packageItems.map(item => (
                                             <S.PackageSubRow key={item.serviceId}>
+                                                <S.PackageSubRowDot />
                                                 <S.PackageSubRowName title={item.serviceName}>
                                                     {item.serviceName}
                                                 </S.PackageSubRowName>
-                                                {/* cena składowej nie jest prezentowana w kontekście pakietu */}
-                                                <div />
-                                                <div />
-                                                <div />
                                             </S.PackageSubRow>
                                         ))}
                                     </S.PackageSubRows>

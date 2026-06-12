@@ -696,16 +696,16 @@ const DangerBtn = styled.button`
 const PackageBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
-  font-size: 11px;
+  padding: 2px 7px;
+  font-size: 10px;
   font-weight: 700;
   background: rgba(37,99,235,0.08);
   color: #2563eb;
-  border: 1px solid rgba(37,99,235,0.25);
-  border-radius: 9999px;
+  border: 1px solid rgba(37,99,235,0.18);
+  border-radius: 6px;
   white-space: nowrap;
   flex-shrink: 0;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 `;
 

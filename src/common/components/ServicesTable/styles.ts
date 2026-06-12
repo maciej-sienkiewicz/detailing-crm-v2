@@ -530,53 +530,54 @@ export const DiscountSectionLabel = styled.div`
 /* ── Package sub-rows ── */
 
 export const PackageSubRows = styled.div`
-    border-top: 1px dashed #e2e8f0;
-    background: #f8fafc;
+    position: relative;
+    margin: 0 14px 10px 14px;
+    background: rgba(37, 99, 235, 0.03);
+    border: 1px solid rgba(37, 99, 235, 0.10);
+    border-radius: 8px;
+    overflow: hidden;
 `;
 
 export const PackageSubRow = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 74px 74px 90px;
+    display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 5px 8px 5px 26px;
-    border-bottom: 1px dashed #f1f5f9;
+    gap: 10px;
+    padding: 6px 12px 6px 12px;
+    border-bottom: 1px solid rgba(37, 99, 235, 0.06);
 
     &:last-child { border-bottom: none; }
 `;
 
+export const PackageSubRowDot = styled.span`
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.35);
+    flex-shrink: 0;
+`;
+
 export const PackageSubRowName = styled.span`
     font-size: 12px;
-    color: #64748b;
+    font-weight: 500;
+    color: #475569;
     min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-
-    &::before {
-        content: '';
-        display: inline-block;
-        width: 14px;
-        height: 1px;
-        background: #cbd5e1;
-        flex-shrink: 0;
-    }
+    flex: 1;
 `;
 
 export const PackageBadgeInline = styled.span`
     display: inline-flex;
     align-items: center;
-    padding: 1px 6px;
-    background: rgba(37,99,235,0.07);
+    padding: 2px 7px;
+    background: rgba(37, 99, 235, 0.08);
     color: #2563eb;
-    border: 1px solid rgba(37,99,235,0.2);
-    border-radius: 999px;
+    border: 1px solid rgba(37, 99, 235, 0.18);
+    border-radius: 6px;
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
     white-space: nowrap;
     flex-shrink: 0;
