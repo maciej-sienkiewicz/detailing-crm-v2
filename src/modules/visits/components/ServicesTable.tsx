@@ -1866,14 +1866,15 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         {/* Bulk discount modal */}
         {bulkDiscountOpen && (() => {
             const eligible = services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING')));
-            const bulkBaseNet = eligible.reduce((sum, s) => {
+            const getEffective = (s: ServiceLineItem) => {
                 const ep = editedPrices[s.id];
-                return sum + (ep?.basePriceNet ?? s.basePriceNet);
-            }, 0) / 100;
-            const bulkBaseGross = eligible.reduce((sum, s) => {
-                const ep = editedPrices[s.id];
-                return sum + netToGross(ep?.basePriceNet ?? s.basePriceNet, ep?.vatRate ?? s.vatRate);
-            }, 0) / 100;
+                if (ep && bulkDiscountUseEdited) {
+                    return applyAdjustment(ep.basePriceNet, ep.vatRate, ep.adjustment);
+                }
+                return { finalNetCents: ep?.basePriceNet ?? s.basePriceNet, finalGrossCents: netToGross(ep?.basePriceNet ?? s.basePriceNet, ep?.vatRate ?? s.vatRate) };
+            };
+            const bulkBaseNet = eligible.reduce((sum, s) => sum + getEffective(s).finalNetCents, 0) / 100;
+            const bulkBaseGross = eligible.reduce((sum, s) => sum + getEffective(s).finalGrossCents, 0) / 100;
             return (
                 <DiscountModalOverlay onClick={() => setBulkDiscountOpen(false)}>
                     <DiscountModalCard onClick={e => e.stopPropagation()}>
