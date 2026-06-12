@@ -180,31 +180,10 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                             <S.ServiceItem key={service.id} $hasDiscount={hasDiscount}>
                                 <S.ServiceItemRow>
                                     <S.ServiceNameWrap>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                             <S.ServiceName title={service.serviceName}>{service.serviceName}</S.ServiceName>
-                                            {service.isPackage && (
-                                                <span style={{
-                                                    display: 'inline-flex',
-                                                    alignItems: 'center',
-                                                    padding: '1px 6px',
-                                                    background: 'rgb(239,246,255)',
-                                                    color: 'rgb(37,99,235)',
-                                                    border: '1px solid rgb(191,219,254)',
-                                                    borderRadius: 999,
-                                                    fontSize: 10,
-                                                    fontWeight: 700,
-                                                    letterSpacing: '0.04em',
-                                                    textTransform: 'uppercase',
-                                                    whiteSpace: 'nowrap',
-                                                    flexShrink: 0,
-                                                }}>Pakiet</span>
-                                            )}
+                                            {service.isPackage && <S.PackageBadgeInline>Pakiet</S.PackageBadgeInline>}
                                         </div>
-                                        {service.isPackage && service.packageItems && service.packageItems.length > 0 && (
-                                            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
-                                                {service.packageItems.map(i => i.serviceName).join(' · ')}
-                                            </div>
-                                        )}
                                         {hasNote && <S.ServiceNoteInline title={service.note}>{service.note}</S.ServiceNoteInline>}
                                     </S.ServiceNameWrap>
 
@@ -245,6 +224,22 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                                         </S.DeleteButton>
                                     </S.ServiceActions>
                                 </S.ServiceItemRow>
+
+                                {service.isPackage && service.packageItems && service.packageItems.length > 0 && (
+                                    <S.PackageSubRows>
+                                        {service.packageItems.map(item => (
+                                            <S.PackageSubRow key={item.serviceId}>
+                                                <S.PackageSubRowName title={item.serviceName}>
+                                                    {item.serviceName}
+                                                </S.PackageSubRowName>
+                                                {/* cena składowej nie jest prezentowana w kontekście pakietu */}
+                                                <div />
+                                                <div />
+                                                <div />
+                                            </S.PackageSubRow>
+                                        ))}
+                                    </S.PackageSubRows>
+                                )}
 
                                 {isNoteExpanded && (
                                     <S.ServiceNoteContainer>

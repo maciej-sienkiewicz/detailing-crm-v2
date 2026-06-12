@@ -527,6 +527,61 @@ export const DiscountSectionLabel = styled.div`
     margin-bottom: 6px;
 `;
 
+/* ── Package sub-rows ── */
+
+export const PackageSubRows = styled.div`
+    border-top: 1px dashed #e2e8f0;
+    background: #f8fafc;
+`;
+
+export const PackageSubRow = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 74px 74px 90px;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 8px 5px 26px;
+    border-bottom: 1px dashed #f1f5f9;
+
+    &:last-child { border-bottom: none; }
+`;
+
+export const PackageSubRowName = styled.span`
+    font-size: 12px;
+    color: #64748b;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    &::before {
+        content: '';
+        display: inline-block;
+        width: 14px;
+        height: 1px;
+        background: #cbd5e1;
+        flex-shrink: 0;
+    }
+`;
+
+export const PackageBadgeInline = styled.span`
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    background: rgba(37,99,235,0.07);
+    color: #2563eb;
+    border: 1px solid rgba(37,99,235,0.2);
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
+`;
+
 export const NoteConfirmButton = styled.button`
     display: flex;
     align-items: center;
