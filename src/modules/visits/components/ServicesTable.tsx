@@ -68,6 +68,27 @@ const TableSubtitle = styled.p`
     color: ${st.textMuted};
 `;
 
+const BulkVatBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontSm};
+    font-weight: 700;
+    cursor: pointer;
+    transition: all ${st.transition};
+    white-space: nowrap;
+    box-shadow: ${st.shadowXs};
+
+    svg { width: 13px; height: 13px; }
+    &:hover:not(:disabled) { background: #dbeafe; border-color: #93c5fd; transform: translateY(-1px); }
+    &:disabled { opacity: 0.45; cursor: not-allowed; }
+`;
+
 const AddBtn = styled.button`
     display: inline-flex;
     align-items: center;
@@ -671,8 +692,6 @@ const RabatujCaoscBtn = styled.button`
     svg { width: 13px; height: 13px; }
     &:hover:not(:disabled) { background: #fde68a; border-color: #f59e0b; transform: translateY(-1px); }
     &:disabled { opacity: 0.45; cursor: not-allowed; }
-
-    @media (max-width: 640px) { width: 100%; justify-content: center; }
 `;
 
 const RabatujBtn = styled.button`
@@ -1065,6 +1084,10 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const [bulkDiscountConflictOpen, setBulkDiscountConflictOpen] = useState(false);
     const [bulkDiscountUseEdited, setBulkDiscountUseEdited] = useState(false);
 
+    /* ── Bulk VAT modal ── */
+    const [bulkVatOpen, setBulkVatOpen] = useState(false);
+    const [bulkVatRate, setBulkVatRate] = useState<number>(23);
+
     const epln = (c: number) => c / 100;
     const eCents = (v: number) => Math.round(v * 100);
     const eGrossFromNet = netPlnToGrossPln;
@@ -1223,6 +1246,27 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             setBulkDiscountValue('');
             setBulkDiscountOpen(true);
         }
+    };
+
+    const applyBulkVat = () => {
+        const eligible = services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING')));
+        setEditedPrices(prev => {
+            const next = { ...prev };
+            eligible.forEach(s => {
+                const ep = prev[s.id];
+                // Recalculate effective net price and keep it via SET_NET; base stays original
+                const currentNet = ep
+                    ? applyAdjustment(ep.basePriceNet, ep.vatRate, ep.adjustment).finalNetCents
+                    : applyAdjustment(s.basePriceNet, s.vatRate, s.adjustment).finalNetCents;
+                next[s.id] = {
+                    basePriceNet: s.basePriceNet,
+                    vatRate: bulkVatRate,
+                    adjustment: { type: 'SET_NET', value: currentNet },
+                };
+            });
+            return next;
+        });
+        setBulkVatOpen(false);
     };
 
     const handleEditNetChange = (val: string) => {
@@ -1413,6 +1457,17 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 </TableHeaderLeft>
                 {canEdit && (
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <BulkVatBtn
+                            onClick={() => setBulkVatOpen(true)}
+                            disabled={isSaving || services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING'))).length === 0}
+                            title="Zmień stawkę VAT dla wszystkich usług"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M9 14l6-6" /><circle cx="9.5" cy="9.5" r="1.5" /><circle cx="14.5" cy="14.5" r="1.5" />
+                                <rect x="3" y="3" width="18" height="18" rx="2" />
+                            </svg>
+                            Zmień VAT
+                        </BulkVatBtn>
                         <RabatujCaoscBtn
                             onClick={openBulkDiscountModal}
                             disabled={isSaving || services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING'))).length === 0}
@@ -1862,6 +1917,41 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 </DiscountModalOverlay>
             );
         })()}
+
+        {/* Bulk VAT modal */}
+        {bulkVatOpen && (
+            <DiscountModalOverlay onClick={() => setBulkVatOpen(false)}>
+                <DiscountModalCard onClick={e => e.stopPropagation()}>
+                    <DiscountModalHeader>
+                        <DiscountModalTitle>Zmień VAT dla wszystkich usług</DiscountModalTitle>
+                        <DiscountCloseBtn type="button" onClick={() => setBulkVatOpen(false)}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                        </DiscountCloseBtn>
+                    </DiscountModalHeader>
+                    <DiscountModalBody>
+                        <div>
+                            <DiscountSectionLabel>Stawka VAT</DiscountSectionLabel>
+                            <DiscountTypeRow>
+                                {([23, 8, 5, 0, -1] as const).map(rate => (
+                                    <DiscountTypePill
+                                        key={rate}
+                                        type="button"
+                                        $selected={bulkVatRate === rate}
+                                        onClick={() => setBulkVatRate(rate)}
+                                    >
+                                        {rate === -1 ? 'zw.' : `${rate}%`}
+                                    </DiscountTypePill>
+                                ))}
+                            </DiscountTypeRow>
+                        </div>
+                    </DiscountModalBody>
+                    <DiscountModalFooter>
+                        <DiscountCancelBtn type="button" onClick={() => setBulkVatOpen(false)}>Anuluj</DiscountCancelBtn>
+                        <DiscountApplyBtn type="button" onClick={applyBulkVat}>Zastosuj</DiscountApplyBtn>
+                    </DiscountModalFooter>
+                </DiscountModalCard>
+            </DiscountModalOverlay>
+        )}
 
         {/* Bulk discount modal */}
         {bulkDiscountOpen && (() => {
