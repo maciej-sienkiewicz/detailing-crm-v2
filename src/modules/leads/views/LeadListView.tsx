@@ -49,7 +49,6 @@ import {
   useLeadPipelineSummary,
   useLeadSocket,
   useLeadAppointmentCreation,
-  useAssignLeadUser,
   useSetLostReason,
 } from '../hooks';
 import { LeadStatus, LeadSource } from '../types';
@@ -1518,7 +1517,13 @@ export const LeadListView: React.FC = () => {
   }, []);
 
   const empPickerLead = leads.find(l => l.id === empPickerLeadId) ?? null;
-  const empAssignUser = useAssignLeadUser(empPickerLeadId ?? '');
+  const empAssignUser = useMutation({
+    mutationFn: ({ leadId, userId, userName }: { leadId: string; userId: string | null; userName?: string }) =>
+      leadApi.assignUser(leadId, { userId, userName }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: LEADS_KEY });
+    },
+  });
 
   const COL_SPAN = 7;
 
@@ -1696,12 +1701,6 @@ export const LeadListView: React.FC = () => {
               >
                 <Trash2 />
               </IconBtn>
-              <IconBtn
-                title="Otwórz szczegóły"
-                onClick={() => setSelectedLead(lead)}
-              >
-                <ChevronDown />
-              </IconBtn>
             </ActionBtns>
           </TdActions>
         </Tr>
@@ -1846,6 +1845,12 @@ export const LeadListView: React.FC = () => {
                   Śr. oczekiwanie: {formatWaitingTime(summary.avgWaitingTimeMinutes)}
                 </span>
               )}
+              onClick={() => {
+                const next = [LeadStatus.NEW];
+                setSelectedStatuses(next);
+                setFilters(p => ({ ...p, status: next, sortBy: 'createdAt', sortDirection: 'desc', page: 1 }));
+              }}
+              isActive={selectedStatuses.length === 1 && selectedStatuses[0] === LeadStatus.NEW}
             />
             <StatTile
               {...TILE_CONFIGS.conversion}
@@ -1877,6 +1882,12 @@ export const LeadListView: React.FC = () => {
                   } zrealizowanych
                 </span>
               )}
+              onClick={() => {
+                const next = [LeadStatus.COMPLETED];
+                setSelectedStatuses(next);
+                setFilters(p => ({ ...p, status: next, sortBy: 'createdAt', sortDirection: 'desc', page: 1 }));
+              }}
+              isActive={selectedStatuses.length === 1 && selectedStatuses[0] === LeadStatus.COMPLETED}
             />
             <StatTile
               {...TILE_CONFIGS.atRisk}
@@ -1892,6 +1903,17 @@ export const LeadListView: React.FC = () => {
                   } bez kontaktu
                 </span>
               )}
+              onClick={() => {
+                const next = [LeadStatus.NEW, LeadStatus.IN_PROGRESS];
+                setSelectedStatuses(next);
+                setFilters(p => ({ ...p, status: next, sortBy: 'updatedAt', sortDirection: 'desc', page: 1 }));
+              }}
+              isActive={
+                selectedStatuses.length === 2 &&
+                selectedStatuses.includes(LeadStatus.NEW) &&
+                selectedStatuses.includes(LeadStatus.IN_PROGRESS) &&
+                filters.sortBy === 'updatedAt'
+              }
             />
           </>
         )}
@@ -2272,14 +2294,14 @@ export const LeadListView: React.FC = () => {
         onSelect={emp => {
           if (!empPickerLeadId) return;
           empAssignUser.mutate(
-            { userId: emp.linkedUserId ?? emp.id, userName: emp.fullName },
+            { leadId: empPickerLeadId, userId: emp.linkedUserId ?? emp.id, userName: emp.fullName },
             { onSuccess: () => setEmpPickerLeadId(null) }
           );
         }}
         onUnassign={() => {
           if (!empPickerLeadId) return;
           empAssignUser.mutate(
-            { userId: null },
+            { leadId: empPickerLeadId, userId: null },
             { onSuccess: () => setEmpPickerLeadId(null) }
           );
         }}
@@ -2287,7 +2309,7 @@ export const LeadListView: React.FC = () => {
           if (!authUser || !empPickerLeadId) return;
           const name = [authUser.firstName, authUser.lastName].filter(Boolean).join(' ') || authUser.userId;
           empAssignUser.mutate(
-            { userId: authUser.userId, userName: name },
+            { leadId: empPickerLeadId, userId: authUser.userId, userName: name },
             { onSuccess: () => setEmpPickerLeadId(null) }
           );
         }}
