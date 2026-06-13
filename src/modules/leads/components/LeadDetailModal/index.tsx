@@ -1493,8 +1493,9 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
     ? truncateEmail(lead.contactIdentifier, 34)
     : formatPhoneNumber(lead.contactIdentifier);
 
-  const assignedUserInitials = lead.assignedUserName
-    ? lead.assignedUserName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+  const assignedUserName = detail?.assignedUserName ?? lead.assignedUserName;
+  const assignedUserInitials = assignedUserName
+    ? assignedUserName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
     : '';
 
   const vehicleLabel = lead.vehicleBrand
@@ -1535,11 +1536,11 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
                 )}
               </PriceStack>
 
-              <AssignChip onClick={() => setIsEmployeePickerOpen(true)} title={lead.assignedUserName ? 'Zmień przypisanie pracownika' : 'Przypisz pracownika'}>
-                {lead.assignedUserName ? (
+              <AssignChip onClick={() => setIsEmployeePickerOpen(true)} title={assignedUserName ? 'Zmień przypisanie pracownika' : 'Przypisz pracownika'}>
+                {assignedUserName ? (
                   <>
                     <AssignChipAvatar>{assignedUserInitials}</AssignChipAvatar>
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 110 }}>{lead.assignedUserName}</span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 110 }}>{assignedUserName}</span>
                     <Check size={11} color="#16a34a" />
                   </>
                 ) : (
@@ -1708,7 +1709,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
       <EmployeePickerModal
         isOpen={isEmployeePickerOpen}
         onClose={() => setIsEmployeePickerOpen(false)}
-        hasAssigned={!!lead.assignedUserName}
+        hasAssigned={!!assignedUserName}
         onSelect={emp => {
           assignUser.mutate(
             { userId: emp.linkedUserId ?? emp.id, userName: emp.fullName },
