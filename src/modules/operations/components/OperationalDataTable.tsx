@@ -16,6 +16,7 @@ import type { RecurrenceEditScope } from '@/modules/appointments/types';
 import { formatCurrency, formatDate } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { Operation, OperationType, OperationStatus, SmsSendStatus } from '../types';
+import { CustomerCell } from '@/common/components/CustomerCell';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -312,38 +313,6 @@ const SmsInfoRow = styled.div`
     flex-wrap: wrap;
 `;
 
-const CustomerBlock = styled.div<{ $clickable?: boolean }>`
-    display: flex;
-    flex-direction: column;
-    ${({ $clickable }) => $clickable && `
-        cursor: pointer;
-        &:hover ${CustomerName} {
-            color: #93c5fd;
-        }
-        &:hover ${CustomerPhone} {
-            color: #93c5fd;
-            opacity: 0.6;
-        }
-    `}
-`;
-
-const CustomerName = styled.span`
-    font-size: 13px;
-    font-weight: 600;
-    color: ${st.text};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: color 0.15s ease;
-`;
-
-const CustomerPhone = styled.span`
-    font-size: 12px;
-    color: ${st.textMuted};
-    margin-top: 2px;
-    white-space: nowrap;
-    transition: color 0.15s ease, opacity 0.15s ease;
-`;
 
 const VehicleSubInfo = styled.div`
     display: flex;
@@ -1009,15 +978,11 @@ export const OperationalDataTable = ({
 
                                     {/* Customer */}
                                     <div>
-                                        <CustomerBlock
-                                            $clickable={!!op.customerId}
-                                            onClick={op.customerId ? (e) => { e.stopPropagation(); navigate(`/customers/${op.customerId}`); } : undefined}
-                                        >
-                                            <CustomerName>{customerLabel}</CustomerName>
-                                            {op.customerPhone && (
-                                                <CustomerPhone>{op.customerPhone}</CustomerPhone>
-                                            )}
-                                        </CustomerBlock>
+                                        <CustomerCell
+                                            customerId={op.customerId}
+                                            name={customerLabel}
+                                            sub={op.customerPhone}
+                                        />
                                     </div>
 
                                     {/* Date */}

@@ -47,6 +47,7 @@ import { LeadDetailModal } from '../components/LeadDetailModal';
 import { CustomerPickerModal } from '../components/CustomerPickerModal';
 import { EmployeePickerModal } from '../components/EmployeePickerModal';
 import { BookingPickerModal } from '../components/BookingPickerModal';
+import { CustomerCell } from '@/common/components/CustomerCell';
 import type { PickerMode } from '../components/BookingPickerModal';
 import type { Operation } from '@/modules/operations/types';
 import {
@@ -1727,11 +1728,11 @@ export const LeadListView: React.FC = () => {
                 : formatPhoneNumber(lead.contactIdentifier);
               return (
                 <CellStack>
-                  <CellMain style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {name}
-                    <Check size={12} color="#16a34a" style={{ flexShrink: 0 }} />
-                  </CellMain>
-                  <CellSub>{contactSub}</CellSub>
+                  <CustomerCell
+                    customerId={c.id}
+                    name={name}
+                    sub={contactSub}
+                  />
                   <CustomerChip
                     title="Zmień przypisanie klienta"
                     onClick={e => { e.stopPropagation(); setPickerLeadId(lead.id); }}
