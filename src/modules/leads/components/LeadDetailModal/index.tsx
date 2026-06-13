@@ -68,27 +68,29 @@ const ModalBody = styled.div`
   animation: ${fadeIn} 150ms ease both;
 `;
 
-// ─── Header info strip ─────────────────────────────────────────────────────────
+// ─── Header card ───────────────────────────────────────────────────────────────
 
-const HeaderStrip = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: #f8fbff;
+const HeaderCard = styled.div`
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: start;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, #f8fbff 0%, #f0f7ff 100%);
   border: 1px solid #dbeafe;
-  border-radius: 12px;
+  border-radius: 14px;
 `;
 
 const SourceIcon = styled.div<{ $source: LeadSource }>`
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  svg { width: 16px; height: 16px; }
+  margin-top: 2px;
+  svg { width: 17px; height: 17px; }
 
   ${p => {
     switch (p.$source) {
@@ -99,110 +101,101 @@ const SourceIcon = styled.div<{ $source: LeadSource }>`
   }}
 `;
 
-const HeaderInfo = styled.div`
-  flex: 1;
+const HeaderMain = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
 `;
 
 const HeaderName = styled.div`
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   color: ${st.text};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.2;
 `;
 
-const HeaderSub = styled.div`
-  font-size: 12px;
-  color: ${st.textMuted};
-  margin-top: 2px;
+const HeaderContact = styled.div`
+  font-size: 13px;
+  font-weight: 500;
+  color: ${st.textSecondary};
+  margin-top: 1px;
 `;
 
 const HeaderMeta = styled.div`
+  font-size: 12px;
+  color: ${st.textMuted};
+  margin-top: 3px;
+`;
+
+const HeaderRight = styled.div`
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 4px;
+  gap: 8px;
   flex-shrink: 0;
 `;
 
-const HeaderValue = styled.div`
-  font-size: 14px;
-  font-weight: 700;
+const PriceStack = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+`;
+
+const PriceGross = styled.div`
+  font-size: 18px;
+  font-weight: 800;
   color: ${st.text};
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
 `;
 
-const HeaderDate = styled.div`
+const PriceDetail = styled.div`
   font-size: 11px;
   color: ${st.textMuted};
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  margin-top: 2px;
 `;
 
-// ─── Employee assignment section ───────────────────────────────────────────────
-
-const AssignSection = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: #fff;
-  border: 1px solid ${st.border};
-  border-radius: 10px;
-`;
-
-const AssignLabel = styled.div`
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: ${st.textMuted};
-  flex-shrink: 0;
-`;
-
-const AssignedName = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: ${st.text};
-  flex: 1;
-`;
-
-const AssignedAvatar = styled.div`
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: #f0f9ff;
-  color: #0369a1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-size: 10px;
-  font-weight: 700;
-`;
-
-const AssignActionBtn = styled.button`
+const AssignChip = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 5px 12px;
-  background: transparent;
-  border: 1.5px solid #0ea5e9;
-  color: #0ea5e9;
+  padding: 4px 10px 4px 6px;
+  background: #fff;
+  border: 1.5px solid ${st.border};
   border-radius: 9999px;
   font-size: 11px;
   font-weight: 600;
+  color: ${st.textSecondary};
   cursor: pointer;
   font-family: inherit;
   white-space: nowrap;
   transition: all 180ms ease;
-  flex-shrink: 0;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
-  &:hover { background: #e0f2fe; }
-  svg { width: 12px; height: 12px; }
+  &:hover { border-color: #0ea5e9; color: #0ea5e9; background: #f0f9ff; }
+  svg { width: 12px; height: 12px; flex-shrink: 0; }
+`;
+
+const AssignChipAvatar = styled.div`
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: #1d4ed8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+  flex-shrink: 0;
 `;
 
 // ─── Section label ─────────────────────────────────────────────────────────────
@@ -1469,6 +1462,12 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
   const hasQuote      = !!userQuote;
   const aiDimmed      = hasQuote;
 
+  // Price breakdown — prefer user quote, fall back to AI estimation, then lead value
+  const activeQuote  = userQuote ?? estimation;
+  const headerGross  = activeQuote?.totalGross ?? lead.estimatedValue;
+  const headerNet    = activeQuote?.totalNet ?? null;
+  const headerVat    = headerNet !== null ? headerGross - headerNet : null;
+
   const handleSaveLostReason = () => {
     setLostReason.mutate(
       { lostReason: lostReasonDraft.trim() || null },
@@ -1498,6 +1497,10 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
     ? lead.assignedUserName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
     : '';
 
+  const vehicleLabel = lead.vehicleBrand
+    ? `${lead.vehicleBrand}${lead.vehicleModel ? ` ${lead.vehicleModel}` : ''}`
+    : null;
+
   const modalTitle = lead.customerName || lead.contactIdentifier || 'Szczegóły leada';
 
   return (
@@ -1505,43 +1508,49 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
       <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} maxWidth="860px">
         <ModalBody>
 
-          {/* Header strip */}
-          <HeaderStrip>
+          {/* Header card — source icon | name+contact+date | price+assign chip */}
+          <HeaderCard>
             <SourceIcon $source={lead.source}>{sourceIcon}</SourceIcon>
-            <HeaderInfo>
-              <HeaderName>{lead.customerName || lead.contactIdentifier}</HeaderName>
-              {lead.customerName && <HeaderSub>{contactSub}</HeaderSub>}
-              <HeaderSub style={{ marginTop: lead.customerName ? 1 : 0 }}>
-                {formatDateTime(lead.createdAt)} · {
-                  lead.vehicleBrand ? `${lead.vehicleBrand}${lead.vehicleModel ? ` ${lead.vehicleModel}` : ''}` : 'Brak pojazdu'
-                }
-              </HeaderSub>
-            </HeaderInfo>
-            <HeaderMeta>
-              <HeaderValue>{formatCurrency(lead.estimatedValue)}</HeaderValue>
-              <HeaderDate>Ost. aktualizacja: {formatRelativeTime(lead.updatedAt || lead.createdAt)}</HeaderDate>
-            </HeaderMeta>
-          </HeaderStrip>
 
-          {/* Employee assignment */}
-          <AssignSection>
-            <AssignLabel>Obsługuje</AssignLabel>
-            {lead.assignedUserName ? (
-              <AssignedName>
-                <AssignedAvatar>{assignedUserInitials}</AssignedAvatar>
-                {lead.assignedUserName}
-                <Check size={14} color="#16a34a" style={{ marginLeft: 2 }} />
-              </AssignedName>
-            ) : (
-              <span style={{ flex: 1, fontSize: 13, color: st.textMuted, fontStyle: 'italic' }}>
-                Nieprzypisany
-              </span>
-            )}
-            <AssignActionBtn onClick={() => setIsEmployeePickerOpen(true)}>
-              <UserCheck size={12} />
-              {lead.assignedUserName ? 'Zmień przypisanie' : 'Przypisz pracownika'}
-            </AssignActionBtn>
-          </AssignSection>
+            <HeaderMain>
+              <HeaderName>{lead.customerName || lead.contactIdentifier}</HeaderName>
+              {lead.customerName && <HeaderContact>{contactSub}</HeaderContact>}
+              <HeaderMeta>
+                {formatDateTime(lead.createdAt)}
+                {vehicleLabel && ` · ${vehicleLabel}`}
+              </HeaderMeta>
+              <HeaderMeta>Ost. aktualizacja: {formatRelativeTime(lead.updatedAt || lead.createdAt)}</HeaderMeta>
+            </HeaderMain>
+
+            <HeaderRight>
+              <PriceStack>
+                <PriceGross>{formatCurrency(headerGross)}</PriceGross>
+                {headerNet !== null ? (
+                  <PriceDetail>
+                    {formatCurrency(headerNet)} netto
+                    {headerVat !== null && ` · VAT ${formatCurrency(headerVat)}`}
+                  </PriceDetail>
+                ) : (
+                  <PriceDetail>brutto</PriceDetail>
+                )}
+              </PriceStack>
+
+              <AssignChip onClick={() => setIsEmployeePickerOpen(true)} title={lead.assignedUserName ? 'Zmień przypisanie pracownika' : 'Przypisz pracownika'}>
+                {lead.assignedUserName ? (
+                  <>
+                    <AssignChipAvatar>{assignedUserInitials}</AssignChipAvatar>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 110 }}>{lead.assignedUserName}</span>
+                    <Check size={11} color="#16a34a" />
+                  </>
+                ) : (
+                  <>
+                    <UserCheck size={12} />
+                    Przypisz pracownika
+                  </>
+                )}
+              </AssignChip>
+            </HeaderRight>
+          </HeaderCard>
 
           {/* Initial message */}
           {lead.initialMessage && (
