@@ -1662,13 +1662,6 @@ export const LeadListView: React.FC = () => {
     title: 'Przewodnik po widoku Leadów',
     items: [
       {
-        id: 'overview',
-        label: 'Czym jest lead?',
-        group: 'Wstęp',
-        description: 'Lead to potencjalny klient — ktoś, kto napisał do Ciebie e-mailem, zadzwonił, albo kogo dodałeś ręcznie do systemu. Każde takie zapytanie trafia tutaj jako osobny rekord i czeka na Twoje działanie.\n\nCały proces — od pierwszego kontaktu, przez rozmowę i wycenę, aż do rezerwacji i realizacji — obsługujesz z tego jednego widoku. Nie musisz przełączać się między zakładkami: tutaj przypisujesz klientów, pracowników, tworzysz kosztorysy i odpowiadasz na maile.',
-        usedIn: [],
-      },
-      {
         id: 'tiles',
         label: 'Kafelki statystyk',
         group: 'Wstęp',
@@ -1683,16 +1676,9 @@ export const LeadListView: React.FC = () => {
         usedIn: ['Tabela leadów — kolumna Status', 'Filtr statusów w pasku filtrów', 'Kafelki statystyk'],
       },
       {
-        id: 'search-filters',
-        label: 'Wyszukiwarka i filtry',
-        group: 'Filtrowanie i wyszukiwanie',
-        description: 'Nad tabelą masz zestaw narzędzi, które pozwalają szybko znaleźć konkretne leady albo zawęzić widok do tego, co Cię interesuje.\n\n• Wyszukiwarka — wpisz fragment nazwy klienta albo dane kontaktowe (e-mail, telefon), a tabela odfiltruje się w trakcie pisania.\n• Źródło — zakładki „Wszystkie", „Telefon", „E-mail", „Ręczne" pokazują tylko leady z danego kanału. Przydatne, gdy chcesz np. obsłużyć wszystkie zapytania mailowe naraz.\n• Status — klikając w nazwy statusów włączasz i wyłączasz je w widoku. Domyślnie widać „Nowe" i „W kontakcie", czyli leady wymagające działania.\n\nFiltry się sumują — możesz np. zobaczyć tylko mailowe leady ze statusem „Nowy", wpisując dodatkowo nazwę klienta. Żeby wrócić do pełnej listy, wyczyść pola filtrów i wyszukiwarkę.',
-        usedIn: ['Pasek filtrów nad tabelą'],
-      },
-      {
         id: 'date-filter',
         label: 'Filtrowanie po czasie',
-        group: 'Filtrowanie i wyszukiwanie',
+        group: 'Wstęp',
         description: 'Przycisk z kalendarzem w nagłówku strony (domyślnie „Cały czas") ogranicza widok do leadów z wybranego okresu. To wpływa jednocześnie na tabelę i na kafelki statystyk u góry — wszystkie liczby przeliczają się dla tego zakresu.\n\nDo wyboru masz gotowe zakresy:\n• Cały czas — bez ograniczeń.\n• Ostatni tydzień — 7 dni.\n• Ostatni miesiąc — 30 dni.\n• Ostatni kwartał — 90 dni.\n\nJeśli potrzebujesz innego okresu, wpisz daty „od" i „do" w sekcji „Niestandardowy zakres" i kliknij „Zastosuj zakres". Gdy filtr jest aktywny, przycisk podświetla się i pokazuje wybrany okres — kliknij go ponownie i wybierz „Cały czas", żeby wrócić do pełnego widoku.',
         usedIn: ['Nagłówek strony — przycisk z kalendarzem', 'Kafelki statystyk', 'Tabela leadów'],
       },
@@ -1739,18 +1725,11 @@ export const LeadListView: React.FC = () => {
         usedIn: ['Okno compose — przycisk „Zapisz jako przykład"', 'Nagłówek strony leadów — ikona książki'],
       },
       {
-        id: 'analytics-overview',
-        label: 'Po co jest analityka',
-        group: 'Analityka',
-        description: 'Przycisk „Analityka" w nagłówku otwiera okno z trzema zakładkami, które pokazują, jak naprawdę działa Twoja sprzedaż — gdzie wygrywasz, kto najlepiej obsługuje leady i kiedy klienci najczęściej piszą.\n\nNa górze okna wybierasz okres, dla którego liczone są dane: ostatni tydzień, miesiąc (domyślnie), kwartał, rok albo własny zakres dat. Zmiana okresu przelicza wszystkie trzy zakładki naraz.\n\nUżywaj tego, żeby podejmować decyzje na podstawie liczb, a nie przeczucia — które usługi domykać, kogo szkolić, kiedy dzwonić do klientów.',
-        usedIn: ['Nagłówek strony — przycisk „Analityka"'],
-      },
-      {
         id: 'analytics-services',
         label: 'Win/Loss per usługa',
         group: 'Analityka',
-        description: 'Pierwsza zakładka pokazuje, które usługi domykasz, a które przegrywasz. U góry trzy liczby: wygrane leady, przegrane leady i ogólna konwersja dla wybranego okresu.\n\nNiżej tabela rozbija to na pojedyncze usługi — dla każdej widzisz liczbę wygranych, straconych i pasek „win rate" (procent wygranych). Pasek zmienia kolor: zielony przy dobrej skuteczności, pomarańczowy i czerwony przy słabszej.\n\nJak liczone są wyniki:\n• Wygrane — leady ze statusem „Zarezerwowany" lub „Zakończony".\n• Stracone — leady ze statusem „Utracony" lub „Porzucony".\n\nUsługi są posortowane od najczęstszych. Dane pojawią się, gdy oznaczysz leady usługami w kosztorysie.',
-        usedIn: ['Analityka — zakładka „Win/Loss per usługa"'],
+        description: 'Przycisk „Analityka" w nagłówku otwiera okno z trzema zakładkami. Na górze wybierasz okres (domyślnie ostatni miesiąc) — zmiana przelicza wszystkie zakładki naraz.\n\nPierwsza zakładka pokazuje, które usługi domykasz, a które przegrywasz. U góry trzy liczby: wygrane leady, przegrane leady i ogólna konwersja dla wybranego okresu.\n\nNiżej tabela rozbija to na pojedyncze usługi — dla każdej widzisz liczbę wygranych, straconych i pasek „win rate" (procent wygranych). Pasek zmienia kolor: zielony przy dobrej skuteczności, pomarańczowy i czerwony przy słabszej.\n\nJak liczone są wyniki:\n• Wygrane — leady ze statusem „Zarezerwowany" lub „Zakończony".\n• Stracone — leady ze statusem „Utracony" lub „Porzucony".\n\nUsługi są posortowane od najczęstszych. Dane pojawią się, gdy oznaczysz leady usługami w kosztorysie.',
+        usedIn: ['Nagłówek strony — przycisk „Analityka"', 'Analityka — zakładka „Win/Loss per usługa"'],
       },
       {
         id: 'analytics-employees',
