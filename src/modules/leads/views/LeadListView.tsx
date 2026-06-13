@@ -1352,7 +1352,7 @@ export const LeadListView: React.FC = () => {
   const [isBookingLoading, setIsBookingLoading]     = useState(false);
   const createLeadAppointment = useLeadAppointmentCreation(bookingLeadId);
 
-  const { showError: showBookingError } = useToast();
+  const { showError: showBookingError, showWarning } = useToast();
 
   const updateStatus = useUpdateLeadStatus();
   const setLostReasonMutation = useSetLostReason(lostReasonPrompt?.leadId ?? '');
@@ -1596,16 +1596,32 @@ export const LeadListView: React.FC = () => {
   const [bookingPickerLeadId, setBookingPickerLeadId] = useState<string | null>(null);
   const [bookingPickerMode, setBookingPickerMode]     = useState<PickerMode>('appointment');
 
+  const handleLinkError = (err: unknown) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = (err as any)?.response?.data;
+    if (data?.code === 'ALREADY_LINKED') {
+      const who = data.linkedLeadName ? `lead: ${data.linkedLeadName}` : 'inny lead';
+      showWarning(
+        'Już przypisano do innego leada',
+        `Ta operacja jest już powiązana z ${who}. Najpierw odepnij ją tamtej osobie.`,
+      );
+    } else {
+      showBookingError('Nie udało się zapisać przypisania');
+    }
+  };
+
   const linkAppointmentMutation = useMutation({
     mutationFn: ({ leadId, appointmentId }: { leadId: string; appointmentId: string | null }) =>
       leadApi.linkAppointment(leadId, appointmentId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: LEADS_KEY }),
+    onError: handleLinkError,
   });
 
   const linkVisitMutation = useMutation({
     mutationFn: ({ leadId, visitId }: { leadId: string; visitId: string | null }) =>
       leadApi.linkVisit(leadId, visitId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: LEADS_KEY }),
+    onError: handleLinkError,
   });
 
   const openBookingPicker = (lead: Lead, mode: PickerMode) => {
