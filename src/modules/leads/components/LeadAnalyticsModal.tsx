@@ -833,7 +833,6 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
                   formatter={tooltipFormatter}
                 />
                 {renderBars()}
-                <Bar dataKey="rejectedCount" fill={CHART_COLORS.rejected} radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </ChartWrap>
