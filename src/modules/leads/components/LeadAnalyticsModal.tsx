@@ -588,6 +588,31 @@ const CHART_COLORS = {
   rejected: '#dc2626',
 };
 
+// Deterministic mock data — used when API returns no data yet
+const MOCK_HOUR_DATA = Array.from({ length: 24 }, (_, h) => {
+  const peak = h >= 9 && h <= 12 ? 1.8 : h >= 15 && h <= 18 ? 1.4 : h >= 19 && h <= 21 ? 1.2 : 0.5;
+  const base = Math.round(Math.sin((h / 24) * Math.PI * 2 + 1) * 6 + 8) * peak;
+  const incoming = Math.max(0, Math.round(base + ((h * 7 + 3) % 5)));
+  const accepted = Math.round(incoming * 0.35 + ((h * 3) % 3));
+  const rejected = Math.round(incoming * 0.2 + ((h * 5) % 2));
+  return { bucket: h, incomingCount: incoming, acceptedCount: accepted, rejectedCount: rejected };
+});
+
+const MOCK_DAY_DATA = Array.from({ length: 31 }, (_, i) => {
+  const d = i + 1;
+  const midPeak = d >= 10 && d <= 20 ? 1.3 : 1;
+  const base = Math.round(Math.sin((d / 31) * Math.PI) * 10 + 12) * midPeak;
+  const incoming = Math.max(0, Math.round(base + ((d * 11) % 7)));
+  const accepted = Math.round(incoming * 0.38 + ((d * 3) % 4));
+  const rejected = Math.round(incoming * 0.22 + ((d * 7) % 3));
+  return { bucket: d, incomingCount: incoming, acceptedCount: accepted, rejectedCount: rejected };
+});
+
+const limitDecimals2 = (raw: string): string => {
+  const sep = Math.max(raw.indexOf('.'), raw.indexOf(','));
+  return sep === -1 ? raw : raw.slice(0, sep + 3);
+};
+
 interface TimingTabProps {
   dateFrom?: string;
   dateTo?: string;
@@ -600,8 +625,8 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
   const [appliedMax, setAppliedMax] = useState<number | undefined>();
 
   const handleApply = () => {
-    setAppliedMin(valueMinInput ? Math.round(parseFloat(valueMinInput) * 100) : undefined);
-    setAppliedMax(valueMaxInput ? Math.round(parseFloat(valueMaxInput) * 100) : undefined);
+    setAppliedMin(valueMinInput ? Math.round(parseFloat(valueMinInput.replace(',', '.')) * 100) : undefined);
+    setAppliedMax(valueMaxInput ? Math.round(parseFloat(valueMaxInput.replace(',', '.')) * 100) : undefined);
   };
 
   const handleClear = () => {
@@ -617,8 +642,9 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
     dateTo,
   });
 
-  const hourData = data?.byHour ?? [];
-  const dayData  = data?.byDayOfMonth ?? [];
+  const hourData = (data?.byHour && data.byHour.some(b => b.incomingCount > 0)) ? data.byHour : MOCK_HOUR_DATA;
+  const dayData  = (data?.byDayOfMonth && data.byDayOfMonth.some(b => b.incomingCount > 0)) ? data.byDayOfMonth : MOCK_DAY_DATA;
+  const isMock   = !data || (!data.byHour.some(b => b.incomingCount > 0) && !data.byDayOfMonth.some(b => b.incomingCount > 0));
 
   return (
     <ChartBlock>
@@ -626,20 +652,20 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
       <TimingFilters>
         <TimingFilterLabel>Wartość leada (PLN):</TimingFilterLabel>
         <TimingInput
-          type="number"
-          min="0"
+          type="text"
+          inputMode="decimal"
           placeholder="min"
           value={valueMinInput}
-          onChange={e => setValueMinInput(e.target.value)}
+          onChange={e => setValueMinInput(limitDecimals2(e.target.value.replace(/[^0-9.,]/g, '')))}
           onKeyDown={e => e.key === 'Enter' && handleApply()}
         />
         <TimingSep>–</TimingSep>
         <TimingInput
-          type="number"
-          min="0"
+          type="text"
+          inputMode="decimal"
           placeholder="max"
           value={valueMaxInput}
-          onChange={e => setValueMaxInput(e.target.value)}
+          onChange={e => setValueMaxInput(limitDecimals2(e.target.value.replace(/[^0-9.,]/g, '')))}
           onKeyDown={e => e.key === 'Enter' && handleApply()}
         />
         <button
@@ -658,6 +684,12 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
           </button>
         )}
       </TimingFilters>
+
+      {isMock && !isLoading && (
+        <div style={{ fontSize: 11, color: st.textMuted, marginBottom: 4, fontStyle: 'italic' }}>
+          Prezentowane dane są przykładowe — brak danych dla wybranego zakresu.
+        </div>
+      )}
 
       {isLoading ? (
         <LoadingBox>Ładowanie danych…</LoadingBox>
@@ -751,6 +783,60 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
   );
 };
 
+// ─── Date preset selector ─────────────────────────────────────────────────────
+
+type DatePreset = 'week' | 'month' | 'quarter' | 'year' | 'custom';
+
+const PRESETS: { id: DatePreset; label: string }[] = [
+  { id: 'week',    label: 'Ostatni tydzień' },
+  { id: 'month',   label: 'Ostatni miesiąc' },
+  { id: 'quarter', label: 'Ostatni kwartał' },
+  { id: 'year',    label: 'Ostatni rok' },
+  { id: 'custom',  label: 'Niestandardowy zakres' },
+];
+
+const toISO = (d: Date) => d.toISOString().slice(0, 10);
+
+const getPresetDates = (preset: DatePreset): { dateFrom?: string; dateTo?: string } => {
+  if (preset === 'custom') return {};
+  const today = new Date();
+  const days = preset === 'week' ? 7 : preset === 'month' ? 30 : preset === 'quarter' ? 90 : 365;
+  const from = new Date(today);
+  from.setDate(today.getDate() - days);
+  return { dateFrom: toISO(from), dateTo: toISO(today) };
+};
+
+const PresetBar = styled.div`
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+`;
+
+const PresetBtn = styled.button<{ $active: boolean }>`
+  padding: 5px 13px;
+  border-radius: 9999px;
+  border: 1.5px solid ${p => p.$active ? '#0ea5e9' : st.border};
+  background: ${p => p.$active ? '#e0f2fe' : '#f8fafc'};
+  color: ${p => p.$active ? '#0369a1' : st.textSecondary};
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 150ms ease;
+  white-space: nowrap;
+
+  &:hover { border-color: #0ea5e9; color: #0369a1; background: #f0f9ff; }
+`;
+
+const CustomRangeRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  animation: ${fadeIn} 150ms ease both;
+`;
+
 // ─── Main modal ───────────────────────────────────────────────────────────────
 
 type AnalyticsTab = 'services' | 'employees' | 'timing';
@@ -762,11 +848,13 @@ interface LeadAnalyticsModalProps {
 
 export const LeadAnalyticsModal: React.FC<LeadAnalyticsModalProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<AnalyticsTab>('services');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [datePreset, setDatePreset] = useState<DatePreset>('month');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
 
-  const appliedFrom = dateFrom || undefined;
-  const appliedTo   = dateTo || undefined;
+  const { dateFrom: appliedFrom, dateTo: appliedTo } = datePreset === 'custom'
+    ? { dateFrom: customFrom || undefined, dateTo: customTo || undefined }
+    : getPresetDates(datePreset);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Analityka leadów" maxWidth="820px">
@@ -783,36 +871,42 @@ export const LeadAnalyticsModal: React.FC<LeadAnalyticsModalProps> = ({ isOpen, 
           </Tab>
         </TabBar>
 
-        <DateRow>
-          <DateLabel>Zakres:</DateLabel>
-          <DateInput
-            type="date"
-            value={dateFrom}
-            max={dateTo || undefined}
-            onChange={e => setDateFrom(e.target.value)}
-            title="Od daty"
-          />
-          <DateSep>–</DateSep>
-          <DateInput
-            type="date"
-            value={dateTo}
-            min={dateFrom || undefined}
-            onChange={e => setDateTo(e.target.value)}
-            title="Do daty"
-          />
-          {(dateFrom || dateTo) && (
-            <button
-              onClick={() => { setDateFrom(''); setDateTo(''); }}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: st.textMuted, display: 'flex', alignItems: 'center', padding: 4,
-              }}
-              title="Wyczyść zakres"
-            >
-              <X size={13} />
-            </button>
-          )}
-        </DateRow>
+        <PresetBar>
+          {PRESETS.map(p => (
+            <PresetBtn key={p.id} $active={datePreset === p.id} onClick={() => setDatePreset(p.id)}>
+              {p.label}
+            </PresetBtn>
+          ))}
+        </PresetBar>
+
+        {datePreset === 'custom' && (
+          <CustomRangeRow>
+            <DateLabel>Od:</DateLabel>
+            <DateInput
+              type="date"
+              value={customFrom}
+              max={customTo || undefined}
+              onChange={e => setCustomFrom(e.target.value)}
+            />
+            <DateSep>–</DateSep>
+            <DateLabel>Do:</DateLabel>
+            <DateInput
+              type="date"
+              value={customTo}
+              min={customFrom || undefined}
+              onChange={e => setCustomTo(e.target.value)}
+            />
+            {(customFrom || customTo) && (
+              <button
+                onClick={() => { setCustomFrom(''); setCustomTo(''); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: st.textMuted, display: 'flex', alignItems: 'center', padding: 4 }}
+                title="Wyczyść zakres"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </CustomRangeRow>
+        )}
 
         {activeTab === 'services' && (
           <ServiceAnalyticsTab dateFrom={appliedFrom} dateTo={appliedTo} />
