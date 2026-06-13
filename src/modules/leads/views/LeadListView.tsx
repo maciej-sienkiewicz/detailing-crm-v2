@@ -1425,6 +1425,8 @@ export const LeadListView: React.FC = () => {
   // Navigate to the calendar with the fly-to-cell animation (for appointmentId / relatedVisits)
   const handleGoToCalendarBooking = async (lead: Lead, eventId: string, e: React.MouseEvent) => {
     if (calNavLoadingId) return;
+    // Capture DOM ref BEFORE any await — currentTarget is nulled after event dispatch
+    const btnEl = e.currentTarget as HTMLElement;
     setCalNavLoadingId(eventId);
     try {
       let eventDate = '';
@@ -1433,8 +1435,8 @@ export const LeadListView: React.FC = () => {
         : 'Rezerwacja';
       const customer = lead.customerName ?? lead.contactIdentifier;
 
-      const isVisitId = !!lead.relatedVisits?.find(rv => rv.id === eventId);
-      if (isVisitId) {
+      const isRelatedVisit = !!lead.relatedVisits?.find(rv => rv.id === eventId);
+      if (isRelatedVisit) {
         const res = await visitApi.getVisitDetail(eventId);
         const v = res.visit;
         eventDate = v.scheduledDate ?? '';
@@ -1446,7 +1448,7 @@ export const LeadListView: React.FC = () => {
         if (res.vehicle) label = `${res.vehicle.brand} ${res.vehicle.model}`.trim();
       }
 
-      const sourceRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const sourceRect = btnEl.getBoundingClientRect();
       const snap = {
         id: eventId,
         label,
