@@ -2347,6 +2347,10 @@ export const LeadListView: React.FC = () => {
       <CustomerPickerModal
         isOpen={!!pickerLeadId}
         onClose={() => setPickerLeadId(null)}
+        prefill={pickerLeadId ? (() => {
+          const l = leads.find(x => x.id === pickerLeadId);
+          return l ? { contactIdentifier: l.contactIdentifier, customerName: l.customerName } : undefined;
+        })() : undefined}
         onSelect={customer => {
           if (pickerLeadId) {
             assignMutation.mutate({ leadId: pickerLeadId, customerId: customer.id });

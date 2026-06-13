@@ -1,11 +1,39 @@
 // src/modules/leads/components/CustomerPickerModal.tsx
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Search, X } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Search, X, UserPlus, ChevronLeft } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { customerApi } from '@/modules/customers/api/customerApi';
-import type { Customer } from '@/modules/customers/types';
+import type { Customer, CreateCustomerPayload } from '@/modules/customers/types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { customersQueryKey } from '@/modules/customers/hooks/useCustomers';
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
+const isPhone = (s: string) => /^[\d\s+\-().]{6,}$/.test(s.trim());
+
+export interface CustomerPickerPrefill {
+  contactIdentifier: string;
+  customerName?: string | null;
+}
+
+function buildPrefill(p: CustomerPickerPrefill): Partial<CreateCustomerPayload> {
+  const result: Partial<CreateCustomerPayload> = { email: null, phone: null, firstName: null, lastName: null };
+  const id = p.contactIdentifier.trim();
+
+  if (isEmail(id))       result.email = id;
+  else if (isPhone(id))  result.phone = id;
+
+  if (p.customerName) {
+    const parts = p.customerName.trim().split(/\s+/);
+    result.firstName = parts[0] ?? null;
+    result.lastName  = parts.slice(1).join(' ') || null;
+  }
+  return result;
+}
+
+// ─── Styled ───────────────────────────────────────────────────────────────────
 
 const PickerOverlay = styled.div`
   position: fixed;
@@ -94,6 +122,46 @@ const PickerSearchInput = styled.input`
   &::placeholder { color: ${st.textMuted}; }
 `;
 
+const AddNewRow = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 16px;
+  background: #f0f9ff;
+  border: none;
+  border-bottom: 1px solid ${st.border};
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 180ms ease;
+  &:hover { background: #e0f2fe; }
+`;
+
+const AddNewLabel = styled.div`
+  font-size: 13px;
+  font-weight: 600;
+  color: #0369a1;
+`;
+
+const AddNewSub = styled.div`
+  font-size: 11px;
+  color: #7dd3fc;
+  margin-top: 1px;
+`;
+
+const AddNewIcon = styled.div`
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: #bae6fd;
+  color: #0369a1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  svg { width: 16px; height: 16px; }
+`;
+
 const PickerList = styled.div`
   overflow-y: auto;
   flex: 1;
@@ -149,18 +217,130 @@ const PickerEmpty = styled.div`
   color: ${st.textMuted};
 `;
 
+// ─── New customer form ────────────────────────────────────────────────────────
+
+const FormWrap = styled.div`
+  padding: 16px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const FormRow = styled.div`
+  display: flex;
+  gap: 10px;
+`;
+
+const FormField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+`;
+
+const FormLabel = styled.label`
+  font-size: 11px;
+  font-weight: 600;
+  color: ${st.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+`;
+
+const FormInput = styled.input`
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  border: 1.5px solid ${st.border};
+  border-radius: 9px;
+  background: #f8fafc;
+  color: ${st.text};
+  outline: none;
+  transition: border-color 150ms;
+  &:focus { border-color: #0ea5e9; background: #fff; }
+  &::placeholder { color: ${st.textMuted}; }
+`;
+
+const FormActions = styled.div`
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 4px;
+`;
+
+const BackBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  background: transparent;
+  border: 1.5px solid ${st.border};
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: ${st.textSecondary};
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 150ms;
+  &:hover { background: #f1f5f9; }
+  svg { width: 13px; height: 13px; }
+`;
+
+const SaveBtn = styled.button`
+  padding: 8px 18px;
+  background: #0ea5e9;
+  border: none;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 150ms;
+  &:hover { background: #0284c7; }
+  &:disabled { background: #94a3b8; cursor: not-allowed; }
+`;
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+
 export interface CustomerPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (customer: Customer) => void;
+  prefill?: CustomerPickerPrefill;
 }
 
-export const CustomerPickerModal: React.FC<CustomerPickerModalProps> = ({ isOpen, onClose, onSelect }) => {
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export const CustomerPickerModal: React.FC<CustomerPickerModalProps> = ({
+  isOpen,
+  onClose,
+  onSelect,
+  prefill,
+}) => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [mode, setMode] = useState<'list' | 'create'>('list');
+
+  const pre = prefill ? buildPrefill(prefill) : {};
+  const [firstName, setFirstName] = useState(pre.firstName ?? '');
+  const [lastName,  setLastName]  = useState(pre.lastName  ?? '');
+  const [email,     setEmail]     = useState(pre.email     ?? '');
+  const [phone,     setPhone]     = useState(pre.phone     ?? '');
+
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!isOpen) { setSearch(''); setDebouncedSearch(''); }
+    if (!isOpen) {
+      setSearch(''); setDebouncedSearch(''); setMode('list');
+    } else {
+      // Re-sync prefill when modal opens
+      const p = prefill ? buildPrefill(prefill) : {};
+      setFirstName(p.firstName ?? '');
+      setLastName(p.lastName   ?? '');
+      setEmail(p.email         ?? '');
+      setPhone(p.phone         ?? '');
+    }
   }, [isOpen]);
 
   useEffect(() => {
@@ -171,8 +351,28 @@ export const CustomerPickerModal: React.FC<CustomerPickerModalProps> = ({ isOpen
   const { data, isLoading } = useQuery({
     queryKey: ['customer-picker', debouncedSearch],
     queryFn: () => customerApi.getCustomers({ search: debouncedSearch, page: 1, limit: 15 }),
-    enabled: isOpen,
+    enabled: isOpen && mode === 'list',
   });
+
+  const createMutation = useMutation({
+    mutationFn: (payload: CreateCustomerPayload) => customerApi.createCustomer(payload),
+    onSuccess: (customer: Customer) => {
+      queryClient.invalidateQueries({ queryKey: [customersQueryKey] });
+      onSelect(customer);
+      onClose();
+    },
+  });
+
+  const handleCreate = () => {
+    createMutation.mutate({
+      firstName: firstName.trim() || null,
+      lastName:  lastName.trim()  || null,
+      email:     email.trim()     || null,
+      phone:     phone.trim()     || null,
+      homeAddress: null,
+      companyData: null,
+    });
+  };
 
   const customers = data?.data ?? [];
 
@@ -182,40 +382,111 @@ export const CustomerPickerModal: React.FC<CustomerPickerModalProps> = ({ isOpen
     <PickerOverlay onClick={onClose}>
       <PickerBox onClick={e => e.stopPropagation()}>
         <PickerHeader>
-          <PickerTitle>Przypisz klienta z bazy</PickerTitle>
+          <PickerTitle>
+            {mode === 'create' ? 'Nowy klient' : 'Przypisz klienta z bazy'}
+          </PickerTitle>
           <PickerCloseBtn onClick={onClose}><X /></PickerCloseBtn>
         </PickerHeader>
-        <PickerSearchWrap>
-          <PickerSearchIcon><Search /></PickerSearchIcon>
-          <PickerSearchInput
-            autoFocus
-            placeholder="Szukaj po nazwisku, emailu, telefonie…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </PickerSearchWrap>
-        <PickerList>
-          {isLoading ? (
-            <PickerEmpty>Ładowanie…</PickerEmpty>
-          ) : customers.length === 0 ? (
-            <PickerEmpty>
-              {debouncedSearch ? 'Brak wyników dla podanej frazy' : 'Brak klientów w bazie'}
-            </PickerEmpty>
-          ) : customers.map(customer => {
-            const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || '—';
-            const initials = [customer.firstName?.[0], customer.lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?';
-            const contact = customer.contact?.phone || customer.contact?.email || '';
-            return (
-              <PickerRow key={customer.id} onClick={() => { onSelect(customer); onClose(); }}>
-                <PickerAvatar>{initials}</PickerAvatar>
+
+        {mode === 'list' ? (
+          <>
+            <PickerSearchWrap>
+              <PickerSearchIcon><Search /></PickerSearchIcon>
+              <PickerSearchInput
+                autoFocus
+                placeholder="Szukaj po nazwisku, emailu, telefonie…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </PickerSearchWrap>
+
+            <PickerList>
+              <AddNewRow onClick={() => setMode('create')}>
+                <AddNewIcon><UserPlus /></AddNewIcon>
                 <div>
-                  <PickerName>{fullName}</PickerName>
-                  {contact && <PickerSub>{contact}</PickerSub>}
+                  <AddNewLabel>Dodaj nowego klienta</AddNewLabel>
+                  {prefill && (
+                    <AddNewSub>
+                      Dane z leada zostaną wstępnie uzupełnione
+                    </AddNewSub>
+                  )}
                 </div>
-              </PickerRow>
-            );
-          })}
-        </PickerList>
+              </AddNewRow>
+
+              {isLoading ? (
+                <PickerEmpty>Ładowanie…</PickerEmpty>
+              ) : customers.length === 0 ? (
+                <PickerEmpty>
+                  {debouncedSearch ? 'Brak wyników dla podanej frazy' : 'Brak klientów w bazie'}
+                </PickerEmpty>
+              ) : customers.map(customer => {
+                const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || '—';
+                const initials = [customer.firstName?.[0], customer.lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?';
+                const contact = customer.contact?.phone || customer.contact?.email || '';
+                return (
+                  <PickerRow key={customer.id} onClick={() => { onSelect(customer); onClose(); }}>
+                    <PickerAvatar>{initials}</PickerAvatar>
+                    <div>
+                      <PickerName>{fullName}</PickerName>
+                      {contact && <PickerSub>{contact}</PickerSub>}
+                    </div>
+                  </PickerRow>
+                );
+              })}
+            </PickerList>
+          </>
+        ) : (
+          <FormWrap>
+            <FormRow>
+              <FormField>
+                <FormLabel>Imię</FormLabel>
+                <FormInput
+                  autoFocus
+                  placeholder="Jan"
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                />
+              </FormField>
+              <FormField>
+                <FormLabel>Nazwisko</FormLabel>
+                <FormInput
+                  placeholder="Kowalski"
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                />
+              </FormField>
+            </FormRow>
+            <FormField>
+              <FormLabel>E-mail</FormLabel>
+              <FormInput
+                type="email"
+                placeholder="jan@example.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+              />
+            </FormField>
+            <FormField>
+              <FormLabel>Telefon</FormLabel>
+              <FormInput
+                type="tel"
+                placeholder="+48 600 000 000"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+              />
+            </FormField>
+            <FormActions>
+              <BackBtn onClick={() => setMode('list')}>
+                <ChevronLeft /> Wróć
+              </BackBtn>
+              <SaveBtn
+                onClick={handleCreate}
+                disabled={createMutation.isPending || (!firstName && !lastName && !email && !phone)}
+              >
+                {createMutation.isPending ? 'Zapisywanie…' : 'Utwórz i przypisz'}
+              </SaveBtn>
+            </FormActions>
+          </FormWrap>
+        )}
       </PickerBox>
     </PickerOverlay>
   );
