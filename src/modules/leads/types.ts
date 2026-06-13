@@ -398,6 +398,38 @@ export interface TimeAnalyticsParams {
 }
 
 // ---------------------------------------------------------------------------
+// Time analytics interpretation (POST /api/v1/leads/time-analytics/interpret)
+// ---------------------------------------------------------------------------
+
+export type TimeAnalyticsBucketType = 'BY_HOUR' | 'BY_DAY_OF_MONTH';
+export type TimeAnalyticsActionType = 'INCOMING' | 'ACCEPTED' | 'REJECTED';
+
+export interface InterpretTimeAnalyticsRequest {
+  bucketType: TimeAnalyticsBucketType;
+  actionTypes: TimeAnalyticsActionType[];
+  buckets: TimeAnalyticsBucket[];
+}
+
+export interface InterpretTimeAnalyticsInsight {
+  bucketLabel: string;
+  observation: string;
+  causalExplanation: string;
+}
+
+export interface InterpretTimeAnalyticsRecommendations {
+  bestTimeToCall: string;
+  bestTimeToRemind: string;
+  adCampaignTiming: string;
+  socialMediaTiming: string;
+}
+
+export interface InterpretTimeAnalyticsResponse {
+  summary: string;
+  insights: InterpretTimeAnalyticsInsight[];
+  recommendations: InterpretTimeAnalyticsRecommendations;
+}
+
+// ---------------------------------------------------------------------------
 // Request types for new endpoints
 // ---------------------------------------------------------------------------
 

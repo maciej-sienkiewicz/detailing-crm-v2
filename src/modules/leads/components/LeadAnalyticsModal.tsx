@@ -1,15 +1,23 @@
 // src/modules/leads/components/LeadAnalyticsModal.tsx
 import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { BarChart2, Users, X, TrendingUp, TrendingDown, Minus, Award, Target, Clock } from 'lucide-react';
+import { BarChart2, Users, X, TrendingUp, TrendingDown, Minus, Award, Target, Clock, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from 'recharts';
+import { useMutation } from '@tanstack/react-query';
 import { Modal } from '@/common/components/Modal/Modal';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useServiceAnalytics, useEmployeeStats, useLeadTimeAnalytics } from '../hooks';
+import { leadApi } from '../api/leadApi';
 import { formatCurrency } from '../utils/formatters';
-import type { LeadSource } from '../types';
+import type {
+  LeadSource,
+  TimeAnalyticsBucket,
+  TimeAnalyticsBucketType,
+  TimeAnalyticsActionType,
+  InterpretTimeAnalyticsResponse,
+} from '../types';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
@@ -613,13 +621,260 @@ const limitDecimals2 = (raw: string): string => {
   return sep === -1 ? raw : raw.slice(0, sep + 3);
 };
 
-const SERIES = [
-  { key: 'incomingCount', label: 'Przychodzące', color: CHART_COLORS.incoming },
-  { key: 'acceptedCount', label: 'Zaakceptowane', color: CHART_COLORS.accepted },
-  { key: 'rejectedCount', label: 'Odrzucone',     color: CHART_COLORS.rejected },
-] as const;
+// ─── Series definitions (needed by both InterpretPanel and TimingTab) ─────────
 
-type SeriesKey = typeof SERIES[number]['key'];
+const SERIES_DEF = [
+  { key: 'incomingCount' as const, label: 'Przychodzące', color: '#0ea5e9' },
+  { key: 'acceptedCount' as const, label: 'Zaakceptowane', color: '#16a34a' },
+  { key: 'rejectedCount' as const, label: 'Odrzucone',     color: '#dc2626' },
+];
+
+type SeriesKey = typeof SERIES_DEF[number]['key'];
+
+// ─── Interpretation panel ─────────────────────────────────────────────────────
+
+const InterpretBtn = styled.button<{ $loading?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 7px 16px;
+  border-radius: 9999px;
+  border: 1.5px solid #7c3aed;
+  background: ${p => p.$loading ? '#ede9fe' : '#faf5ff'};
+  color: #7c3aed;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: ${p => p.$loading ? 'not-allowed' : 'pointer'};
+  font-family: inherit;
+  transition: all 150ms ease;
+  opacity: ${p => p.$loading ? 0.75 : 1};
+
+  &:hover:not(:disabled) { background: #ede9fe; border-color: #6d28d9; }
+  svg { width: 13px; height: 13px; }
+`;
+
+const InterpretCard = styled.div`
+  margin-top: 12px;
+  border: 1px solid #e9d5ff;
+  border-radius: 12px;
+  overflow: hidden;
+  animation: ${fadeIn} 200ms ease both;
+`;
+
+const InterpretCardHeader = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%);
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  gap: 8px;
+`;
+
+const InterpretCardTitle = styled.span`
+  font-size: 12px;
+  font-weight: 700;
+  color: #7c3aed;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+const InterpretBody = styled.div`
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: #fff;
+  border-top: 1px solid #e9d5ff;
+`;
+
+const InterpretSummary = styled.p`
+  font-size: 13px;
+  color: ${st.textSecondary};
+  line-height: 1.6;
+  margin: 0;
+`;
+
+const InterpretSectionLabel = styled.div`
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7c3aed;
+  margin-bottom: 6px;
+`;
+
+const InsightList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const InsightItem = styled.div`
+  padding: 10px 12px;
+  background: #f9f7ff;
+  border: 1px solid #ede9fe;
+  border-radius: 8px;
+`;
+
+const InsightLabel = styled.div`
+  font-size: 11px;
+  font-weight: 700;
+  color: #5b21b6;
+  margin-bottom: 3px;
+`;
+
+const InsightObs = styled.div`
+  font-size: 12px;
+  font-weight: 600;
+  color: ${st.text};
+  margin-bottom: 2px;
+`;
+
+const InsightCause = styled.div`
+  font-size: 12px;
+  color: ${st.textMuted};
+  line-height: 1.5;
+`;
+
+const RecoGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+
+  @media (max-width: 560px) { grid-template-columns: 1fr; }
+`;
+
+const RecoCard = styled.div`
+  padding: 10px 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+`;
+
+const RecoLabel = styled.div`
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #15803d;
+  margin-bottom: 3px;
+`;
+
+const RecoText = styled.div`
+  font-size: 12px;
+  color: ${st.text};
+  line-height: 1.45;
+`;
+
+interface InterpretPanelProps {
+  bucketType: TimeAnalyticsBucketType;
+  buckets: TimeAnalyticsBucket[];
+  visibleSeries: Set<SeriesKey>;
+}
+
+const InterpretPanel: React.FC<InterpretPanelProps> = ({ bucketType, buckets, visibleSeries }) => {
+  const [result, setResult] = useState<InterpretTimeAnalyticsResponse | null>(null);
+  const [expanded, setExpanded] = useState(true);
+
+  const seriesKeyToAction: Record<SeriesKey, TimeAnalyticsActionType> = {
+    incomingCount: 'INCOMING',
+    acceptedCount: 'ACCEPTED',
+    rejectedCount: 'REJECTED',
+  };
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: () => leadApi.interpretTimeAnalytics({
+      bucketType,
+      actionTypes: [...visibleSeries].map(k => seriesKeyToAction[k]),
+      buckets: buckets.filter(b => b.incomingCount > 0 || b.acceptedCount > 0 || b.rejectedCount > 0),
+    }),
+    onSuccess: res => { setResult(res); setExpanded(true); },
+  });
+
+  const reco = result?.recommendations;
+
+  return (
+    <div>
+      {!result ? (
+        <InterpretBtn $loading={isPending} onClick={() => !isPending && mutate()} disabled={isPending}>
+          <Sparkles />
+          {isPending ? 'Analizuję dane…' : 'Pomóż z interpretacją wyników'}
+        </InterpretBtn>
+      ) : (
+        <InterpretCard>
+          <InterpretCardHeader onClick={() => setExpanded(p => !p)}>
+            <InterpretCardTitle>
+              <Sparkles /> Interpretacja AI
+            </InterpretCardTitle>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <InterpretBtn
+                as="span"
+                style={{ padding: '3px 10px', fontSize: 11, cursor: 'pointer' }}
+                onClick={e => { e.stopPropagation(); mutate(); }}
+              >
+                Odśwież
+              </InterpretBtn>
+              {expanded ? <ChevronUp size={14} color="#7c3aed" /> : <ChevronDown size={14} color="#7c3aed" />}
+            </div>
+          </InterpretCardHeader>
+
+          {expanded && (
+            <InterpretBody>
+              <InterpretSummary>{result.summary}</InterpretSummary>
+
+              {result.insights.length > 0 && (
+                <div>
+                  <InterpretSectionLabel>Obserwacje</InterpretSectionLabel>
+                  <InsightList>
+                    {result.insights.map((ins, i) => (
+                      <InsightItem key={i}>
+                        <InsightLabel>{ins.bucketLabel}</InsightLabel>
+                        <InsightObs>{ins.observation}</InsightObs>
+                        <InsightCause>{ins.causalExplanation}</InsightCause>
+                      </InsightItem>
+                    ))}
+                  </InsightList>
+                </div>
+              )}
+
+              {reco && (
+                <div>
+                  <InterpretSectionLabel>Rekomendacje</InterpretSectionLabel>
+                  <RecoGrid>
+                    <RecoCard>
+                      <RecoLabel>Najlepsza pora na kontakt</RecoLabel>
+                      <RecoText>{reco.bestTimeToCall}</RecoText>
+                    </RecoCard>
+                    <RecoCard>
+                      <RecoLabel>Przypomnienia</RecoLabel>
+                      <RecoText>{reco.bestTimeToRemind}</RecoText>
+                    </RecoCard>
+                    <RecoCard>
+                      <RecoLabel>Kampanie reklamowe</RecoLabel>
+                      <RecoText>{reco.adCampaignTiming}</RecoText>
+                    </RecoCard>
+                    <RecoCard>
+                      <RecoLabel>Social media</RecoLabel>
+                      <RecoText>{reco.socialMediaTiming}</RecoText>
+                    </RecoCard>
+                  </RecoGrid>
+                </div>
+              )}
+            </InterpretBody>
+          )}
+        </InterpretCard>
+      )}
+    </div>
+  );
+};
+
+const SERIES = SERIES_DEF;
 
 const SeriesToggleBar = styled.div`
   display: flex;
@@ -804,6 +1059,7 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
               </BarChart>
             </ResponsiveContainer>
           </ChartWrap>
+          <InterpretPanel bucketType="BY_HOUR" buckets={hourData} visibleSeries={visibleSeries} />
 
           {/* By day of month */}
           <ChartWrap>
@@ -836,6 +1092,7 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
               </BarChart>
             </ResponsiveContainer>
           </ChartWrap>
+          <InterpretPanel bucketType="BY_DAY_OF_MONTH" buckets={dayData} visibleSeries={visibleSeries} />
         </>
       )}
     </ChartBlock>

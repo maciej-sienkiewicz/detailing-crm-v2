@@ -21,6 +21,8 @@ import type {
   LeadAlertConfig,
   TimeAnalyticsResponse,
   TimeAnalyticsParams,
+  InterpretTimeAnalyticsRequest,
+  InterpretTimeAnalyticsResponse,
   AssignLeadUserRequest,
   SetLostReasonRequest,
   SetServiceTagsRequest,
@@ -717,6 +719,14 @@ export const leadApi = {
     if (params.dateTo) p.append('dateTo', params.dateTo);
     const qs = p.toString();
     const response = await apiClient.get(`${BASE_PATH}/time-analytics${qs ? `?${qs}` : ''}`);
+    return response.data;
+  },
+
+  /**
+   * Request AI interpretation of time-analytics buckets.
+   */
+  interpretTimeAnalytics: async (req: InterpretTimeAnalyticsRequest): Promise<InterpretTimeAnalyticsResponse> => {
+    const response = await apiClient.post(`${BASE_PATH}/time-analytics/interpret`, req);
     return response.data;
   },
 
