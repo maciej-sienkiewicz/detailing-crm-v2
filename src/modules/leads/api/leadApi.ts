@@ -31,6 +31,7 @@ import type {
   AddCommentRequest,
   EditCommentRequest,
   LeadStatusHistoryEntry,
+  QuoteReplyExampleDto,
 } from '../types';
 
 const USE_MOCKS = false;
@@ -696,6 +697,27 @@ export const leadApi = {
    */
   linkVisit: async (leadId: LeadId, visitId: string | null): Promise<void> => {
     await apiClient.patch(`${BASE_PATH}/${leadId}/link-visit`, { visitId });
+  },
+
+  // ─── Quote-reply examples ──────────────────────────────────────────────────
+
+  listQuoteReplyExamples: async (): Promise<QuoteReplyExampleDto[]> => {
+    const res = await apiClient.get(`${BASE_PATH}/quote-reply-examples`);
+    return res.data;
+  },
+
+  saveQuoteReplyExample: async (title: string, content: string): Promise<QuoteReplyExampleDto> => {
+    const res = await apiClient.post(`${BASE_PATH}/quote-reply-examples`, { title, content });
+    return res.data;
+  },
+
+  updateQuoteReplyExample: async (id: string, title: string, content: string): Promise<QuoteReplyExampleDto> => {
+    const res = await apiClient.patch(`${BASE_PATH}/quote-reply-examples/${id}`, { title, content });
+    return res.data;
+  },
+
+  deleteQuoteReplyExample: async (id: string): Promise<void> => {
+    await apiClient.delete(`${BASE_PATH}/quote-reply-examples/${id}`);
   },
 
   /**

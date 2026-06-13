@@ -496,6 +496,18 @@ export interface FieldChange {
   newValue: string | null;
 }
 
+export interface QuoteReplyExampleDto {
+  id: string;
+  title: string;
+  content: string;
+  createdBy: string;
+  createdByName: string;
+  updatedBy: string | null;
+  updatedByName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface LeadStatusHistoryEntry {
   changedAt: string;
   action: LeadHistoryAction;
