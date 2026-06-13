@@ -176,30 +176,61 @@ const NewDot = styled.span`
 const HeaderBtns = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
 `;
 
-
-const SecondaryBtn = styled.button`
+// Grouped cluster of icon-only utility actions, sits on the dark hero
+const IconCluster = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: #f1f5f9;
-  color: #475569;
-  border: 1.5px solid #e2e8f0;
+  gap: 2px;
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 9999px;
-  font-family: inherit;
-  font-size: ${st.fontSm};
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: all ${st.transition};
+`;
 
-  &:hover { background: #e2e8f0; color: #0f172a; }
-  svg { width: 15px; height: 15px; flex-shrink: 0; }
+const IconActionBtn = styled.button`
+  position: relative;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #cbd5e1;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 160ms ease;
+
+  &:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
+  &:active { transform: scale(0.94); }
+  svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+  /* tooltip */
+  &::after {
+    content: attr(data-tip);
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) translateY(-3px);
+    padding: 5px 9px;
+    background: #0f172a;
+    color: #f1f5f9;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 140ms ease, transform 140ms ease;
+    z-index: 50;
+  }
+  &:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
 `;
 
 // ─── Date range picker ────────────────────────────────────────────────────────
@@ -212,11 +243,11 @@ const DatePickerWrap = styled.div`
 const DatePickerTrigger = styled.button<{ $active: boolean }>`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background: ${p => p.$active ? '#eff6ff' : '#f1f5f9'};
-  color: ${p => p.$active ? '#0ea5e9' : '#475569'};
-  border: 1.5px solid ${p => p.$active ? '#bae6fd' : '#e2e8f0'};
+  gap: 7px;
+  padding: 9px 15px;
+  background: ${p => p.$active ? 'rgba(14, 165, 233, 0.22)' : 'rgba(255, 255, 255, 0.08)'};
+  color: ${p => p.$active ? '#7dd3fc' : '#e2e8f0'};
+  border: 1px solid ${p => p.$active ? 'rgba(125, 211, 252, 0.45)' : 'rgba(255, 255, 255, 0.14)'};
   border-radius: 9999px;
   font-family: inherit;
   font-size: ${st.fontSm};
@@ -226,8 +257,8 @@ const DatePickerTrigger = styled.button<{ $active: boolean }>`
   transition: all ${st.transition};
 
   &:hover {
-    background: ${p => p.$active ? '#dbeafe' : '#e2e8f0'};
-    color: ${p => p.$active ? '#0284c7' : '#0f172a'};
+    background: ${p => p.$active ? 'rgba(14, 165, 233, 0.3)' : 'rgba(255, 255, 255, 0.14)'};
+    color: #fff;
   }
   svg { width: 14px; height: 14px; flex-shrink: 0; }
 `;
@@ -2098,20 +2129,17 @@ export const LeadListView: React.FC = () => {
             )}
           </DatePickerWrap>
 
-          <SecondaryBtn onClick={() => setIsHelpOpen(true)}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            Dowiedz się więcej
-          </SecondaryBtn>
-
-          <SecondaryBtn onClick={() => setIsExamplesOpen(true)}>
-            <BookOpen size={14} />
-            Przykłady ofert
-          </SecondaryBtn>
-
-          <SecondaryBtn onClick={() => setIsAnalyticsOpen(true)}>
-            <BarChart2 size={14} />
-            Analityka
-          </SecondaryBtn>
+          <IconCluster>
+            <IconActionBtn data-tip="Analityka" aria-label="Analityka" onClick={() => setIsAnalyticsOpen(true)}>
+              <BarChart2 />
+            </IconActionBtn>
+            <IconActionBtn data-tip="Przykłady ofert" aria-label="Przykłady ofert" onClick={() => setIsExamplesOpen(true)}>
+              <BookOpen />
+            </IconActionBtn>
+            <IconActionBtn data-tip="Dowiedz się więcej" aria-label="Dowiedz się więcej" onClick={() => setIsHelpOpen(true)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </IconActionBtn>
+          </IconCluster>
 
           <PageHeaderPrimaryButton onClick={() => setIsFormOpen(true)}>
             <Plus />
