@@ -4,7 +4,7 @@ import { leadApi } from '../../api/leadApi';
 
 export type OfferPhase = 'typing' | 'revealed';
 
-const TYPING_DURATION_MS = 3200;
+const TYPING_DURATION_MS = 6400;
 
 const PLACEHOLDER_TEXT =
   'Szanowny Panie/Pani,\n\nDziękujemy za zainteresowanie naszymi usługami detailingowymi. Z przyjemnością przygotowaliśmy dla Pana/Pani indywidualną ofertę dopasowaną do potrzeb pojazdu.\n\nW skład kompleksowego pakietu wchodzą następujące usługi:\n• Szczegółowe czyszczenie i odkurzanie wnętrza pojazdu\n• Profesjonalna pielęgnacja i polerowanie lakieru\n• Ochrona powierzchni powłoką ceramiczną\n• Impregnacja tapicerki i plastików\n\nSzczegółowy cennik oraz dostępne terminy chętnie omówimy podczas bezpośredniego kontaktu.\n\nZapraszamy do umówienia wizyty.\n\nZ poważaniem,\nZespół Detailing Studio';

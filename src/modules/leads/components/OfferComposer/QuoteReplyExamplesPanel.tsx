@@ -1,9 +1,16 @@
 import { useState } from 'react';
-import styled from 'styled-components';
-import { Trash2, Pencil, Check, X, BookOpen } from 'lucide-react';
+import styled, { keyframes, css } from 'styled-components';
+import { Trash2, Pencil, Check, X, BookOpen, Maximize2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { leadApi } from '../../api/leadApi';
 import type { QuoteReplyExampleDto } from '../../types';
+
+// ─── Animations ───────────────────────────────────────────────────────────────
+
+const collapse = keyframes`
+  from { max-height: 300px; opacity: 1; margin-bottom: 6px; }
+  to   { max-height: 0;     opacity: 0; margin-bottom: 0;   }
+`;
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
@@ -69,11 +76,15 @@ const EmptyMsg = styled.div`
   font-style: italic;
 `;
 
-const ExampleCard = styled.div`
+const ExampleCard = styled.div<{ $collapsing?: boolean }>`
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   background: #fafafa;
   overflow: hidden;
+  ${({ $collapsing }) => $collapsing && css`
+    animation: ${collapse} 320ms ease forwards;
+    pointer-events: none;
+  `}
 `;
 
 const CardHeader = styled.div`
@@ -160,6 +171,70 @@ const LimitBanner = styled.div`
   font-weight: 500;
 `;
 
+// ─── Expand overlay ───────────────────────────────────────────────────────────
+
+const ExpandOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+  border-radius: 14px;
+  overflow: hidden;
+`;
+
+const ExpandHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 0.5px solid rgba(0,0,0,0.1);
+  background: #f3f4f6;
+  flex-shrink: 0;
+`;
+
+const ExpandTitle = styled.span`
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1c1c1e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const ExpandBody = styled.textarea`
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px 20px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: #1c1c1e;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #fff;
+`;
+
+const CloseExpandBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #007aff;
+  cursor: pointer;
+  &:hover { background: rgba(0,122,255,0.08); }
+`;
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const EXAMPLES_KEY = ['quote-reply-examples'];
@@ -197,6 +272,8 @@ export function QuoteReplyExamplesPanel({ onBack }: Props) {
 
   const [editing, setEditing] = useState<Record<string, { title: string; content: string }>>({});
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [collapsing, setCollapsing] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<QuoteReplyExampleDto | null>(null);
 
   const startEdit = (ex: QuoteReplyExampleDto) => {
     setEditing(prev => ({ ...prev, [ex.id]: { title: ex.title, content: ex.content } }));
@@ -213,70 +290,95 @@ export function QuoteReplyExamplesPanel({ onBack }: Props) {
     cancelEdit(id);
   };
 
+  const handleDelete = (id: string) => {
+    setCollapsing(id);
+    setConfirmDelete(null);
+    // Wait for collapse animation to finish before calling API
+    setTimeout(() => {
+      deleteMutation.mutate(id);
+      setCollapsing(null);
+    }, 320);
+  };
+
   return (
-    <Panel>
-      <PanelHeader>
-        <BookOpen size={14} color="#007aff" />
-        <PanelTitle>Przykłady stylu odpowiedzi</PanelTitle>
-        <Count>{examples.length}/{MAX_EXAMPLES}</Count>
-        <PanelBack onClick={onBack}><X size={12} /> Zamknij</PanelBack>
-      </PanelHeader>
+    // position:relative so expand overlay can fill this panel
+    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      <Panel>
+        <PanelHeader>
+          <BookOpen size={14} color="#007aff" />
+          <PanelTitle>Przykłady stylu odpowiedzi</PanelTitle>
+          <Count>{examples.length}/{MAX_EXAMPLES}</Count>
+          <PanelBack onClick={onBack}><X size={12} /> Zamknij</PanelBack>
+        </PanelHeader>
 
-      {examples.length >= MAX_EXAMPLES && (
-        <LimitBanner>
-          Osiągnięto limit {MAX_EXAMPLES} przykładów. Usuń jeden, aby dodać nowy.
-        </LimitBanner>
-      )}
-
-      <List>
-        {isLoading && <EmptyMsg>Ładowanie…</EmptyMsg>}
-        {!isLoading && examples.length === 0 && (
-          <EmptyMsg>Brak zapisanych przykładów.<br />Wygeneruj ofertę, wprowadź poprawki i kliknij „Zapisz jako przykład".</EmptyMsg>
+        {examples.length >= MAX_EXAMPLES && (
+          <LimitBanner>
+            Osiągnięto limit {MAX_EXAMPLES} przykładów. Usuń jeden, aby dodać nowy.
+          </LimitBanner>
         )}
-        {examples.map(ex => {
-          const isEdit = !!editing[ex.id];
-          const val = editing[ex.id] ?? { title: ex.title, content: ex.content };
-          const meta = ex.updatedByName
-            ? `Edytowano: ${ex.updatedByName} · ${formatDate(ex.updatedAt)}`
-            : `Dodano: ${ex.createdByName} · ${formatDate(ex.createdAt)}`;
 
-          return (
-            <ExampleCard key={ex.id}>
-              <CardHeader>
-                <CardTitle
-                  value={val.title}
+        <List>
+          {isLoading && <EmptyMsg>Ładowanie…</EmptyMsg>}
+          {!isLoading && examples.length === 0 && (
+            <EmptyMsg>Brak zapisanych przykładów.<br />Wygeneruj ofertę, wprowadź poprawki i kliknij „Zapisz jako przykład".</EmptyMsg>
+          )}
+          {examples.map(ex => {
+            const isEdit = !!editing[ex.id];
+            const val = editing[ex.id] ?? { title: ex.title, content: ex.content };
+            const meta = ex.updatedByName
+              ? `Edytowano: ${ex.updatedByName} · ${formatDate(ex.updatedAt)}`
+              : `Dodano: ${ex.createdByName} · ${formatDate(ex.createdAt)}`;
+
+            return (
+              <ExampleCard key={ex.id} $collapsing={collapsing === ex.id}>
+                <CardHeader>
+                  <CardTitle
+                    value={val.title}
+                    readOnly={!isEdit}
+                    onChange={e => setEditing(prev => ({ ...prev, [ex.id]: { ...prev[ex.id], title: e.target.value } }))}
+                  />
+                  <CardMeta>{meta}</CardMeta>
+                  <CardActions>
+                    {isEdit ? (
+                      <>
+                        <IconBtn $confirm title="Zapisz" onClick={() => saveEdit(ex.id)}><Check /></IconBtn>
+                        <IconBtn title="Anuluj" onClick={() => cancelEdit(ex.id)}><X /></IconBtn>
+                      </>
+                    ) : confirmDelete === ex.id ? (
+                      <>
+                        <IconBtn $danger title="Potwierdź usunięcie" onClick={() => handleDelete(ex.id)}><Check /></IconBtn>
+                        <IconBtn title="Anuluj" onClick={() => setConfirmDelete(null)}><X /></IconBtn>
+                      </>
+                    ) : (
+                      <>
+                        <IconBtn title="Rozwiń" onClick={() => setExpanded(ex)}><Maximize2 /></IconBtn>
+                        <IconBtn title="Edytuj" onClick={() => startEdit(ex)}><Pencil /></IconBtn>
+                        <IconBtn $danger title="Usuń" onClick={() => setConfirmDelete(ex.id)}><Trash2 /></IconBtn>
+                      </>
+                    )}
+                  </CardActions>
+                </CardHeader>
+                <CardBody
+                  value={val.content}
                   readOnly={!isEdit}
-                  onChange={e => setEditing(prev => ({ ...prev, [ex.id]: { ...prev[ex.id], title: e.target.value } }))}
+                  onChange={e => setEditing(prev => ({ ...prev, [ex.id]: { ...prev[ex.id], content: e.target.value } }))}
                 />
-                <CardMeta>{meta}</CardMeta>
-                <CardActions>
-                  {isEdit ? (
-                    <>
-                      <IconBtn $confirm title="Zapisz" onClick={() => saveEdit(ex.id)}><Check /></IconBtn>
-                      <IconBtn title="Anuluj" onClick={() => cancelEdit(ex.id)}><X /></IconBtn>
-                    </>
-                  ) : confirmDelete === ex.id ? (
-                    <>
-                      <IconBtn $danger title="Potwierdź usunięcie" onClick={() => { deleteMutation.mutate(ex.id); setConfirmDelete(null); }}><Check /></IconBtn>
-                      <IconBtn title="Anuluj" onClick={() => setConfirmDelete(null)}><X /></IconBtn>
-                    </>
-                  ) : (
-                    <>
-                      <IconBtn title="Edytuj" onClick={() => startEdit(ex)}><Pencil /></IconBtn>
-                      <IconBtn $danger title="Usuń" onClick={() => setConfirmDelete(ex.id)}><Trash2 /></IconBtn>
-                    </>
-                  )}
-                </CardActions>
-              </CardHeader>
-              <CardBody
-                value={val.content}
-                readOnly={!isEdit}
-                onChange={e => setEditing(prev => ({ ...prev, [ex.id]: { ...prev[ex.id], content: e.target.value } }))}
-              />
-            </ExampleCard>
-          );
-        })}
-      </List>
-    </Panel>
+              </ExampleCard>
+            );
+          })}
+        </List>
+      </Panel>
+
+      {/* Expand overlay — covers entire ComposeWindow */}
+      {expanded && (
+        <ExpandOverlay>
+          <ExpandHeader>
+            <ExpandTitle>{expanded.title}</ExpandTitle>
+            <CloseExpandBtn onClick={() => setExpanded(null)}><X size={12} /> Zamknij podgląd</CloseExpandBtn>
+          </ExpandHeader>
+          <ExpandBody readOnly value={expanded.content} />
+        </ExpandOverlay>
+      )}
+    </div>
   );
 }
