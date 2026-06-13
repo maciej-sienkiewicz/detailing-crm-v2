@@ -874,12 +874,12 @@ const AssignBtn = styled.button<{ $secondary?: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 14px;
-  background: ${p => p.$secondary ? 'transparent' : '#0ea5e9'};
+  padding: 5px 10px;
+  background: ${p => p.$secondary ? 'transparent' : 'transparent'};
   border: 1.5px solid ${p => p.$secondary ? '#cbd5e1' : '#0ea5e9'};
-  color: ${p => p.$secondary ? '#64748b' : '#fff'};
+  color: ${p => p.$secondary ? '#64748b' : '#0ea5e9'};
   border-radius: 9999px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
@@ -887,11 +887,11 @@ const AssignBtn = styled.button<{ $secondary?: boolean }>`
   transition: all ${st.transition};
 
   &:hover {
-    background: ${p => p.$secondary ? '#f1f5f9' : '#0284c7'};
-    border-color: ${p => p.$secondary ? '#94a3b8' : '#0284c7'};
+    background: ${p => p.$secondary ? '#f1f5f9' : '#e0f2fe'};
+    border-color: ${p => p.$secondary ? '#94a3b8' : '#0ea5e9'};
   }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
-  svg { width: 13px; height: 13px; }
+  svg { width: 12px; height: 12px; }
 `;
 
 // ─── Customer chip in row ─────────────────────────────────────────────────────
@@ -903,8 +903,8 @@ const CustomerChip = styled.button<{ $primary?: boolean }>`
   padding: 3px 8px 3px 5px;
   border-radius: 9999px;
   border: 1.5px solid ${p => p.$primary ? '#0ea5e9' : '#cbd5e1'};
-  background: ${p => p.$primary ? '#0ea5e9' : 'transparent'};
-  color: ${p => p.$primary ? '#fff' : '#64748b'};
+  background: transparent;
+  color: ${p => p.$primary ? '#0ea5e9' : '#64748b'};
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -913,8 +913,8 @@ const CustomerChip = styled.button<{ $primary?: boolean }>`
   transition: all ${st.transition};
 
   &:hover {
-    background: ${p => p.$primary ? '#0284c7' : '#f1f5f9'};
-    border-color: ${p => p.$primary ? '#0284c7' : '#94a3b8'};
+    background: ${p => p.$primary ? '#e0f2fe' : '#f1f5f9'};
+    border-color: ${p => p.$primary ? '#0ea5e9' : '#94a3b8'};
   }
   svg { width: 12px; height: 12px; flex-shrink: 0; }
 `;
@@ -1259,7 +1259,7 @@ export const LeadListView: React.FC = () => {
   const [empPickerLeadId, setEmpPickerLeadId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen]         = useState(false);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
-  const [selectedStatuses, setSelectedStatuses] = useState<LeadStatus[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<LeadStatus[]>([LeadStatus.NEW, LeadStatus.IN_PROGRESS]);
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const [activeSource, setActiveSource]     = useState<SourceTab>('ALL');
@@ -1511,7 +1511,7 @@ export const LeadListView: React.FC = () => {
 
   const [filters, setFilters] = useState<LeadListFilters>({
     search: '',
-    status: [],
+    status: [LeadStatus.NEW, LeadStatus.IN_PROGRESS],
     source: [],
     page: 1,
     limit: 20,
@@ -1764,7 +1764,6 @@ export const LeadListView: React.FC = () => {
                 </CellMain>
                 <AssignBtn
                   $secondary
-                  style={{ fontSize: 11, padding: '3px 8px' }}
                   onClick={() => setEmpPickerLeadId(lead.id)}
                 >
                   <UserCheck size={12} /> Zmień przypisanie
@@ -1772,7 +1771,6 @@ export const LeadListView: React.FC = () => {
               </CellStack>
             ) : (
               <AssignBtn
-                style={{ fontSize: 11, padding: '3px 8px' }}
                 onClick={() => setEmpPickerLeadId(lead.id)}
               >
                 <UserCheck size={12} /> Przypisz pracownika
