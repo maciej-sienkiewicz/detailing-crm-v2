@@ -19,6 +19,8 @@ import type {
   ServiceAnalyticsItem,
   EmployeeStats,
   LeadAlertConfig,
+  TimeAnalyticsResponse,
+  TimeAnalyticsParams,
   AssignLeadUserRequest,
   SetLostReasonRequest,
   SetServiceTagsRequest,
@@ -34,6 +36,7 @@ export const LEADS_KEY = ['leads'];
 export const LEAD_PIPELINE_KEY = ['leads', 'pipeline'];
 export const LEAD_SERVICE_ANALYTICS_KEY = ['leads', 'service-analytics'];
 export const LEAD_EMPLOYEE_STATS_KEY = ['leads', 'employee-stats'];
+export const LEAD_TIME_ANALYTICS_KEY = ['leads', 'time-analytics'];
 export const LEAD_ALERT_CONFIG_KEY = ['leads', 'alert-config'];
 
 const leadCommentKey = (leadId: LeadId) => ['leads', 'comments', leadId];
@@ -422,6 +425,17 @@ export const useEmployeeStats = (dateFrom?: string, dateTo?: string) => {
   });
 
   return { data: data ?? [], isLoading, isError, refetch };
+};
+
+/**
+ * Hook for time-distribution analytics (by hour / day-of-month).
+ */
+export const useLeadTimeAnalytics = (params: TimeAnalyticsParams) => {
+  const { data, isLoading, isError } = useQuery<TimeAnalyticsResponse>({
+    queryKey: [...LEAD_TIME_ANALYTICS_KEY, params],
+    queryFn: () => leadApi.getTimeAnalytics(params),
+  });
+  return { data, isLoading, isError };
 };
 
 /**

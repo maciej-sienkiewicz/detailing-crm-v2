@@ -1,10 +1,13 @@
 // src/modules/leads/components/LeadAnalyticsModal.tsx
 import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { BarChart2, Users, X, TrendingUp, TrendingDown, Minus, Award, Target } from 'lucide-react';
+import { BarChart2, Users, X, TrendingUp, TrendingDown, Minus, Award, Target, Clock } from 'lucide-react';
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+} from 'recharts';
 import { Modal } from '@/common/components/Modal/Modal';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { useServiceAnalytics, useEmployeeStats } from '../hooks';
+import { useServiceAnalytics, useEmployeeStats, useLeadTimeAnalytics } from '../hooks';
 import { formatCurrency } from '../utils/formatters';
 import type { LeadSource } from '../types';
 
@@ -507,9 +510,250 @@ const EmployeeStatsTab: React.FC<EmployeeStatsTabProps> = ({ dateFrom, dateTo })
   );
 };
 
+// ─── Timing analytics ─────────────────────────────────────────────────────────
+
+const TimingFilters = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+`;
+
+const TimingFilterLabel = styled.span`
+  font-size: 12px;
+  font-weight: 600;
+  color: ${st.textMuted};
+  white-space: nowrap;
+`;
+
+const TimingInput = styled.input`
+  padding: 6px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  border: 1.5px solid ${st.border};
+  border-radius: 8px;
+  background: #f8fafc;
+  color: ${st.text};
+  outline: none;
+  width: 110px;
+  transition: border-color 180ms;
+  &:focus { border-color: #0ea5e9; }
+  &::placeholder { color: ${st.textMuted}; }
+`;
+
+const TimingSep = styled.span`
+  font-size: 12px;
+  color: ${st.textMuted};
+`;
+
+const ChartTitle = styled.div`
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: ${st.textMuted};
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+const ChartWrap = styled.div`
+  background: #fff;
+  border: 1px solid ${st.border};
+  border-radius: 12px;
+  padding: 16px 12px 8px;
+  animation: ${fadeIn} 200ms ease both;
+`;
+
+const ChartBlock = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const LoadingBox = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 220px;
+  font-size: 13px;
+  color: ${st.textMuted};
+`;
+
+const CHART_COLORS = {
+  incoming: '#0ea5e9',
+  accepted: '#16a34a',
+  rejected: '#dc2626',
+};
+
+interface TimingTabProps {
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
+  const [valueMinInput, setValueMinInput] = useState('');
+  const [valueMaxInput, setValueMaxInput] = useState('');
+  const [appliedMin, setAppliedMin] = useState<number | undefined>();
+  const [appliedMax, setAppliedMax] = useState<number | undefined>();
+
+  const handleApply = () => {
+    setAppliedMin(valueMinInput ? Math.round(parseFloat(valueMinInput) * 100) : undefined);
+    setAppliedMax(valueMaxInput ? Math.round(parseFloat(valueMaxInput) * 100) : undefined);
+  };
+
+  const handleClear = () => {
+    setValueMinInput(''); setValueMaxInput('');
+    setAppliedMin(undefined); setAppliedMax(undefined);
+  };
+
+  const { data, isLoading } = useLeadTimeAnalytics({
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    valueMin: appliedMin,
+    valueMax: appliedMax,
+    dateFrom,
+    dateTo,
+  });
+
+  const hourData = data?.byHour ?? [];
+  const dayData  = data?.byDayOfMonth ?? [];
+
+  return (
+    <ChartBlock>
+      {/* Value filter */}
+      <TimingFilters>
+        <TimingFilterLabel>Wartość leada (PLN):</TimingFilterLabel>
+        <TimingInput
+          type="number"
+          min="0"
+          placeholder="min"
+          value={valueMinInput}
+          onChange={e => setValueMinInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleApply()}
+        />
+        <TimingSep>–</TimingSep>
+        <TimingInput
+          type="number"
+          min="0"
+          placeholder="max"
+          value={valueMaxInput}
+          onChange={e => setValueMaxInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleApply()}
+        />
+        <button
+          onClick={handleApply}
+          style={{ padding: '6px 14px', background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          Filtruj
+        </button>
+        {(appliedMin !== undefined || appliedMax !== undefined) && (
+          <button
+            onClick={handleClear}
+            style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', color: st.textMuted, padding: 4 }}
+            title="Wyczyść filtr"
+          >
+            <X size={13} />
+          </button>
+        )}
+      </TimingFilters>
+
+      {isLoading ? (
+        <LoadingBox>Ładowanie danych…</LoadingBox>
+      ) : (
+        <>
+          {/* By hour */}
+          <ChartWrap>
+            <ChartTitle>
+              <Clock size={12} /> Rozkład godzinowy (0–23)
+            </ChartTitle>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={hourData} barCategoryGap="20%">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis
+                  dataKey="bucket"
+                  tick={{ fontSize: 10, fill: st.textMuted }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={h => `${h}:00`}
+                  interval={1}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 10, fill: st.textMuted }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={28}
+                />
+                <Tooltip
+                  contentStyle={{ fontSize: 12, borderRadius: 8, border: `1px solid ${st.border}` }}
+                  labelFormatter={h => `Godzina ${h}:00`}
+                  formatter={(value: number, name: string) => {
+                    const labels: Record<string, string> = { incomingCount: 'Przychodzące', acceptedCount: 'Zaakceptowane', rejectedCount: 'Odrzucone' };
+                    return [value, labels[name] ?? name];
+                  }}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                  formatter={name => ({ incomingCount: 'Przychodzące', acceptedCount: 'Zaakceptowane', rejectedCount: 'Odrzucone' }[name] ?? name)}
+                />
+                <Bar dataKey="incomingCount" fill={CHART_COLORS.incoming} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="acceptedCount" fill={CHART_COLORS.accepted} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="rejectedCount" fill={CHART_COLORS.rejected} radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartWrap>
+
+          {/* By day of month */}
+          <ChartWrap>
+            <ChartTitle>
+              <BarChart2 size={12} /> Rozkład dzienny (1–31)
+            </ChartTitle>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={dayData} barCategoryGap="20%">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis
+                  dataKey="bucket"
+                  tick={{ fontSize: 10, fill: st.textMuted }}
+                  axisLine={false}
+                  tickLine={false}
+                  interval={1}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 10, fill: st.textMuted }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={28}
+                />
+                <Tooltip
+                  contentStyle={{ fontSize: 12, borderRadius: 8, border: `1px solid ${st.border}` }}
+                  labelFormatter={d => `${d}. dzień miesiąca`}
+                  formatter={(value: number, name: string) => {
+                    const labels: Record<string, string> = { incomingCount: 'Przychodzące', acceptedCount: 'Zaakceptowane', rejectedCount: 'Odrzucone' };
+                    return [value, labels[name] ?? name];
+                  }}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                  formatter={name => ({ incomingCount: 'Przychodzące', acceptedCount: 'Zaakceptowane', rejectedCount: 'Odrzucone' }[name] ?? name)}
+                />
+                <Bar dataKey="incomingCount" fill={CHART_COLORS.incoming} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="acceptedCount" fill={CHART_COLORS.accepted} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="rejectedCount" fill={CHART_COLORS.rejected} radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartWrap>
+        </>
+      )}
+    </ChartBlock>
+  );
+};
+
 // ─── Main modal ───────────────────────────────────────────────────────────────
 
-type AnalyticsTab = 'services' | 'employees';
+type AnalyticsTab = 'services' | 'employees' | 'timing';
 
 interface LeadAnalyticsModalProps {
   isOpen: boolean;
@@ -525,7 +769,7 @@ export const LeadAnalyticsModal: React.FC<LeadAnalyticsModalProps> = ({ isOpen, 
   const appliedTo   = dateTo || undefined;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Analityka leadów" maxWidth="700px">
+    <Modal isOpen={isOpen} onClose={onClose} title="Analityka leadów" maxWidth="820px">
       <Container>
         <TabBar>
           <Tab $active={activeTab === 'services'} onClick={() => setActiveTab('services')}>
@@ -533,6 +777,9 @@ export const LeadAnalyticsModal: React.FC<LeadAnalyticsModalProps> = ({ isOpen, 
           </Tab>
           <Tab $active={activeTab === 'employees'} onClick={() => setActiveTab('employees')}>
             <Users /> Skuteczność pracowników
+          </Tab>
+          <Tab $active={activeTab === 'timing'} onClick={() => setActiveTab('timing')}>
+            <Clock /> Timing
           </Tab>
         </TabBar>
 
@@ -572,6 +819,9 @@ export const LeadAnalyticsModal: React.FC<LeadAnalyticsModalProps> = ({ isOpen, 
         )}
         {activeTab === 'employees' && (
           <EmployeeStatsTab dateFrom={appliedFrom} dateTo={appliedTo} />
+        )}
+        {activeTab === 'timing' && (
+          <TimingTab dateFrom={appliedFrom} dateTo={appliedTo} />
         )}
       </Container>
     </Modal>

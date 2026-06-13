@@ -374,6 +374,30 @@ export interface LeadAlertConfig {
 }
 
 // ---------------------------------------------------------------------------
+// Time analytics (GET /api/v1/leads/time-analytics)
+// ---------------------------------------------------------------------------
+
+export interface TimeAnalyticsBucket {
+  bucket: number;
+  incomingCount: number;
+  acceptedCount: number;
+  rejectedCount: number;
+}
+
+export interface TimeAnalyticsResponse {
+  byHour: TimeAnalyticsBucket[];
+  byDayOfMonth: TimeAnalyticsBucket[];
+}
+
+export interface TimeAnalyticsParams {
+  timezone?: string;
+  valueMin?: number;
+  valueMax?: number;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+// ---------------------------------------------------------------------------
 // Request types for new endpoints
 // ---------------------------------------------------------------------------
 

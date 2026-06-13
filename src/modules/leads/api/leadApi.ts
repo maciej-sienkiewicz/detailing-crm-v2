@@ -19,6 +19,8 @@ import type {
   ServiceAnalyticsItem,
   EmployeeStats,
   LeadAlertConfig,
+  TimeAnalyticsResponse,
+  TimeAnalyticsParams,
   AssignLeadUserRequest,
   SetLostReasonRequest,
   SetServiceTagsRequest,
@@ -700,6 +702,21 @@ export const leadApi = {
     if (dateTo) params.append('dateTo', dateTo);
     const qs = params.toString();
     const response = await apiClient.get(`${BASE_PATH}/employee-stats${qs ? `?${qs}` : ''}`);
+    return response.data;
+  },
+
+  /**
+   * Get time-distribution analytics (by hour / day-of-month).
+   */
+  getTimeAnalytics: async (params: TimeAnalyticsParams): Promise<TimeAnalyticsResponse> => {
+    const p = new URLSearchParams();
+    if (params.timezone) p.append('timezone', params.timezone);
+    if (params.valueMin !== undefined) p.append('valueMin', String(params.valueMin));
+    if (params.valueMax !== undefined) p.append('valueMax', String(params.valueMax));
+    if (params.dateFrom) p.append('dateFrom', params.dateFrom);
+    if (params.dateTo) p.append('dateTo', params.dateTo);
+    const qs = p.toString();
+    const response = await apiClient.get(`${BASE_PATH}/time-analytics${qs ? `?${qs}` : ''}`);
     return response.data;
   },
 
