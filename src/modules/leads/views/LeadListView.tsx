@@ -46,6 +46,9 @@ import { LeadForm } from '../components/LeadForm';
 import { LeadDetailModal } from '../components/LeadDetailModal';
 import { CustomerPickerModal } from '../components/CustomerPickerModal';
 import { EmployeePickerModal } from '../components/EmployeePickerModal';
+import { BookingPickerModal } from '../components/BookingPickerModal';
+import type { PickerMode } from '../components/BookingPickerModal';
+import type { Operation } from '@/modules/operations/types';
 import {
   useLeads,
   useUpdateLeadStatus,
@@ -1589,6 +1592,47 @@ export const LeadListView: React.FC = () => {
     },
   });
 
+  // ─── Booking picker (assign appointment / visit) ───────────────────────────
+  const [bookingPickerLeadId, setBookingPickerLeadId] = useState<string | null>(null);
+  const [bookingPickerMode, setBookingPickerMode]     = useState<PickerMode>('appointment');
+
+  const linkAppointmentMutation = useMutation({
+    mutationFn: ({ leadId, appointmentId }: { leadId: string; appointmentId: string | null }) =>
+      leadApi.linkAppointment(leadId, appointmentId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: LEADS_KEY }),
+  });
+
+  const linkVisitMutation = useMutation({
+    mutationFn: ({ leadId, visitId }: { leadId: string; visitId: string | null }) =>
+      leadApi.linkVisit(leadId, visitId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: LEADS_KEY }),
+  });
+
+  const openBookingPicker = (lead: Lead, mode: PickerMode) => {
+    setBookingPickerLeadId(lead.id);
+    setBookingPickerMode(mode);
+  };
+
+  const handleBookingPickerSelect = (item: Operation) => {
+    if (!bookingPickerLeadId) return;
+    if (bookingPickerMode === 'appointment') {
+      linkAppointmentMutation.mutate({ leadId: bookingPickerLeadId, appointmentId: item.id });
+    } else {
+      linkVisitMutation.mutate({ leadId: bookingPickerLeadId, visitId: item.id });
+    }
+    setBookingPickerLeadId(null);
+  };
+
+  const handleBookingPickerUnlink = () => {
+    if (!bookingPickerLeadId) return;
+    if (bookingPickerMode === 'appointment') {
+      linkAppointmentMutation.mutate({ leadId: bookingPickerLeadId, appointmentId: null });
+    } else {
+      linkVisitMutation.mutate({ leadId: bookingPickerLeadId, visitId: null });
+    }
+    setBookingPickerLeadId(null);
+  };
+
   const COL_SPAN = 7;
 
   const renderTableBody = () => {
@@ -1750,31 +1794,74 @@ export const LeadListView: React.FC = () => {
             <ActionBtns>
               {lead.visitId ? (
                 /* Visit linked → go to visit detail view */
-                <BookingBtn
-                  title="Przejdź do wizyty"
-                  onClick={e => handleGoToVisit(lead.visitId!, e)}
-                  style={{ borderColor: '#10b981', color: '#10b981' }}
-                >
-                  <CalendarCheck size={12} />
-                  Wizyta
-                </BookingBtn>
+                <>
+                  <BookingBtn
+                    title="Przejdź do wizyty"
+                    onClick={e => handleGoToVisit(lead.visitId!, e)}
+                    style={{ borderColor: '#10b981', color: '#10b981' }}
+                  >
+                    <CalendarCheck size={12} />
+                    Wizyta
+                  </BookingBtn>
+                  {lead.status === LeadStatus.COMPLETED && (
+                    <BookingBtn
+                      title="Zmień przypisaną wizytę"
+                      onClick={e => { e.stopPropagation(); openBookingPicker(lead, 'visit'); }}
+                      style={{ borderColor: '#94a3b8', color: '#64748b', padding: '5px 7px' }}
+                    >
+                      <PenLine size={11} />
+                    </BookingBtn>
+                  )}
+                </>
               ) : (lead.appointmentId || lead.relatedVisits?.length > 0) ? (
-                /* Appointment / related visit → calendar with animation */
+                /* Appointment / related visit → calendar with animation + optional change */
                 (() => {
                   const calEventId = lead.appointmentId ?? lead.relatedVisits[0].id;
+                  const canChange = lead.status === LeadStatus.CONFIRMED || lead.status === LeadStatus.COMPLETED;
+                  const pickerMode: PickerMode = lead.status === LeadStatus.COMPLETED ? 'visit' : 'appointment';
                   return (
-                    <BookingBtn
-                      title="Przejdź do rezerwacji w kalendarzu"
-                      disabled={!!calNavLoadingId}
-                      onClick={e => { e.stopPropagation(); handleGoToCalendarBooking(lead, calEventId, e); }}
-                      style={{ borderColor: '#10b981', color: '#10b981' }}
-                    >
-                      <CalendarCheck size={12} />
-                      {calNavLoadingId === calEventId ? '…' : 'Rezerwacja'}
-                    </BookingBtn>
+                    <>
+                      <BookingBtn
+                        title="Przejdź do rezerwacji w kalendarzu"
+                        disabled={!!calNavLoadingId}
+                        onClick={e => { e.stopPropagation(); handleGoToCalendarBooking(lead, calEventId, e); }}
+                        style={{ borderColor: '#10b981', color: '#10b981' }}
+                      >
+                        <CalendarCheck size={12} />
+                        {calNavLoadingId === calEventId ? '…' : 'Rezerwacja'}
+                      </BookingBtn>
+                      {canChange && (
+                        <BookingBtn
+                          title="Zmień przypisanie"
+                          onClick={e => { e.stopPropagation(); openBookingPicker(lead, pickerMode); }}
+                          style={{ borderColor: '#94a3b8', color: '#64748b', padding: '5px 7px' }}
+                        >
+                          <PenLine size={11} />
+                        </BookingBtn>
+                      )}
+                    </>
                   );
                 })()
-              ) : lead.status !== LeadStatus.CONFIRMED && lead.status !== LeadStatus.COMPLETED && (
+              ) : lead.status === LeadStatus.CONFIRMED ? (
+                /* CONFIRMED but no appointment yet → assign */
+                <BookingBtn
+                  title="Przypisz rezerwację"
+                  onClick={e => { e.stopPropagation(); openBookingPicker(lead, 'appointment'); }}
+                >
+                  <Calendar size={12} />
+                  Przypisz rez.
+                </BookingBtn>
+              ) : lead.status === LeadStatus.COMPLETED ? (
+                /* COMPLETED but no visit yet → assign */
+                <BookingBtn
+                  title="Przypisz wizytę"
+                  onClick={e => { e.stopPropagation(); openBookingPicker(lead, 'visit'); }}
+                >
+                  <CalendarCheck size={12} />
+                  Przypisz wizytę
+                </BookingBtn>
+              ) : lead.status !== LeadStatus.LOST && lead.status !== LeadStatus.NO_SHOW && (
+                /* NEW / IN_PROGRESS → create new booking */
                 <BookingBtn
                   title="Rozpocznij rezerwację"
                   disabled={isBookingLoading}
@@ -2368,6 +2455,18 @@ export const LeadListView: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      <BookingPickerModal
+        isOpen={!!bookingPickerLeadId}
+        mode={bookingPickerMode}
+        hasLinked={bookingPickerMode === 'appointment'
+          ? !!(leads.find(l => l.id === bookingPickerLeadId)?.appointmentId)
+          : !!(leads.find(l => l.id === bookingPickerLeadId)?.visitId)
+        }
+        onClose={() => setBookingPickerLeadId(null)}
+        onSelect={handleBookingPickerSelect}
+        onUnlink={handleBookingPickerUnlink}
+      />
 
       {selectedLead && (
         <LeadDetailModal
