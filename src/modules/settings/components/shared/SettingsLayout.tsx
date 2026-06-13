@@ -7,6 +7,7 @@ export interface HelpItem {
     id: string;
     label: string;
     description: string;
+    group?: string;
     usedIn: string[];
 }
 
@@ -267,6 +268,16 @@ const NavItemDot = styled.span<{ $active: boolean }>`
     transition: background 150ms;
 `;
 
+const NavGroupLabel = styled.div`
+    padding: 10px 12px 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+    &:not(:first-child) { margin-top: 4px; border-top: 1px solid #f1f5f9; padding-top: 12px; }
+`;
+
 // ─── Right content ────────────────────────────────────────────────────────────
 
 const ContentPanel = styled.div`
@@ -343,9 +354,72 @@ const Divider = styled.div`
     background: #f1f5f9;
 `;
 
+function renderDescription(text: string) {
+    const elements: React.ReactNode[] = [];
+    let key = 0;
+
+    text.split('\n\n').forEach(block => {
+        const lines = block.split('\n');
+        const bulletLines: string[] = [];
+        const textLines: string[] = [];
+
+        lines.forEach(line => {
+            if (line.startsWith('•') || line.startsWith('–')) {
+                if (textLines.length > 0) {
+                    elements.push(<ContentDesc key={key++}>{textLines.join('\n')}</ContentDesc>);
+                    textLines.length = 0;
+                }
+                bulletLines.push(line);
+            } else {
+                if (bulletLines.length > 0) {
+                    elements.push(
+                        <ul key={key++} style={{ margin: '0 0 4px', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {bulletLines.map((l, li) => (
+                                <li key={li} style={{ fontSize: 14, color: '#334155', lineHeight: 1.7, listStyleType: 'disc' }}>
+                                    {l.replace(/^[•–]\s*/, '')}
+                                </li>
+                            ))}
+                        </ul>
+                    );
+                    bulletLines.length = 0;
+                }
+                if (line !== '') textLines.push(line);
+            }
+        });
+
+        if (bulletLines.length > 0) {
+            elements.push(
+                <ul key={key++} style={{ margin: '0 0 4px', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {bulletLines.map((l, li) => (
+                        <li key={li} style={{ fontSize: 14, color: '#334155', lineHeight: 1.7, listStyleType: 'disc' }}>
+                            {l.replace(/^[•–]\s*/, '')}
+                        </li>
+                    ))}
+                </ul>
+            );
+        }
+        if (textLines.length > 0) {
+            elements.push(<ContentDesc key={key++}>{textLines.join(' ')}</ContentDesc>);
+        }
+    });
+
+    return elements;
+}
+
 export function HelpModal({ content, onClose }: { content: HelpContent; onClose: () => void }) {
     const [activeId, setActiveId] = useState(content.items[0]?.id ?? '');
     const active = content.items.find(i => i.id === activeId) ?? content.items[0];
+
+    // Build grouped nav: collect unique groups in order
+    const groups: Array<{ label: string | undefined; items: HelpItem[] }> = [];
+    content.items.forEach(item => {
+        const last = groups[groups.length - 1];
+        if (last && last.label === item.group) {
+            last.items.push(item);
+        } else {
+            groups.push({ label: item.group, items: [item] });
+        }
+    });
 
     return (
         <ModalOverlay onClick={e => e.target === e.currentTarget && onClose()}>
@@ -354,7 +428,7 @@ export function HelpModal({ content, onClose }: { content: HelpContent; onClose:
                     <div>
                         <ModalTitle>
                             {content.title}
-                            <ModalSubtitle>— przewodnik po polach</ModalSubtitle>
+                            <ModalSubtitle>— przewodnik</ModalSubtitle>
                         </ModalTitle>
                     </div>
                     <ModalCloseBtn onClick={onClose} aria-label="Zamknij">
@@ -366,15 +440,20 @@ export function HelpModal({ content, onClose }: { content: HelpContent; onClose:
 
                 <ModalBody>
                     <NavSidebar>
-                        {content.items.map(item => (
-                            <NavItem
-                                key={item.id}
-                                $active={item.id === activeId}
-                                onClick={() => setActiveId(item.id)}
-                            >
-                                <NavItemDot $active={item.id === activeId} />
-                                {item.label}
-                            </NavItem>
+                        {groups.map(({ label, items }) => (
+                            <React.Fragment key={label ?? '__ungrouped'}>
+                                {label && <NavGroupLabel>{label}</NavGroupLabel>}
+                                {items.map(item => (
+                                    <NavItem
+                                        key={item.id}
+                                        $active={item.id === activeId}
+                                        onClick={() => setActiveId(item.id)}
+                                    >
+                                        <NavItemDot $active={item.id === activeId} />
+                                        {item.label}
+                                    </NavItem>
+                                ))}
+                            </React.Fragment>
                         ))}
                     </NavSidebar>
 
@@ -382,7 +461,7 @@ export function HelpModal({ content, onClose }: { content: HelpContent; onClose:
                         <ContentPanel key={active.id}>
                             <ContentTitle>{active.label}</ContentTitle>
                             <Divider />
-                            <ContentDesc>{active.description}</ContentDesc>
+                            {renderDescription(active.description)}
 
                             {active.usedIn.length > 0 && (
                                 <UsedInSection>
