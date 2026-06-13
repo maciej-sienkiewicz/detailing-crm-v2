@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import {
   Mail,
@@ -12,18 +13,20 @@ import {
   CalendarCheck,
   PhoneCall,
   ClipboardList,
+  Copy,
+  Check,
+  Mic,
+  Smartphone,
+  PlayCircle,
 } from 'lucide-react';
+import { useCompanySettings } from '@/modules/settings/hooks/useCompany';
+import { LeadTour } from './LeadTour';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
 
 const fadeUp = keyframes`
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
-`;
-
-const pulse = keyframes`
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.5; }
 `;
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
@@ -72,6 +75,61 @@ const HeroSubtitle = styled.p`
   line-height: 1.6;
   max-width: 520px;
   margin: 0 auto;
+`;
+
+const TourBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 11px 22px;
+  border-radius: 9999px;
+  border: none;
+  background: #0ea5e9;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.32);
+  transition: all 170ms ease;
+
+  &:hover { background: #0284c7; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4); }
+  &:active { transform: translateY(0); }
+  svg { width: 17px; height: 17px; }
+`;
+
+// ─── Email alias chip with copy ────────────────────────────────────────────────
+
+const AliasRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 4px;
+`;
+
+const CopyBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 140ms ease;
+  &:hover { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
+  svg { width: 14px; height: 14px; }
+`;
+
+const AliasPlaceholder = styled.div`
+  font-size: 12px;
+  color: #94a3b8;
+  font-style: italic;
+  margin: 10px 0 4px;
 `;
 
 // ─── Setup cards ──────────────────────────────────────────────────────────────
@@ -293,27 +351,34 @@ const InfoCardDesc = styled.div`
   line-height: 1.55;
 `;
 
-const LiveDot = styled.span`
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #22c55e;
-  margin-right: 5px;
-  vertical-align: middle;
-  animation: ${pulse} 1.8s ease-in-out infinite;
-`;
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
   onAddLead: () => void;
   onGoToSettings: () => void;
+  onOpenMobile: () => void;
 }
 
-export function LeadOnboarding({ onAddLead, onGoToSettings }: Props) {
+export function LeadOnboarding({ onAddLead, onGoToSettings, onOpenMobile }: Props) {
+  const { company } = useCompanySettings();
+  const [tourOpen, setTourOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const aliasAddress = company?.emailAlias ? `${company.emailAlias}@detailboost.pl` : null;
+
+  const copyAlias = async () => {
+    if (!aliasAddress) return;
+    try {
+      await navigator.clipboard.writeText(aliasAddress);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch { /* clipboard unavailable — ignore */ }
+  };
+
   return (
     <Root>
+      {tourOpen && <LeadTour onClose={() => setTourOpen(false)} />}
+
       <Hero>
         <HeroBadge><Zap />Pierwsze kroki</HeroBadge>
         <HeroTitle>Zacznij zbierać zapytania</HeroTitle>
@@ -321,6 +386,9 @@ export function LeadOnboarding({ onAddLead, onGoToSettings }: Props) {
           Skonfiguruj źródła, z których będą trafiać leady, albo dodaj pierwsze zapytanie ręcznie.
           Całość obsługujesz z tego widoku.
         </HeroSubtitle>
+        <TourBtn onClick={() => setTourOpen(true)}>
+          <PlayCircle /> Przewodnik krok po kroku
+        </TourBtn>
       </Hero>
 
       {/* ── Setup steps ── */}
@@ -336,20 +404,29 @@ export function LeadOnboarding({ onAddLead, onGoToSettings }: Props) {
           <CardBody>
             <CardTitle>Zapytania e-mail</CardTitle>
             <CardDesc>
-              Klienci piszą do Ciebie e-mailem? Ustaw w swojej skrzynce automatyczne
-              przekierowanie wiadomości na adres alias Twojej firmy.
-              Każdy przekierowany e-mail automatycznie stworzy nowy lead.
+              Klienci piszą do Ciebie e-mailem? W swojej skrzynce ustaw automatyczne
+              przekierowanie wiadomości na adres alias Twojej firmy — każdy przekierowany
+              e-mail stworzy wtedy nowy lead.
             </CardDesc>
-            <div style={{ margin: '10px 0 4px' }}>
-              <CodeChip>twojafirma@detailboost.pl</CodeChip>
-            </div>
+            {aliasAddress ? (
+              <AliasRow>
+                <CodeChip>{aliasAddress}</CodeChip>
+                <CopyBtn onClick={copyAlias} title="Kopiuj adres" aria-label="Kopiuj adres alias">
+                  {copied ? <Check /> : <Copy />}
+                </CopyBtn>
+              </AliasRow>
+            ) : (
+              <AliasPlaceholder>
+                Adres alias pojawi się tutaj po skonfigurowaniu w ustawieniach firmy.
+              </AliasPlaceholder>
+            )}
             <CardDesc style={{ fontSize: 11.5, marginTop: 6 }}>
-              Adres alias ustawisz w ustawieniach firmy.
-              Serwer przetwarza wiadomość i od razu o niej zapomina — treści e-maili nie są przechowywane.
+              Alias to tylko pośrednik — serwer przetwarza wiadomość i od razu o niej zapomina.
+              Treści e-maili nie są przechowywane.
             </CardDesc>
           </CardBody>
-          <CardCta $primary onClick={onGoToSettings}>
-            <Settings /> Przejdź do ustawień
+          <CardCta onClick={onGoToSettings}>
+            <Settings /> Ustawienia firmy
           </CardCta>
         </SetupCard>
 
@@ -359,21 +436,22 @@ export function LeadOnboarding({ onAddLead, onGoToSettings }: Props) {
             <Phone />
           </CardIcon>
           <CardBody>
-            <CardTitle>Połączenia telefoniczne</CardTitle>
+            <CardTitle>Po rozmowie telefonicznej</CardTitle>
             <CardDesc>
-              Integracja telefoniczna działa w czasie rzeczywistym.
-              Gdy klient zadzwoni, system automatycznie tworzy lead ze statusem
-              „W kontakcie" i wyświetla powiadomienie z numerem telefonu i szacowaną wartością zapytania.
+              Mamy osobny widok pod telefon. Po rozmowie z klientem klikasz „Lead",
+              wklejasz numer i <strong>opowiadasz głosowo</strong>, czego dotyczyła rozmowa —
+              bez pisania na małej klawiaturze.
             </CardDesc>
-            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <LiveDot />
-              <span style={{ fontSize: 11.5, color: '#64748b', fontWeight: 600 }}>
-                Połączenia są odbierane na żywo — nie wymaga konfiguracji po Twojej stronie.
+            <div style={{ marginTop: 10, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+              <Mic size={14} style={{ color: '#8b5cf6', flexShrink: 0, marginTop: 2 }} />
+              <span style={{ fontSize: 11.5, color: '#64748b', lineHeight: 1.5 }}>
+                System sam rozpozna, jakie usługi przypisać, i zaproponuje kosztorys, który
+                później dowolnie zmienisz.
               </span>
             </div>
           </CardBody>
-          <CardCta onClick={onGoToSettings}>
-            <Settings /> Ustawienia integracji
+          <CardCta onClick={onOpenMobile}>
+            <Smartphone /> Otwórz widok mobilny
           </CardCta>
         </SetupCard>
 
@@ -383,11 +461,11 @@ export function LeadOnboarding({ onAddLead, onGoToSettings }: Props) {
             <PenLine />
           </CardIcon>
           <CardBody>
-            <CardTitle>Dodaj ręcznie</CardTitle>
+            <CardTitle>Klient zapytał osobiście</CardTitle>
             <CardDesc>
-              Klient zadzwonił, napisał na WhatsAppie albo zapytał osobiście?
-              Dodaj lead ręcznie — wystarczy numer telefonu lub e-mail
-              i krótki opis zapytania. Resztę uzupełnisz później.
+              Ktoś przyszedł do firmy o coś zapytać albo napisał na komunikatorze?
+              Dodaj lead ręcznie — wystarczy numer telefonu lub e-mail i krótki opis
+              zapytania. Resztę uzupełnisz później.
             </CardDesc>
           </CardBody>
           <CardCta $primary onClick={onAddLead}>

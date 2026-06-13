@@ -11,6 +11,7 @@ export interface CompanySettings {
     website: string | null;
     bankAccount: string | null;
     logoUrl: string | null;
+    emailAlias: string | null;
     updatedAt: string;
 }
 

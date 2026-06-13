@@ -20,6 +20,7 @@ const MOCK_DATA: CompanySettings = {
     website: 'https://detailpro.pl',
     bankAccount: '12 1020 1042 0000 0102 0123 4567',
     logoUrl: null,
+    emailAlias: 'detailpro',
     updatedAt: new Date().toISOString(),
 };
 

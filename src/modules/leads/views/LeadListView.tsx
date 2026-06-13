@@ -2253,6 +2253,7 @@ export const LeadListView: React.FC = () => {
         <LeadOnboarding
           onAddLead={() => setIsFormOpen(true)}
           onGoToSettings={() => navigate('/settings')}
+          onOpenMobile={() => navigate('/mobile-shortcuts')}
         />
       )}
 
