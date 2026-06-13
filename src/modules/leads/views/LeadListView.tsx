@@ -26,10 +26,12 @@ import {
   Check,
   BarChart2,
   DollarSign,
+  BookOpen,
 } from 'lucide-react';
 import { employeeApi } from '@/modules/employees/api/employeeApi';
 import type { EmployeeListItem } from '@/modules/employees/types';
 import { LeadAnalyticsModal } from '../components/LeadAnalyticsModal';
+import { QuoteReplyExamplesModal } from '../components/OfferComposer/QuoteReplyExamplesModal';
 import { useToast } from '@/common/components/Toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LEADS_KEY } from '../hooks';
@@ -1260,6 +1262,7 @@ export const LeadListView: React.FC = () => {
   const [empPickerLeadId, setEmpPickerLeadId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen]         = useState(false);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
+  const [isExamplesOpen, setIsExamplesOpen]   = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState<LeadStatus[]>([LeadStatus.NEW, LeadStatus.IN_PROGRESS]);
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
@@ -2002,6 +2005,11 @@ export const LeadListView: React.FC = () => {
             )}
           </DatePickerWrap>
 
+          <SecondaryBtn onClick={() => setIsExamplesOpen(true)}>
+            <BookOpen size={14} />
+            Przykłady ofert
+          </SecondaryBtn>
+
           <SecondaryBtn onClick={() => setIsAnalyticsOpen(true)}>
             <BarChart2 size={14} />
             Analityka
@@ -2434,6 +2442,11 @@ export const LeadListView: React.FC = () => {
       <LeadAnalyticsModal
         isOpen={isAnalyticsOpen}
         onClose={() => setIsAnalyticsOpen(false)}
+      />
+
+      <QuoteReplyExamplesModal
+        isOpen={isExamplesOpen}
+        onClose={() => setIsExamplesOpen(false)}
       />
 
       <Modal

@@ -250,9 +250,10 @@ function formatDate(iso: string) {
 
 interface Props {
   onBack: () => void;
+  hideHeader?: boolean;
 }
 
-export function QuoteReplyExamplesPanel({ onBack }: Props) {
+export function QuoteReplyExamplesPanel({ onBack, hideHeader }: Props) {
   const queryClient = useQueryClient();
   const { data: examples = [], isLoading } = useQuery({
     queryKey: EXAMPLES_KEY,
@@ -304,12 +305,14 @@ export function QuoteReplyExamplesPanel({ onBack }: Props) {
     // position:relative so expand overlay can fill this panel
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <Panel>
-        <PanelHeader>
-          <BookOpen size={14} color="#007aff" />
-          <PanelTitle>Przykłady stylu odpowiedzi</PanelTitle>
-          <Count>{examples.length}/{MAX_EXAMPLES}</Count>
-          <PanelBack onClick={onBack}><X size={12} /> Zamknij</PanelBack>
-        </PanelHeader>
+        {!hideHeader && (
+          <PanelHeader>
+            <BookOpen size={14} color="#007aff" />
+            <PanelTitle>Przykłady stylu odpowiedzi</PanelTitle>
+            <Count>{examples.length}/{MAX_EXAMPLES}</Count>
+            <PanelBack onClick={onBack}><X size={12} /> Zamknij</PanelBack>
+          </PanelHeader>
+        )}
 
         {examples.length >= MAX_EXAMPLES && (
           <LimitBanner>
