@@ -1416,29 +1416,32 @@ export const LeadListView: React.FC = () => {
     }
   };
 
-  const handleGoToBooking = async (lead: Lead, e: React.MouseEvent) => {
+  // Navigate to the visit detail view directly (no calendar animation needed)
+  const handleGoToVisit = (visitId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    // Priority: visitId > appointmentId > first relatedVisit
-    const visitId = lead.visitId ?? lead.relatedVisits?.[0]?.id ?? null;
-    const appointmentId = lead.appointmentId ?? null;
-    const eventId = visitId ?? appointmentId;
-    if (!eventId || calNavLoadingId) return;
+    navigate(`/visits/${visitId}`);
+  };
 
+  // Navigate to the calendar with the fly-to-cell animation (for appointmentId / relatedVisits)
+  const handleGoToCalendarBooking = async (lead: Lead, eventId: string, e: React.MouseEvent) => {
+    if (calNavLoadingId) return;
     setCalNavLoadingId(eventId);
     try {
       let eventDate = '';
       let label = lead.vehicleBrand
         ? `${lead.vehicleBrand}${lead.vehicleModel ? ' ' + lead.vehicleModel : ''}`
-        : 'Wizyta';
+        : 'Rezerwacja';
       const customer = lead.customerName ?? lead.contactIdentifier;
 
-      if (visitId) {
-        const res = await visitApi.getVisitDetail(visitId);
+      const isVisitId = !!lead.relatedVisits?.find(rv => rv.id === eventId);
+      if (isVisitId) {
+        const res = await visitApi.getVisitDetail(eventId);
         const v = res.visit;
         eventDate = v.scheduledDate ?? '';
         if (v.vehicle) label = `${v.vehicle.brand} ${v.vehicle.model}`.trim();
-      } else if (appointmentId) {
-        const res = await appointmentApi.getAppointment(appointmentId);
+      } else {
+        // appointmentId
+        const res = await appointmentApi.getAppointment(eventId);
         eventDate = res.schedule?.startDateTime ?? '';
         if (res.vehicle) label = `${res.vehicle.brand} ${res.vehicle.model}`.trim();
       }
@@ -1743,16 +1746,32 @@ export const LeadListView: React.FC = () => {
 
           <TdActions onClick={e => e.stopPropagation()}>
             <ActionBtns>
-              {(lead.visitId || lead.appointmentId || lead.relatedVisits?.length > 0) ? (
+              {lead.visitId ? (
+                /* Visit linked → go to visit detail view */
                 <BookingBtn
-                  title="Przejdź do rezerwacji w kalendarzu"
-                  disabled={!!calNavLoadingId}
-                  onClick={e => handleGoToBooking(lead, e)}
+                  title="Przejdź do wizyty"
+                  onClick={e => handleGoToVisit(lead.visitId!, e)}
                   style={{ borderColor: '#10b981', color: '#10b981' }}
                 >
                   <CalendarCheck size={12} />
-                  {calNavLoadingId === (lead.visitId ?? lead.appointmentId ?? lead.relatedVisits?.[0]?.id) ? '…' : 'Rezerwacja'}
+                  Wizyta
                 </BookingBtn>
+              ) : (lead.appointmentId || lead.relatedVisits?.length > 0) ? (
+                /* Appointment / related visit → calendar with animation */
+                (() => {
+                  const calEventId = lead.appointmentId ?? lead.relatedVisits[0].id;
+                  return (
+                    <BookingBtn
+                      title="Przejdź do rezerwacji w kalendarzu"
+                      disabled={!!calNavLoadingId}
+                      onClick={e => { e.stopPropagation(); handleGoToCalendarBooking(lead, calEventId, e); }}
+                      style={{ borderColor: '#10b981', color: '#10b981' }}
+                    >
+                      <CalendarCheck size={12} />
+                      {calNavLoadingId === calEventId ? '…' : 'Rezerwacja'}
+                    </BookingBtn>
+                  );
+                })()
               ) : lead.status !== LeadStatus.CONFIRMED && lead.status !== LeadStatus.COMPLETED && (
                 <BookingBtn
                   title="Rozpocznij rezerwację"
