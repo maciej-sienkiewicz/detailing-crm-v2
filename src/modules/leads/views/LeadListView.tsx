@@ -27,6 +27,7 @@ import {
   BarChart2,
   DollarSign,
   BookOpen,
+  Clock,
 } from 'lucide-react';
 import { employeeApi } from '@/modules/employees/api/employeeApi';
 import type { EmployeeListItem } from '@/modules/employees/types';
@@ -103,6 +104,24 @@ const formatPresetLabel = (preset: DatePreset, customFrom?: string, customTo?: s
   if (customFrom) return `Od ${customFrom}`;
   if (customTo) return `Do ${customTo}`;
   return 'Zakres dat';
+};
+
+// ─── Per-row aging ─────────────────────────────────────────────────────────────
+// Active leads (NEW / IN_PROGRESS) waiting too long get a visible urgency badge,
+// turning the table into a prioritized worklist.
+
+const AGING_WARN_MINUTES   = 4 * 60;   // 4h — needs attention
+const AGING_URGENT_MINUTES = 24 * 60;  // 24h — at risk of being lost
+
+const getLeadAging = (lead: Lead): { urgent: boolean; label: string } | null => {
+  if (lead.status !== LeadStatus.NEW && lead.status !== LeadStatus.IN_PROGRESS) return null;
+  const ref = lead.status === LeadStatus.NEW ? lead.createdAt : (lead.updatedAt || lead.createdAt);
+  const ts = new Date(ref).getTime();
+  if (Number.isNaN(ts)) return null;
+  const minutes = Math.floor((Date.now() - ts) / 60000);
+  if (minutes < AGING_WARN_MINUTES) return null;
+  const suffix = lead.status === LeadStatus.NEW ? 'bez kontaktu' : 'bez reakcji';
+  return { urgent: minutes >= AGING_URGENT_MINUTES, label: `${formatWaitingTime(minutes)} ${suffix}` };
 };
 
 // ─── Animations ───────────────────────────────────────────────────────────────
@@ -954,6 +973,51 @@ const CustomerChip = styled.button<{ $primary?: boolean }>`
     border-color: ${p => p.$primary ? '#0ea5e9' : '#94a3b8'};
   }
   svg { width: 12px; height: 12px; flex-shrink: 0; }
+`;
+
+// ─── Hover-revealed "change assignment" icon ──────────────────────────────────
+// Hidden until the row is hovered (declutter); always visible on touch devices.
+
+const HoverEditBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #94a3b8;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 140ms ease, color 140ms ease, background 140ms ease, border-color 140ms ease;
+  svg { width: 13px; height: 13px; }
+
+  ${Tr}:hover & { opacity: 1; }
+  @media (hover: none) { opacity: 1; }
+
+  &:hover { color: #0ea5e9; border-color: #bae6fd; background: #f0f9ff; }
+  &:focus-visible { opacity: 1; outline: 2px solid #0ea5e9; outline-offset: 1px; }
+`;
+
+// ─── Per-row aging signal ─────────────────────────────────────────────────────
+
+const AgingBadge = styled.span<{ $urgent?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  margin-top: 2px;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: ${p => p.$urgent ? '#fef2f2' : '#fffbeb'};
+  color: ${p => p.$urgent ? '#dc2626' : '#b45309'};
+  border: 1px solid ${p => p.$urgent ? '#fecaca' : '#fde68a'};
+  svg { width: 11px; height: 11px; flex-shrink: 0; }
 `;
 
 // ─── Skeleton shimmer ─────────────────────────────────────────────────────────
@@ -1828,6 +1892,7 @@ export const LeadListView: React.FC = () => {
 
     return leads.map(lead => {
       const contact = formatContact(lead);
+      const aging = getLeadAging(lead);
 
       return (
         <Tr
@@ -1855,19 +1920,20 @@ export const LeadListView: React.FC = () => {
                 ? truncateEmail(lead.contactIdentifier, 28)
                 : formatPhoneNumber(lead.contactIdentifier);
               return (
-                <CellStack>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <CustomerCell
                     customerId={c.id}
                     name={name}
                     sub={contactSub}
                   />
-                  <CustomerChip
+                  <HoverEditBtn
                     title="Zmień przypisanie klienta"
+                    aria-label="Zmień przypisanie klienta"
                     onClick={e => { e.stopPropagation(); setPickerLeadId(lead.id); }}
                   >
-                    <User /> Zmień przypisanie
-                  </CustomerChip>
-                </CellStack>
+                    <User />
+                  </HoverEditBtn>
+                </div>
               );
             })() : (
               <CellStack>
@@ -1886,18 +1952,19 @@ export const LeadListView: React.FC = () => {
 
           <Td>
             {lead.assignedUserName ? (
-              <CellStack>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <CellMain style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   {lead.assignedUserName}
                   <Check size={12} color="#16a34a" style={{ flexShrink: 0 }} />
                 </CellMain>
-                <AssignBtn
-                  $secondary
+                <HoverEditBtn
+                  title="Zmień przypisanie pracownika"
+                  aria-label="Zmień przypisanie pracownika"
                   onClick={e => { e.stopPropagation(); setEmpPickerLeadId(lead.id); }}
                 >
-                  <UserCheck size={12} /> Zmień przypisanie
-                </AssignBtn>
-              </CellStack>
+                  <UserCheck />
+                </HoverEditBtn>
+              </div>
             ) : (
               <AssignBtn
                 onClick={e => { e.stopPropagation(); setEmpPickerLeadId(lead.id); }}
@@ -1911,6 +1978,11 @@ export const LeadListView: React.FC = () => {
             <CellStack>
               <CellMain>{formatDateTime(lead.createdAt)}</CellMain>
               <CellSub>Ostatnia aktualizacja: {formatRelativeTime(lead.updatedAt || lead.createdAt)}</CellSub>
+              {aging && (
+                <AgingBadge $urgent={aging.urgent} title={aging.urgent ? 'Lead zagrożony utratą' : 'Lead czeka na działanie'}>
+                  <Clock /> {aging.label}
+                </AgingBadge>
+              )}
             </CellStack>
           </Td>
 
