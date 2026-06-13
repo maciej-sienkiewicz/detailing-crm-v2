@@ -28,6 +28,7 @@ import {
   DollarSign,
   BookOpen,
   Clock,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { employeeApi } from '@/modules/employees/api/employeeApi';
 import type { EmployeeListItem } from '@/modules/employees/types';
@@ -419,18 +420,73 @@ const ContentSection = styled.section`
 
 const FilterBar = styled.div`
   border-bottom: 1px solid ${st.border};
+  border-radius: ${st.radius} ${st.radius} 0 0;
+  background: linear-gradient(180deg, #fbfcfe 0%, #f6f9fc 100%);
 `;
 
 const FilterTopRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 20px;
+  gap: 12px;
+  padding: 16px 20px;
   flex-wrap: wrap;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     flex-wrap: nowrap;
   }
+`;
+
+// ─── Grouped refinement-filter cluster (light analogue of header icon cluster) ─
+
+const FilterCluster = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 5px 4px 12px;
+  background: #fff;
+  border: 1px solid ${st.border};
+  border-radius: 9999px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  flex-shrink: 0;
+`;
+
+const FilterClusterLabel = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-right: 8px;
+  margin-right: 2px;
+  border-right: 1px solid #eef2f6;
+  white-space: nowrap;
+  svg { width: 13px; height: 13px; }
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) { display: none; }
+`;
+
+const ClearAllChip = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 13px;
+  border-radius: 9999px;
+  border: 1px solid #fecaca;
+  background: #fff5f5;
+  color: #dc2626;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 150ms ease;
+
+  &:hover { background: #fee2e2; border-color: #fca5a5; }
+  svg { width: 13px; height: 13px; }
 `;
 
 // ─── Search input ─────────────────────────────────────────────────────────────
@@ -517,21 +573,20 @@ const StatusFilterBtn = styled.button<{ $active: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 12px;
-  border-radius: 10px;
-  border: 1.5px solid ${p => p.$active ? '#0ea5e9' : st.border};
-  background: ${p => p.$active ? '#f0f9ff' : '#f8fafc'};
+  padding: 6px 12px;
+  border-radius: 9999px;
+  border: none;
+  background: ${p => p.$active ? '#e0f2fe' : 'transparent'};
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
   color: ${p => p.$active ? '#0369a1' : st.textSecondary};
   cursor: pointer;
-  transition: all 180ms ease;
+  transition: all 160ms ease;
   white-space: nowrap;
 
   &:hover {
-    border-color: #0ea5e9;
-    background: #f0f9ff;
+    background: ${p => p.$active ? '#d3ecfd' : '#f1f5f9'};
     color: #0369a1;
   }
 
@@ -1142,19 +1197,19 @@ const ValueFilterBtn = styled.button<{ $active: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 12px;
-  border-radius: 10px;
-  border: 1.5px solid ${p => p.$active ? '#0ea5e9' : st.border};
-  background: ${p => p.$active ? '#f0f9ff' : '#f8fafc'};
+  padding: 6px 12px;
+  border-radius: 9999px;
+  border: none;
+  background: ${p => p.$active ? '#e0f2fe' : 'transparent'};
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
   color: ${p => p.$active ? '#0369a1' : st.textSecondary};
   cursor: pointer;
-  transition: all 180ms ease;
+  transition: all 160ms ease;
   white-space: nowrap;
 
-  &:hover { border-color: #0ea5e9; background: #f0f9ff; color: #0369a1; }
+  &:hover { background: ${p => p.$active ? '#d3ecfd' : '#f1f5f9'}; color: #0369a1; }
   svg { flex-shrink: 0; }
 `;
 
@@ -1685,6 +1740,35 @@ export const LeadListView: React.FC = () => {
     setActiveSource(v);
     setFilters(p => ({ ...p, source: v === 'ALL' ? [] : [v], page: 1 }));
   }, []);
+
+  const statusesAreDefault =
+    selectedStatuses.length === 2 &&
+    selectedStatuses.includes(LeadStatus.NEW) &&
+    selectedStatuses.includes(LeadStatus.IN_PROGRESS);
+
+  const hasActiveFilters =
+    !!searchValue || activeSource !== 'ALL' || isValueFilterActive ||
+    !!selectedEmpId || !statusesAreDefault;
+
+  const handleResetAllFilters = () => {
+    setSearchValue('');
+    setActiveSource('ALL');
+    setValueMinInput(''); setValueMaxInput('');
+    setAppliedValueMin(undefined); setAppliedValueMax(undefined);
+    setSelectedEmpId(undefined); setSelectedEmpName('');
+    const defaultStatuses = [LeadStatus.NEW, LeadStatus.IN_PROGRESS];
+    setSelectedStatuses(defaultStatuses);
+    setFilters(p => ({
+      ...p,
+      search: '',
+      source: [],
+      valueMin: undefined,
+      valueMax: undefined,
+      assignedUserId: undefined,
+      status: defaultStatuses,
+      page: 1,
+    }));
+  };
 
   const empPickerLead = leads.find(l => l.id === empPickerLeadId) ?? null;
   const empAssignUser = useMutation({
@@ -2365,6 +2449,11 @@ export const LeadListView: React.FC = () => {
 
             <Spacer />
 
+            <FilterCluster>
+              <FilterClusterLabel>
+                <SlidersHorizontal /> Filtruj
+              </FilterClusterLabel>
+
             {/* Value range filter */}
             <ValueFilterWrap ref={valueFilterRef}>
               <ValueFilterBtn
@@ -2520,6 +2609,13 @@ export const LeadListView: React.FC = () => {
                 </StatusDropdownMenu>
               )}
             </StatusFilterWrap>
+            </FilterCluster>
+
+            {hasActiveFilters && (
+              <ClearAllChip onClick={handleResetAllFilters} title="Wyczyść wszystkie filtry">
+                <X size={13} /> Wyczyść
+              </ClearAllChip>
+            )}
           </FilterTopRow>
         </FilterBar>
 
