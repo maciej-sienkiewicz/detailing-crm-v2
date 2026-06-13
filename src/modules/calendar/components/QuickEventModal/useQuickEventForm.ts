@@ -362,6 +362,9 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             setCustomerPhonePrefix(parsedInitial.prefix);
             setCustomerPhone(parsedInitial.main);
             setCustomerEmail(c.email || '');
+            // Prefilled-but-unconfirmed customer → open the section in edit mode
+            // so the user explicitly confirms (Zatwierdź zmiany / Anuluj).
+            if (initialData.customerEditing) setCustomerEditMode(true);
         }
         if (initialData.vehicle) {
             const v = initialData.vehicle;

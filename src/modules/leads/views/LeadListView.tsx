@@ -1563,7 +1563,10 @@ export const LeadListView: React.FC = () => {
       ? { brand: detail.vehicleBrand, model: detail.vehicleModel ?? '', isNew: true }
       : undefined;
 
-    return { customer, vehicle, serviceIds, servicePrices, tempServices };
+    // Unassigned customer prefilled from lead contact → keep section editable.
+    const customerEditing = !c && !!customer;
+
+    return { customer, customerEditing, vehicle, serviceIds, servicePrices, tempServices };
   };
 
   const handleStartBooking = async (lead: Lead) => {
@@ -1576,10 +1579,12 @@ export const LeadListView: React.FC = () => {
     } catch {
       // Fallback: open modal with just basic lead data (no services pre-filled)
       const c = lead.assignedCustomer;
-      setBookingInitialData(c
-        ? { customer: { id: c.id, firstName: c.firstName ?? undefined, lastName: c.lastName ?? undefined, phone: c.phone ?? undefined, email: c.email ?? undefined, isNew: false } }
-        : { customer: buildLeadCustomerPrefill(lead.contactIdentifier, lead.customerName) }
-      );
+      if (c) {
+        setBookingInitialData({ customer: { id: c.id, firstName: c.firstName ?? undefined, lastName: c.lastName ?? undefined, phone: c.phone ?? undefined, email: c.email ?? undefined, isNew: false } });
+      } else {
+        const prefill = buildLeadCustomerPrefill(lead.contactIdentifier, lead.customerName);
+        setBookingInitialData({ customer: prefill, customerEditing: !!prefill });
+      }
     } finally {
       setIsBookingLoading(false);
       setIsBookingModalOpen(true);

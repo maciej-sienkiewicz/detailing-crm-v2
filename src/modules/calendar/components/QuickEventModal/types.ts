@@ -13,6 +13,8 @@ export interface ServiceAdjustment {
 /** Pre-fill data for opening the modal from an external context (e.g. lead booking) */
 export interface QuickEventInitialData {
   customer?: SelectedCustomer;
+  /** Open the customer section in edit mode (Zatwierdź / Anuluj) instead of confirmed. */
+  customerEditing?: boolean;
   vehicle?: SelectedVehicle;
   title?: string;
   serviceIds?: string[];
