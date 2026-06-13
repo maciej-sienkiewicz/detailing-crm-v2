@@ -52,6 +52,7 @@ import { CustomerPickerModal } from '../components/CustomerPickerModal';
 import { EmployeePickerModal } from '../components/EmployeePickerModal';
 import { BookingPickerModal } from '../components/BookingPickerModal';
 import { CustomerCell } from '@/common/components/CustomerCell';
+import { LeadOnboarding } from '../components/LeadOnboarding';
 import type { PickerMode } from '../components/BookingPickerModal';
 import type { Operation } from '@/modules/operations/types';
 import {
@@ -2245,8 +2246,22 @@ export const LeadListView: React.FC = () => {
         )}
       </StatsGrid>
 
-      {/* Content section */}
-      <ContentSection>
+      {/* Onboarding — shown only when account has zero leads and no filters active */}
+      {!isLoading && !isError
+        && !searchValue && activeSource === 'ALL' && datePreset === 'all'
+        && pagination != null && pagination.totalItems === 0 && (
+        <LeadOnboarding
+          onAddLead={() => setIsFormOpen(true)}
+          onGoToSettings={() => navigate('/settings')}
+        />
+      )}
+
+      {/* Content section — hidden when onboarding is active */}
+      <ContentSection style={
+        !isLoading && !isError && !searchValue && activeSource === 'ALL'
+        && datePreset === 'all' && pagination != null && pagination.totalItems === 0
+          ? { display: 'none' } : {}
+      }>
         <FilterBar>
           <FilterTopRow>
             <SearchWrap>
