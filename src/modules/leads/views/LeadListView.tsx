@@ -32,6 +32,8 @@ import { employeeApi } from '@/modules/employees/api/employeeApi';
 import type { EmployeeListItem } from '@/modules/employees/types';
 import { LeadAnalyticsModal } from '../components/LeadAnalyticsModal';
 import { QuoteReplyExamplesModal } from '../components/OfferComposer/QuoteReplyExamplesModal';
+import { HelpModal } from '@/modules/settings/components/shared/SettingsLayout';
+import type { HelpContent } from '@/modules/settings/components/shared/SettingsLayout';
 import { useToast } from '@/common/components/Toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LEADS_KEY } from '../hooks';
@@ -1263,6 +1265,7 @@ export const LeadListView: React.FC = () => {
   const [isFormOpen, setIsFormOpen]         = useState(false);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
   const [isExamplesOpen, setIsExamplesOpen]   = useState(false);
+  const [isHelpOpen, setIsHelpOpen]           = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState<LeadStatus[]>([LeadStatus.NEW, LeadStatus.IN_PROGRESS]);
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
@@ -1655,6 +1658,84 @@ export const LeadListView: React.FC = () => {
 
   const COL_SPAN = 7;
 
+  const LEADS_HELP: HelpContent = {
+    title: 'Przewodnik po widoku Leadów',
+    items: [
+      {
+        id: 'overview',
+        label: 'Czym jest lead?',
+        description: 'Lead to potencjalny klient — osoba, która wysłała zapytanie przez telefon, e-mail lub ręcznie dodany kontakt. Każdy lead przechodzi przez cykl życia od pierwszego kontaktu aż do realizacji usługi lub utraty klienta. Widok Leadów pozwala zarządzać tym procesem w jednym miejscu: śledzić status, przypisywać pracowników, tworzyć kosztorysy i rezerwacje.',
+        usedIn: [],
+      },
+      {
+        id: 'tiles',
+        label: 'Kafelki statystyk',
+        description: 'Cztery kafelki na górze strony pokazują kondycję procesu sprzedażowego w czasie rzeczywistym:\n\n• Do obsłużenia — liczba leadów czekających na PIERWSZY kontakt. Każda godzina zwłoki zwiększa ryzyko, że klient wybierze konkurencję. Kliknięcie filtruje tabelę do statusu „Nowy".\n\n• Konwersja (ten miesiąc) — procent leadów zamienionych w klientów w bieżącym miesiącu. Trend ze strzałką pokazuje różnicę (pp) względem poprzedniego miesiąca. Jeśli konwersja spada, coś się popsuło — zbyt wolna odpowiedź, ceny, formularz.\n\n• Zrealizowane (ten miesiąc) — suma wartości leadów zakończonych sukcesem w tym miesiącu. To już potwierdzony przychód, nie pipeline. Kliknięcie filtruje do statusu „Zakończony".\n\n• Ryzyko utraty — suma wartości leadów bez żadnej aktywności od 24+ godzin. Kliknięcie sortuje po czasie ostatniej aktualizacji i filtruje do statusów „Nowy" i „W kontakcie" — pokazując te, z którymi trzeba pilnie działać.',
+        usedIn: ['Strona główna leadów — górna część widoku'],
+      },
+      {
+        id: 'statuses',
+        label: 'Statusy leadów',
+        description: 'Każdy lead ma jeden z sześciu statusów:\n\n• Nowy — świeże zapytanie, jeszcze nie podjęto kontaktu.\n• W kontakcie — trwa rozmowa z klientem.\n• Zarezerwowany — klient wyraził chęć, rezerwacja powinna być lub jest już przypisana.\n• Zakończony — usługa została zrealizowana, wizyta powinna być lub jest przypisana.\n• Utracony — klient zrezygnował lub wybrał konkurencję. Przy zmianie na ten status system poprosi o podanie powodu utraty.\n• Porzucony — klient nie pojawił się lub nie odpowiedział.\n\nStatus zmienia się przez kliknięcie kolorowego badge\'a w wierszu — pojawi się menu kontekstowe z dostępnymi opcjami.',
+        usedIn: ['Tabela leadów — kolumna Status', 'Filtr statusów w pasku filtrów', 'Kafelki statystyk'],
+      },
+      {
+        id: 'employee',
+        label: 'Przypisywanie pracownika',
+        description: 'Każdy lead może mieć przypisanego pracownika odpowiedzialnego za obsługę kontaktu. Służy to do rozliczalności — wiadomo kto prowadzi rozmowę i kto odpowiada za konwersję.\n\nPrzycisk „Przypisz pracownika" (niebieski, z obwódką) otwiera modal wyboru pracownika z listy lub przypisania siebie. Gdy pracownik jest już przypisany, wyświetla się jego imię z zielonym ptaszkiem i szary przycisk „Zmień przypisanie".\n\nKto może przypisać? Każdy zalogowany użytkownik może przypisać dowolnego pracownika. Przycisk „Przypisz siebie" skraca ten proces do jednego kliknięcia.\n\nFiltr „Pracownik" w pasku filtrów pozwala zawęzić widok tabeli do leadów przypisanych do konkretnej osoby.',
+        usedIn: ['Tabela leadów — kolumna Obsługuje', 'Modal szczegółów leada', 'Filtr pracownika'],
+      },
+      {
+        id: 'customer',
+        label: 'Przypisywanie klienta',
+        description: 'Lead może, ale nie musi, mieć przypisanego klienta z bazy CRM. Przypisanie pozwala połączyć historię zapytania z kartoteką klienta (wizyty, przychód, pojazdy).\n\nPrzycisk „Przypisz klienta" otwiera wyszukiwarkę klientów z bazy. Jeśli klient nie istnieje jeszcze w systemie, dostępna jest opcja „Dodaj nowego klienta" — dane z leada (e-mail, telefon, imię i nazwisko) są wstępnie uzupełnione w formularzu.\n\nPo przypisaniu imię klienta jest klikalnym linkiem — kliknięcie przenosi bezpośrednio na stronę szczegółów klienta. Zmiana przypisania możliwa jest przez szary przycisk „Zmień przypisanie".',
+        usedIn: ['Tabela leadów — kolumna Klient', 'Modal szczegółów leada'],
+      },
+      {
+        id: 'appointment',
+        label: 'Przypisywanie rezerwacji',
+        description: 'Lead w statusie „Zarezerwowany" może mieć przypisaną rezerwację z kalendarza. Przypisanie tworzy powiązanie między zapytaniem a konkretnym terminem.\n\nKiedy rezerwacja jest przypisana: wyświetla się zielony przycisk „Rezerwacja" — kliknięcie uruchamia efektowną animację przejścia i przenosi do kalendarza z podświetlonym terminem.\n\nKiedy rezerwacji brak (status Zarezerwowany): wyświetla się niebieski przycisk „Przypisz rez." — otwiera wyszukiwarkę rezerwacji z kalendarza. Można też zmienić przypisaną rezerwację (szara ikonka ołówka obok zielonego przycisku).\n\nLeady w statusie Utracony i Porzucony nie mają możliwości przypisania rezerwacji — nie ma to sensu biznesowego.\n\nWażne: jedna rezerwacja może być przypisana tylko do jednego leada jednocześnie. Próba przypisania zajętej rezerwacji wyświetli ostrzeżenie z informacją o której lead ją posiada.',
+        usedIn: ['Tabela leadów — kolumna akcji', 'Modal szczegółów leada'],
+      },
+      {
+        id: 'visit',
+        label: 'Przypisywanie wizyty',
+        description: 'Lead w statusie „Zakończony" może mieć przypisaną wizytę (zrealizowaną usługę). Przypisanie potwierdza, że zapytanie zakończyło się wykonaniem pracy.\n\nKiedy wizyta jest przypisana: wyświetla się zielony przycisk „Wizyta" — kliknięcie przenosi na stronę szczegółów wizyty.\n\nKiedy wizyty brak (status Zakończony): wyświetla się przycisk „Przypisz wizytę" — otwiera wyszukiwarkę wizyt. Wizytę można też zmienić przez ikonkę ołówka.\n\nWizyta ma wyższy priorytet wyświetlania niż rezerwacja — jeśli do leada przypisana jest zarówno rezerwacja, jak i wizyta, w tabeli pokazany jest przycisk „Wizyta" (bo to finalny etap).\n\nPodobnie jak przy rezerwacjach, jedna wizyta może być przypisana tylko do jednego leada.',
+        usedIn: ['Tabela leadów — kolumna akcji', 'Modal szczegółów leada'],
+      },
+      {
+        id: 'estimation',
+        label: 'Kosztorys systemowy',
+        description: 'Gdy klient wysyła zapytanie e-mail z opisem pojazdu i potrzeb, system AI automatycznie analizuje treść i tworzy kosztorys — listę usług z szacowanymi cenami dopasowanymi do marki i modelu pojazdu.\n\nKosztorys systemowy jest punktem startowym — pokazuje co system „zrozumiał" z zapytania. Nie wymaga żadnej akcji ze strony użytkownika i pojawia się automatycznie w szczegółach leada.\n\nJest on podstawą do wyliczenia szacowanej wartości leada widocznej w kolumnie „Wartość" w tabeli.',
+        usedIn: ['Modal szczegółów leada — sekcja Kosztorys', 'Kolumna Wartość w tabeli'],
+      },
+      {
+        id: 'user_quote',
+        label: 'Twój kosztorys',
+        description: '„Twój kosztorys" to wersja kosztorysu stworzona ręcznie przez pracownika — możesz dodawać, usuwać i zmieniać pozycje, ceny i ilości. Zastępuje kosztorys systemowy jako podstawa oferty i rezerwacji.\n\nPriorytet: jeśli istnieje „Twój kosztorys", to on ma pierwszeństwo przed kosztorysem systemowym we wszystkich obliczeniach wartości oraz przy tworzeniu rezerwacji (usługi są pre-wypełniane). Kosztorys systemowy pełni wtedy rolę podpowiedzi w tle.\n\nKosztorys użytkownika pojawia się w szczegółach leada i jest edytowalny w dowolnym momencie.',
+        usedIn: ['Modal szczegółów leada — sekcja Kosztorys', 'Pre-wypełnianie formularza rezerwacji'],
+      },
+      {
+        id: 'offer',
+        label: 'Przycisk „Przygotuj ofertę"',
+        description: 'Dostępny dla leadów z zapytaniem e-mail. Kliknięcie otwiera stylizowane okno compose (w stylu macOS Mail) z wygenerowaną przez AI odpowiedzią ofertową.\n\nDzięki AI treść jest spersonalizowana: zawiera imię klienta, markę i model pojazdu, wycenę z kosztorysu oraz propozycję terminu. Podczas generowania widoczna jest animacja pisania — tekst pojawia się stopniowo, a po zakończeniu możesz go swobodnie edytować.\n\nPo edycji możesz skopiować całość do schowka przyciskiem „Kopiuj do schowka" i wkleić do swojego klienta e-mail.',
+        usedIn: ['Modal szczegółów leada — dla leadów e-mail'],
+      },
+      {
+        id: 'examples',
+        label: 'Przykłady stylu ofert',
+        description: 'Funkcja uczenia się stylu odpowiedzi. Po wygenerowaniu i edycji oferty możesz kliknąć „Zapisz jako przykład" — system zapisze tę wersję jako wzorzec.\n\nPrzy kolejnych generowaniach AI automatycznie uwzględnia zapisane przykłady w prompcie i naśladuje styl, ton i strukturę twoich poprzednich odpowiedzi. Im więcej dobrych przykładów, tym lepiej dopasowane kolejne odpowiedzi.\n\nLimit: maksymalnie 10 przykładów. Zarządzanie (podgląd, edycja, usuwanie) dostępne przez przycisk „Przykłady ofert" w nagłówku strony lub ikonkę książki w oknie compose.',
+        usedIn: ['Okno compose oferty — przycisk „Zapisz jako przykład"', 'Nagłówek strony leadów — przycisk „Przykłady ofert"'],
+      },
+      {
+        id: 'booking_flow',
+        label: 'Tworzenie rezerwacji z leada',
+        description: 'Leady w statusie „Nowy" lub „W kontakcie" mają przycisk „Rezerwuj" w tabeli. Kliknięcie otwiera formularz szybkiej rezerwacji pre-wypełniony danymi z leada: klientem, pojazdem i usługami z kosztorysu (z Twojego kosztorysu jeśli istnieje, lub systemowego).\n\nPo zapisaniu rezerwacji lead jest automatycznie powiązany z nowym terminem i status może zostać zaktualizowany na „Zarezerwowany".\n\nLeady w statusie Utracony i Porzucony nie mają przycisku „Rezerwuj" — nie ma sensu tworzyć rezerwacji dla klientów, których nie udało się pozyskać.',
+        usedIn: ['Tabela leadów — kolumna akcji', 'Modal szczegółów leada'],
+      },
+    ],
+  };
+
   const renderTableBody = () => {
     if (isLoading) {
       return Array.from({ length: 5 }, (_, i) => (
@@ -2004,6 +2085,11 @@ export const LeadListView: React.FC = () => {
               </DatePickerPanel>
             )}
           </DatePickerWrap>
+
+          <SecondaryBtn onClick={() => setIsHelpOpen(true)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Dowiedz się więcej
+          </SecondaryBtn>
 
           <SecondaryBtn onClick={() => setIsExamplesOpen(true)}>
             <BookOpen size={14} />
@@ -2448,6 +2534,10 @@ export const LeadListView: React.FC = () => {
         isOpen={isExamplesOpen}
         onClose={() => setIsExamplesOpen(false)}
       />
+
+      {isHelpOpen && (
+        <HelpModal content={LEADS_HELP} onClose={() => setIsHelpOpen(false)} />
+      )}
 
       <Modal
         isOpen={!!lostReasonPrompt}
