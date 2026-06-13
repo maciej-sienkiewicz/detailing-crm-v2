@@ -1,12 +1,13 @@
 // src/modules/leads/components/CustomerPickerModal.tsx
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Search, X, UserPlus, ChevronLeft } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Search, X, UserPlus } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { customerApi } from '@/modules/customers/api/customerApi';
-import type { Customer, CreateCustomerPayload } from '@/modules/customers/types';
+import { AddCustomerModal } from '@/modules/customers/components/AddCustomerModal';
+import type { Customer } from '@/modules/customers/types';
+import type { CreateCustomerFormData } from '@/modules/customers/utils/customerValidation';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { customersQueryKey } from '@/modules/customers/hooks/useCustomers';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -18,8 +19,8 @@ export interface CustomerPickerPrefill {
   customerName?: string | null;
 }
 
-function buildPrefill(p: CustomerPickerPrefill): Partial<CreateCustomerPayload> {
-  const result: Partial<CreateCustomerPayload> = { email: null, phone: null, firstName: null, lastName: null };
+function buildInitialValues(p: CustomerPickerPrefill): Partial<Pick<CreateCustomerFormData, 'firstName' | 'lastName' | 'email' | 'phone'>> {
+  const result: Partial<Pick<CreateCustomerFormData, 'firstName' | 'lastName' | 'email' | 'phone'>> = {};
   const id = p.contactIdentifier.trim();
 
   if (isEmail(id))       result.email = id;
@@ -27,8 +28,8 @@ function buildPrefill(p: CustomerPickerPrefill): Partial<CreateCustomerPayload> 
 
   if (p.customerName) {
     const parts = p.customerName.trim().split(/\s+/);
-    result.firstName = parts[0] ?? null;
-    result.lastName  = parts.slice(1).join(' ') || null;
+    result.firstName = parts[0] ?? '';
+    result.lastName  = parts.slice(1).join(' ') || '';
   }
   return result;
 }
@@ -217,90 +218,6 @@ const PickerEmpty = styled.div`
   color: ${st.textMuted};
 `;
 
-// ─── New customer form ────────────────────────────────────────────────────────
-
-const FormWrap = styled.div`
-  padding: 16px 20px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-const FormRow = styled.div`
-  display: flex;
-  gap: 10px;
-`;
-
-const FormField = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  flex: 1;
-`;
-
-const FormLabel = styled.label`
-  font-size: 11px;
-  font-weight: 600;
-  color: ${st.textMuted};
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-`;
-
-const FormInput = styled.input`
-  padding: 8px 12px;
-  font-size: 13px;
-  font-family: inherit;
-  border: 1.5px solid ${st.border};
-  border-radius: 9px;
-  background: #f8fafc;
-  color: ${st.text};
-  outline: none;
-  transition: border-color 150ms;
-  &:focus { border-color: #0ea5e9; background: #fff; }
-  &::placeholder { color: ${st.textMuted}; }
-`;
-
-const FormActions = styled.div`
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  padding-top: 4px;
-`;
-
-const BackBtn = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 8px 14px;
-  background: transparent;
-  border: 1.5px solid ${st.border};
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 600;
-  color: ${st.textSecondary};
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 150ms;
-  &:hover { background: #f1f5f9; }
-  svg { width: 13px; height: 13px; }
-`;
-
-const SaveBtn = styled.button`
-  padding: 8px 18px;
-  background: #0ea5e9;
-  border: none;
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #fff;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 150ms;
-  &:hover { background: #0284c7; }
-  &:disabled { background: #94a3b8; cursor: not-allowed; }
-`;
-
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface CustomerPickerModalProps {
@@ -320,27 +237,10 @@ export const CustomerPickerModal: React.FC<CustomerPickerModalProps> = ({
 }) => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [mode, setMode] = useState<'list' | 'create'>('list');
-
-  const pre = prefill ? buildPrefill(prefill) : {};
-  const [firstName, setFirstName] = useState(pre.firstName ?? '');
-  const [lastName,  setLastName]  = useState(pre.lastName  ?? '');
-  const [email,     setEmail]     = useState(pre.email     ?? '');
-  const [phone,     setPhone]     = useState(pre.phone     ?? '');
-
-  const queryClient = useQueryClient();
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
   useEffect(() => {
-    if (!isOpen) {
-      setSearch(''); setDebouncedSearch(''); setMode('list');
-    } else {
-      // Re-sync prefill when modal opens
-      const p = prefill ? buildPrefill(prefill) : {};
-      setFirstName(p.firstName ?? '');
-      setLastName(p.lastName   ?? '');
-      setEmail(p.email         ?? '');
-      setPhone(p.phone         ?? '');
-    }
+    if (!isOpen) { setSearch(''); setDebouncedSearch(''); }
   }, [isOpen]);
 
   useEffect(() => {
@@ -351,143 +251,78 @@ export const CustomerPickerModal: React.FC<CustomerPickerModalProps> = ({
   const { data, isLoading } = useQuery({
     queryKey: ['customer-picker', debouncedSearch],
     queryFn: () => customerApi.getCustomers({ search: debouncedSearch, page: 1, limit: 15 }),
-    enabled: isOpen && mode === 'list',
+    enabled: isOpen,
   });
-
-  const createMutation = useMutation({
-    mutationFn: (payload: CreateCustomerPayload) => customerApi.createCustomer(payload),
-    onSuccess: (customer: Customer) => {
-      queryClient.invalidateQueries({ queryKey: [customersQueryKey] });
-      onSelect(customer);
-      onClose();
-    },
-  });
-
-  const handleCreate = () => {
-    createMutation.mutate({
-      firstName: firstName.trim() || null,
-      lastName:  lastName.trim()  || null,
-      email:     email.trim()     || null,
-      phone:     phone.trim()     || null,
-      homeAddress: null,
-      companyData: null,
-    });
-  };
 
   const customers = data?.data ?? [];
+  const initialValues = prefill ? buildInitialValues(prefill) : undefined;
 
   if (!isOpen) return null;
 
   return (
-    <PickerOverlay onClick={onClose}>
-      <PickerBox onClick={e => e.stopPropagation()}>
-        <PickerHeader>
-          <PickerTitle>
-            {mode === 'create' ? 'Nowy klient' : 'Przypisz klienta z bazy'}
-          </PickerTitle>
-          <PickerCloseBtn onClick={onClose}><X /></PickerCloseBtn>
-        </PickerHeader>
+    <>
+      <PickerOverlay onClick={onClose}>
+        <PickerBox onClick={e => e.stopPropagation()}>
+          <PickerHeader>
+            <PickerTitle>Przypisz klienta z bazy</PickerTitle>
+            <PickerCloseBtn onClick={onClose}><X /></PickerCloseBtn>
+          </PickerHeader>
 
-        {mode === 'list' ? (
-          <>
-            <PickerSearchWrap>
-              <PickerSearchIcon><Search /></PickerSearchIcon>
-              <PickerSearchInput
-                autoFocus
-                placeholder="Szukaj po nazwisku, emailu, telefonie…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-            </PickerSearchWrap>
+          <PickerSearchWrap>
+            <PickerSearchIcon><Search /></PickerSearchIcon>
+            <PickerSearchInput
+              autoFocus
+              placeholder="Szukaj po nazwisku, emailu, telefonie…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </PickerSearchWrap>
 
-            <PickerList>
-              <AddNewRow onClick={() => setMode('create')}>
-                <AddNewIcon><UserPlus /></AddNewIcon>
-                <div>
-                  <AddNewLabel>Dodaj nowego klienta</AddNewLabel>
-                  {prefill && (
-                    <AddNewSub>
-                      Dane z leada zostaną wstępnie uzupełnione
-                    </AddNewSub>
-                  )}
-                </div>
-              </AddNewRow>
+          <PickerList>
+            <AddNewRow onClick={() => setIsAddOpen(true)}>
+              <AddNewIcon><UserPlus /></AddNewIcon>
+              <div>
+                <AddNewLabel>Dodaj nowego klienta</AddNewLabel>
+                {prefill && (
+                  <AddNewSub>Dane z leada zostaną wstępnie uzupełnione</AddNewSub>
+                )}
+              </div>
+            </AddNewRow>
 
-              {isLoading ? (
-                <PickerEmpty>Ładowanie…</PickerEmpty>
-              ) : customers.length === 0 ? (
-                <PickerEmpty>
-                  {debouncedSearch ? 'Brak wyników dla podanej frazy' : 'Brak klientów w bazie'}
-                </PickerEmpty>
-              ) : customers.map(customer => {
-                const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || '—';
-                const initials = [customer.firstName?.[0], customer.lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?';
-                const contact = customer.contact?.phone || customer.contact?.email || '';
-                return (
-                  <PickerRow key={customer.id} onClick={() => { onSelect(customer); onClose(); }}>
-                    <PickerAvatar>{initials}</PickerAvatar>
-                    <div>
-                      <PickerName>{fullName}</PickerName>
-                      {contact && <PickerSub>{contact}</PickerSub>}
-                    </div>
-                  </PickerRow>
-                );
-              })}
-            </PickerList>
-          </>
-        ) : (
-          <FormWrap>
-            <FormRow>
-              <FormField>
-                <FormLabel>Imię</FormLabel>
-                <FormInput
-                  autoFocus
-                  placeholder="Jan"
-                  value={firstName}
-                  onChange={e => setFirstName(e.target.value)}
-                />
-              </FormField>
-              <FormField>
-                <FormLabel>Nazwisko</FormLabel>
-                <FormInput
-                  placeholder="Kowalski"
-                  value={lastName}
-                  onChange={e => setLastName(e.target.value)}
-                />
-              </FormField>
-            </FormRow>
-            <FormField>
-              <FormLabel>E-mail</FormLabel>
-              <FormInput
-                type="email"
-                placeholder="jan@example.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-              />
-            </FormField>
-            <FormField>
-              <FormLabel>Telefon</FormLabel>
-              <FormInput
-                type="tel"
-                placeholder="+48 600 000 000"
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-              />
-            </FormField>
-            <FormActions>
-              <BackBtn onClick={() => setMode('list')}>
-                <ChevronLeft /> Wróć
-              </BackBtn>
-              <SaveBtn
-                onClick={handleCreate}
-                disabled={createMutation.isPending || (!firstName && !lastName && !email && !phone)}
-              >
-                {createMutation.isPending ? 'Zapisywanie…' : 'Utwórz i przypisz'}
-              </SaveBtn>
-            </FormActions>
-          </FormWrap>
-        )}
-      </PickerBox>
-    </PickerOverlay>
+            {isLoading ? (
+              <PickerEmpty>Ładowanie…</PickerEmpty>
+            ) : customers.length === 0 ? (
+              <PickerEmpty>
+                {debouncedSearch ? 'Brak wyników dla podanej frazy' : 'Brak klientów w bazie'}
+              </PickerEmpty>
+            ) : customers.map(customer => {
+              const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || '—';
+              const initials = [customer.firstName?.[0], customer.lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?';
+              const contact = customer.contact?.phone || customer.contact?.email || '';
+              return (
+                <PickerRow key={customer.id} onClick={() => { onSelect(customer); onClose(); }}>
+                  <PickerAvatar>{initials}</PickerAvatar>
+                  <div>
+                    <PickerName>{fullName}</PickerName>
+                    {contact && <PickerSub>{contact}</PickerSub>}
+                  </div>
+                </PickerRow>
+              );
+            })}
+          </PickerList>
+        </PickerBox>
+      </PickerOverlay>
+
+      <AddCustomerModal
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        onSuccess={customer => {
+          setIsAddOpen(false);
+          onSelect(customer);
+          onClose();
+        }}
+        initialValues={initialValues}
+      />
+    </>
   );
 };

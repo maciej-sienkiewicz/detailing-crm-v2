@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CustomerForm } from './CustomerForm';
@@ -27,12 +27,14 @@ interface AddCustomerModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: (customer: Customer) => void;
+    initialValues?: Partial<Pick<CreateCustomerFormData, 'firstName' | 'lastName' | 'email' | 'phone'>>;
 }
 
 export const AddCustomerModal = ({
     isOpen,
     onClose,
     onSuccess,
+    initialValues,
 }: AddCustomerModalProps) => {
     const methods = useForm<CreateCustomerFormData>({
         resolver: (values, context, options) => {
@@ -48,15 +50,29 @@ export const AddCustomerModal = ({
             return zodResolver(createCustomerSchema)(dataToValidate, context, options);
         },
         defaultValues: {
-            firstName: '',
-            lastName: '',
-            email: '',
-            phone: '',
+            firstName: initialValues?.firstName ?? '',
+            lastName:  initialValues?.lastName  ?? '',
+            email:     initialValues?.email     ?? '',
+            phone:     initialValues?.phone     ?? '',
             homeAddress: null,
             company: null,
             notes: '',
         },
     });
+
+    useEffect(() => {
+        if (isOpen) {
+            methods.reset({
+                firstName: initialValues?.firstName ?? '',
+                lastName:  initialValues?.lastName  ?? '',
+                email:     initialValues?.email     ?? '',
+                phone:     initialValues?.phone     ?? '',
+                homeAddress: null,
+                company: null,
+                notes: '',
+            });
+        }
+    }, [isOpen]);
 
     const handleSuccess = useCallback((customer: Customer) => {
         methods.reset();
