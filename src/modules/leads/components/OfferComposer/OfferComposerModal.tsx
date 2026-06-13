@@ -32,10 +32,19 @@ export function OfferComposerModal({ lead, onClose }: Props) {
 
   const [toValue, setToValue] = useState(lead.contactIdentifier);
   const [subjectValue, setSubjectValue] = useState('');
+  const [editedBody, setEditedBody] = useState('');
 
   useEffect(() => {
     if (title) setSubjectValue(title);
   }, [title]);
+
+  // Sync AI response into editable state once revealed
+  useEffect(() => {
+    if (phase === 'revealed') setEditedBody(displayedBody);
+  }, [phase, displayedBody]);
+
+  const bodyValue = phase === 'revealed' ? editedBody : displayedBody;
+
   const [closing, setClosing] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -45,7 +54,7 @@ export function OfferComposerModal({ lead, onClose }: Props) {
   };
 
   const handleCopy = async () => {
-    const text = `Do: ${toValue}\nTemat: ${subjectValue}\n\n${displayedBody}`;
+    const text = `Do: ${toValue}\nTemat: ${subjectValue}\n\n${bodyValue}`;
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -94,8 +103,8 @@ export function OfferComposerModal({ lead, onClose }: Props) {
             <BodyTextarea
               $blurred={isTyping}
               $revealed={!isTyping}
-              value={displayedBody}
-              onChange={() => {}}
+              value={bodyValue}
+              onChange={e => { if (!isTyping) setEditedBody(e.target.value); }}
               readOnly={isTyping}
               spellCheck={!isTyping}
             />
