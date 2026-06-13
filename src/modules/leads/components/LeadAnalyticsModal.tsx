@@ -613,6 +613,47 @@ const limitDecimals2 = (raw: string): string => {
   return sep === -1 ? raw : raw.slice(0, sep + 3);
 };
 
+const SERIES = [
+  { key: 'incomingCount', label: 'Przychodzące', color: CHART_COLORS.incoming },
+  { key: 'acceptedCount', label: 'Zaakceptowane', color: CHART_COLORS.accepted },
+  { key: 'rejectedCount', label: 'Odrzucone',     color: CHART_COLORS.rejected },
+] as const;
+
+type SeriesKey = typeof SERIES[number]['key'];
+
+const SeriesToggleBar = styled.div`
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+`;
+
+const SeriesToggle = styled.button<{ $color: string; $active: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  border: 2px solid ${p => p.$active ? p.$color : st.border};
+  background: ${p => p.$active ? `${p.$color}18` : '#f8fafc'};
+  color: ${p => p.$active ? p.$color : st.textMuted};
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 150ms ease;
+
+  &:hover { border-color: ${p => p.$color}; color: ${p => p.$color}; background: ${p => p.$color}12; }
+`;
+
+const SeriesDot = styled.span<{ $color: string; $active: boolean }>`
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: ${p => p.$active ? p.$color : '#cbd5e1'};
+  flex-shrink: 0;
+  transition: background 150ms ease;
+`;
+
 interface TimingTabProps {
   dateFrom?: string;
   dateTo?: string;
@@ -623,6 +664,18 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
   const [valueMaxInput, setValueMaxInput] = useState('');
   const [appliedMin, setAppliedMin] = useState<number | undefined>();
   const [appliedMax, setAppliedMax] = useState<number | undefined>();
+  const [visibleSeries, setVisibleSeries] = useState<Set<SeriesKey>>(
+    new Set(['incomingCount', 'acceptedCount', 'rejectedCount'])
+  );
+
+  const toggleSeries = (key: SeriesKey) => {
+    setVisibleSeries(prev => {
+      if (prev.has(key) && prev.size === 1) return prev; // keep at least one
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
 
   const handleApply = () => {
     setAppliedMin(valueMinInput ? Math.round(parseFloat(valueMinInput.replace(',', '.')) * 100) : undefined);
@@ -646,8 +699,32 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
   const dayData  = (data?.byDayOfMonth && data.byDayOfMonth.some(b => b.incomingCount > 0)) ? data.byDayOfMonth : MOCK_DAY_DATA;
   const isMock   = !data || (!data.byHour.some(b => b.incomingCount > 0) && !data.byDayOfMonth.some(b => b.incomingCount > 0));
 
+  const tooltipFormatter = (value: number, name: string) => {
+    const s = SERIES.find(s => s.key === name);
+    return [value, s?.label ?? name];
+  };
+
+  const renderBars = () => SERIES.filter(s => visibleSeries.has(s.key)).map(s => (
+    <Bar key={s.key} dataKey={s.key} fill={s.color} radius={[3, 3, 0, 0]} />
+  ));
+
   return (
     <ChartBlock>
+      {/* Series toggles */}
+      <SeriesToggleBar>
+        {SERIES.map(s => (
+          <SeriesToggle
+            key={s.key}
+            $color={s.color}
+            $active={visibleSeries.has(s.key)}
+            onClick={() => toggleSeries(s.key)}
+          >
+            <SeriesDot $color={s.color} $active={visibleSeries.has(s.key)} />
+            {s.label}
+          </SeriesToggle>
+        ))}
+      </SeriesToggleBar>
+
       {/* Value filter */}
       <TimingFilters>
         <TimingFilterLabel>Wartość leada (PLN):</TimingFilterLabel>
@@ -721,18 +798,9 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
                 <Tooltip
                   contentStyle={{ fontSize: 12, borderRadius: 8, border: `1px solid ${st.border}` }}
                   labelFormatter={h => `Godzina ${h}:00`}
-                  formatter={(value: number, name: string) => {
-                    const labels: Record<string, string> = { incomingCount: 'Przychodzące', acceptedCount: 'Zaakceptowane', rejectedCount: 'Odrzucone' };
-                    return [value, labels[name] ?? name];
-                  }}
+                  formatter={tooltipFormatter}
                 />
-                <Legend
-                  wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
-                  formatter={name => ({ incomingCount: 'Przychodzące', acceptedCount: 'Zaakceptowane', rejectedCount: 'Odrzucone' }[name] ?? name)}
-                />
-                <Bar dataKey="incomingCount" fill={CHART_COLORS.incoming} radius={[3, 3, 0, 0]} />
-                <Bar dataKey="acceptedCount" fill={CHART_COLORS.accepted} radius={[3, 3, 0, 0]} />
-                <Bar dataKey="rejectedCount" fill={CHART_COLORS.rejected} radius={[3, 3, 0, 0]} />
+                {renderBars()}
               </BarChart>
             </ResponsiveContainer>
           </ChartWrap>
@@ -762,17 +830,9 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
                 <Tooltip
                   contentStyle={{ fontSize: 12, borderRadius: 8, border: `1px solid ${st.border}` }}
                   labelFormatter={d => `${d}. dzień miesiąca`}
-                  formatter={(value: number, name: string) => {
-                    const labels: Record<string, string> = { incomingCount: 'Przychodzące', acceptedCount: 'Zaakceptowane', rejectedCount: 'Odrzucone' };
-                    return [value, labels[name] ?? name];
-                  }}
+                  formatter={tooltipFormatter}
                 />
-                <Legend
-                  wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
-                  formatter={name => ({ incomingCount: 'Przychodzące', acceptedCount: 'Zaakceptowane', rejectedCount: 'Odrzucone' }[name] ?? name)}
-                />
-                <Bar dataKey="incomingCount" fill={CHART_COLORS.incoming} radius={[3, 3, 0, 0]} />
-                <Bar dataKey="acceptedCount" fill={CHART_COLORS.accepted} radius={[3, 3, 0, 0]} />
+                {renderBars()}
                 <Bar dataKey="rejectedCount" fill={CHART_COLORS.rejected} radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
