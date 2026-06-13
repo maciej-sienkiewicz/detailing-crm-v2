@@ -1600,7 +1600,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
           {/* Estimations */}
           <EstimationsGrid>
             <PanelLabel style={{ marginBottom: 0 }}>
-              <FileText size={13} /> Kosztorys AI
+              <FileText size={13} /> Kosztorys stworzony przez system
             </PanelLabel>
             <PanelLabel style={{ marginBottom: 0 }}>
               <Edit3 size={13} /> Twój kosztorys
@@ -1645,7 +1645,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
                   )}
                 </EstCard>
               ) : (
-                <NoEstBox>Brak kosztorysu AI.</NoEstBox>
+                <NoEstBox>System nie byłw stanie stworzyć wstępnego kosztorysu.</NoEstBox>
               )}
             </EstColumnWrapper>
 
