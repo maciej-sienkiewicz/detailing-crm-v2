@@ -1718,7 +1718,7 @@ export const LeadListView: React.FC = () => {
             </SourceWrap>
           </TdIcon>
 
-          <Td onClick={e => e.stopPropagation()}>
+          <Td>
             {lead.assignedCustomer ? (() => {
               const c = lead.assignedCustomer!;
               const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || '—';
@@ -1734,7 +1734,7 @@ export const LeadListView: React.FC = () => {
                   <CellSub>{contactSub}</CellSub>
                   <CustomerChip
                     title="Zmień przypisanie klienta"
-                    onClick={() => setPickerLeadId(lead.id)}
+                    onClick={e => { e.stopPropagation(); setPickerLeadId(lead.id); }}
                   >
                     <User /> Zmień przypisanie
                   </CustomerChip>
@@ -1747,7 +1747,7 @@ export const LeadListView: React.FC = () => {
                 <CustomerChip
                   $primary
                   title="Przypisz klienta z bazy"
-                  onClick={() => setPickerLeadId(lead.id)}
+                  onClick={e => { e.stopPropagation(); setPickerLeadId(lead.id); }}
                 >
                   <User /> Przypisz klienta
                 </CustomerChip>
@@ -1755,7 +1755,7 @@ export const LeadListView: React.FC = () => {
             )}
           </Td>
 
-          <Td onClick={e => e.stopPropagation()}>
+          <Td>
             {lead.assignedUserName ? (
               <CellStack>
                 <CellMain style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1764,14 +1764,14 @@ export const LeadListView: React.FC = () => {
                 </CellMain>
                 <AssignBtn
                   $secondary
-                  onClick={() => setEmpPickerLeadId(lead.id)}
+                  onClick={e => { e.stopPropagation(); setEmpPickerLeadId(lead.id); }}
                 >
                   <UserCheck size={12} /> Zmień przypisanie
                 </AssignBtn>
               </CellStack>
             ) : (
               <AssignBtn
-                onClick={() => setEmpPickerLeadId(lead.id)}
+                onClick={e => { e.stopPropagation(); setEmpPickerLeadId(lead.id); }}
               >
                 <UserCheck size={12} /> Przypisz pracownika
               </AssignBtn>
@@ -1785,7 +1785,7 @@ export const LeadListView: React.FC = () => {
             </CellStack>
           </Td>
 
-          <StatusTd onClick={e => e.stopPropagation()}>
+          <StatusTd>
             <StatusBadge
               $variant={getStatusVariant(lead)}
               onClick={e => {
@@ -1804,7 +1804,7 @@ export const LeadListView: React.FC = () => {
             <CellSub>brutto</CellSub>
           </Td>
 
-          <TdActions onClick={e => e.stopPropagation()}>
+          <TdActions>
             <ActionBtns>
               {lead.visitId ? (
                 /* Visit linked → go to visit detail view */
@@ -1879,7 +1879,7 @@ export const LeadListView: React.FC = () => {
                 <BookingBtn
                   title="Rozpocznij rezerwację"
                   disabled={isBookingLoading}
-                  onClick={() => handleStartBooking(lead)}
+                  onClick={e => { e.stopPropagation(); handleStartBooking(lead); }}
                 >
                   <Calendar size={12} />
                   {isBookingLoading && bookingLeadId === lead.id ? '…' : 'Rezerwuj'}
@@ -1888,7 +1888,7 @@ export const LeadListView: React.FC = () => {
               <IconBtn
                 $danger
                 title="Usuń leada"
-                onClick={() => setDeleteTarget({ id: lead.id, name: lead.customerName || lead.contactIdentifier })}
+                onClick={e => { e.stopPropagation(); setDeleteTarget({ id: lead.id, name: lead.customerName || lead.contactIdentifier }); }}
               >
                 <Trash2 />
               </IconBtn>
