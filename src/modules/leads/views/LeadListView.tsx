@@ -125,6 +125,30 @@ const getLeadAging = (lead: Lead): { urgent: boolean; label: string } | null => 
   return { urgent: minutes >= AGING_URGENT_MINUTES, label: `${formatWaitingTime(minutes)} ${suffix}` };
 };
 
+// Build a "new customer" prefill for the booking modal from raw lead contact
+// data, used when the lead has no customer assigned yet.
+const buildLeadCustomerPrefill = (
+  contactIdentifier?: string,
+  customerName?: string,
+): QuickEventInitialData['customer'] => {
+  const contact = contactIdentifier?.trim();
+  const isEmail = !!contact && contact.includes('@');
+  const email = isEmail ? contact : undefined;
+  const phone = contact && !isEmail ? contact : undefined;
+
+  let firstName: string | undefined;
+  let lastName: string | undefined;
+  const name = customerName?.trim();
+  if (name) {
+    const parts = name.split(/\s+/);
+    firstName = parts[0];
+    lastName = parts.length > 1 ? parts.slice(1).join(' ') : undefined;
+  }
+
+  if (!email && !phone && !firstName) return undefined;
+  return { isNew: true, firstName, lastName, phone, email };
+};
+
 // ─── Animations ───────────────────────────────────────────────────────────────
 
 const fadeIn = keyframes`
@@ -1519,7 +1543,7 @@ export const LeadListView: React.FC = () => {
     const c = detail.assignedCustomer;
     const customer: QuickEventInitialData['customer'] = c
       ? { id: c.id, firstName: c.firstName ?? undefined, lastName: c.lastName ?? undefined, phone: c.phone ?? undefined, email: c.email ?? undefined, isNew: false }
-      : undefined;
+      : buildLeadCustomerPrefill(detail.contactIdentifier, detail.customerName);
 
     const activeItems = detail.userQuote?.items ?? detail.estimation?.matchedItems ?? [];
     const serviceIds: string[] = [];
@@ -1554,7 +1578,7 @@ export const LeadListView: React.FC = () => {
       const c = lead.assignedCustomer;
       setBookingInitialData(c
         ? { customer: { id: c.id, firstName: c.firstName ?? undefined, lastName: c.lastName ?? undefined, phone: c.phone ?? undefined, email: c.email ?? undefined, isNew: false } }
-        : undefined
+        : { customer: buildLeadCustomerPrefill(lead.contactIdentifier, lead.customerName) }
       );
     } finally {
       setIsBookingLoading(false);
