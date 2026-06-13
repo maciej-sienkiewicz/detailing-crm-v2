@@ -1,13 +1,15 @@
 // src/modules/leads/components/LeadDetailModal/index.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import styled, { css, keyframes } from 'styled-components';
 import {
   X, Phone, Mail, PenLine, FileText, Edit3, Wrench, ChevronRight,
-  MessageSquare, UserCheck, UserX, Check, Search, Plus,
+  MessageSquare, UserCheck, UserX, Check, Search, Plus, CalendarCheck,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/core';
+import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
 import { useToast } from '@/common/components/Toast';
 import { Modal } from '@/common/components/Modal/Modal';
 import { ImageViewerModal } from '@/modules/visits/components/ImageViewerModal';
@@ -1430,6 +1432,8 @@ export interface LeadDetailModalProps {
 }
 
 export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, onClose }) => {
+  const navigate = useNavigate();
+  const { start: startCalendarNav } = useCalendarNavigation();
   const { lead: detail, isLoading: isDetailLoading } = useLead(lead?.id);
   const updateValue   = useUpdateLeadValue();
   const assignUser    = useAssignLeadUser(lead?.id ?? '');
@@ -1441,6 +1445,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
   const [isEditingLostReason, setIsEditingLostReason] = useState(false);
   const [lostReasonDraft, setLostReasonDraft] = useState(lead?.lostReason ?? '');
   const [previewVisitId, setPreviewVisitId] = useState<string | null>(null);
+  const [calNavLoadingId, setCalNavLoadingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -1453,6 +1458,35 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
   useEffect(() => {
     setLostReasonDraft(lead?.lostReason ?? '');
   }, [lead?.lostReason]);
+
+  const handleGoToVisitInCalendar = async (visitId: string, btnEl: HTMLElement) => {
+    if (calNavLoadingId) return;
+    setCalNavLoadingId(visitId);
+    try {
+      const res = await visitApi.getVisitDetail(visitId);
+      const visit = res.visit;
+      const sourceRect = btnEl.getBoundingClientRect();
+      const snap = {
+        id: visitId,
+        label: visit.vehicle ? `${visit.vehicle.brand} ${visit.vehicle.model}`.trim() : (lead?.vehicleBrand ?? 'Wizyta'),
+        customer: visit.customer
+          ? `${visit.customer.firstName} ${visit.customer.lastName}`.trim()
+          : (lead?.customerName ?? lead?.contactIdentifier ?? ''),
+        amount: '',
+        accentColor: '#0ea5e9',
+        sourceRect,
+        scheduledDate: visit.scheduledDate ?? undefined,
+      };
+      const doNavigate = () => navigate('/calendar', {
+        state: { highlightEventId: visitId, highlightDate: visit.scheduledDate ?? '' },
+      });
+      startCalendarNav(snap, doNavigate);
+    } catch {
+      navigate('/calendar');
+    } finally {
+      setCalNavLoadingId(null);
+    }
+  };
 
   if (!lead) return null;
 
@@ -1681,6 +1715,32 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
                   >
                     <RelatedVisitIcon><Wrench /></RelatedVisitIcon>
                     <RelatedVisitTitle>{rv.title ?? `Wizyta ${rv.id.slice(0, 8)}…`}</RelatedVisitTitle>
+                    <button
+                      title="Przejdź do rezerwacji w kalendarzu"
+                      disabled={!!calNavLoadingId}
+                      onClick={e => { e.stopPropagation(); handleGoToVisitInCalendar(rv.id, e.currentTarget); }}
+                      style={{
+                        marginLeft: 'auto',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        padding: '4px 10px',
+                        background: 'transparent',
+                        border: '1.5px solid #0ea5e9',
+                        borderRadius: 9999,
+                        color: '#0ea5e9',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        fontFamily: 'inherit',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                        opacity: calNavLoadingId === rv.id ? 0.5 : 1,
+                      }}
+                    >
+                      <CalendarCheck size={12} />
+                      {calNavLoadingId === rv.id ? '…' : 'Przejdź do rezerwacji'}
+                    </button>
                     <RelatedVisitArrow><ChevronRight /></RelatedVisitArrow>
                   </RelatedVisitRow>
                 ))}

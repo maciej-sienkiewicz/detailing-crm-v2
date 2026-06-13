@@ -1,6 +1,7 @@
 // src/modules/leads/views/LeadListView.tsx
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/core';
 import styled, { css, keyframes } from 'styled-components';
 import {
@@ -16,6 +17,7 @@ import {
   PenLine,
   Trash2,
   Calendar,
+  CalendarCheck,
   User,
   UserCheck,
   Search,
@@ -32,6 +34,8 @@ import { useToast } from '@/common/components/Toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LEADS_KEY } from '../hooks';
 import { leadApi } from '../api/leadApi';
+import { visitApi } from '@/modules/visits/api/visitApi';
+import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
 import { Modal } from '@/common/components/Modal/Modal';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageHeader, PageHeaderPrimaryButton } from '@/common/components/PageHeader';
@@ -1240,8 +1244,12 @@ const formatContact = (lead: Lead): { primary: string; secondary?: string } => {
 export const LeadListView: React.FC = () => {
   useLeadSocket();
 
+  const navigate = useNavigate();
+  const { start: startCalendarNav } = useCalendarNavigation();
   const queryClient = useQueryClient();
   const { user: authUser } = useAuth();
+
+  const [calNavLoadingId, setCalNavLoadingId] = useState<string | null>(null);
 
   const [selectedLead, setSelectedLead]     = useState<Lead | null>(null);
   const [empPickerLeadId, setEmpPickerLeadId] = useState<string | null>(null);
@@ -1404,6 +1412,37 @@ export const LeadListView: React.FC = () => {
       handleBookingClose();
     } catch (err) {
       showBookingError(err instanceof Error ? err.message : 'Nie udało się utworzyć rezerwacji');
+    }
+  };
+
+  const handleGoToBooking = async (lead: Lead, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const visitId = lead.relatedVisits?.[0]?.id;
+    if (!visitId || calNavLoadingId) return;
+    setCalNavLoadingId(visitId);
+    try {
+      const res = await visitApi.getVisitDetail(visitId);
+      const visit = res.visit;
+      const sourceRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const snap = {
+        id: visitId,
+        label: visit.vehicle ? `${visit.vehicle.brand} ${visit.vehicle.model}`.trim() : (lead.vehicleBrand ?? 'Wizyta'),
+        customer: visit.customer
+          ? `${visit.customer.firstName} ${visit.customer.lastName}`.trim()
+          : (lead.customerName ?? lead.contactIdentifier),
+        amount: formatCurrency(lead.estimatedValue),
+        accentColor: '#0ea5e9',
+        sourceRect,
+        scheduledDate: visit.scheduledDate ?? undefined,
+      };
+      const doNavigate = () => navigate('/calendar', {
+        state: { highlightEventId: visitId, highlightDate: visit.scheduledDate ?? '' },
+      });
+      startCalendarNav(snap, doNavigate);
+    } catch {
+      navigate('/calendar');
+    } finally {
+      setCalNavLoadingId(null);
     }
   };
 
@@ -1686,7 +1725,17 @@ export const LeadListView: React.FC = () => {
 
           <TdActions onClick={e => e.stopPropagation()}>
             <ActionBtns>
-              {lead.status !== LeadStatus.CONFIRMED && lead.status !== LeadStatus.COMPLETED && (
+              {lead.relatedVisits?.length > 0 ? (
+                <BookingBtn
+                  title="Przejdź do rezerwacji w kalendarzu"
+                  disabled={!!calNavLoadingId}
+                  onClick={e => handleGoToBooking(lead, e)}
+                  style={{ borderColor: '#10b981', color: '#10b981' }}
+                >
+                  <CalendarCheck size={12} />
+                  {calNavLoadingId === lead.relatedVisits[0]?.id ? '…' : 'Rezerwacja'}
+                </BookingBtn>
+              ) : lead.status !== LeadStatus.CONFIRMED && lead.status !== LeadStatus.COMPLETED && (
                 <BookingBtn
                   title="Rozpocznij rezerwację"
                   disabled={isBookingLoading}
