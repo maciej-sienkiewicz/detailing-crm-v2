@@ -44,7 +44,7 @@ const TileCard = styled.div<{
   border: 1px solid ${p => p.theme.colors.border};
   border-top: 3px solid ${p => p.$accentColor};
   border-radius: ${p => p.theme.radii.xl};
-  overflow: hidden;
+  overflow: visible;
   padding: ${p => p.$compact ? '14px 16px' : '20px 20px 18px'};
   box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.04);
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 150ms ease;
@@ -134,6 +134,7 @@ const TileFooter = styled.div<{ $compact: boolean }>`
   padding: ${p => p.$compact ? '7px 16px' : '9px 20px'};
   border-top: 1px solid rgba(0, 0, 0, 0.05);
   background: rgba(0, 0, 0, 0.018);
+  border-radius: 0 0 ${p => p.theme.radii.xl} ${p => p.theme.radii.xl};
 `;
 
 const InfoBtnWrapper = styled.div`
