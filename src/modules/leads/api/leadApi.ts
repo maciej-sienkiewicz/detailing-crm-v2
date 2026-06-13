@@ -679,6 +679,26 @@ export const leadApi = {
   },
 
   /**
+   * Link or unlink an appointment to a lead.
+   * PATCH /v1/leads/{leadId}/link-appointment
+   * Body: { appointmentId: string | null }
+   * Pass null to unlink.
+   */
+  linkAppointment: async (leadId: LeadId, appointmentId: string | null): Promise<void> => {
+    await apiClient.patch(`${BASE_PATH}/${leadId}/link-appointment`, { appointmentId });
+  },
+
+  /**
+   * Link or unlink a completed visit to a lead.
+   * PATCH /v1/leads/{leadId}/link-visit
+   * Body: { visitId: string | null }
+   * Pass null to unlink.
+   */
+  linkVisit: async (leadId: LeadId, visitId: string | null): Promise<void> => {
+    await apiClient.patch(`${BASE_PATH}/${leadId}/link-visit`, { visitId });
+  },
+
+  /**
    * Get win/loss analytics per service.
    */
   getServiceAnalytics: async (
