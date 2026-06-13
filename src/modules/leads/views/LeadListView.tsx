@@ -35,6 +35,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LEADS_KEY } from '../hooks';
 import { leadApi } from '../api/leadApi';
 import { visitApi } from '@/modules/visits/api/visitApi';
+import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
 import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
 import { Modal } from '@/common/components/Modal/Modal';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -1417,26 +1418,43 @@ export const LeadListView: React.FC = () => {
 
   const handleGoToBooking = async (lead: Lead, e: React.MouseEvent) => {
     e.stopPropagation();
-    const visitId = lead.relatedVisits?.[0]?.id;
-    if (!visitId || calNavLoadingId) return;
-    setCalNavLoadingId(visitId);
+    // Priority: visitId > appointmentId > first relatedVisit
+    const visitId = lead.visitId ?? lead.relatedVisits?.[0]?.id ?? null;
+    const appointmentId = lead.appointmentId ?? null;
+    const eventId = visitId ?? appointmentId;
+    if (!eventId || calNavLoadingId) return;
+
+    setCalNavLoadingId(eventId);
     try {
-      const res = await visitApi.getVisitDetail(visitId);
-      const visit = res.visit;
+      let eventDate = '';
+      let label = lead.vehicleBrand
+        ? `${lead.vehicleBrand}${lead.vehicleModel ? ' ' + lead.vehicleModel : ''}`
+        : 'Wizyta';
+      const customer = lead.customerName ?? lead.contactIdentifier;
+
+      if (visitId) {
+        const res = await visitApi.getVisitDetail(visitId);
+        const v = res.visit;
+        eventDate = v.scheduledDate ?? '';
+        if (v.vehicle) label = `${v.vehicle.brand} ${v.vehicle.model}`.trim();
+      } else if (appointmentId) {
+        const res = await appointmentApi.getAppointment(appointmentId);
+        eventDate = res.schedule?.startDateTime ?? '';
+        if (res.vehicle) label = `${res.vehicle.brand} ${res.vehicle.model}`.trim();
+      }
+
       const sourceRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       const snap = {
-        id: visitId,
-        label: visit.vehicle ? `${visit.vehicle.brand} ${visit.vehicle.model}`.trim() : (lead.vehicleBrand ?? 'Wizyta'),
-        customer: visit.customer
-          ? `${visit.customer.firstName} ${visit.customer.lastName}`.trim()
-          : (lead.customerName ?? lead.contactIdentifier),
+        id: eventId,
+        label,
+        customer,
         amount: formatCurrency(lead.estimatedValue),
         accentColor: '#0ea5e9',
         sourceRect,
-        scheduledDate: visit.scheduledDate ?? undefined,
+        scheduledDate: eventDate || undefined,
       };
       const doNavigate = () => navigate('/calendar', {
-        state: { highlightEventId: visitId, highlightDate: visit.scheduledDate ?? '' },
+        state: { highlightEventId: eventId, highlightDate: eventDate },
       });
       startCalendarNav(snap, doNavigate);
     } catch {
@@ -1725,7 +1743,7 @@ export const LeadListView: React.FC = () => {
 
           <TdActions onClick={e => e.stopPropagation()}>
             <ActionBtns>
-              {lead.relatedVisits?.length > 0 ? (
+              {(lead.visitId || lead.appointmentId || lead.relatedVisits?.length > 0) ? (
                 <BookingBtn
                   title="Przejdź do rezerwacji w kalendarzu"
                   disabled={!!calNavLoadingId}
@@ -1733,7 +1751,7 @@ export const LeadListView: React.FC = () => {
                   style={{ borderColor: '#10b981', color: '#10b981' }}
                 >
                   <CalendarCheck size={12} />
-                  {calNavLoadingId === lead.relatedVisits[0]?.id ? '…' : 'Rezerwacja'}
+                  {calNavLoadingId === (lead.visitId ?? lead.appointmentId ?? lead.relatedVisits?.[0]?.id) ? '…' : 'Rezerwacja'}
                 </BookingBtn>
               ) : lead.status !== LeadStatus.CONFIRMED && lead.status !== LeadStatus.COMPLETED && (
                 <BookingBtn
