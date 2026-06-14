@@ -2088,7 +2088,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
   const [isEditingLostReason, setIsEditingLostReason] = useState(false);
   const [lostReasonDraft, setLostReasonDraft] = useState(lead?.lostReason ?? '');
   const [previewVisitId, setPreviewVisitId] = useState<string | null>(null);
-  const [showVisitPhotos, setShowVisitPhotos] = useState(false);
+  const [showVisitPhotos, setShowVisitPhotos] = useState(true);
 
   useEffect(() => {
     if (!isOpen) {
