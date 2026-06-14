@@ -41,30 +41,33 @@ const Container = styled.div`
 `;
 
 const TabBar = styled.div`
-  display: flex;
-  border-bottom: 1px solid ${st.border};
-  gap: 0;
-  margin-bottom: 20px;
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 3px;
+  padding: 4px;
+  background: #f1f5f9;
+  border-radius: 9999px;
+  margin-bottom: 22px;
 `;
 
 const Tab = styled.button<{ $active: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 10px 18px;
+  padding: 9px 18px;
   border: none;
-  background: transparent;
+  border-radius: 9999px;
+  background: ${p => p.$active ? '#fff' : 'transparent'};
   font-family: inherit;
   font-size: 13px;
-  font-weight: ${p => p.$active ? 700 : 500};
-  color: ${p => p.$active ? '#0ea5e9' : st.textSecondary};
-  border-bottom: 2px solid ${p => p.$active ? '#0ea5e9' : 'transparent'};
-  margin-bottom: -1px;
+  font-weight: ${p => p.$active ? 700 : 600};
+  color: ${p => p.$active ? '#0369a1' : st.textSecondary};
+  box-shadow: ${p => p.$active ? '0 1px 3px rgba(15,23,42,0.10)' : 'none'};
   cursor: pointer;
   transition: all 180ms ease;
   white-space: nowrap;
 
-  &:hover { color: #0ea5e9; }
+  &:hover { color: ${p => p.$active ? '#0369a1' : st.text}; }
   svg { width: 14px; height: 14px; }
 `;
 
@@ -83,18 +86,20 @@ const DateLabel = styled.span`
 `;
 
 const DateInput = styled.input`
-  padding: 6px 10px;
+  padding: 8px 12px;
   font-size: 12px;
+  font-weight: 500;
   font-family: inherit;
   border: 1.5px solid ${st.border};
-  border-radius: 8px;
-  background: #f8fafc;
+  border-radius: 9999px;
+  background: #fff;
   color: ${st.text};
   outline: none;
   cursor: pointer;
-  transition: border-color 180ms;
+  transition: all 180ms ease;
 
-  &:focus { border-color: #0ea5e9; }
+  &:hover { border-color: ${st.borderHover}; }
+  &:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14,165,233,0.12); }
 `;
 
 const DateSep = styled.span`
@@ -109,16 +114,18 @@ const ServiceTable = styled.div`
   flex-direction: column;
   gap: 0;
   border: 1px solid ${st.border};
-  border-radius: 10px;
+  border-radius: 14px;
   overflow: hidden;
+  background: #fff;
+  box-shadow: ${st.shadowSm};
 `;
 
 const ServiceHead = styled.div`
   display: grid;
-  grid-template-columns: 1fr 70px 70px 70px 100px;
+  grid-template-columns: 1fr 70px 70px 70px 110px;
   gap: 8px;
-  padding: 8px 14px;
-  background: ${st.bg};
+  padding: 11px 16px;
+  background: linear-gradient(180deg, #fbfcfe 0%, #f6f9fc 100%);
   border-bottom: 1px solid ${st.border};
 `;
 
@@ -135,20 +142,21 @@ const HeadCell = styled.span`
 
 const ServiceRow = styled.div`
   display: grid;
-  grid-template-columns: 1fr 70px 70px 70px 100px;
+  grid-template-columns: 1fr 70px 70px 70px 110px;
   gap: 8px;
   align-items: center;
-  padding: 10px 14px;
+  padding: 13px 16px;
   border-bottom: 1px solid #f1f5f9;
   animation: ${fadeIn} 200ms ease both;
+  transition: background 140ms ease;
 
   &:last-child { border-bottom: none; }
-  &:hover { background: #f8fafc; }
+  &:hover { background: #f8fbff; }
 `;
 
 const ServiceName = styled.span`
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: ${st.text};
   min-width: 0;
   overflow: hidden;
@@ -158,7 +166,7 @@ const ServiceName = styled.span`
 
 const NumCell = styled.span<{ $color?: string }>`
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: ${p => p.$color ?? st.text};
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -167,22 +175,22 @@ const NumCell = styled.span<{ $color?: string }>`
 const WinRateBar = styled.div`
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 `;
 
 const BarTrack = styled.div`
   flex: 1;
-  height: 6px;
-  border-radius: 3px;
-  background: #f1f5f9;
+  height: 7px;
+  border-radius: 9999px;
+  background: #eef2f6;
   overflow: hidden;
 `;
 
 const BarFill = styled.div<{ $pct: number; $color: string }>`
   height: 100%;
   width: ${p => p.$pct}%;
-  border-radius: 3px;
-  background: ${p => p.$color};
+  border-radius: 9999px;
+  background: linear-gradient(90deg, ${p => p.$color}cc 0%, ${p => p.$color} 100%);
   transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
@@ -203,16 +211,18 @@ const EmpTable = styled.div`
   flex-direction: column;
   gap: 0;
   border: 1px solid ${st.border};
-  border-radius: 10px;
+  border-radius: 14px;
   overflow: hidden;
+  background: #fff;
+  box-shadow: ${st.shadowSm};
 `;
 
 const EmpHead = styled.div`
   display: grid;
   grid-template-columns: 1fr 60px 60px 60px 90px 100px;
   gap: 8px;
-  padding: 8px 14px;
-  background: ${st.bg};
+  padding: 11px 16px;
+  background: linear-gradient(180deg, #fbfcfe 0%, #f6f9fc 100%);
   border-bottom: 1px solid ${st.border};
 `;
 
@@ -221,28 +231,30 @@ const EmpRow = styled.div<{ $rank?: number }>`
   grid-template-columns: 1fr 60px 60px 60px 90px 100px;
   gap: 8px;
   align-items: center;
-  padding: 10px 14px;
+  padding: 12px 16px;
   border-bottom: 1px solid #f1f5f9;
   animation: ${fadeIn} 200ms ease both;
-  background: ${p => p.$rank === 0 ? 'rgba(16, 185, 129, 0.04)' : 'transparent'};
+  transition: background 140ms ease;
+  background: ${p => p.$rank === 0 ? 'linear-gradient(90deg, rgba(16,185,129,0.07) 0%, rgba(16,185,129,0.02) 100%)' : 'transparent'};
 
   &:last-child { border-bottom: none; }
-  &:hover { background: #f8fafc; }
+  &:hover { background: ${p => p.$rank === 0 ? 'rgba(16,185,129,0.10)' : '#f8fbff'}; }
 `;
 
 const EmpName = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
 `;
 
 const EmpAvatar = styled.div<{ $rank?: number }>`
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: ${p => p.$rank === 0 ? 'rgba(16, 185, 129, 0.15)' : '#f1f5f9'};
-  color: ${p => p.$rank === 0 ? '#059669' : '#64748b'};
+  background: ${p => p.$rank === 0 ? 'linear-gradient(135deg, #34d399 0%, #059669 100%)' : '#eef2f6'};
+  color: ${p => p.$rank === 0 ? '#fff' : '#64748b'};
+  box-shadow: ${p => p.$rank === 0 ? '0 2px 6px rgba(16,185,129,0.35)' : 'none'};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -291,10 +303,14 @@ const SkeletonPulse = styled.div<{ $w?: string }>`
 `;
 
 const EmptyBox = styled.div`
-  padding: 48px 24px;
+  padding: 52px 24px;
   text-align: center;
   color: ${st.textMuted};
   font-size: ${st.fontSm};
+  line-height: 1.6;
+  background: #fff;
+  border: 1px dashed ${st.border};
+  border-radius: 14px;
 `;
 
 const SectionTitle = styled.div`
@@ -303,41 +319,54 @@ const SectionTitle = styled.div`
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: ${st.textMuted};
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
+  svg { color: ${st.textSecondary}; }
 `;
 
 const SummaryCards = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 22px;
 `;
 
 const SummaryCard = styled.div<{ $color: string; $bg: string }>`
-  padding: 12px 14px;
-  background: ${p => p.$bg};
+  position: relative;
+  padding: 16px 16px 15px;
+  background: linear-gradient(160deg, #fff 0%, ${p => p.$bg} 100%);
   border: 1px solid ${st.border};
-  border-radius: 10px;
+  border-radius: 14px;
+  box-shadow: ${st.shadowXs};
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: ${p => p.$color};
+  }
 `;
 
 const SummaryValue = styled.div<{ $color: string }>`
-  font-size: 20px;
+  font-size: 26px;
   font-weight: 800;
   color: ${p => p.$color};
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.6px;
+  line-height: 1;
 `;
 
 const SummaryLabel = styled.div`
-  font-size: 11px;
-  color: ${st.textMuted};
-  font-weight: 500;
+  font-size: 11.5px;
+  color: ${st.textSecondary};
+  font-weight: 600;
 `;
 
 // ─── Service analytics tab ────────────────────────────────────────────────────
@@ -536,17 +565,19 @@ const TimingFilterLabel = styled.span`
 `;
 
 const TimingInput = styled.input`
-  padding: 6px 10px;
+  padding: 8px 12px;
   font-size: 12px;
+  font-weight: 500;
   font-family: inherit;
   border: 1.5px solid ${st.border};
-  border-radius: 8px;
-  background: #f8fafc;
+  border-radius: 9999px;
+  background: #fff;
   color: ${st.text};
   outline: none;
-  width: 110px;
-  transition: border-color 180ms;
-  &:focus { border-color: #0ea5e9; }
+  width: 96px;
+  transition: all 180ms ease;
+  &:hover { border-color: ${st.borderHover}; }
+  &:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14,165,233,0.12); }
   &::placeholder { color: ${st.textMuted}; }
 `;
 
@@ -560,18 +591,20 @@ const ChartTitle = styled.div`
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: ${st.textMuted};
-  margin-bottom: 10px;
+  color: ${st.textSecondary};
+  margin-bottom: 14px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
+  svg { color: #0ea5e9; }
 `;
 
 const ChartWrap = styled.div`
   background: #fff;
   border: 1px solid ${st.border};
-  border-radius: 12px;
-  padding: 16px 12px 8px;
+  border-radius: 14px;
+  padding: 18px 14px 10px;
+  box-shadow: ${st.shadowSm};
   animation: ${fadeIn} 200ms ease both;
 `;
 
@@ -636,29 +669,31 @@ type SeriesKey = typeof SERIES_DEF[number]['key'];
 const InterpretBtn = styled.button<{ $loading?: boolean }>`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 12px;
-  padding: 7px 16px;
+  gap: 7px;
+  margin-top: 14px;
+  padding: 9px 18px;
   border-radius: 9999px;
-  border: 1.5px solid #7c3aed;
-  background: ${p => p.$loading ? '#ede9fe' : '#faf5ff'};
-  color: #7c3aed;
+  border: none;
+  background: ${p => p.$loading ? '#ede9fe' : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)'};
+  color: ${p => p.$loading ? '#7c3aed' : '#fff'};
   font-size: 12px;
   font-weight: 600;
   cursor: ${p => p.$loading ? 'not-allowed' : 'pointer'};
   font-family: inherit;
+  box-shadow: ${p => p.$loading ? 'none' : '0 2px 8px rgba(124,58,237,0.28)'};
   transition: all 150ms ease;
-  opacity: ${p => p.$loading ? 0.75 : 1};
+  opacity: ${p => p.$loading ? 0.85 : 1};
 
-  &:hover:not(:disabled) { background: #ede9fe; border-color: #6d28d9; }
-  svg { width: 13px; height: 13px; }
+  &:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(124,58,237,0.36); }
+  svg { width: 14px; height: 14px; }
 `;
 
 const InterpretCard = styled.div`
-  margin-top: 12px;
+  margin-top: 14px;
   border: 1px solid #e9d5ff;
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
+  box-shadow: ${st.shadowSm};
   animation: ${fadeIn} 200ms ease both;
 `;
 
@@ -667,8 +702,8 @@ const InterpretCardHeader = styled.button`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%);
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #faf5ff 0%, #f3f0ff 100%);
   border: none;
   cursor: pointer;
   font-family: inherit;
@@ -886,16 +921,17 @@ const SeriesToggleBar = styled.div`
 const SeriesToggle = styled.button<{ $color: string; $active: boolean }>`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
+  gap: 7px;
+  padding: 7px 14px;
   border-radius: 9999px;
-  border: 2px solid ${p => p.$active ? p.$color : st.border};
-  background: ${p => p.$active ? `${p.$color}18` : '#f8fafc'};
+  border: 1.5px solid ${p => p.$active ? p.$color : st.border};
+  background: ${p => p.$active ? `${p.$color}14` : '#fff'};
   color: ${p => p.$active ? p.$color : st.textMuted};
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
+  box-shadow: ${p => p.$active ? 'none' : st.shadowXs};
   transition: all 150ms ease;
 
   &:hover { border-color: ${p => p.$color}; color: ${p => p.$color}; background: ${p => p.$color}12; }
@@ -1002,7 +1038,7 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
         />
         <button
           onClick={handleApply}
-          style={{ padding: '6px 14px', background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+          style={{ padding: '8px 16px', background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)', color: '#fff', border: 'none', borderRadius: 9999, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 2px 8px rgba(14,165,233,0.28)' }}
         >
           Filtruj
         </button>
@@ -1123,26 +1159,30 @@ const getPresetDates = (preset: DatePreset): { dateFrom?: string; dateTo?: strin
 };
 
 const PresetBar = styled.div`
-  display: flex;
-  gap: 6px;
+  display: inline-flex;
+  gap: 3px;
+  padding: 4px;
+  background: #f1f5f9;
+  border-radius: 9999px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 `;
 
 const PresetBtn = styled.button<{ $active: boolean }>`
-  padding: 5px 13px;
+  padding: 7px 14px;
   border-radius: 9999px;
-  border: 1.5px solid ${p => p.$active ? '#0ea5e9' : st.border};
-  background: ${p => p.$active ? '#e0f2fe' : '#f8fafc'};
+  border: none;
+  background: ${p => p.$active ? '#fff' : 'transparent'};
   color: ${p => p.$active ? '#0369a1' : st.textSecondary};
+  box-shadow: ${p => p.$active ? '0 1px 3px rgba(15,23,42,0.10)' : 'none'};
   font-size: 12px;
-  font-weight: 600;
+  font-weight: ${p => p.$active ? 700 : 600};
   cursor: pointer;
   font-family: inherit;
   transition: all 150ms ease;
   white-space: nowrap;
 
-  &:hover { border-color: #0ea5e9; color: #0369a1; background: #f0f9ff; }
+  &:hover { color: ${p => p.$active ? '#0369a1' : st.text}; }
 `;
 
 const CustomRangeRow = styled.div`
