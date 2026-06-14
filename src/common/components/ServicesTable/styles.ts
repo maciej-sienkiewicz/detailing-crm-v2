@@ -11,7 +11,7 @@ export const ServicesBlock = styled.div`
 
 export const ServicesTableHeader = styled.div`
     display: grid;
-    grid-template-columns: 1fr 74px 74px 90px;
+    grid-template-columns: 1fr 74px 60px 74px 90px;
     align-items: center;
     gap: 4px;
     padding: 7px 8px 7px 14px;
@@ -46,7 +46,7 @@ export const ServiceItem = styled.div<{ $hasDiscount?: boolean }>`
 
 export const ServiceItemRow = styled.div`
     display: grid;
-    grid-template-columns: 1fr 74px 74px 90px;
+    grid-template-columns: 1fr 74px 60px 74px 90px;
     align-items: center;
     gap: 4px;
     padding: 8px 8px 8px 14px;
@@ -610,12 +610,14 @@ export const VatSelect = styled.select`
     border: none;
     padding: 0;
     margin: 0;
-    font-size: 11px;
+    width: 100%;
+    font-size: 12px;
     font-weight: 500;
-    color: #94a3b8;
+    color: #64748b;
     font-family: inherit;
     cursor: pointer;
     outline: none;
+    text-align: center;
     transition: color 150ms ease;
 
     &:hover { color: #0ea5e9; }

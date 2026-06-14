@@ -176,6 +176,7 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                 <S.ServicesTableHeader>
                     <S.ServicesHeaderCell>Usługa</S.ServicesHeaderCell>
                     <S.ServicesHeaderCell>Netto</S.ServicesHeaderCell>
+                    <S.ServicesHeaderCell style={{ textAlign: 'center' }}>VAT</S.ServicesHeaderCell>
                     <S.ServicesHeaderCell>Brutto</S.ServicesHeaderCell>
                     <S.ServicesHeaderCell />
                 </S.ServicesTableHeader>
@@ -195,31 +196,30 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                                             <S.ServiceName title={service.serviceName}>{service.serviceName}</S.ServiceName>
                                             {service.isPackage && <S.PackageBadgeInline>Pakiet</S.PackageBadgeInline>}
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                            <span style={{ fontSize: 11, color: '#b0bec5' }}>VAT</span>
-                                            <S.VatSelect
-                                                value={service.vatRate}
-                                                onClick={e => e.stopPropagation()}
-                                                onChange={e => {
-                                                    const newRate = parseInt(e.target.value, 10);
-                                                    onChange(services.map(s => s.id === service.id
-                                                        ? { ...s, vatRate: newRate }
-                                                        : s
-                                                    ));
-                                                }}
-                                            >
-                                                {VAT_RATES.map(r => (
-                                                    <option key={r} value={r}>{VAT_LABEL(r)}</option>
-                                                ))}
-                                            </S.VatSelect>
-                                            {hasNote && <S.ServiceNoteInline title={service.note}>{service.note}</S.ServiceNoteInline>}
-                                        </div>
+                                        {hasNote && <S.ServiceNoteInline title={service.note}>{service.note}</S.ServiceNoteInline>}
                                     </S.ServiceNameWrap>
 
                                     <S.PriceDisplay>
                                         <S.PriceDisplayMain $isDiscounted={hasDiscount}>{finalNet.toFixed(2)}</S.PriceDisplayMain>
                                         {hasDiscount && <S.PriceDisplayOriginal>{baseNet.toFixed(2)}</S.PriceDisplayOriginal>}
                                     </S.PriceDisplay>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <S.VatSelect
+                                            value={service.vatRate}
+                                            onClick={e => e.stopPropagation()}
+                                            onChange={e => {
+                                                const newRate = parseInt(e.target.value, 10);
+                                                onChange(services.map(s => s.id === service.id
+                                                    ? { ...s, vatRate: newRate }
+                                                    : s
+                                                ));
+                                            }}
+                                        >
+                                            {VAT_RATES.map(r => (
+                                                <option key={r} value={r}>{VAT_LABEL(r)}</option>
+                                            ))}
+                                        </S.VatSelect>
+                                    </div>
                                     <S.PriceDisplay>
                                         <S.PriceDisplayMain $isBrutto $isDiscounted={hasDiscount}>{finalGross.toFixed(2)}</S.PriceDisplayMain>
                                         {hasDiscount && <S.PriceDisplayOriginal>{baseGross.toFixed(2)}</S.PriceDisplayOriginal>}
