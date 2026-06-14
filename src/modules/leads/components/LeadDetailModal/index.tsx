@@ -1,15 +1,14 @@
 // src/modules/leads/components/LeadDetailModal/index.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
 import styled, { css, keyframes } from 'styled-components';
 import {
-  X, Phone, Mail, PenLine, FileText, Edit3, Wrench, ChevronRight,
-  MessageSquare, UserCheck, UserX, Check, Search, Plus, CalendarCheck,
+  X, Phone, Mail, PenLine, FileText, Edit3,
+  MessageSquare, UserCheck, UserX, Check, Search, Plus,
+  Camera, Calendar, ArrowRight, Sparkles, AlertCircle,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/core';
-import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
 import { useToast } from '@/common/components/Toast';
 import { Modal } from '@/common/components/Modal/Modal';
 import { ImageViewerModal } from '@/modules/visits/components/ImageViewerModal';
@@ -432,67 +431,236 @@ const InlineEditBtn = styled.button`
   &:hover { border-color: #0ea5e9; color: #0ea5e9; background: #f0f9ff; }
 `;
 
-// ─── Related visits ───────────────────────────────────────────────────────────
+// ─── Related visits (reference realisations) ──────────────────────────────────
 
-const RelatedVisitsCard = styled.div`
+const RelatedVisitsHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 12px;
+`;
+
+const RelatedVisitsTitle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: ${st.text};
+  svg { width: 15px; height: 15px; color: #0ea5e9; }
+`;
+
+const RelatedVisitsHint = styled.p`
+  margin: 0;
+  font-size: 12px;
+  color: ${st.textMuted};
+  line-height: 1.5;
+  max-width: 62ch;
+`;
+
+const RelatedVisitsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(228px, 1fr));
+  gap: 12px;
+`;
+
+const RVCard = styled.button`
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 0;
   background: #fff;
   border: 1px solid ${st.border};
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-`;
-
-const RelatedVisitRow = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 9px 12px;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid #f1f5f9;
-  font-family: inherit;
   cursor: pointer;
   text-align: left;
-  transition: background 180ms ease;
+  font-family: inherit;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 
-  &:last-child { border-bottom: none; }
-  &:hover { background: #f0f9ff; }
-  &:hover .rv-icon { background: #dbeafe; color: #1d4ed8; }
+  &:hover {
+    border-color: #7dd3fc;
+    box-shadow: 0 10px 24px -12px rgba(14, 165, 233, 0.45);
+    transform: translateY(-2px);
+  }
+  &:hover .rv-cta { color: #0284c7; }
+  &:hover .rv-cta svg { transform: translateX(3px); }
+  &:hover .rv-cover img { transform: scale(1.06); }
 `;
 
-const RelatedVisitIcon = styled.div.attrs({ className: 'rv-icon' })`
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  background: #f1f5f9;
-  color: #64748b;
+const RVCover = styled.div.attrs({ className: 'rv-cover' })`
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 320ms ease;
+  }
+`;
+
+const RVCoverPlaceholder = styled.div`
+  position: absolute;
+  inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  transition: all 180ms ease;
-  svg { width: 13px; height: 13px; }
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  svg { width: 22px; height: 22px; }
 `;
 
-const RelatedVisitTitle = styled.span`
-  flex: 1;
-  font-size: 13px;
-  font-weight: 500;
+const RVPhotoBadge = styled.div`
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  svg { width: 12px; height: 12px; }
+`;
+
+const RVStatusSlot = styled.div`
+  position: absolute;
+  top: 8px;
+  left: 8px;
+`;
+
+const RVBody = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 12px 14px 13px;
+`;
+
+const RVVehicle = styled.div`
+  font-size: 14px;
+  font-weight: 700;
   color: ${st.text};
+  line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-width: 0;
 `;
 
-const RelatedVisitArrow = styled.span`
-  flex-shrink: 0;
-  color: #cbd5e1;
+const RVMeta = styled.div`
   display: flex;
   align-items: center;
-  svg { width: 13px; height: 13px; }
+  gap: 5px;
+  font-size: 11.5px;
+  color: ${st.textMuted};
+  margin-top: -4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  svg { width: 12px; height: 12px; flex-shrink: 0; }
+`;
 
-  ${RelatedVisitRow}:hover & { color: #93c5fd; }
+const RVChips = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+`;
+
+const RVChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  background: #f0f9ff;
+  border: 1px solid #e0f2fe;
+  color: #0369a1;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const RVChipMore = styled(RVChip)`
+  background: #f1f5f9;
+  border-color: ${st.border};
+  color: ${st.textMuted};
+`;
+
+const RVFooter = styled.div`
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 1px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+`;
+
+const RVPriceLabel = styled.span`
+  display: block;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: ${st.textMuted};
+  margin-bottom: 3px;
+`;
+
+const RVPrice = styled.span`
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  color: ${st.text};
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+`;
+
+const RVCta = styled.span.attrs({ className: 'rv-cta' })`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0ea5e9;
+  white-space: nowrap;
+  transition: color 180ms ease;
+  svg { width: 14px; height: 14px; transition: transform 180ms ease; }
+`;
+
+const RVSkeleton = styled.div`
+  border: 1px solid ${st.border};
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+`;
+
+const RVErrorCard = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 16px 14px;
+  border: 1px dashed ${st.border};
+  border-radius: 12px;
+  background: #f8fafc;
+  color: ${st.textMuted};
+  font-size: 12.5px;
+  font-weight: 500;
+  svg { width: 16px; height: 16px; flex-shrink: 0; color: #cbd5e1; }
 `;
 
 // ─── User quote editor ────────────────────────────────────────────────────────
@@ -1104,6 +1272,119 @@ const VisitPreviewModal: React.FC<VisitPreviewModalProps> = ({ visitId, onClose 
   );
 };
 
+// ─── Related visit card (reference realisation) ───────────────────────────────
+
+interface RelatedVisitCardProps {
+  visitId: string;
+  fallbackTitle: string | null;
+  onOpen: (visitId: string) => void;
+}
+
+const RV_MAX_CHIPS = 3;
+
+const RelatedVisitCard: React.FC<RelatedVisitCardProps> = ({ visitId, fallbackTitle, onOpen }) => {
+  // Reuse the exact query keys of VisitPreviewModal so opening the preview is a cache hit.
+  const { data: detailData, isLoading, isError } = useQuery({
+    queryKey: ['visit-preview', visitId],
+    queryFn: () => visitApi.getVisitDetail(visitId),
+    staleTime: 60_000,
+  });
+  const { data: photosData } = useQuery({
+    queryKey: ['visit-photos-preview', visitId],
+    queryFn: () => visitApi.getVisitPhotos(visitId),
+    staleTime: 60_000,
+  });
+
+  if (isLoading) {
+    return (
+      <RVSkeleton>
+        <SkeletonPulse $h="0" style={{ aspectRatio: '16 / 10', height: 'auto', borderRadius: 0 }} />
+        <div style={{ padding: '12px 14px 13px', display: 'flex', flexDirection: 'column', gap: 9 }}>
+          <SkeletonPulse $w="70%" $h="14px" />
+          <SkeletonPulse $w="45%" $h="11px" />
+          <SkeletonPulse $w="90%" $h="22px" />
+        </div>
+      </RVSkeleton>
+    );
+  }
+
+  if (isError || !detailData?.visit) {
+    return (
+      <RVErrorCard>
+        <AlertCircle />
+        <span>{fallbackTitle ?? 'Wizyta jest niedostępna'}</span>
+      </RVErrorCard>
+    );
+  }
+
+  const visit = detailData.visit;
+  const photos = photosData?.photos ?? [];
+  const cover = photos[0];
+
+  const vehicleLabel = visit.vehicle
+    ? `${visit.vehicle.brand} ${visit.vehicle.model}`.trim()
+    : (fallbackTitle ?? 'Wizyta');
+  const vehicleYear = visit.vehicle?.yearOfProduction;
+
+  const services = visit.services ?? [];
+  const shownServices = services.slice(0, RV_MAX_CHIPS);
+  const extraCount = services.length - shownServices.length;
+
+  const dateLabel = visit.scheduledDate
+    ? new Intl.DateTimeFormat('pl-PL', { day: '2-digit', month: 'short', year: 'numeric' })
+        .format(new Date(visit.scheduledDate))
+    : null;
+
+  const metaParts = [dateLabel, visit.visitNumber ? `Wizyta ${visit.visitNumber}` : null]
+    .filter(Boolean)
+    .join(' · ');
+
+  return (
+    <RVCard type="button" onClick={() => onOpen(visitId)} title="Zobacz szczegóły wizyty i zdjęcia">
+      <RVCover>
+        {cover ? (
+          <img src={cover.thumbnailUrl} alt={vehicleLabel} loading="lazy" />
+        ) : (
+          <RVCoverPlaceholder>
+            <Camera />
+            Brak zdjęć
+          </RVCoverPlaceholder>
+        )}
+        {visit.status && (
+          <RVStatusSlot>
+            <VStatusBadge $status={visit.status}>{VStatusLabel[visit.status] ?? visit.status}</VStatusBadge>
+          </RVStatusSlot>
+        )}
+        {photos.length > 0 && (
+          <RVPhotoBadge><Camera />{photos.length}</RVPhotoBadge>
+        )}
+      </RVCover>
+
+      <RVBody>
+        <RVVehicle>{vehicleLabel}{vehicleYear ? ` · ${vehicleYear}` : ''}</RVVehicle>
+        {metaParts && <RVMeta><Calendar />{metaParts}</RVMeta>}
+
+        {services.length > 0 && (
+          <RVChips>
+            {shownServices.map(svc => (
+              <RVChip key={svc.id} title={svc.serviceName}>{svc.serviceName}</RVChip>
+            ))}
+            {extraCount > 0 && <RVChipMore>+{extraCount}</RVChipMore>}
+          </RVChips>
+        )}
+
+        <RVFooter>
+          <div>
+            <RVPriceLabel>Wartość realizacji</RVPriceLabel>
+            <RVPrice>{visit.totalCost ? formatCurrency(visit.totalCost.grossAmount) : '—'}</RVPrice>
+          </div>
+          <RVCta>Zobacz <ArrowRight /></RVCta>
+        </RVFooter>
+      </RVBody>
+    </RVCard>
+  );
+};
+
 // ─── Service name input with autocomplete ─────────────────────────────────────
 
 interface ServiceNameInputProps {
@@ -1432,8 +1713,6 @@ export interface LeadDetailModalProps {
 }
 
 export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, onClose }) => {
-  const navigate = useNavigate();
-  const { start: startCalendarNav } = useCalendarNavigation();
   const { lead: detail, isLoading: isDetailLoading } = useLead(lead?.id);
   const updateValue   = useUpdateLeadValue();
   const assignUser    = useAssignLeadUser(lead?.id ?? '');
@@ -1445,7 +1724,6 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
   const [isEditingLostReason, setIsEditingLostReason] = useState(false);
   const [lostReasonDraft, setLostReasonDraft] = useState(lead?.lostReason ?? '');
   const [previewVisitId, setPreviewVisitId] = useState<string | null>(null);
-  const [calNavLoadingId, setCalNavLoadingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -1458,35 +1736,6 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
   useEffect(() => {
     setLostReasonDraft(lead?.lostReason ?? '');
   }, [lead?.lostReason]);
-
-  const handleGoToVisitInCalendar = async (visitId: string, btnEl: HTMLElement) => {
-    if (calNavLoadingId) return;
-    setCalNavLoadingId(visitId);
-    try {
-      const res = await visitApi.getVisitDetail(visitId);
-      const visit = res.visit;
-      const sourceRect = btnEl.getBoundingClientRect();
-      const snap = {
-        id: visitId,
-        label: visit.vehicle ? `${visit.vehicle.brand} ${visit.vehicle.model}`.trim() : (lead?.vehicleBrand ?? 'Wizyta'),
-        customer: visit.customer
-          ? `${visit.customer.firstName} ${visit.customer.lastName}`.trim()
-          : (lead?.customerName ?? lead?.contactIdentifier ?? ''),
-        amount: '',
-        accentColor: '#0ea5e9',
-        sourceRect,
-        scheduledDate: visit.scheduledDate ?? undefined,
-      };
-      const doNavigate = () => navigate('/calendar', {
-        state: { highlightEventId: visitId, highlightDate: visit.scheduledDate ?? '' },
-      });
-      startCalendarNav(snap, doNavigate);
-    } catch {
-      navigate('/calendar');
-    } finally {
-      setCalNavLoadingId(null);
-    }
-  };
 
   if (!lead) return null;
 
@@ -1703,48 +1952,26 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
             </EstColumnWrapper>
           </EstimationsGrid>
 
-          {/* Related visits */}
+          {/* Related visits — reference realisations */}
           {relatedVisits.length > 0 && (
             <PanelSection>
-              <PanelLabel>Na podstawie wizyt</PanelLabel>
-              <RelatedVisitsCard>
+              <RelatedVisitsHeader>
+                <RelatedVisitsTitle><Sparkles /> Podobne realizacje</RelatedVisitsTitle>
+                <RelatedVisitsHint>
+                  Zainspiruj się zrealizowanymi wizytami o zbliżonym zakresie — sprawdź użyte
+                  usługi, wycenę i zdjęcia z realizacji, zanim przygotujesz ofertę dla klienta.
+                </RelatedVisitsHint>
+              </RelatedVisitsHeader>
+              <RelatedVisitsGrid>
                 {relatedVisits.map(rv => (
-                  <RelatedVisitRow
+                  <RelatedVisitCard
                     key={rv.id}
-                    onClick={() => setPreviewVisitId(rv.id)}
-                  >
-                    <RelatedVisitIcon><Wrench /></RelatedVisitIcon>
-                    <RelatedVisitTitle>{rv.title ?? `Wizyta ${rv.id.slice(0, 8)}…`}</RelatedVisitTitle>
-                    <button
-                      title="Przejdź do rezerwacji w kalendarzu"
-                      disabled={!!calNavLoadingId}
-                      onClick={e => { e.stopPropagation(); handleGoToVisitInCalendar(rv.id, e.currentTarget); }}
-                      style={{
-                        marginLeft: 'auto',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 5,
-                        padding: '4px 10px',
-                        background: 'transparent',
-                        border: '1.5px solid #0ea5e9',
-                        borderRadius: 9999,
-                        color: '#0ea5e9',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        fontFamily: 'inherit',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        flexShrink: 0,
-                        opacity: calNavLoadingId === rv.id ? 0.5 : 1,
-                      }}
-                    >
-                      <CalendarCheck size={12} />
-                      {calNavLoadingId === rv.id ? '…' : 'Przejdź do rezerwacji'}
-                    </button>
-                    <RelatedVisitArrow><ChevronRight /></RelatedVisitArrow>
-                  </RelatedVisitRow>
+                    visitId={rv.id}
+                    fallbackTitle={rv.title}
+                    onOpen={setPreviewVisitId}
+                  />
                 ))}
-              </RelatedVisitsCard>
+              </RelatedVisitsGrid>
             </PanelSection>
           )}
 
