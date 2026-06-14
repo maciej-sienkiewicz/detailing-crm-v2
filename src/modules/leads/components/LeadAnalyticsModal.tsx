@@ -673,24 +673,24 @@ const InterpretBtn = styled.button<{ $loading?: boolean }>`
   margin-top: 14px;
   padding: 9px 18px;
   border-radius: 9999px;
-  border: none;
-  background: ${p => p.$loading ? '#ede9fe' : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)'};
-  color: ${p => p.$loading ? '#7c3aed' : '#fff'};
+  border: 1.5px solid ${st.border};
+  background: ${p => p.$loading ? '#f1f5f9' : '#fff'};
+  color: ${st.textSecondary};
   font-size: 12px;
   font-weight: 600;
   cursor: ${p => p.$loading ? 'not-allowed' : 'pointer'};
   font-family: inherit;
-  box-shadow: ${p => p.$loading ? 'none' : '0 2px 8px rgba(124,58,237,0.28)'};
+  box-shadow: ${st.shadowXs};
   transition: all 150ms ease;
   opacity: ${p => p.$loading ? 0.85 : 1};
 
-  &:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(124,58,237,0.36); }
-  svg { width: 14px; height: 14px; }
+  &:hover:not(:disabled) { background: #f8fafc; border-color: ${st.borderHover}; color: ${st.text}; }
+  svg { width: 14px; height: 14px; color: #0ea5e9; }
 `;
 
 const InterpretCard = styled.div`
   margin-top: 14px;
-  border: 1px solid #e9d5ff;
+  border: 1px solid ${st.border};
   border-radius: 14px;
   overflow: hidden;
   box-shadow: ${st.shadowSm};
@@ -703,7 +703,7 @@ const InterpretCardHeader = styled.button`
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: linear-gradient(135deg, #faf5ff 0%, #f3f0ff 100%);
+  background: linear-gradient(180deg, #fbfcfe 0%, #f6f9fc 100%);
   border: none;
   cursor: pointer;
   font-family: inherit;
@@ -713,25 +713,26 @@ const InterpretCardHeader = styled.button`
 const InterpretCardTitle = styled.span`
   font-size: 12px;
   font-weight: 700;
-  color: #7c3aed;
+  color: ${st.text};
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
+  svg { color: #0ea5e9; }
 `;
 
 const InterpretBody = styled.div`
-  padding: 14px 16px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   background: #fff;
-  border-top: 1px solid #e9d5ff;
+  border-top: 1px solid ${st.border};
 `;
 
 const InterpretSummary = styled.p`
   font-size: 13px;
   color: ${st.textSecondary};
-  line-height: 1.6;
+  line-height: 1.65;
   margin: 0;
 `;
 
@@ -740,8 +741,8 @@ const InterpretSectionLabel = styled.div`
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #7c3aed;
-  margin-bottom: 6px;
+  color: ${st.textMuted};
+  margin-bottom: 8px;
 `;
 
 const InsightList = styled.div`
@@ -751,17 +752,17 @@ const InsightList = styled.div`
 `;
 
 const InsightItem = styled.div`
-  padding: 10px 12px;
-  background: #f9f7ff;
-  border: 1px solid #ede9fe;
-  border-radius: 8px;
+  padding: 11px 13px;
+  background: #f8fafc;
+  border: 1px solid ${st.border};
+  border-radius: 10px;
 `;
 
 const InsightLabel = styled.div`
   font-size: 11px;
   font-weight: 700;
-  color: #5b21b6;
-  margin-bottom: 3px;
+  color: #0369a1;
+  margin-bottom: 4px;
 `;
 
 const InsightObs = styled.div`
@@ -786,25 +787,37 @@ const RecoGrid = styled.div`
 `;
 
 const RecoCard = styled.div`
-  padding: 10px 12px;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 8px;
+  padding: 11px 13px;
+  background: #f8fafc;
+  border: 1px solid ${st.border};
+  border-radius: 10px;
 `;
 
 const RecoLabel = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: #15803d;
-  margin-bottom: 3px;
+  color: ${st.textMuted};
+  margin-bottom: 4px;
+
+  &::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #0ea5e9;
+    flex-shrink: 0;
+  }
 `;
 
 const RecoText = styled.div`
   font-size: 12px;
   color: ${st.text};
-  line-height: 1.45;
+  line-height: 1.5;
 `;
 
 interface InterpretPanelProps {
@@ -845,7 +858,7 @@ const InterpretPanel: React.FC<InterpretPanelProps> = ({ bucketType, buckets, vi
         <InterpretCard>
           <InterpretCardHeader onClick={() => setExpanded(p => !p)}>
             <InterpretCardTitle>
-              <Sparkles /> Interpretacja AI
+              <Sparkles /> Interpretacja wyników
             </InterpretCardTitle>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <InterpretBtn
