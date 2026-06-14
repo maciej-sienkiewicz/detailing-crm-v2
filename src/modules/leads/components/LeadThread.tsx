@@ -738,6 +738,10 @@ const SOURCE_LABELS: Record<string, string> = {
 const translateValue = (field: string, value: string | null): string | null => {
   if (value === null) return null;
   if (field === 'source') return SOURCE_LABELS[value] ?? value;
+  if (field === 'estimatedValue') {
+    const num = parseInt(value, 10);
+    return isNaN(num) ? value : `${formatCurrency(num)} brutto`;
+  }
   return value;
 };
 
