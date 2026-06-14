@@ -117,7 +117,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             }
             if (!svc) return null;
             const baseGross = form.servicePrices[id] ?? 0;
-            const vatRate = svc.vatRate ?? 23;
+            const vatRate = form.serviceVatRates[id] ?? svc.vatRate ?? 23;
             const basePriceNet = Math.round((baseGross / (1 + vatRate / 100)) * 100);
             return {
                 id,
@@ -129,7 +129,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                 note: form.serviceNotes[id] ?? '',
             } as ServiceLineItem;
         }).filter((x): x is ServiceLineItem => x !== null);
-    }, [form.selectedServiceIds, form.services, form.tempServices, form.servicePrices, form.serviceAdjustments, form.serviceNotes]);
+    }, [form.selectedServiceIds, form.services, form.tempServices, form.servicePrices, form.serviceAdjustments, form.serviceNotes, form.serviceVatRates]);
 
     const handleServicesChange = useCallback((newItems: ServiceLineItem[]) => {
         const newIds = new Set(newItems.map(i => i.id));
@@ -142,6 +142,11 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
         form.setServiceNotes(() => {
             const next: { [id: string]: string } = {};
             newItems.forEach(item => { next[item.id] = item.note ?? ''; });
+            return next;
+        });
+        form.setServiceVatRates(() => {
+            const next: { [id: string]: number } = {};
+            newItems.forEach(item => { next[item.id] = item.vatRate; });
             return next;
         });
         form.setServicePrices(prev => {

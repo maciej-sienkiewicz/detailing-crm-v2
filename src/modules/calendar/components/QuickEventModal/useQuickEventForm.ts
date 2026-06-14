@@ -98,6 +98,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     const [servicePriceInputs, setServicePriceInputs] = useState<{ [id: string]: { net: string; gross: string } }>({});
     const [serviceAdjustments, setServiceAdjustments] = useState<{ [key: string]: ServiceAdjustment }>({});
     const [serviceNotes, setServiceNotes] = useState<{ [key: string]: string }>({});
+    const [serviceVatRates, setServiceVatRates] = useState<{ [key: string]: number }>({});
     const [expandedServiceNote, setExpandedServiceNote] = useState<string | null>(null);
     const [serviceSearch, setServiceSearch] = useState('');
     const [showServiceDropdown, setShowServiceDropdown] = useState(false);
@@ -315,6 +316,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         setServicePrices({});
         setServiceAdjustments({});
         setServiceNotes({});
+        setServiceVatRates({});
         setExpandedServiceNote(null);
         setServiceSearch('');
         setCustomerFirstName('');
@@ -492,7 +494,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             selectedServiceIds.forEach(id => {
                 const svc = services.find((s: Service) => s.id === id) || tempServices[id];
                 const baseGross = servicePrices[id] ?? 0;
-                const vatRate = (svc as Service)?.vatRate ?? (tempServices[id]?.vatRate ?? 23);
+                const vatRate = serviceVatRates[id] ?? (svc as Service)?.vatRate ?? (tempServices[id]?.vatRate ?? 23);
                 const adj = serviceAdjustments[id] ?? { type: 'PERCENT', value: 0 };
                 finalServicePrices[id] = calculateFinalPrice(baseGross, vatRate, adj).finalGross;
             });
@@ -874,6 +876,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         servicePriceInputs, setServicePriceInputs,
         serviceAdjustments, setServiceAdjustments,
         serviceNotes, setServiceNotes,
+        serviceVatRates, setServiceVatRates,
         expandedServiceNote, setExpandedServiceNote,
         serviceSearch, setServiceSearch,
         showServiceDropdown, setShowServiceDropdown,
