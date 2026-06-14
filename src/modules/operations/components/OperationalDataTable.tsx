@@ -17,6 +17,8 @@ import { formatCurrency, formatDate } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { Operation, OperationType, OperationStatus, SmsSendStatus } from '../types';
 import { CustomerCell } from '@/common/components/CustomerCell';
+import { ReservationContextMenu } from '@/common/components/ReservationContextMenu';
+import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -667,8 +669,11 @@ export const OperationalDataTable = ({
 }: OperationalDataTableProps) => {
     const navigate = useNavigate();
 
+    const { start: startNavAnim } = useCalendarNavigation();
+
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+    const [contextMenu, setContextMenu] = useState<{ op: Operation; x: number; y: number; sourceRect: DOMRect } | null>(null);
 
     const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; op: Operation | null }>({
         isOpen: false, op: null,
@@ -741,13 +746,25 @@ export const OperationalDataTable = ({
         setEditingTitleId(null);
     };
 
-    const handleRowClick = useCallback((op: Operation) => {
-        if (op.type === 'VISIT') {
-            navigate(`/visits/${op.id}`);
-        } else if (op.type === 'RESERVATION' && op.status === 'CREATED') {
-            navigate(`/appointments/${op.id}/edit`, { state: { recurrenceInfo: op.recurrenceInfo ?? null } });
-        }
-    }, [navigate]);
+    const handleRowClick = useCallback((op: Operation, e: React.MouseEvent) => {
+        const sourceRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        setContextMenu({ op, x: e.clientX, y: e.clientY, sourceRect });
+    }, []);
+
+    const handleShowInCalendar = useCallback((op: Operation, sourceRect: DOMRect) => {
+        const customerName = `${op.customerFirstName ?? ''} ${op.customerLastName ?? ''}`.trim();
+        const isoDate = op.startDateTime.split('T')[0];
+        const snap = {
+            id: op.id,
+            label: op.vehicle?.licensePlate ?? op.title ?? op.id,
+            customer: customerName,
+            amount: formatCurrency(op.financials.grossAmount, op.financials.currency),
+            accentColor: getStatusAccentColor(op.status),
+            sourceRect,
+            scheduledDate: isoDate,
+        };
+        startNavAnim(snap, () => navigate('/calendar', { state: { highlightEventId: op.id, highlightDate: isoDate } }));
+    }, [navigate, startNavAnim]);
 
     const isRowClickable = (op: Operation) =>
         !op.deletedAt && (op.type === 'VISIT' || (op.type === 'RESERVATION' && op.status === 'CREATED'));
@@ -865,7 +882,7 @@ export const OperationalDataTable = ({
                                     $accentColor={accentColor}
                                     $clickable={clickable}
                                     $menuOpen={openMenuId === op.id}
-                                    onClick={() => clickable && handleRowClick(op)}
+                                    onClick={(e) => clickable && handleRowClick(op, e)}
                                 >
                                     {/* Title */}
                                     <MainCell onClick={e => editingTitleId === op.id && e.stopPropagation()}>
@@ -1091,6 +1108,21 @@ export const OperationalDataTable = ({
                     onConfirm={confirmDeleteRecurring}
                     isDeleting={isDeleting}
                     operation={deleteRecurringModal.op}
+                />
+            )}
+
+            {contextMenu && (
+                <ReservationContextMenu
+                    appointmentId={contextMenu.op.id}
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    visitOnly={contextMenu.op.type === 'VISIT'}
+                    onClose={() => setContextMenu(null)}
+                    onShowInCalendar={() => {
+                        const { op, sourceRect } = contextMenu;
+                        setContextMenu(null);
+                        handleShowInCalendar(op, sourceRect);
+                    }}
                 />
             )}
         </>
