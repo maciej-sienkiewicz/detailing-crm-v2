@@ -27,7 +27,7 @@ import {
   useDeleteComment,
   useLeadStatusHistory,
 } from '../hooks';
-import { formatRelativeTime, formatDateTime } from '../utils/formatters';
+import { formatRelativeTime, formatDateTime, formatCurrency } from '../utils/formatters';
 import type { LeadId, LeadHistoryAction, LeadStatus, FieldChange } from '../types';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
