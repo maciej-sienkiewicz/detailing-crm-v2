@@ -432,7 +432,11 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                                             key={r}
                                             type="button"
                                             $selected={bulkVatRate === r}
-                                            onClick={() => setBulkVatRate(r)}
+                                            onClick={() => {
+                                                onChange(services.map(s => ({ ...s, vatRate: r })));
+                                                setBulkVatRate(r);
+                                                setBulkVatOpen(false);
+                                            }}
                                         >
                                             {VAT_LABEL(r)}
                                         </S.DiscountTypePill>
@@ -440,20 +444,6 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                                 </S.DiscountTypeRow>
                             </div>
                         </S.BulkDiscountBody>
-                        <S.BulkDiscountFooter>
-                            <S.BulkDiscountCancelBtn type="button" onClick={() => setBulkVatOpen(false)}>
-                                Anuluj
-                            </S.BulkDiscountCancelBtn>
-                            <S.BulkDiscountApplyBtn
-                                type="button"
-                                onClick={() => {
-                                    onChange(services.map(s => ({ ...s, vatRate: bulkVatRate })));
-                                    setBulkVatOpen(false);
-                                }}
-                            >
-                                Zastosuj
-                            </S.BulkDiscountApplyBtn>
-                        </S.BulkDiscountFooter>
                     </S.BulkDiscountCard>
                 </S.BulkDiscountOverlay>
             )}
