@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import styled from 'styled-components';
+import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useProtocolRules, useProtocolTemplates } from '../api/useProtocols';
 import { ProtocolRuleCard } from '../components/ProtocolRuleCard';
 import { ProtocolTemplateModal } from '../components/ProtocolTemplateModal';
@@ -16,6 +17,7 @@ const ViewContainer = styled.main`
     margin: 0 auto;
     width: 100%;
     background: rgb(248, 250, 252); // bg-slate-50
+    ${hexBackdrop}
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         padding: ${props => props.theme.spacing.xl};

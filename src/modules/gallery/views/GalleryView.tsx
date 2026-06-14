@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
+import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { GalleryFilterBar } from '../components/GalleryFilterBar';
 import { GalleryLightbox } from '../components/GalleryLightbox';
 import { useGallery } from '../hooks/useGallery';
@@ -21,6 +22,7 @@ const Page = styled.div`
     flex-direction: column;
     height: 100%;
     background: ${p => p.theme.colors.background};
+    ${hexBackdrop}
 `;
 
 const HeaderWrap = styled.div`

@@ -1,4 +1,5 @@
 import styled, { keyframes } from 'styled-components';
+import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { Link } from 'react-router-dom';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
@@ -23,6 +24,7 @@ export const spin = keyframes`
 export const ViewContainer = styled.main`
   min-height: 100vh;
   background: ${st.bg};
+  ${hexBackdrop}
   animation: ${fadeIn} 0.25s ease both;
 `;
 

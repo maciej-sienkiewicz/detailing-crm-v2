@@ -5,6 +5,7 @@ import { Sidebar } from '@/widgets/Sidebar';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { CalendarNavigationProvider } from '@/common/context/CalendarNavigationContext';
 import { CalendarNavigationOverlay } from '@/common/components/CalendarNavigationOverlay';
+import { hexBackdrop } from '@/common/styles/hexBackdrop';
 
 const LayoutContainer = styled.div`
     display: flex;
@@ -17,6 +18,7 @@ const ContentWrapper = styled.div<{ $isCollapsed: boolean }>`
     min-width: 0;
     min-height: 100vh;
     position: relative;
+    ${hexBackdrop}
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         margin-left: ${props => props.$isCollapsed ? '64px' : '248px'};

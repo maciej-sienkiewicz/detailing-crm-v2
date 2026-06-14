@@ -1,6 +1,7 @@
 // src/modules/appointments/views/AppointmentEditView.tsx
 
 import styled from 'styled-components';
+import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -56,6 +57,7 @@ const DetachedBadge = styled.span`
 const Container = styled.div`
     min-height: 100vh;
     background-color: ${props => props.theme.colors.background};
+    ${hexBackdrop}
     padding: ${props => props.theme.spacing.lg};
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {

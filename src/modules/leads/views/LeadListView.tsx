@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/core';
 import styled, { css, keyframes } from 'styled-components';
+import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import {
   Inbox,
   PhoneCall,
@@ -175,6 +176,7 @@ const ViewContainer = styled.main`
   padding: 24px;
   min-height: 100vh;
   background: ${st.bg};
+  ${hexBackdrop}
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: 32px;

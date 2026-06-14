@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useEmployee } from '../hooks/useEmployees';
 import { EmployeeStatusBadge } from '../components/EmployeeStatusBadge';
@@ -22,6 +23,7 @@ const ViewContainer = styled.main`
     padding: 24px;
     min-height: 100vh;
     background: ${st.bg};
+    ${hexBackdrop}
 
     @media (min-width: 768px) {
         padding: 32px;

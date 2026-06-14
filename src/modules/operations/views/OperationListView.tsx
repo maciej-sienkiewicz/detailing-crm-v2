@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import styled from 'styled-components';
+import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useOperations } from '../hooks/useOperations';
 import { useOperationSearch } from '../hooks/useOperationSearch';
@@ -20,6 +21,7 @@ const ViewContainer = styled.main`
     padding: 24px;
     min-height: 100vh;
     background: ${st.bg};
+    ${hexBackdrop}
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         padding: 32px;

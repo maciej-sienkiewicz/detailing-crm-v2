@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
+import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useCustomers } from '../hooks/useCustomers';
 import { useCustomerSearch } from '../hooks/useCustomerSearch';
 import { useCustomerPagination } from '../hooks/useCustomerPagination';
@@ -24,6 +25,7 @@ const ViewContainer = styled.main`
     padding: 24px;
     min-height: 100vh;
     background: ${st.bg};
+    ${hexBackdrop}
 
     @media (min-width: ${props => props.theme.breakpoints.md}) {
         padding: 32px;

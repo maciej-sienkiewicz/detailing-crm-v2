@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
+import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useEmployees } from '../hooks/useEmployees';
 import { EmployeeTable } from '../components/EmployeeTable';
@@ -13,6 +14,7 @@ const ViewContainer = styled.main`
     padding: 24px;
     min-height: 100vh;
     background: ${st.bg};
+    ${hexBackdrop}
 
     @media (min-width: 768px) {
         padding: 32px;

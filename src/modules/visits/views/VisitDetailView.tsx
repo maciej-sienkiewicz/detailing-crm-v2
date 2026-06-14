@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
+import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useVisitDetail, useVisitDocuments, useVisitPhotos } from '../hooks';
 import { useUpdateVisit, useUpdateVisitTitle, useUpdateEstimatedCompletionDate } from '../hooks';
 import { useUploadDocument, useUploadPhoto, useDeleteDocument, useDeletePhoto } from '../hooks';
@@ -60,6 +61,7 @@ const ViewContainer = styled.main`
     flex-direction: column;
     min-height: 100vh;
     background: ${st.bg};
+    ${hexBackdrop}
     animation: ${fadeIn} 0.3s ease both;
 `;
 

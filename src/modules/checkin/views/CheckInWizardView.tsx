@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { hexBackdrop } from '@/common/styles/hexBackdrop';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { useToast } from '@/common/components/Toast';
 import { useCheckInWizard } from '../hooks/useCheckInWizard';
@@ -26,6 +27,7 @@ const fadeSlide = keyframes`
 const PageWrap = styled.div`
     min-height: 100vh;
     background: ${st.bg};
+    ${hexBackdrop}
     display: flex;
     flex-direction: column;
 `;
