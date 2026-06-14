@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { BarChart2, Users, X, TrendingUp, TrendingDown, Minus, Award, Target, Clock, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts';
 import { useMutation } from '@tanstack/react-query';
 import { Modal } from '@/common/components/Modal/Modal';
@@ -587,12 +587,9 @@ const TimingSep = styled.span`
 `;
 
 const ChartTitle = styled.div`
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: ${st.textSecondary};
-  margin-bottom: 14px;
+  color: ${st.text};
   display: flex;
   align-items: center;
   gap: 7px;
@@ -603,9 +600,20 @@ const ChartWrap = styled.div`
   background: #fff;
   border: 1px solid ${st.border};
   border-radius: 14px;
-  padding: 18px 14px 10px;
+  padding: 18px 16px 14px;
   box-shadow: ${st.shadowSm};
   animation: ${fadeIn} 200ms ease both;
+`;
+
+const ChartHeader = styled.div`
+  margin-bottom: 14px;
+`;
+
+const ChartCaption = styled.div`
+  font-size: 12px;
+  color: ${st.textMuted};
+  margin-top: 4px;
+  line-height: 1.5;
 `;
 
 const ChartBlock = styled.div`
@@ -824,9 +832,10 @@ interface InterpretPanelProps {
   bucketType: TimeAnalyticsBucketType;
   buckets: TimeAnalyticsBucket[];
   visibleSeries: Set<SeriesKey>;
+  chartLabel: string;
 }
 
-const InterpretPanel: React.FC<InterpretPanelProps> = ({ bucketType, buckets, visibleSeries }) => {
+const InterpretPanel: React.FC<InterpretPanelProps> = ({ bucketType, buckets, visibleSeries, chartLabel }) => {
   const [result, setResult] = useState<InterpretTimeAnalyticsResponse | null>(null);
   const [expanded, setExpanded] = useState(true);
 
@@ -852,7 +861,7 @@ const InterpretPanel: React.FC<InterpretPanelProps> = ({ bucketType, buckets, vi
       {!result ? (
         <InterpretBtn $loading={isPending} onClick={() => !isPending && mutate()} disabled={isPending}>
           <Sparkles />
-          {isPending ? 'Analizuję dane…' : 'Pomóż z interpretacją wyników'}
+          {isPending ? 'Analizuję dane…' : `Zinterpretuj ${chartLabel}`}
         </InterpretBtn>
       ) : (
         <InterpretCard>
@@ -1008,8 +1017,16 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
     return [value, s?.label ?? name];
   };
 
-  const renderBars = () => SERIES.filter(s => visibleSeries.has(s.key)).map(s => (
-    <Bar key={s.key} dataKey={s.key} fill={s.color} radius={[3, 3, 0, 0]} />
+  const renderLines = () => SERIES.filter(s => visibleSeries.has(s.key)).map(s => (
+    <Line
+      key={s.key}
+      type="monotone"
+      dataKey={s.key}
+      stroke={s.color}
+      strokeWidth={2.25}
+      dot={false}
+      activeDot={{ r: 4, strokeWidth: 0 }}
+    />
   ));
 
   return (
@@ -1078,11 +1095,14 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
         <>
           {/* By hour */}
           <ChartWrap>
-            <ChartTitle>
-              <Clock size={12} /> Rozkład godzinowy (0–23)
-            </ChartTitle>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={hourData} barCategoryGap="20%">
+            <ChartHeader>
+              <ChartTitle>
+                <Clock size={13} /> O której godzinie piszą klienci
+              </ChartTitle>
+              <ChartCaption>Rozkład zapytań w ciągu doby (0–23). Pokazuje, kiedy warto być pod telefonem.</ChartCaption>
+            </ChartHeader>
+            <ResponsiveContainer width="100%" height={230}>
+              <LineChart data={hourData} margin={{ top: 6, right: 8, bottom: 0, left: -8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis
                   dataKey="bucket"
@@ -1090,58 +1110,61 @@ const TimingTab: React.FC<TimingTabProps> = ({ dateFrom, dateTo }) => {
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={h => `${h}:00`}
-                  interval={1}
+                  interval={2}
                 />
                 <YAxis
                   allowDecimals={false}
                   tick={{ fontSize: 10, fill: st.textMuted }}
                   axisLine={false}
                   tickLine={false}
-                  width={28}
+                  width={32}
                 />
                 <Tooltip
                   contentStyle={{ fontSize: 12, borderRadius: 8, border: `1px solid ${st.border}` }}
                   labelFormatter={h => `Godzina ${h}:00`}
                   formatter={tooltipFormatter}
                 />
-                {renderBars()}
-              </BarChart>
+                {renderLines()}
+              </LineChart>
             </ResponsiveContainer>
+            <InterpretPanel bucketType="BY_HOUR" buckets={hourData} visibleSeries={visibleSeries} chartLabel="rozkład godzinowy" />
           </ChartWrap>
-          <InterpretPanel bucketType="BY_HOUR" buckets={hourData} visibleSeries={visibleSeries} />
 
           {/* By day of month */}
           <ChartWrap>
-            <ChartTitle>
-              <BarChart2 size={12} /> Rozkład dzienny (1–31)
-            </ChartTitle>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={dayData} barCategoryGap="20%">
+            <ChartHeader>
+              <ChartTitle>
+                <BarChart2 size={13} /> W które dni miesiąca piszą klienci
+              </ChartTitle>
+              <ChartCaption>Rozkład zapytań względem dnia miesiąca (1–31). Pomaga zaplanować kampanie i przypomnienia.</ChartCaption>
+            </ChartHeader>
+            <ResponsiveContainer width="100%" height={230}>
+              <LineChart data={dayData} margin={{ top: 6, right: 8, bottom: 0, left: -8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis
                   dataKey="bucket"
                   tick={{ fontSize: 10, fill: st.textMuted }}
                   axisLine={false}
                   tickLine={false}
-                  interval={1}
+                  interval={3}
                 />
                 <YAxis
                   allowDecimals={false}
                   tick={{ fontSize: 10, fill: st.textMuted }}
                   axisLine={false}
                   tickLine={false}
-                  width={28}
+                  width={32}
                 />
                 <Tooltip
                   contentStyle={{ fontSize: 12, borderRadius: 8, border: `1px solid ${st.border}` }}
                   labelFormatter={d => `${d}. dzień miesiąca`}
                   formatter={tooltipFormatter}
                 />
-                {renderBars()}
-              </BarChart>
+                {renderLines()}
+              </LineChart>
             </ResponsiveContainer>
+            <InterpretPanel bucketType="BY_DAY_OF_MONTH" buckets={dayData} visibleSeries={visibleSeries} chartLabel="rozkład dzienny" />
           </ChartWrap>
-          <InterpretPanel bucketType="BY_DAY_OF_MONTH" buckets={dayData} visibleSeries={visibleSeries} />
         </>
       )}
     </ChartBlock>
