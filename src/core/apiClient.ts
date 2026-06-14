@@ -38,7 +38,7 @@ apiClient.interceptors.response.use(
         if (status === 401) {
             console.warn('[apiClient] Otrzymano 401 - nieautoryzowany dostęp');
             const currentPath = window.location.pathname;
-            const publicPaths = ['/login', '/signup', '/forgot-password', '/m/upload', '/m/voice'];
+            const publicPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/m/upload', '/m/voice'];
 
             if (!publicPaths.includes(currentPath)) {
                 console.warn('[apiClient] Przekierowanie na /login');
