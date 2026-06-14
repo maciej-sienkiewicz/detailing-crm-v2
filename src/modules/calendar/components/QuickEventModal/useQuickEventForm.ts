@@ -105,6 +105,9 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
 
     // ─── Customer edit mode ────────────────────────────────────────────────────
     const [customerEditMode, setCustomerEditMode] = useState(false);
+    // When a customer is prefilled but not yet confirmed by the user, keep the
+    // edit form open and suppress the auto-confirm-on-blur until they act.
+    const prefillAwaitingConfirmRef = useRef(false);
 
     // ─── Vehicle edit mode ─────────────────────────────────────────────────────
     const [vehicleEditMode, setVehicleEditMode] = useState(false);
@@ -320,6 +323,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         setCustomerPhone('');
         setCustomerEmail('');
         setCustomerEditMode(false);
+        prefillAwaitingConfirmRef.current = false;
         setShowCustomerDropdown(false);
         setVehicleBrand('');
         setVehicleModel('');
@@ -363,8 +367,12 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             setCustomerPhone(parsedInitial.main);
             setCustomerEmail(c.email || '');
             // Prefilled-but-unconfirmed customer → open the section in edit mode
-            // so the user explicitly confirms (Zatwierdź zmiany / Anuluj).
-            if (initialData.customerEditing) setCustomerEditMode(true);
+            // so the user explicitly confirms (Zatwierdź zmiany / Anuluj), and
+            // suppress the auto-confirm-on-blur until they do.
+            if (initialData.customerEditing) {
+                setCustomerEditMode(true);
+                prefillAwaitingConfirmRef.current = true;
+            }
         }
         if (initialData.vehicle) {
             const v = initialData.vehicle;
@@ -547,7 +555,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             setShowCustomerDropdown(false);
             if (!selectedCustomer) {
                 handleAddNewCustomerDirectly({ silent: true });
-            } else if (customerEditMode) {
+            } else if (customerEditMode && !prefillAwaitingConfirmRef.current) {
                 handleConfirmEdit({ silent: true });
             }
         }, 300);
@@ -598,6 +606,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     const handleEnterEditMode = () => {
         setCustomerEditMode(true);
         setShowCustomerDropdown(false);
+        prefillAwaitingConfirmRef.current = false;
     };
 
     const handleConfirmEdit = (options?: { silent?: boolean }) => {
@@ -636,6 +645,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             hasUpdates: !selectedCustomer.isNew && changed,
         });
         setCustomerEditMode(false);
+        prefillAwaitingConfirmRef.current = false;
     };
 
     const handleCancelEdit = () => {
@@ -648,6 +658,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
             setCustomerEmail(selectedCustomer.email ?? '');
         }
         setCustomerEditMode(false);
+        prefillAwaitingConfirmRef.current = false;
     };
 
     const handleVehicleSelectTriggerClick = () => {
