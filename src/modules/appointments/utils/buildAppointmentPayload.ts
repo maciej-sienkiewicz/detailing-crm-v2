@@ -4,9 +4,8 @@
 // Used by both the standard calendar flow (/v1/appointments)
 // and the lead conversion flow (/v1/leads/{id}/appointment).
 
-import { apiClient } from '@/core';
 import { toInstant } from '@/common/dateTime';
-import type { QuickEventFormData } from '@/modules/calendar/components/QuickEventModal';
+import type { QuickEventFormData, AdjustmentType } from '@/modules/calendar/components/QuickEventModal';
 
 export interface ServiceLineItemPayload {
   id: string;
@@ -14,7 +13,7 @@ export interface ServiceLineItemPayload {
   serviceName: string;
   basePriceNet: number;
   vatRate: number;
-  adjustment: { type: 'FIXED_GROSS' | 'SET_GROSS'; value: number };
+  adjustment: { type: AdjustmentType; value: number };
   note: string;
 }
 
@@ -36,7 +35,7 @@ export interface AppointmentPayload {
   sendReminderSms: boolean;
 }
 
-export async function buildAppointmentPayload(data: QuickEventFormData): Promise<AppointmentPayload> {
+export function buildAppointmentPayload(data: QuickEventFormData): AppointmentPayload {
   // ── Schedule ───────────────────────────────────────────────────────────────
   let endDateTimeText = data.endDateTime;
   if (!endDateTimeText.includes('T')) endDateTimeText = `${endDateTimeText}T23:59:59`;
@@ -94,47 +93,22 @@ export async function buildAppointmentPayload(data: QuickEventFormData): Promise
   }
 
   // ── Services ───────────────────────────────────────────────────────────────
-  const servicesResponse = await apiClient.get('/v1/services');
-  const allServices: Array<{ id: string; name: string; basePriceNet: number; vatRate: number }> =
-    servicesResponse.data.services || [];
-
   const services: ServiceLineItemPayload[] = data.serviceIds.map((serviceId, index) => {
-    let service = allServices.find(s => s.id === serviceId);
-    let isTempService = false;
+    const temp = data.tempServices?.[serviceId];
+    const isTempService = !!temp;
 
-    if (!service) {
-      const temp = data.tempServices?.[serviceId];
-      if (temp) {
-        isTempService = true;
-        service = { id: serviceId, name: temp.name, basePriceNet: temp.basePriceNet, vatRate: temp.vatRate };
-      }
-    }
-
-    if (!service) {
-      throw new Error(`Nie znaleziono usługi (${serviceId}). Usuń ją z listy lub wprowadź ponownie.`);
-    }
-
-    const customPriceGross = data.servicePrices?.[serviceId];
-    let adjustment: ServiceLineItemPayload['adjustment'];
-
-    if (customPriceGross !== undefined) {
-      const customPriceInCents = Math.round(customPriceGross * 100);
-      const basePriceGross = service.vatRate <= 0
-        ? service.basePriceNet
-        : Math.round(service.basePriceNet * (1 + service.vatRate / 100));
-      adjustment = customPriceInCents === basePriceGross
-        ? { type: 'FIXED_GROSS', value: 0 }
-        : { type: 'SET_GROSS', value: customPriceInCents };
-    } else {
-      adjustment = { type: 'FIXED_GROSS', value: 0 };
-    }
+    const catalogBasePriceNet = data.serviceBasePrices?.[serviceId] ?? temp?.basePriceNet ?? 0;
+    const catalogVatRate = temp?.vatRate ?? 23;
+    const overriddenVatRate = data.serviceVatRates?.[serviceId] ?? catalogVatRate;
+    const adjustment: ServiceLineItemPayload['adjustment'] =
+      data.serviceAdjustments?.[serviceId] ?? { type: 'PERCENT', value: 0 };
 
     return {
       id: `${Date.now()}-${index}`,
-      serviceId: isTempService ? null : service.id,
-      serviceName: service.name,
-      basePriceNet: service.basePriceNet,
-      vatRate: service.vatRate,
+      serviceId: isTempService ? null : serviceId,
+      serviceName: temp?.name ?? serviceId,
+      basePriceNet: catalogBasePriceNet,
+      vatRate: overriddenVatRate,
       adjustment,
       note: data.serviceNotes?.[serviceId] || '',
     };

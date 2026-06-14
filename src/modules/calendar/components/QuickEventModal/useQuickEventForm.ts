@@ -99,6 +99,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
     const [serviceAdjustments, setServiceAdjustments] = useState<{ [key: string]: ServiceAdjustment }>({});
     const [serviceNotes, setServiceNotes] = useState<{ [key: string]: string }>({});
     const [serviceVatRates, setServiceVatRates] = useState<{ [key: string]: number }>({});
+    const [serviceBasePrices, setServiceBasePrices] = useState<{ [key: string]: number }>({});
     const [expandedServiceNote, setExpandedServiceNote] = useState<string | null>(null);
     const [serviceSearch, setServiceSearch] = useState('');
     const [showServiceDropdown, setShowServiceDropdown] = useState(false);
@@ -317,6 +318,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         setServiceAdjustments({});
         setServiceNotes({});
         setServiceVatRates({});
+        setServiceBasePrices({});
         setExpandedServiceNote(null);
         setServiceSearch('');
         setCustomerFirstName('');
@@ -490,14 +492,6 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
                 : null
         );
         try {
-            const finalServicePrices: { [key: string]: number } = {};
-            selectedServiceIds.forEach(id => {
-                const svc = services.find((s: Service) => s.id === id) || tempServices[id];
-                const baseGross = servicePrices[id] ?? 0;
-                const vatRate = serviceVatRates[id] ?? (svc as Service)?.vatRate ?? (tempServices[id]?.vatRate ?? 23);
-                const adj = serviceAdjustments[id] ?? { type: 'PERCENT', value: 0 };
-                finalServicePrices[id] = calculateFinalPrice(baseGross, vatRate, adj).finalGross;
-            });
             await Promise.resolve(onSave({
                 title,
                 customer: selectedCustomer,
@@ -506,9 +500,11 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
                 endDateTime,
                 isAllDay,
                 serviceIds: selectedServiceIds,
-                servicePrices: finalServicePrices,
+                servicePrices,
                 serviceAdjustments,
                 serviceNotes,
+                serviceVatRates,
+                serviceBasePrices,
                 tempServices,
                 colorId: selectedColorId,
                 notes,
@@ -877,6 +873,7 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         serviceAdjustments, setServiceAdjustments,
         serviceNotes, setServiceNotes,
         serviceVatRates, setServiceVatRates,
+        serviceBasePrices, setServiceBasePrices,
         expandedServiceNote, setExpandedServiceNote,
         serviceSearch, setServiceSearch,
         showServiceDropdown, setShowServiceDropdown,

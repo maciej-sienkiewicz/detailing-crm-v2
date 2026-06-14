@@ -47,6 +47,8 @@ export interface QuickEventFormData {
     servicePrices?: { [key: string]: number };
     serviceAdjustments?: { [key: string]: ServiceAdjustment };
     serviceNotes?: { [key: string]: string };
+    serviceVatRates?: { [key: string]: number };
+    serviceBasePrices?: { [key: string]: number };
     tempServices?: { [key: string]: { name: string; basePriceNet: number; vatRate: number } };
     colorId: string;
     notes?: string;
