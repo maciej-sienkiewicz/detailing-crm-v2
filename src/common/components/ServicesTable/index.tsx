@@ -27,6 +27,9 @@ interface Props {
     onChange: (services: ServiceLineItem[]) => void;
 }
 
+const VAT_RATES = [23, 8, 5, 0, -1] as const;
+const VAT_LABEL = (rate: number) => rate === -1 ? 'ZW' : `${rate}%`;
+
 const MAX_2_DECIMALS = /^\d*[.,]?\d{0,2}$/;
 
 const DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
@@ -192,7 +195,25 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                                             <S.ServiceName title={service.serviceName}>{service.serviceName}</S.ServiceName>
                                             {service.isPackage && <S.PackageBadgeInline>Pakiet</S.PackageBadgeInline>}
                                         </div>
-                                        {hasNote && <S.ServiceNoteInline title={service.note}>{service.note}</S.ServiceNoteInline>}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <span style={{ fontSize: 11, color: '#b0bec5' }}>VAT</span>
+                                            <S.VatSelect
+                                                value={service.vatRate}
+                                                onClick={e => e.stopPropagation()}
+                                                onChange={e => {
+                                                    const newRate = parseInt(e.target.value, 10);
+                                                    onChange(services.map(s => s.id === service.id
+                                                        ? { ...s, vatRate: newRate }
+                                                        : s
+                                                    ));
+                                                }}
+                                            >
+                                                {VAT_RATES.map(r => (
+                                                    <option key={r} value={r}>{VAT_LABEL(r)}</option>
+                                                ))}
+                                            </S.VatSelect>
+                                            {hasNote && <S.ServiceNoteInline title={service.note}>{service.note}</S.ServiceNoteInline>}
+                                        </div>
                                     </S.ServiceNameWrap>
 
                                     <S.PriceDisplay>

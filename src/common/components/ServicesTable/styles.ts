@@ -602,3 +602,22 @@ export const NoteConfirmButton = styled.button`
     svg { width: 12px; height: 12px; }
     &:hover { background: #15803d; }
 `;
+
+export const VatSelect = styled.select`
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-size: 11px;
+    font-weight: 500;
+    color: #94a3b8;
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+    transition: color 150ms ease;
+
+    &:hover { color: #0ea5e9; }
+    &:focus { color: #0ea5e9; }
+`;
