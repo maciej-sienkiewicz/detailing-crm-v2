@@ -5,7 +5,8 @@ import styled, { css, keyframes } from 'styled-components';
 import {
   X, Phone, Mail, PenLine, FileText, Edit3,
   MessageSquare, UserCheck, UserX, Check, Search, Plus,
-  Camera, Calendar, ArrowRight, Sparkles, AlertCircle,
+  Camera, Calendar, ArrowRight, AlertCircle,
+  History, Images, ChevronDown, User, Car,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/core';
@@ -435,8 +436,9 @@ const InlineEditBtn = styled.button`
 
 const RelatedVisitsHeader = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 12px;
 `;
 
@@ -447,15 +449,52 @@ const RelatedVisitsTitle = styled.div`
   font-size: 13px;
   font-weight: 700;
   color: ${st.text};
-  svg { width: 15px; height: 15px; color: #0ea5e9; }
+  svg { width: 15px; height: 15px; color: ${st.textMuted}; }
 `;
 
-const RelatedVisitsHint = styled.p`
-  margin: 0;
+const PhotoToggle = styled.button<{ $active: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  background: ${p => (p.$active ? '#f0f9ff' : 'transparent')};
+  border: 1px solid ${p => (p.$active ? '#bae6fd' : st.border)};
+  border-radius: 9999px;
+  color: ${p => (p.$active ? '#0284c7' : st.textSecondary)};
+  font-family: inherit;
   font-size: 12px;
-  color: ${st.textMuted};
-  line-height: 1.5;
-  max-width: 62ch;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+
+  &:hover { border-color: #7dd3fc; color: #0284c7; }
+  svg { width: 14px; height: 14px; }
+  .chev {
+    transition: transform 240ms ease;
+    transform: rotate(${p => (p.$active ? '180deg' : '0deg')});
+  }
+`;
+
+const RVCoverCollapse = styled.div<{ $open: boolean }>`
+  display: grid;
+  grid-template-rows: ${p => (p.$open ? '1fr' : '0fr')};
+  transition: grid-template-rows 300ms ease;
+`;
+
+const RVCoverClip = styled.div`
+  overflow: hidden;
+  min-height: 0;
+`;
+
+const RVHeadRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+`;
+
+const RVStatusInline = styled.span`
+  flex-shrink: 0;
 `;
 
 const RelatedVisitsGrid = styled.div`
@@ -537,12 +576,6 @@ const RVPhotoBadge = styled.div`
   svg { width: 12px; height: 12px; }
 `;
 
-const RVStatusSlot = styled.div`
-  position: absolute;
-  top: 8px;
-  left: 8px;
-`;
-
 const RVBody = styled.div`
   display: flex;
   flex-direction: column;
@@ -551,6 +584,8 @@ const RVBody = styled.div`
 `;
 
 const RVVehicle = styled.div`
+  flex: 1;
+  min-width: 0;
   font-size: 14px;
   font-weight: 700;
   color: ${st.text};
@@ -866,54 +901,72 @@ const SuggestPrice = styled.span`
 
 // ─── Visit Preview Modal styled components ────────────────────────────────────
 
-const VInfoStrip = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-`;
-
-const VInfoCard = styled.div`
+const VHero = styled.div`
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 12px 14px;
-  background: #f8fafc;
-  border: 1px solid ${st.border};
-  border-radius: 10px;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #243043 100%);
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: -40%;
+    right: -10%;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(circle, rgba(14, 165, 233, 0.18) 0%, rgba(14, 165, 233, 0) 70%);
+    pointer-events: none;
+  }
 `;
 
-const VInfoIconBox = styled.div<{ $color: string; $bg: string }>`
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  background: ${p => p.$bg};
-  color: ${p => p.$color};
+const VHeroTop = styled.div`
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+const VHeroVehicle = styled.div`
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  svg { width: 13px; height: 13px; }
+  gap: 9px;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: #fff;
+  svg { width: 18px; height: 18px; color: #38bdf8; flex-shrink: 0; }
 `;
 
-const VInfoLabel = styled.div`
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: ${st.textMuted};
+const VHeroSub = styled.div`
+  margin-top: 5px;
+  margin-left: 27px;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.55);
 `;
 
-const VInfoMain = styled.div`
-  font-size: 13px;
-  font-weight: 600;
-  color: ${st.text};
-  line-height: 1.3;
+const VHeroMeta = styled.div`
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 `;
 
-const VInfoSub = styled.div`
-  font-size: 11px;
-  color: ${st.textMuted};
-  margin-top: 1px;
+const VHeroMetaItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.88);
+  svg { width: 14px; height: 14px; color: rgba(255, 255, 255, 0.45); flex-shrink: 0; }
 `;
 
 const VSectionLabel = styled.div`
@@ -989,10 +1042,19 @@ const VServiceRow = styled.div`
 `;
 
 const VServiceName = styled.span`
+  display: block;
   font-size: 13px;
-  color: ${st.textSecondary};
+  font-weight: 500;
+  color: ${st.text};
   min-width: 0;
-  flex: 1;
+`;
+
+const VServiceNote = styled.span`
+  display: block;
+  font-size: 11px;
+  color: ${st.textMuted};
+  margin-top: 2px;
+  line-height: 1.4;
 `;
 
 const VServicePrice = styled.span`
@@ -1150,43 +1212,25 @@ const VisitPreviewModal: React.FC<VisitPreviewModalProps> = ({ visitId, onClose 
         {isError && <VModalError>Nie udało się załadować danych wizyty.</VModalError>}
         {visit && !isLoading && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <VInfoStrip>
-              <VInfoCard>
-                <VInfoIconBox $color="#0ea5e9" $bg="rgba(14,165,233,0.1)">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                  </svg>
-                </VInfoIconBox>
-                <VInfoLabel>Data wizyty</VInfoLabel>
-                <VInfoMain>{formattedDate ?? '—'}</VInfoMain>
+            <VHero>
+              <VHeroTop>
+                <div style={{ minWidth: 0 }}>
+                  <VHeroVehicle><Car />{vehicleLabel ?? 'Wizyta'}</VHeroVehicle>
+                  {vehicleSub && <VHeroSub>{vehicleSub}</VHeroSub>}
+                </div>
                 {visit.status && (
                   <VStatusBadge $status={visit.status}>
                     {VStatusLabel[visit.status] ?? visit.status}
                   </VStatusBadge>
                 )}
-              </VInfoCard>
-              <VInfoCard>
-                <VInfoIconBox $color="#6366f1" $bg="rgba(99,102,241,0.1)">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/><rect x="9" y="11" width="14" height="10" rx="1" ry="1"/><line x1="12" y1="11" x2="12" y2="21"/><line x1="9" y1="15" x2="23" y2="15"/>
-                  </svg>
-                </VInfoIconBox>
-                <VInfoLabel>Pojazd</VInfoLabel>
-                <VInfoMain>{vehicleLabel ?? '—'}</VInfoMain>
-                {vehicleSub && <VInfoSub>{vehicleSub}</VInfoSub>}
-              </VInfoCard>
-              <VInfoCard>
-                <VInfoIconBox $color="#10b981" $bg="rgba(16,185,129,0.1)">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                  </svg>
-                </VInfoIconBox>
-                <VInfoLabel>Właściciel</VInfoLabel>
-                <VInfoMain>{customerName ?? '—'}</VInfoMain>
-                {visit.customer?.phone && <VInfoSub>{visit.customer.phone}</VInfoSub>}
-                {visit.customer?.companyName && <VInfoSub>{visit.customer.companyName}</VInfoSub>}
-              </VInfoCard>
-            </VInfoStrip>
+              </VHeroTop>
+              <VHeroMeta>
+                {formattedDate && <VHeroMetaItem><Calendar />{formattedDate}</VHeroMetaItem>}
+                {customerName && <VHeroMetaItem><User />{customerName}</VHeroMetaItem>}
+                {visit.customer?.phone && <VHeroMetaItem><Phone />{visit.customer.phone}</VHeroMetaItem>}
+                {visit.customer?.companyName && <VHeroMetaItem><FileText />{visit.customer.companyName}</VHeroMetaItem>}
+              </VHeroMeta>
+            </VHero>
 
             {visit.services && visit.services.length > 0 && (
               <div>
@@ -1198,7 +1242,10 @@ const VisitPreviewModal: React.FC<VisitPreviewModalProps> = ({ visitId, onClose 
                   </VServicesHead>
                   {visit.services.map(svc => (
                     <VServiceRow key={svc.id}>
-                      <VServiceName>{svc.serviceName}</VServiceName>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <VServiceName>{svc.serviceName}</VServiceName>
+                        {svc.note && <VServiceNote>{svc.note}</VServiceNote>}
+                      </div>
                       <VServicePrice>{formatCurrency(svc.finalPriceGross)}</VServicePrice>
                     </VServiceRow>
                   ))}
@@ -1277,12 +1324,13 @@ const VisitPreviewModal: React.FC<VisitPreviewModalProps> = ({ visitId, onClose 
 interface RelatedVisitCardProps {
   visitId: string;
   fallbackTitle: string | null;
+  showPhotos: boolean;
   onOpen: (visitId: string) => void;
 }
 
 const RV_MAX_CHIPS = 3;
 
-const RelatedVisitCard: React.FC<RelatedVisitCardProps> = ({ visitId, fallbackTitle, onOpen }) => {
+const RelatedVisitCard: React.FC<RelatedVisitCardProps> = ({ visitId, fallbackTitle, showPhotos, onOpen }) => {
   // Reuse the exact query keys of VisitPreviewModal so opening the preview is a cache hit.
   const { data: detailData, isLoading, isError } = useQuery({
     queryKey: ['visit-preview', visitId],
@@ -1298,7 +1346,9 @@ const RelatedVisitCard: React.FC<RelatedVisitCardProps> = ({ visitId, fallbackTi
   if (isLoading) {
     return (
       <RVSkeleton>
-        <SkeletonPulse $h="0" style={{ aspectRatio: '16 / 10', height: 'auto', borderRadius: 0 }} />
+        {showPhotos && (
+          <SkeletonPulse $h="0" style={{ aspectRatio: '16 / 10', height: 'auto', borderRadius: 0 }} />
+        )}
         <div style={{ padding: '12px 14px 13px', display: 'flex', flexDirection: 'column', gap: 9 }}>
           <SkeletonPulse $w="70%" $h="14px" />
           <SkeletonPulse $w="45%" $h="11px" />
@@ -1341,27 +1391,33 @@ const RelatedVisitCard: React.FC<RelatedVisitCardProps> = ({ visitId, fallbackTi
 
   return (
     <RVCard type="button" onClick={() => onOpen(visitId)} title="Zobacz szczegóły wizyty i zdjęcia">
-      <RVCover>
-        {cover ? (
-          <img src={cover.thumbnailUrl} alt={vehicleLabel} loading="lazy" />
-        ) : (
-          <RVCoverPlaceholder>
-            <Camera />
-            Brak zdjęć
-          </RVCoverPlaceholder>
-        )}
-        {visit.status && (
-          <RVStatusSlot>
-            <VStatusBadge $status={visit.status}>{VStatusLabel[visit.status] ?? visit.status}</VStatusBadge>
-          </RVStatusSlot>
-        )}
-        {photos.length > 0 && (
-          <RVPhotoBadge><Camera />{photos.length}</RVPhotoBadge>
-        )}
-      </RVCover>
+      <RVCoverCollapse $open={showPhotos}>
+        <RVCoverClip>
+          <RVCover>
+            {cover ? (
+              <img src={cover.thumbnailUrl} alt={vehicleLabel} loading="lazy" />
+            ) : (
+              <RVCoverPlaceholder>
+                <Camera />
+                Brak zdjęć
+              </RVCoverPlaceholder>
+            )}
+            {photos.length > 0 && (
+              <RVPhotoBadge><Camera />{photos.length}</RVPhotoBadge>
+            )}
+          </RVCover>
+        </RVCoverClip>
+      </RVCoverCollapse>
 
       <RVBody>
-        <RVVehicle>{vehicleLabel}{vehicleYear ? ` · ${vehicleYear}` : ''}</RVVehicle>
+        <RVHeadRow>
+          <RVVehicle>{vehicleLabel}{vehicleYear ? ` · ${vehicleYear}` : ''}</RVVehicle>
+          {visit.status && (
+            <RVStatusInline>
+              <VStatusBadge $status={visit.status}>{VStatusLabel[visit.status] ?? visit.status}</VStatusBadge>
+            </RVStatusInline>
+          )}
+        </RVHeadRow>
         {metaParts && <RVMeta><Calendar />{metaParts}</RVMeta>}
 
         {services.length > 0 && (
@@ -1724,12 +1780,14 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
   const [isEditingLostReason, setIsEditingLostReason] = useState(false);
   const [lostReasonDraft, setLostReasonDraft] = useState(lead?.lostReason ?? '');
   const [previewVisitId, setPreviewVisitId] = useState<string | null>(null);
+  const [showVisitPhotos, setShowVisitPhotos] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
       setIsEmployeePickerOpen(false);
       setIsEditingLostReason(false);
       setPreviewVisitId(null);
+      setShowVisitPhotos(false);
     }
   }, [isOpen]);
 
@@ -1956,11 +2014,16 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
           {relatedVisits.length > 0 && (
             <PanelSection>
               <RelatedVisitsHeader>
-                <RelatedVisitsTitle><Sparkles /> Podobne realizacje</RelatedVisitsTitle>
-                <RelatedVisitsHint>
-                  Zainspiruj się zrealizowanymi wizytami o zbliżonym zakresie — sprawdź użyte
-                  usługi, wycenę i zdjęcia z realizacji, zanim przygotujesz ofertę dla klienta.
-                </RelatedVisitsHint>
+                <RelatedVisitsTitle><History /> Podobne realizacje</RelatedVisitsTitle>
+                <PhotoToggle
+                  type="button"
+                  $active={showVisitPhotos}
+                  onClick={() => setShowVisitPhotos(v => !v)}
+                >
+                  <Images />
+                  {showVisitPhotos ? 'Ukryj zdjęcia' : 'Pokaż zdjęcia'}
+                  <ChevronDown className="chev" />
+                </PhotoToggle>
               </RelatedVisitsHeader>
               <RelatedVisitsGrid>
                 {relatedVisits.map(rv => (
@@ -1968,6 +2031,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
                     key={rv.id}
                     visitId={rv.id}
                     fallbackTitle={rv.title}
+                    showPhotos={showVisitPhotos}
                     onOpen={setPreviewVisitId}
                   />
                 ))}
