@@ -712,14 +712,33 @@ const ACTION_ICON: Record<LeadHistoryAction, React.FC<{ size?: number }>> = {
 };
 
 const FIELD_LABELS: Record<string, string> = {
-  assignedUserName:  'Pracownik',
-  assignedUserId:    'Pracownik',
-  customerName:      'Klient',
-  customerId:        'Klient',
-  lostReason:        'Powód utraty',
-  content:           'Treść',
-  quote:             'Kosztorys',
-  totalGross:        'Wartość brutto',
+  assignedUserName:   'Pracownik',
+  assignedUserId:     'Pracownik',
+  customerName:       'Klient',
+  customerId:         'Klient',
+  lostReason:         'Powód utraty',
+  content:            'Treść',
+  quote:              'Kosztorys',
+  totalGross:         'Wartość brutto',
+  source:             'Źródło',
+  contactIdentifier:  'Kontakt',
+  estimatedValue:     'Szacowana wartość',
+  vehicleBrand:       'Marka pojazdu',
+  vehicleModel:       'Model pojazdu',
+  status:             'Status',
+  initialMessage:     'Wiadomość',
+};
+
+const SOURCE_LABELS: Record<string, string> = {
+  MANUAL: 'Ręczny',
+  PHONE:  'Telefon',
+  EMAIL:  'Email',
+};
+
+const translateValue = (field: string, value: string | null): string | null => {
+  if (value === null) return null;
+  if (field === 'source') return SOURCE_LABELS[value] ?? value;
+  return value;
 };
 
 const truncate = (s: string | null, max = 60): string => {
@@ -777,17 +796,19 @@ const renderChangeField = (c: FieldChange, i: number) => {
 
   // Generic field: oldValue → newValue (truncated for short values)
   const label = FIELD_LABELS[c.field] ?? c.field;
+  const oldDisplay = translateValue(c.field, c.oldValue);
+  const newDisplay = translateValue(c.field, c.newValue);
   return (
     <ChangeRow key={i}>
       <ChangeField>{label}</ChangeField>
-      {c.oldValue !== null && (
+      {oldDisplay !== null && (
         <>
-          <ChangeValue $dim title={c.oldValue}>{truncate(c.oldValue)}</ChangeValue>
+          <ChangeValue $dim title={oldDisplay}>{truncate(oldDisplay)}</ChangeValue>
           <ChangeArrow><ChevronRight /></ChangeArrow>
         </>
       )}
-      <ChangeValue title={c.newValue ?? undefined}>
-        {c.newValue !== null ? truncate(c.newValue) : '(usunięto)'}
+      <ChangeValue title={newDisplay ?? undefined}>
+        {newDisplay !== null ? truncate(newDisplay) : '(usunięto)'}
       </ChangeValue>
     </ChangeRow>
   );
