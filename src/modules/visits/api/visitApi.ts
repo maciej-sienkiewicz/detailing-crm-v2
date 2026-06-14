@@ -16,7 +16,7 @@ import type {
 } from '../types';
 import type { ServicesChangesPayload } from '../types';
 
-const USE_MOCKS = true;
+const USE_MOCKS = false;
 const BASE_PATH = '/visits';
 
 // ─── Mock data for 3 reference-visit IDs used in sharedEstimation.relatedVisits ─
