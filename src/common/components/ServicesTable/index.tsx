@@ -40,6 +40,12 @@ const DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
     { type: 'SET_GROSS', label: '=Brutto' },
 ];
 
+const IconChevronDown = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="6 9 12 15 18 9" />
+    </svg>
+);
+
 const IconPercent = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         <line x1="19" y1="5" x2="5" y2="19" />
@@ -86,6 +92,10 @@ export const ServicesTable = ({ services, onChange }: Props) => {
     const [bulkDiscountOpen, setBulkDiscountOpen] = useState(false);
     const [bulkDiscountType, setBulkDiscountType] = useState<AdjustmentType>('PERCENT');
     const [bulkDiscountValue, setBulkDiscountValue] = useState('');
+
+    // Bulk VAT modal state
+    const [bulkVatOpen, setBulkVatOpen] = useState(false);
+    const [bulkVatRate, setBulkVatRate] = useState<number>(23);
 
     const getServicePrice = (service: ServiceLineItem) => {
         const result = applyAdjustment(service.basePriceNet, service.vatRate, service.adjustment);
@@ -176,7 +186,20 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                 <S.ServicesTableHeader>
                     <S.ServicesHeaderCell>Usługa</S.ServicesHeaderCell>
                     <S.ServicesHeaderCell>Netto</S.ServicesHeaderCell>
-                    <S.ServicesHeaderCell style={{ textAlign: 'center' }}>VAT</S.ServicesHeaderCell>
+                    <S.VatHeaderCell>
+                        VAT
+                        <S.VatHeaderBtn
+                            type="button"
+                            title="Zmień stawkę VAT dla wszystkich"
+                            disabled={services.length === 0}
+                            onClick={() => {
+                                setBulkVatRate(services[0]?.vatRate ?? 23);
+                                setBulkVatOpen(true);
+                            }}
+                        >
+                            <IconChevronDown />
+                        </S.VatHeaderBtn>
+                    </S.VatHeaderCell>
                     <S.ServicesHeaderCell>Brutto</S.ServicesHeaderCell>
                     <S.ServicesHeaderCell />
                 </S.ServicesTableHeader>
@@ -203,23 +226,7 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                                         <S.PriceDisplayMain $isDiscounted={hasDiscount}>{finalNet.toFixed(2)}</S.PriceDisplayMain>
                                         {hasDiscount && <S.PriceDisplayOriginal>{baseNet.toFixed(2)}</S.PriceDisplayOriginal>}
                                     </S.PriceDisplay>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <S.VatSelect
-                                            value={service.vatRate}
-                                            onClick={e => e.stopPropagation()}
-                                            onChange={e => {
-                                                const newRate = parseInt(e.target.value, 10);
-                                                onChange(services.map(s => s.id === service.id
-                                                    ? { ...s, vatRate: newRate }
-                                                    : s
-                                                ));
-                                            }}
-                                        >
-                                            {VAT_RATES.map(r => (
-                                                <option key={r} value={r}>{VAT_LABEL(r)}</option>
-                                            ))}
-                                        </S.VatSelect>
-                                    </div>
+                                    <S.VatCell>{VAT_LABEL(service.vatRate)}</S.VatCell>
                                     <S.PriceDisplay>
                                         <S.PriceDisplayMain $isBrutto $isDiscounted={hasDiscount}>{finalGross.toFixed(2)}</S.PriceDisplayMain>
                                         {hasDiscount && <S.PriceDisplayOriginal>{baseGross.toFixed(2)}</S.PriceDisplayOriginal>}
@@ -398,6 +405,51 @@ export const ServicesTable = ({ services, onChange }: Props) => {
                                 type="button"
                                 onClick={applyServiceDiscount}
                                 disabled={!discountModalValue || parseFloat(discountModalValue.replace(',', '.')) <= 0}
+                            >
+                                Zastosuj
+                            </S.BulkDiscountApplyBtn>
+                        </S.BulkDiscountFooter>
+                    </S.BulkDiscountCard>
+                </S.BulkDiscountOverlay>
+            )}
+
+            {/* Bulk VAT modal */}
+            {bulkVatOpen && (
+                <S.BulkDiscountOverlay onClick={() => setBulkVatOpen(false)}>
+                    <S.BulkDiscountCard onClick={(e) => e.stopPropagation()}>
+                        <S.BulkDiscountHeader>
+                            <S.BulkDiscountTitle>Stawka VAT dla wszystkich</S.BulkDiscountTitle>
+                            <S.CloseIconButton type="button" onClick={() => setBulkVatOpen(false)}>
+                                <IconX />
+                            </S.CloseIconButton>
+                        </S.BulkDiscountHeader>
+                        <S.BulkDiscountBody>
+                            <div>
+                                <S.DiscountSectionLabel>Wybierz stawkę</S.DiscountSectionLabel>
+                                <S.DiscountTypeRow>
+                                    {VAT_RATES.map(r => (
+                                        <S.DiscountTypePill
+                                            key={r}
+                                            type="button"
+                                            $selected={bulkVatRate === r}
+                                            onClick={() => setBulkVatRate(r)}
+                                        >
+                                            {VAT_LABEL(r)}
+                                        </S.DiscountTypePill>
+                                    ))}
+                                </S.DiscountTypeRow>
+                            </div>
+                        </S.BulkDiscountBody>
+                        <S.BulkDiscountFooter>
+                            <S.BulkDiscountCancelBtn type="button" onClick={() => setBulkVatOpen(false)}>
+                                Anuluj
+                            </S.BulkDiscountCancelBtn>
+                            <S.BulkDiscountApplyBtn
+                                type="button"
+                                onClick={() => {
+                                    onChange(services.map(s => ({ ...s, vatRate: bulkVatRate })));
+                                    setBulkVatOpen(false);
+                                }}
                             >
                                 Zastosuj
                             </S.BulkDiscountApplyBtn>

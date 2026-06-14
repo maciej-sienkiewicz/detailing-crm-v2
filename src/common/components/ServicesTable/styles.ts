@@ -603,23 +603,42 @@ export const NoteConfirmButton = styled.button`
     &:hover { background: #15803d; }
 `;
 
-export const VatSelect = styled.select`
-    appearance: none;
-    -webkit-appearance: none;
-    background: transparent;
-    border: none;
-    padding: 0;
-    margin: 0;
-    width: 100%;
+export const VatCell = styled.div`
     font-size: 12px;
     font-weight: 500;
     color: #64748b;
-    font-family: inherit;
-    cursor: pointer;
-    outline: none;
     text-align: center;
-    transition: color 150ms ease;
+    font-variant-numeric: tabular-nums;
+`;
 
-    &:hover { color: #0ea5e9; }
-    &:focus { color: #0ea5e9; }
+export const VatHeaderCell = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #b0bec5;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+`;
+
+export const VatHeaderBtn = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: #b0bec5;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 150ms ease;
+    flex-shrink: 0;
+
+    svg { width: 10px; height: 10px; }
+    &:hover { color: #0ea5e9; background: #e0f2fe; }
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
