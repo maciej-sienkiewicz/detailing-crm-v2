@@ -16,173 +16,212 @@ import type {
 } from '../types';
 import type { ServicesChangesPayload } from '../types';
 
-const USE_MOCKS = false;
+const USE_MOCKS = true;
 const BASE_PATH = '/visits';
 
-const mockVisitPhotos: VisitPhotosResponse = {
+// ─── Mock data for 3 reference-visit IDs used in sharedEstimation.relatedVisits ─
+
+const mockVisitPhotos1: VisitPhotosResponse = {
     photos: [
         {
-            id: 'photo_1',
-            fileName: 'vehicle-front.jpg',
-            description: 'Przód pojazdu przy przyjęciu',
-            uploadedAt: '2025-01-15T09:05:00Z',
-            thumbnailUrl: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400&q=80',
-            fullSizeUrl: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=1920&q=90',
-            tags: ['przód', 'PPF'],
+            id: 'p1a',
+            fileName: 'porsche-front.jpg',
+            description: 'Przód przed aplikacją PPF',
+            uploadedAt: '2025-03-10T09:05:00Z',
+            thumbnailUrl: 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?w=400&q=80',
+            fullSizeUrl:  'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?w=1920&q=90',
         },
         {
-            id: 'photo_2',
-            fileName: 'vehicle-back.jpg',
-            uploadedAt: '2025-01-15T09:06:00Z',
-            thumbnailUrl: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=400&q=80',
-            fullSizeUrl: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=1920&q=90',
-            tags: ['tył', 'zarysowanie'],
-        },
-        {
-            id: 'photo_3',
-            fileName: 'vehicle-left.jpg',
-            description: 'Lewa strona pojazdu',
-            uploadedAt: '2025-01-15T09:07:00Z',
-            thumbnailUrl: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400&q=80',
-            fullSizeUrl: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=1920&q=90',
-            tags: ['lewy bok'],
-        },
-        {
-            id: 'photo_4',
-            fileName: 'vehicle-detail.jpg',
-            description: 'Detal lakieru',
-            uploadedAt: '2025-01-15T09:09:00Z',
+            id: 'p1b',
+            fileName: 'porsche-hood.jpg',
+            description: 'Maska – folia PPF',
+            uploadedAt: '2025-03-10T09:10:00Z',
             thumbnailUrl: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400&q=80',
-            fullSizeUrl: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1920&q=90',
-            tags: ['lakier', 'korekta lakieru', 'ceramika'],
+            fullSizeUrl:  'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1920&q=90',
         },
         {
-            id: 'photo_5',
-            fileName: 'vehicle-wheel.jpg',
-            uploadedAt: '2025-01-15T09:11:00Z',
+            id: 'p1c',
+            fileName: 'porsche-side.jpg',
+            description: 'Bok po oklejeniu',
+            uploadedAt: '2025-03-10T09:22:00Z',
+            thumbnailUrl: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=400&q=80',
+            fullSizeUrl:  'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=1920&q=90',
+        },
+        {
+            id: 'p1d',
+            fileName: 'porsche-detail.jpg',
+            uploadedAt: '2025-03-10T09:30:00Z',
+            thumbnailUrl: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400&q=80',
+            fullSizeUrl:  'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=1920&q=90',
+        },
+        {
+            id: 'p1e',
+            fileName: 'porsche-rear.jpg',
+            uploadedAt: '2025-03-10T09:38:00Z',
+            thumbnailUrl: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400&q=80',
+            fullSizeUrl:  'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=1920&q=90',
+        },
+        {
+            id: 'p1f',
+            fileName: 'porsche-wheel.jpg',
+            uploadedAt: '2025-03-10T09:45:00Z',
             thumbnailUrl: 'https://images.unsplash.com/photo-1514316703755-dca7d7d9d882?w=400&q=80',
-            fullSizeUrl: 'https://images.unsplash.com/photo-1514316703755-dca7d7d9d882?w=1920&q=90',
-            tags: [],
+            fullSizeUrl:  'https://images.unsplash.com/photo-1514316703755-dca7d7d9d882?w=1920&q=90',
         },
     ],
 };
 
-const mockVisitDetail: VisitDetailResponse = {
-    visit: {
-        id: 'visit_1',
-        visitNumber: 'VIS-2025-00042',
-        status: 'READY_FOR_PICKUP',
-        scheduledDate: '2025-01-15T09:00:00Z',
-        estimatedCompletionDate: '2025-01-17T17:00:00Z',
-        vehicle: {
-            id: 'veh_1',
-            licensePlate: 'WA 12345',
-            brand: 'BMW',
-            model: 'X5',
-            yearOfProduction: 2021,
-            color: 'Czarny metalik',
-            currentMileage: 45230,
-        },
-        customer: {
-            id: 'cust_1',
-            firstName: 'Jan',
-            lastName: 'Kowalski',
-            email: 'jan.kowalski@example.com',
-            phone: '+48 123 456 789',
-            companyName: 'Firma Transport Sp. z o.o.',
-            stats: {
-                totalVisits: 12,
-                totalSpent: {
-                    netAmount: 2450000,
-                    grossAmount: 3013500,
-                    currency: 'PLN',
-                },
-                vehiclesCount: 3,
-            },
-        },
-        services: [
-            {
-                id: 'service_line_1',
-                serviceId: 'srv_ppf',
-                serviceName: 'Oklejanie PPF - cały przód',
-                basePriceNet: 350000,
-                vatRate: 23,
-                requireManualPrice: false,
-                adjustment: { type: 'PERCENT', value: -10 },
-                note: 'Dodatkowa warstwa na maskę',
-                finalPriceNet: 315000,
-                finalPriceGross: 387450,
-                status: 'CONFIRMED',
-            },
-            {
-                id: 'service_line_2',
-                serviceId: 'srv_ceramic',
-                serviceName: 'Powłoka ceramiczna',
-                basePriceNet: 180000,
-                vatRate: 23,
-                requireManualPrice: false,
-                adjustment: { type: 'FIXED_NET', value: 0 },
-                note: '',
-                finalPriceNet: 180000,
-                finalPriceGross: 221400,
-                status: 'CONFIRMED',
-            },
-        ],
-        totalCost: {
-            netAmount: 495000,
-            grossAmount: 608850,
-            currency: 'PLN',
-        },
-        mileageAtArrival: 45230,
-        keysHandedOver: true,
-        documentsHandedOver: true,
-        technicalNotes: 'Drobne zarysowania na masce - do wyprostowania przed oklejaniem',
-        colorId: 'color_primary',
-        createdAt: '2025-01-10T14:30:00Z',
-        updatedAt: '2025-01-15T11:20:00Z',
-    },
-    documents: [
+const mockVisitPhotos2: VisitPhotosResponse = {
+    photos: [
         {
-            id: 'doc_1',
-            visitId: 'visit_1',
-            customerId: 'cust_1',
-            type: 'PHOTO',
-            name: 'Zdjęcie przodu pojazdu przy przyjęciu',
-            fileName: 'przyjecie_przod.jpg',
-            fileUrl: '/documents/doc_1/download',
-            uploadedAt: '2025-01-15T09:10:00Z',
-            uploadedBy: 'user_1',
-            uploadedByName: 'Marek Nowak',
-            category: 'przyjecie',
+            id: 'p2a',
+            fileName: 'bmw-before.jpg',
+            description: 'Przed korektą lakieru',
+            uploadedAt: '2025-04-02T10:00:00Z',
+            thumbnailUrl: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=400&q=80',
+            fullSizeUrl:  'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=1920&q=90',
         },
         {
-            id: 'doc_2',
-            visitId: 'visit_1',
-            customerId: 'cust_1',
-            type: 'PHOTO',
-            name: 'Zdjęcie tyłu pojazdu przy przyjęciu',
-            fileName: 'przyjecie_tyl.jpg',
-            fileUrl: '/documents/doc_2/download',
-            uploadedAt: '2025-01-15T09:12:00Z',
-            uploadedBy: 'user_1',
-            uploadedByName: 'Marek Nowak',
-            category: 'przyjecie',
-        },
-        {
-            id: 'doc_3',
-            visitId: 'visit_1',
-            customerId: 'cust_1',
-            type: 'PROTOCOL',
-            name: 'Protokół przyjęcia pojazdu',
-            fileName: 'protokol_przyjecia_VIS-2025-00042.pdf',
-            fileUrl: '/documents/doc_3/download',
-            uploadedAt: '2025-01-15T09:20:00Z',
-            uploadedBy: 'system',
-            uploadedByName: 'System',
-            category: 'protokoly',
+            id: 'p2b',
+            fileName: 'bmw-after.jpg',
+            description: 'Po aplikacji ceramiki',
+            uploadedAt: '2025-04-04T16:00:00Z',
+            thumbnailUrl: 'https://images.unsplash.com/photo-1617531653332-bd46c16f4d68?w=400&q=80',
+            fullSizeUrl:  'https://images.unsplash.com/photo-1617531653332-bd46c16f4d68?w=1920&q=90',
         },
     ],
 };
+
+const mockVisitPhotos3: VisitPhotosResponse = { photos: [] };
+
+const mockVisitDetail1: VisitDetailResponse = {
+    visit: {
+        id: '566872ca-8db2-45be-a769-c2f1eaa3449a',
+        visitNumber: 'VIS-2025-00112',
+        title: 'PPF całość + ceramika',
+        status: 'COMPLETED',
+        scheduledDate: '2025-03-10T09:00:00Z',
+        estimatedCompletionDate: '2025-03-13T17:00:00Z',
+        completedDate: '2025-03-13T15:30:00Z',
+        vehicle: {
+            id: 'veh_ppf1',
+            licensePlate: 'KR 55599',
+            brand: 'Porsche',
+            model: '911 Carrera',
+            yearOfProduction: 2023,
+            color: 'GT Silver Metallic',
+        },
+        customer: {
+            id: 'cust_ppf1',
+            firstName: 'Arkadiusz',
+            lastName: 'Wróbel',
+            email: 'a.wrobel@example.com',
+            phone: '+48 601 200 300',
+            stats: { totalVisits: 3, totalSpent: { netAmount: 1500000, grossAmount: 1845000, currency: 'PLN' }, vehiclesCount: 1 },
+        },
+        services: [
+            { id: 's1a', serviceId: 'srv_ppf_full', serviceName: 'Folia PPF – całość', basePriceNet: 499900, vatRate: 23, requireManualPrice: false, adjustment: { type: 'FIXED_NET', value: 0 }, note: '', finalPriceNet: 499900, finalPriceGross: 614877, status: 'CONFIRMED' },
+            { id: 's1b', serviceId: 'srv_ceramic', serviceName: 'Powłoka ceramiczna 9H', basePriceNet: 120000, vatRate: 23, requireManualPrice: false, adjustment: { type: 'FIXED_NET', value: 0 }, note: '', finalPriceNet: 120000, finalPriceGross: 147600, status: 'CONFIRMED' },
+        ],
+        totalCost: { netAmount: 619900, grossAmount: 762477, currency: 'PLN' },
+        keysHandedOver: true,
+        documentsHandedOver: true,
+        colorId: 'silver',
+        createdAt: '2025-03-05T10:00:00Z',
+        updatedAt: '2025-03-13T15:30:00Z',
+    },
+};
+
+const mockVisitDetail2: VisitDetailResponse = {
+    visit: {
+        id: '61c11352-1b06-48fa-96e2-33ffee44873e',
+        visitNumber: 'VIS-2025-00187',
+        title: 'Sienkiewicz na full body',
+        status: 'COMPLETED',
+        scheduledDate: '2025-04-02T08:00:00Z',
+        estimatedCompletionDate: '2025-04-05T16:00:00Z',
+        completedDate: '2025-04-05T14:00:00Z',
+        vehicle: {
+            id: 'veh_bmw',
+            licensePlate: 'WA 88801',
+            brand: 'BMW',
+            model: 'M3 Competition',
+            yearOfProduction: 2022,
+            color: 'Frozen Portimao Blue',
+        },
+        customer: {
+            id: 'cust_bmw',
+            firstName: 'Maciej',
+            lastName: 'Sienkiewicz',
+            email: 'sienkiewicz@example.com',
+            phone: '+48 512 000 999',
+            stats: { totalVisits: 7, totalSpent: { netAmount: 3200000, grossAmount: 3936000, currency: 'PLN' }, vehiclesCount: 2 },
+        },
+        services: [
+            { id: 's2a', serviceId: 'srv_ppf_full', serviceName: 'Folia PPF – całość', basePriceNet: 499900, vatRate: 23, requireManualPrice: false, adjustment: { type: 'PERCENT', value: -5 }, note: 'Stały klient – rabat 5%', finalPriceNet: 474905, finalPriceGross: 584133, status: 'CONFIRMED' },
+            { id: 's2b', serviceId: 'srv_detailing', serviceName: 'Detailing wnętrza premium', basePriceNet: 50000, vatRate: 23, requireManualPrice: false, adjustment: { type: 'FIXED_NET', value: 0 }, note: '', finalPriceNet: 50000, finalPriceGross: 61500, status: 'CONFIRMED' },
+            { id: 's2c', serviceId: 'srv_lacquer', serviceName: 'Korekta lakieru 2-etapowa', basePriceNet: 90000, vatRate: 23, requireManualPrice: false, adjustment: { type: 'FIXED_NET', value: 0 }, note: '', finalPriceNet: 90000, finalPriceGross: 110700, status: 'CONFIRMED' },
+        ],
+        totalCost: { netAmount: 614905, grossAmount: 756333, currency: 'PLN' },
+        keysHandedOver: true,
+        documentsHandedOver: true,
+        colorId: 'blue',
+        createdAt: '2025-03-28T12:00:00Z',
+        updatedAt: '2025-04-05T14:00:00Z',
+    },
+};
+
+const mockVisitDetail3: VisitDetailResponse = {
+    visit: {
+        id: 'c5200a4a-8e2a-4ac7-b509-f46b9368739e',
+        visitNumber: 'VIS-2025-00203',
+        title: 'Folia + detailing',
+        status: 'IN_PROGRESS',
+        scheduledDate: '2025-05-20T09:00:00Z',
+        vehicle: {
+            id: 'veh_merc',
+            licensePlate: 'GD 11199',
+            brand: 'Mercedes-Benz',
+            model: 'GLE 63 AMG',
+            yearOfProduction: 2021,
+            color: 'Obsidian Black',
+        },
+        customer: {
+            id: 'cust_merc',
+            firstName: 'Tomasz',
+            lastName: 'Dąbrowski',
+            email: 'tdabrowski@example.com',
+            phone: '+48 721 500 400',
+            stats: { totalVisits: 2, totalSpent: { netAmount: 800000, grossAmount: 984000, currency: 'PLN' }, vehiclesCount: 1 },
+        },
+        services: [
+            { id: 's3a', serviceId: 'srv_ppf_front', serviceName: 'Folia PPF – przód', basePriceNet: 230000, vatRate: 23, requireManualPrice: false, adjustment: { type: 'FIXED_NET', value: 0 }, note: '', finalPriceNet: 230000, finalPriceGross: 282900, status: 'CONFIRMED' },
+            { id: 's3b', serviceId: 'srv_detailing', serviceName: 'Detailing wnętrza', basePriceNet: 50000, vatRate: 23, requireManualPrice: false, adjustment: { type: 'FIXED_NET', value: 0 }, note: '', finalPriceNet: 50000, finalPriceGross: 61500, status: 'CONFIRMED' },
+        ],
+        totalCost: { netAmount: 280000, grossAmount: 344400, currency: 'PLN' },
+        keysHandedOver: true,
+        documentsHandedOver: false,
+        colorId: 'black',
+        createdAt: '2025-05-15T09:00:00Z',
+        updatedAt: '2025-05-20T11:00:00Z',
+    },
+};
+
+const mockVisitDetailsMap: Record<string, VisitDetailResponse> = {
+    '566872ca-8db2-45be-a769-c2f1eaa3449a': mockVisitDetail1,
+    '61c11352-1b06-48fa-96e2-33ffee44873e': mockVisitDetail2,
+    'c5200a4a-8e2a-4ac7-b509-f46b9368739e': mockVisitDetail3,
+};
+
+const mockVisitPhotosMap: Record<string, VisitPhotosResponse> = {
+    '566872ca-8db2-45be-a769-c2f1eaa3449a': mockVisitPhotos1,
+    '61c11352-1b06-48fa-96e2-33ffee44873e': mockVisitPhotos2,
+    'c5200a4a-8e2a-4ac7-b509-f46b9368739e': mockVisitPhotos3,
+};
+
+// Legacy single-visit mock (kept for other mocked endpoints)
+const mockVisitPhotos: VisitPhotosResponse = mockVisitPhotos1;
+const mockVisitDetail: VisitDetailResponse = mockVisitDetail1;
 
 // Mapowanie statusu z backendu (snake_case lowercase) na frontend (SCREAMING_SNAKE_CASE)
 const mapVisitStatus = (backendStatus: string): string => {
@@ -192,8 +231,8 @@ const mapVisitStatus = (backendStatus: string): string => {
 export const visitApi = {
     getVisitDetail: async (visitId: string): Promise<VisitDetailResponse> => {
         if (USE_MOCKS) {
-            await new Promise(resolve => setTimeout(resolve, 800));
-            return mockVisitDetail;
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return mockVisitDetailsMap[visitId] ?? mockVisitDetail;
         }
         const response = await apiClient.get(`${BASE_PATH}/${visitId}`);
         const data = response.data;
@@ -546,8 +585,8 @@ export const visitApi = {
      */
     getVisitPhotos: async (visitId: string): Promise<VisitPhotosResponse> => {
         if (USE_MOCKS) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-            return mockVisitPhotos;
+            await new Promise(resolve => setTimeout(resolve, 300));
+            return mockVisitPhotosMap[visitId] ?? mockVisitPhotos;
         }
         const response = await apiClient.get(`${BASE_PATH}/${visitId}/photos`);
         return response.data;

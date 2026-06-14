@@ -34,7 +34,7 @@ import type {
   QuoteReplyExampleDto,
 } from '../types';
 
-const USE_MOCKS = false;
+const USE_MOCKS = true;
 const BASE_PATH = '/v1/leads';
 
 // Mock data for development
