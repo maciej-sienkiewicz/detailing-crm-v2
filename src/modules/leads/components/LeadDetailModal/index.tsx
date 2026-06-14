@@ -1,12 +1,14 @@
 // src/modules/leads/components/LeadDetailModal/index.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import styled, { css, keyframes } from 'styled-components';
 import {
   X, Phone, Mail, PenLine, FileText, Edit3,
   MessageSquare, UserCheck, UserX, Check, Search, Plus,
-  Camera, Calendar, ArrowRight, AlertCircle,
+  Camera, Calendar, ArrowRight, ArrowUpRight, AlertCircle,
   History, Images, ChevronDown, User, Car,
+  ExternalLink, Gauge, StickyNote, Wrench,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/core';
@@ -901,91 +903,15 @@ const SuggestPrice = styled.span`
 
 // ─── Visit Preview Modal styled components ────────────────────────────────────
 
-const VHero = styled.div`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 20px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #243043 100%);
-  overflow: hidden;
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: -40%;
-    right: -10%;
-    width: 220px;
-    height: 220px;
-    background: radial-gradient(circle, rgba(14, 165, 233, 0.18) 0%, rgba(14, 165, 233, 0) 70%);
-    pointer-events: none;
-  }
-`;
-
-const VHeroTop = styled.div`
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-`;
-
-const VHeroVehicle = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
-  color: #fff;
-  svg { width: 18px; height: 18px; color: #38bdf8; flex-shrink: 0; }
-`;
-
-const VHeroSub = styled.div`
-  margin-top: 5px;
-  margin-left: 27px;
-  font-size: 12.5px;
-  color: rgba(255, 255, 255, 0.55);
-`;
-
-const VHeroMeta = styled.div`
-  position: relative;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 9px 20px;
-  padding-top: 15px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-`;
-
-const VHeroMetaItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12.5px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.88);
-  svg { width: 14px; height: 14px; color: rgba(255, 255, 255, 0.45); flex-shrink: 0; }
-`;
-
-const VSectionLabel = styled.div`
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: ${st.textMuted};
-  margin-bottom: 8px;
-`;
-
 const VStatusBadge = styled.span<{ $status: string }>`
   display: inline-flex;
   align-items: center;
-  padding: 3px 9px;
+  padding: 4px 11px;
   border-radius: 9999px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
+  white-space: nowrap;
   ${p => {
     const s = p.$status?.toUpperCase();
     if (s === 'COMPLETED')         return 'background:#dcfce7; color:#166534;';
@@ -1007,49 +933,221 @@ const VStatusLabel: Record<string, string> = {
   ARCHIVED:         'Zarchiwizowana',
 };
 
-const VServicesCard = styled.div`
-  background: #fff;
-  border: 1px solid ${st.border};
-  border-radius: 10px;
-  overflow: hidden;
-`;
+// ── Hero ──────────────────────────────────────────────────────────────────────
 
-const VServicesHead = styled.div`
+const VHero = styled.div`
+  position: relative;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 14px;
-  background: ${st.bg};
-  border-bottom: 1px solid ${st.border};
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #243043 100%);
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: -45%;
+    right: -8%;
+    width: 240px;
+    height: 240px;
+    background: radial-gradient(circle, rgba(14, 165, 233, 0.2) 0%, rgba(14, 165, 233, 0) 70%);
+    pointer-events: none;
+  }
 `;
 
-const VServicesHeadCell = styled.span`
+const VHeroTop = styled.div`
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+const VHeroVehicle = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  max-width: 100%;
+  padding: 0;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: color 160ms ease;
+
+  .car { width: 18px; height: 18px; color: #38bdf8; flex-shrink: 0; }
+  .ext { width: 14px; height: 14px; color: rgba(255, 255, 255, 0.4); flex-shrink: 0; transition: color 160ms ease, transform 160ms ease; }
+  &:hover { color: #e0f2fe; }
+  &:hover .ext { color: #7dd3fc; transform: translate(1px, -1px); }
+`;
+
+const VHeroPlate = styled.span`
+  display: inline-flex;
+  align-items: center;
+  margin-left: 27px;
+  margin-top: 8px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+`;
+
+const VHeroSub = styled.span`
+  margin-left: 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+`;
+
+const VHeroMeta = styled.div`
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const VHeroMetaItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+`;
+
+const VHeroMetaLabel = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.4);
+  svg { width: 12px; height: 12px; }
+`;
+
+const VHeroMetaValue = styled.span`
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+`;
+
+// ── Price summary band ──────────────────────────────────────────────────────────
+
+const VPriceBand = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+`;
+
+const VPriceTile = styled.div<{ $accent?: boolean }>`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid ${p => (p.$accent ? '#bae6fd' : st.border)};
+  background: ${p => (p.$accent ? 'linear-gradient(135deg, #f0f9ff, #e0f2fe)' : '#fff')};
+`;
+
+const VPriceTileLabel = styled.span`
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: ${st.textMuted};
+`;
+
+const VPriceTileValue = styled.span<{ $accent?: boolean }>`
+  font-size: 18px;
+  font-weight: 800;
+  color: ${p => (p.$accent ? '#0369a1' : st.text)};
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+`;
+
+// ── Section heading ─────────────────────────────────────────────────────────────
+
+const VSectionLabel = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: ${st.textMuted};
+  margin-bottom: 9px;
+  svg { width: 13px; height: 13px; }
 `;
 
-const VServiceRow = styled.div`
-  display: flex;
-  justify-content: space-between;
+// ── Services table (Usługa | Netto | VAT | Brutto) ──────────────────────────────
+
+const VServicesCard = styled.div`
+  background: #fff;
+  border: 1px solid ${st.border};
+  border-radius: 12px;
+  overflow: hidden;
+`;
+
+const VSvcGridRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 78px 104px;
   align-items: center;
-  gap: 12px;
-  padding: 9px 14px;
+  gap: 10px;
+  padding: 10px 14px;
+
+  @media (max-width: 560px) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+`;
+
+const VSvcHead = styled(VSvcGridRow)`
+  background: ${st.bg};
+  border-bottom: 1px solid ${st.border};
+
+  @media (max-width: 560px) { display: none; }
+`;
+
+const VSvcHeadCell = styled.span<{ $right?: boolean }>`
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: ${st.textMuted};
+  text-align: ${p => (p.$right ? 'right' : 'left')};
+`;
+
+const VSvcRow = styled(VSvcGridRow)`
   border-bottom: 1px solid #f1f5f9;
   &:last-of-type { border-bottom: none; }
 `;
 
-const VServiceName = styled.span`
-  display: block;
-  font-size: 13px;
-  font-weight: 500;
-  color: ${st.text};
+const VSvcNameWrap = styled.div`
   min-width: 0;
 `;
 
-const VServiceNote = styled.span`
+const VSvcName = styled.span`
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: ${st.text};
+`;
+
+const VSvcNote = styled.span`
   display: block;
   font-size: 11px;
   color: ${st.textMuted};
@@ -1057,35 +1155,148 @@ const VServiceNote = styled.span`
   line-height: 1.4;
 `;
 
-const VServicePrice = styled.span`
+const VSvcCell = styled.span<{ $muted?: boolean }>`
   font-size: 13px;
-  font-weight: 600;
-  color: ${st.text};
+  font-weight: ${p => (p.$muted ? 500 : 700)};
+  color: ${p => (p.$muted ? st.textMuted : st.text)};
+  text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+
+  @media (max-width: 560px) {
+    &.vat { display: none; }
+    &.net { display: none; }
+  }
 `;
 
-const VTotalRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
+// ── Notes ───────────────────────────────────────────────────────────────────────
+
+const VNoteCard = styled.div`
+  padding: 14px 16px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-left: 3px solid #f59e0b;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #78350f;
+  white-space: pre-wrap;
+`;
+
+const VEmptyState = styled.div`
+  padding: 16px;
+  text-align: center;
+  font-size: 12.5px;
+  color: ${st.textMuted};
   background: #f8fafc;
+  border: 1px dashed ${st.border};
+  border-radius: 10px;
+`;
+
+// ── Customer card ──────────────────────────────────────────────────────────────
+
+const VPartyCard = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid ${st.border};
+  border-radius: 12px;
+`;
+
+const VPartyAvatar = styled.div`
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 800;
+  flex-shrink: 0;
+`;
+
+const VPartyInfo = styled.div`
+  min-width: 0;
+  flex: 1;
+`;
+
+const VPartyName = styled.div`
+  font-size: 14px;
+  font-weight: 700;
+  color: ${st.text};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const VPartyMeta = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 12px;
+  margin-top: 3px;
+  font-size: 12px;
+  color: ${st.textMuted};
+`;
+
+const VPartyStat = styled.span`
+  font-weight: 600;
+  color: ${st.textSecondary};
+`;
+
+const VProfileBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid ${st.border};
+  border-radius: 9999px;
+  color: ${st.textSecondary};
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+  svg { width: 13px; height: 13px; }
+  &:hover { border-color: #7dd3fc; color: #0284c7; background: #f0f9ff; }
+`;
+
+// ── Footer action bar ───────────────────────────────────────────────────────────
+
+const VFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 16px;
   border-top: 1px solid ${st.border};
 `;
 
-const VTotalLabel = styled.span`
+const VPrimaryBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  background: #0ea5e9;
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-family: inherit;
   font-size: 13px;
   font-weight: 700;
-  color: ${st.text};
-`;
-
-const VTotalPrice = styled.span`
-  font-size: 16px;
-  font-weight: 800;
-  color: ${st.text};
-  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+  box-shadow: 0 6px 16px -6px rgba(14, 165, 233, 0.6);
+  svg { width: 15px; height: 15px; transition: transform 160ms ease; }
+  &:hover { background: #0284c7; transform: translateY(-1px); }
+  &:hover svg { transform: translateX(2px); }
 `;
 
 const VPhotoGrid = styled.div`
@@ -1135,16 +1346,6 @@ const VPhotoOverlay = styled.div`
   }
 `;
 
-const VEmptyPhotos = styled.div`
-  padding: 20px;
-  text-align: center;
-  font-size: 13px;
-  color: ${st.textMuted};
-  background: #f8fafc;
-  border: 1px dashed ${st.border};
-  border-radius: 10px;
-`;
-
 const VModalLoading = styled.div`
   display: flex;
   flex-direction: column;
@@ -1168,6 +1369,7 @@ interface VisitPreviewModalProps {
 }
 
 const VisitPreviewModal: React.FC<VisitPreviewModalProps> = ({ visitId, onClose }) => {
+  const navigate = useNavigate();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const { data: detailData, isLoading, isError } = useQuery({
@@ -1187,36 +1389,61 @@ const VisitPreviewModal: React.FC<VisitPreviewModalProps> = ({ visitId, onClose 
   const visitTitle = visit?.visitNumber ? `Wizyta ${visit.visitNumber}` : 'Podgląd wizyty';
   const customerName = visit?.customer ? `${visit.customer.firstName} ${visit.customer.lastName}`.trim() : null;
   const vehicleLabel = visit?.vehicle ? `${visit.vehicle.brand} ${visit.vehicle.model}`.trim() : null;
-  const vehicleSub = visit?.vehicle
+  const vehicleSubShort = visit?.vehicle
     ? [
         visit.vehicle.yearOfProduction ? String(visit.vehicle.yearOfProduction) : null,
         visit.vehicle.color ?? null,
-        visit.vehicle.licensePlate ?? null,
       ].filter(Boolean).join(' · ')
     : null;
-  const formattedDate = visit?.scheduledDate
-    ? new Intl.DateTimeFormat('pl-PL', { day: '2-digit', month: 'long', year: 'numeric' })
-        .format(new Date(visit.scheduledDate))
-    : null;
+  const fmtDate = (d?: string) =>
+    d ? new Intl.DateTimeFormat('pl-PL', { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(d)) : null;
+  const formattedDate = fmtDate(visit?.scheduledDate);
+  const completedDateLabel = fmtDate(visit?.completedDate);
+
+  const services = visit?.services ?? [];
+  const netTotal = visit?.totalCost?.netAmount ?? services.reduce((s, x) => s + x.finalPriceNet, 0);
+  const grossTotal = visit?.totalCost?.grossAmount ?? services.reduce((s, x) => s + x.finalPriceGross, 0);
+  const vatTotal = Math.max(0, grossTotal - netTotal);
+
+  const custInitials = visit?.customer
+    ? `${visit.customer.firstName?.[0] ?? ''}${visit.customer.lastName?.[0] ?? ''}`.toUpperCase() || '?'
+    : '?';
+
+  const goTo = (path: string) => {
+    onClose();
+    navigate(path);
+  };
 
   return (
     <>
-      <Modal isOpen={!!visitId} onClose={onClose} title={visitTitle} maxWidth="680px">
+      <Modal isOpen={!!visitId} onClose={onClose} title={visitTitle} maxWidth="720px">
         {isLoading && (
           <VModalLoading>
+            <SkeletonPulse $h="140px" />
             <SkeletonPulse $h="80px" />
             <SkeletonPulse $h="160px" />
-            <SkeletonPulse $h="120px" />
           </VModalLoading>
         )}
         {isError && <VModalError>Nie udało się załadować danych wizyty.</VModalError>}
         {visit && !isLoading && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {/* Hero */}
             <VHero>
               <VHeroTop>
                 <div style={{ minWidth: 0 }}>
-                  <VHeroVehicle><Car />{vehicleLabel ?? 'Wizyta'}</VHeroVehicle>
-                  {vehicleSub && <VHeroSub>{vehicleSub}</VHeroSub>}
+                  <VHeroVehicle
+                    type="button"
+                    title="Otwórz profil pojazdu"
+                    onClick={() => visit.vehicle && goTo(`/vehicles/${visit.vehicle.id}`)}
+                  >
+                    <Car className="car" />
+                    {vehicleLabel ?? 'Wizyta'}
+                    <ExternalLink className="ext" />
+                  </VHeroVehicle>
+                  <div>
+                    {visit.vehicle?.licensePlate && <VHeroPlate>{visit.vehicle.licensePlate}</VHeroPlate>}
+                    {vehicleSubShort && <VHeroSub>{vehicleSubShort}</VHeroSub>}
+                  </div>
                 </div>
                 {visit.status && (
                   <VStatusBadge $status={visit.status}>
@@ -1225,45 +1452,89 @@ const VisitPreviewModal: React.FC<VisitPreviewModalProps> = ({ visitId, onClose 
                 )}
               </VHeroTop>
               <VHeroMeta>
-                {formattedDate && <VHeroMetaItem><Calendar />{formattedDate}</VHeroMetaItem>}
-                {customerName && <VHeroMetaItem><User />{customerName}</VHeroMetaItem>}
-                {visit.customer?.phone && <VHeroMetaItem><Phone />{visit.customer.phone}</VHeroMetaItem>}
-                {visit.customer?.companyName && <VHeroMetaItem><FileText />{visit.customer.companyName}</VHeroMetaItem>}
+                {formattedDate && (
+                  <VHeroMetaItem>
+                    <VHeroMetaLabel><Calendar />Termin</VHeroMetaLabel>
+                    <VHeroMetaValue>{formattedDate}</VHeroMetaValue>
+                  </VHeroMetaItem>
+                )}
+                {completedDateLabel && (
+                  <VHeroMetaItem>
+                    <VHeroMetaLabel><Check />Zakończono</VHeroMetaLabel>
+                    <VHeroMetaValue>{completedDateLabel}</VHeroMetaValue>
+                  </VHeroMetaItem>
+                )}
+                {visit.mileageAtArrival != null && (
+                  <VHeroMetaItem>
+                    <VHeroMetaLabel><Gauge />Przebieg</VHeroMetaLabel>
+                    <VHeroMetaValue>{visit.mileageAtArrival.toLocaleString('pl-PL')} km</VHeroMetaValue>
+                  </VHeroMetaItem>
+                )}
+                <VHeroMetaItem>
+                  <VHeroMetaLabel><FileText />Numer</VHeroMetaLabel>
+                  <VHeroMetaValue>{visit.visitNumber ?? '—'}</VHeroMetaValue>
+                </VHeroMetaItem>
               </VHeroMeta>
             </VHero>
 
-            {visit.services && visit.services.length > 0 && (
+            {/* Price summary */}
+            <VPriceBand>
+              <VPriceTile>
+                <VPriceTileLabel>Wartość netto</VPriceTileLabel>
+                <VPriceTileValue>{formatCurrency(netTotal)}</VPriceTileValue>
+              </VPriceTile>
+              <VPriceTile>
+                <VPriceTileLabel>VAT</VPriceTileLabel>
+                <VPriceTileValue>{formatCurrency(vatTotal)}</VPriceTileValue>
+              </VPriceTile>
+              <VPriceTile $accent>
+                <VPriceTileLabel>Wartość brutto</VPriceTileLabel>
+                <VPriceTileValue $accent>{formatCurrency(grossTotal)}</VPriceTileValue>
+              </VPriceTile>
+            </VPriceBand>
+
+            {/* Services */}
+            {services.length > 0 && (
               <div>
-                <VSectionLabel>Wykonane usługi</VSectionLabel>
+                <VSectionLabel><Wrench />Zakres usług</VSectionLabel>
                 <VServicesCard>
-                  <VServicesHead>
-                    <VServicesHeadCell>Usługa</VServicesHeadCell>
-                    <VServicesHeadCell>Cena brutto</VServicesHeadCell>
-                  </VServicesHead>
-                  {visit.services.map(svc => (
-                    <VServiceRow key={svc.id}>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <VServiceName>{svc.serviceName}</VServiceName>
-                        {svc.note && <VServiceNote>{svc.note}</VServiceNote>}
-                      </div>
-                      <VServicePrice>{formatCurrency(svc.finalPriceGross)}</VServicePrice>
-                    </VServiceRow>
+                  <VSvcHead>
+                    <VSvcHeadCell>Usługa</VSvcHeadCell>
+                    <VSvcHeadCell $right>Netto</VSvcHeadCell>
+                    <VSvcHeadCell $right>VAT</VSvcHeadCell>
+                    <VSvcHeadCell $right>Brutto</VSvcHeadCell>
+                  </VSvcHead>
+                  {services.map(svc => (
+                    <VSvcRow key={svc.id}>
+                      <VSvcNameWrap>
+                        <VSvcName>{svc.serviceName}</VSvcName>
+                        {svc.note && <VSvcNote>{svc.note}</VSvcNote>}
+                      </VSvcNameWrap>
+                      <VSvcCell className="net" $muted>{formatCurrency(svc.finalPriceNet)}</VSvcCell>
+                      <VSvcCell className="vat" $muted>{svc.vatRate < 0 ? 'zw.' : `${svc.vatRate}%`}</VSvcCell>
+                      <VSvcCell>{formatCurrency(svc.finalPriceGross)}</VSvcCell>
+                    </VSvcRow>
                   ))}
-                  {visit.totalCost && (
-                    <VTotalRow>
-                      <VTotalLabel>ŁĄCZNIE</VTotalLabel>
-                      <VTotalPrice>{formatCurrency(visit.totalCost.grossAmount)} brutto</VTotalPrice>
-                    </VTotalRow>
-                  )}
                 </VServicesCard>
               </div>
             )}
 
+            {/* Notes */}
+            <div>
+              <VSectionLabel><StickyNote />Notatki z realizacji</VSectionLabel>
+              {visit.technicalNotes && visit.technicalNotes.trim() ? (
+                <VNoteCard>{visit.technicalNotes}</VNoteCard>
+              ) : (
+                <VEmptyState>Brak notatek przypisanych do tej wizyty</VEmptyState>
+              )}
+            </div>
+
+            {/* Photos */}
             <div>
               <VSectionLabel>
-                Galeria zdjęć
+                <Camera />Galeria zdjęć
                 {!isPhotosLoading && photos.length > 0 && (
-                  <span style={{ fontWeight: 400, textTransform: 'none', marginLeft: 6 }}>({photos.length})</span>
+                  <span style={{ fontWeight: 600, color: st.textMuted }}>· {photos.length}</span>
                 )}
               </VSectionLabel>
               {isPhotosLoading ? (
@@ -1289,9 +1560,46 @@ const VisitPreviewModal: React.FC<VisitPreviewModalProps> = ({ visitId, onClose 
                   ))}
                 </VPhotoGrid>
               ) : (
-                <VEmptyPhotos>Brak zdjęć przypisanych do tej wizyty</VEmptyPhotos>
+                <VEmptyState>Brak zdjęć przypisanych do tej wizyty</VEmptyState>
               )}
             </div>
+
+            {/* Customer */}
+            {visit.customer && (
+              <div>
+                <VSectionLabel><User />Klient</VSectionLabel>
+                <VPartyCard>
+                  <VPartyAvatar>{custInitials}</VPartyAvatar>
+                  <VPartyInfo>
+                    <VPartyName>{customerName ?? '—'}</VPartyName>
+                    <VPartyMeta>
+                      {visit.customer.phone && <span>{visit.customer.phone}</span>}
+                      {visit.customer.email && <span>{visit.customer.email}</span>}
+                      {visit.customer.stats && (
+                        <VPartyStat>
+                          {visit.customer.stats.totalVisits} wiz. · {formatCurrency(visit.customer.stats.totalSpent.grossAmount)}
+                        </VPartyStat>
+                      )}
+                    </VPartyMeta>
+                  </VPartyInfo>
+                  <VProfileBtn type="button" onClick={() => goTo(`/customers/${visit.customer.id}`)}>
+                    Profil <ArrowUpRight />
+                  </VProfileBtn>
+                </VPartyCard>
+              </div>
+            )}
+
+            {/* Actions */}
+            <VFooter>
+              {visit.vehicle && (
+                <VProfileBtn type="button" onClick={() => goTo(`/vehicles/${visit.vehicle.id}`)}>
+                  <Car /> Profil pojazdu
+                </VProfileBtn>
+              )}
+              <VPrimaryBtn type="button" onClick={() => goTo(`/visits/${visit.id}`)}>
+                Przejdź do wizyty <ArrowRight />
+              </VPrimaryBtn>
+            </VFooter>
           </div>
         )}
       </Modal>
