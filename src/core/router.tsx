@@ -11,7 +11,7 @@ import { CheckInWizardWrapper } from '@/modules/checkin/views/CheckInWizardWrapp
 import { WalkInCheckInWrapper } from '@/modules/checkin/views/WalkInCheckInWrapper';
 import { MobilePhotoUploadWrapper } from '@/modules/checkin/views/MobilePhotoUploadWrapper';
 import { MobileVoiceCommandsWrapper, MobileShortcutsView } from '@/modules/voice-commands';
-import { LoginView, SignupView } from '@/modules/auth';
+import { LoginView, SignupView, ForgotPasswordView, ResetPasswordView } from '@/modules/auth';
 import { AppointmentColorListView } from "@/modules/appointment-colors";
 import { ConsentSettingsView } from "@/modules/consents";
 import { CalendarPageView } from "@/modules/calendar";
@@ -37,6 +37,14 @@ export const router = createBrowserRouter([
     {
         path: '/signup',
         element: <SignupView />,
+    },
+    {
+        path: '/forgot-password',
+        element: <ForgotPasswordView />,
+    },
+    {
+        path: '/reset-password',
+        element: <ResetPasswordView />,
     },
     {
         path: '/',

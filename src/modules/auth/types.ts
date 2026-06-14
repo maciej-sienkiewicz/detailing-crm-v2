@@ -52,6 +52,36 @@ export interface CheckAuthResponse {
     user: User | null;
 }
 
+export interface ForgotPasswordRequest {
+    email: string;
+}
+
+export interface ForgotPasswordResponse {
+    success: boolean;
+    message: string;
+}
+
+export interface ValidateResetTokenResponse {
+    valid: boolean;
+}
+
+export interface ResetPasswordRequest {
+    token: string;
+    password: string;
+    confirmPassword: string;
+}
+
+export interface ResetPasswordResponse {
+    success: boolean;
+    message: string;
+}
+
+export interface ResetPasswordError {
+    error: string;
+    message: string;
+    timestamp: string;
+}
+
 export interface DemoAccountResponse {
     success: boolean;
     message: string;

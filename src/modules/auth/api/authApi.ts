@@ -1,6 +1,6 @@
 // src/modules/auth/api/authApi.ts
 import { apiClient } from '@/core';
-import type { LoginCredentials, SignupCredentials, AuthResponse, CheckAuthResponse, DemoAccountResponse } from '../types';
+import type { LoginCredentials, SignupCredentials, AuthResponse, CheckAuthResponse, DemoAccountResponse, ForgotPasswordRequest, ForgotPasswordResponse, ValidateResetTokenResponse, ResetPasswordRequest, ResetPasswordResponse } from '../types';
 
 const USE_MOCKS = false;
 
@@ -92,6 +92,23 @@ export const authApi = {
             isAuthenticated: response.data.success && response.data.user !== null,
             user: response.data.user ?? null,
         };
+    },
+
+    forgotPassword: async (data: ForgotPasswordRequest): Promise<ForgotPasswordResponse> => {
+        const response = await apiClient.post<ForgotPasswordResponse>(`${BASE_PATH}/forgot-password`, data);
+        return response.data;
+    },
+
+    validateResetToken: async (token: string): Promise<ValidateResetTokenResponse> => {
+        const response = await apiClient.get<ValidateResetTokenResponse>(`${BASE_PATH}/reset-password/validate`, {
+            params: { token },
+        });
+        return response.data;
+    },
+
+    resetPassword: async (data: ResetPasswordRequest): Promise<ResetPasswordResponse> => {
+        const response = await apiClient.post<ResetPasswordResponse>(`${BASE_PATH}/reset-password`, data);
+        return response.data;
     },
 
     createDemoAccount: async (): Promise<DemoAccountResponse> => {

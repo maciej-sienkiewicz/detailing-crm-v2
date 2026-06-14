@@ -70,11 +70,39 @@ export interface TranslationKeys {
                 strong: string;
             };
         };
+        forgotPassword: {
+            title: string;
+            subtitle: string;
+            emailLabel: string;
+            emailPlaceholder: string;
+            submitButton: string;
+            submitting: string;
+            successMessage: string;
+            backToLogin: string;
+        };
+        resetPassword: {
+            title: string;
+            subtitle: string;
+            passwordLabel: string;
+            passwordPlaceholder: string;
+            confirmPasswordLabel: string;
+            confirmPasswordPlaceholder: string;
+            submitButton: string;
+            submitting: string;
+            successMessage: string;
+            successAction: string;
+            expiredTitle: string;
+            expiredMessage: string;
+            expiredAction: string;
+        };
         validation: {
             emailRequired: string;
             emailInvalid: string;
             passwordRequired: string;
             passwordMin: string;
+            passwordUppercase: string;
+            passwordLowercase: string;
+            passwordDigit: string;
             passwordMismatch: string;
             firstNameRequired: string;
             firstNameMin: string;

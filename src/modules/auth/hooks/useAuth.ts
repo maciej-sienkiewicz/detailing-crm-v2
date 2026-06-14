@@ -55,6 +55,18 @@ export const useLogout = () => {
     });
 };
 
+export const useForgotPassword = () => {
+    return useMutation({
+        mutationFn: (data: { email: string }) => authApi.forgotPassword(data),
+    });
+};
+
+export const useResetPassword = () => {
+    return useMutation({
+        mutationFn: (data: import('../types').ResetPasswordRequest) => authApi.resetPassword(data),
+    });
+};
+
 export const useDemoAccount = () => {
     const navigate = useNavigate();
     const { setAuthenticated, setUser } = useAuthContext();
