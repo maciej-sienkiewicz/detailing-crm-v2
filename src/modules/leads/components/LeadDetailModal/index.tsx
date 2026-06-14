@@ -1680,7 +1680,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
                   )}
                 </EstCard>
               ) : (
-                <NoEstBox>System nie byłw stanie stworzyć wstępnego kosztorysu.</NoEstBox>
+                <NoEstBox>System nie był w stanie stworzyć wstępnego kosztorysu.</NoEstBox>
               )}
             </EstColumnWrapper>
 
