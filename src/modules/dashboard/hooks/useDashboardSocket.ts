@@ -47,7 +47,7 @@ export function useDashboardSocket(): void {
         console.info('[DashboardSocket] Parsed event:', event.type, event);
 
         switch (event.type) {
-          case DashboardEventType.NEW_INBOUND_CALL:
+          case DashboardEventType.NEW_LEAD:
             handleNewInboundCall(event as DashboardEvent<InboundCallPayload>);
             break;
           default:
@@ -60,7 +60,7 @@ export function useDashboardSocket(): void {
 
     const handleNewInboundCall = (event: DashboardEvent<InboundCallPayload>) => {
       const { payload } = event;
-      console.info('[DashboardSocket] NEW_INBOUND_CALL payload:', payload);
+      console.info('[DashboardSocket] NEW_LEAD payload:', payload);
 
       // Map WebSocket payload to existing IncomingCall interface
       const newCall: IncomingCall = {

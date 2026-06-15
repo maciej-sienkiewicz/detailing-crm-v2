@@ -35,7 +35,7 @@ export function useLeadSocket(): void {
   const handleNewInboundCall = useCallback(
     (event: LeadEvent<InboundCallPayload>) => {
       const { payload } = event;
-      console.info('[LeadSocket] NEW_INBOUND_CALL payload:', payload);
+      console.info('[LeadSocket] NEW_LEAD payload:', payload);
 
       // Create new lead from WebSocket payload
       const newLead: Lead = {
@@ -130,7 +130,7 @@ export function useLeadSocket(): void {
         console.info('[LeadSocket] Parsed event:', event.type, event);
 
         switch (event.type) {
-          case LeadEventType.NEW_INBOUND_CALL:
+          case LeadEventType.NEW_LEAD:
             handleNewInboundCall(event as LeadEvent<InboundCallPayload>);
             break;
           case LeadEventType.LEAD_UPDATED:

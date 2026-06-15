@@ -261,7 +261,7 @@ export interface DashboardData {
  * Supported dashboard event types
  */
 export const DashboardEventType = {
-  NEW_INBOUND_CALL: 'NEW_INBOUND_CALL',
+  NEW_LEAD: 'NEW_LEAD',
 } as const;
 
 export type DashboardEventType = (typeof DashboardEventType)[keyof typeof DashboardEventType];

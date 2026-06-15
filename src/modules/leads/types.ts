@@ -190,7 +190,7 @@ export interface LeadListResponse {
  * WebSocket event types for leads
  */
 export enum LeadEventType {
-  NEW_INBOUND_CALL = 'NEW_INBOUND_CALL',
+  NEW_LEAD = 'NEW_LEAD',
   LEAD_UPDATED = 'LEAD_UPDATED',
   LEAD_STATUS_CHANGED = 'LEAD_STATUS_CHANGED',
 }
@@ -205,7 +205,7 @@ export interface LeadEvent<T = unknown> {
 }
 
 /**
- * Payload for NEW_INBOUND_CALL event
+ * Payload for NEW_LEAD event
  */
 export interface InboundCallPayload {
   id: LeadId;
