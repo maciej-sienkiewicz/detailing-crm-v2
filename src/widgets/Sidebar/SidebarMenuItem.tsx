@@ -7,6 +7,7 @@ export interface MenuItem {
     label: string;
     icon: LucideIcon;
     badge?: string | number;
+    alert?: boolean;
 }
 
 interface SidebarMenuItemProps {
@@ -24,11 +25,14 @@ export const SidebarMenuItem = ({ item, isCollapsed, onNavigate }: SidebarMenuIt
         : location.pathname.startsWith(pathOnly);
     const Icon = item.icon;
 
+    const hasAlert = item.alert && !isActive;
+
     return (
         <MenuItemLink
             to={item.path}
             $isActive={isActive}
             $isCollapsed={isCollapsed}
+            $hasAlert={hasAlert}
             onClick={onNavigate}
         >
             <MenuItemIcon $isActive={isActive}>
@@ -38,7 +42,7 @@ export const SidebarMenuItem = ({ item, isCollapsed, onNavigate }: SidebarMenuIt
                 {item.label}
             </MenuItemText>
             {item.badge && (
-                <MenuItemBadge $isCollapsed={isCollapsed} $isActive={isActive}>
+                <MenuItemBadge $isCollapsed={isCollapsed} $isActive={isActive} $hasAlert={hasAlert}>
                     {item.badge}
                 </MenuItemBadge>
             )}

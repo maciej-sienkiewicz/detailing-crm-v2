@@ -28,6 +28,7 @@ import { useAuth } from '@/core/context/AuthContext';
 import { authApi } from '@/modules/auth/api/authApi';
 import { useSmsCreditBalance } from '@/modules/settings/hooks/useSmsCredits';
 import { useNewLeadsCount } from '@/modules/leads/hooks/useLeads';
+import { useLeadSocket } from '@/modules/leads/hooks/useLeadSocket';
 import { SidebarMenu, MenuSection } from './SidebarMenu';
 import {
     Overlay,
@@ -62,7 +63,7 @@ const buildMenuSections = (newLeadsCount: number): MenuSection[] => [
             { path: '/dashboard',  label: 'Tablica',   icon: LayoutDashboard },
             { path: '/operations', label: 'Wizyty',    icon: CalendarCheck },
             { path: '/calendar',   label: 'Kalendarz', icon: Calendar },
-            { path: '/leads',      label: 'Leady',     icon: Inbox, badge: newLeadsCount > 0 ? newLeadsCount : undefined },
+            { path: '/leads', label: 'Leady', icon: Inbox, badge: newLeadsCount > 0 ? newLeadsCount : undefined, alert: newLeadsCount > 0 },
         ],
     },
     {
@@ -121,6 +122,9 @@ export const Sidebar = () => {
     const isDetailer = user?.role?.toLowerCase() === 'detailer';
     const { data: creditBalance } = useSmsCreditBalance({ enabled: !isDetailer });
     const newLeadsCount = useNewLeadsCount();
+
+    // Persistent WebSocket connection for the entire CRM session
+    useLeadSocket();
     const menuSections = buildMenuSections(newLeadsCount);
 
     useEffect(() => {

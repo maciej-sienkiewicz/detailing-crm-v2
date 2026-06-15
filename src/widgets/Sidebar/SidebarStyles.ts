@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { Link } from 'react-router-dom';
 
 // ─── Dark Sidebar Tokens ──────────────────────────────────────────────────────
@@ -313,7 +313,17 @@ export const MenuSectionTitle = styled.div<{ $isCollapsed: boolean }>`
 
 // ─── Menu Item ────────────────────────────────────────────────────────────────
 
-export const MenuItemLink = styled(Link)<{ $isActive: boolean; $isCollapsed: boolean }>`
+const pulseAlertBg = keyframes`
+    0%, 100% { background-color: rgba(220, 38, 38, 0.0); }
+    50%       { background-color: rgba(220, 38, 38, 0.18); }
+`;
+
+const pulseBadge = keyframes`
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5); }
+    50%       { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0); }
+`;
+
+export const MenuItemLink = styled(Link)<{ $isActive: boolean; $isCollapsed: boolean; $hasAlert?: boolean }>`
     display: flex;
     align-items: center;
     gap: 11px;
@@ -362,6 +372,12 @@ export const MenuItemLink = styled(Link)<{ $isActive: boolean; $isCollapsed: boo
         background-color: ${p => p.$isActive ? S.bgActive : S.bgHover};
         color: ${p => p.$isActive ? S.textActive : S.textHover};
     }
+
+    ${p => p.$hasAlert && !p.$isActive && css`
+        animation: ${pulseAlertBg} 1.6s ease-in-out infinite;
+        color: #fca5a5;
+        &:hover { animation: none; }
+    `}
 `;
 
 export const MenuItemIcon = styled.span<{ $isActive: boolean }>`
@@ -393,7 +409,7 @@ export const MenuItemText = styled.span<{ $isCollapsed: boolean }>`
     }
 `;
 
-export const MenuItemBadge = styled.span<{ $isCollapsed: boolean; $isActive?: boolean }>`
+export const MenuItemBadge = styled.span<{ $isCollapsed: boolean; $isActive?: boolean; $hasAlert?: boolean }>`
     margin-left: auto;
     padding: 2px 7px;
     background: ${p => p.$isActive ? 'rgba(14, 165, 233, 0.25)' : 'rgba(239, 68, 68, 0.22)'};
@@ -403,6 +419,10 @@ export const MenuItemBadge = styled.span<{ $isCollapsed: boolean; $isActive?: bo
     color: ${p => p.$isActive ? '#7dd3fc' : '#fca5a5'};
     line-height: 1.5;
     flex-shrink: 0;
+
+    ${p => p.$hasAlert && !p.$isActive && css`
+        animation: ${pulseBadge} 1.6s ease-in-out infinite;
+    `}
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
         display: ${p => p.$isCollapsed ? 'none' : 'inline-block'};

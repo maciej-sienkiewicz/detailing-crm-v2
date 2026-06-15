@@ -64,7 +64,6 @@ import {
   useUpdateLeadValue,
   useDeleteLead,
   useLeadPipelineSummary,
-  useLeadSocket,
   useLeadAppointmentCreation,
   useSetLostReason,
 } from '../hooks';
@@ -1428,8 +1427,6 @@ const formatContact = (lead: Lead): { primary: string; secondary?: string } => {
 // ─── Main view ────────────────────────────────────────────────────────────────
 
 export const LeadListView: React.FC = () => {
-  useLeadSocket();
-
   const navigate = useNavigate();
   const { start: startCalendarNav } = useCalendarNavigation();
   const queryClient = useQueryClient();
