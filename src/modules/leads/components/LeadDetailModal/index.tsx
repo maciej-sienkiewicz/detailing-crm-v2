@@ -63,6 +63,32 @@ const pricePulse = keyframes`
   50%       { background: rgba(239, 68, 68, 0.25); }
 `;
 
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+const InlineSpinner = styled.span`
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: ${spin} 0.7s linear infinite;
+  opacity: 0.6;
+  vertical-align: middle;
+  flex-shrink: 0;
+`;
+
+const PendingLabel = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: ${st.textMuted};
+  font-style: italic;
+  font-size: 0.85em;
+`;
+
 // ─── Modal body layout ─────────────────────────────────────────────────────────
 
 const ModalBody = styled.div`
@@ -2174,14 +2200,23 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
 
             <HeaderRight>
               <PriceStack>
-                <PriceGross>{formatCurrency(headerGross)}</PriceGross>
-                {headerNet !== null ? (
-                  <PriceDetail>
-                    {formatCurrency(headerNet)} netto
-                    {headerVat !== null && ` · VAT ${formatCurrency(headerVat)}`}
-                  </PriceDetail>
+                {lead.estimationStatus === 'PENDING' && !activeQuote ? (
+                  <PendingLabel>
+                    <InlineSpinner />
+                    Przetwarzanie...
+                  </PendingLabel>
                 ) : (
-                  <PriceDetail>brutto</PriceDetail>
+                  <>
+                    <PriceGross>{formatCurrency(headerGross)}</PriceGross>
+                    {headerNet !== null ? (
+                      <PriceDetail>
+                        {formatCurrency(headerNet)} netto
+                        {headerVat !== null && ` · VAT ${formatCurrency(headerVat)}`}
+                      </PriceDetail>
+                    ) : (
+                      <PriceDetail>brutto</PriceDetail>
+                    )}
+                  </>
                 )}
               </PriceStack>
 
@@ -2263,6 +2298,13 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
                   <EstRow><SkeletonPulse $w="45%" /></EstRow>
                   <EstRow $isTotal><SkeletonPulse $w="30%" /></EstRow>
                 </EstCard>
+              ) : lead.estimationStatus === 'PENDING' && !estimation ? (
+                <NoEstBox>
+                  <PendingLabel>
+                    <InlineSpinner />
+                    System przetwarza zapytanie...
+                  </PendingLabel>
+                </NoEstBox>
               ) : estimation && estimation.matchedItems.length > 0 ? (
                 <EstCard>
                   {estimation.matchedItems.map(item => (

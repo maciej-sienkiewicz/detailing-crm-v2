@@ -90,6 +90,15 @@ export interface Lead {
   estimatedValue: number;
 
   /**
+   * LLM processing status for this lead's estimation.
+   * null  — manual lead, no LLM analysis
+   * PENDING — LLM is still processing
+   * COMPLETED — estimation ready
+   * FAILED — LLM analysis failed
+   */
+  estimationStatus: 'PENDING' | 'COMPLETED' | 'FAILED' | null;
+
+  /**
    * Flag for records coming from WebSockets/Phone that need verification
    */
   requiresVerification: boolean;

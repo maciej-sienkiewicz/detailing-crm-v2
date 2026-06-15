@@ -34,6 +34,31 @@ const fadeIn = keyframes`
   }
 `;
 
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+const InlineSpinner = styled.span`
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: ${spin} 0.7s linear infinite;
+  opacity: 0.6;
+  vertical-align: middle;
+`;
+
+const PendingValue = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: ${props => props.theme.colors.textMuted ?? '#888'};
+  font-size: 0.8em;
+  font-style: italic;
+`;
+
 // ============================================================================
 // TABLE STRUCTURE
 // ============================================================================
@@ -1013,6 +1038,11 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
                           onKeyDown={(e) => handleValueKeyDown(e, lead.id)}
                           onClick={(e) => e.stopPropagation()}
                         />
+                      ) : lead.estimationStatus === 'PENDING' ? (
+                        <PendingValue>
+                          <InlineSpinner />
+                          Przetwarzanie...
+                        </PendingValue>
                       ) : (
                         <ValueDisplay onClick={(e) => handleValueEdit(lead, e)}>
                           {formatCurrency(lead.estimatedValue)}
