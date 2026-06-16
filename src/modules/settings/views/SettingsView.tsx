@@ -4,6 +4,8 @@ import styled from 'styled-components';
 import { CompanySection } from '../components/CompanySection';
 import { DocumentsSection } from '../components/DocumentsSection';
 import { ServicesSection } from '../components/ServicesSection';
+import { TeamSection } from '../components/TeamSection';
+import { RolesSection } from '../components/RolesSection';
 import { SubscriptionSettingsPage } from '@/modules/subscription';
 import { AutomationSettings } from '@/modules/sms-campaigns/components/AutomationSettings';
 import { EmailAutomationSettings } from '@/modules/email-campaigns/components/EmailAutomationSettings';
@@ -25,7 +27,7 @@ import {
 // ─── Nav definition ──────────────────────────────────────────────────────────
 
 type SectionId =
-    | 'company' | 'services' | 'team' | 'opening'
+    | 'company' | 'services' | 'team' | 'roles' | 'opening'
     | 'templates' | 'email-templates' | 'reminders' | 'documents'
     | 'plan' | 'credits' | 'invoices' | 'security'
     | 'integrations' | 'api';
@@ -77,6 +79,13 @@ const NAV_GROUPS: NavGroup[] = [
         items: [
             { id: 'company',  label: 'Dane firmy',      icon: <BuildingIcon /> },
             { id: 'services', label: 'Cennik usług',     icon: <ListChecksIcon /> },
+        ],
+    },
+    {
+        group: 'Zespół',
+        items: [
+            { id: 'team',  label: 'Pracownicy',          icon: <UsersIcon /> },
+            { id: 'roles', label: 'Role i uprawnienia',  icon: <ShieldIcon /> },
         ],
     },
     {
@@ -267,7 +276,7 @@ function ComingSoonSection({ label }: { label: string }) {
 // ─── Main view ───────────────────────────────────────────────────────────────
 
 const VALID_SECTIONS = new Set<SectionId>([
-    'company', 'services', 'team', 'opening',
+    'company', 'services', 'team', 'roles', 'opening',
     'templates', 'email-templates', 'reminders', 'documents',
     'plan', 'credits', 'invoices', 'security',
     'integrations', 'api',
@@ -295,6 +304,10 @@ export function SettingsView() {
         content = <EmailAutomationSettings />;
     } else if (section === 'services') {
         content = <ServicesSection />;
+    } else if (section === 'team') {
+        content = <TeamSection />;
+    } else if (section === 'roles') {
+        content = <RolesSection />;
     } else if (section === 'plan') {
         content = <SubscriptionSettingsPage />;
     } else if (section === 'credits') {

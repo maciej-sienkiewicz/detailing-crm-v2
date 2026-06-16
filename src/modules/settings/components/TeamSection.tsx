@@ -1,0 +1,316 @@
+import { useState, useEffect } from 'react';
+import styled from 'styled-components';
+import { useToast } from '@/common/components/Toast';
+import {
+    Container, Toolbar, SearchWrap, SearchIconWrap, SearchInput, ToggleFilterBtn,
+    AddButton, StatsRow, StatText, Card, ColLabel, Badge, Dot, EmptyWrap,
+    EmptyTitle, EmptyDesc, SkeletonBox, Pager, PagerInfo, PagerControls, PagerBtn,
+} from './rbacShared.styles';
+import { useEmployees, useCreateEmployee, useUpdateEmployee, useEmployeeDetail } from '../hooks/useTeam';
+import { EmployeeFormModal } from './team/EmployeeFormModal';
+import { EmployeeDetailModal } from './team/EmployeeDetailModal';
+import type { TeamEmployeeStatus, CreateEmployeeRequest, UpdateEmployeeRequest } from '../teamTypes';
+
+const PAGE_SIZE = 20;
+
+const STATUS_META: Record<TeamEmployeeStatus, { label: string; color: string; variant: 'green' | 'amber' | 'gray' }> = {
+    ACTIVE: { label: 'Aktywny', color: '#10b981', variant: 'green' },
+    ON_LEAVE: { label: 'Na urlopie', color: '#f59e0b', variant: 'amber' },
+    TERMINATED: { label: 'Zwolniony', color: '#94a3b8', variant: 'gray' },
+};
+
+function buildPageNumbers(current: number, total: number): (number | '…')[] {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    const pages: (number | '…')[] = [1];
+    if (current > 3) pages.push('…');
+    for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) pages.push(p);
+    if (current < total - 2) pages.push('…');
+    pages.push(total);
+    return pages;
+}
+
+export function TeamSection() {
+    const { showSuccess } = useToast();
+
+    const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [includeTerminated, setIncludeTerminated] = useState(false);
+    const [page, setPage] = useState(1);
+
+    const [formMode, setFormMode] = useState<'add' | 'edit' | null>(null);
+    const [detailId, setDetailId] = useState<string | null>(null);
+    const [editId, setEditId] = useState<string | null>(null);
+
+    useEffect(() => {
+        const t = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 350);
+        return () => clearTimeout(t);
+    }, [search]);
+
+    const filters = { search: debouncedSearch, includeTerminated, page, limit: PAGE_SIZE };
+    const { items, pagination, isLoading } = useEmployees(filters);
+
+    const createEmployee = useCreateEmployee();
+    const updateEmployee = useUpdateEmployee();
+    const { employee: editTarget } = useEmployeeDetail(formMode === 'edit' ? editId : null);
+
+    const totalItems = pagination?.totalItems ?? 0;
+    const totalPages = pagination?.totalPages ?? 1;
+
+    const openAdd = () => { setEditId(null); setFormMode('add'); };
+    const openEditFromDetail = (id: string) => { setDetailId(null); setEditId(id); setFormMode('edit'); };
+    const closeForm = () => { setFormMode(null); setEditId(null); };
+
+    const handleCreate = (payload: CreateEmployeeRequest) => {
+        createEmployee.mutate(payload, {
+            onSuccess: () => {
+                showSuccess(
+                    'Pracownik dodany',
+                    payload.createAccount ? 'Zaproszenie do założenia konta zostało wysłane.' : undefined,
+                );
+                closeForm();
+            },
+        });
+    };
+
+    const handleUpdate = (payload: UpdateEmployeeRequest) => {
+        if (!editId) return;
+        updateEmployee.mutate({ employeeId: editId, payload }, {
+            onSuccess: () => {
+                showSuccess('Dane zaktualizowane');
+                closeForm();
+            },
+        });
+    };
+
+    const pageNumbers = buildPageNumbers(page, totalPages);
+
+    return (
+        <Container>
+            <Toolbar>
+                <SearchWrap>
+                    <SearchIconWrap>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                    </SearchIconWrap>
+                    <SearchInput
+                        placeholder="Szukaj po nazwisku, e-mailu, stanowisku…"
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </SearchWrap>
+
+                <ToggleFilterBtn $on={includeTerminated} onClick={() => { setIncludeTerminated(v => !v); setPage(1); }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+                    </svg>
+                    Pokaż zwolnionych
+                </ToggleFilterBtn>
+
+                <AddButton onClick={openAdd}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Dodaj pracownika
+                </AddButton>
+            </Toolbar>
+
+            <StatsRow>
+                {!isLoading && (
+                    <StatText>
+                        <strong>{totalItems}</strong>{' '}
+                        {includeTerminated ? 'pracowników łącznie (w tym zwolnieni)' : 'aktywnych pracowników'}
+                    </StatText>
+                )}
+            </StatsRow>
+
+            <Card>
+                <ListHeader>
+                    <ColLabel>Pracownik</ColLabel>
+                    <ColLabel>Kontakt</ColLabel>
+                    <ColLabel>Konto</ColLabel>
+                    <ColLabel>Status</ColLabel>
+                </ListHeader>
+
+                {isLoading ? (
+                    Array.from({ length: 6 }).map((_, i) => (
+                        <SkeletonRow key={i}>
+                            <SkeletonBox $w={`${50 + (i % 3) * 12}%`} />
+                            <SkeletonBox $w="70%" />
+                            <SkeletonBox $w="56px" />
+                            <SkeletonBox $w="60px" />
+                        </SkeletonRow>
+                    ))
+                ) : items.length === 0 ? (
+                    <EmptyWrap>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e2e8f0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3M8 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3M2 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M18 21v-2a4 4 0 0 0-3-3.87" />
+                        </svg>
+                        <EmptyTitle>Brak pracowników</EmptyTitle>
+                        <EmptyDesc>
+                            {debouncedSearch
+                                ? 'Żaden pracownik nie pasuje do wyszukiwania.'
+                                : 'Dodaj pierwszego pracownika klikając „Dodaj pracownika".'}
+                        </EmptyDesc>
+                    </EmptyWrap>
+                ) : (
+                    items.map(emp => {
+                        const sm = STATUS_META[emp.status];
+                        const hasAccount = emp.linkedUserId !== null;
+                        return (
+                            <Row key={emp.id} onClick={() => setDetailId(emp.id)}>
+                                <NameCell>
+                                    <Avatar>{(emp.firstName[0] ?? '') + (emp.lastName[0] ?? '')}</Avatar>
+                                    <NameText>
+                                        <strong>{emp.fullName}</strong>
+                                        <span>{emp.position}</span>
+                                    </NameText>
+                                </NameCell>
+                                <ContactCell>
+                                    {emp.email && <span>{emp.email}</span>}
+                                    {emp.phone && <span>{emp.phone}</span>}
+                                    {!emp.email && !emp.phone && <Muted>—</Muted>}
+                                </ContactCell>
+                                <div>
+                                    {hasAccount
+                                        ? <Badge $variant="blue"><Dot $color="#0284c7" />Ma konto</Badge>
+                                        : <Badge $variant="gray">Brak konta</Badge>}
+                                </div>
+                                <div>
+                                    <Badge $variant={sm.variant}><Dot $color={sm.color} />{sm.label}</Badge>
+                                </div>
+                            </Row>
+                        );
+                    })
+                )}
+
+                {!isLoading && totalPages > 1 && (
+                    <Pager>
+                        <PagerInfo>
+                            {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, totalItems)} z {totalItems}
+                        </PagerInfo>
+                        <PagerControls>
+                            <PagerBtn onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6" /></svg>
+                            </PagerBtn>
+                            {pageNumbers.map((n, i) =>
+                                n === '…'
+                                    ? <PagerBtn key={`e${i}`} disabled style={{ cursor: 'default' }}>…</PagerBtn>
+                                    : <PagerBtn key={n} $active={n === page} onClick={() => setPage(n)}>{n}</PagerBtn>,
+                            )}
+                            <PagerBtn onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6" /></svg>
+                            </PagerBtn>
+                        </PagerControls>
+                    </Pager>
+                )}
+            </Card>
+
+            {detailId && (
+                <EmployeeDetailModal
+                    employeeId={detailId}
+                    onClose={() => setDetailId(null)}
+                    onEdit={() => openEditFromDetail(detailId)}
+                />
+            )}
+
+            {formMode === 'add' && (
+                <EmployeeFormModal
+                    mode="add"
+                    isSaving={createEmployee.isPending}
+                    onClose={closeForm}
+                    onSubmitCreate={handleCreate}
+                    onSubmitUpdate={() => {}}
+                />
+            )}
+
+            {formMode === 'edit' && editTarget && (
+                <EmployeeFormModal
+                    mode="edit"
+                    employee={editTarget}
+                    isSaving={updateEmployee.isPending}
+                    onClose={closeForm}
+                    onSubmitCreate={() => {}}
+                    onSubmitUpdate={handleUpdate}
+                />
+            )}
+        </Container>
+    );
+}
+
+// ─── Styled ─────────────────────────────────────────────────────────────────────
+const GRID = '1fr 1fr 130px 120px';
+
+const ListHeader = styled.div`
+    display: grid;
+    grid-template-columns: ${GRID};
+    gap: 12px;
+    padding: 10px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    background: #fafbfc;
+`;
+
+const SkeletonRow = styled.div`
+    display: grid;
+    grid-template-columns: ${GRID};
+    gap: 12px;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    &:last-child { border-bottom: none; }
+`;
+
+const Row = styled.div`
+    display: grid;
+    grid-template-columns: ${GRID};
+    gap: 12px;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: background 150ms;
+    &:last-child { border-bottom: none; }
+    &:hover { background: #fafbfc; }
+`;
+
+const NameCell = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+`;
+
+const Avatar = styled.div`
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: rgba(14,165,233,0.1);
+    color: #0284c7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+`;
+
+const NameText = styled.div`
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    strong { font-size: 13px; font-weight: 600; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    span { font-size: 11px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+`;
+
+const ContactCell = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    span { font-size: 12px; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+`;
+
+const Muted = styled.span`
+    color: #cbd5e1;
+`;

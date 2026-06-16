@@ -1,0 +1,479 @@
+import { useState } from 'react';
+import styled from 'styled-components';
+import { useToast } from '@/common/components/Toast';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import {
+    Overlay, ModalCard, ModalHead, ModalTitle, ModalSubtitle, ModalCloseBtn,
+    ModalBody, ModalFooter, Badge, Dot, FormGrid, FormField, FieldLabel,
+    FieldInput, FieldSelect, ErrorMsg, HintText, CancelBtn, SubmitBtn,
+    SecondaryBtn, SkeletonBox,
+} from '../rbacShared.styles';
+import {
+    useEmployeeDetail, useCreateAccount, useSetAccountBlocked, useDeleteAccount,
+    useChangePassword, useTerminateEmployee,
+} from '../../hooks/useTeam';
+import { useRoles } from '../../hooks/useRoles';
+import { rolesApi } from '../../api/rolesApi';
+import { ChangePasswordModal } from './ChangePasswordModal';
+import { TerminateEmployeeModal } from './TerminateEmployeeModal';
+import type { AssignableAccountRole, TeamEmployeeStatus } from '../../teamTypes';
+
+const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+
+const ACCOUNT_ROLE_LABELS: Record<string, string> = {
+    OWNER: 'Właściciel',
+    MANAGER: 'Menedżer',
+    DETAILER: 'Pracownik',
+};
+
+const STATUS_META: Record<TeamEmployeeStatus, { label: string; color: string; variant: 'green' | 'amber' | 'gray' }> = {
+    ACTIVE: { label: 'Aktywny', color: '#10b981', variant: 'green' },
+    ON_LEAVE: { label: 'Na urlopie', color: '#f59e0b', variant: 'amber' },
+    TERMINATED: { label: 'Zwolniony', color: '#94a3b8', variant: 'gray' },
+};
+
+export interface EmployeeDetailModalProps {
+    employeeId: string;
+    onClose: () => void;
+    onEdit: () => void;
+}
+
+export function EmployeeDetailModal({ employeeId, onClose, onEdit }: EmployeeDetailModalProps) {
+    const { showSuccess } = useToast();
+    const { employee, isLoading } = useEmployeeDetail(employeeId);
+    const { roles } = useRoles();
+
+    const createAccount = useCreateAccount();
+    const setBlocked = useSetAccountBlocked();
+    const deleteAccount = useDeleteAccount();
+    const changePassword = useChangePassword();
+    const terminate = useTerminateEmployee();
+
+    // Create-account inline form
+    const [showCreateAccount, setShowCreateAccount] = useState(false);
+    const [accountEmail, setAccountEmail] = useState('');
+    const [accountRole, setAccountRole] = useState<AssignableAccountRole>('DETAILER');
+    const [accountEmailError, setAccountEmailError] = useState<string | null>(null);
+
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [showTerminateModal, setShowTerminateModal] = useState(false);
+    const [confirm, setConfirm] = useState<null | 'block' | 'unblock' | 'deleteAccount'>(null);
+
+    const account = employee?.account ?? null;
+
+    const handleCreateAccount = () => {
+        if (!accountEmail.trim()) { setAccountEmailError('Adres e-mail jest wymagany'); return; }
+        if (!isEmail(accountEmail)) { setAccountEmailError('Nieprawidłowy adres e-mail'); return; }
+        createAccount.mutate(
+            { employeeId, payload: { email: accountEmail.trim(), role: accountRole } },
+            {
+                onSuccess: () => {
+                    showSuccess('Konto utworzone', 'Zaproszenie zostało wysłane na podany adres e-mail.');
+                    setShowCreateAccount(false);
+                    setAccountEmail('');
+                },
+            },
+        );
+    };
+
+    const handleBlockToggle = (block: boolean) => {
+        setBlocked.mutate(
+            { employeeId, block },
+            {
+                onSuccess: () => showSuccess(block ? 'Konto zablokowane' : 'Konto odblokowane'),
+            },
+        );
+    };
+
+    const handleDeleteAccount = () => {
+        deleteAccount.mutate(employeeId, {
+            onSuccess: () => showSuccess('Konto usunięte', 'Pracownik pozostaje w systemie.'),
+        });
+    };
+
+    const handleChangePassword = (payload: { newPassword: string; confirmPassword: string }) => {
+        changePassword.mutate(
+            { employeeId, payload },
+            {
+                onSuccess: () => {
+                    showSuccess('Hasło zmienione');
+                    setShowPasswordModal(false);
+                },
+            },
+        );
+    };
+
+    const handleTerminate = (payload: { terminationDate: string; reason?: string | null }) => {
+        terminate.mutate(
+            { employeeId, payload },
+            {
+                onSuccess: () => {
+                    showSuccess('Zatrudnienie zakończone');
+                    setShowTerminateModal(false);
+                    onClose();
+                },
+            },
+        );
+    };
+
+    const handleAssignRole = (userId: string, roleId: string) => {
+        const value = roleId === '' ? null : roleId;
+        rolesApi.assignRole(userId, value)
+            .then(() => showSuccess(value ? 'Rola przypisana' : 'Rola usunięta'))
+            .catch(() => { /* global handler shows the error toast */ });
+    };
+
+    return (
+        <Overlay onClick={e => e.target === e.currentTarget && onClose()}>
+            <ModalCard $maxWidth={640}>
+                <ModalHead>
+                    <div>
+                        <ModalTitle>{employee?.fullName ?? 'Pracownik'}</ModalTitle>
+                        <ModalSubtitle>{employee?.position ?? ''}</ModalSubtitle>
+                    </div>
+                    <ModalCloseBtn onClick={onClose} aria-label="Zamknij">
+                        <CloseIcon />
+                    </ModalCloseBtn>
+                </ModalHead>
+
+                <ModalBody>
+                    {isLoading || !employee ? (
+                        <>
+                            <SkeletonBox $w="60%" />
+                            <SkeletonBox $w="80%" />
+                            <SkeletonBox $w="40%" />
+                        </>
+                    ) : (
+                        <>
+                            <RowBetween>
+                                <Badge $variant={STATUS_META[employee.status].variant}>
+                                    <Dot $color={STATUS_META[employee.status].color} />
+                                    {STATUS_META[employee.status].label}
+                                </Badge>
+                            </RowBetween>
+
+                            {/* Info */}
+                            <InfoGrid>
+                                <Info label="Data zatrudnienia" value={employee.hireDate} />
+                                <Info label="Telefon" value={employee.phone} />
+                                <Info label="E-mail służbowy" value={employee.email} />
+                                <Info label="E-mail prywatny" value={employee.personalEmail} />
+                                <Info label="PESEL" value={employee.pesel} />
+                                <Info label="NIP" value={employee.nip} />
+                                <Info
+                                    label="Adres"
+                                    value={[employee.addressStreet, [employee.addressPostalCode, employee.addressCity].filter(Boolean).join(' ')]
+                                        .filter(Boolean).join(', ') || null}
+                                />
+                                {employee.terminationDate && (
+                                    <Info label="Data zwolnienia" value={employee.terminationDate} />
+                                )}
+                            </InfoGrid>
+
+                            {employee.notes && (
+                                <NotesBox>
+                                    <FieldLabel>Notatki</FieldLabel>
+                                    <NotesText>{employee.notes}</NotesText>
+                                </NotesBox>
+                            )}
+
+                            {/* Account management */}
+                            <SectionTitle>Konto użytkownika</SectionTitle>
+
+                            {!account && !showCreateAccount && (
+                                <AccountPanel>
+                                    <Badge $variant="gray">Brak konta</Badge>
+                                    <HintText>
+                                        Pracownik nie ma konta do logowania. Możesz je utworzyć i wysłać zaproszenie.
+                                    </HintText>
+                                    <SecondaryBtn
+                                        onClick={() => setShowCreateAccount(true)}
+                                        disabled={employee.status === 'TERMINATED'}
+                                    >
+                                        <KeyIcon /> Utwórz konto i wyślij zaproszenie
+                                    </SecondaryBtn>
+                                </AccountPanel>
+                            )}
+
+                            {!account && showCreateAccount && (
+                                <AccountPanel>
+                                    <FormGrid>
+                                        <FormField>
+                                            <FieldLabel>E-mail konta (login)<span>*</span></FieldLabel>
+                                            <FieldInput
+                                                placeholder="login@firma.pl"
+                                                value={accountEmail}
+                                                onChange={e => { setAccountEmail(e.target.value); setAccountEmailError(null); }}
+                                                $error={!!accountEmailError}
+                                                autoFocus
+                                            />
+                                            {accountEmailError && <ErrorMsg>{accountEmailError}</ErrorMsg>}
+                                        </FormField>
+                                        <FormField>
+                                            <FieldLabel>Rola konta<span>*</span></FieldLabel>
+                                            <FieldSelect
+                                                value={accountRole}
+                                                onChange={e => setAccountRole(e.target.value as AssignableAccountRole)}
+                                            >
+                                                <option value="MANAGER">Menedżer</option>
+                                                <option value="DETAILER">Pracownik (detailer)</option>
+                                            </FieldSelect>
+                                        </FormField>
+                                    </FormGrid>
+                                    <PanelActions>
+                                        <CancelBtn onClick={() => { setShowCreateAccount(false); setAccountEmailError(null); }}>
+                                            Anuluj
+                                        </CancelBtn>
+                                        <SubmitBtn onClick={handleCreateAccount} disabled={createAccount.isPending}>
+                                            {createAccount.isPending ? 'Wysyłanie…' : 'Utwórz i wyślij zaproszenie'}
+                                        </SubmitBtn>
+                                    </PanelActions>
+                                </AccountPanel>
+                            )}
+
+                            {account && (
+                                <AccountPanel>
+                                    <AccountHeader>
+                                        <div>
+                                            <AccountEmail>{account.email}</AccountEmail>
+                                            <AccountMeta>Rola systemowa: {ACCOUNT_ROLE_LABELS[account.role] ?? account.role}</AccountMeta>
+                                        </div>
+                                        {account.isActive
+                                            ? <Badge $variant="green"><Dot $color="#10b981" />Aktywne</Badge>
+                                            : <Badge $variant="red"><Dot $color="#ef4444" />Zablokowane</Badge>}
+                                    </AccountHeader>
+
+                                    {/* Custom role assignment (RBAC) — not available for OWNER */}
+                                    {account.role !== 'OWNER' && (
+                                        <FormField>
+                                            <FieldLabel>Rola (uprawnienia)</FieldLabel>
+                                            <FieldSelect
+                                                defaultValue=""
+                                                onChange={e => handleAssignRole(account.userId, e.target.value)}
+                                            >
+                                                <option value="">Brak roli</option>
+                                                {roles.map(r => (
+                                                    <option key={r.id} value={r.id}>{r.name}</option>
+                                                ))}
+                                            </FieldSelect>
+                                            <HintText>
+                                                Wybór roli natychmiast aktualizuje uprawnienia użytkownika.
+                                            </HintText>
+                                        </FormField>
+                                    )}
+
+                                    <PanelActions>
+                                        {account.isActive ? (
+                                            <SecondaryBtn onClick={() => setConfirm('block')} disabled={setBlocked.isPending}>
+                                                <LockIcon /> Zablokuj konto
+                                            </SecondaryBtn>
+                                        ) : (
+                                            <SecondaryBtn onClick={() => setConfirm('unblock')} disabled={setBlocked.isPending}>
+                                                <UnlockIcon /> Odblokuj konto
+                                            </SecondaryBtn>
+                                        )}
+                                        <SecondaryBtn onClick={() => setShowPasswordModal(true)}>
+                                            <KeyIcon /> Zmień hasło
+                                        </SecondaryBtn>
+                                        <SecondaryBtn $variant="danger" onClick={() => setConfirm('deleteAccount')} disabled={deleteAccount.isPending}>
+                                            <TrashIcon /> Usuń konto
+                                        </SecondaryBtn>
+                                    </PanelActions>
+                                </AccountPanel>
+                            )}
+                        </>
+                    )}
+                </ModalBody>
+
+                <ModalFooter>
+                    {employee && employee.status !== 'TERMINATED' && (
+                        <SecondaryBtn $variant="danger" onClick={() => setShowTerminateModal(true)}>
+                            Zakończ zatrudnienie
+                        </SecondaryBtn>
+                    )}
+                    <div style={{ flex: 1 }} />
+                    <CancelBtn onClick={onClose}>Zamknij</CancelBtn>
+                    <SubmitBtn onClick={onEdit} disabled={!employee}>Edytuj dane</SubmitBtn>
+                </ModalFooter>
+            </ModalCard>
+
+            {showPasswordModal && employee && (
+                <ChangePasswordModal
+                    employeeName={employee.fullName}
+                    isSaving={changePassword.isPending}
+                    onClose={() => setShowPasswordModal(false)}
+                    onSubmit={handleChangePassword}
+                />
+            )}
+
+            {showTerminateModal && employee && (
+                <TerminateEmployeeModal
+                    employeeName={employee.fullName}
+                    isSaving={terminate.isPending}
+                    onClose={() => setShowTerminateModal(false)}
+                    onSubmit={handleTerminate}
+                />
+            )}
+
+            <ConfirmationModal
+                isOpen={confirm === 'block'}
+                title="Zablokować konto?"
+                message="Zablokowany użytkownik nie będzie mógł się zalogować. Możesz odblokować konto w dowolnej chwili."
+                variant="warning"
+                confirmText="Zablokuj"
+                onConfirm={() => handleBlockToggle(true)}
+                onCancel={() => setConfirm(null)}
+            />
+            <ConfirmationModal
+                isOpen={confirm === 'unblock'}
+                title="Odblokować konto?"
+                message="Użytkownik odzyska możliwość logowania do systemu."
+                variant="info"
+                confirmText="Odblokuj"
+                onConfirm={() => handleBlockToggle(false)}
+                onCancel={() => setConfirm(null)}
+            />
+            <ConfirmationModal
+                isOpen={confirm === 'deleteAccount'}
+                title="Usunąć konto?"
+                message="Konto użytkownika zostanie trwale usunięte i odłączone od pracownika. Pracownik pozostanie w systemie."
+                variant="danger"
+                confirmText="Usuń konto"
+                onConfirm={handleDeleteAccount}
+                onCancel={() => setConfirm(null)}
+            />
+        </Overlay>
+    );
+}
+
+// ─── Sub-components ─────────────────────────────────────────────────────────────
+function Info({ label, value }: { label: string; value: string | null }) {
+    return (
+        <InfoCell>
+            <InfoLabel>{label}</InfoLabel>
+            <InfoValue $muted={!value}>{value || '—'}</InfoValue>
+        </InfoCell>
+    );
+}
+
+// ─── Styled ─────────────────────────────────────────────────────────────────────
+const RowBetween = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+`;
+
+const InfoGrid = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 18px;
+`;
+
+const InfoCell = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+`;
+
+const InfoLabel = styled.span`
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+`;
+
+const InfoValue = styled.span<{ $muted?: boolean }>`
+    font-size: 13px;
+    color: ${p => (p.$muted ? '#cbd5e1' : '#0f172a')};
+    word-break: break-word;
+`;
+
+const NotesBox = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
+const NotesText = styled.p`
+    margin: 0;
+    font-size: 13px;
+    color: #475569;
+    line-height: 1.6;
+    white-space: pre-wrap;
+`;
+
+const SectionTitle = styled.h4`
+    margin: 8px 0 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    padding-top: 12px;
+    border-top: 1px solid #f1f5f9;
+`;
+
+const AccountPanel = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 16px;
+    background: #fafbfc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+`;
+
+const AccountHeader = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 12px;
+`;
+
+const AccountEmail = styled.div`
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+`;
+
+const AccountMeta = styled.div`
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 2px;
+`;
+
+const PanelActions = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+`;
+
+// ─── Icons ───────────────────────────────────────────────────────────────────────
+const CloseIcon = () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+);
+const KeyIcon = () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3" />
+    </svg>
+);
+const LockIcon = () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+);
+const UnlockIcon = () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" />
+    </svg>
+);
+const TrashIcon = () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+);
