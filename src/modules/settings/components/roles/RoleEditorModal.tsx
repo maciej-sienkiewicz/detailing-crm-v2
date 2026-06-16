@@ -26,6 +26,11 @@ const ModuleCard = styled.div`
     border: 1px solid #e2e8f0;
     border-radius: 10px;
     overflow: hidden;
+    /* Flex child of the (column) ModalBody: without this, 'overflow: hidden'
+       gives the card an implicit min-height of 0, so once enough modules
+       overflow the modal the flex layout shrinks every card toward zero height
+       (collapsing into blank gray bars) instead of letting ModalBody scroll. */
+    flex-shrink: 0;
 `;
 
 const ModuleHead = styled.div`
@@ -131,7 +136,6 @@ export function RoleEditorModal({
     }, [catalog, catalogLoading]);
 
     const toggle = (code: string) => {
-        console.log('[RoleEditorModal] toggle permission:', code);
         setSelected(prev => {
             const next = new Set(prev);
             if (next.has(code)) next.delete(code); else next.add(code);
