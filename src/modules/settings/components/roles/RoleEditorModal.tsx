@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { useEntitlements } from '@/modules/subscription';
 import {
@@ -115,7 +115,23 @@ export function RoleEditorModal({
         [catalog],
     );
 
+    // ── Diagnostics: what did the modal actually receive to render? ──────────────
+    useEffect(() => {
+        console.log('[RoleEditorModal] catalog received:', {
+            catalogLoading,
+            moduleCount: catalog.length,
+            totalPermissions: catalog.reduce((n, m) => n + (m.permissions?.length ?? 0), 0),
+            sample: catalog.slice(0, 2).map(m => ({
+                module: m.module,
+                displayName: m.displayName,
+                permissionCount: m.permissions?.length ?? 0,
+                firstPermission: m.permissions?.[0],
+            })),
+        });
+    }, [catalog, catalogLoading]);
+
     const toggle = (code: string) => {
+        console.log('[RoleEditorModal] toggle permission:', code);
         setSelected(prev => {
             const next = new Set(prev);
             if (next.has(code)) next.delete(code); else next.add(code);
