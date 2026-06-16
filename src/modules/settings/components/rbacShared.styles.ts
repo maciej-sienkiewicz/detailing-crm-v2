@@ -521,13 +521,14 @@ export const DangerBtn = styled.button`
 `;
 
 // ─── Checkbox ───────────────────────────────────────────────────────────────
-export const CheckRow = styled.label<{ $disabled?: boolean }>`
+export const CheckRow = styled.div<{ $disabled?: boolean }>`
     display: flex;
     align-items: flex-start;
     gap: 10px;
     cursor: ${p => (p.$disabled ? 'not-allowed' : 'pointer')};
     user-select: none;
     opacity: ${p => (p.$disabled ? 0.6 : 1)};
+    min-height: 20px;
 `;
 
 export const CheckBox = styled.span<{ $checked: boolean }>`
