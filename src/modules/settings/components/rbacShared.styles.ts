@@ -319,6 +319,8 @@ export const ModalCloseBtn = styled.button`
 `;
 
 export const ModalBody = styled.div`
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding: 20px;
     display: flex;

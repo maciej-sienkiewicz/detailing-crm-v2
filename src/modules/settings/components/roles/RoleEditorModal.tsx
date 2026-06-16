@@ -53,8 +53,9 @@ export function RoleEditorModal({ mode, role, catalog, isSaving, onClose, onSubm
 
     const isFeatureEnabled = (featureKey: string | null): boolean => {
         if (!featureKey) return true;
-        if (!entitlements) return true; // don't block UI before entitlements load
-        return entitlements.features[featureKey as keyof typeof entitlements.features]?.enabled ?? false;
+        if (!entitlements) return true;
+        const features = entitlements.features as Record<string, { enabled: boolean } | undefined>;
+        return features[featureKey]?.enabled ?? false;
     };
 
     const handleSubmit = () => {

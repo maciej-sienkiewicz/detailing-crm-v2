@@ -1,8 +1,6 @@
 // ─── Roles & Permissions (RBAC, Settings) ──────────────────────────────────────
 // Types for the "Role i uprawnienia" settings tab.
 
-import type { FeatureKey } from '@/modules/subscription';
-
 /** Permission modules grouping (hardcoded on the backend). */
 export type PermissionModuleKey =
     | 'CALENDAR'
@@ -26,8 +24,8 @@ export interface PermissionCatalogItem {
 export interface PermissionModuleGroup {
     module: PermissionModuleKey;
     displayName: string;
-    /** Subscription feature required for the module to work at runtime; null = always available. */
-    featureKey: FeatureKey | null;
+    /** Subscription feature key required for the module to work at runtime; null = always available. */
+    featureKey: string | null;
     permissions: PermissionCatalogItem[];
 }
 
