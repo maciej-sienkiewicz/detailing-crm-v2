@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import styled from 'styled-components';
 import {
     Overlay, ModalCard, ModalHead, ModalTitle, ModalSubtitle, ModalCloseBtn,
     ModalBody, ModalFooter, FormGrid, FormField, FieldLabel, FieldInput,
-    FieldTextarea, FieldSelect, ErrorMsg, HintText, CancelBtn, SubmitBtn,
+    FieldSelect, ErrorMsg, HintText, CancelBtn, SubmitBtn,
     CheckRow, CheckBox,
 } from '../rbacShared.styles';
 import type {
@@ -19,17 +20,8 @@ const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 interface FormValues {
     firstName: string;
     lastName: string;
-    position: string;
-    hireDate: string;
     phone: string;
     email: string;
-    personalEmail: string;
-    pesel: string;
-    nip: string;
-    addressStreet: string;
-    addressCity: string;
-    addressPostalCode: string;
-    notes: string;
     createAccount: boolean;
     accountEmail: string;
     accountRole: AssignableAccountRole;
@@ -37,20 +29,16 @@ interface FormValues {
 
 function emptyForm(): FormValues {
     return {
-        firstName: '', lastName: '', position: '', hireDate: '',
-        phone: '', email: '', personalEmail: '', pesel: '', nip: '',
-        addressStreet: '', addressCity: '', addressPostalCode: '', notes: '',
+        firstName: '', lastName: '',
+        phone: '', email: '',
         createAccount: false, accountEmail: '', accountRole: 'DETAILER',
     };
 }
 
 function fromDetail(d: TeamEmployeeDetail): FormValues {
     return {
-        firstName: d.firstName, lastName: d.lastName, position: d.position,
-        hireDate: d.hireDate, phone: d.phone ?? '', email: d.email ?? '',
-        personalEmail: d.personalEmail ?? '', pesel: d.pesel ?? '', nip: d.nip ?? '',
-        addressStreet: d.addressStreet ?? '', addressCity: d.addressCity ?? '',
-        addressPostalCode: d.addressPostalCode ?? '', notes: d.notes ?? '',
+        firstName: d.firstName, lastName: d.lastName,
+        phone: d.phone ?? '', email: d.email ?? '',
         createAccount: false, accountEmail: '', accountRole: 'DETAILER',
     };
 }
@@ -88,12 +76,7 @@ export function EmployeeFormModal({
         const e: Errors = {};
         if (!values.firstName.trim()) e.firstName = 'Imię jest wymagane';
         if (!values.lastName.trim()) e.lastName = 'Nazwisko jest wymagane';
-        if (!values.position.trim()) e.position = 'Stanowisko jest wymagane';
-        if (!values.hireDate) e.hireDate = 'Data zatrudnienia jest wymagana';
         if (values.email.trim() && !isEmail(values.email)) e.email = 'Nieprawidłowy adres e-mail';
-        if (values.personalEmail.trim() && !isEmail(values.personalEmail)) {
-            e.personalEmail = 'Nieprawidłowy adres e-mail';
-        }
         if (mode === 'add' && values.createAccount) {
             if (!values.accountEmail.trim()) e.accountEmail = 'Adres e-mail konta jest wymagany';
             else if (!isEmail(values.accountEmail)) e.accountEmail = 'Nieprawidłowy adres e-mail';
@@ -109,17 +92,8 @@ export function EmployeeFormModal({
             const payload: CreateEmployeeRequest = {
                 firstName: values.firstName.trim(),
                 lastName: values.lastName.trim(),
-                position: values.position.trim(),
-                hireDate: values.hireDate,
                 phone: orNull(values.phone),
                 email: orNull(values.email),
-                personalEmail: orNull(values.personalEmail),
-                pesel: orNull(values.pesel),
-                nip: orNull(values.nip),
-                addressStreet: orNull(values.addressStreet),
-                addressCity: orNull(values.addressCity),
-                addressPostalCode: orNull(values.addressPostalCode),
-                notes: orNull(values.notes),
                 createAccount: values.createAccount,
             };
             if (values.createAccount) {
@@ -131,17 +105,8 @@ export function EmployeeFormModal({
             const payload: UpdateEmployeeRequest = {
                 firstName: values.firstName.trim(),
                 lastName: values.lastName.trim(),
-                position: values.position.trim(),
-                hireDate: values.hireDate,
                 phone: orNull(values.phone),
                 email: orNull(values.email),
-                personalEmail: orNull(values.personalEmail),
-                pesel: orNull(values.pesel),
-                nip: orNull(values.nip),
-                addressStreet: orNull(values.addressStreet),
-                addressCity: orNull(values.addressCity),
-                addressPostalCode: orNull(values.addressPostalCode),
-                notes: orNull(values.notes),
             };
             onSubmitUpdate(payload);
         }
@@ -149,7 +114,7 @@ export function EmployeeFormModal({
 
     return (
         <Overlay onClick={e => e.target === e.currentTarget && onClose()}>
-            <ModalCard $maxWidth={620}>
+            <ModalCard $maxWidth={520}>
                 <ModalHead>
                     <div>
                         <ModalTitle>{mode === 'add' ? 'Nowy pracownik' : 'Edytuj pracownika'}</ModalTitle>
@@ -189,29 +154,6 @@ export function EmployeeFormModal({
 
                     <FormGrid>
                         <FormField>
-                            <FieldLabel>Stanowisko<span>*</span></FieldLabel>
-                            <FieldInput
-                                placeholder="np. Detailer"
-                                value={values.position}
-                                onChange={e => set('position', e.target.value)}
-                                $error={!!errors.position}
-                            />
-                            {errors.position && <ErrorMsg>{errors.position}</ErrorMsg>}
-                        </FormField>
-                        <FormField>
-                            <FieldLabel>Data zatrudnienia<span>*</span></FieldLabel>
-                            <FieldInput
-                                type="date"
-                                value={values.hireDate}
-                                onChange={e => set('hireDate', e.target.value)}
-                                $error={!!errors.hireDate}
-                            />
-                            {errors.hireDate && <ErrorMsg>{errors.hireDate}</ErrorMsg>}
-                        </FormField>
-                    </FormGrid>
-
-                    <FormGrid>
-                        <FormField>
                             <FieldLabel>Telefon</FieldLabel>
                             <FieldInput
                                 placeholder="+48 600 000 000"
@@ -220,9 +162,9 @@ export function EmployeeFormModal({
                             />
                         </FormField>
                         <FormField>
-                            <FieldLabel>E-mail służbowy</FieldLabel>
+                            <FieldLabel>E-mail</FieldLabel>
                             <FieldInput
-                                placeholder="sluzbowy@firma.pl"
+                                placeholder="pracownik@firma.pl"
                                 value={values.email}
                                 onChange={e => set('email', e.target.value)}
                                 $error={!!errors.email}
@@ -230,68 +172,6 @@ export function EmployeeFormModal({
                             {errors.email && <ErrorMsg>{errors.email}</ErrorMsg>}
                         </FormField>
                     </FormGrid>
-
-                    <FormGrid $cols={3}>
-                        <FormField>
-                            <FieldLabel>E-mail prywatny</FieldLabel>
-                            <FieldInput
-                                placeholder="prywatny@email.com"
-                                value={values.personalEmail}
-                                onChange={e => set('personalEmail', e.target.value)}
-                                $error={!!errors.personalEmail}
-                            />
-                            {errors.personalEmail && <ErrorMsg>{errors.personalEmail}</ErrorMsg>}
-                        </FormField>
-                        <FormField>
-                            <FieldLabel>PESEL</FieldLabel>
-                            <FieldInput
-                                value={values.pesel}
-                                onChange={e => set('pesel', e.target.value)}
-                            />
-                        </FormField>
-                        <FormField>
-                            <FieldLabel>NIP</FieldLabel>
-                            <FieldInput
-                                value={values.nip}
-                                onChange={e => set('nip', e.target.value)}
-                            />
-                        </FormField>
-                    </FormGrid>
-
-                    <FormField>
-                        <FieldLabel>Adres — ulica i numer</FieldLabel>
-                        <FieldInput
-                            placeholder="ul. Przykładowa 1"
-                            value={values.addressStreet}
-                            onChange={e => set('addressStreet', e.target.value)}
-                        />
-                    </FormField>
-
-                    <FormGrid>
-                        <FormField>
-                            <FieldLabel>Miasto</FieldLabel>
-                            <FieldInput
-                                value={values.addressCity}
-                                onChange={e => set('addressCity', e.target.value)}
-                            />
-                        </FormField>
-                        <FormField>
-                            <FieldLabel>Kod pocztowy</FieldLabel>
-                            <FieldInput
-                                placeholder="00-001"
-                                value={values.addressPostalCode}
-                                onChange={e => set('addressPostalCode', e.target.value)}
-                            />
-                        </FormField>
-                    </FormGrid>
-
-                    <FormField>
-                        <FieldLabel>Notatki</FieldLabel>
-                        <FieldTextarea
-                            value={values.notes}
-                            onChange={e => set('notes', e.target.value)}
-                        />
-                    </FormField>
 
                     {/* Account creation — only when adding */}
                     {mode === 'add' && (
@@ -351,8 +231,6 @@ export function EmployeeFormModal({
 }
 
 // ─── Local styled + icons ─────────────────────────────────────────────────────
-import styled from 'styled-components';
-
 const AccountBox = styled.div`
     padding: 16px;
     border: 1.5px dashed #cbd5e1;

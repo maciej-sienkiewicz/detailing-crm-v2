@@ -2,22 +2,16 @@ import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useToast } from '@/common/components/Toast';
 import {
-    Container, Toolbar, SearchWrap, SearchIconWrap, SearchInput, ToggleFilterBtn,
+    Container, Toolbar, SearchWrap, SearchIconWrap, SearchInput,
     AddButton, StatsRow, StatText, Card, ColLabel, Badge, Dot, EmptyWrap,
     EmptyTitle, EmptyDesc, SkeletonBox, Pager, PagerInfo, PagerControls, PagerBtn,
 } from './rbacShared.styles';
 import { useEmployees, useCreateEmployee, useUpdateEmployee, useEmployeeDetail } from '../hooks/useTeam';
 import { EmployeeFormModal } from './team/EmployeeFormModal';
 import { EmployeeDetailModal } from './team/EmployeeDetailModal';
-import type { TeamEmployeeStatus, CreateEmployeeRequest, UpdateEmployeeRequest } from '../teamTypes';
+import type { CreateEmployeeRequest, UpdateEmployeeRequest } from '../teamTypes';
 
 const PAGE_SIZE = 20;
-
-const STATUS_META: Record<TeamEmployeeStatus, { label: string; color: string; variant: 'green' | 'amber' | 'gray' }> = {
-    ACTIVE: { label: 'Aktywny', color: '#10b981', variant: 'green' },
-    ON_LEAVE: { label: 'Na urlopie', color: '#f59e0b', variant: 'amber' },
-    TERMINATED: { label: 'Zwolniony', color: '#94a3b8', variant: 'gray' },
-};
 
 function buildPageNumbers(current: number, total: number): (number | '…')[] {
     if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -34,7 +28,6 @@ export function TeamSection() {
 
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [includeTerminated, setIncludeTerminated] = useState(false);
     const [page, setPage] = useState(1);
 
     const [formMode, setFormMode] = useState<'add' | 'edit' | null>(null);
@@ -46,7 +39,7 @@ export function TeamSection() {
         return () => clearTimeout(t);
     }, [search]);
 
-    const filters = { search: debouncedSearch, includeTerminated, page, limit: PAGE_SIZE };
+    const filters = { search: debouncedSearch, page, limit: PAGE_SIZE };
     const { items, pagination, isLoading } = useEmployees(filters);
 
     const createEmployee = useCreateEmployee();
@@ -94,18 +87,11 @@ export function TeamSection() {
                         </svg>
                     </SearchIconWrap>
                     <SearchInput
-                        placeholder="Szukaj po nazwisku, e-mailu, stanowisku…"
+                        placeholder="Szukaj po imieniu, nazwisku lub e-mailu…"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                     />
                 </SearchWrap>
-
-                <ToggleFilterBtn $on={includeTerminated} onClick={() => { setIncludeTerminated(v => !v); setPage(1); }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
-                    </svg>
-                    Pokaż zwolnionych
-                </ToggleFilterBtn>
 
                 <AddButton onClick={openAdd}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -118,8 +104,7 @@ export function TeamSection() {
             <StatsRow>
                 {!isLoading && (
                     <StatText>
-                        <strong>{totalItems}</strong>{' '}
-                        {includeTerminated ? 'pracowników łącznie (w tym zwolnieni)' : 'aktywnych pracowników'}
+                        <strong>{totalItems}</strong> pracowników
                     </StatText>
                 )}
             </StatsRow>
@@ -129,7 +114,6 @@ export function TeamSection() {
                     <ColLabel>Pracownik</ColLabel>
                     <ColLabel>Kontakt</ColLabel>
                     <ColLabel>Konto</ColLabel>
-                    <ColLabel>Status</ColLabel>
                 </ListHeader>
 
                 {isLoading ? (
@@ -138,7 +122,6 @@ export function TeamSection() {
                             <SkeletonBox $w={`${50 + (i % 3) * 12}%`} />
                             <SkeletonBox $w="70%" />
                             <SkeletonBox $w="56px" />
-                            <SkeletonBox $w="60px" />
                         </SkeletonRow>
                     ))
                 ) : items.length === 0 ? (
@@ -155,16 +138,12 @@ export function TeamSection() {
                     </EmptyWrap>
                 ) : (
                     items.map(emp => {
-                        const sm = STATUS_META[emp.status];
                         const hasAccount = emp.linkedUserId !== null;
                         return (
                             <Row key={emp.id} onClick={() => setDetailId(emp.id)}>
                                 <NameCell>
                                     <Avatar>{(emp.firstName[0] ?? '') + (emp.lastName[0] ?? '')}</Avatar>
-                                    <NameText>
-                                        <strong>{emp.fullName}</strong>
-                                        <span>{emp.position}</span>
-                                    </NameText>
+                                    <strong>{emp.fullName}</strong>
                                 </NameCell>
                                 <ContactCell>
                                     {emp.email && <span>{emp.email}</span>}
@@ -175,9 +154,6 @@ export function TeamSection() {
                                     {hasAccount
                                         ? <Badge $variant="blue"><Dot $color="#0284c7" />Ma konto</Badge>
                                         : <Badge $variant="gray">Brak konta</Badge>}
-                                </div>
-                                <div>
-                                    <Badge $variant={sm.variant}><Dot $color={sm.color} />{sm.label}</Badge>
                                 </div>
                             </Row>
                         );
@@ -211,6 +187,7 @@ export function TeamSection() {
                     employeeId={detailId}
                     onClose={() => setDetailId(null)}
                     onEdit={() => openEditFromDetail(detailId)}
+                    onDeleted={() => setDetailId(null)}
                 />
             )}
 
@@ -239,7 +216,7 @@ export function TeamSection() {
 }
 
 // ─── Styled ─────────────────────────────────────────────────────────────────────
-const GRID = '1fr 1fr 130px 120px';
+const GRID = '1fr 1fr 130px';
 
 const ListHeader = styled.div`
     display: grid;
@@ -278,6 +255,7 @@ const NameCell = styled.div`
     align-items: center;
     gap: 10px;
     min-width: 0;
+    strong { font-size: 13px; font-weight: 600; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 `;
 
 const Avatar = styled.div`
@@ -293,14 +271,6 @@ const Avatar = styled.div`
     font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
-`;
-
-const NameText = styled.div`
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    strong { font-size: 13px; font-weight: 600; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    span { font-size: 11px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 `;
 
 const ContactCell = styled.div`

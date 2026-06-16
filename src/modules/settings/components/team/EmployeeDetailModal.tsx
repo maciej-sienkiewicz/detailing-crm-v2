@@ -10,13 +10,12 @@ import {
 } from '../rbacShared.styles';
 import {
     useEmployeeDetail, useCreateAccount, useSetAccountBlocked, useDeleteAccount,
-    useChangePassword, useTerminateEmployee,
+    useChangePassword, useDeleteEmployee,
 } from '../../hooks/useTeam';
 import { useRoles } from '../../hooks/useRoles';
 import { rolesApi } from '../../api/rolesApi';
 import { ChangePasswordModal } from './ChangePasswordModal';
-import { TerminateEmployeeModal } from './TerminateEmployeeModal';
-import type { AssignableAccountRole, TeamEmployeeStatus } from '../../teamTypes';
+import type { AssignableAccountRole } from '../../teamTypes';
 
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
@@ -26,19 +25,14 @@ const ACCOUNT_ROLE_LABELS: Record<string, string> = {
     DETAILER: 'Pracownik',
 };
 
-const STATUS_META: Record<TeamEmployeeStatus, { label: string; color: string; variant: 'green' | 'amber' | 'gray' }> = {
-    ACTIVE: { label: 'Aktywny', color: '#10b981', variant: 'green' },
-    ON_LEAVE: { label: 'Na urlopie', color: '#f59e0b', variant: 'amber' },
-    TERMINATED: { label: 'Zwolniony', color: '#94a3b8', variant: 'gray' },
-};
-
 export interface EmployeeDetailModalProps {
     employeeId: string;
     onClose: () => void;
     onEdit: () => void;
+    onDeleted: () => void;
 }
 
-export function EmployeeDetailModal({ employeeId, onClose, onEdit }: EmployeeDetailModalProps) {
+export function EmployeeDetailModal({ employeeId, onClose, onEdit, onDeleted }: EmployeeDetailModalProps) {
     const { showSuccess } = useToast();
     const { employee, isLoading } = useEmployeeDetail(employeeId);
     const { roles } = useRoles();
@@ -47,17 +41,15 @@ export function EmployeeDetailModal({ employeeId, onClose, onEdit }: EmployeeDet
     const setBlocked = useSetAccountBlocked();
     const deleteAccount = useDeleteAccount();
     const changePassword = useChangePassword();
-    const terminate = useTerminateEmployee();
+    const deleteEmployee = useDeleteEmployee();
 
-    // Create-account inline form
     const [showCreateAccount, setShowCreateAccount] = useState(false);
     const [accountEmail, setAccountEmail] = useState('');
     const [accountRole, setAccountRole] = useState<AssignableAccountRole>('DETAILER');
     const [accountEmailError, setAccountEmailError] = useState<string | null>(null);
 
     const [showPasswordModal, setShowPasswordModal] = useState(false);
-    const [showTerminateModal, setShowTerminateModal] = useState(false);
-    const [confirm, setConfirm] = useState<null | 'block' | 'unblock' | 'deleteAccount'>(null);
+    const [confirm, setConfirm] = useState<null | 'block' | 'unblock' | 'deleteAccount' | 'deleteEmployee'>(null);
 
     const account = employee?.account ?? null;
 
@@ -91,6 +83,15 @@ export function EmployeeDetailModal({ employeeId, onClose, onEdit }: EmployeeDet
         });
     };
 
+    const handleDeleteEmployee = () => {
+        deleteEmployee.mutate(employeeId, {
+            onSuccess: () => {
+                showSuccess('Pracownik usunięty');
+                onDeleted();
+            },
+        });
+    };
+
     const handleChangePassword = (payload: { newPassword: string; confirmPassword: string }) => {
         changePassword.mutate(
             { employeeId, payload },
@@ -98,19 +99,6 @@ export function EmployeeDetailModal({ employeeId, onClose, onEdit }: EmployeeDet
                 onSuccess: () => {
                     showSuccess('Hasło zmienione');
                     setShowPasswordModal(false);
-                },
-            },
-        );
-    };
-
-    const handleTerminate = (payload: { terminationDate: string; reason?: string | null }) => {
-        terminate.mutate(
-            { employeeId, payload },
-            {
-                onSuccess: () => {
-                    showSuccess('Zatrudnienie zakończone');
-                    setShowTerminateModal(false);
-                    onClose();
                 },
             },
         );
@@ -125,11 +113,11 @@ export function EmployeeDetailModal({ employeeId, onClose, onEdit }: EmployeeDet
 
     return (
         <Overlay onClick={e => e.target === e.currentTarget && onClose()}>
-            <ModalCard $maxWidth={640}>
+            <ModalCard $maxWidth={580}>
                 <ModalHead>
                     <div>
                         <ModalTitle>{employee?.fullName ?? 'Pracownik'}</ModalTitle>
-                        <ModalSubtitle>{employee?.position ?? ''}</ModalSubtitle>
+                        {employee?.email && <ModalSubtitle>{employee.email}</ModalSubtitle>}
                     </div>
                     <ModalCloseBtn onClick={onClose} aria-label="Zamknij">
                         <CloseIcon />
@@ -145,37 +133,11 @@ export function EmployeeDetailModal({ employeeId, onClose, onEdit }: EmployeeDet
                         </>
                     ) : (
                         <>
-                            <RowBetween>
-                                <Badge $variant={STATUS_META[employee.status].variant}>
-                                    <Dot $color={STATUS_META[employee.status].color} />
-                                    {STATUS_META[employee.status].label}
-                                </Badge>
-                            </RowBetween>
-
-                            {/* Info */}
+                            {/* Contact info */}
                             <InfoGrid>
-                                <Info label="Data zatrudnienia" value={employee.hireDate} />
+                                <Info label="E-mail" value={employee.email} />
                                 <Info label="Telefon" value={employee.phone} />
-                                <Info label="E-mail służbowy" value={employee.email} />
-                                <Info label="E-mail prywatny" value={employee.personalEmail} />
-                                <Info label="PESEL" value={employee.pesel} />
-                                <Info label="NIP" value={employee.nip} />
-                                <Info
-                                    label="Adres"
-                                    value={[employee.addressStreet, [employee.addressPostalCode, employee.addressCity].filter(Boolean).join(' ')]
-                                        .filter(Boolean).join(', ') || null}
-                                />
-                                {employee.terminationDate && (
-                                    <Info label="Data zwolnienia" value={employee.terminationDate} />
-                                )}
                             </InfoGrid>
-
-                            {employee.notes && (
-                                <NotesBox>
-                                    <FieldLabel>Notatki</FieldLabel>
-                                    <NotesText>{employee.notes}</NotesText>
-                                </NotesBox>
-                            )}
 
                             {/* Account management */}
                             <SectionTitle>Konto użytkownika</SectionTitle>
@@ -186,10 +148,7 @@ export function EmployeeDetailModal({ employeeId, onClose, onEdit }: EmployeeDet
                                     <HintText>
                                         Pracownik nie ma konta do logowania. Możesz je utworzyć i wysłać zaproszenie.
                                     </HintText>
-                                    <SecondaryBtn
-                                        onClick={() => setShowCreateAccount(true)}
-                                        disabled={employee.status === 'TERMINATED'}
-                                    >
+                                    <SecondaryBtn onClick={() => setShowCreateAccount(true)}>
                                         <KeyIcon /> Utwórz konto i wyślij zaproszenie
                                     </SecondaryBtn>
                                 </AccountPanel>
@@ -243,7 +202,6 @@ export function EmployeeDetailModal({ employeeId, onClose, onEdit }: EmployeeDet
                                             : <Badge $variant="red"><Dot $color="#ef4444" />Zablokowane</Badge>}
                                     </AccountHeader>
 
-                                    {/* Custom role assignment (RBAC) — not available for OWNER */}
                                     {account.role !== 'OWNER' && (
                                         <FormField>
                                             <FieldLabel>Rola (uprawnienia)</FieldLabel>
@@ -286,11 +244,9 @@ export function EmployeeDetailModal({ employeeId, onClose, onEdit }: EmployeeDet
                 </ModalBody>
 
                 <ModalFooter>
-                    {employee && employee.status !== 'TERMINATED' && (
-                        <SecondaryBtn $variant="danger" onClick={() => setShowTerminateModal(true)}>
-                            Zakończ zatrudnienie
-                        </SecondaryBtn>
-                    )}
+                    <SecondaryBtn $variant="danger" onClick={() => setConfirm('deleteEmployee')} disabled={!employee || deleteEmployee.isPending}>
+                        <TrashIcon /> Usuń pracownika
+                    </SecondaryBtn>
                     <div style={{ flex: 1 }} />
                     <CancelBtn onClick={onClose}>Zamknij</CancelBtn>
                     <SubmitBtn onClick={onEdit} disabled={!employee}>Edytuj dane</SubmitBtn>
@@ -303,15 +259,6 @@ export function EmployeeDetailModal({ employeeId, onClose, onEdit }: EmployeeDet
                     isSaving={changePassword.isPending}
                     onClose={() => setShowPasswordModal(false)}
                     onSubmit={handleChangePassword}
-                />
-            )}
-
-            {showTerminateModal && employee && (
-                <TerminateEmployeeModal
-                    employeeName={employee.fullName}
-                    isSaving={terminate.isPending}
-                    onClose={() => setShowTerminateModal(false)}
-                    onSubmit={handleTerminate}
                 />
             )}
 
@@ -342,6 +289,15 @@ export function EmployeeDetailModal({ employeeId, onClose, onEdit }: EmployeeDet
                 onConfirm={handleDeleteAccount}
                 onCancel={() => setConfirm(null)}
             />
+            <ConfirmationModal
+                isOpen={confirm === 'deleteEmployee'}
+                title="Usunąć pracownika?"
+                message="Pracownik zostanie trwale usunięty z systemu. Jeśli posiada konto, zostanie ono automatycznie usunięte."
+                variant="danger"
+                confirmText="Usuń pracownika"
+                onConfirm={handleDeleteEmployee}
+                onCancel={() => setConfirm(null)}
+            />
         </Overlay>
     );
 }
@@ -357,12 +313,6 @@ function Info({ label, value }: { label: string; value: string | null }) {
 }
 
 // ─── Styled ─────────────────────────────────────────────────────────────────────
-const RowBetween = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-`;
-
 const InfoGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -388,20 +338,6 @@ const InfoValue = styled.span<{ $muted?: boolean }>`
     font-size: 13px;
     color: ${p => (p.$muted ? '#cbd5e1' : '#0f172a')};
     word-break: break-word;
-`;
-
-const NotesBox = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-`;
-
-const NotesText = styled.p`
-    margin: 0;
-    font-size: 13px;
-    color: #475569;
-    line-height: 1.6;
-    white-space: pre-wrap;
 `;
 
 const SectionTitle = styled.h4`
