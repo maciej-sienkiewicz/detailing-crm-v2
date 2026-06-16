@@ -7,6 +7,7 @@ import {
     EmptyTitle, EmptyDesc, SkeletonBox, Pager, PagerInfo, PagerControls, PagerBtn,
 } from './rbacShared.styles';
 import { useEmployees, useCreateEmployee, useUpdateEmployee, useEmployeeDetail } from '../hooks/useTeam';
+import { rolesApi } from '../api/rolesApi';
 import { EmployeeFormModal } from './team/EmployeeFormModal';
 import { EmployeeDetailModal } from './team/EmployeeDetailModal';
 import type { CreateEmployeeRequest, UpdateEmployeeRequest } from '../teamTypes';
@@ -53,9 +54,12 @@ export function TeamSection() {
     const openEditFromDetail = (id: string) => { setDetailId(null); setEditId(id); setFormMode('edit'); };
     const closeForm = () => { setFormMode(null); setEditId(null); };
 
-    const handleCreate = (payload: CreateEmployeeRequest) => {
+    const handleCreate = (payload: CreateEmployeeRequest, rbacRoleId?: string) => {
         createEmployee.mutate(payload, {
-            onSuccess: () => {
+            onSuccess: (data) => {
+                if (rbacRoleId && data.account?.userId) {
+                    rolesApi.assignRole(data.account.userId, rbacRoleId).catch(() => {});
+                }
                 showSuccess(
                     'Pracownik dodany',
                     payload.createAccount ? 'Zaproszenie do założenia konta zostało wysłane.' : undefined,

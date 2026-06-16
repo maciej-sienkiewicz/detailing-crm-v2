@@ -6,6 +6,7 @@ import {
     FieldSelect, ErrorMsg, HintText, CancelBtn, SubmitBtn,
     CheckRow, CheckBox,
 } from '../rbacShared.styles';
+import { useRoles } from '../../hooks/useRoles';
 import type {
     TeamEmployeeDetail, CreateEmployeeRequest, UpdateEmployeeRequest, AssignableAccountRole,
 } from '../../teamTypes';
@@ -25,13 +26,14 @@ interface FormValues {
     createAccount: boolean;
     accountEmail: string;
     accountRole: AssignableAccountRole;
+    rbacRoleId: string;
 }
 
 function emptyForm(): FormValues {
     return {
         firstName: '', lastName: '',
         phone: '', email: '',
-        createAccount: false, accountEmail: '', accountRole: 'DETAILER',
+        createAccount: false, accountEmail: '', accountRole: 'DETAILER', rbacRoleId: '',
     };
 }
 
@@ -39,7 +41,7 @@ function fromDetail(d: TeamEmployeeDetail): FormValues {
     return {
         firstName: d.firstName, lastName: d.lastName,
         phone: d.phone ?? '', email: d.email ?? '',
-        createAccount: false, accountEmail: '', accountRole: 'DETAILER',
+        createAccount: false, accountEmail: '', accountRole: 'DETAILER', rbacRoleId: '',
     };
 }
 
@@ -55,13 +57,14 @@ export interface EmployeeFormModalProps {
     employee?: TeamEmployeeDetail | null;
     isSaving: boolean;
     onClose: () => void;
-    onSubmitCreate: (payload: CreateEmployeeRequest) => void;
+    onSubmitCreate: (payload: CreateEmployeeRequest, rbacRoleId?: string) => void;
     onSubmitUpdate: (payload: UpdateEmployeeRequest) => void;
 }
 
 export function EmployeeFormModal({
     mode, employee, isSaving, onClose, onSubmitCreate, onSubmitUpdate,
 }: EmployeeFormModalProps) {
+    const { roles } = useRoles();
     const [values, setValues] = useState<FormValues>(
         mode === 'edit' && employee ? fromDetail(employee) : emptyForm(),
     );
@@ -100,7 +103,7 @@ export function EmployeeFormModal({
                 payload.accountEmail = values.accountEmail.trim();
                 payload.accountRole = values.accountRole;
             }
-            onSubmitCreate(payload);
+            onSubmitCreate(payload, values.createAccount && values.rbacRoleId ? values.rbacRoleId : undefined);
         } else {
             const payload: UpdateEmployeeRequest = {
                 firstName: values.firstName.trim(),
@@ -189,29 +192,44 @@ export function EmployeeFormModal({
                             </CheckRow>
 
                             {values.createAccount && (
-                                <FormGrid style={{ marginTop: 14 }}>
+                                <>
+                                    <FormGrid style={{ marginTop: 14 }}>
+                                        <FormField>
+                                            <FieldLabel>E-mail konta (login)<span>*</span></FieldLabel>
+                                            <FieldInput
+                                                placeholder="login@firma.pl"
+                                                value={values.accountEmail}
+                                                onChange={e => set('accountEmail', e.target.value)}
+                                                $error={!!errors.accountEmail}
+                                            />
+                                            {errors.accountEmail && <ErrorMsg>{errors.accountEmail}</ErrorMsg>}
+                                        </FormField>
+                                        <FormField>
+                                            <FieldLabel>Rola konta<span>*</span></FieldLabel>
+                                            <FieldSelect
+                                                value={values.accountRole}
+                                                onChange={e => set('accountRole', e.target.value as AssignableAccountRole)}
+                                            >
+                                                {(Object.keys(ACCOUNT_ROLE_LABELS) as AssignableAccountRole[]).map(r => (
+                                                    <option key={r} value={r}>{ACCOUNT_ROLE_LABELS[r]}</option>
+                                                ))}
+                                            </FieldSelect>
+                                        </FormField>
+                                    </FormGrid>
                                     <FormField>
-                                        <FieldLabel>E-mail konta (login)<span>*</span></FieldLabel>
-                                        <FieldInput
-                                            placeholder="login@firma.pl"
-                                            value={values.accountEmail}
-                                            onChange={e => set('accountEmail', e.target.value)}
-                                            $error={!!errors.accountEmail}
-                                        />
-                                        {errors.accountEmail && <ErrorMsg>{errors.accountEmail}</ErrorMsg>}
-                                    </FormField>
-                                    <FormField>
-                                        <FieldLabel>Rola konta<span>*</span></FieldLabel>
+                                        <FieldLabel>Rola (uprawnienia)</FieldLabel>
                                         <FieldSelect
-                                            value={values.accountRole}
-                                            onChange={e => set('accountRole', e.target.value as AssignableAccountRole)}
+                                            value={values.rbacRoleId}
+                                            onChange={e => set('rbacRoleId', e.target.value)}
                                         >
-                                            {(Object.keys(ACCOUNT_ROLE_LABELS) as AssignableAccountRole[]).map(r => (
-                                                <option key={r} value={r}>{ACCOUNT_ROLE_LABELS[r]}</option>
+                                            <option value="">Brak roli</option>
+                                            {roles.map(r => (
+                                                <option key={r.id} value={r.id}>{r.name}</option>
                                             ))}
                                         </FieldSelect>
+                                        <HintText>Określa szczegółowe uprawnienia w systemie.</HintText>
                                     </FormField>
-                                </FormGrid>
+                                </>
                             )}
                         </AccountBox>
                     )}
