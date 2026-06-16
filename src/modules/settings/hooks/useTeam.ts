@@ -4,7 +4,6 @@ import type {
     TeamEmployeeFilters,
     CreateEmployeeRequest,
     UpdateEmployeeRequest,
-    TerminateEmployeeRequest,
     CreateAccountRequest,
     ChangePasswordRequest,
 } from '../teamTypes';
@@ -67,12 +66,11 @@ export const useUpdateEmployee = () => {
     });
 };
 
-export const useTerminateEmployee = () => {
+export const useDeleteEmployee = () => {
     const invalidate = useInvalidateTeam();
     return useMutation({
-        mutationFn: ({ employeeId, payload }: { employeeId: string; payload: TerminateEmployeeRequest }) =>
-            teamApi.terminateEmployee(employeeId, payload),
-        onSuccess: (_data, { employeeId }) => invalidate(employeeId),
+        mutationFn: (employeeId: string) => teamApi.deleteEmployee(employeeId),
+        onSuccess: () => invalidate(),
     });
 };
 

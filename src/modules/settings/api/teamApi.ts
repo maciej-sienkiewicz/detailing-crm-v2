@@ -5,7 +5,6 @@ import type {
     TeamEmployeeDetail,
     CreateEmployeeRequest,
     UpdateEmployeeRequest,
-    TerminateEmployeeRequest,
     CreateAccountRequest,
     CreateAccountResponse,
     ChangePasswordRequest,
@@ -20,7 +19,6 @@ export const teamApi = {
         const params = new URLSearchParams({
             page: filters.page.toString(),
             limit: filters.limit.toString(),
-            includeTerminated: filters.includeTerminated.toString(),
         });
         if (filters.search.trim()) params.append('search', filters.search.trim());
         const res = await apiClient.get<TeamEmployeeListResponse>(`${BASE}?${params}`);
@@ -45,11 +43,8 @@ export const teamApi = {
         return res.data;
     },
 
-    terminateEmployee: async (
-        employeeId: string,
-        payload: TerminateEmployeeRequest,
-    ): Promise<void> => {
-        await apiClient.post(`${BASE}/${employeeId}/terminate`, payload);
+    deleteEmployee: async (employeeId: string): Promise<void> => {
+        await apiClient.delete(`${BASE}/${employeeId}`);
     },
 
     // ─── Accounts ────────────────────────────────────────────────────────────
