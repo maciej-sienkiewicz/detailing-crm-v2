@@ -8,13 +8,8 @@ import {
 } from '../rbacShared.styles';
 import { useRoles } from '../../hooks/useRoles';
 import type {
-    TeamEmployeeDetail, CreateEmployeeRequest, UpdateEmployeeRequest, AssignableAccountRole,
+    TeamEmployeeDetail, CreateEmployeeRequest, UpdateEmployeeRequest,
 } from '../../teamTypes';
-
-const ACCOUNT_ROLE_LABELS: Record<AssignableAccountRole, string> = {
-    MANAGER: 'Menedżer',
-    DETAILER: 'Pracownik (detailer)',
-};
 
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
@@ -25,7 +20,6 @@ interface FormValues {
     email: string;
     createAccount: boolean;
     accountEmail: string;
-    accountRole: AssignableAccountRole;
     rbacRoleId: string;
 }
 
@@ -33,7 +27,7 @@ function emptyForm(): FormValues {
     return {
         firstName: '', lastName: '',
         phone: '', email: '',
-        createAccount: false, accountEmail: '', accountRole: 'DETAILER', rbacRoleId: '',
+        createAccount: false, accountEmail: '', rbacRoleId: '',
     };
 }
 
@@ -41,7 +35,7 @@ function fromDetail(d: TeamEmployeeDetail): FormValues {
     return {
         firstName: d.firstName, lastName: d.lastName,
         phone: d.phone ?? '', email: d.email ?? '',
-        createAccount: false, accountEmail: '', accountRole: 'DETAILER', rbacRoleId: '',
+        createAccount: false, accountEmail: '', rbacRoleId: '',
     };
 }
 
@@ -101,7 +95,7 @@ export function EmployeeFormModal({
             };
             if (values.createAccount) {
                 payload.accountEmail = values.accountEmail.trim();
-                payload.accountRole = values.accountRole;
+                payload.accountRole = 'DETAILER';
             }
             onSubmitCreate(payload, values.createAccount && values.rbacRoleId ? values.rbacRoleId : undefined);
         } else {
@@ -192,30 +186,17 @@ export function EmployeeFormModal({
                             </CheckRow>
 
                             {values.createAccount && (
-                                <>
-                                    <FormGrid style={{ marginTop: 14 }}>
-                                        <FormField>
-                                            <FieldLabel>E-mail konta (login)<span>*</span></FieldLabel>
-                                            <FieldInput
-                                                placeholder="login@firma.pl"
-                                                value={values.accountEmail}
-                                                onChange={e => set('accountEmail', e.target.value)}
-                                                $error={!!errors.accountEmail}
-                                            />
-                                            {errors.accountEmail && <ErrorMsg>{errors.accountEmail}</ErrorMsg>}
-                                        </FormField>
-                                        <FormField>
-                                            <FieldLabel>Rola konta<span>*</span></FieldLabel>
-                                            <FieldSelect
-                                                value={values.accountRole}
-                                                onChange={e => set('accountRole', e.target.value as AssignableAccountRole)}
-                                            >
-                                                {(Object.keys(ACCOUNT_ROLE_LABELS) as AssignableAccountRole[]).map(r => (
-                                                    <option key={r} value={r}>{ACCOUNT_ROLE_LABELS[r]}</option>
-                                                ))}
-                                            </FieldSelect>
-                                        </FormField>
-                                    </FormGrid>
+                                <FormGrid style={{ marginTop: 14 }}>
+                                    <FormField>
+                                        <FieldLabel>E-mail konta (login)<span>*</span></FieldLabel>
+                                        <FieldInput
+                                            placeholder="login@firma.pl"
+                                            value={values.accountEmail}
+                                            onChange={e => set('accountEmail', e.target.value)}
+                                            $error={!!errors.accountEmail}
+                                        />
+                                        {errors.accountEmail && <ErrorMsg>{errors.accountEmail}</ErrorMsg>}
+                                    </FormField>
                                     <FormField>
                                         <FieldLabel>Rola (uprawnienia)</FieldLabel>
                                         <FieldSelect
@@ -227,9 +208,9 @@ export function EmployeeFormModal({
                                                 <option key={r.id} value={r.id}>{r.name}</option>
                                             ))}
                                         </FieldSelect>
-                                        <HintText>Określa szczegółowe uprawnienia w systemie.</HintText>
+                                        <HintText>Określa szczegółowe uprawnienia użytkownika w systemie.</HintText>
                                     </FormField>
-                                </>
+                                </FormGrid>
                             )}
                         </AccountBox>
                     )}
