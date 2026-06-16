@@ -14,7 +14,7 @@ import type { Role, CreateRoleRequest } from '../rbacTypes';
 
 export function RolesSection() {
     const { showSuccess } = useToast();
-    const { catalog } = usePermissionCatalog();
+    const { catalog, isLoading: catalogLoading } = usePermissionCatalog();
     const { roles, isLoading } = useRoles();
 
     const createRole = useCreateRole();
@@ -101,6 +101,7 @@ export function RolesSection() {
                     mode={editor.mode}
                     role={editor.role}
                     catalog={catalog}
+                    catalogLoading={catalogLoading}
                     isSaving={isSaving}
                     onClose={() => setEditor(null)}
                     onSubmit={handleSubmit}

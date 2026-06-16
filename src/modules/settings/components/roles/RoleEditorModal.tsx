@@ -4,20 +4,103 @@ import { useEntitlements } from '@/modules/subscription';
 import {
     Overlay, ModalCard, ModalHead, ModalTitle, ModalSubtitle, ModalCloseBtn,
     ModalBody, ModalFooter, FormField, FieldLabel, FieldInput, FieldTextarea,
-    ErrorMsg, CancelBtn, SubmitBtn, CheckRow, CheckBox, Badge,
+    ErrorMsg, CancelBtn, SubmitBtn, CheckRow, CheckBox, Badge, SkeletonBox,
 } from '../rbacShared.styles';
 import type { PermissionModuleGroup, Role, CreateRoleRequest } from '../../rbacTypes';
 
+// ─── Styled ─────────────────────────────────────────────────────────────────────
+const PermsHeader = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+`;
+
+const SelectedCount = styled.span`
+    font-size: 11px;
+    font-weight: 600;
+    color: #0284c7;
+`;
+
+const ModuleCard = styled.div`
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+`;
+
+const ModuleHead = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    background: #fafbfc;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    user-select: none;
+`;
+
+const ModuleName = styled.span`
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+`;
+
+const ModuleCount = styled.span`
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+    flex-shrink: 0;
+`;
+
+const PermsGrid = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 16px;
+    padding: 14px;
+`;
+
+const PermLabel = styled.span<{ $dim?: boolean }>`
+    font-size: 13px;
+    color: ${p => (p.$dim ? '#94a3b8' : '#334155')};
+    line-height: 1.4;
+`;
+
+const EmptyPerms = styled.div`
+    padding: 28px 16px;
+    text-align: center;
+    font-size: 13px;
+    color: #94a3b8;
+    border: 1px dashed #e2e8f0;
+    border-radius: 10px;
+`;
+
+// ─── Icons ───────────────────────────────────────────────────────────────────────
+const CloseIcon = () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+);
+const TinyCheck = () => (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12" />
+    </svg>
+);
+
+// ─── Component ────────────────────────────────────────────────────────────────────
 export interface RoleEditorModalProps {
     mode: 'add' | 'edit';
     role?: Role | null;
     catalog: PermissionModuleGroup[];
+    catalogLoading?: boolean;
     isSaving: boolean;
     onClose: () => void;
     onSubmit: (payload: CreateRoleRequest) => void;
 }
 
-export function RoleEditorModal({ mode, role, catalog, isSaving, onClose, onSubmit }: RoleEditorModalProps) {
+export function RoleEditorModal({
+    mode, role, catalog, catalogLoading, isSaving, onClose, onSubmit,
+}: RoleEditorModalProps) {
     const { data: entitlements } = useEntitlements();
 
     const [name, setName] = useState(role?.name ?? '');
@@ -28,10 +111,9 @@ export function RoleEditorModal({ mode, role, catalog, isSaving, onClose, onSubm
     const [nameError, setNameError] = useState<string | null>(null);
 
     const allCodes = useMemo(
-        () => catalog.flatMap(m => m.permissions.map(p => p.code)),
+        () => catalog.flatMap(m => (m.permissions ?? []).map(p => p.code)),
         [catalog],
     );
-    const totalSelected = selected.size;
 
     const toggle = (code: string) => {
         setSelected(prev => {
@@ -42,11 +124,11 @@ export function RoleEditorModal({ mode, role, catalog, isSaving, onClose, onSubm
     };
 
     const toggleModule = (module: PermissionModuleGroup) => {
-        const codes = module.permissions.map(p => p.code);
-        const allOn = codes.every(c => selected.has(c));
+        const codes = (module.permissions ?? []).map(p => p.code);
+        const allOn = codes.length > 0 && codes.every(c => selected.has(c));
         setSelected(prev => {
             const next = new Set(prev);
-            codes.forEach(c => allOn ? next.delete(c) : next.add(c));
+            codes.forEach(c => (allOn ? next.delete(c) : next.add(c)));
             return next;
         });
     };
@@ -108,40 +190,57 @@ export function RoleEditorModal({ mode, role, catalog, isSaving, onClose, onSubm
 
                     <PermsHeader>
                         <FieldLabel>Uprawnienia</FieldLabel>
-                        <SelectedCount>{totalSelected} zaznaczonych</SelectedCount>
+                        <SelectedCount>{selected.size} zaznaczonych</SelectedCount>
                     </PermsHeader>
 
-                    {catalog.map(module => {
-                        const codes = module.permissions.map(p => p.code);
-                        const selectedInModule = codes.filter(c => selected.has(c)).length;
-                        const allOn = selectedInModule === codes.length && codes.length > 0;
-                        const featureOk = isFeatureEnabled(module.featureKey);
-
-                        return (
-                            <ModuleCard key={module.module}>
-                                <ModuleHead onClick={() => toggleModule(module)}>
-                                    <CheckBox $checked={allOn}>{allOn && <TinyCheck />}</CheckBox>
-                                    <ModuleName>{module.displayName}</ModuleName>
-                                    {!featureOk && module.featureKey && (
-                                        <Badge $variant="amber">⚠ Wymaga modułu „{module.displayName}"</Badge>
-                                    )}
-                                    <ModuleCount>{selectedInModule}/{codes.length}</ModuleCount>
+                    {catalogLoading ? (
+                        Array.from({ length: 4 }).map((_, i) => (
+                            <ModuleCard key={i}>
+                                <ModuleHead as="div" style={{ cursor: 'default' }}>
+                                    <SkeletonBox $w="140px" />
                                 </ModuleHead>
-
                                 <PermsGrid>
-                                    {module.permissions.map(perm => {
-                                        const checked = selected.has(perm.code);
-                                        return (
-                                            <CheckRow key={perm.code} onClick={() => toggle(perm.code)}>
-                                                <CheckBox $checked={checked}>{checked && <TinyCheck />}</CheckBox>
-                                                <PermLabel $dim={!featureOk}>{perm.displayName}</PermLabel>
-                                            </CheckRow>
-                                        );
-                                    })}
+                                    <SkeletonBox $w="80%" />
+                                    <SkeletonBox $w="70%" />
                                 </PermsGrid>
                             </ModuleCard>
-                        );
-                    })}
+                        ))
+                    ) : catalog.length === 0 ? (
+                        <EmptyPerms>Nie udało się załadować katalogu uprawnień.</EmptyPerms>
+                    ) : (
+                        catalog.map(module => {
+                            const perms = module.permissions ?? [];
+                            const codes = perms.map(p => p.code);
+                            const selectedInModule = codes.filter(c => selected.has(c)).length;
+                            const allOn = selectedInModule === codes.length && codes.length > 0;
+                            const featureOk = isFeatureEnabled(module.featureKey);
+
+                            return (
+                                <ModuleCard key={module.module}>
+                                    <ModuleHead onClick={() => toggleModule(module)}>
+                                        <CheckBox $checked={allOn}>{allOn && <TinyCheck />}</CheckBox>
+                                        <ModuleName>{module.displayName || module.module}</ModuleName>
+                                        {!featureOk && module.featureKey && (
+                                            <Badge $variant="amber">⚠ Wymaga modułu</Badge>
+                                        )}
+                                        <ModuleCount>{selectedInModule}/{codes.length}</ModuleCount>
+                                    </ModuleHead>
+
+                                    <PermsGrid>
+                                        {perms.map(perm => {
+                                            const checked = selected.has(perm.code);
+                                            return (
+                                                <CheckRow key={perm.code} onClick={() => toggle(perm.code)}>
+                                                    <CheckBox $checked={checked}>{checked && <TinyCheck />}</CheckBox>
+                                                    <PermLabel $dim={!featureOk}>{perm.displayName}</PermLabel>
+                                                </CheckRow>
+                                            );
+                                        })}
+                                    </PermsGrid>
+                                </ModuleCard>
+                            );
+                        })
+                    )}
                 </ModalBody>
 
                 <ModalFooter>
@@ -154,72 +253,3 @@ export function RoleEditorModal({ mode, role, catalog, isSaving, onClose, onSubm
         </Overlay>
     );
 }
-
-// ─── Styled ─────────────────────────────────────────────────────────────────────
-const PermsHeader = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 4px;
-`;
-
-const SelectedCount = styled.span`
-    font-size: 11px;
-    font-weight: 600;
-    color: #0284c7;
-`;
-
-const ModuleCard = styled.div`
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    overflow: hidden;
-`;
-
-const ModuleHead = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 11px 14px;
-    background: #fafbfc;
-    border-bottom: 1px solid #f1f5f9;
-    cursor: pointer;
-    user-select: none;
-`;
-
-const ModuleName = styled.span`
-    font-size: 13px;
-    font-weight: 700;
-    color: #0f172a;
-`;
-
-const ModuleCount = styled.span`
-    margin-left: auto;
-    font-size: 11px;
-    font-weight: 600;
-    color: #94a3b8;
-`;
-
-const PermsGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px 16px;
-    padding: 14px;
-`;
-
-const PermLabel = styled.span<{ $dim?: boolean }>`
-    font-size: 13px;
-    color: ${p => (p.$dim ? '#94a3b8' : '#334155')};
-    line-height: 1.4;
-`;
-
-// ─── Icons ───────────────────────────────────────────────────────────────────────
-const CloseIcon = () => (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-);
-const TinyCheck = () => (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="20 6 9 17 4 12" />
-    </svg>
-);
