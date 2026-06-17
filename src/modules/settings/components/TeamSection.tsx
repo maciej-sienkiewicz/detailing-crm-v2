@@ -6,10 +6,12 @@ import {
     AddButton, StatsRow, StatText, Card, ColLabel, Badge, Dot, EmptyWrap,
     EmptyTitle, EmptyDesc, SkeletonBox, Pager, PagerInfo, PagerControls, PagerBtn,
 } from './rbacShared.styles';
-import { useEmployees, useCreateEmployee, useUpdateEmployee, useEmployeeDetail } from '../hooks/useTeam';
+import { useEmployees, useCreateEmployee, useUpdateEmployee, useEmployeeDetail, useCreateAccount } from '../hooks/useTeam';
+import { useRoles } from '../hooks/useRoles';
+import { rolesApi } from '../api/rolesApi';
 import { EmployeeFormModal } from './team/EmployeeFormModal';
 import { EmployeeDetailModal } from './team/EmployeeDetailModal';
-import type { CreateEmployeeRequest, UpdateEmployeeRequest } from '../teamTypes';
+import type { UpdateEmployeeRequest, CreateEmployeeFormOutput } from '../teamTypes';
 
 const PAGE_SIZE = 20;
 
@@ -44,6 +46,8 @@ export function TeamSection() {
 
     const createEmployee = useCreateEmployee();
     const updateEmployee = useUpdateEmployee();
+    const createAccount = useCreateAccount();
+    const { roles } = useRoles();
     const { employee: editTarget } = useEmployeeDetail(formMode === 'edit' ? editId : null);
 
     const totalItems = pagination?.totalItems ?? 0;
@@ -53,16 +57,32 @@ export function TeamSection() {
     const openEditFromDetail = (id: string) => { setDetailId(null); setEditId(id); setFormMode('edit'); };
     const closeForm = () => { setFormMode(null); setEditId(null); };
 
-    const handleCreate = (payload: CreateEmployeeRequest) => {
-        createEmployee.mutate(payload, {
-            onSuccess: () => {
-                showSuccess(
-                    'Pracownik dodany',
-                    payload.createAccount ? 'Zaproszenie do założenia konta zostało wysłane.' : undefined,
-                );
-                closeForm();
+    const handleCreate = (data: CreateEmployeeFormOutput) => {
+        createEmployee.mutate(
+            { firstName: data.firstName, lastName: data.lastName, phone: data.phone, email: data.email },
+            {
+                onSuccess: async (employee) => {
+                    if (!data.createAccount) {
+                        showSuccess('Pracownik dodany');
+                        closeForm();
+                        return;
+                    }
+                    try {
+                        const { userId } = await createAccount.mutateAsync({
+                            employeeId: employee.id,
+                            payload: { email: data.accountEmail },
+                        });
+                        if (data.roleId) {
+                            await rolesApi.assignRole(userId, data.roleId);
+                        }
+                        showSuccess('Pracownik dodany', 'Zaproszenie do założenia konta zostało wysłane.');
+                    } catch {
+                        showSuccess('Pracownik dodany', 'Nie udało się utworzyć konta — dodaj je ręcznie w szczegółach pracownika.');
+                    }
+                    closeForm();
+                },
             },
-        });
+        );
     };
 
     const handleUpdate = (payload: UpdateEmployeeRequest) => {
@@ -194,7 +214,8 @@ export function TeamSection() {
             {formMode === 'add' && (
                 <EmployeeFormModal
                     mode="add"
-                    isSaving={createEmployee.isPending}
+                    roles={roles}
+                    isSaving={createEmployee.isPending || createAccount.isPending}
                     onClose={closeForm}
                     onSubmitCreate={handleCreate}
                     onSubmitUpdate={() => {}}

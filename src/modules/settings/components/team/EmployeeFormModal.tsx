@@ -7,13 +7,9 @@ import {
     CheckRow, CheckBox,
 } from '../rbacShared.styles';
 import type {
-    TeamEmployeeDetail, CreateEmployeeRequest, UpdateEmployeeRequest, AssignableAccountRole,
+    TeamEmployeeDetail, UpdateEmployeeRequest, CreateEmployeeFormOutput,
 } from '../../teamTypes';
-
-const ACCOUNT_ROLE_LABELS: Record<AssignableAccountRole, string> = {
-    MANAGER: 'Menedżer',
-    DETAILER: 'Pracownik (detailer)',
-};
+import type { Role } from '../../rbacTypes';
 
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
@@ -24,14 +20,14 @@ interface FormValues {
     email: string;
     createAccount: boolean;
     accountEmail: string;
-    accountRole: AssignableAccountRole;
+    roleId: string;
 }
 
 function emptyForm(): FormValues {
     return {
         firstName: '', lastName: '',
         phone: '', email: '',
-        createAccount: false, accountEmail: '', accountRole: 'DETAILER',
+        createAccount: false, accountEmail: '', roleId: '',
     };
 }
 
@@ -39,7 +35,7 @@ function fromDetail(d: TeamEmployeeDetail): FormValues {
     return {
         firstName: d.firstName, lastName: d.lastName,
         phone: d.phone ?? '', email: d.email ?? '',
-        createAccount: false, accountEmail: '', accountRole: 'DETAILER',
+        createAccount: false, accountEmail: '', roleId: '',
     };
 }
 
@@ -53,14 +49,15 @@ const orNull = (v: string): string | null => {
 export interface EmployeeFormModalProps {
     mode: 'add' | 'edit';
     employee?: TeamEmployeeDetail | null;
+    roles?: Role[];
     isSaving: boolean;
     onClose: () => void;
-    onSubmitCreate: (payload: CreateEmployeeRequest) => void;
+    onSubmitCreate: (data: CreateEmployeeFormOutput) => void;
     onSubmitUpdate: (payload: UpdateEmployeeRequest) => void;
 }
 
 export function EmployeeFormModal({
-    mode, employee, isSaving, onClose, onSubmitCreate, onSubmitUpdate,
+    mode, employee, roles = [], isSaving, onClose, onSubmitCreate, onSubmitUpdate,
 }: EmployeeFormModalProps) {
     const [values, setValues] = useState<FormValues>(
         mode === 'edit' && employee ? fromDetail(employee) : emptyForm(),
@@ -89,26 +86,22 @@ export function EmployeeFormModal({
         if (Object.keys(e).length > 0) { setErrors(e); return; }
 
         if (mode === 'add') {
-            const payload: CreateEmployeeRequest = {
+            onSubmitCreate({
                 firstName: values.firstName.trim(),
                 lastName: values.lastName.trim(),
                 phone: orNull(values.phone),
                 email: orNull(values.email),
                 createAccount: values.createAccount,
-            };
-            if (values.createAccount) {
-                payload.accountEmail = values.accountEmail.trim();
-                payload.accountRole = values.accountRole;
-            }
-            onSubmitCreate(payload);
+                accountEmail: values.accountEmail.trim(),
+                roleId: values.roleId || null,
+            });
         } else {
-            const payload: UpdateEmployeeRequest = {
+            onSubmitUpdate({
                 firstName: values.firstName.trim(),
                 lastName: values.lastName.trim(),
                 phone: orNull(values.phone),
                 email: orNull(values.email),
-            };
-            onSubmitUpdate(payload);
+            });
         }
     };
 
@@ -201,15 +194,17 @@ export function EmployeeFormModal({
                                         {errors.accountEmail && <ErrorMsg>{errors.accountEmail}</ErrorMsg>}
                                     </FormField>
                                     <FormField>
-                                        <FieldLabel>Rola konta<span>*</span></FieldLabel>
+                                        <FieldLabel>Rola (uprawnienia)</FieldLabel>
                                         <FieldSelect
-                                            value={values.accountRole}
-                                            onChange={e => set('accountRole', e.target.value as AssignableAccountRole)}
+                                            value={values.roleId}
+                                            onChange={e => set('roleId', e.target.value)}
                                         >
-                                            {(Object.keys(ACCOUNT_ROLE_LABELS) as AssignableAccountRole[]).map(r => (
-                                                <option key={r} value={r}>{ACCOUNT_ROLE_LABELS[r]}</option>
+                                            <option value="">Brak roli</option>
+                                            {roles.map(r => (
+                                                <option key={r.id} value={r.id}>{r.name}</option>
                                             ))}
                                         </FieldSelect>
+                                        <HintText>Możesz przypisać rolę później w szczegółach pracownika.</HintText>
                                     </FormField>
                                 </FormGrid>
                             )}

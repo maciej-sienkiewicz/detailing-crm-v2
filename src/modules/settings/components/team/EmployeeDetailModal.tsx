@@ -15,15 +15,7 @@ import {
 import { useRoles } from '../../hooks/useRoles';
 import { rolesApi } from '../../api/rolesApi';
 import { ChangePasswordModal } from './ChangePasswordModal';
-import type { AssignableAccountRole } from '../../teamTypes';
-
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
-
-const ACCOUNT_ROLE_LABELS: Record<string, string> = {
-    OWNER: 'Właściciel',
-    MANAGER: 'Menedżer',
-    DETAILER: 'Pracownik',
-};
 
 export interface EmployeeDetailModalProps {
     employeeId: string;
@@ -45,7 +37,7 @@ export function EmployeeDetailModal({ employeeId, onClose, onEdit, onDeleted }: 
 
     const [showCreateAccount, setShowCreateAccount] = useState(false);
     const [accountEmail, setAccountEmail] = useState('');
-    const [accountRole, setAccountRole] = useState<AssignableAccountRole>('DETAILER');
+    const [selectedRoleId, setSelectedRoleId] = useState('');
     const [accountEmailError, setAccountEmailError] = useState<string | null>(null);
 
     const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -57,12 +49,16 @@ export function EmployeeDetailModal({ employeeId, onClose, onEdit, onDeleted }: 
         if (!accountEmail.trim()) { setAccountEmailError('Adres e-mail jest wymagany'); return; }
         if (!isEmail(accountEmail)) { setAccountEmailError('Nieprawidłowy adres e-mail'); return; }
         createAccount.mutate(
-            { employeeId, payload: { email: accountEmail.trim(), role: accountRole } },
+            { employeeId, payload: { email: accountEmail.trim() } },
             {
-                onSuccess: () => {
+                onSuccess: async ({ userId }) => {
+                    if (selectedRoleId) {
+                        await rolesApi.assignRole(userId, selectedRoleId).catch(() => {});
+                    }
                     showSuccess('Konto utworzone', 'Zaproszenie zostało wysłane na podany adres e-mail.');
                     setShowCreateAccount(false);
                     setAccountEmail('');
+                    setSelectedRoleId('');
                 },
             },
         );
@@ -169,14 +165,17 @@ export function EmployeeDetailModal({ employeeId, onClose, onEdit, onDeleted }: 
                                             {accountEmailError && <ErrorMsg>{accountEmailError}</ErrorMsg>}
                                         </FormField>
                                         <FormField>
-                                            <FieldLabel>Rola konta<span>*</span></FieldLabel>
+                                            <FieldLabel>Rola (uprawnienia)</FieldLabel>
                                             <FieldSelect
-                                                value={accountRole}
-                                                onChange={e => setAccountRole(e.target.value as AssignableAccountRole)}
+                                                value={selectedRoleId}
+                                                onChange={e => setSelectedRoleId(e.target.value)}
                                             >
-                                                <option value="MANAGER">Menedżer</option>
-                                                <option value="DETAILER">Pracownik (detailer)</option>
+                                                <option value="">Brak roli</option>
+                                                {roles.map(r => (
+                                                    <option key={r.id} value={r.id}>{r.name}</option>
+                                                ))}
                                             </FieldSelect>
+                                            <HintText>Możesz przypisać rolę później.</HintText>
                                         </FormField>
                                     </FormGrid>
                                     <PanelActions>
@@ -195,7 +194,9 @@ export function EmployeeDetailModal({ employeeId, onClose, onEdit, onDeleted }: 
                                     <AccountHeader>
                                         <div>
                                             <AccountEmail>{account.email}</AccountEmail>
-                                            <AccountMeta>Rola systemowa: {ACCOUNT_ROLE_LABELS[account.role] ?? account.role}</AccountMeta>
+                                            {account.role === 'OWNER' && (
+                                                <AccountMeta>Właściciel studia</AccountMeta>
+                                            )}
                                         </div>
                                         {account.isActive
                                             ? <Badge $variant="green"><Dot $color="#10b981" />Aktywne</Badge>

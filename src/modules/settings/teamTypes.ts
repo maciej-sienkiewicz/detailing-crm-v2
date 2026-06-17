@@ -1,9 +1,6 @@
 // ─── Team / Employees (Settings) ───────────────────────────────────────────────
 
-export type AccountRole = 'OWNER' | 'MANAGER' | 'DETAILER';
-
-/** Roles that an administrator may assign when creating an account (never OWNER). */
-export type AssignableAccountRole = Exclude<AccountRole, 'OWNER'>;
+export type AccountRole = 'OWNER' | 'USER' | 'EMPLOYEE';
 
 export interface TeamEmployeeAccount {
     userId: string;
@@ -58,9 +55,6 @@ export interface CreateEmployeeRequest {
     lastName: string;
     phone?: string | null;
     email?: string | null;
-    createAccount?: boolean;
-    accountEmail?: string | null;
-    accountRole?: AssignableAccountRole | null;
 }
 
 export interface UpdateEmployeeRequest {
@@ -72,11 +66,21 @@ export interface UpdateEmployeeRequest {
 
 export interface CreateAccountRequest {
     email: string;
-    role: AssignableAccountRole;
 }
 
 export interface CreateAccountResponse {
     userId: string;
+}
+
+/** Data collected by the "add employee" form — maps to a 3-step API flow. */
+export interface CreateEmployeeFormOutput {
+    firstName: string;
+    lastName: string;
+    phone: string | null;
+    email: string | null;
+    createAccount: boolean;
+    accountEmail: string;
+    roleId: string | null;
 }
 
 export interface ChangePasswordRequest {
