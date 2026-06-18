@@ -5,7 +5,7 @@ import styled, { css, keyframes } from 'styled-components';
 import { t } from '@/common/i18n';
 import type { Lead } from '../types';
 import { LeadSource, LeadStatus } from '../types';
-import { useUpdateLeadStatus, useUpdateLeadValue } from '../hooks/useLeads';
+import { useUpdateLeadStatus, useUpdateLeadValue, useAcknowledgeLead } from '../hooks/useLeads';
 import {
   formatCurrency,
   formatPhoneNumber,
@@ -239,6 +239,37 @@ const ActivityLabel = styled.span`
   font-size: ${props => props.theme.fontSizes.xs};
   color: ${props => props.theme.colors.textMuted};
   font-weight: 500;
+`;
+
+const newActivityPulse = keyframes`
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+`;
+
+const NewActivityBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  background: rgba(234, 88, 12, 0.12);
+  color: #c2410c;
+  border: 1px solid rgba(234, 88, 12, 0.3);
+  border-radius: ${props => props.theme.radii.full};
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  animation: ${newActivityPulse} 2.5s ease-in-out infinite;
+  white-space: nowrap;
+
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #ea580c;
+    flex-shrink: 0;
+  }
 `;
 
 // ============================================================================
@@ -740,6 +771,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
 
   const updateStatus = useUpdateLeadStatus();
   const updateValue = useUpdateLeadValue();
+  const acknowledgeLead = useAcknowledgeLead();
 
   // Close status dropdown on outside click
   useEffect(() => {
@@ -833,6 +865,9 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
 
   const handleRowClick = (lead: Lead) => {
     if (editingValueId || openStatusId) return;
+    if (lead.newActivityAt) {
+      acknowledgeLead.mutate(lead.id);
+    }
     onRowClick?.(lead);
   };
 
@@ -953,6 +988,9 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
               </MobileCardHeader>
 
               <MobileCardBody>
+                {lead.newActivityAt && (
+                  <NewActivityBadge style={{ alignSelf: 'flex-start' }}>Nowe wydarzenie</NewActivityBadge>
+                )}
                 <MobileCardRow>
                   <MobileCardLabel>Wartość</MobileCardLabel>
                   <MobileCardValue>{formatCurrency(lead.estimatedValue)}</MobileCardValue>
@@ -1053,6 +1091,9 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
                     {/* Last Activity */}
                     <TableCell>
                       <ActivityWrap>
+                        {lead.newActivityAt && (
+                          <NewActivityBadge>Nowe wydarzenie</NewActivityBadge>
+                        )}
                         <SecondaryText>{formatDateTime(lead.createdAt)}</SecondaryText>
                         <ActivityLabel>
                           Ostatnia aktualizacja:{' '}

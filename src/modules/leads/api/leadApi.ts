@@ -815,4 +815,19 @@ export const leadApi = {
     const response = await apiClient.get(`${BASE_PATH}/${leadId}/status-history`);
     return response.data;
   },
+
+  /**
+   * Acknowledge new activity on a lead — clears newActivityAt.
+   * POST /v1/leads/{leadId}/acknowledge → 204
+   */
+  acknowledgeLead: async (leadId: LeadId): Promise<void> => {
+    if (USE_MOCKS) {
+      const index = mockLeadsStore.findIndex((l) => l.id === leadId);
+      if (index !== -1) {
+        mockLeadsStore[index] = { ...mockLeadsStore[index], newActivityAt: null };
+      }
+      return;
+    }
+    await apiClient.post(`${BASE_PATH}/${leadId}/acknowledge`);
+  },
 };

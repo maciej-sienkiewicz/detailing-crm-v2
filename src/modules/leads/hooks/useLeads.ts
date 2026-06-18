@@ -316,6 +316,37 @@ export const useDeleteLead = () => {
 };
 
 /**
+ * Hook to acknowledge new activity on a lead (clears newActivityAt).
+ * Optimistically clears the flag in the list cache, then fires POST /acknowledge.
+ */
+export const useAcknowledgeLead = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, LeadId>({
+    mutationFn: (id) => leadApi.acknowledgeLead(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: [...LEADS_KEY, 'list'] });
+      queryClient.setQueriesData<LeadListResponse>(
+        { queryKey: [...LEADS_KEY, 'list'] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            leads: old.leads.map((l) =>
+              l.id === id ? { ...l, newActivityAt: null } : l
+            ),
+          };
+        }
+      );
+    },
+    onError: (_err, id) => {
+      queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'list'] });
+      queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'detail', id] });
+    },
+  });
+};
+
+/**
  * Hook for assigning / changing / unassigning a customer to a lead
  */
 export const useAssignLeadCustomer = (leadId: LeadId) => {

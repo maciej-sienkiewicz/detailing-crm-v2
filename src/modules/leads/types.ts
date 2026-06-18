@@ -117,6 +117,9 @@ export interface Lead {
 
   /** Service tags manually assigned to this lead */
   serviceTags?: ServiceTag[];
+
+  /** ISO timestamp of new unacknowledged activity (email reply appended); null if none */
+  newActivityAt?: string | null;
 }
 
 /**
@@ -193,6 +196,7 @@ export enum LeadEventType {
   NEW_LEAD = 'NEW_LEAD',
   LEAD_UPDATED = 'LEAD_UPDATED',
   LEAD_STATUS_CHANGED = 'LEAD_STATUS_CHANGED',
+  REPLY_APPENDED = 'REPLY_APPENDED',
 }
 
 /**

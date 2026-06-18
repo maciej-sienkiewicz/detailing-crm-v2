@@ -121,6 +121,32 @@ export function useLeadSocket(): void {
     [queryClient]
   );
 
+  const handleReplyAppended = useCallback(
+    (event: LeadEvent<Lead>) => {
+      const updatedLead = event.payload;
+      console.info('[LeadSocket] REPLY_APPENDED payload:', updatedLead);
+
+      queryClient.setQueriesData<LeadListResponse>(
+        { queryKey: [...LEADS_KEY, 'list'] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            leads: old.leads.map((lead) =>
+              lead.id === updatedLead.id ? updatedLead : lead
+            ),
+          };
+        }
+      );
+
+      queryClient.invalidateQueries({ queryKey: LEAD_PIPELINE_KEY });
+
+      const contact = updatedLead.customerName || updatedLead.contactIdentifier;
+      showInfo('Nowa odpowiedź od klienta', contact);
+    },
+    [queryClient, showInfo]
+  );
+
   const handleMessage = useCallback(
     (message: IMessage) => {
       console.info('[LeadSocket] Raw message received:', message.body);
@@ -137,6 +163,9 @@ export function useLeadSocket(): void {
           case LeadEventType.LEAD_STATUS_CHANGED:
             handleLeadUpdated(event as LeadEvent<Lead>);
             break;
+          case LeadEventType.REPLY_APPENDED:
+            handleReplyAppended(event as LeadEvent<Lead>);
+            break;
           default:
             console.warn('[LeadSocket] Unknown event type:', event.type);
         }
@@ -149,7 +178,7 @@ export function useLeadSocket(): void {
         );
       }
     },
-    [handleNewInboundCall, handleLeadUpdated]
+    [handleNewInboundCall, handleLeadUpdated, handleReplyAppended]
   );
 
   useEffect(() => {
