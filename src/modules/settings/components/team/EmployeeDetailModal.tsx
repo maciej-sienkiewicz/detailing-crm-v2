@@ -193,33 +193,28 @@ export function EmployeeDetailModal({ employeeId, onClose, onEdit, onDeleted }: 
                                 <AccountPanel>
                                     <AccountHeader>
                                         <div>
-                                            <AccountEmail>{account.email}</AccountEmail>
-                                            {account.role === 'OWNER' && (
-                                                <AccountMeta>Właściciel studia</AccountMeta>
-                                            )}
+                                            <AccountEmail>{employee.email ?? account.userId}</AccountEmail>
                                         </div>
                                         {account.isActive
                                             ? <Badge $variant="green"><Dot $color="#10b981" />Aktywne</Badge>
                                             : <Badge $variant="red"><Dot $color="#ef4444" />Zablokowane</Badge>}
                                     </AccountHeader>
 
-                                    {account.role !== 'OWNER' && (
-                                        <FormField>
-                                            <FieldLabel>Rola (uprawnienia)</FieldLabel>
-                                            <FieldSelect
-                                                defaultValue=""
-                                                onChange={e => handleAssignRole(account.userId, e.target.value)}
-                                            >
-                                                <option value="">Brak roli</option>
-                                                {roles.map(r => (
-                                                    <option key={r.id} value={r.id}>{r.name}</option>
-                                                ))}
-                                            </FieldSelect>
-                                            <HintText>
-                                                Wybór roli natychmiast aktualizuje uprawnienia użytkownika.
-                                            </HintText>
-                                        </FormField>
-                                    )}
+                                    <FormField>
+                                        <FieldLabel>Rola (uprawnienia)</FieldLabel>
+                                        <FieldSelect
+                                            value={account.roleId ?? ''}
+                                            onChange={e => handleAssignRole(account.userId, e.target.value)}
+                                        >
+                                            <option value="">Brak roli</option>
+                                            {roles.map(r => (
+                                                <option key={r.id} value={r.id}>{r.name}</option>
+                                            ))}
+                                        </FieldSelect>
+                                        <HintText>
+                                            Wybór roli natychmiast aktualizuje uprawnienia użytkownika.
+                                        </HintText>
+                                    </FormField>
 
                                     <PanelActions>
                                         {account.isActive ? (

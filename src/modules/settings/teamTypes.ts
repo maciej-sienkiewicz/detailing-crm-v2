@@ -1,12 +1,9 @@
 // ─── Team / Employees (Settings) ───────────────────────────────────────────────
 
-export type AccountRole = 'OWNER' | 'USER' | 'EMPLOYEE';
-
 export interface TeamEmployeeAccount {
     userId: string;
-    email: string;
-    role: AccountRole;
-    isActive: boolean; // false = konto zablokowane
+    roleId: string | null;
+    isActive: boolean;
 }
 
 export interface TeamEmployeeListItem {
