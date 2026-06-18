@@ -67,10 +67,13 @@ export const useUpdateEmployee = () => {
 };
 
 export const useDeleteEmployee = () => {
-    const invalidate = useInvalidateTeam();
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (employeeId: string) => teamApi.deleteEmployee(employeeId),
-        onSuccess: () => invalidate(),
+        onSuccess: (_data, employeeId) => {
+            queryClient.removeQueries({ queryKey: detailKey(employeeId) });
+            queryClient.invalidateQueries({ queryKey: TEAM_KEY });
+        },
     });
 };
 
