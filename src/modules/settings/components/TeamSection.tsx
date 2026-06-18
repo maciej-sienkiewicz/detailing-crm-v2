@@ -70,7 +70,7 @@ export function TeamSection() {
                     try {
                         const { userId } = await createAccount.mutateAsync({
                             employeeId: employee.id,
-                            payload: { email: data.accountEmail },
+                            payload: { email: data.email! },
                         });
                         if (data.roleId) {
                             await rolesApi.assignRole(userId, data.roleId);

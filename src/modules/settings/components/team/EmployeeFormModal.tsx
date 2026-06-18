@@ -19,7 +19,6 @@ interface FormValues {
     phone: string;
     email: string;
     createAccount: boolean;
-    accountEmail: string;
     roleId: string;
 }
 
@@ -27,7 +26,7 @@ function emptyForm(): FormValues {
     return {
         firstName: '', lastName: '',
         phone: '', email: '',
-        createAccount: false, accountEmail: '', roleId: '',
+        createAccount: false, roleId: '',
     };
 }
 
@@ -35,7 +34,7 @@ function fromDetail(d: TeamEmployeeDetail): FormValues {
     return {
         firstName: d.firstName, lastName: d.lastName,
         phone: d.phone ?? '', email: d.email ?? '',
-        createAccount: false, accountEmail: '', roleId: '',
+        createAccount: false, roleId: '',
     };
 }
 
@@ -73,10 +72,11 @@ export function EmployeeFormModal({
         const e: Errors = {};
         if (!values.firstName.trim()) e.firstName = 'Imię jest wymagane';
         if (!values.lastName.trim()) e.lastName = 'Nazwisko jest wymagane';
-        if (values.email.trim() && !isEmail(values.email)) e.email = 'Nieprawidłowy adres e-mail';
         if (mode === 'add' && values.createAccount) {
-            if (!values.accountEmail.trim()) e.accountEmail = 'Adres e-mail konta jest wymagany';
-            else if (!isEmail(values.accountEmail)) e.accountEmail = 'Nieprawidłowy adres e-mail';
+            if (!values.email.trim()) e.email = 'Adres e-mail jest wymagany do utworzenia konta';
+            else if (!isEmail(values.email)) e.email = 'Nieprawidłowy adres e-mail';
+        } else if (values.email.trim() && !isEmail(values.email)) {
+            e.email = 'Nieprawidłowy adres e-mail';
         }
         return e;
     };
@@ -92,7 +92,6 @@ export function EmployeeFormModal({
                 phone: orNull(values.phone),
                 email: orNull(values.email),
                 createAccount: values.createAccount,
-                accountEmail: values.accountEmail.trim(),
                 roleId: values.roleId || null,
             });
         } else {
@@ -176,37 +175,25 @@ export function EmployeeFormModal({
                                 <div>
                                     <AccountBoxTitle>Utwórz konto użytkownika</AccountBoxTitle>
                                     <HintText>
-                                        Na podany adres zostanie wysłane zaproszenie z linkiem do ustawienia hasła.
+                                        Zaproszenie z linkiem do ustawienia hasła zostanie wysłane na adres e-mail podany powyżej.
                                     </HintText>
                                 </div>
                             </CheckRow>
 
                             {values.createAccount && (
-                                <FormGrid style={{ marginTop: 14 }}>
-                                    <FormField>
-                                        <FieldLabel>E-mail konta (login)<span>*</span></FieldLabel>
-                                        <FieldInput
-                                            placeholder="login@firma.pl"
-                                            value={values.accountEmail}
-                                            onChange={e => set('accountEmail', e.target.value)}
-                                            $error={!!errors.accountEmail}
-                                        />
-                                        {errors.accountEmail && <ErrorMsg>{errors.accountEmail}</ErrorMsg>}
-                                    </FormField>
-                                    <FormField>
-                                        <FieldLabel>Rola (uprawnienia)</FieldLabel>
-                                        <FieldSelect
-                                            value={values.roleId}
-                                            onChange={e => set('roleId', e.target.value)}
-                                        >
-                                            <option value="">Brak roli</option>
-                                            {roles.map(r => (
-                                                <option key={r.id} value={r.id}>{r.name}</option>
-                                            ))}
-                                        </FieldSelect>
-                                        <HintText>Możesz przypisać rolę później w szczegółach pracownika.</HintText>
-                                    </FormField>
-                                </FormGrid>
+                                <FormField>
+                                    <FieldLabel>Rola (uprawnienia)</FieldLabel>
+                                    <FieldSelect
+                                        value={values.roleId}
+                                        onChange={e => set('roleId', e.target.value)}
+                                    >
+                                        <option value="">Brak roli</option>
+                                        {roles.map(r => (
+                                            <option key={r.id} value={r.id}>{r.name}</option>
+                                        ))}
+                                    </FieldSelect>
+                                    <HintText>Możesz przypisać rolę później w szczegółach pracownika.</HintText>
+                                </FormField>
                             )}
                         </AccountBox>
                     )}

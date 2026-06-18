@@ -79,7 +79,6 @@ export interface CreateEmployeeFormOutput {
     phone: string | null;
     email: string | null;
     createAccount: boolean;
-    accountEmail: string;
     roleId: string | null;
 }
 
