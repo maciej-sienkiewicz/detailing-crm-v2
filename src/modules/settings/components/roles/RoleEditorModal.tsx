@@ -290,11 +290,12 @@ export function RoleEditorModal({
         });
     }, [catalog, catalogLoading]);
 
-    // Apply a confirmed cascade: add the trigger code + all deps
-    const applyAdd = useCallback((code: string, allDepsToAdd: Set<string>) => {
+    // Apply a confirmed cascade.
+    // When triggerCode is empty (bulk module toggle) allDepsToAdd already includes the module codes.
+    const applyAdd = useCallback((triggerCode: string, allDepsToAdd: Set<string>) => {
         setSelected(prev => {
             const next = new Set(prev);
-            next.add(code);
+            if (triggerCode) next.add(triggerCode);
             allDepsToAdd.forEach(dep => next.add(dep));
             return next;
         });
@@ -343,10 +344,11 @@ export function RoleEditorModal({
     const toggleModule = useCallback((module: PermissionModuleGroup) => {
         const codes = (module.permissions ?? []).map(p => p.code);
         const allOn = codes.length > 0 && codes.every(c => selected.has(c));
-        setSelected(prev => {
-            const next = new Set(prev);
-            if (allOn) {
-                // Turn off: skip codes that are required by permissions outside this module
+
+        if (allOn) {
+            // Turn off: skip codes that are required by permissions outside this module
+            setSelected(prev => {
+                const next = new Set(prev);
                 const moduleSet = new Set(codes);
                 codes.forEach(c => {
                     let requiredByOutside = false;
@@ -357,16 +359,43 @@ export function RoleEditorModal({
                     });
                     if (!requiredByOutside) next.delete(c);
                 });
+                return next;
+            });
+        } else {
+            // Turn on: collect all codes + their transitive deps
+            const moduleCodesSet = new Set(codes);
+            const allCodesToAdd = new Set(codes);
+            codes.forEach(c => {
+                getTransitiveDeps(c, allPermsMap).forEach(dep => allCodesToAdd.add(dep));
+            });
+
+            // External missing = not yet selected AND not part of this module
+            const externalMissing = [...allCodesToAdd].filter(
+                c => !selected.has(c) && !moduleCodesSet.has(c),
+            );
+
+            if (externalMissing.length > 0) {
+                // Show confirmation — pass allCodesToAdd as allDepsToAdd
+                // (triggerCode is empty to signal bulk mode in applyAdd)
+                setDepConfirm({
+                    triggerCode: '',
+                    triggerName: module.displayName || module.module,
+                    missingDeps: externalMissing.map(dep => ({
+                        code: dep,
+                        displayName: allPermsMap.get(dep)?.displayName ?? dep,
+                        moduleDisplayName: codeToModule.get(dep) ?? '',
+                    })),
+                    allDepsToAdd: allCodesToAdd,
+                });
             } else {
-                // Turn on: cascade deps for every permission in the module
-                codes.forEach(c => {
-                    next.add(c);
-                    getTransitiveDeps(c, allPermsMap).forEach(dep => next.add(dep));
+                setSelected(prev => {
+                    const next = new Set(prev);
+                    allCodesToAdd.forEach(c => next.add(c));
+                    return next;
                 });
             }
-            return next;
-        });
-    }, [allPermsMap, selected]);
+        }
+    }, [allPermsMap, selected, codeToModule]);
 
     const isFeatureEnabled = (featureKey: string | null): boolean => {
         if (!featureKey) return true;
@@ -504,8 +533,10 @@ export function RoleEditorModal({
                     <ConfirmCard>
                         <ConfirmTitle>Wymagane dodatkowe uprawnienia</ConfirmTitle>
                         <ConfirmSubtitle>
-                            Zaznaczenie uprawnienia <strong>„{depConfirm.triggerName}"</strong> wymaga
-                            również nadania poniższych uprawnień. Nie można zrobić wyjątku.
+                            {depConfirm.triggerCode
+                                ? <>Zaznaczenie uprawnienia <strong>„{depConfirm.triggerName}"</strong> wymaga również nadania poniższych uprawnień. Nie można zrobić wyjątku.</>
+                                : <>Zaznaczenie sekcji <strong>„{depConfirm.triggerName}"</strong> wymaga również nadania poniższych uprawnień z innych sekcji. Nie można zrobić wyjątku.</>
+                            }
                         </ConfirmSubtitle>
 
                         <DepList>
@@ -522,7 +553,7 @@ export function RoleEditorModal({
 
                         <ConfirmNote>
                             Uprawnienia te zostaną zaznaczone automatycznie i będą aktywne
-                            dopóki nie usuniesz uprawnienia „{depConfirm.triggerName}".
+                            dopóki nie usuniesz {depConfirm.triggerCode ? `uprawnienia „${depConfirm.triggerName}"` : `uprawnień z sekcji „${depConfirm.triggerName}"`}.
                         </ConfirmNote>
 
                         <ConfirmFooter>
