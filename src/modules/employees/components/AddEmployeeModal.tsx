@@ -13,6 +13,7 @@ import {
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
 import { useCreateEmployee, useUpdateEmployee } from '../hooks/useEmployees';
+import { useRoles } from '@/modules/settings/hooks/useRoles';
 import type { EmployeeDetail, CreateEmployeePayload } from '../types';
 
 const Row = styled.div`
@@ -68,6 +69,19 @@ const ErrorMsg = styled.p`
     color: ${st.accentRed};
 `;
 
+const Select = styled.select`
+    padding: 9px 12px;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    font-size: ${st.fontSm};
+    color: ${st.text};
+    background: ${st.bgInput};
+    outline: none;
+    transition: border-color ${st.transition};
+    &:focus { border-color: ${st.accentBlue}; }
+    appearance: auto;
+`;
+
 interface Props {
     isOpen: boolean;
     onClose: () => void;
@@ -89,6 +103,7 @@ const emptyForm = (): CreateEmployeePayload => ({
     addressCity: '',
     addressPostalCode: '',
     notes: '',
+    roleId: null,
 });
 
 export const AddEmployeeModal = ({ isOpen, onClose, onSuccess, employee }: Props) => {
@@ -116,8 +131,9 @@ export const AddEmployeeModal = ({ isOpen, onClose, onSuccess, employee }: Props
 
     const createMutation = useCreateEmployee();
     const updateMutation = useUpdateEmployee(employee?.id ?? '');
+    const { data: roles = [] } = useRoles();
 
-    const set = (key: keyof CreateEmployeePayload, value: string) =>
+    const set = (key: keyof CreateEmployeePayload, value: string | null) =>
         setForm(prev => ({ ...prev, [key]: value }));
 
     const handleSubmit = async () => {
@@ -137,6 +153,7 @@ export const AddEmployeeModal = ({ isOpen, onClose, onSuccess, employee }: Props
             addressCity: form.addressCity || null,
             addressPostalCode: form.addressPostalCode || null,
             notes: form.notes || null,
+            roleId: form.roleId || null,
         };
 
         try {
@@ -164,6 +181,24 @@ export const AddEmployeeModal = ({ isOpen, onClose, onSuccess, employee }: Props
             </ModalHeader>
 
             <ModalContent>
+                {!isEdit && (
+                    <div>
+                        <ModalSectionTitle>Rola i dostęp</ModalSectionTitle>
+                        <Field>
+                            <Label>Rola systemowa</Label>
+                            <Select
+                                value={form.roleId ?? ''}
+                                onChange={e => set('roleId', e.target.value || null)}
+                            >
+                                <option value="">— bez roli —</option>
+                                {roles.map(role => (
+                                    <option key={role.id} value={role.id}>{role.name}</option>
+                                ))}
+                            </Select>
+                        </Field>
+                    </div>
+                )}
+
                 <div>
                     <ModalSectionTitle>Dane podstawowe</ModalSectionTitle>
                     <Row>

@@ -77,6 +77,7 @@ export interface CreateEmployeePayload {
     position: string;
     hireDate: string;
     notes?: string | null;
+    roleId?: string | null;
 }
 
 export type UpdateEmployeePayload = CreateEmployeePayload;
