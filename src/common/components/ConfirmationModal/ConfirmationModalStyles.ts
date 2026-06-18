@@ -2,7 +2,10 @@ import styled from 'styled-components';
 import type { ConfirmationVariant } from './ConfirmationModal';
 import { ModalOverlay, ModalBox, ModalFooter } from '@/common/styles';
 
-export { ModalOverlay as Overlay };
+// ConfirmationModal must always sit above every other modal layer (rbac Overlay = 3000).
+export const Overlay = styled(ModalOverlay)`
+    z-index: 4000;
+`;
 export { ModalBox as ModalContainer };
 export { ModalFooter as Footer };
 
