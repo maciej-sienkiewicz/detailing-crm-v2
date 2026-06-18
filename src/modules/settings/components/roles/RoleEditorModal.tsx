@@ -102,6 +102,93 @@ const LockedCheckBox = styled(CheckBox)`
     cursor: default;
 `;
 
+// ─── Dependency confirmation dialog ──────────────────────────────────────────
+const ConfirmOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+`;
+
+const ConfirmCard = styled.div`
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
+    padding: 28px 28px 24px;
+    width: 420px;
+    max-width: calc(100vw - 32px);
+`;
+
+const ConfirmTitle = styled.h3`
+    margin: 0 0 6px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+`;
+
+const ConfirmSubtitle = styled.p`
+    margin: 0 0 16px;
+    font-size: 13px;
+    color: #475569;
+    line-height: 1.5;
+`;
+
+const DepList = styled.ul`
+    margin: 0 0 20px;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+`;
+
+const DepItem = styled.li`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 7px;
+    padding: 8px 12px;
+`;
+
+const DepModuleTag = styled.span`
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 600;
+    color: #64748b;
+    background: #e2e8f0;
+    border-radius: 4px;
+    padding: 2px 6px;
+    flex-shrink: 0;
+`;
+
+const ConfirmFooter = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+`;
+
+const ConfirmNote = styled.p`
+    font-size: 11px;
+    color: #94a3b8;
+    margin: 0 0 20px;
+    line-height: 1.5;
+`;
+
+interface DepConfirmState {
+    triggerCode: string;
+    triggerName: string;
+    missingDeps: Array<{ code: string; displayName: string; moduleDisplayName: string }>;
+    allDepsToAdd: Set<string>;
+}
+
 // ─── Icons ───────────────────────────────────────────────────────────────────────
 const CloseIcon = () => (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -157,6 +244,7 @@ export function RoleEditorModal({
         () => new Set((role?.permissions ?? []).map(p => p.code)),
     );
     const [nameError, setNameError] = useState<string | null>(null);
+    const [depConfirm, setDepConfirm] = useState<DepConfirmState | null>(null);
 
     const allCodes = useMemo(
         () => catalog.flatMap(m => (m.permissions ?? []).map(p => p.code)),
@@ -167,6 +255,13 @@ export function RoleEditorModal({
     const allPermsMap = useMemo(() => {
         const map = new Map<string, PermissionCatalogItem>();
         catalog.forEach(m => (m.permissions ?? []).forEach(p => map.set(p.code, p)));
+        return map;
+    }, [catalog]);
+
+    // Map code → module display name (for the confirmation dialog)
+    const codeToModule = useMemo(() => {
+        const map = new Map<string, string>();
+        catalog.forEach(m => (m.permissions ?? []).forEach(p => map.set(p.code, m.displayName || m.module)));
         return map;
     }, [catalog]);
 
@@ -195,6 +290,17 @@ export function RoleEditorModal({
         });
     }, [catalog, catalogLoading]);
 
+    // Apply a confirmed cascade: add the trigger code + all deps
+    const applyAdd = useCallback((code: string, allDepsToAdd: Set<string>) => {
+        setSelected(prev => {
+            const next = new Set(prev);
+            next.add(code);
+            allDepsToAdd.forEach(dep => next.add(dep));
+            return next;
+        });
+        setDepConfirm(null);
+    }, []);
+
     const toggle = useCallback((code: string) => {
         setSelected(prev => {
             const next = new Set(prev);
@@ -204,14 +310,35 @@ export function RoleEditorModal({
                 next.forEach(c => { if (c !== code) getTransitiveDeps(c, allPermsMap).forEach(d => currentLocked.add(d)); });
                 if (currentLocked.has(code)) return prev;
                 next.delete(code);
-            } else {
-                next.add(code);
-                // Cascade: auto-enable all transitive prerequisites
-                getTransitiveDeps(code, allPermsMap).forEach(dep => next.add(dep));
+                return next;
             }
+
+            // Enabling: check which transitive deps are not yet selected
+            const allDepsToAdd = getTransitiveDeps(code, allPermsMap);
+            const missingDeps = [...allDepsToAdd].filter(dep => !prev.has(dep));
+
+            if (missingDeps.length > 0) {
+                // Show confirmation dialog — do NOT mutate state here
+                const perm = allPermsMap.get(code);
+                setDepConfirm({
+                    triggerCode: code,
+                    triggerName: perm?.displayName ?? code,
+                    missingDeps: missingDeps.map(dep => ({
+                        code: dep,
+                        displayName: allPermsMap.get(dep)?.displayName ?? dep,
+                        moduleDisplayName: codeToModule.get(dep) ?? '',
+                    })),
+                    allDepsToAdd,
+                });
+                return prev; // no change yet
+            }
+
+            // No missing deps — apply immediately
+            next.add(code);
+            allDepsToAdd.forEach(dep => next.add(dep));
             return next;
         });
-    }, [allPermsMap]);
+    }, [allPermsMap, codeToModule]);
 
     const toggleModule = useCallback((module: PermissionModuleGroup) => {
         const codes = (module.permissions ?? []).map(p => p.code);
@@ -371,6 +498,42 @@ export function RoleEditorModal({
                     </SubmitBtn>
                 </ModalFooter>
             </ModalCard>
+
+            {depConfirm && (
+                <ConfirmOverlay onClick={e => e.target === e.currentTarget && setDepConfirm(null)}>
+                    <ConfirmCard>
+                        <ConfirmTitle>Wymagane dodatkowe uprawnienia</ConfirmTitle>
+                        <ConfirmSubtitle>
+                            Zaznaczenie uprawnienia <strong>„{depConfirm.triggerName}"</strong> wymaga
+                            również nadania poniższych uprawnień. Nie można zrobić wyjątku.
+                        </ConfirmSubtitle>
+
+                        <DepList>
+                            {depConfirm.missingDeps.map(dep => (
+                                <DepItem key={dep.code}>
+                                    <TinyCheck />
+                                    {dep.displayName}
+                                    {dep.moduleDisplayName && (
+                                        <DepModuleTag>{dep.moduleDisplayName}</DepModuleTag>
+                                    )}
+                                </DepItem>
+                            ))}
+                        </DepList>
+
+                        <ConfirmNote>
+                            Uprawnienia te zostaną zaznaczone automatycznie i będą aktywne
+                            dopóki nie usuniesz uprawnienia „{depConfirm.triggerName}".
+                        </ConfirmNote>
+
+                        <ConfirmFooter>
+                            <CancelBtn onClick={() => setDepConfirm(null)}>Anuluj</CancelBtn>
+                            <SubmitBtn onClick={() => applyAdd(depConfirm.triggerCode, depConfirm.allDepsToAdd)}>
+                                Tak, kontynuuj
+                            </SubmitBtn>
+                        </ConfirmFooter>
+                    </ConfirmCard>
+                </ConfirmOverlay>
+            )}
         </Overlay>
     );
 }
