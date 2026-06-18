@@ -59,7 +59,7 @@ export function TeamSection() {
 
     const handleCreate = (data: CreateEmployeeFormOutput) => {
         createEmployee.mutate(
-            { firstName: data.firstName, lastName: data.lastName, phone: data.phone, email: data.email },
+            { firstName: data.firstName, lastName: data.lastName, phone: data.phone, email: data.email, roleId: data.roleId || null },
             {
                 onSuccess: async (employee) => {
                     if (!data.createAccount) {

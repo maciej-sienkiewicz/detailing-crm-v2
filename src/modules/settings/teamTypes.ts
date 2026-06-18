@@ -55,6 +55,7 @@ export interface CreateEmployeeRequest {
     lastName: string;
     phone?: string | null;
     email?: string | null;
+    roleId?: string | null;
 }
 
 export interface UpdateEmployeeRequest {
