@@ -19,6 +19,8 @@ export type PermissionModuleKey =
 export interface PermissionCatalogItem {
     code: string;
     displayName: string;
+    /** Permission codes that must be enabled alongside this one (direct prerequisites). */
+    requires: string[];
 }
 
 export interface PermissionModuleGroup {

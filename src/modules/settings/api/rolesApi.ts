@@ -39,7 +39,11 @@ const normalizePermission = (raw: unknown): PermissionCatalogItem | null => {
     const displayName = asString(
         pick(obj, ['displayName', 'name', 'label', 'permissionName', 'title', 'description']),
     );
-    return { code, displayName: displayName || code };
+    const requiresRaw = obj['requires'];
+    const requires = Array.isArray(requiresRaw)
+        ? requiresRaw.filter((r): r is string => typeof r === 'string')
+        : [];
+    return { code, displayName: displayName || code, requires };
 };
 
 const normalizeModule = (raw: unknown): PermissionModuleGroup | null => {
