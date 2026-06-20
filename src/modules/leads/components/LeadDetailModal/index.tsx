@@ -2666,31 +2666,39 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
           </EstimationsGrid>
 
           {/* Related visits — reference realisations */}
-          {relatedVisits.length > 0 && (
+          {!isDetailLoading && (
             <PanelSection>
               <RelatedVisitsHeader>
                 <RelatedVisitsTitle><History /> Podobne realizacje</RelatedVisitsTitle>
-                <PhotoToggle
-                  type="button"
-                  $active={showVisitPhotos}
-                  onClick={() => setShowVisitPhotos(v => !v)}
-                >
-                  <Images />
-                  {showVisitPhotos ? 'Ukryj zdjęcia' : 'Pokaż zdjęcia'}
-                  <ChevronDown className="chev" />
-                </PhotoToggle>
+                {relatedVisits.length > 0 && (
+                  <PhotoToggle
+                    type="button"
+                    $active={showVisitPhotos}
+                    onClick={() => setShowVisitPhotos(v => !v)}
+                  >
+                    <Images />
+                    {showVisitPhotos ? 'Ukryj zdjęcia' : 'Pokaż zdjęcia'}
+                    <ChevronDown className="chev" />
+                  </PhotoToggle>
+                )}
               </RelatedVisitsHeader>
-              <RelatedVisitsGrid>
-                {relatedVisits.map(rv => (
-                  <RelatedVisitCard
-                    key={rv.id}
-                    visitId={rv.id}
-                    fallbackTitle={rv.title}
-                    showPhotos={showVisitPhotos}
-                    onOpen={setPreviewVisitId}
-                  />
-                ))}
-              </RelatedVisitsGrid>
+              {relatedVisits.length > 0 ? (
+                <RelatedVisitsGrid>
+                  {relatedVisits.map(rv => (
+                    <RelatedVisitCard
+                      key={rv.id}
+                      visitId={rv.id}
+                      fallbackTitle={rv.title}
+                      showPhotos={showVisitPhotos}
+                      onOpen={setPreviewVisitId}
+                    />
+                  ))}
+                </RelatedVisitsGrid>
+              ) : (
+                <NoEstBox>
+                  Nie znaleziono wykonanych usług dla tego modelu pojazdu w przeszłości
+                </NoEstBox>
+              )}
             </PanelSection>
           )}
 
