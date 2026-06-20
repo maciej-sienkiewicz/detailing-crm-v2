@@ -18,6 +18,7 @@ import {
   MessageCircle,
   ChevronRight,
   Scissors,
+  GitMerge,
 } from 'lucide-react';
 import { useAuth } from '@/core';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -54,9 +55,32 @@ const Root = styled.div`
 
 const TabBar = styled.div`
   display: flex;
+  align-items: center;
   border-bottom: 1px solid ${st.border};
   gap: 0;
   margin-bottom: 16px;
+`;
+
+const ThreadAction = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  margin-bottom: 6px;
+  padding: 4px 11px;
+  background: #fff;
+  border: 1.5px solid ${st.border};
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: ${st.textSecondary};
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: all 180ms ease;
+
+  &:hover { border-color: #0ea5e9; color: #0ea5e9; background: #f0f9ff; }
+  svg { width: 12px; height: 12px; flex-shrink: 0; }
 `;
 
 const Tab = styled.button<{ $active: boolean }>`
@@ -963,11 +987,12 @@ const HistoryTab: React.FC<HistoryTabProps> = ({ leadId }) => {
 interface LeadThreadProps {
   leadId: LeadId;
   onSplitSuccess?: (newLeadId: string) => void;
+  onMerge?: () => void;
 }
 
 type ThreadTab = 'comments' | 'history';
 
-export const LeadThread: React.FC<LeadThreadProps> = ({ leadId, onSplitSuccess }) => {
+export const LeadThread: React.FC<LeadThreadProps> = ({ leadId, onSplitSuccess, onMerge }) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<ThreadTab>('comments');
   const { comments } = useLeadComments(leadId);
@@ -986,6 +1011,12 @@ export const LeadThread: React.FC<LeadThreadProps> = ({ leadId, onSplitSuccess }
           Historia
           {history.length > 0 && <CountBadge>{history.length}</CountBadge>}
         </Tab>
+        {onMerge && (
+          <ThreadAction onClick={onMerge} title="Scal ten lead z innym leadem tego samego klienta">
+            <GitMerge />
+            Scal z innym leadem
+          </ThreadAction>
+        )}
       </TabBar>
 
       {activeTab === 'comments' && (

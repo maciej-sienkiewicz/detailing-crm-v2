@@ -2103,92 +2103,110 @@ const MergeOverlay = styled.div`
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.45);
-  z-index: 1100;
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1100;
   padding: 16px;
 `;
 
-const MergeCard = styled.div`
+const MergeBox = styled.div`
   background: #fff;
   border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
   width: 100%;
-  max-width: 500px;
-  max-height: 70vh;
+  max-width: 520px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  max-height: 80vh;
   overflow: hidden;
 `;
 
-const MergeCardHeader = styled.div`
-  padding: 18px 20px 14px;
-  border-bottom: 1px solid #e2e8f0;
+const MergeHeader = styled.div`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  flex-shrink: 0;
+  padding: 16px 20px;
+  border-bottom: 1px solid ${st.border};
 `;
 
-const MergeCardTitle = styled.div`
+const MergeTitle = styled.h3`
+  margin: 0;
   font-size: 15px;
   font-weight: 700;
-  color: #0f172a;
+  color: ${st.text};
   display: flex;
   align-items: center;
   gap: 7px;
-  svg { color: #7c3aed; }
+  svg { width: 15px; height: 15px; color: #0ea5e9; }
 `;
 
-const MergeCardDesc = styled.div`
+const MergeDesc = styled.p`
+  margin: 4px 0 0;
   font-size: 12px;
-  color: #64748b;
-  margin-top: 3px;
+  color: ${st.textMuted};
+  line-height: 1.5;
 `;
 
 const MergeCloseBtn = styled.button`
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: #64748b;
-  padding: 4px;
-  border-radius: 6px;
   display: flex;
-  &:hover { background: #f1f5f9; }
-  svg { width: 16px; height: 16px; }
+  align-items: center;
+  justify-content: center;
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: ${st.textMuted};
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 180ms ease;
+  &:hover { background: #f1f5f9; color: ${st.text}; }
+  svg { width: 15px; height: 15px; }
 `;
 
 const MergeList = styled.div`
-  flex: 1;
   overflow-y: auto;
-  padding: 10px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex: 1;
 `;
 
-const MergeLeadItem = styled.div<{ $selected: boolean }>`
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 2px solid ${p => p.$selected ? '#7c3aed' : '#e2e8f0'};
-  background: ${p => p.$selected ? '#f5f3ff' : '#fafafa'};
+const MergeRow = styled.button<{ $selected: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 16px;
+  background: ${p => p.$selected ? '#f0f9ff' : 'transparent'};
+  border: none;
+  border-left: 3px solid ${p => p.$selected ? '#0ea5e9' : 'transparent'};
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
   cursor: pointer;
-  transition: all 150ms;
-  &:hover { border-color: #7c3aed; background: #faf5ff; }
+  font-family: inherit;
+  transition: background 180ms ease;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: #f0f9ff; }
+`;
+
+const MergeRowMain = styled.div`
+  flex: 1;
+  min-width: 0;
 `;
 
 const MergeLeadName = styled.div`
   font-size: 13px;
-  font-weight: 700;
-  color: #0f172a;
+  font-weight: 600;
+  color: ${st.text};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const MergeLeadMeta = styled.div`
   font-size: 11px;
-  color: #64748b;
-  margin-top: 2px;
+  color: ${st.textMuted};
+  margin-top: 3px;
   display: flex;
   gap: 6px;
   align-items: center;
@@ -2196,17 +2214,32 @@ const MergeLeadMeta = styled.div`
 
 const MergeStatusPill = styled.span<{ $color: string }>`
   display: inline-flex;
-  padding: 1px 6px;
+  padding: 1px 7px;
   border-radius: 9999px;
   background: ${p => p.$color}18;
   color: ${p => p.$color};
   font-size: 10px;
   font-weight: 700;
+  flex-shrink: 0;
 `;
 
-const MergeCardFooter = styled.div`
+const MergeRowCheck = styled.div<{ $selected: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: ${p => p.$selected ? '#0ea5e9' : 'transparent'};
+  border: 1.5px solid ${p => p.$selected ? '#0ea5e9' : st.border};
+  color: #fff;
+  transition: all 150ms ease;
+  svg { width: 12px; height: 12px; }
+`;
+
+const MergeFooter = styled.div`
   padding: 12px 16px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid ${st.border};
   display: flex;
   gap: 8px;
   justify-content: flex-end;
@@ -2214,44 +2247,43 @@ const MergeCardFooter = styled.div`
 `;
 
 const MergeConfirmBtn = styled.button`
-  padding: 7px 16px;
-  background: #7c3aed;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #0ea5e9;
   color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: 9px;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
-  transition: background 150ms;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  &:hover { background: #6d28d9; }
-  &:disabled { opacity: 0.55; cursor: not-allowed; }
+  transition: background 180ms ease;
+  &:hover { background: #0284c7; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
   svg { width: 13px; height: 13px; }
 `;
 
 const MergeCancelBtn = styled.button`
-  padding: 7px 14px;
+  padding: 8px 14px;
   background: transparent;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  color: ${st.textSecondary};
+  border: 1.5px solid ${st.border};
+  border-radius: 9px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  transition: all 150ms;
-  &:hover { background: #f1f5f9; color: #0f172a; }
+  transition: all 180ms ease;
+  &:hover { background: #f1f5f9; color: ${st.text}; }
 `;
 
-const MergeEmptyMsg = styled.div`
-  padding: 24px;
+const MergeEmpty = styled.div`
+  padding: 32px 16px;
   text-align: center;
-  color: #94a3b8;
   font-size: 13px;
-  font-style: italic;
+  color: ${st.textMuted};
 `;
 
 const MERGE_STATUS_COLORS: Record<string, string> = {
@@ -2286,49 +2318,51 @@ const MergeLeadDialog: React.FC<MergeLeadDialogProps> = ({
 
   return createPortal(
     <MergeOverlay onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <MergeCard>
-        <MergeCardHeader>
+      <MergeBox>
+        <MergeHeader>
           <div>
-            <MergeCardTitle><GitMerge size={15} /> Scal leady</MergeCardTitle>
-            <MergeCardDesc>
-              Wybierz lead docelowy — bieżący lead zostanie zamknięty i scalony do wybranego.
-            </MergeCardDesc>
+            <MergeTitle><GitMerge /> Scal z innym leadem</MergeTitle>
+            <MergeDesc>
+              Wybierz lead docelowy. Komentarze trafią do niego, a bieżący lead
+              zostanie zamknięty jako utracony.
+            </MergeDesc>
           </div>
           <MergeCloseBtn onClick={onClose}><X /></MergeCloseBtn>
-        </MergeCardHeader>
+        </MergeHeader>
 
         <MergeList>
           {isLoading ? (
-            <MergeEmptyMsg>Ładowanie leadów…</MergeEmptyMsg>
+            <MergeEmpty>Ładowanie…</MergeEmpty>
           ) : candidates.length === 0 ? (
-            <MergeEmptyMsg>
-              Brak innych leadów dla tego kontaktu ({contactIdentifier}).
-            </MergeEmptyMsg>
+            <MergeEmpty>Brak innych leadów dla tego klienta</MergeEmpty>
           ) : (
-            candidates.map(lead => (
-              <MergeLeadItem
-                key={lead.id}
-                $selected={selectedId === lead.id}
-                onClick={() => setSelectedId(lead.id)}
-              >
-                <MergeLeadName>{lead.customerName || lead.contactIdentifier}</MergeLeadName>
-                <MergeLeadMeta>
-                  <MergeStatusPill $color={MERGE_STATUS_COLORS[lead.status] ?? '#64748b'}>
-                    {MERGE_STATUS_LABELS[lead.status] ?? lead.status}
-                  </MergeStatusPill>
-                  <span>{new Date(lead.createdAt).toLocaleDateString('pl-PL')}</span>
-                  {lead.initialMessage && (
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>
-                      · {lead.initialMessage.slice(0, 60)}
-                    </span>
-                  )}
-                </MergeLeadMeta>
-              </MergeLeadItem>
-            ))
+            candidates.map(lead => {
+              const selected = selectedId === lead.id;
+              return (
+                <MergeRow
+                  key={lead.id}
+                  $selected={selected}
+                  onClick={() => setSelectedId(selected ? null : lead.id)}
+                >
+                  <MergeRowMain>
+                    <MergeLeadName>{lead.customerName || lead.contactIdentifier}</MergeLeadName>
+                    <MergeLeadMeta>
+                      <MergeStatusPill $color={MERGE_STATUS_COLORS[lead.status] ?? '#64748b'}>
+                        {MERGE_STATUS_LABELS[lead.status] ?? lead.status}
+                      </MergeStatusPill>
+                      <span>{formatDateTime(lead.createdAt)}</span>
+                    </MergeLeadMeta>
+                  </MergeRowMain>
+                  <MergeRowCheck $selected={selected}>
+                    {selected && <Check />}
+                  </MergeRowCheck>
+                </MergeRow>
+              );
+            })
           )}
         </MergeList>
 
-        <MergeCardFooter>
+        <MergeFooter>
           <MergeCancelBtn onClick={onClose}>Anuluj</MergeCancelBtn>
           <MergeConfirmBtn
             disabled={!selectedId || isPending}
@@ -2337,30 +2371,12 @@ const MergeLeadDialog: React.FC<MergeLeadDialogProps> = ({
             <GitMerge />
             {isPending ? 'Scalanie…' : 'Scal leady'}
           </MergeConfirmBtn>
-        </MergeCardFooter>
-      </MergeCard>
+        </MergeFooter>
+      </MergeBox>
     </MergeOverlay>,
     document.body
   );
 };
-
-const MergeBtn = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
-  background: transparent;
-  border: 1px solid #ddd6fe;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #7c3aed;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 150ms;
-  &:hover { background: #f5f3ff; border-color: #7c3aed; }
-  svg { width: 12px; height: 12px; }
-`;
 
 // ─── Main modal component ─────────────────────────────────────────────────────
 
@@ -2685,12 +2701,11 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
 
           {/* Comments & history */}
           <div style={{ borderTop: `1px solid ${st.border}`, paddingTop: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-              <MergeBtn onClick={() => setIsMergeOpen(true)}>
-                <GitMerge /> Scal z innym leadem
-              </MergeBtn>
-            </div>
-            <LeadThread leadId={lead.id} onSplitSuccess={handleSplitSuccess} />
+            <LeadThread
+              leadId={lead.id}
+              onSplitSuccess={handleSplitSuccess}
+              onMerge={() => setIsMergeOpen(true)}
+            />
           </div>
 
         </ModalBody>
