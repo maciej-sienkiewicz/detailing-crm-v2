@@ -27,6 +27,7 @@ import {
   useUpdateLeadStatus,
   useDeleteLead,
   useAssignLeadUser,
+  useAddComment,
   useSetLostReason,
   useSaveUserQuote,
   useDeleteUserQuote,
@@ -2481,6 +2482,155 @@ const DangerActionBtn = styled(ActionBtn)`
   &:hover { border-color: #dc2626; color: #dc2626; background: #fef2f2; }
 `;
 
+// ─── Status change comment modal ─────────────────────────────────────────────
+
+const SCOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 16px;
+`;
+
+const SCBox = styled.div`
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+`;
+
+const SCHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid ${st.border};
+`;
+
+const SCTitle = styled.h3`
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: ${st.text};
+`;
+
+const SCDesc = styled.p`
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: ${st.textMuted};
+  line-height: 1.5;
+`;
+
+const SCCloseBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: ${st.textMuted};
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 180ms ease;
+  &:hover { background: #f1f5f9; color: ${st.text}; }
+  svg { width: 15px; height: 15px; }
+`;
+
+const SCBody = styled.div`
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const SCStatusArrow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+`;
+
+const SCStatusChip = styled.span<{ $color: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  background: ${p => p.$color}18;
+  color: ${p => p.$color};
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid ${p => p.$color}33;
+`;
+
+const SCTextarea = styled.textarea`
+  width: 100%;
+  min-height: 88px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  border: 1.5px solid ${st.border};
+  border-radius: 10px;
+  background: #fff;
+  color: ${st.text};
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 180ms ease;
+  &:focus { border-color: #0ea5e9; }
+  &::placeholder { color: ${st.textMuted}; }
+`;
+
+const SCFooter = styled.div`
+  padding: 12px 20px;
+  border-top: 1px solid ${st.border};
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+`;
+
+const SCConfirmBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #0ea5e9;
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 180ms ease;
+  &:hover { background: #0284c7; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+const SCCancelBtn = styled.button`
+  padding: 8px 14px;
+  background: transparent;
+  color: ${st.textSecondary};
+  border: 1.5px solid ${st.border};
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 180ms ease;
+  &:hover { background: #f1f5f9; color: ${st.text}; }
+`;
+
 // ─── Main modal component ─────────────────────────────────────────────────────
 
 export interface LeadDetailModalProps {
@@ -2495,6 +2645,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
   const updateStatus  = useUpdateLeadStatus();
   const deleteLead    = useDeleteLead();
   const assignUser    = useAssignLeadUser(lead?.id ?? '');
+  const addComment    = useAddComment(lead?.id ?? '');
   const setLostReason = useSetLostReason(lead?.id ?? '');
   const mergeLead     = useMergeLead();
   const { showSuccess } = useToast();
@@ -2509,6 +2660,8 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isOfferOpen, setIsOfferOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<LeadStatus | null>(null);
+  const [statusChangeComment, setStatusChangeComment] = useState('');
   const statusWrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -2521,6 +2674,8 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
       setIsStatusMenuOpen(false);
       setIsDeleteConfirmOpen(false);
       setIsOfferOpen(false);
+      setPendingStatus(null);
+      setStatusChangeComment('');
     }
   }, [isOpen]);
 
@@ -2541,11 +2696,25 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
   };
 
   const handleStatusChange = (status: LeadStatus) => {
-    if (!lead || status === lead.status) { setIsStatusMenuOpen(false); return; }
+    setIsStatusMenuOpen(false);
+    if (!lead || status === (detail?.status ?? lead.status)) return;
+    setPendingStatus(status);
+    setStatusChangeComment('');
+  };
+
+  const handleStatusChangeConfirm = () => {
+    if (!lead || !pendingStatus) return;
     updateStatus.mutate(
-      { id: lead.id, status },
+      { id: lead.id, status: pendingStatus },
       {
-        onSuccess: () => { showSuccess('Status zaktualizowany'); setIsStatusMenuOpen(false); },
+        onSuccess: () => {
+          showSuccess('Status zaktualizowany');
+          if (statusChangeComment.trim()) {
+            addComment.mutate({ content: statusChangeComment.trim() });
+          }
+          setPendingStatus(null);
+          setStatusChangeComment('');
+        },
       }
     );
   };
@@ -2976,6 +3145,47 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
         onConfirm={handleDelete}
         onCancel={() => setIsDeleteConfirmOpen(false)}
       />
+
+      {pendingStatus && createPortal(
+        <SCOverlay onClick={e => { if (e.target === e.currentTarget) { setPendingStatus(null); setStatusChangeComment(''); } }}>
+          <SCBox>
+            <SCHeader>
+              <div>
+                <SCTitle>Zmiana statusu</SCTitle>
+                <SCDesc>Dodaj komentarz wyjaśniający zmianę — trafi do historii leada.</SCDesc>
+              </div>
+              <SCCloseBtn onClick={() => { setPendingStatus(null); setStatusChangeComment(''); }}><X /></SCCloseBtn>
+            </SCHeader>
+            <SCBody>
+              <SCStatusArrow>
+                <SCStatusChip $color={STATUS_COLORS[currentStatus] ?? '#64748b'}>
+                  <StatusDot $color={STATUS_COLORS[currentStatus] ?? '#64748b'} />
+                  {STATUS_LABELS[currentStatus] ?? currentStatus}
+                </SCStatusChip>
+                <ArrowRight size={14} style={{ color: st.textMuted, flexShrink: 0 }} />
+                <SCStatusChip $color={STATUS_COLORS[pendingStatus] ?? '#64748b'}>
+                  <StatusDot $color={STATUS_COLORS[pendingStatus] ?? '#64748b'} />
+                  {STATUS_LABELS[pendingStatus] ?? pendingStatus}
+                </SCStatusChip>
+              </SCStatusArrow>
+              <SCTextarea
+                autoFocus
+                placeholder="Komentarz do zmiany statusu (opcjonalny)…"
+                value={statusChangeComment}
+                onChange={e => setStatusChangeComment(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleStatusChangeConfirm(); }}
+              />
+            </SCBody>
+            <SCFooter>
+              <SCCancelBtn onClick={() => { setPendingStatus(null); setStatusChangeComment(''); }}>Anuluj</SCCancelBtn>
+              <SCConfirmBtn onClick={handleStatusChangeConfirm} disabled={updateStatus.isPending}>
+                {updateStatus.isPending ? 'Zapisywanie…' : 'Zmień status'}
+              </SCConfirmBtn>
+            </SCFooter>
+          </SCBox>
+        </SCOverlay>,
+        document.body
+      )}
     </>
   );
 };
