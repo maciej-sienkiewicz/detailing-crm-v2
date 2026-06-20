@@ -2987,7 +2987,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
                     System przetwarza zapytanie...
                   </PendingLabel>
                 </NoEstBox>
-              ) : estimation && estimation.matchedItems.length > 0 ? (
+              ) : estimation && (estimation.matchedItems.length > 0 || estimation.unmatchedNeeds.length > 0) ? (
                 <EstCard>
                   {estimation.matchedItems.map(item => (
                     <EstRow key={item.serviceName}>
