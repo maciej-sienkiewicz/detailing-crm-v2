@@ -32,6 +32,9 @@ import type {
   EditCommentRequest,
   LeadStatusHistoryEntry,
   QuoteReplyExampleDto,
+  SplitCommentResponse,
+  MergeLeadRequest,
+  MergeLeadResponse,
 } from '../types';
 
 const USE_MOCKS = false;
@@ -807,6 +810,18 @@ export const leadApi = {
 
   deleteComment: async (leadId: LeadId, commentId: string): Promise<void> => {
     await apiClient.delete(`${BASE_PATH}/${leadId}/comments/${commentId}`);
+  },
+
+  // ─── Split / Merge ────────────────────────────────────────────────────────
+
+  splitComment: async (leadId: LeadId, commentId: string): Promise<SplitCommentResponse> => {
+    const response = await apiClient.post(`${BASE_PATH}/${leadId}/comments/${commentId}/split`);
+    return response.data;
+  },
+
+  mergeLead: async (sourceLeadId: LeadId, req: MergeLeadRequest): Promise<MergeLeadResponse> => {
+    const response = await apiClient.post(`${BASE_PATH}/${sourceLeadId}/merge`, req);
+    return response.data;
   },
 
   // ─── Status history ────────────────────────────────────────────────────────

@@ -29,6 +29,8 @@ import type {
   AddCommentRequest,
   EditCommentRequest,
   LeadStatusHistoryEntry,
+  SplitCommentResponse,
+  MergeLeadResponse,
 } from '../types';
 
 // Query keys
@@ -536,6 +538,30 @@ export const useDeleteComment = (leadId: LeadId) => {
     mutationFn: (commentId) => leadApi.deleteComment(leadId, commentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: leadCommentKey(leadId) });
+    },
+  });
+};
+
+// ─── Split / Merge ──────────────────────────────────────────────────────────────
+
+export const useSplitComment = (leadId: LeadId) => {
+  const queryClient = useQueryClient();
+  return useMutation<SplitCommentResponse, Error, string>({
+    mutationFn: (commentId) => leadApi.splitComment(leadId, commentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: leadCommentKey(leadId) });
+      queryClient.invalidateQueries({ queryKey: LEADS_KEY });
+    },
+  });
+};
+
+export const useMergeLead = () => {
+  const queryClient = useQueryClient();
+  return useMutation<MergeLeadResponse, Error, { sourceLeadId: LeadId; targetLeadId: string }>({
+    mutationFn: ({ sourceLeadId, targetLeadId }) =>
+      leadApi.mergeLead(sourceLeadId, { targetLeadId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: LEADS_KEY });
     },
   });
 };

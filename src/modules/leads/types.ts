@@ -460,6 +460,23 @@ export interface SetServiceTagsRequest {
 }
 
 // ---------------------------------------------------------------------------
+// Split / Merge
+// ---------------------------------------------------------------------------
+
+export interface SplitCommentResponse {
+  newLeadId: string;
+  sourceLeadId: string;
+}
+
+export interface MergeLeadRequest {
+  targetLeadId: string;
+}
+
+export interface MergeLeadResponse {
+  targetLeadId: string;
+}
+
+// ---------------------------------------------------------------------------
 // Comments (GET|POST /api/v1/leads/{id}/comments, PATCH|DELETE .../comments/{commentId})
 // ---------------------------------------------------------------------------
 

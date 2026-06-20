@@ -17,6 +17,7 @@ import {
   FileText,
   MessageCircle,
   ChevronRight,
+  Scissors,
 } from 'lucide-react';
 import { useAuth } from '@/core';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
@@ -26,6 +27,7 @@ import {
   useEditComment,
   useDeleteComment,
   useLeadStatusHistory,
+  useSplitComment,
 } from '../hooks';
 import { formatRelativeTime, formatDateTime, formatCurrency } from '../utils/formatters';
 import type { LeadId, LeadHistoryAction, LeadStatus, FieldChange } from '../types';
@@ -279,6 +281,34 @@ const EmptyThread = styled.div`
   font-style: italic;
 `;
 
+const SplitConfirm = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: #fef9c3;
+  border: 1px solid #fde047;
+  border-radius: 8px;
+  font-size: 11px;
+  color: #713f12;
+  font-weight: 500;
+`;
+
+const SplitConfirmBtn = styled.button<{ $primary?: boolean }>`
+  padding: 2px 8px;
+  border-radius: 5px;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 150ms;
+  background: ${p => p.$primary ? '#ca8a04' : 'transparent'};
+  color: ${p => p.$primary ? '#fff' : '#713f12'};
+  &:hover { background: ${p => p.$primary ? '#a16207' : '#fef08a'}; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+`;
+
 // ─── New comment composer ─────────────────────────────────────────────────────
 
 const Composer = styled.div`
@@ -348,14 +378,17 @@ interface CommentItemProps {
   comment: import('../types').LeadCommentDto;
   currentUserId: string;
   leadId: LeadId;
+  onSplitSuccess?: (newLeadId: string) => void;
 }
 
-const CommentItem: React.FC<CommentItemProps> = ({ comment, currentUserId, leadId }) => {
+const CommentItem: React.FC<CommentItemProps> = ({ comment, currentUserId, leadId, onSplitSuccess }) => {
   const isOwn = comment.createdBy === currentUserId;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(comment.content);
+  const [confirmSplit, setConfirmSplit] = useState(false);
   const editMutation = useEditComment(leadId);
   const deleteMutation = useDeleteComment(leadId);
+  const splitMutation = useSplitComment(leadId);
 
   const initials = comment.createdByName
     .split(' ')
@@ -415,18 +448,43 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, currentUserId, leadI
         ) : (
           <>
             <Bubble $own={isOwn}>{comment.content}</Bubble>
-            <BubbleActions $own={isOwn}>
-              <MicroBtn onClick={() => setEditing(true)}>
-                <Edit3 /> Edytuj
-              </MicroBtn>
-              <MicroBtn
-                $danger
-                onClick={() => deleteMutation.mutate(comment.id)}
-                disabled={deleteMutation.isPending}
-              >
-                <Trash2 /> Usuń
-              </MicroBtn>
-            </BubbleActions>
+            {confirmSplit ? (
+              <SplitConfirm>
+                <Scissors size={11} />
+                Wydzielić jako nowy lead?
+                <SplitConfirmBtn
+                  $primary
+                  disabled={splitMutation.isPending}
+                  onClick={() => {
+                    splitMutation.mutate(comment.id, {
+                      onSuccess: (res) => {
+                        setConfirmSplit(false);
+                        onSplitSuccess?.(res.newLeadId);
+                      },
+                    });
+                  }}
+                >
+                  {splitMutation.isPending ? '…' : 'Tak, wydziel'}
+                </SplitConfirmBtn>
+                <SplitConfirmBtn onClick={() => setConfirmSplit(false)}>Anuluj</SplitConfirmBtn>
+              </SplitConfirm>
+            ) : (
+              <BubbleActions $own={isOwn}>
+                <MicroBtn onClick={() => setEditing(true)}>
+                  <Edit3 /> Edytuj
+                </MicroBtn>
+                <MicroBtn onClick={() => setConfirmSplit(true)}>
+                  <Scissors /> Wydziel
+                </MicroBtn>
+                <MicroBtn
+                  $danger
+                  onClick={() => deleteMutation.mutate(comment.id)}
+                  disabled={deleteMutation.isPending}
+                >
+                  <Trash2 /> Usuń
+                </MicroBtn>
+              </BubbleActions>
+            )}
           </>
         )}
       </CommentBody>
@@ -439,9 +497,10 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, currentUserId, leadI
 interface CommentsTabProps {
   leadId: LeadId;
   currentUserId: string;
+  onSplitSuccess?: (newLeadId: string) => void;
 }
 
-const CommentsTab: React.FC<CommentsTabProps> = ({ leadId, currentUserId }) => {
+const CommentsTab: React.FC<CommentsTabProps> = ({ leadId, currentUserId, onSplitSuccess }) => {
   const { comments, isLoading } = useLeadComments(leadId);
   const addComment = useAddComment(leadId);
   const [draft, setDraft] = useState('');
@@ -484,6 +543,7 @@ const CommentsTab: React.FC<CommentsTabProps> = ({ leadId, currentUserId }) => {
               comment={c}
               currentUserId={currentUserId}
               leadId={leadId}
+              onSplitSuccess={onSplitSuccess}
             />
           ))
         )}
@@ -902,11 +962,12 @@ const HistoryTab: React.FC<HistoryTabProps> = ({ leadId }) => {
 
 interface LeadThreadProps {
   leadId: LeadId;
+  onSplitSuccess?: (newLeadId: string) => void;
 }
 
 type ThreadTab = 'comments' | 'history';
 
-export const LeadThread: React.FC<LeadThreadProps> = ({ leadId }) => {
+export const LeadThread: React.FC<LeadThreadProps> = ({ leadId, onSplitSuccess }) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<ThreadTab>('comments');
   const { comments } = useLeadComments(leadId);
@@ -928,7 +989,11 @@ export const LeadThread: React.FC<LeadThreadProps> = ({ leadId }) => {
       </TabBar>
 
       {activeTab === 'comments' && (
-        <CommentsTab leadId={leadId} currentUserId={user?.userId ?? ''} />
+        <CommentsTab
+          leadId={leadId}
+          currentUserId={user?.userId ?? ''}
+          onSplitSuccess={onSplitSuccess}
+        />
       )}
       {activeTab === 'history' && (
         <HistoryTab leadId={leadId} />
