@@ -9,12 +9,13 @@ import {
   Camera, Calendar, ArrowRight, ArrowUpRight, AlertCircle,
   History, Images, ChevronDown, User, Car,
   ExternalLink, Gauge, StickyNote, Wrench,
-  GitMerge,
+  GitMerge, Trash2,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/core';
 import { useToast } from '@/common/components/Toast';
 import { Modal } from '@/common/components/Modal/Modal';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal/ConfirmationModal';
 import { ImageViewerModal } from '@/modules/visits/components/ImageViewerModal';
 import { visitApi } from '@/modules/visits/api/visitApi';
 import { servicesApi } from '@/modules/services/api/servicesApi';
@@ -23,6 +24,8 @@ import { st } from '@/modules/statistics/components/StatisticsTheme';
 import {
   useLead,
   useUpdateLeadValue,
+  useUpdateLeadStatus,
+  useDeleteLead,
   useAssignLeadUser,
   useSetLostReason,
   useSaveUserQuote,
@@ -30,7 +33,7 @@ import {
   useLeads,
   useMergeLead,
 } from '../../hooks';
-import { OfferComposer } from '../OfferComposer';
+import { OfferComposerModal } from '../OfferComposer/OfferComposerModal';
 import { LeadThread } from '../LeadThread';
 import { EmployeePickerModal } from '../EmployeePickerModal';
 import { LeadSource, LeadStatus } from '../../types';
@@ -193,42 +196,6 @@ const PriceDetail = styled.div`
   font-variant-numeric: tabular-nums;
   text-align: right;
   margin-top: 2px;
-`;
-
-const AssignChip = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px 4px 6px;
-  background: #fff;
-  border: 1.5px solid ${st.border};
-  border-radius: 9999px;
-  font-size: 11px;
-  font-weight: 600;
-  color: ${st.textSecondary};
-  cursor: pointer;
-  font-family: inherit;
-  white-space: nowrap;
-  transition: all 180ms ease;
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  &:hover { border-color: #0ea5e9; color: #0ea5e9; background: #f0f9ff; }
-  svg { width: 12px; height: 12px; flex-shrink: 0; }
-`;
-
-const AssignChipAvatar = styled.div`
-  width: 18px; height: 18px;
-  border-radius: 50%;
-  background: #dbeafe;
-  color: #1d4ed8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 8px;
-  font-weight: 700;
-  flex-shrink: 0;
 `;
 
 // ─── Section label ─────────────────────────────────────────────────────────────
@@ -2286,15 +2253,24 @@ const MergeEmpty = styled.div`
   color: ${st.textMuted};
 `;
 
-const MERGE_STATUS_COLORS: Record<string, string> = {
+const STATUS_COLORS: Record<string, string> = {
   NEW: '#dc2626', IN_PROGRESS: '#1e40af', CONFIRMED: '#166534',
   COMPLETED: '#065f46', LOST: '#4b5563', NO_SHOW: '#92400e',
 };
 
-const MERGE_STATUS_LABELS: Record<string, string> = {
+const STATUS_LABELS: Record<string, string> = {
   NEW: 'Nowy', IN_PROGRESS: 'W kontakcie', CONFIRMED: 'Zarezerwowany',
   COMPLETED: 'Zakończony', LOST: 'Utracony', NO_SHOW: 'Porzucony',
 };
+
+const ALL_STATUSES: LeadStatus[] = [
+  LeadStatus.NEW,
+  LeadStatus.IN_PROGRESS,
+  LeadStatus.CONFIRMED,
+  LeadStatus.COMPLETED,
+  LeadStatus.LOST,
+  LeadStatus.NO_SHOW,
+];
 
 interface MergeLeadDialogProps {
   sourceLeadId: string;
@@ -2347,8 +2323,8 @@ const MergeLeadDialog: React.FC<MergeLeadDialogProps> = ({
                   <MergeRowMain>
                     <MergeLeadName>{lead.customerName || lead.contactIdentifier}</MergeLeadName>
                     <MergeLeadMeta>
-                      <MergeStatusPill $color={MERGE_STATUS_COLORS[lead.status] ?? '#64748b'}>
-                        {MERGE_STATUS_LABELS[lead.status] ?? lead.status}
+                      <MergeStatusPill $color={STATUS_COLORS[lead.status] ?? '#64748b'}>
+                        {STATUS_LABELS[lead.status] ?? lead.status}
                       </MergeStatusPill>
                       <span>{formatDateTime(lead.createdAt)}</span>
                     </MergeLeadMeta>
@@ -2378,6 +2354,133 @@ const MergeLeadDialog: React.FC<MergeLeadDialogProps> = ({
   );
 };
 
+// ─── Status pill + menu (header) ──────────────────────────────────────────────
+
+const StatusWrap = styled.div`
+  position: relative;
+`;
+
+const StatusPillBtn = styled.button<{ $color: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px 4px 11px;
+  border-radius: 9999px;
+  border: 1.5px solid ${p => p.$color}44;
+  background: ${p => p.$color}14;
+  color: ${p => p.$color};
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: all 180ms ease;
+
+  &:hover { background: ${p => p.$color}22; border-color: ${p => p.$color}77; }
+  svg { width: 12px; height: 12px; flex-shrink: 0; }
+`;
+
+const StatusMenu = styled.div`
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  min-width: 170px;
+  background: #fff;
+  border: 1px solid ${st.border};
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.14);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: ${fadeIn} 140ms ease both;
+`;
+
+const StatusMenuItem = styled.button<{ $color: string; $active: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 7px;
+  background: ${p => p.$active ? `${p.$color}14` : 'transparent'};
+  color: ${st.text};
+  font-size: 12px;
+  font-weight: ${p => p.$active ? 700 : 500};
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 150ms ease;
+
+  &:hover { background: ${p => p.$color}1f; }
+`;
+
+const StatusDot = styled.span<{ $color: string }>`
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: ${p => p.$color};
+  flex-shrink: 0;
+`;
+
+// ─── Unified action bar ───────────────────────────────────────────────────────
+
+const ActionBar = styled.div`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid ${st.border};
+  border-radius: 12px;
+`;
+
+const ActionSpacer = styled.div`
+  flex: 1 1 auto;
+`;
+
+const ActionBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  background: #fff;
+  border: 1.5px solid ${st.border};
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  color: ${st.textSecondary};
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: all 180ms ease;
+
+  &:hover { border-color: #0ea5e9; color: #0ea5e9; background: #f0f9ff; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  svg { width: 13px; height: 13px; flex-shrink: 0; }
+`;
+
+const ActionBtnAvatar = styled.div`
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: #1d4ed8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+  flex-shrink: 0;
+`;
+
+const DangerActionBtn = styled(ActionBtn)`
+  color: #dc2626;
+  border-color: #fecaca;
+  &:hover { border-color: #dc2626; color: #dc2626; background: #fef2f2; }
+`;
+
 // ─── Main modal component ─────────────────────────────────────────────────────
 
 export interface LeadDetailModalProps {
@@ -2389,6 +2492,8 @@ export interface LeadDetailModalProps {
 export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, onClose }) => {
   const { lead: detail, isLoading: isDetailLoading } = useLead(lead?.id);
   const updateValue   = useUpdateLeadValue();
+  const updateStatus  = useUpdateLeadStatus();
+  const deleteLead    = useDeleteLead();
   const assignUser    = useAssignLeadUser(lead?.id ?? '');
   const setLostReason = useSetLostReason(lead?.id ?? '');
   const mergeLead     = useMergeLead();
@@ -2401,6 +2506,10 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
   const [previewVisitId, setPreviewVisitId] = useState<string | null>(null);
   const [showVisitPhotos, setShowVisitPhotos] = useState(true);
   const [isMergeOpen, setIsMergeOpen] = useState(false);
+  const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isOfferOpen, setIsOfferOpen] = useState(false);
+  const statusWrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -2409,11 +2518,47 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
       setPreviewVisitId(null);
       setShowVisitPhotos(false);
       setIsMergeOpen(false);
+      setIsStatusMenuOpen(false);
+      setIsDeleteConfirmOpen(false);
+      setIsOfferOpen(false);
     }
   }, [isOpen]);
 
+  // Close status menu on outside click
+  useEffect(() => {
+    if (!isStatusMenuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (statusWrapRef.current && !statusWrapRef.current.contains(e.target as Node)) {
+        setIsStatusMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [isStatusMenuOpen]);
+
   const handleSplitSuccess = (_newLeadId: string) => {
     showSuccess('Komentarz wydzielony jako nowy lead');
+  };
+
+  const handleStatusChange = (status: LeadStatus) => {
+    if (!lead || status === lead.status) { setIsStatusMenuOpen(false); return; }
+    updateStatus.mutate(
+      { id: lead.id, status },
+      {
+        onSuccess: () => { showSuccess('Status zaktualizowany'); setIsStatusMenuOpen(false); },
+      }
+    );
+  };
+
+  const handleDelete = () => {
+    if (!lead) return;
+    deleteLead.mutate(lead.id, {
+      onSuccess: () => {
+        showSuccess('Lead usunięty');
+        setIsDeleteConfirmOpen(false);
+        onClose();
+      },
+    });
   };
 
   const handleMergeConfirm = (targetLeadId: string) => {
@@ -2482,6 +2627,10 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
     ? `${lead.vehicleBrand}${lead.vehicleModel ? ` ${lead.vehicleModel}` : ''}`
     : null;
 
+  const currentStatus = detail?.status ?? lead.status;
+  const statusColor = STATUS_COLORS[currentStatus] ?? '#64748b';
+  const isEmailLead = lead.source === LeadSource.EMAIL;
+
   const modalTitle = lead.customerName || lead.contactIdentifier || 'Szczegóły leada';
 
   return (
@@ -2525,22 +2674,81 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
                 )}
               </PriceStack>
 
-              <AssignChip onClick={() => setIsEmployeePickerOpen(true)} title={assignedUserName ? 'Zmień przypisanie pracownika' : 'Przypisz pracownika'}>
-                {assignedUserName ? (
-                  <>
-                    <AssignChipAvatar>{assignedUserInitials}</AssignChipAvatar>
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 110 }}>{assignedUserName}</span>
-                    <Check size={11} color="#16a34a" />
-                  </>
-                ) : (
-                  <>
-                    <UserCheck size={12} />
-                    Przypisz pracownika
-                  </>
+              <StatusWrap ref={statusWrapRef}>
+                <StatusPillBtn
+                  $color={statusColor}
+                  onClick={() => setIsStatusMenuOpen(o => !o)}
+                  title="Zmień status leada"
+                  disabled={updateStatus.isPending}
+                >
+                  <StatusDot $color={statusColor} />
+                  {STATUS_LABELS[currentStatus] ?? currentStatus}
+                  <ChevronDown />
+                </StatusPillBtn>
+                {isStatusMenuOpen && (
+                  <StatusMenu>
+                    {ALL_STATUSES.map(s => {
+                      const c = STATUS_COLORS[s] ?? '#64748b';
+                      return (
+                        <StatusMenuItem
+                          key={s}
+                          $color={c}
+                          $active={s === currentStatus}
+                          onClick={() => handleStatusChange(s)}
+                        >
+                          <StatusDot $color={c} />
+                          {STATUS_LABELS[s] ?? s}
+                          {s === currentStatus && <Check size={13} style={{ marginLeft: 'auto', color: c }} />}
+                        </StatusMenuItem>
+                      );
+                    })}
+                  </StatusMenu>
                 )}
-              </AssignChip>
+              </StatusWrap>
             </HeaderRight>
           </HeaderCard>
+
+          {/* Unified action bar — assign, offer, merge, delete */}
+          <ActionBar>
+            <ActionBtn
+              onClick={() => setIsEmployeePickerOpen(true)}
+              title={assignedUserName ? 'Zmień przypisanie pracownika' : 'Przypisz pracownika'}
+            >
+              {assignedUserName ? (
+                <>
+                  <ActionBtnAvatar>{assignedUserInitials}</ActionBtnAvatar>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 130 }}>{assignedUserName}</span>
+                </>
+              ) : (
+                <>
+                  <UserCheck />
+                  Przypisz pracownika
+                </>
+              )}
+            </ActionBtn>
+
+            {isEmailLead && (
+              <ActionBtn onClick={() => setIsOfferOpen(true)}>
+                <Mail />
+                Przygotuj ofertę
+              </ActionBtn>
+            )}
+
+            <ActionBtn onClick={() => setIsMergeOpen(true)}>
+              <GitMerge />
+              Scal z innym leadem
+            </ActionBtn>
+
+            <ActionSpacer />
+
+            <DangerActionBtn
+              onClick={() => setIsDeleteConfirmOpen(true)}
+              title="Usuń leada"
+            >
+              <Trash2 />
+              Usuń
+            </DangerActionBtn>
+          </ActionBar>
 
           {/* Initial message */}
           {lead.initialMessage && (
@@ -2551,7 +2759,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
           )}
 
           {/* Lost reason */}
-          {lead.status === LeadStatus.LOST && (
+          {currentStatus === LeadStatus.LOST && (
             <PanelSection>
               <PanelLabel style={{ justifyContent: 'space-between' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -2702,17 +2910,11 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
             </PanelSection>
           )}
 
-          {/* Offer composer */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <OfferComposer lead={lead} />
-          </div>
-
           {/* Comments & history */}
           <div style={{ borderTop: `1px solid ${st.border}`, paddingTop: 16 }}>
             <LeadThread
               leadId={lead.id}
               onSplitSuccess={handleSplitSuccess}
-              onMerge={() => setIsMergeOpen(true)}
             />
           </div>
 
@@ -2759,6 +2961,21 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
           isPending={mergeLead.isPending}
         />
       )}
+
+      {isOfferOpen && (
+        <OfferComposerModal lead={lead} onClose={() => setIsOfferOpen(false)} />
+      )}
+
+      <ConfirmationModal
+        isOpen={isDeleteConfirmOpen}
+        title="Usuń leada"
+        message={`Czy na pewno chcesz usunąć leada „${lead.customerName || lead.contactIdentifier}"? Tej operacji nie można cofnąć.`}
+        variant="danger"
+        confirmText={deleteLead.isPending ? 'Usuwanie…' : 'Usuń'}
+        cancelText="Anuluj"
+        onConfirm={handleDelete}
+        onCancel={() => setIsDeleteConfirmOpen(false)}
+      />
     </>
   );
 };
