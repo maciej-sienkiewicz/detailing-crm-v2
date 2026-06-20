@@ -731,21 +731,22 @@ const getSourceIcon = (source: LeadSource) => {
 };
 
 const formatContact = (lead: Lead): { primary: string; secondary?: string } => {
+  const identifier = lead.contactIdentifier ?? '';
   if (lead.customerName) {
-    const isPhone = !lead.contactIdentifier.includes('@');
+    const isPhone = !identifier.includes('@');
     return {
       primary: lead.customerName,
       secondary: isPhone
-        ? formatPhoneNumber(lead.contactIdentifier)
-        : truncateEmail(lead.contactIdentifier, 30),
+        ? formatPhoneNumber(identifier)
+        : truncateEmail(identifier, 30),
     };
   }
 
-  const isPhone = !lead.contactIdentifier.includes('@');
+  const isPhone = !identifier.includes('@');
   return {
     primary: isPhone
-      ? formatPhoneNumber(lead.contactIdentifier)
-      : truncateEmail(lead.contactIdentifier, 30),
+      ? formatPhoneNumber(identifier)
+      : truncateEmail(identifier, 30),
   };
 };
 

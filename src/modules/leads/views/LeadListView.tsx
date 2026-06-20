@@ -1409,18 +1409,19 @@ const STATUS_FILTER_OPTIONS: { id: LeadStatus; label: string }[] = [
 ];
 
 const formatContact = (lead: Lead): { primary: string; secondary?: string } => {
+  const identifier = lead.contactIdentifier ?? '';
   if (lead.customerName) {
     return {
       primary: lead.customerName,
-      secondary: lead.contactIdentifier.includes('@')
-        ? truncateEmail(lead.contactIdentifier, 28)
-        : formatPhoneNumber(lead.contactIdentifier),
+      secondary: identifier.includes('@')
+        ? truncateEmail(identifier, 28)
+        : formatPhoneNumber(identifier),
     };
   }
   return {
-    primary: lead.contactIdentifier.includes('@')
-      ? truncateEmail(lead.contactIdentifier, 32)
-      : formatPhoneNumber(lead.contactIdentifier),
+    primary: identifier.includes('@')
+      ? truncateEmail(identifier, 32)
+      : formatPhoneNumber(identifier),
   };
 };
 
@@ -2028,9 +2029,9 @@ export const LeadListView: React.FC = () => {
             {lead.assignedCustomer ? (() => {
               const c = lead.assignedCustomer!;
               const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || '—';
-              const contactSub = lead.contactIdentifier.includes('@')
-                ? truncateEmail(lead.contactIdentifier, 28)
-                : formatPhoneNumber(lead.contactIdentifier);
+              const contactSub = (lead.contactIdentifier ?? '').includes('@')
+                ? truncateEmail(lead.contactIdentifier ?? '', 28)
+                : formatPhoneNumber(lead.contactIdentifier ?? '');
               return (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <CustomerCell
