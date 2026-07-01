@@ -1513,7 +1513,7 @@ export const ServicesSection: React.FC = () => {
             <div>
               <FieldLabel style={{ marginBottom: 8 }}>Usługi wchodzące w skład pakietu</FieldLabel>
               <PackageInfoBox>
-                Pakiet musi zawierać co najmniej 2 usługi. Cena pakietu jest ustawiana całościowo — składowe nie mają własnych cen w kontekście pakietu.
+                Pakiet musi zawierać co najmniej 2 usługi. Cena pakietu jest ustawiana całościowo - składowe nie mają własnych cen w kontekście pakietu.
               </PackageInfoBox>
 
               <FormField style={{ marginTop: 10 }}>
