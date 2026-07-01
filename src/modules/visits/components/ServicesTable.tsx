@@ -1224,6 +1224,17 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         closeDiscountModal();
     };
 
+    // Services that require a manual price are persisted with basePriceNet = 0 and
+    // carry their actual price in a SET_NET/SET_GROSS adjustment (see
+    // toApiServiceLineItem / the check-in wizard). Reading the raw basePriceNet as
+    // the discount base would collapse them to 0 — the "Łącznie przed rabatem" total
+    // shows 0 and applying a bulk discount wipes their price. Resolve the effective
+    // net so these behave like a normal catalog price.
+    const resolveBaseNetCents = (s: ServiceLineItem): number =>
+        s.basePriceNet === 0 && (s.adjustment.type === 'SET_NET' || s.adjustment.type === 'SET_GROSS')
+            ? applyAdjustment(s.basePriceNet, s.vatRate, s.adjustment).finalNetCents
+            : s.basePriceNet;
+
     const applyBulkDiscount = () => {
         const val = parseFloat(bulkDiscountValue.replace(',', '.'));
         if (isNaN(val) || val <= 0) return;
@@ -1239,7 +1250,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                     const { finalNetCents } = applyAdjustment(ep.basePriceNet, ep.vatRate, ep.adjustment);
                     return { basePriceNetCents: finalNetCents, vatRate: ep.vatRate };
                 }
-                return { basePriceNetCents: s.basePriceNet, vatRate: s.vatRate };
+                return { basePriceNetCents: resolveBaseNetCents(s), vatRate: s.vatRate };
             });
             const adjustments = distributeAdjustment(effectiveBases, bulkDiscountType, valueInCents);
             setEditedPrices(prev => {
@@ -1256,13 +1267,13 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 return next;
             });
         } else {
-            const bases = eligible.map(s => ({ basePriceNetCents: s.basePriceNet, vatRate: s.vatRate }));
+            const bases = eligible.map(s => ({ basePriceNetCents: resolveBaseNetCents(s), vatRate: s.vatRate }));
             const adjustments = distributeAdjustment(bases, bulkDiscountType, valueInCents);
             setEditedPrices(prev => {
                 const next = { ...prev };
                 eligible.forEach((s, i) => {
                     next[s.id] = {
-                        basePriceNet: s.basePriceNet,
+                        basePriceNet: bases[i].basePriceNetCents,
                         vatRate: s.vatRate,
                         adjustment: adjustments[i],
                     };
@@ -2002,7 +2013,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 if (ep && bulkDiscountUseEdited) {
                     return applyAdjustment(ep.basePriceNet, ep.vatRate, ep.adjustment);
                 }
-                return { finalNetCents: ep?.basePriceNet ?? s.basePriceNet, finalGrossCents: netToGross(ep?.basePriceNet ?? s.basePriceNet, ep?.vatRate ?? s.vatRate) };
+                const baseNet = resolveBaseNetCents(s);
+                return { finalNetCents: baseNet, finalGrossCents: netToGross(baseNet, s.vatRate) };
             };
             const bulkBaseNet = eligible.reduce((sum, s) => sum + getEffective(s).finalNetCents, 0) / 100;
             const bulkBaseGross = eligible.reduce((sum, s) => sum + getEffective(s).finalGrossCents, 0) / 100;
