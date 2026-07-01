@@ -18,8 +18,7 @@ import type {
   InboundCallPayload,
   LeadListResponse,
 } from '../types';
-import { LeadEventType, LeadSource, LeadStatus } from '../types';
-import { formatCurrency, formatPhoneNumber } from '../utils/formatters';
+import { LeadEventType, LeadStatus } from '../types';
 
 /**
  * Hook that subscribes to the lead WebSocket topic for real-time updates.
@@ -40,14 +39,16 @@ export function useLeadSocket(): void {
       // Create new lead from WebSocket payload
       const newLead: Lead = {
         id: payload.id,
-        source: LeadSource.PHONE,
+        source: payload.source,
         status: LeadStatus.IN_PROGRESS,
-        contactIdentifier: payload.phoneNumber,
-        customerName: payload.callerName,
-        createdAt: payload.receivedAt,
-        updatedAt: payload.receivedAt,
+        contactIdentifier: payload.contactIdentifier,
+        customerName: payload.customerName ?? undefined,
+        createdAt: payload.createdAt,
+        updatedAt: payload.createdAt,
         estimatedValue: payload.estimatedValue,
-        requiresVerification: true, // Phone calls always require verification
+        estimationStatus: 'PENDING',
+        requiresVerification: true,
+        relatedVisits: [],
       };
 
       // Update TanStack Query cache optimistically
@@ -85,13 +86,9 @@ export function useLeadSocket(): void {
       // Invalidate pipeline summary to recalculate
       queryClient.invalidateQueries({ queryKey: LEAD_PIPELINE_KEY });
 
-      // Show toast notification with formatted value
-      const formattedPhone = formatPhoneNumber(payload.phoneNumber);
-      const formattedValue = formatCurrency(payload.estimatedValue);
-      showInfo(
-        'Nowe połączenie przychodzące',
-        `${formattedPhone} - Szac. wartość: ${formattedValue}`
-      );
+      // Show toast notification
+      const contact = payload.customerName ?? payload.contactIdentifier;
+      showInfo('Pojawił się nowy kontakt klienta', contact);
     },
     [queryClient, showInfo]
   );
