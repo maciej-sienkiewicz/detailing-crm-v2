@@ -149,7 +149,6 @@ const FormPanel = styled.div`
   background: white;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  overflow: hidden;
   animation: ${expandDown} 220ms ease both;
 `;
 
@@ -160,6 +159,7 @@ const FormHeader = styled.div`
   padding: 15px 20px;
   border-bottom: 1px solid #f1f5f9;
   background: #fafbfc;
+  border-radius: 12px 12px 0 0;
 `;
 
 const FormTitle = styled.span`
@@ -348,6 +348,7 @@ const FormFooter = styled.div`
   padding: 14px 22px;
   border-top: 1px solid #f1f5f9;
   background: #fafbfc;
+  border-radius: 0 0 12px 12px;
 `;
 
 const CancelBtn = styled.button`
