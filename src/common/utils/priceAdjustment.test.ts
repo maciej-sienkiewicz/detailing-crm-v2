@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     netToGross, grossToNet,
     netPlnToGrossPln, grossPlnToNetPln,
-    applyAdjustment, distributeAdjustment, toApiServiceLineItem,
+    applyAdjustment, distributeAdjustment, toApiServiceLineItem, resolveBaseNet,
 } from './priceAdjustment';
 
 // ─── netToGross ───────────────────────────────────────────────────────────────
@@ -361,5 +361,66 @@ describe('toApiServiceLineItem', () => {
         expect(result.basePriceNet).toBe(0);
         expect(result.adjustment.type).toBe('SET_NET');
         expect(result.adjustment.value).toBe(10000);
+    });
+});
+
+// ─── resolveBaseNet ───────────────────────────────────────────────────────────
+
+describe('resolveBaseNet', () => {
+    // Normal catalog services: base is the raw basePriceNet, untouched.
+    it('returns basePriceNet for a plain catalog service (no adjustment)', () => {
+        expect(resolveBaseNet({ basePriceNet: 30000, vatRate: 23, adjustment: { type: 'PERCENT', value: 0 } })).toBe(30000);
+    });
+
+    it('returns basePriceNet for a catalog service that already has a PERCENT discount', () => {
+        // The discount base must stay the ORIGINAL list price, not the discounted one.
+        expect(resolveBaseNet({ basePriceNet: 50000, vatRate: 23, adjustment: { type: 'PERCENT', value: -10 } })).toBe(50000);
+    });
+
+    it('returns basePriceNet for a catalog service priced via SET_NET (base > 0)', () => {
+        // basePriceNet is a real catalog price → do not override it.
+        expect(resolveBaseNet({ basePriceNet: 40000, vatRate: 23, adjustment: { type: 'SET_NET', value: 35000 } })).toBe(40000);
+    });
+
+    // Manual-price services: persisted as basePriceNet=0 + SET_NET/SET_GROSS.
+    it('resolves a manual-price service (basePriceNet=0 + SET_NET) to the set net', () => {
+        expect(resolveBaseNet({ basePriceNet: 0, vatRate: 23, adjustment: { type: 'SET_NET', value: 50000 } })).toBe(50000);
+    });
+
+    it('resolves a manual-price service (basePriceNet=0 + SET_GROSS) to the net derived from gross', () => {
+        // SET_GROSS 61500 @ 23% → net 50000
+        expect(resolveBaseNet({ basePriceNet: 0, vatRate: 23, adjustment: { type: 'SET_GROSS', value: 61500 } })).toBe(50000);
+    });
+
+    it('does not fabricate a base for a genuinely zero-priced service (basePriceNet=0, non-SET adjustment)', () => {
+        expect(resolveBaseNet({ basePriceNet: 0, vatRate: 23, adjustment: { type: 'PERCENT', value: 0 } })).toBe(0);
+    });
+});
+
+// ─── Bulk discount over mixed services (regression for the "Rabatuj całość" bug) ─
+
+describe('bulk discount base resolution (regression)', () => {
+    // A visit with a normal catalog service and a manual-price service that the
+    // server returned collapsed to basePriceNet=0 + SET_NET.
+    const normal = { basePriceNet: 100000, vatRate: 23, adjustment: { type: 'PERCENT' as const, value: 0 } };
+    const manual = { basePriceNet: 0, vatRate: 23, adjustment: { type: 'SET_NET' as const, value: 50000 } };
+    const services = [normal, manual];
+
+    it('"Łącznie przed rabatem" sums the resolved bases, not the raw basePriceNet', () => {
+        // Old (buggy) behaviour summed basePriceNet → 100000 + 0 = 100000.
+        const totalNet = services.reduce((sum, s) => sum + resolveBaseNet(s), 0);
+        expect(totalNet).toBe(150000);
+    });
+
+    it('applying a 10% bulk discount does not wipe the manual-price service', () => {
+        const bases = services.map(s => ({ basePriceNetCents: resolveBaseNet(s), vatRate: s.vatRate }));
+        const adjustments = distributeAdjustment(bases, 'PERCENT', 10);
+
+        // Re-apply each distributed adjustment on its resolved base (what the
+        // component stores as the new basePriceNet + adjustment).
+        const finals = bases.map((b, i) => applyAdjustment(b.basePriceNetCents, b.vatRate, adjustments[i]).finalNetCents);
+
+        expect(finals[0]).toBe(90000);  // 100000 - 10%
+        expect(finals[1]).toBe(45000);  // 50000 - 10% (previously collapsed to 0)
     });
 });

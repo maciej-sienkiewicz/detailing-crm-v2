@@ -94,6 +94,26 @@ export const applyAdjustment = (
     };
 };
 
+/**
+ * Resolves the effective "list" net price (in cents) that per-line and bulk
+ * discounts should be based on.
+ *
+ * Services that require a manual price are persisted with basePriceNet = 0 and
+ * their actual price carried in a SET_NET/SET_GROSS adjustment (see
+ * toApiServiceLineItem and the check-in wizard). For those the discount base is
+ * the resolved net — using the raw basePriceNet (0) would collapse totals to 0
+ * ("Łącznie przed rabatem" shows 0) and wipe the price when a discount is
+ * distributed over a zero base. Normal catalog services return basePriceNet
+ * unchanged.
+ */
+export const resolveBaseNet = (
+    service: { basePriceNet: number; vatRate: number; adjustment: PriceAdjustment },
+): number =>
+    service.basePriceNet === 0 &&
+    (service.adjustment.type === 'SET_NET' || service.adjustment.type === 'SET_GROSS')
+        ? applyAdjustment(service.basePriceNet, service.vatRate, service.adjustment).finalNetCents
+        : service.basePriceNet;
+
 // ─── Bulk distribution ────────────────────────────────────────────────────────
 
 /**
