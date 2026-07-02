@@ -538,6 +538,7 @@ export const ExpandButton = styled.button`
     justify-content: center;
     transition: all 150ms ease;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    z-index: 101;
 
     svg { width: 13px; height: 13px; }
 
