@@ -740,6 +740,7 @@ const ACTION_LABELS: Record<LeadHistoryAction, string> = {
   LEAD_LOST_REASON_UPDATED:    'Zmiana powodu utraty',
   LEAD_QUOTE_UPDATED:          'Aktualizacja kosztorysu',
   LEAD_COMMENT_UPDATED:        'Edycja komentarza',
+  LEAD_ESTIMATION_COMPLETED:   'Utworzono szacowany kosztorys',
 };
 
 const STATUS_COLORS: Partial<Record<LeadStatus, string>> = {
@@ -775,6 +776,7 @@ const ACTION_COLOR: Record<LeadHistoryAction, string> = {
   LEAD_LOST_REASON_UPDATED:    '#b45309',
   LEAD_QUOTE_UPDATED:          '#0ea5e9',
   LEAD_COMMENT_UPDATED:        '#64748b',
+  LEAD_ESTIMATION_COMPLETED:   '#0ea5e9',
 };
 
 // Maps each action to a lucide icon component
@@ -793,6 +795,7 @@ const ACTION_ICON: Record<LeadHistoryAction, React.FC<{ size?: number }>> = {
   LEAD_LOST_REASON_UPDATED:    AlertCircle,
   LEAD_QUOTE_UPDATED:          FileText,
   LEAD_COMMENT_UPDATED:        MessageCircle,
+  LEAD_ESTIMATION_COMPLETED:   Check,
 };
 
 const FIELD_LABELS: Record<string, string> = {
