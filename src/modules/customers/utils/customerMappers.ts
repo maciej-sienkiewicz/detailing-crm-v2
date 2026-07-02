@@ -10,6 +10,7 @@ import type {
     Reservation,
     CustomerReservationsResponse,
 } from '../types';
+import type { VisitResponse } from '@/modules/calendar/types';
 import type { CreateCustomerFormData } from './customerValidation';
 
 // Backend vehicle response type (different from frontend Vehicle type)
@@ -205,6 +206,49 @@ export const mapBackendReservationsResponse = (appointments: BackendAppointment[
 
 export const mapBackendVisitsResponse = (backendVisits: BackendVisitsResponse): CustomerVisitsResponse => ({
     visits: backendVisits.visits.map(mapBackendVisitToVisit),
-    communications: [], // Backend currently doesn't return communications
+    communications: [],
     pagination: backendVisits.pagination,
+});
+
+export const mapCalendarVisitToVisit = (v: VisitResponse): Visit => {
+    const status = (() => {
+        switch (v.status) {
+            case 'COMPLETED':        return 'completed'       as const;
+            case 'IN_PROGRESS':      return 'in-progress'     as const;
+            case 'READY_FOR_PICKUP': return 'ready-for-pickup' as const;
+            case 'REJECTED':
+            case 'ARCHIVED':         return 'cancelled'       as const;
+            default:                 return 'scheduled'       as const;
+        }
+    })();
+
+    return {
+        id: v.id,
+        date: v.scheduledDate,
+        vehicleId: v.vehicleId ?? '',
+        vehicleName: `${v.vehicle.brand} ${v.vehicle.model}`.trim(),
+        licensePlate: v.vehicle.licensePlate ?? undefined,
+        description: v.description ?? v.title ?? '',
+        totalCost: {
+            netAmount: v.totalNet / 100,
+            grossAmount: v.totalGross / 100,
+            currency: v.currency,
+        },
+        status,
+        createdBy: v.createdBy ?? '',
+        technician: v.createdBy ?? '',
+        notes: v.technicalNotes ?? '',
+        deletedAt: v.deletedAt ?? null,
+    };
+};
+
+export const mapCalendarVisitsToCustomerVisitsResponse = (visits: VisitResponse[]): CustomerVisitsResponse => ({
+    visits: visits.map(mapCalendarVisitToVisit),
+    communications: [],
+    pagination: {
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: visits.length,
+        itemsPerPage: visits.length,
+    },
 });

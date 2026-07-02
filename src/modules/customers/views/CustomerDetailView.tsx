@@ -206,8 +206,8 @@ export const CustomerDetailView = () => {
 
     const { customerDetail, isLoading, isError, refetch }   = useCustomerDetail(customerId!);
     const { vehicles, isLoading: vehiclesLoading }           = useCustomerVehicles(customerId!);
-    const { visits: regularVisits }                          = useCustomerVisits(customerId!, 1, 50, false);
-    const { visits: deletedVisits }                          = useCustomerVisits(customerId!, 1, 50, true);
+    const { visits: regularVisits }                          = useCustomerVisits(customerId!, false);
+    const { visits: deletedVisits }                          = useCustomerVisits(customerId!, true);
     const { reservations }                                   = useCustomerReservations(customerId!);
     const { entries: commEntries }                           = useCustomerCommunication(customerId!);
     const { data: revenueSummary }                           = useCustomerRevenue(customerId!);

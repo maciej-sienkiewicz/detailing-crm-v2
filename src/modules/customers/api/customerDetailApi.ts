@@ -18,7 +18,8 @@ import type {
     SignCustomerConsentPayload,
     SignCustomerConsentResult,
 } from '../types';
-import { mapBackendVehiclesResponse, mapBackendVisitsResponse, mapBackendReservationsResponse } from '../utils/customerMappers';
+import { mapBackendVehiclesResponse, mapBackendReservationsResponse, mapCalendarVisitsToCustomerVisitsResponse } from '../utils/customerMappers';
+import type { VisitResponse } from '@/modules/calendar/types';
 
 const CUSTOMERS_BASE_PATH = '/v1/customers';
 const USE_MOCKS = false;
@@ -54,35 +55,6 @@ interface BackendVehicle {
     model: string;
     year: number;
     licensePlate: string;
-}
-
-// Backend visit response type
-interface BackendVisit {
-    id: string;
-    date: string;
-    vehicleId: string;
-    vehicleName: string;
-    description: string;
-    totalCost: {
-        netAmount: number;
-        grossAmount: number;
-        currency: string;
-    };
-    status: string;
-    createdBy?: string;
-    notes: string;
-    deletedAt?: string | null;
-}
-
-// Backend visits response
-interface BackendVisitsResponse {
-    visits: BackendVisit[];
-    pagination: {
-        currentPage: number;
-        totalPages: number;
-        totalItems: number;
-        itemsPerPage: number;
-    };
 }
 
 // Backend appointment/reservation response type
@@ -457,21 +429,31 @@ export const customerDetailApi = {
         return mapBackendVehiclesResponse(response.data);
     },
 
-    getCustomerVisits: async (customerId: string, page: number = 1, limit: number = 10, includeDeleted = false): Promise<CustomerVisitsResponse> => {
+    getCustomerVisits: async (customerId: string, includeDeleted = false): Promise<CustomerVisitsResponse> => {
         if (USE_MOCKS) {
             return mockGetCustomerVisits(customerId);
         }
 
-        const params = new URLSearchParams({
-            page: page.toString(),
-            limit: limit.toString(),
-        });
-        if (includeDeleted) params.append('includeDeleted', 'true');
+        const now = new Date();
+        const startDate = new Date(now);
+        startDate.setFullYear(startDate.getFullYear() - 5);
+        const endDate = new Date(now);
+        endDate.setFullYear(endDate.getFullYear() + 1);
 
-        const response = await apiClient.get<BackendVisitsResponse>(
-            `${CUSTOMERS_BASE_PATH}/${customerId}/visits?${params.toString()}`
+        const response = await apiClient.get<{ appointments: unknown[]; visits: VisitResponse[] }>(
+            '/v1/calendar/events',
+            {
+                params: {
+                    customerId,
+                    visitStatuses: 'IN_PROGRESS,READY_FOR_PICKUP,COMPLETED,REJECTED,ARCHIVED',
+                    startDate: startDate.toISOString(),
+                    endDate: endDate.toISOString(),
+                    includeDeleted,
+                },
+            }
         );
-        return mapBackendVisitsResponse(response.data);
+
+        return mapCalendarVisitsToCustomerVisitsResponse(response.data.visits ?? []);
     },
 
     getRevenueSummary: async (customerId: string, months = 12): Promise<RevenueSummary> => {
@@ -526,13 +508,12 @@ export const customerDetailApi = {
         const endDate = new Date(now);
         endDate.setFullYear(endDate.getFullYear() + 1);
 
-        const response = await apiClient.get<{ appointments: BackendAppointment[]; visits: unknown[] }>(
+        const response = await apiClient.get<{ appointments: BackendAppointment[] }>(
             '/v1/calendar/events',
             {
                 params: {
                     customerId,
                     appointmentStatuses: 'ABANDONED,CREATED',
-                    visitStatuses: 'READY_FOR_PICKUP,IN_PROGRESS,COMPLETED',
                     startDate: startDate.toISOString(),
                     endDate: endDate.toISOString(),
                 },

@@ -153,7 +153,11 @@ export interface VisitResponse {
     } | null;
     totalNet: number;
     totalGross: number;
+    currency: string;
     technicalNotes?: string;
+    description?: string | null;
+    createdBy?: string | null;
+    deletedAt?: string | null;
     createdAt: string;
     updatedAt: string;
 }
