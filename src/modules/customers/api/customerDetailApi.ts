@@ -429,9 +429,12 @@ export const customerDetailApi = {
         return mapBackendVehiclesResponse(response.data);
     },
 
-    getCustomerVisits: async (customerId: string, includeDeleted = false): Promise<CustomerVisitsResponse> => {
+    getCustomerActiveData: async (customerId: string): Promise<{ visits: CustomerVisitsResponse; reservations: CustomerReservationsResponse }> => {
         if (USE_MOCKS) {
-            return mockGetCustomerVisits(customerId);
+            return {
+                visits: await mockGetCustomerVisits(customerId),
+                reservations: { reservations: mockReservations },
+            };
         }
 
         const now = new Date();
@@ -440,7 +443,33 @@ export const customerDetailApi = {
         const endDate = new Date(now);
         endDate.setFullYear(endDate.getFullYear() + 1);
 
-        const response = await apiClient.get<{ appointments: unknown[]; visits: VisitResponse[] }>(
+        const response = await apiClient.get<{ appointments: BackendAppointment[]; visits: VisitResponse[] }>(
+            '/v1/calendar/events',
+            {
+                params: {
+                    customerId,
+                    visitStatuses: 'IN_PROGRESS,READY_FOR_PICKUP,COMPLETED,REJECTED,ARCHIVED',
+                    appointmentStatuses: 'ABANDONED,CREATED',
+                    startDate: startDate.toISOString(),
+                    endDate: endDate.toISOString(),
+                },
+            }
+        );
+
+        return {
+            visits: mapCalendarVisitsToCustomerVisitsResponse(response.data.visits ?? []),
+            reservations: mapBackendReservationsResponse(response.data.appointments ?? []),
+        };
+    },
+
+    getCustomerDeletedVisits: async (customerId: string): Promise<CustomerVisitsResponse> => {
+        const now = new Date();
+        const startDate = new Date(now);
+        startDate.setFullYear(startDate.getFullYear() - 5);
+        const endDate = new Date(now);
+        endDate.setFullYear(endDate.getFullYear() + 1);
+
+        const response = await apiClient.get<{ visits: VisitResponse[] }>(
             '/v1/calendar/events',
             {
                 params: {
@@ -448,7 +477,7 @@ export const customerDetailApi = {
                     visitStatuses: 'IN_PROGRESS,READY_FOR_PICKUP,COMPLETED,REJECTED,ARCHIVED',
                     startDate: startDate.toISOString(),
                     endDate: endDate.toISOString(),
-                    includeDeleted,
+                    includeDeleted: true,
                 },
             }
         );
@@ -494,33 +523,6 @@ export const customerDetailApi = {
             payload
         );
         return response.data;
-    },
-
-    getCustomerReservations: async (customerId: string): Promise<CustomerReservationsResponse> => {
-        if (USE_MOCKS) {
-            await delay(300);
-            return { reservations: mockReservations };
-        }
-
-        const now = new Date();
-        const startDate = new Date(now);
-        startDate.setFullYear(startDate.getFullYear() - 3);
-        const endDate = new Date(now);
-        endDate.setFullYear(endDate.getFullYear() + 1);
-
-        const response = await apiClient.get<{ appointments: BackendAppointment[] }>(
-            '/v1/calendar/events',
-            {
-                params: {
-                    customerId,
-                    appointmentStatuses: 'ABANDONED,CREATED',
-                    startDate: startDate.toISOString(),
-                    endDate: endDate.toISOString(),
-                },
-            }
-        );
-
-        return mapBackendReservationsResponse(response.data.appointments || []);
     },
 
     getCustomerCommunication: async (customerId: string): Promise<CustomerCommunicationResponse> => {

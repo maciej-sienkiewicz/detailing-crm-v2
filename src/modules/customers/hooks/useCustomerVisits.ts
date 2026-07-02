@@ -1,24 +1,30 @@
 import { useQuery } from '@tanstack/react-query';
 import { customerDetailApi } from '../api/customerDetailApi';
 
-const CUSTOMER_VISITS_QUERY_KEY = 'customerVisits';
-
-export const useCustomerVisits = (customerId: string, includeDeleted = false) => {
+export const useCustomerActiveData = (customerId: string) => {
     const query = useQuery({
-        queryKey: [CUSTOMER_VISITS_QUERY_KEY, customerId, includeDeleted],
-        queryFn: () => customerDetailApi.getCustomerVisits(customerId, includeDeleted),
+        queryKey: ['customerActiveData', customerId],
+        queryFn: () => customerDetailApi.getCustomerActiveData(customerId),
         enabled: !!customerId,
     });
 
     return {
-        visits: query.data?.visits ?? [],
-        communications: query.data?.communications ?? [],
-        pagination: query.data?.pagination,
+        visits: query.data?.visits.visits ?? [],
+        reservations: query.data?.reservations.reservations ?? [],
         isLoading: query.isLoading,
         isError: query.isError,
-        error: query.error,
-        refetch: query.refetch,
     };
 };
 
-export const customerVisitsQueryKey = CUSTOMER_VISITS_QUERY_KEY;
+export const useCustomerDeletedVisits = (customerId: string, enabled: boolean) => {
+    const query = useQuery({
+        queryKey: ['customerDeletedVisits', customerId],
+        queryFn: () => customerDetailApi.getCustomerDeletedVisits(customerId),
+        enabled: !!customerId && enabled,
+    });
+
+    return {
+        visits: query.data?.visits ?? [],
+        isLoading: query.isLoading,
+    };
+};

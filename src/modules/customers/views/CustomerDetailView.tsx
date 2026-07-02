@@ -4,8 +4,7 @@ import { ReservationContextMenu } from '@/common/components/ReservationContextMe
 import styled from 'styled-components';
 import { useCustomerDetail } from '../hooks/useCustomerDetail';
 import { useCustomerVehicles } from '../hooks/useCustomerVehicles';
-import { useCustomerVisits } from '../hooks/useCustomerVisits';
-import { useCustomerReservations } from '../hooks/useCustomerReservations';
+import { useCustomerActiveData, useCustomerDeletedVisits } from '../hooks/useCustomerVisits';
 import { useCustomerCommunication } from '../hooks/useCustomerCommunication';
 import { useCustomerRevenue } from '../hooks/useCustomerRevenue';
 import { CustomerNotes } from '../components/CustomerNotes';
@@ -206,9 +205,8 @@ export const CustomerDetailView = () => {
 
     const { customerDetail, isLoading, isError, refetch }   = useCustomerDetail(customerId!);
     const { vehicles, isLoading: vehiclesLoading }           = useCustomerVehicles(customerId!);
-    const { visits: regularVisits }                          = useCustomerVisits(customerId!, false);
-    const { visits: deletedVisits }                          = useCustomerVisits(customerId!, true);
-    const { reservations }                                   = useCustomerReservations(customerId!);
+    const { visits: regularVisits, reservations }            = useCustomerActiveData(customerId!);
+    const { visits: deletedVisits }                          = useCustomerDeletedVisits(customerId!, showDeletedVisits);
     const { entries: commEntries }                           = useCustomerCommunication(customerId!);
     const { data: revenueSummary }                           = useCustomerRevenue(customerId!);
 
