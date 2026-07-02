@@ -226,12 +226,13 @@ export const Sidebar = () => {
                     </UserLogoutButton>
                 </UserProfile>
 
-                {isCollapsed && (
-                    <ExpandButton onClick={toggleCollapse} title="Rozwiń menu">
-                        <PanelLeftOpen />
-                    </ExpandButton>
-                )}
             </SidebarContainer>
+
+            {isCollapsed && (
+                <ExpandButton onClick={toggleCollapse} title="Rozwiń menu">
+                    <PanelLeftOpen />
+                </ExpandButton>
+            )}
         </>
     );
 };

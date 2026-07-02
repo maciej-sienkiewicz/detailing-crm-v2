@@ -522,8 +522,8 @@ export const UserLogoutButton = styled.button<{ $isCollapsed: boolean }>`
 // ─── Expand / Mobile Buttons ──────────────────────────────────────────────────
 
 export const ExpandButton = styled.button`
-    position: absolute;
-    right: -13px;
+    position: fixed;
+    left: 51px;
     top: 68px;
     width: 26px;
     height: 26px;
