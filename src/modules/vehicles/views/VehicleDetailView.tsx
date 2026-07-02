@@ -332,7 +332,7 @@ export const VehicleDetailView = () => {
                                     </PrefRow>
                                 )}
                                 <PrefRow>
-                                    <PrefKey>W systemie</PrefKey>
+                                    <PrefKey>W systemie od</PrefKey>
                                     <PrefVal>
                                         {new Date(vehicle.createdAt).toLocaleDateString('pl-PL', {
                                             day: '2-digit', month: '2-digit', year: 'numeric',
@@ -406,7 +406,7 @@ export const VehicleDetailView = () => {
                             </SumCell>
 
                             <SumCell>
-                                <KpiEyebrow>Wizyty</KpiEyebrow>
+                                <KpiEyebrow>Zakończone wizyty</KpiEyebrow>
                                 <KpiValue>{totalVisits}</KpiValue>
                                 <KpiDelta>
                                     śr. {totalVisits > 0
@@ -425,16 +425,6 @@ export const VehicleDetailView = () => {
                                         ? `${Math.floor((Date.now() - new Date(lastVisit).getTime()) / 86400000)} dni temu`
                                         : 'Brak wizyt'}
                                 </KpiDelta>
-                            </SumCell>
-
-                            <SumCell>
-                                <KpiEyebrow>Przebieg</KpiEyebrow>
-                                <KpiValue>
-                                    {vehicle.currentMileage != null
-                                        ? vehicle.currentMileage.toLocaleString('pl-PL')
-                                        : '—'}
-                                </KpiValue>
-                                <KpiDelta>km</KpiDelta>
                             </SumCell>
                         </SummaryStrip>
 
