@@ -209,14 +209,15 @@ export interface LeadEvent<T = unknown> {
 }
 
 /**
- * Payload for NEW_LEAD event
+ * Payload for NEW_LEAD WebSocket event
  */
 export interface InboundCallPayload {
   id: LeadId;
-  phoneNumber: string;
-  callerName?: string;
-  receivedAt: string;
+  source: LeadSource;
+  contactIdentifier: string;
+  customerName: string | null;
   estimatedValue: number;
+  createdAt: string;
 }
 
 /**

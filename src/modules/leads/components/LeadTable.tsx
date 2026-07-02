@@ -994,7 +994,14 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
                 )}
                 <MobileCardRow>
                   <MobileCardLabel>Wartość</MobileCardLabel>
-                  <MobileCardValue>{formatCurrency(lead.estimatedValue)}</MobileCardValue>
+                  {lead.estimationStatus === 'PENDING' ? (
+                    <PendingValue>
+                      <InlineSpinner />
+                      Przetwarzanie...
+                    </PendingValue>
+                  ) : (
+                    <MobileCardValue>{formatCurrency(lead.estimatedValue)}</MobileCardValue>
+                  )}
                 </MobileCardRow>
                 <MobileCardRow>
                   <MobileCardLabel>Aktywność</MobileCardLabel>

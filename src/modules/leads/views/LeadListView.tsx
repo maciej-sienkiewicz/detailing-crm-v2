@@ -161,6 +161,10 @@ const shimmer = keyframes`
   100% { background-position: -200% 0; }
 `;
 
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
 const pulseDot = keyframes`
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.4; }
@@ -876,6 +880,27 @@ const CellMono = styled.div`
   letter-spacing: -0.3px;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+`;
+
+const InlineSpinner = styled.span`
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: ${spin} 0.7s linear infinite;
+  opacity: 0.6;
+  vertical-align: middle;
+`;
+
+const PendingValue = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-style: italic;
 `;
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
@@ -2114,8 +2139,17 @@ export const LeadListView: React.FC = () => {
           </StatusTd>
 
           <Td>
-            <CellMono>{formatCurrency(lead.estimatedValue)}</CellMono>
-            <CellSub>brutto</CellSub>
+            {lead.estimationStatus === 'PENDING' ? (
+              <PendingValue>
+                <InlineSpinner />
+                Przetwarzanie...
+              </PendingValue>
+            ) : (
+              <>
+                <CellMono>{formatCurrency(lead.estimatedValue)}</CellMono>
+                <CellSub>brutto</CellSub>
+              </>
+            )}
           </Td>
 
           <TdActions>
