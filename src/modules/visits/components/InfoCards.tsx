@@ -289,9 +289,9 @@ const StatusPill = styled.span<{ $ok: boolean }>`
         color: ${st.accentGreen};
         border: 1px solid rgba(16, 185, 129, 0.2);
     ` : `
-        background: ${st.bg};
-        color: ${st.textMuted};
-        border: 1px solid ${st.border};
+        background: ${st.accentRedDim};
+        color: ${st.accentRed};
+        border: 1px solid rgba(239, 68, 68, 0.2);
     `}
 `;
 
@@ -527,18 +527,22 @@ export const VehicleInfoCard = ({
                 <KvRow>
                     <KvLabel>Kluczyki</KvLabel>
                     <StatusPill $ok={keysHandedOver}>
-                        {keysHandedOver
-                            ? <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>Przekazane</>
-                            : '—  Nie'}
+                        {keysHandedOver ? (
+                            <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>Przekazano</>
+                        ) : (
+                            <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Nieprzekazano</>
+                        )}
                     </StatusPill>
                 </KvRow>
 
                 <KvRow>
                     <KvLabel>Dokumenty</KvLabel>
                     <StatusPill $ok={documentsHandedOver}>
-                        {documentsHandedOver
-                            ? <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>Przekazane</>
-                            : '—  Nie'}
+                        {documentsHandedOver ? (
+                            <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>Przekazano</>
+                        ) : (
+                            <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Nieprzekazano</>
+                        )}
                     </StatusPill>
                 </KvRow>
 
