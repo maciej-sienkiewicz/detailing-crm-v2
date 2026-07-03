@@ -196,6 +196,7 @@ export interface DashboardTask {
   meta: string;
   done: boolean;
   createdAt?: string;
+  createdByUserName?: string;
 }
 
 export interface CreateTaskPayload {

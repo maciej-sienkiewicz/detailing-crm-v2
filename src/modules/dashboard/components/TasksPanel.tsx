@@ -143,6 +143,12 @@ const TaskMeta = styled.div`
   color: ${p => p.theme.colors.textMuted};
 `;
 
+const TaskCreator = styled.div`
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+`;
+
 const TaskActions = styled.div`
   display: flex;
   gap: 2px;
@@ -221,6 +227,17 @@ const Skeleton = styled.div<{ $w: string; $h?: string }>`
     100% { background-position: -200% 0; }
   }
 `;
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const formatTaskDate = (iso: string): string => {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86_400_000);
+  if (diffDays === 0) return `dziś, ${d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}`;
+  if (diffDays === 1) return `wczoraj, ${d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}`;
+  return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' }) + ', ' + d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+};
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -301,6 +318,12 @@ export const TasksPanel = () => {
                 <TaskContent>
                   <TaskTitle $done={task.done}>{task.title}</TaskTitle>
                   {task.meta && <TaskMeta>{task.meta}</TaskMeta>}
+                  {(task.createdByUserName || task.createdAt) && (
+                    <TaskCreator>
+                      {task.createdByUserName ? `Dodał: ${task.createdByUserName}` : 'Dodano'}
+                      {task.createdAt && ` · ${formatTaskDate(task.createdAt)}`}
+                    </TaskCreator>
+                  )}
                 </TaskContent>
                 <TaskActions className="task-actions">
                   <ActionBtn onClick={() => openEdit(task)} title="Edytuj">
