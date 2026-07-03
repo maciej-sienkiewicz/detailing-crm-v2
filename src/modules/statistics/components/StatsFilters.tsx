@@ -87,8 +87,6 @@ interface StatsFiltersProps {
     startDate: string;
     endDate: string;
     onGranularityChange: (g: Granularity) => void;
-    onStartDateChange: (d: string) => void;
-    onEndDateChange: (d: string) => void;
 }
 
 const GRANULARITIES: { value: Granularity; label: string }[] = [
@@ -98,11 +96,6 @@ const GRANULARITIES: { value: Granularity; label: string }[] = [
     { value: 'QUARTERLY', label: t.statistics.granularity.quarterly },
     { value: 'YEARLY', label: t.statistics.granularity.yearly },
 ];
-
-const toIso = (d: Date) => d.toISOString().slice(0, 10);
-const today = () => toIso(new Date());
-const daysAgo = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return toIso(d); };
-const monthsAgo = (n: number) => { const d = new Date(); d.setMonth(d.getMonth() - n); return toIso(d); };
 
 // ─── Granularity constraints ───────────────────────────────────────────────────
 
@@ -120,23 +113,6 @@ const getAllowedGranularities = (days: number): Set<Granularity> => {
 
 const GRANULARITY_ORDER: Granularity[] = ['YEARLY', 'QUARTERLY', 'MONTHLY', 'WEEKLY', 'DAILY'];
 
-type Preset = {
-    label: string;
-    startDate: string;
-    endDate: string;
-    granularity: Granularity;
-};
-
-const getPresets = (): Preset[] => [
-    { label: t.statistics.presets.last7days,    startDate: daysAgo(7),    endDate: today(), granularity: 'DAILY' },
-    { label: t.statistics.presets.last30days,   startDate: daysAgo(30),   endDate: today(), granularity: 'WEEKLY' },
-    { label: t.statistics.presets.last3months,  startDate: monthsAgo(3),  endDate: today(), granularity: 'MONTHLY' },
-    { label: t.statistics.presets.last12months, startDate: monthsAgo(12), endDate: today(), granularity: 'MONTHLY' },
-];
-
-const matchesPreset = (p: Preset, startDate: string, endDate: string) =>
-    p.startDate === startDate && p.endDate === endDate;
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const StatsFilters = ({
@@ -144,12 +120,7 @@ export const StatsFilters = ({
     startDate,
     endDate,
     onGranularityChange,
-    onStartDateChange,
-    onEndDateChange,
 }: StatsFiltersProps) => {
-    const presets = getPresets();
-    const activePresetIdx = presets.findIndex(p => matchesPreset(p, startDate, endDate));
-
     const days = getDaysDiff(startDate, endDate);
     const allowedGranularities = getAllowedGranularities(days);
 
@@ -161,32 +132,8 @@ export const StatsFilters = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [startDate, endDate]);
 
-    const applyPreset = (preset: Preset) => {
-        onStartDateChange(preset.startDate);
-        onEndDateChange(preset.endDate);
-        onGranularityChange(preset.granularity);
-    };
-
     return (
         <FiltersPanel>
-            {/* Row 1: Quick presets */}
-            <FilterRow>
-                <FilterLabel>
-                    Zakres dat</FilterLabel>
-                <ChipGroup>
-                    {presets.map((preset, idx) => (
-                        <Chip
-                            key={preset.label}
-                            $active={idx === activePresetIdx}
-                            onClick={() => applyPreset(preset)}
-                        >
-                            {preset.label}
-                        </Chip>
-                    ))}
-                </ChipGroup>
-            </FilterRow>
-
-            {/* Row 2: Granularity chips */}
             <FilterRow>
                 <FilterLabel>Grupowanie</FilterLabel>
                 <ChipGroup>

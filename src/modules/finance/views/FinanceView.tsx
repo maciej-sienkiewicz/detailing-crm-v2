@@ -467,7 +467,147 @@ const PlusIcon = () => (
   </svg>
 );
 
-// ─── Date range picker ────────────────────────────────────────────────────────
+// ─── Header date picker (dark, portal-based) ──────────────────────────────────
+
+const FinHdrActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const HdrPickerWrap = styled.div`
+  position: relative;
+  flex-shrink: 0;
+`;
+
+const HdrPickerTrigger = styled.button<{ $active: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 15px;
+  background: ${p => p.$active ? 'rgba(14, 165, 233, 0.22)' : 'rgba(255, 255, 255, 0.08)'};
+  color: ${p => p.$active ? '#7dd3fc' : '#e2e8f0'};
+  border: 1px solid ${p => p.$active ? 'rgba(125, 211, 252, 0.45)' : 'rgba(255, 255, 255, 0.14)'};
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: ${st.fontSm};
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all ${st.transition};
+
+  &:hover {
+    background: ${p => p.$active ? 'rgba(14, 165, 233, 0.3)' : 'rgba(255, 255, 255, 0.14)'};
+    color: #fff;
+  }
+  svg { width: 14px; height: 14px; flex-shrink: 0; }
+`;
+
+const HdrPickerPanel = styled.div`
+  position: fixed;
+  z-index: 9000;
+  background: ${(p) => p.theme.colors.surface};
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: ${st.radius};
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
+  min-width: 240px;
+  padding: 8px;
+`;
+
+interface FinHeaderDatePickerProps {
+  preset: DatePreset;
+  customFrom: string;
+  customTo: string;
+  onChange: (preset: DatePreset, from: string, to: string) => void;
+}
+
+const FinHeaderDatePicker: React.FC<FinHeaderDatePickerProps> = ({ preset, customFrom, customTo, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const [panelPos, setPanelPos] = useState<{ top: number; right: number } | null>(null);
+  const [pendingFrom, setPendingFrom] = useState('');
+  const [pendingTo, setPendingTo] = useState('');
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        panelRef.current && !panelRef.current.contains(e.target as Node) &&
+        triggerRef.current && !triggerRef.current.contains(e.target as Node)
+      ) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const handleToggle = () => {
+    if (!open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPanelPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+      setPendingFrom(customFrom);
+      setPendingTo(customTo);
+    }
+    setOpen(p => !p);
+  };
+
+  const selectPreset = (p: Exclude<DatePreset, 'custom'>) => {
+    onChange(p, '', '');
+    setOpen(false);
+  };
+
+  const applyCustom = () => {
+    onChange('custom', pendingFrom, pendingTo);
+    setOpen(false);
+  };
+
+  const label = formatPresetLabel(preset, preset === 'custom' ? customFrom : undefined, preset === 'custom' ? customTo : undefined);
+
+  return (
+    <HdrPickerWrap>
+      <HdrPickerTrigger ref={triggerRef} $active={preset !== 'all'} onClick={handleToggle}>
+        <CalendarIcon />
+        {label}
+        <SmallChevron />
+      </HdrPickerTrigger>
+
+      {open && panelPos && createPortal(
+        <HdrPickerPanel ref={panelRef} style={{ top: panelPos.top, right: panelPos.right }}>
+          <DPPresetGroup>
+            {([
+              ['all',     'Cały czas',       ''] as const,
+              ['week',    'Ostatni tydzień',  '7 dni'] as const,
+              ['month',   'Ostatni miesiąc',  '30 dni'] as const,
+              ['quarter', 'Ostatni kwartał',  '90 dni'] as const,
+            ]).map(([id, lbl, hint]) => (
+              <DPPresetBtn key={id} $active={preset === id} onClick={() => selectPreset(id)}>
+                {lbl}
+                {hint && <span className="hint">{hint}</span>}
+                {preset === id && <SmallCheck />}
+              </DPPresetBtn>
+            ))}
+          </DPPresetGroup>
+
+          <DPDivider />
+          <DPLabel>Niestandardowy zakres</DPLabel>
+
+          <DPRangeRow>
+            <DPDateInput type="date" value={pendingFrom} max={pendingTo || undefined} onChange={e => setPendingFrom(e.target.value)} />
+            <DPSep>–</DPSep>
+            <DPDateInput type="date" value={pendingTo} min={pendingFrom || undefined} onChange={e => setPendingTo(e.target.value)} />
+          </DPRangeRow>
+
+          <DPApplyBtn disabled={!pendingFrom && !pendingTo} onClick={applyCustom}>
+            Zastosuj zakres
+          </DPApplyBtn>
+        </HdrPickerPanel>,
+        document.body
+      )}
+    </HdrPickerWrap>
+  );
+};
+
+// ─── Date range picker (filter strip, light) ──────────────────────────────────
 
 type DatePreset = 'all' | 'week' | 'month' | 'quarter' | 'custom';
 
@@ -741,24 +881,19 @@ const PAGE_SIZE = 20;
 
 interface IncomeFilters {
   status:       string;
-  dateFrom:     string;
-  dateTo:       string;
   documentType: string;
   page:         number;
 }
 
-const IncomeTabContent: React.FC = () => {
+interface IncomeTabContentProps {
+  activeDateRange: { dateFrom?: string; dateTo?: string };
+}
+
+const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange }) => {
   const [filters, setFilters] = useState<IncomeFilters>({
-    status: '', dateFrom: '', dateTo: '', documentType: '', page: 1,
+    status: '', documentType: '', page: 1,
   });
   const [showDeleted, setShowDeleted] = useState(false);
-  const [datePreset, setDatePreset]   = useState<DatePreset>('all');
-  const [customFrom, setCustomFrom]   = useState('');
-  const [customTo, setCustomTo]       = useState('');
-
-  const activeDateRange = datePreset === 'custom'
-    ? { dateFrom: customFrom || undefined, dateTo: customTo || undefined }
-    : getPresetRange(datePreset);
 
   const { documents, total, isLoading, isError, refetch } = useFinanceDocuments({
     direction:      'INCOME',
@@ -772,16 +907,9 @@ const IncomeTabContent: React.FC = () => {
   });
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
-  const hasFilters = !!(filters.status || filters.documentType || datePreset !== 'all');
+  const hasFilters = !!(filters.status || filters.documentType);
   const setFilter  = <K extends keyof IncomeFilters>(key: K, value: IncomeFilters[K]) =>
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
-
-  const handleDateChange = (preset: DatePreset, from: string, to: string) => {
-    setDatePreset(preset);
-    setCustomFrom(from);
-    setCustomTo(to);
-    setFilters((prev) => ({ ...prev, page: 1 }));
-  };
 
   return (
     <>
@@ -806,21 +934,10 @@ const IncomeTabContent: React.FC = () => {
           ]}
           placeholder="Wszystkie statusy"
         />
-        <DateRangePicker
-          preset={datePreset}
-          customFrom={customFrom}
-          customTo={customTo}
-          onChange={handleDateChange}
-        />
         <FilterSeparator />
         {hasFilters && (
           <ClearFiltersBtn
-            onClick={() => {
-              setFilters({ status: '', dateFrom: '', dateTo: '', documentType: '', page: 1 });
-              setDatePreset('all');
-              setCustomFrom('');
-              setCustomTo('');
-            }}
+            onClick={() => setFilters({ status: '', documentType: '', page: 1 })}
           >
             Wyczyść filtry
           </ClearFiltersBtn>
@@ -882,23 +999,19 @@ const IncomeTabContent: React.FC = () => {
 interface ExpenseFilters {
   source:        string;
   paymentStatus: string;
-  dateFrom:      string;
-  dateTo:        string;
   page:          number;
 }
 
-const ExpensesTabContent: React.FC<{ onAddExpense: () => void }> = ({ onAddExpense }) => {
+interface ExpensesTabContentProps {
+  activeDateRange: { dateFrom?: string; dateTo?: string };
+  onAddExpense: () => void;
+}
+
+const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange, onAddExpense }) => {
   const [filters, setFilters] = useState<ExpenseFilters>({
-    source: '', paymentStatus: '', dateFrom: '', dateTo: '', page: 1,
+    source: '', paymentStatus: '', page: 1,
   });
   const [showExcluded, setShowExcluded] = useState(false);
-  const [datePreset, setDatePreset]     = useState<DatePreset>('all');
-  const [customFrom, setCustomFrom]     = useState('');
-  const [customTo, setCustomTo]         = useState('');
-
-  const activeDateRange = datePreset === 'custom'
-    ? { dateFrom: customFrom || undefined, dateTo: customTo || undefined }
-    : getPresetRange(datePreset);
 
   const { expenses, total, isLoading, isError, refetch } = useKsefExpenses({
     source:          (filters.source        as ExpenseSource)        || undefined,
@@ -911,16 +1024,9 @@ const ExpensesTabContent: React.FC<{ onAddExpense: () => void }> = ({ onAddExpen
   });
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
-  const hasFilters = !!(filters.source || filters.paymentStatus || datePreset !== 'all');
+  const hasFilters = !!(filters.source || filters.paymentStatus);
   const setFilter  = <K extends keyof ExpenseFilters>(key: K, value: ExpenseFilters[K]) =>
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
-
-  const handleDateChange = (preset: DatePreset, from: string, to: string) => {
-    setDatePreset(preset);
-    setCustomFrom(from);
-    setCustomTo(to);
-    setFilters((prev) => ({ ...prev, page: 1 }));
-  };
 
   return (
     <>
@@ -945,22 +1051,9 @@ const ExpensesTabContent: React.FC<{ onAddExpense: () => void }> = ({ onAddExpen
           ]}
           placeholder="Wszystkie statusy"
         />
-        <DateRangePicker
-          preset={datePreset}
-          customFrom={customFrom}
-          customTo={customTo}
-          onChange={handleDateChange}
-        />
         <FilterSeparator />
         {hasFilters && (
-          <ClearFiltersBtn
-            onClick={() => {
-              setFilters({ source: '', paymentStatus: '', dateFrom: '', dateTo: '', page: 1 });
-              setDatePreset('all');
-              setCustomFrom('');
-              setCustomTo('');
-            }}
-          >
+          <ClearFiltersBtn onClick={() => setFilters({ source: '', paymentStatus: '', page: 1 })}>
             Wyczyść filtry
           </ClearFiltersBtn>
         )}
@@ -1026,11 +1119,24 @@ export const FinanceView: React.FC = () => {
   const [activeTab, setActiveTab]         = useState<FinanceTab>('income');
   const [isIncomeModalOpen, setIncomeModalOpen] = useState(false);
   const [isExpenseModalOpen, setExpenseModalOpen] = useState(false);
+  const [datePreset, setDatePreset]       = useState<DatePreset>('all');
+  const [customFrom, setCustomFrom]       = useState('');
+  const [customTo, setCustomTo]           = useState('');
+
+  const activeDateRange = datePreset === 'custom'
+    ? { dateFrom: customFrom || undefined, dateTo: customTo || undefined }
+    : getPresetRange(datePreset);
 
   const openIncomeModal  = useCallback(() => setIncomeModalOpen(true),  []);
   const closeIncomeModal = useCallback(() => setIncomeModalOpen(false), []);
   const openExpenseModal  = useCallback(() => setExpenseModalOpen(true),  []);
   const closeExpenseModal = useCallback(() => setExpenseModalOpen(false), []);
+
+  const handleDateChange = (preset: DatePreset, from: string, to: string) => {
+    setDatePreset(preset);
+    setCustomFrom(from);
+    setCustomTo(to);
+  };
 
   return (
     <ViewContainer>
@@ -1038,12 +1144,20 @@ export const FinanceView: React.FC = () => {
         title="Finanse"
         subtitle="Dokumenty przychodowe, koszty KSeF i raporty"
         actions={
-          activeTab === 'income' ? (
-            <PageHeaderPrimaryButton onClick={openIncomeModal}>
-              <PlusIcon />
-              Dodaj dokument przychodowy
-            </PageHeaderPrimaryButton>
-          ) : undefined
+          <FinHdrActions>
+            <FinHeaderDatePicker
+              preset={datePreset}
+              customFrom={customFrom}
+              customTo={customTo}
+              onChange={handleDateChange}
+            />
+            {activeTab === 'income' && (
+              <PageHeaderPrimaryButton onClick={openIncomeModal}>
+                <PlusIcon />
+                Dodaj dokument przychodowy
+              </PageHeaderPrimaryButton>
+            )}
+          </FinHdrActions>
         }
       />
 
@@ -1078,10 +1192,10 @@ export const FinanceView: React.FC = () => {
           </TabBar>
 
           {activeTab === 'income' && (
-            <IncomeTabContent />
+            <IncomeTabContent activeDateRange={activeDateRange} />
           )}
           {activeTab === 'expenses' && (
-            <ExpensesTabContent onAddExpense={openExpenseModal} />
+            <ExpensesTabContent activeDateRange={activeDateRange} onAddExpense={openExpenseModal} />
           )}
           {activeTab === 'cash' && <CashRegisterPanel />}
           {activeTab === 'payment-summary' && <PaymentSummaryTab />}
