@@ -96,11 +96,17 @@ export type VehicleSortField =
 export type SortDirection = 'asc' | 'desc';
 
 export interface VehicleAdvancedFilters {
-    status?: VehicleStatus;
     brand?: string;
     model?: string;
     yearFrom?: number | null;
     yearTo?: number | null;
+    minVisits?: number | null;
+    maxVisits?: number | null;
+    minRevenue?: number | null;
+    maxRevenue?: number | null;
+    services?: string[];
+    lastServiceWithinDays?: number | null;
+    notServicedSinceDays?: number | null;
 }
 
 export interface VehicleFilters {
@@ -114,6 +120,13 @@ export interface VehicleFilters {
     model?: string;
     yearFrom?: number | null;
     yearTo?: number | null;
+    minVisits?: number | null;
+    maxVisits?: number | null;
+    minRevenue?: number | null;
+    maxRevenue?: number | null;
+    services?: string[];
+    lastServiceWithinDays?: number | null;
+    notServicedSinceDays?: number | null;
 }
 
 export interface CreateVehiclePayload {

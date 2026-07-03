@@ -325,6 +325,13 @@ export const vehicleApi = {
             ...(filters.model && { model: filters.model }),
             ...(filters.yearFrom != null && { yearFrom: filters.yearFrom.toString() }),
             ...(filters.yearTo != null && { yearTo: filters.yearTo.toString() }),
+            ...(filters.minVisits != null && { minVisits: filters.minVisits.toString() }),
+            ...(filters.maxVisits != null && { maxVisits: filters.maxVisits.toString() }),
+            ...(filters.minRevenue != null && { minRevenue: filters.minRevenue.toString() }),
+            ...(filters.maxRevenue != null && { maxRevenue: filters.maxRevenue.toString() }),
+            ...(filters.services?.length && { services: filters.services.join(',') }),
+            ...(filters.lastServiceWithinDays != null && { lastServiceWithinDays: filters.lastServiceWithinDays.toString() }),
+            ...(filters.notServicedSinceDays != null && { notServicedSinceDays: filters.notServicedSinceDays.toString() }),
         });
         const response = await apiClient.get(`${BASE_PATH}?${params}`);
         return response.data;
