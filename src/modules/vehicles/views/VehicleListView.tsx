@@ -228,7 +228,6 @@ const EMPTY_ADVANCED_FILTERS: VehicleAdvancedFilters = {};
 
 const countActiveFilters = (f: VehicleAdvancedFilters): number => {
     let n = 0;
-    if (f.status) n++;
     if (f.brand)  n++;
     if (f.model)  n++;
     if (f.yearFrom != null) n++;

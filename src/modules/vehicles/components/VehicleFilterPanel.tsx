@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
-import type { VehicleAdvancedFilters, VehicleStatus } from '../types';
+import type { VehicleAdvancedFilters } from '../types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { BrandSelect, ModelSelect } from './BrandModelSelectors';
 
@@ -109,34 +109,6 @@ const SectionLabel = styled.div`
     color: ${st.textMuted};
 `;
 
-// ─── Status tabs ──────────────────────────────────────────────────────────────
-
-const TypeGroup = styled.div`
-    display: inline-flex;
-    background: #f1f5f9;
-    border-radius: 10px;
-    padding: 3px;
-    gap: 2px;
-`;
-
-const TypeBtn = styled.button<{ $active: boolean }>`
-    border: none;
-    background: ${p => p.$active ? '#fff' : 'transparent'};
-    padding: 7px 14px;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    color: ${p => p.$active ? '#0f172a' : '#64748b'};
-    cursor: pointer;
-    transition: all 180ms ease;
-    white-space: nowrap;
-    box-shadow: ${p => p.$active ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'};
-    flex: 1;
-
-    &:hover { color: ${p => p.$active ? '#0f172a' : '#475569'}; }
-`;
-
 // ─── Vehicle selectors ────────────────────────────────────────────────────────
 
 const VehicleRow = styled.div`
@@ -234,15 +206,6 @@ const ApplyBtn = styled.button`
     }
 `;
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const STATUS_OPTIONS: { id: VehicleStatus | 'all'; label: string }[] = [
-    { id: 'all',      label: 'Wszystkie' },
-    { id: 'active',   label: 'Aktywne'   },
-    { id: 'sold',     label: 'Sprzedane' },
-    { id: 'archived', label: 'Archiwum'  },
-];
-
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface VehicleFilterPanelProps {
@@ -260,7 +223,6 @@ export const VehicleFilterPanel = ({
     onApply,
     onClose,
 }: VehicleFilterPanelProps) => {
-    const [status, setStatus]       = useState<VehicleStatus | 'all'>(initialFilters.status ?? 'all');
     const [brand, setBrand]         = useState<string>(initialFilters.brand ?? '');
     const [model, setModel]         = useState<string>(initialFilters.model ?? '');
     const [yearFrom, setYearFrom]   = useState<string>(initialFilters.yearFrom?.toString() ?? '');
@@ -268,7 +230,6 @@ export const VehicleFilterPanel = ({
 
     useEffect(() => {
         if (isOpen) {
-            setStatus(initialFilters.status ?? 'all');
             setBrand(initialFilters.brand ?? '');
             setModel(initialFilters.model ?? '');
             setYearFrom(initialFilters.yearFrom?.toString() ?? '');
@@ -282,7 +243,6 @@ export const VehicleFilterPanel = ({
     };
 
     const handleClear = () => {
-        setStatus('all');
         setBrand('');
         setModel('');
         setYearFrom('');
@@ -291,7 +251,6 @@ export const VehicleFilterPanel = ({
 
     const handleApply = () => {
         onApply({
-            status:   status !== 'all' ? status : undefined,
             brand:    brand.trim()  || undefined,
             model:    model.trim()  || undefined,
             yearFrom: yearFrom ? parseInt(yearFrom, 10) : null,
@@ -317,22 +276,6 @@ export const VehicleFilterPanel = ({
                 </DrawerHeader>
 
                 <DrawerBody>
-                    {/* Status */}
-                    <FilterSection>
-                        <SectionLabel>Status pojazdu</SectionLabel>
-                        <TypeGroup>
-                            {STATUS_OPTIONS.map(opt => (
-                                <TypeBtn
-                                    key={opt.id}
-                                    $active={status === opt.id}
-                                    onClick={() => setStatus(opt.id)}
-                                >
-                                    {opt.label}
-                                </TypeBtn>
-                            ))}
-                        </TypeGroup>
-                    </FilterSection>
-
                     {/* Marka i model */}
                     <FilterSection>
                         <SectionLabel>Marka i model</SectionLabel>
