@@ -518,7 +518,11 @@ export type LeadHistoryAction =
   | 'LEAD_CUSTOMER_ASSIGNED'
   | 'LEAD_LOST_REASON_UPDATED'
   | 'LEAD_QUOTE_UPDATED'
-  | 'LEAD_COMMENT_UPDATED';
+  | 'LEAD_COMMENT_UPDATED'
+  | 'LEAD_ACKNOWLEDGED'
+  | 'LEAD_CUSTOMER_ANSWERED'
+  | 'LEAD_ESTIMATION_COMPLETED'
+;
 
 /** Single field change within a history entry */
 export interface FieldChange {
