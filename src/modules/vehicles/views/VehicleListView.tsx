@@ -12,9 +12,11 @@ import { VehicleGrid } from '../components/VehicleGrid';
 import { VehicleSearchFilter } from '../components/VehicleSearchFilter';
 import { VehiclePagination } from '../components/VehiclePagination';
 import { CreateVehicleModal } from '../components/CreateVehicleModal';
+import { VehicleFilterPanel } from '../components/VehicleFilterPanel';
 import { t, interpolate } from '@/common/i18n';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { PageHeader, PageHeaderPrimaryButton } from '@/common/components/PageHeader';
+import type { VehicleAdvancedFilters } from '../types';
 
 const ViewContainer = styled.main`
     display: flex;
@@ -201,29 +203,50 @@ const SecondaryBtn = styled.button`
     svg { width: 15px; height: 15px; flex-shrink: 0; }
 `;
 
+const FilterBadge = styled.span`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: #0ea5e9;
+    color: #fff;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+`;
+
 const DataContainer = styled.div`
     @media (min-width: ${props => props.theme.breakpoints.lg}) {
         padding: 0;
     }
 `;
 
-type VehicleTab = 'all' | 'active' | 'sold' | 'archived';
+const EMPTY_ADVANCED_FILTERS: VehicleAdvancedFilters = {};
 
-const TABS: { id: VehicleTab; label: string }[] = [
-    { id: 'all',      label: 'Wszystkie' },
-    { id: 'active',   label: 'Aktywne'   },
-    { id: 'sold',     label: 'Sprzedane' },
-    { id: 'archived', label: 'Archiwum'  },
-];
+const countActiveFilters = (f: VehicleAdvancedFilters): number => {
+    let n = 0;
+    if (f.status) n++;
+    if (f.brand)  n++;
+    if (f.model)  n++;
+    if (f.yearFrom != null) n++;
+    if (f.yearTo   != null) n++;
+    return n;
+};
 
 export const VehicleListView = () => {
     const navigate = useNavigate();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<VehicleTab>('all');
+    const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+    const [appliedFilters, setAppliedFilters] = useState<VehicleAdvancedFilters>(EMPTY_ADVANCED_FILTERS);
     const { searchInput, debouncedSearch, handleSearchChange } = useVehicleSearch();
     const { page, limit, goToPage, resetPagination } = useVehiclePagination();
     const { deleteVehicle } = useDeleteVehicle();
     const isDesktop = useBreakpoint('lg');
+
+    const activeFilterCount = countActiveFilters(appliedFilters);
 
     const filters = useMemo(
         () => ({
@@ -232,8 +255,9 @@ export const VehicleListView = () => {
             limit,
             sortBy: 'createdAt' as const,
             sortDirection: 'desc' as const,
+            ...appliedFilters,
         }),
-        [debouncedSearch, page, limit]
+        [debouncedSearch, page, limit, appliedFilters]
     );
 
     const { vehicles, pagination, isLoading, isError, refetch } = useVehicles(filters);
@@ -340,11 +364,14 @@ export const VehicleListView = () => {
                             onChange={handleSearchChange}
                         />
                         <Spacer />
-                        <SecondaryBtn>
+                        <SecondaryBtn onClick={() => setIsFilterPanelOpen(true)}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                             </svg>
                             Filtry
+                            {activeFilterCount > 0 && (
+                                <FilterBadge>{activeFilterCount}</FilterBadge>
+                            )}
                         </SecondaryBtn>
                         <SecondaryBtn>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -371,6 +398,16 @@ export const VehicleListView = () => {
                 isOpen={isCreateModalOpen}
                 onClose={handleCloseModal}
                 onSuccess={handleCreateSuccess}
+            />
+
+            <VehicleFilterPanel
+                isOpen={isFilterPanelOpen}
+                initialFilters={appliedFilters}
+                onApply={(f) => {
+                    setAppliedFilters(f);
+                    resetPagination();
+                }}
+                onClose={() => setIsFilterPanelOpen(false)}
             />
         </ViewContainer>
     );

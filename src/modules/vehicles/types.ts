@@ -95,6 +95,14 @@ export type VehicleSortField =
 
 export type SortDirection = 'asc' | 'desc';
 
+export interface VehicleAdvancedFilters {
+    status?: VehicleStatus;
+    brand?: string;
+    model?: string;
+    yearFrom?: number | null;
+    yearTo?: number | null;
+}
+
 export interface VehicleFilters {
     search: string;
     page: number;
@@ -102,6 +110,10 @@ export interface VehicleFilters {
     sortBy?: VehicleSortField;
     sortDirection?: SortDirection;
     status?: VehicleStatus;
+    brand?: string;
+    model?: string;
+    yearFrom?: number | null;
+    yearTo?: number | null;
 }
 
 export interface CreateVehiclePayload {

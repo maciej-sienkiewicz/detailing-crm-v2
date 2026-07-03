@@ -321,6 +321,10 @@ export const vehicleApi = {
             ...(filters.sortBy && { sortBy: filters.sortBy }),
             ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
             ...(filters.status && { status: filters.status }),
+            ...(filters.brand && { brand: filters.brand }),
+            ...(filters.model && { model: filters.model }),
+            ...(filters.yearFrom != null && { yearFrom: filters.yearFrom.toString() }),
+            ...(filters.yearTo != null && { yearTo: filters.yearTo.toString() }),
         });
         const response = await apiClient.get(`${BASE_PATH}?${params}`);
         return response.data;
