@@ -325,12 +325,6 @@ export const VehicleDetailView = () => {
                                         <PrefVal>{vehicle.color}</PrefVal>
                                     </PrefRow>
                                 )}
-                                {vehicle.currentMileage != null && (
-                                    <PrefRow>
-                                        <PrefKey>Przebieg</PrefKey>
-                                        <PrefVal>{vehicle.currentMileage.toLocaleString('pl-PL')} km</PrefVal>
-                                    </PrefRow>
-                                )}
                                 <PrefRow>
                                     <PrefKey>W systemie od</PrefKey>
                                     <PrefVal>
