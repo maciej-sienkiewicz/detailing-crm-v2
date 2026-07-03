@@ -232,6 +232,13 @@ const countActiveFilters = (f: VehicleAdvancedFilters): number => {
     if (f.model)  n++;
     if (f.yearFrom != null) n++;
     if (f.yearTo   != null) n++;
+    if (f.minVisits != null) n++;
+    if (f.maxVisits != null) n++;
+    if (f.minRevenue != null) n++;
+    if (f.maxRevenue != null) n++;
+    if (f.services?.length) n++;
+    if (f.lastServiceWithinDays != null) n++;
+    if (f.notServicedSinceDays  != null) n++;
     return n;
 };
 

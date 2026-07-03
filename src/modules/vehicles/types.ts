@@ -100,6 +100,13 @@ export interface VehicleAdvancedFilters {
     model?: string;
     yearFrom?: number | null;
     yearTo?: number | null;
+    minVisits?: number | null;
+    maxVisits?: number | null;
+    minRevenue?: number | null;
+    maxRevenue?: number | null;
+    services?: string[];
+    lastServiceWithinDays?: number | null;
+    notServicedSinceDays?: number | null;
 }
 
 export interface VehicleFilters {
@@ -113,6 +120,13 @@ export interface VehicleFilters {
     model?: string;
     yearFrom?: number | null;
     yearTo?: number | null;
+    minVisits?: number | null;
+    maxVisits?: number | null;
+    minRevenue?: number | null;
+    maxRevenue?: number | null;
+    services?: string[];
+    lastServiceWithinDays?: number | null;
+    notServicedSinceDays?: number | null;
 }
 
 export interface CreateVehiclePayload {
