@@ -225,10 +225,7 @@ const ActionBtn = styled.button<{ $variant: 'exclude' | 'restore' | 'delete' | '
   border-radius: 6px;
   cursor: pointer;
   color: ${(p) => p.theme.colors.textMuted};
-  opacity: 0;
   transition: all 0.12s ease;
-
-  tr:hover & { opacity: 1; }
 
   ${(p) => {
     switch (p.$variant) {
@@ -410,14 +407,14 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
           <Thead>
             <tr>
               <Th>Data sprzedaży</Th><Th>Numer dokumentu</Th><Th>Sprzedawca</Th>
-              <Th $align="right">Kwota</Th><Th>Płatność</Th><Th>Źródło</Th><Th>Status</Th>
+              <Th $align="right">Kwota</Th><Th>Płatność</Th><Th>Źródło</Th>
               <Th $width="80px" />
             </tr>
           </Thead>
           <tbody>
             {[1, 2, 3, 4, 5].map((i) => (
               <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                {[80, 110, 140, 90, 90, 70, 80].map((w, j) => (
+                {[80, 110, 140, 90, 90, 70].map((w, j) => (
                   <td key={j} style={{ padding: '13px 16px' }}>
                     <Skeleton $w={`${w}px`} />
                   </td>
@@ -451,7 +448,6 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
               <Th $align="right">Kwota</Th>
               <Th>Płatność</Th>
               <Th>Źródło</Th>
-              <Th>Status</Th>
               <Th $width="88px" />
             </tr>
           </Thead>
@@ -528,13 +524,6 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
                   <Td>
                     <Badge $variant={exp.source === 'KSEF' ? 'purple' : 'blue'}>
                       {exp.source === 'KSEF' ? 'KSeF' : 'Ręczna'}
-                    </Badge>
-                  </Td>
-
-                  {/* Status */}
-                  <Td>
-                    <Badge $variant={expenseStatusVariant(exp.status)}>
-                      {expenseStatusLabel(exp.status)}
                     </Badge>
                   </Td>
 

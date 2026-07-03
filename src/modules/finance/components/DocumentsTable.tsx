@@ -274,10 +274,7 @@ const ActionBtn = styled.button<{ $variant: 'delete' | 'restore' }>`
   border-radius: 6px;
   cursor: pointer;
   color: ${(p) => p.theme.colors.textMuted};
-  opacity: 0;
   transition: all 0.12s ease;
-
-  tr:hover & { opacity: 1; }
 
   ${(p) =>
     p.$variant === 'delete'

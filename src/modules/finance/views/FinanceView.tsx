@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import type { FinanceTab } from '../types';
@@ -467,6 +467,274 @@ const PlusIcon = () => (
   </svg>
 );
 
+// ─── Date range picker ────────────────────────────────────────────────────────
+
+type DatePreset = 'all' | 'week' | 'month' | 'quarter' | 'custom';
+
+const toISODate = (d: Date) => d.toISOString().slice(0, 10);
+
+const getPresetRange = (preset: DatePreset): { dateFrom?: string; dateTo?: string } => {
+  if (preset === 'all' || preset === 'custom') return {};
+  const today = new Date();
+  const days = preset === 'week' ? 7 : preset === 'month' ? 30 : 90;
+  const from = new Date(today);
+  from.setDate(today.getDate() - days);
+  return { dateFrom: toISODate(from), dateTo: toISODate(today) };
+};
+
+const formatPresetLabel = (preset: DatePreset, customFrom?: string, customTo?: string): string => {
+  if (preset === 'all') return 'Cały czas';
+  if (preset === 'week') return 'Ostatni tydzień';
+  if (preset === 'month') return 'Ostatni miesiąc';
+  if (preset === 'quarter') return 'Ostatni kwartał';
+  if (customFrom && customTo) return `${customFrom} – ${customTo}`;
+  if (customFrom) return `Od ${customFrom}`;
+  if (customTo) return `Do ${customTo}`;
+  return 'Zakres dat';
+};
+
+const CalendarIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+);
+
+const SmallChevron = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+const SmallCheck = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+const DPTrigger = styled.button<{ $active: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: ${(p) => p.$active ? st.accentBlueDim : p.theme.colors.surface};
+  color: ${(p) => p.$active ? st.accentBlue : st.textSecondary};
+  border: 1px solid ${(p) => p.$active ? `${st.accentBlue}44` : p.theme.colors.border};
+  border-radius: ${st.radiusSm};
+  font-family: inherit;
+  font-size: ${st.fontSm};
+  font-weight: ${(p) => p.$active ? '600' : '400'};
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all ${st.transition};
+
+  &:hover {
+    background: ${(p) => p.$active ? st.accentBlueDim : p.theme.colors.surfaceHover};
+    border-color: ${(p) => p.$active ? `${st.accentBlue}55` : st.borderHover};
+    color: ${(p) => p.$active ? st.accentBlue : st.text};
+  }
+`;
+
+const DPPanel = styled.div`
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 300;
+  background: ${(p) => p.theme.colors.surface};
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: ${st.radius};
+  box-shadow: ${st.shadowLg};
+  min-width: 230px;
+  padding: 8px;
+`;
+
+const DPWrap = styled.div`
+  position: relative;
+  flex-shrink: 0;
+`;
+
+const DPPresetGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+
+const DPPresetBtn = styled.button<{ $active: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 7px 10px;
+  background: ${(p) => p.$active ? '#eff6ff' : 'transparent'};
+  color: ${(p) => p.$active ? st.accentBlue : st.text};
+  border: none;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: ${st.fontSm};
+  font-weight: ${(p) => p.$active ? '600' : '500'};
+  text-align: left;
+  cursor: pointer;
+  transition: background ${st.transition}, color ${st.transition};
+
+  &:hover { background: ${(p) => p.$active ? '#dbeafe' : p.theme.colors.surfaceHover}; }
+
+  span.hint { font-size: 11px; color: ${(p) => p.$active ? '#7dd3fc' : st.textMuted}; font-weight: 400; }
+`;
+
+const DPDivider = styled.div`
+  height: 1px;
+  background: ${(p) => p.theme.colors.border};
+  margin: 6px 0;
+`;
+
+const DPLabel = styled.div`
+  padding: 2px 10px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: ${st.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const DPRangeRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 2px;
+`;
+
+const DPDateInput = styled.input`
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  background: ${(p) => p.theme.colors.surfaceAlt};
+  color: ${st.text};
+  border: 1.5px solid ${(p) => p.theme.colors.border};
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color ${st.transition};
+  &:focus { outline: none; border-color: ${st.accentBlue}; }
+`;
+
+const DPApplyBtn = styled.button`
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px 10px;
+  background: ${st.accentBlue};
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: ${st.fontSm};
+  font-weight: 600;
+  cursor: pointer;
+  transition: background ${st.transition};
+  &:hover { background: #2563eb; }
+  &:disabled { background: #94a3b8; cursor: not-allowed; }
+`;
+
+const DPSep = styled.span`
+  font-size: 12px;
+  color: ${st.textMuted};
+  flex-shrink: 0;
+`;
+
+interface DateRangePickerProps {
+  preset:       DatePreset;
+  customFrom:   string;
+  customTo:     string;
+  onChange:     (preset: DatePreset, customFrom: string, customTo: string) => void;
+}
+
+const DateRangePicker: React.FC<DateRangePickerProps> = ({ preset, customFrom, customTo, onChange }) => {
+  const [open, setOpen]                     = useState(false);
+  const [pendingFrom, setPendingFrom]       = useState('');
+  const [pendingTo, setPendingTo]           = useState('');
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const handleOpen = () => {
+    setPendingFrom(customFrom);
+    setPendingTo(customTo);
+    setOpen((p) => !p);
+  };
+
+  const selectPreset = (p: Exclude<DatePreset, 'custom'>) => {
+    onChange(p, '', '');
+    setOpen(false);
+  };
+
+  const applyCustom = () => {
+    onChange('custom', pendingFrom, pendingTo);
+    setOpen(false);
+  };
+
+  const label = formatPresetLabel(preset, preset === 'custom' ? customFrom : undefined, preset === 'custom' ? customTo : undefined);
+
+  return (
+    <DPWrap ref={wrapRef}>
+      <DPTrigger $active={preset !== 'all'} onClick={handleOpen}>
+        <CalendarIcon />
+        {label}
+        <SmallChevron />
+      </DPTrigger>
+
+      {open && (
+        <DPPanel>
+          <DPPresetGroup>
+            {([
+              ['all',     'Cały czas',        ''] as const,
+              ['week',    'Ostatni tydzień',   '7 dni'] as const,
+              ['month',   'Ostatni miesiąc',   '30 dni'] as const,
+              ['quarter', 'Ostatni kwartał',   '90 dni'] as const,
+            ]).map(([id, lbl, hint]) => (
+              <DPPresetBtn key={id} $active={preset === id} onClick={() => selectPreset(id)}>
+                {lbl}
+                {hint && <span className="hint">{hint}</span>}
+                {preset === id && <SmallCheck />}
+              </DPPresetBtn>
+            ))}
+          </DPPresetGroup>
+
+          <DPDivider />
+          <DPLabel>Niestandardowy zakres</DPLabel>
+
+          <DPRangeRow>
+            <DPDateInput
+              type="date"
+              value={pendingFrom}
+              max={pendingTo || undefined}
+              onChange={(e) => setPendingFrom(e.target.value)}
+            />
+            <DPSep>–</DPSep>
+            <DPDateInput
+              type="date"
+              value={pendingTo}
+              min={pendingFrom || undefined}
+              onChange={(e) => setPendingTo(e.target.value)}
+            />
+          </DPRangeRow>
+
+          <DPApplyBtn disabled={!pendingFrom && !pendingTo} onClick={applyCustom}>
+            Zastosuj zakres
+          </DPApplyBtn>
+        </DPPanel>
+      )}
+    </DPWrap>
+  );
+};
+
 // ─── Income documents tab ─────────────────────────────────────────────────────
 
 const PAGE_SIZE = 20;
@@ -484,12 +752,19 @@ const IncomeTabContent: React.FC = () => {
     status: '', dateFrom: '', dateTo: '', documentType: '', page: 1,
   });
   const [showDeleted, setShowDeleted] = useState(false);
+  const [datePreset, setDatePreset]   = useState<DatePreset>('all');
+  const [customFrom, setCustomFrom]   = useState('');
+  const [customTo, setCustomTo]       = useState('');
+
+  const activeDateRange = datePreset === 'custom'
+    ? { dateFrom: customFrom || undefined, dateTo: customTo || undefined }
+    : getPresetRange(datePreset);
 
   const { documents, total, isLoading, isError, refetch } = useFinanceDocuments({
     direction:      'INCOME',
     status:         filters.status        || undefined,
-    dateFrom:       filters.dateFrom      || undefined,
-    dateTo:         filters.dateTo        || undefined,
+    dateFrom:       activeDateRange.dateFrom,
+    dateTo:         activeDateRange.dateTo,
     documentType:   filters.documentType  || undefined,
     includeDeleted: showDeleted           || undefined,
     page:           filters.page,
@@ -497,9 +772,16 @@ const IncomeTabContent: React.FC = () => {
   });
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
-  const hasFilters = !!(filters.status || filters.dateFrom || filters.dateTo || filters.documentType);
+  const hasFilters = !!(filters.status || filters.documentType || datePreset !== 'all');
   const setFilter  = <K extends keyof IncomeFilters>(key: K, value: IncomeFilters[K]) =>
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+
+  const handleDateChange = (preset: DatePreset, from: string, to: string) => {
+    setDatePreset(preset);
+    setCustomFrom(from);
+    setCustomTo(to);
+    setFilters((prev) => ({ ...prev, page: 1 }));
+  };
 
   return (
     <>
@@ -524,20 +806,21 @@ const IncomeTabContent: React.FC = () => {
           ]}
           placeholder="Wszystkie statusy"
         />
-        <DateInput
-          value={filters.dateFrom}
-          onChange={(e) => setFilter('dateFrom', e.target.value)}
-          title="Data wystawienia od"
-        />
-        <DateInput
-          value={filters.dateTo}
-          onChange={(e) => setFilter('dateTo', e.target.value)}
-          title="Data wystawienia do"
+        <DateRangePicker
+          preset={datePreset}
+          customFrom={customFrom}
+          customTo={customTo}
+          onChange={handleDateChange}
         />
         <FilterSeparator />
         {hasFilters && (
           <ClearFiltersBtn
-            onClick={() => setFilters({ status: '', dateFrom: '', dateTo: '', documentType: '', page: 1 })}
+            onClick={() => {
+              setFilters({ status: '', dateFrom: '', dateTo: '', documentType: '', page: 1 });
+              setDatePreset('all');
+              setCustomFrom('');
+              setCustomTo('');
+            }}
           >
             Wyczyść filtry
           </ClearFiltersBtn>
@@ -609,21 +892,35 @@ const ExpensesTabContent: React.FC<{ onAddExpense: () => void }> = ({ onAddExpen
     source: '', paymentStatus: '', dateFrom: '', dateTo: '', page: 1,
   });
   const [showExcluded, setShowExcluded] = useState(false);
+  const [datePreset, setDatePreset]     = useState<DatePreset>('all');
+  const [customFrom, setCustomFrom]     = useState('');
+  const [customTo, setCustomTo]         = useState('');
+
+  const activeDateRange = datePreset === 'custom'
+    ? { dateFrom: customFrom || undefined, dateTo: customTo || undefined }
+    : getPresetRange(datePreset);
 
   const { expenses, total, isLoading, isError, refetch } = useKsefExpenses({
     source:          (filters.source        as ExpenseSource)        || undefined,
     paymentStatus:   (filters.paymentStatus as ExpensePaymentStatus) || undefined,
-    dateFrom:        filters.dateFrom  || undefined,
-    dateTo:          filters.dateTo    || undefined,
+    dateFrom:        activeDateRange.dateFrom,
+    dateTo:          activeDateRange.dateTo,
     includeExcluded: showExcluded      || undefined,
     page:            filters.page,
     pageSize:        PAGE_SIZE,
   });
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
-  const hasFilters = !!(filters.source || filters.paymentStatus || filters.dateFrom || filters.dateTo);
+  const hasFilters = !!(filters.source || filters.paymentStatus || datePreset !== 'all');
   const setFilter  = <K extends keyof ExpenseFilters>(key: K, value: ExpenseFilters[K]) =>
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+
+  const handleDateChange = (preset: DatePreset, from: string, to: string) => {
+    setDatePreset(preset);
+    setCustomFrom(from);
+    setCustomTo(to);
+    setFilters((prev) => ({ ...prev, page: 1 }));
+  };
 
   return (
     <>
@@ -648,20 +945,21 @@ const ExpensesTabContent: React.FC<{ onAddExpense: () => void }> = ({ onAddExpen
           ]}
           placeholder="Wszystkie statusy"
         />
-        <DateInput
-          value={filters.dateFrom}
-          onChange={(e) => setFilter('dateFrom', e.target.value)}
-          title="Data sprzedaży od"
-        />
-        <DateInput
-          value={filters.dateTo}
-          onChange={(e) => setFilter('dateTo', e.target.value)}
-          title="Data sprzedaży do"
+        <DateRangePicker
+          preset={datePreset}
+          customFrom={customFrom}
+          customTo={customTo}
+          onChange={handleDateChange}
         />
         <FilterSeparator />
         {hasFilters && (
           <ClearFiltersBtn
-            onClick={() => setFilters({ source: '', paymentStatus: '', dateFrom: '', dateTo: '', page: 1 })}
+            onClick={() => {
+              setFilters({ source: '', paymentStatus: '', dateFrom: '', dateTo: '', page: 1 });
+              setDatePreset('all');
+              setCustomFrom('');
+              setCustomTo('');
+            }}
           >
             Wyczyść filtry
           </ClearFiltersBtn>
