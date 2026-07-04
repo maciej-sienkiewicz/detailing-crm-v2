@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 
 const slideIn = keyframes`
@@ -24,10 +24,6 @@ const slideOut = keyframes`
 `;
 
 const ToastContainer = styled.div<{ $variant: 'success' | 'error' | 'info' | 'warning'; $isClosing: boolean }>`
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 10000;
     display: flex;
     align-items: center;
     gap: ${props => props.theme.spacing.md};
@@ -46,13 +42,12 @@ const ToastContainer = styled.div<{ $variant: 'success' | 'error' | 'info' | 'wa
     box-shadow: ${props => props.theme.shadows.xl};
     min-width: 320px;
     max-width: 500px;
+    pointer-events: auto;
     animation: ${props => props.$isClosing ? slideOut : slideIn} 0.3s ease;
 
     @media (max-width: ${props => props.theme.breakpoints.sm}) {
-        left: 16px;
-        right: 16px;
-        bottom: 16px;
         min-width: auto;
+        width: 100%;
     }
 `;
 
@@ -132,20 +127,27 @@ export const Toast = ({
 }: ToastProps) => {
     const [isClosing, setIsClosing] = useState(false);
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            handleClose();
-        }, duration);
-
-        return () => clearTimeout(timer);
-    }, [duration]);
-
-    const handleClose = () => {
+    const handleClose = useCallback(() => {
         setIsClosing(true);
         setTimeout(() => {
             onClose();
         }, 300); // Match animation duration
-    };
+    }, [onClose]);
+
+    // Ref keeps the auto-dismiss timer stable even when the parent re-renders
+    // and passes a new onClose identity
+    const handleCloseRef = useRef(handleClose);
+    useEffect(() => {
+        handleCloseRef.current = handleClose;
+    }, [handleClose]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            handleCloseRef.current();
+        }, duration);
+
+        return () => clearTimeout(timer);
+    }, [duration]);
 
     const getIcon = () => {
         switch (variant) {

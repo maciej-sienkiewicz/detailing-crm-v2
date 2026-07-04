@@ -47,6 +47,11 @@ export default defineConfig({
                 changeOrigin: true,
                 rewrite: (path) => path,
             },
+            '/ws-registry': {
+                target: 'http://localhost:8080',
+                changeOrigin: true,
+                ws: true,
+            },
         },
     },
     build: {

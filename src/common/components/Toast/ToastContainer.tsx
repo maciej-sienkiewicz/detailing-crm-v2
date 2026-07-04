@@ -1,6 +1,30 @@
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import styled from 'styled-components';
 import { Toast } from './Toast';
+
+/**
+ * Fixed stack anchored to the bottom-right corner. Toasts are laid out in a
+ * column so multiple simultaneous notifications never overlap each other.
+ */
+const ToastStack = styled.div`
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+    pointer-events: none;
+
+    @media (max-width: ${props => props.theme.breakpoints.sm}) {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        align-items: stretch;
+    }
+`;
 
 interface ToastItem {
     id: string;
@@ -81,7 +105,7 @@ export const ToastProvider = ({ children }: ToastProviderProps) => {
         <ToastContext.Provider value={value}>
             {children}
             {createPortal(
-                <>
+                <ToastStack>
                     {toasts.map(toast => (
                         <Toast
                             key={toast.id}
@@ -92,7 +116,7 @@ export const ToastProvider = ({ children }: ToastProviderProps) => {
                             onClose={() => removeToast(toast.id)}
                         />
                     ))}
-                </>,
+                </ToastStack>,
                 document.body
             )}
         </ToastContext.Provider>

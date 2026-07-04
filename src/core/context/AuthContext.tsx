@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authApi } from '@/modules/auth/api/authApi';
+import { disconnectStompClient } from '@/core/socketClient';
 import type { User } from '@/modules/auth/types';
 
 interface AuthContextType {
@@ -44,6 +45,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsAuthenticated(value);
     if (!value) {
       setUser(null);
+      // Tear down the WebSocket session so subscriptions bound to the
+      // previous user/studio do not leak into the next login
+      void disconnectStompClient();
     }
   };
 

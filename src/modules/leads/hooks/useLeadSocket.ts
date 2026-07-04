@@ -7,8 +7,8 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { IMessage, StompSubscription } from '@stomp/stompjs';
-import { getStompClient } from '@/core/socketClient';
+import type { IMessage } from '@stomp/stompjs';
+import { subscribeToTopic, onSocketConnect } from '@/core/socketClient';
 import { useAuth } from '@/core';
 import { useToast } from '@/common/components/Toast';
 import { LEADS_KEY, LEAD_PIPELINE_KEY } from './useLeads';
@@ -24,18 +24,17 @@ import { LeadEventType, LeadStatus } from '../types';
 /**
  * Hook that subscribes to the lead WebSocket topic for real-time updates.
  * Automatically connects when authenticated and disconnects on cleanup.
+ * After a reconnect it refetches lead data so events missed while offline
+ * are never lost.
  */
 export function useLeadSocket(): void {
   const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
   const { showInfo } = useToast();
-  const subscriptionRef = useRef<StompSubscription | null>(null);
-  const connectedRef = useRef(false);
 
   const handleNewInboundCall = useCallback(
     (event: LeadEvent<InboundCallPayload>) => {
       const { payload } = event;
-      console.info('[LeadSocket] NEW_LEAD payload:', payload);
 
       // Create new lead from WebSocket payload
       const newLead: Lead = {
@@ -84,7 +83,9 @@ export function useLeadSocket(): void {
         }
       );
 
-      // Invalidate pipeline summary to recalculate
+      // Refetch from the server so filtered/sorted lists converge to the
+      // real state (the optimistic entry only approximates the new lead)
+      queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'list'] });
       queryClient.invalidateQueries({ queryKey: LEAD_PIPELINE_KEY });
 
       // Show toast notification
@@ -97,7 +98,6 @@ export function useLeadSocket(): void {
   const handleLeadUpdated = useCallback(
     (event: LeadEvent<Lead>) => {
       const updatedLead = event.payload;
-      console.info('[LeadSocket] LEAD_UPDATED payload:', updatedLead);
 
       // Update the lead in cache
       queryClient.setQueriesData<LeadListResponse>(
@@ -122,7 +122,6 @@ export function useLeadSocket(): void {
   const handleReplyAppended = useCallback(
     (event: LeadEvent<Lead>) => {
       const updatedLead = event.payload;
-      console.info('[LeadSocket] REPLY_APPENDED payload:', updatedLead);
 
       queryClient.setQueriesData<LeadListResponse>(
         { queryKey: [...LEADS_KEY, 'list'] },
@@ -148,7 +147,6 @@ export function useLeadSocket(): void {
   const handleLeadClientReplied = useCallback(
     (event: LeadEvent<LeadClientRepliedPayload>) => {
       const { leadId, activityAt, customerName } = event.payload;
-      console.info('[LeadSocket] LEAD_CLIENT_REPLIED leadId:', leadId, 'activityAt:', activityAt);
 
       // Mark the lead as having unread activity in the list cache
       queryClient.setQueriesData<LeadListResponse>(
@@ -177,11 +175,8 @@ export function useLeadSocket(): void {
 
   const handleMessage = useCallback(
     (message: IMessage) => {
-      console.info('[LeadSocket] Raw message received:', message.body);
-
       try {
         const event: LeadEvent<unknown> = JSON.parse(message.body);
-        console.info('[LeadSocket] Parsed event:', event.type, event);
 
         switch (event.type) {
           case LeadEventType.NEW_LEAD:
@@ -212,77 +207,35 @@ export function useLeadSocket(): void {
     [handleNewInboundCall, handleLeadUpdated, handleReplyAppended, handleLeadClientReplied]
   );
 
+  // Keep the latest handler in a ref so the subscription effect below does
+  // not tear down / recreate the STOMP subscription on re-renders
+  const handleMessageRef = useRef(handleMessage);
   useEffect(() => {
-    console.info(
-      '[LeadSocket] Hook effect fired. isAuthenticated:',
-      isAuthenticated,
-      'studioId:',
-      user?.studioId
-    );
+    handleMessageRef.current = handleMessage;
+  }, [handleMessage]);
 
+  useEffect(() => {
     // Only subscribe when authenticated and studioId is available
     if (!isAuthenticated || !user?.studioId) {
-      console.warn('[LeadSocket] Skipping — not authenticated or no studioId');
       return;
     }
 
-    const studioId = user.studioId;
-    // Subscribe to the dashboard topic (same as existing dashboard socket)
-    const topic = `/topic/studio.${studioId}.dashboard`;
-    console.info('[LeadSocket] Will subscribe to topic:', topic);
-    const client = getStompClient();
+    const topic = `/topic/studio.${user.studioId}.dashboard`;
 
-    const subscribe = () => {
-      if (subscriptionRef.current) {
-        console.info('[LeadSocket] Already subscribed, skipping');
-        return;
-      }
-
-      console.info('[LeadSocket] Subscribing to', topic);
-      subscriptionRef.current = client.subscribe(topic, handleMessage);
-      console.info('[LeadSocket] Subscription ID:', subscriptionRef.current.id);
-    };
-
-    // If client is already connected, subscribe immediately
-    console.info(
-      '[LeadSocket] Client state — connected:',
-      client.connected,
-      'active:',
-      client.active
+    const unsubscribe = subscribeToTopic(topic, (message) =>
+      handleMessageRef.current(message)
     );
-    if (client.connected) {
-      subscribe();
-      connectedRef.current = true;
-    }
 
-    // Set up onConnect callback for (re)connections
-    const originalOnConnect = client.onConnect;
-    client.onConnect = (frame) => {
-      console.info('[LeadSocket] onConnect callback fired. Frame:', frame);
-      originalOnConnect?.(frame);
-      connectedRef.current = true;
-      subscribe();
-    };
+    // Events sent while the connection was down are gone — after every
+    // reconnect refetch lead data so the UI catches up without a page reload
+    const removeConnectListener = onSocketConnect(({ isReconnect }) => {
+      if (!isReconnect) return;
+      queryClient.invalidateQueries({ queryKey: LEADS_KEY });
+    });
 
-    // Activate the client if not already active
-    if (!client.active) {
-      console.info('[LeadSocket] Activating STOMP client...');
-      client.activate();
-    } else {
-      console.info('[LeadSocket] Client already active');
-    }
-
-    // Cleanup: unsubscribe and restore original callback
     return () => {
-      console.info('[LeadSocket] Cleanup — unsubscribing');
-      if (subscriptionRef.current) {
-        subscriptionRef.current.unsubscribe();
-        subscriptionRef.current = null;
-      }
-
-      client.onConnect = originalOnConnect;
-
-      // Note: We don't deactivate the client here as other hooks might be using it
+      unsubscribe();
+      removeConnectListener();
     };
-  }, [isAuthenticated, user?.studioId, handleMessage]);
+  }, [isAuthenticated, user?.studioId, queryClient]);
 }

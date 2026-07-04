@@ -1,8 +1,8 @@
 // src/modules/checkin/hooks/useCheckinSocket.ts
 
 import { useEffect, useRef } from 'react';
-import type { IMessage, StompSubscription } from '@stomp/stompjs';
-import { getStompClient } from '@/core/socketClient';
+import type { IMessage } from '@stomp/stompjs';
+import { subscribeToTopic } from '@/core/socketClient';
 import { useAuth } from '@/core';
 import type { CheckinPhotoUploadedEvent, CheckinDamageUpdatedEvent } from '../types';
 
@@ -16,7 +16,8 @@ interface UseCheckinSocketOptions {
 /**
  * Subscribes to the checkin WebSocket topic.
  * Dispatches CHECKIN_PHOTO_UPLOADED and CHECKIN_DAMAGE_UPDATED messages
- * to their respective callbacks.
+ * to their respective callbacks. The subscription survives reconnects
+ * (handled centrally by the socket client).
  * Topic: /topic/studio.{studioId}.checkin.{checkinId}
  */
 export function useCheckinSocket({
@@ -26,18 +27,17 @@ export function useCheckinSocket({
     enabled = true,
 }: UseCheckinSocketOptions): void {
     const { isAuthenticated, user } = useAuth();
-    const subscriptionRef = useRef<StompSubscription | null>(null);
     const onPhotoUploadedRef = useRef(onPhotoUploaded);
-    onPhotoUploadedRef.current = onPhotoUploaded;
     const onDamageUpdatedRef = useRef(onDamageUpdated);
-    onDamageUpdatedRef.current = onDamageUpdated;
+    useEffect(() => {
+        onPhotoUploadedRef.current = onPhotoUploaded;
+        onDamageUpdatedRef.current = onDamageUpdated;
+    });
 
     useEffect(() => {
         if (!isAuthenticated || !user?.studioId || !checkinId || !enabled) return;
 
-        const studioId = user.studioId;
-        const topic = `/topic/studio.${studioId}.checkin.${checkinId}`;
-        const client = getStompClient();
+        const topic = `/topic/studio.${user.studioId}.checkin.${checkinId}`;
 
         const handleMessage = (message: IMessage) => {
             try {
@@ -62,32 +62,6 @@ export function useCheckinSocket({
             }
         };
 
-        const subscribe = () => {
-            if (subscriptionRef.current) return;
-            console.info('[CheckinSocket] Subscribing to', topic);
-            subscriptionRef.current = client.subscribe(topic, handleMessage);
-        };
-
-        if (client.connected) {
-            subscribe();
-        }
-
-        const originalOnConnect = client.onConnect;
-        client.onConnect = (frame) => {
-            originalOnConnect?.(frame);
-            subscribe();
-        };
-
-        if (!client.active) {
-            client.activate();
-        }
-
-        return () => {
-            if (subscriptionRef.current) {
-                subscriptionRef.current.unsubscribe();
-                subscriptionRef.current = null;
-            }
-            client.onConnect = originalOnConnect;
-        };
+        return subscribeToTopic(topic, handleMessage);
     }, [isAuthenticated, user?.studioId, checkinId, enabled]);
 }

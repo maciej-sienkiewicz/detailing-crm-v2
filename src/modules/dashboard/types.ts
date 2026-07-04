@@ -268,17 +268,26 @@ export const DashboardEventType = {
 export type DashboardEventType = (typeof DashboardEventType)[keyof typeof DashboardEventType];
 
 /**
- * Payload for a new inbound call event
+ * Payload for a new inbound call / lead event.
+ * The backend publishes the lead event shape (contactIdentifier /
+ * customerName / createdAt); the phone-call field names are kept as
+ * optional legacy aliases so either shape is handled.
  */
 export interface InboundCallPayload {
   /** Unique call identifier */
   id: string;
-  /** Caller phone number */
-  phoneNumber: string;
-  /** Caller name (if identified) */
+  /** Caller phone number (legacy alias of contactIdentifier) */
+  phoneNumber?: string;
+  /** Phone number or email address of the contact */
+  contactIdentifier?: string;
+  /** Caller name (legacy alias of customerName) */
   callerName?: string;
-  /** ISO timestamp of when the call was received */
-  receivedAt: string;
+  /** Customer name (if identified) */
+  customerName?: string | null;
+  /** ISO timestamp of when the call was received (legacy alias of createdAt) */
+  receivedAt?: string;
+  /** ISO timestamp of when the lead was created */
+  createdAt?: string;
 }
 
 /**
