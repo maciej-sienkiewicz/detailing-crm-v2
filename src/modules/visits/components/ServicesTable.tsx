@@ -760,7 +760,8 @@ const RabatujBtn = styled.button`
 const DiscountModalOverlay = styled.div`
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.35);
+    background: ${st.bgOverlay};
+    backdrop-filter: blur(2px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -769,31 +770,34 @@ const DiscountModalOverlay = styled.div`
 
 const DiscountModalCard = styled.div`
     width: min(400px, calc(100vw - 32px));
-    background: #ffffff;
-    border-radius: 16px;
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusLg};
     overflow: hidden;
-    box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0,0,0,0.06);
+    box-shadow: ${st.shadowLg};
 `;
 
 const DiscountModalHeader = styled.div`
-    padding: 16px 20px 12px;
-    border-bottom: 1px solid #f1f5f9;
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid ${st.border};
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
 `;
 
 const DiscountModalTitle = styled.h4`
     margin: 0;
-    font-size: 14px;
+    font-size: ${st.fontMd};
     font-weight: 700;
-    color: #0f172a;
+    letter-spacing: -0.2px;
+    color: ${st.text};
 `;
 
 const DiscountModalSubtitle = styled.p`
-    margin: 2px 0 0;
-    font-size: 12px;
-    color: #64748b;
+    margin: 3px 0 0;
+    font-size: ${st.fontSm};
+    color: ${st.textMuted};
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -801,16 +805,16 @@ const DiscountModalSubtitle = styled.p`
 `;
 
 const DiscountModalBody = styled.div`
-    padding: 16px 20px;
+    padding: 18px 22px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
 `;
 
 const DiscountModalFooter = styled.div`
-    padding: 12px 20px;
-    background: #f8fafc;
-    border-top: 1px solid #f1f5f9;
+    padding: 14px 22px;
+    background: ${st.bg};
+    border-top: 1px solid ${st.border};
     display: flex;
     align-items: center;
     flex-wrap: wrap;
@@ -818,19 +822,19 @@ const DiscountModalFooter = styled.div`
 `;
 
 const DiscountFromBox = styled.div`
-    padding: 10px 14px;
-    background: #f8fafc;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 10px;
+    padding: 12px 16px;
+    background: ${st.bg};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
 `;
 
 const DiscountFromBoxLabel = styled.div`
-    font-size: 10px;
+    font-size: ${st.fontXs};
     font-weight: 700;
-    color: #94a3b8;
+    color: ${st.textMuted};
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 `;
 
 const DiscountFromPrices = styled.div`
@@ -843,159 +847,193 @@ const DiscountFromPrice = styled.div`
     display: flex;
     flex-direction: column;
     gap: 2px;
+
+    &:first-child {
+        padding-right: 8px;
+        border-right: 1px solid ${st.border};
+    }
 `;
 
 const DiscountFromPriceValue = styled.span`
-    font-size: 17px;
+    font-size: ${st.fontLg};
     font-weight: 700;
-    color: #0f172a;
+    letter-spacing: -0.2px;
+    color: ${st.text};
     font-variant-numeric: tabular-nums;
 `;
 
 const DiscountFromPriceLabel = styled.span`
-    font-size: 10px;
+    font-size: ${st.fontXs};
     font-weight: 600;
-    color: #94a3b8;
+    color: ${st.textMuted};
     text-transform: uppercase;
     letter-spacing: 0.06em;
 `;
 
 const DiscountSectionLabel = styled.div`
-    font-size: 11px;
-    font-weight: 600;
-    color: #64748b;
+    font-size: ${st.fontXs};
+    font-weight: 700;
+    color: ${st.textMuted};
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 6px;
+    letter-spacing: 0.07em;
+    margin-bottom: 8px;
 `;
 
 const DiscountTypeRow = styled.div`
     display: flex;
-    gap: 4px;
+    gap: 6px;
     flex-wrap: wrap;
 `;
 
 const DiscountTypePill = styled.button<{ $selected?: boolean }>`
-    padding: 3px 9px;
-    font-size: 11px;
-    font-weight: ${p => p.$selected ? 700 : 500};
-    color: ${p => p.$selected ? '#92400e' : '#78716c'};
-    background: ${p => p.$selected ? '#fde68a' : '#f5f5f4'};
-    border: 1.5px solid ${p => p.$selected ? '#f59e0b' : '#e7e5e4'};
-    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: ${p => p.$selected ? 700 : 600};
+    color: ${p => p.$selected ? '#ffffff' : st.textSecondary};
+    background: ${p => p.$selected ? BRAND : st.bgCard};
+    border: 1.5px solid ${p => p.$selected ? BRAND : st.border};
+    border-radius: ${st.radiusFull};
     cursor: pointer;
-    transition: all 120ms ease;
+    transition: all ${st.transition};
     white-space: nowrap;
     font-family: inherit;
-    &:hover { background: #fde68a; color: #92400e; border-color: #f59e0b; }
+    box-shadow: ${p => p.$selected ? '0 2px 8px rgba(14, 165, 233, 0.28)' : 'none'};
+
+    &:hover {
+        ${p => !p.$selected && css`
+            border-color: ${BRAND};
+            color: ${BRAND_DARK};
+            background: ${BRAND_DIM};
+        `}
+    }
 `;
 
 const DiscountValueRow = styled.div`
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: 8px;
+    padding: 3px 4px 3px 16px;
+    background: ${st.bgCard};
+    border: 1.5px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    transition: all ${st.transition};
+
+    &:focus-within {
+        border-color: ${BRAND};
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
+    }
 `;
 
 const DiscountValueInput = styled.input`
-    width: 110px;
-    padding: 5px 8px;
-    font-size: 13px;
-    font-weight: 500;
-    text-align: right;
-    background: #ffffff;
-    border: 1.5px solid #f59e0b;
-    border-radius: 8px;
-    color: #0f172a;
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    padding: 9px 0;
+    font-size: 20px;
+    font-weight: 700;
+    text-align: left;
+    background: transparent;
+    border: none;
+    color: ${st.text};
     outline: none;
     font-family: inherit;
-    transition: all 150ms ease;
-    &:focus { box-shadow: 0 0 0 2px rgba(245,158,11,0.20); }
-    &::placeholder { color: #d1cdc7; }
+    font-variant-numeric: tabular-nums;
+    &::placeholder { color: ${st.textMuted}; font-weight: 600; }
 `;
 
 const DiscountValueSuffix = styled.span`
-    font-size: 13px;
-    font-weight: 600;
-    color: #92400e;
-    min-width: 20px;
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: ${BRAND_DARK};
+    background: ${BRAND_DIM};
+    border-radius: ${st.radiusFull};
+    padding: 5px 11px;
 `;
 
 const DiscountCloseBtn = styled.button`
     flex-shrink: 0;
-    padding: 4px;
-    color: #94a3b8;
+    padding: 5px;
+    color: ${st.textMuted};
     background: none;
     border: none;
-    border-radius: 999px;
+    border-radius: ${st.radiusFull};
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 150ms ease;
-    &:hover { color: #ef4444; background: #fef2f2; }
+    transition: all ${st.transition};
+    &:hover { color: ${st.accentRed}; background: ${st.accentRedDim}; }
     svg { width: 14px; height: 14px; }
 `;
 
 const DiscountApplyBtn = styled.button`
-    padding: 8px 18px;
-    font-size: 13px;
+    padding: 9px 20px;
+    font-size: ${st.fontSm};
     font-weight: 700;
     color: #ffffff;
-    background: #d97706;
+    background: ${BRAND};
     border: none;
-    border-radius: 8px;
+    border-radius: ${st.radiusFull};
     cursor: pointer;
     font-family: inherit;
-    transition: background 150ms ease;
-    &:hover { background: #b45309; }
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
+    transition: all ${st.transition};
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.28);
+
+    &:hover:not(:disabled) {
+        background: ${BRAND_DARK};
+        box-shadow: 0 4px 14px rgba(14, 165, 233, 0.36);
+        transform: translateY(-1px);
+    }
+    &:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 `;
 
 const DiscountCancelBtn = styled.button`
-    padding: 8px 16px;
-    font-size: 13px;
+    padding: 9px 18px;
+    font-size: ${st.fontSm};
     font-weight: 500;
-    color: #64748b;
-    background: transparent;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 8px;
+    color: ${st.textSecondary};
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusFull};
     cursor: pointer;
     font-family: inherit;
-    transition: all 150ms ease;
-    &:hover { background: #f1f5f9; }
+    transition: all ${st.transition};
+    &:hover { background: ${st.bg}; border-color: ${st.borderHover}; }
 `;
 
 const DiscountRemoveBtn = styled.button`
-    padding: 8px 14px;
-    font-size: 13px;
+    padding: 9px 16px;
+    font-size: ${st.fontSm};
     font-weight: 600;
-    color: #6b7280;
+    color: ${st.textSecondary};
     background: transparent;
-    border: 1.5px solid #e5e7eb;
-    border-radius: 8px;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusFull};
     cursor: pointer;
     font-family: inherit;
     margin-right: auto;
-    transition: all 150ms ease;
-    &:hover { color: #ef4444; border-color: #fca5a5; background: #fef2f2; }
+    transition: all ${st.transition};
+    &:hover { color: ${st.accentRed}; border-color: #fca5a5; background: ${st.accentRedDim}; }
 `;
 
 /* ─── Bulk-discount "wide" modal with live preview ─── */
 
 const BulkModalCard = styled.div`
-    width: min(900px, calc(100vw - 32px));
-    background: #ffffff;
-    border-radius: 16px;
+    width: min(940px, calc(100vw - 32px));
+    background: ${st.bgCard};
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusLg};
     overflow: hidden;
-    box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.20), 0 0 0 1px rgba(0,0,0,0.06);
+    box-shadow: ${st.shadowLg};
     display: flex;
     flex-direction: column;
     max-height: calc(100vh - 48px);
 `;
 
 const BulkModalHeader = styled.div`
-    padding: 16px 20px 12px;
-    border-bottom: 1px solid #f1f5f9;
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid ${st.border};
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1004,7 +1042,7 @@ const BulkModalHeader = styled.div`
 
 const BulkModalLayout = styled.div`
     display: grid;
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: 300px 1fr;
     min-height: 0;
     flex: 1;
 
@@ -1015,16 +1053,16 @@ const BulkModalLayout = styled.div`
 `;
 
 const BulkControlsPanel = styled.div`
-    padding: 16px 20px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    border-right: 1px solid #f1f5f9;
+    gap: 18px;
+    border-right: 1px solid ${st.border};
     overflow-y: auto;
 
     @media (max-width: 640px) {
         border-right: none;
-        border-bottom: 1px solid #f1f5f9;
+        border-bottom: 1px solid ${st.border};
         overflow-y: visible;
     }
 `;
@@ -1032,50 +1070,76 @@ const BulkControlsPanel = styled.div`
 const BulkPreviewPanel = styled.div`
     display: flex;
     flex-direction: column;
-    background: #fafafa;
+    background: ${st.bg};
     overflow: hidden;
 `;
 
 const BulkPreviewHeader = styled.div`
-    padding: 10px 16px 8px;
-    border-bottom: 1px solid #f1f5f9;
+    padding: 14px 20px 11px;
+    border-bottom: 1px solid ${st.border};
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
     flex-shrink: 0;
 `;
 
 const BulkPreviewHeaderLabel = styled.div`
-    font-size: 10px;
+    font-size: ${st.fontXs};
     font-weight: 700;
-    color: #94a3b8;
+    color: ${st.textMuted};
     text-transform: uppercase;
     letter-spacing: 0.08em;
+`;
+
+const liveDotPulse = keyframes`
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.45; transform: scale(0.72); }
+`;
+
+const LiveIndicator = styled.div`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    color: ${st.accentGreen};
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+`;
+
+const LiveDot = styled.span`
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: ${st.accentGreen};
+    box-shadow: 0 0 0 3px ${st.accentGreenDim};
+    animation: ${liveDotPulse} 1.6s ease-in-out infinite;
 `;
 
 const BulkPreviewList = styled.div`
     flex: 1;
     overflow-y: auto;
-    padding: 8px 0;
+    padding: 6px 0;
 
     &::-webkit-scrollbar { width: 5px; }
     &::-webkit-scrollbar-track { background: transparent; }
-    &::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
+    &::-webkit-scrollbar-thumb { background: ${st.border}; border-radius: 99px; }
 `;
 
 const BulkPreviewRow = styled.div`
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px 16px;
-    border-bottom: 1px solid #f1f5f900;
+    gap: 10px;
+    padding: 9px 20px;
     transition: background 150ms ease;
-
-    &:last-child { border-bottom: none; }
-    &:hover { background: rgba(0,0,0,0.025); }
+    &:hover { background: ${st.bgCardAlt}; }
 `;
 
 const BulkPreviewRowName = styled.div`
-    font-size: 12px;
+    font-size: ${st.fontSm};
     font-weight: 500;
-    color: #374151;
+    color: ${st.textSecondary};
     flex: 1;
     min-width: 0;
     white-space: nowrap;
@@ -1086,42 +1150,42 @@ const BulkPreviewRowName = styled.div`
 const BulkPreviewRowPrices = styled.div`
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     flex-shrink: 0;
 `;
 
 const BulkPreviewOriginalPrice = styled.span<{ $strikethrough: boolean }>`
-    font-size: 12px;
+    font-size: ${st.fontSm};
     font-variant-numeric: tabular-nums;
-    color: ${p => p.$strikethrough ? '#94a3b8' : '#0f172a'};
+    color: ${p => p.$strikethrough ? st.textMuted : st.text};
     font-weight: ${p => p.$strikethrough ? 400 : 600};
     text-decoration: ${p => p.$strikethrough ? 'line-through' : 'none'};
     transition: color 200ms ease;
 `;
 
 const BulkPreviewArrow = styled.span<{ $active: boolean }>`
-    font-size: 10px;
-    color: ${p => p.$active ? '#d97706' : '#cbd5e1'};
+    font-size: 11px;
+    color: ${p => p.$active ? BRAND : st.border};
     transition: color 200ms ease;
     flex-shrink: 0;
 `;
 
 const BulkPreviewNewPrice = styled.span<{ $active: boolean }>`
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-    color: ${p => p.$active ? '#b45309' : '#0f172a'};
+    color: ${p => p.$active ? BRAND_DARK : st.text};
     transition: color 200ms ease;
 `;
 
 const BulkPreviewDiscountChip = styled.span<{ $visible: boolean }>`
     font-size: 10px;
     font-weight: 700;
-    color: #d97706;
-    background: #fef3c7;
-    border: 1px solid #fde68a;
-    border-radius: 5px;
-    padding: 1px 5px;
+    color: ${BRAND_DARK};
+    background: ${BRAND_DIM};
+    border: 1px solid rgba(14, 165, 233, 0.25);
+    border-radius: ${st.radiusFull};
+    padding: 2px 7px;
     white-space: nowrap;
     opacity: ${p => p.$visible ? 1 : 0};
     transform: translateX(${p => p.$visible ? '0' : '-4px'});
@@ -1130,52 +1194,53 @@ const BulkPreviewDiscountChip = styled.span<{ $visible: boolean }>`
 `;
 
 const BulkPreviewTotalsBar = styled.div`
-    border-top: 1.5px solid #e2e8f0;
-    padding: 10px 16px;
+    border-top: 1px solid ${st.border};
+    padding: 13px 20px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    background: #ffffff;
+    gap: 9px;
+    background: ${st.bgCard};
     flex-shrink: 0;
 `;
 
 const BulkPreviewTotalsLabel = styled.div`
-    font-size: 10px;
+    font-size: ${st.fontXs};
     font-weight: 700;
-    color: #94a3b8;
+    color: ${st.textMuted};
     text-transform: uppercase;
     letter-spacing: 0.06em;
     flex: 1;
 `;
 
 const BulkPreviewTotalsBefore = styled.span`
-    font-size: 12px;
+    font-size: ${st.fontSm};
     font-variant-numeric: tabular-nums;
-    color: #94a3b8;
+    color: ${st.textMuted};
     text-decoration: line-through;
     font-weight: 400;
 `;
 
 const BulkPreviewTotalsArrow = styled.span`
-    font-size: 10px;
-    color: #d97706;
+    font-size: 11px;
+    color: ${BRAND};
 `;
 
-const BulkPreviewTotalsAfter = styled.span`
-    font-size: 14px;
+const BulkPreviewTotalsAfter = styled.span<{ $active?: boolean }>`
+    font-size: ${st.fontLg};
     font-weight: 700;
+    letter-spacing: -0.2px;
     font-variant-numeric: tabular-nums;
-    color: #b45309;
+    color: ${p => p.$active ? BRAND_DARK : st.text};
 `;
 
 const BulkPreviewTotalsSaved = styled.span`
     font-size: 11px;
-    font-weight: 600;
-    color: #16a34a;
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    border-radius: 5px;
-    padding: 2px 6px;
+    font-weight: 700;
+    color: ${st.accentGreen};
+    background: ${st.accentGreenDim};
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: ${st.radiusFull};
+    padding: 3px 9px;
 `;
 
 const BulkPreviewEmptyState = styled.div`
@@ -1184,9 +1249,9 @@ const BulkPreviewEmptyState = styled.div`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 8px;
     padding: 24px 16px;
-    color: #94a3b8;
+    color: ${st.textMuted};
 `;
 
 const BulkPreviewEmptyIcon = styled.div`
@@ -1195,15 +1260,15 @@ const BulkPreviewEmptyIcon = styled.div`
 `;
 
 const BulkPreviewEmptyText = styled.div`
-    font-size: 12px;
+    font-size: ${st.fontSm};
     text-align: center;
     line-height: 1.5;
 `;
 
 const BulkModalFooter = styled.div`
-    padding: 12px 20px;
-    background: #f8fafc;
-    border-top: 1px solid #f1f5f9;
+    padding: 14px 22px;
+    background: ${st.bg};
+    border-top: 1px solid ${st.border};
     display: flex;
     align-items: center;
     flex-wrap: wrap;
@@ -2289,7 +2354,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                             <DiscountFromPriceLabel>Brutto</DiscountFromPriceLabel>
                                         </DiscountFromPrice>
                                         <DiscountFromPrice>
-                                            <DiscountFromPriceValue>{allBases.reduce((s, b) => s + b.basePriceNetCents, 0) / 100 .toFixed(2)} zł</DiscountFromPriceValue>
+                                            <DiscountFromPriceValue>{(allBases.reduce((s, b) => s + b.basePriceNetCents, 0) / 100).toFixed(2)} zł</DiscountFromPriceValue>
                                             <DiscountFromPriceLabel>Netto</DiscountFromPriceLabel>
                                         </DiscountFromPrice>
                                     </DiscountFromPrices>
@@ -2324,6 +2389,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                             <BulkPreviewPanel>
                                 <BulkPreviewHeader>
                                     <BulkPreviewHeaderLabel>Podgląd zmian cen</BulkPreviewHeaderLabel>
+                                    <LiveIndicator><LiveDot />Na żywo</LiveIndicator>
                                 </BulkPreviewHeader>
 
                                 {previews.length === 0 ? (
@@ -2367,11 +2433,11 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                                 <>
                                                     <BulkPreviewTotalsBefore>{totalBeforeGross.toFixed(2)} zł</BulkPreviewTotalsBefore>
                                                     <BulkPreviewTotalsArrow>→</BulkPreviewTotalsArrow>
-                                                    <BulkPreviewTotalsAfter>{totalAfterGross.toFixed(2)} zł</BulkPreviewTotalsAfter>
+                                                    <BulkPreviewTotalsAfter $active>{totalAfterGross.toFixed(2)} zł</BulkPreviewTotalsAfter>
                                                     <BulkPreviewTotalsSaved>oszczędność {totalSavedGross.toFixed(2)} zł</BulkPreviewTotalsSaved>
                                                 </>
                                             ) : (
-                                                <BulkPreviewTotalsAfter style={{ color: '#0f172a' }}>{totalBeforeGross.toFixed(2)} zł</BulkPreviewTotalsAfter>
+                                                <BulkPreviewTotalsAfter>{totalBeforeGross.toFixed(2)} zł</BulkPreviewTotalsAfter>
                                             )}
                                         </BulkPreviewTotalsBar>
                                     </>
