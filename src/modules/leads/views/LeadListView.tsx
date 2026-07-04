@@ -66,6 +66,7 @@ import {
   useLeadPipelineSummary,
   useLeadAppointmentCreation,
   useSetLostReason,
+  useAcknowledgeLead,
 } from '../hooks';
 import { LeadStatus, LeadSource } from '../types';
 import type { Lead, LeadDetail, LeadListFilters, CustomerSnapshot } from '../types';
@@ -168,6 +169,17 @@ const spin = keyframes`
 const pulseDot = keyframes`
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.4; }
+`;
+
+const rowActivityFlash = keyframes`
+  0%, 100% {
+    box-shadow: inset 3px 0 0 rgba(234, 88, 12, 0),
+                inset 0 0 0 9999px rgba(234, 88, 12, 0);
+  }
+  50% {
+    box-shadow: inset 3px 0 0 rgba(234, 88, 12, 0.65),
+                inset 0 0 0 9999px rgba(234, 88, 12, 0.07);
+  }
 `;
 
 // ─── Page layout — identical to CustomerListView ──────────────────────────────
@@ -770,7 +782,7 @@ const ThActions = styled(Th)`
   padding-left: 0;
 `;
 
-const Tr = styled.tr<{ $isExpanded?: boolean }>`
+const Tr = styled.tr<{ $isExpanded?: boolean; $hasNewActivity?: boolean }>`
   border-bottom: 1px solid #f1f5f9;
   transition: background ${st.transition};
   cursor: pointer;
@@ -785,6 +797,11 @@ const Tr = styled.tr<{ $isExpanded?: boolean }>`
   ${p => p.$isExpanded && css`
     background: #f0f7ff;
     border-bottom: none;
+  `}
+
+  ${p => p.$hasNewActivity && css`
+    animation: ${fadeIn} 200ms ease both,
+               ${rowActivityFlash} 3.5s ease-in-out 0.4s infinite;
   `}
 `;
 
@@ -1696,7 +1713,17 @@ export const LeadListView: React.FC = () => {
     };
   }, [statusMenuLeadId]);
 
-  const deleteLead = useDeleteLead();
+  const deleteLead      = useDeleteLead();
+  const acknowledgeLead = useAcknowledgeLead();
+
+  // Acknowledge unread activity when a lead with newActivityAt is opened in the modal.
+  // Also fires if a real-time reply arrives while the modal is already open.
+  useEffect(() => {
+    if (selectedLead?.newActivityAt) {
+      acknowledgeLead.mutate(selectedLead.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLead?.id, selectedLead?.newActivityAt]);
 
   const assignMutation = useMutation({
     mutationFn: ({ leadId, customerId }: { leadId: string; customerId: string | null }) =>
@@ -2036,6 +2063,7 @@ export const LeadListView: React.FC = () => {
         <Tr
           key={lead.id}
           $isExpanded={false}
+          $hasNewActivity={!!lead.newActivityAt}
           onClick={() => setSelectedLead(lead)}
         >
           <TdIcon>
