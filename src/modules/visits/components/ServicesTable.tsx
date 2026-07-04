@@ -2454,7 +2454,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                         </BulkPreviewHeaderText>
                                     </BulkPreviewHeaderMain>
                                     {hasValidValue && totalSavedGross > 0.001 && (
-                                        <BulkPreviewTotalsSaved>oszczędność {fmtZl(totalSavedGross)}</BulkPreviewTotalsSaved>
+                                        <BulkPreviewTotalsSaved>Oszczędność {fmtZl(totalSavedGross)}</BulkPreviewTotalsSaved>
                                     )}
                                 </BulkPreviewHeader>
 
