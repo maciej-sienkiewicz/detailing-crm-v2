@@ -1121,36 +1121,6 @@ const BulkPreviewHeaderCaption = styled.div`
     margin-top: 1px;
 `;
 
-const liveDotPulse = keyframes`
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.45; transform: scale(0.72); }
-`;
-
-const LiveIndicator = styled.div`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 10px;
-    font-weight: 700;
-    color: ${st.accentGreen};
-    background: ${st.accentGreenDim};
-    border: 1px solid rgba(16, 185, 129, 0.22);
-    border-radius: ${st.radiusFull};
-    padding: 4px 10px 4px 8px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    flex-shrink: 0;
-`;
-
-const LiveDot = styled.span`
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: ${st.accentGreen};
-    box-shadow: 0 0 0 3px ${st.accentGreenDim};
-    animation: ${liveDotPulse} 1.6s ease-in-out infinite;
-`;
-
 const BulkPreviewList = styled.div`
     flex: 1;
     overflow-y: auto;
@@ -2483,7 +2453,9 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                             <BulkPreviewHeaderCaption>Rozkład rabatu na poszczególne usługi</BulkPreviewHeaderCaption>
                                         </BulkPreviewHeaderText>
                                     </BulkPreviewHeaderMain>
-                                    <LiveIndicator><LiveDot />Na żywo</LiveIndicator>
+                                    {hasValidValue && totalSavedGross > 0.001 && (
+                                        <BulkPreviewTotalsSaved>oszczędność {fmtZl(totalSavedGross)}</BulkPreviewTotalsSaved>
+                                    )}
                                 </BulkPreviewHeader>
 
                                 {previews.length === 0 ? (
@@ -2548,7 +2520,6 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                                         <BulkPreviewTotalsBefore>{fmtZl(totalBeforeGross)}</BulkPreviewTotalsBefore>
                                                         <BulkPreviewTotalsArrow>→</BulkPreviewTotalsArrow>
                                                         <BulkPreviewTotalsAfter $active>{fmtZl(totalAfterGross)}</BulkPreviewTotalsAfter>
-                                                        <BulkPreviewTotalsSaved>oszczędność {fmtZl(totalSavedGross)}</BulkPreviewTotalsSaved>
                                                     </>
                                                 ) : (
                                                     <BulkPreviewTotalsAfter>{fmtZl(totalBeforeGross)}</BulkPreviewTotalsAfter>
