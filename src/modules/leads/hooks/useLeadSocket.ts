@@ -147,7 +147,7 @@ export function useLeadSocket(): void {
 
   const handleLeadClientReplied = useCallback(
     (event: LeadEvent<LeadClientRepliedPayload>) => {
-      const { leadId, activityAt } = event.payload;
+      const { leadId, activityAt, customerName } = event.payload;
       console.info('[LeadSocket] LEAD_CLIENT_REPLIED leadId:', leadId, 'activityAt:', activityAt);
 
       // Mark the lead as having unread activity in the list cache
@@ -169,7 +169,8 @@ export function useLeadSocket(): void {
       // Also refresh the detail query if it's cached (modal might be open)
       queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'detail', leadId] });
 
-      showInfo('Klient odpisał na lead', `ID leadu: ${leadId}`);
+      const who = customerName?.trim() || 'Klient';
+      showInfo(`${who} odpisał na zapytanie`, 'Nowa wiadomość w skrzynce leadów');
     },
     [queryClient, showInfo]
   );

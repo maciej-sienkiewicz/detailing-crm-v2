@@ -216,6 +216,7 @@ export interface LeadEvent<T = unknown> {
 export interface LeadClientRepliedPayload {
   leadId: LeadId;
   activityAt: string;
+  customerName?: string | null;
 }
 
 /**
