@@ -980,6 +980,237 @@ const DiscountRemoveBtn = styled.button`
     &:hover { color: #ef4444; border-color: #fca5a5; background: #fef2f2; }
 `;
 
+/* ─── Bulk-discount "wide" modal with live preview ─── */
+
+const BulkModalCard = styled.div`
+    width: min(900px, calc(100vw - 32px));
+    background: #ffffff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.20), 0 0 0 1px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 48px);
+`;
+
+const BulkModalHeader = styled.div`
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+`;
+
+const BulkModalLayout = styled.div`
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    min-height: 0;
+    flex: 1;
+
+    @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+        overflow-y: auto;
+    }
+`;
+
+const BulkControlsPanel = styled.div`
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    border-right: 1px solid #f1f5f9;
+    overflow-y: auto;
+
+    @media (max-width: 640px) {
+        border-right: none;
+        border-bottom: 1px solid #f1f5f9;
+        overflow-y: visible;
+    }
+`;
+
+const BulkPreviewPanel = styled.div`
+    display: flex;
+    flex-direction: column;
+    background: #fafafa;
+    overflow: hidden;
+`;
+
+const BulkPreviewHeader = styled.div`
+    padding: 10px 16px 8px;
+    border-bottom: 1px solid #f1f5f9;
+    flex-shrink: 0;
+`;
+
+const BulkPreviewHeaderLabel = styled.div`
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+`;
+
+const BulkPreviewList = styled.div`
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+
+    &::-webkit-scrollbar { width: 5px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
+`;
+
+const BulkPreviewRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 16px;
+    border-bottom: 1px solid #f1f5f900;
+    transition: background 150ms ease;
+
+    &:last-child { border-bottom: none; }
+    &:hover { background: rgba(0,0,0,0.025); }
+`;
+
+const BulkPreviewRowName = styled.div`
+    font-size: 12px;
+    font-weight: 500;
+    color: #374151;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+`;
+
+const BulkPreviewRowPrices = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+`;
+
+const BulkPreviewOriginalPrice = styled.span<{ $strikethrough: boolean }>`
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: ${p => p.$strikethrough ? '#94a3b8' : '#0f172a'};
+    font-weight: ${p => p.$strikethrough ? 400 : 600};
+    text-decoration: ${p => p.$strikethrough ? 'line-through' : 'none'};
+    transition: color 200ms ease;
+`;
+
+const BulkPreviewArrow = styled.span<{ $active: boolean }>`
+    font-size: 10px;
+    color: ${p => p.$active ? '#d97706' : '#cbd5e1'};
+    transition: color 200ms ease;
+    flex-shrink: 0;
+`;
+
+const BulkPreviewNewPrice = styled.span<{ $active: boolean }>`
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: ${p => p.$active ? '#b45309' : '#0f172a'};
+    transition: color 200ms ease;
+`;
+
+const BulkPreviewDiscountChip = styled.span<{ $visible: boolean }>`
+    font-size: 10px;
+    font-weight: 700;
+    color: #d97706;
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    border-radius: 5px;
+    padding: 1px 5px;
+    white-space: nowrap;
+    opacity: ${p => p.$visible ? 1 : 0};
+    transform: translateX(${p => p.$visible ? '0' : '-4px'});
+    transition: opacity 200ms ease, transform 200ms ease;
+    flex-shrink: 0;
+`;
+
+const BulkPreviewTotalsBar = styled.div`
+    border-top: 1.5px solid #e2e8f0;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #ffffff;
+    flex-shrink: 0;
+`;
+
+const BulkPreviewTotalsLabel = styled.div`
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    flex: 1;
+`;
+
+const BulkPreviewTotalsBefore = styled.span`
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: #94a3b8;
+    text-decoration: line-through;
+    font-weight: 400;
+`;
+
+const BulkPreviewTotalsArrow = styled.span`
+    font-size: 10px;
+    color: #d97706;
+`;
+
+const BulkPreviewTotalsAfter = styled.span`
+    font-size: 14px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #b45309;
+`;
+
+const BulkPreviewTotalsSaved = styled.span`
+    font-size: 11px;
+    font-weight: 600;
+    color: #16a34a;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 5px;
+    padding: 2px 6px;
+`;
+
+const BulkPreviewEmptyState = styled.div`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 24px 16px;
+    color: #94a3b8;
+`;
+
+const BulkPreviewEmptyIcon = styled.div`
+    font-size: 28px;
+    opacity: 0.5;
+`;
+
+const BulkPreviewEmptyText = styled.div`
+    font-size: 12px;
+    text-align: center;
+    line-height: 1.5;
+`;
+
+const BulkModalFooter = styled.div`
+    padding: 12px 20px;
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex-shrink: 0;
+`;
+
 const DISCOUNT_TYPES: { type: AdjustmentType; label: string }[] = [
     { type: 'PERCENT', label: '%' },
     { type: 'FIXED_NET', label: '−Netto' },
@@ -2005,62 +2236,157 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 const baseNet = resolveBaseNet(s);
                 return { finalNetCents: baseNet, finalGrossCents: netToGross(baseNet, s.vatRate) };
             };
-            const bulkBaseNet = eligible.reduce((sum, s) => sum + getEffective(s).finalNetCents, 0) / 100;
-            const bulkBaseGross = eligible.reduce((sum, s) => sum + getEffective(s).finalGrossCents, 0) / 100;
+
+            const allBases = eligible.map(s => {
+                const eff = getEffective(s);
+                return { basePriceNetCents: eff.finalNetCents, vatRate: s.vatRate };
+            });
+
+            const parsedVal = parseFloat(bulkDiscountValue.replace(',', '.'));
+            const hasValidValue = !isNaN(parsedVal) && parsedVal > 0;
+            const valueInCents = bulkDiscountType === 'PERCENT' ? parsedVal : Math.round(parsedVal * 100);
+            const liveAdjustments = hasValidValue ? distributeAdjustment(allBases, bulkDiscountType, valueInCents) : null;
+
+            const previews = eligible.map((s, i) => {
+                const base = allBases[i];
+                const beforeGross = netToGross(base.basePriceNetCents, base.vatRate) / 100;
+                if (!liveAdjustments) {
+                    return { service: s, beforeGross, afterGross: beforeGross, discountGross: 0 };
+                }
+                const { finalGrossCents } = applyAdjustment(base.basePriceNetCents, base.vatRate, liveAdjustments[i]);
+                const afterGross = finalGrossCents / 100;
+                return { service: s, beforeGross, afterGross, discountGross: beforeGross - afterGross };
+            });
+
+            const totalBeforeGross = previews.reduce((s, p) => s + p.beforeGross, 0);
+            const totalAfterGross = previews.reduce((s, p) => s + p.afterGross, 0);
+            const totalSavedGross = totalBeforeGross - totalAfterGross;
+
+            const fmtPct = (v: number) => `${Math.round(Math.abs(v))}%`;
+            const fmtAmt = (v: number) => `−${Math.abs(v).toFixed(2)} zł`;
+
             return (
                 <DiscountModalOverlay onClick={() => setBulkDiscountOpen(false)}>
-                    <DiscountModalCard onClick={e => e.stopPropagation()}>
-                        <DiscountModalHeader>
-                            <DiscountModalTitle>Rabatuj całość</DiscountModalTitle>
+                    <BulkModalCard onClick={e => e.stopPropagation()}>
+                        <BulkModalHeader>
+                            <div>
+                                <DiscountModalTitle>Rabatuj całość</DiscountModalTitle>
+                                <DiscountModalSubtitle>{eligible.length} {eligible.length === 1 ? 'pozycja' : eligible.length < 5 ? 'pozycje' : 'pozycji'}</DiscountModalSubtitle>
+                            </div>
                             <DiscountCloseBtn type="button" onClick={() => setBulkDiscountOpen(false)}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                             </DiscountCloseBtn>
-                        </DiscountModalHeader>
-                        <DiscountModalBody>
-                            <DiscountFromBox>
-                                <DiscountFromBoxLabel>Łącznie przed rabatem</DiscountFromBoxLabel>
-                                <DiscountFromPrices>
-                                    <DiscountFromPrice>
-                                        <DiscountFromPriceValue>{bulkBaseNet.toFixed(2)} zł</DiscountFromPriceValue>
-                                        <DiscountFromPriceLabel>Netto</DiscountFromPriceLabel>
-                                    </DiscountFromPrice>
-                                    <DiscountFromPrice>
-                                        <DiscountFromPriceValue>{bulkBaseGross.toFixed(2)} zł</DiscountFromPriceValue>
-                                        <DiscountFromPriceLabel>Brutto</DiscountFromPriceLabel>
-                                    </DiscountFromPrice>
-                                </DiscountFromPrices>
-                            </DiscountFromBox>
-                            <div>
-                                <DiscountSectionLabel>Rodzaj rabatu</DiscountSectionLabel>
-                                <DiscountTypeRow>
-                                    {DISCOUNT_TYPES.map(({ type, label }) => (
-                                        <DiscountTypePill key={type} type="button" $selected={bulkDiscountType === type}
-                                            onClick={() => { setBulkDiscountType(type); setBulkDiscountValue(''); }}>
-                                            {label}
-                                        </DiscountTypePill>
-                                    ))}
-                                </DiscountTypeRow>
-                            </div>
-                            <div>
-                                <DiscountSectionLabel>Wartość</DiscountSectionLabel>
-                                <DiscountValueRow>
-                                    <DiscountValueInput
-                                        type="text" inputMode="decimal" placeholder="0" autoFocus
-                                        value={bulkDiscountValue}
-                                        onChange={e => { if (MAX_2_DECIMALS.test(e.target.value)) setBulkDiscountValue(e.target.value); }}
-                                    />
-                                    <DiscountValueSuffix>{bulkDiscountType === 'PERCENT' ? '%' : 'zł'}</DiscountValueSuffix>
-                                </DiscountValueRow>
-                            </div>
-                        </DiscountModalBody>
-                        <DiscountModalFooter>
+                        </BulkModalHeader>
+
+                        <BulkModalLayout>
+                            {/* Left: controls */}
+                            <BulkControlsPanel>
+                                <DiscountFromBox>
+                                    <DiscountFromBoxLabel>Łącznie przed rabatem</DiscountFromBoxLabel>
+                                    <DiscountFromPrices>
+                                        <DiscountFromPrice>
+                                            <DiscountFromPriceValue>{totalBeforeGross.toFixed(2)} zł</DiscountFromPriceValue>
+                                            <DiscountFromPriceLabel>Brutto</DiscountFromPriceLabel>
+                                        </DiscountFromPrice>
+                                        <DiscountFromPrice>
+                                            <DiscountFromPriceValue>{allBases.reduce((s, b) => s + b.basePriceNetCents, 0) / 100 .toFixed(2)} zł</DiscountFromPriceValue>
+                                            <DiscountFromPriceLabel>Netto</DiscountFromPriceLabel>
+                                        </DiscountFromPrice>
+                                    </DiscountFromPrices>
+                                </DiscountFromBox>
+
+                                <div>
+                                    <DiscountSectionLabel>Rodzaj rabatu</DiscountSectionLabel>
+                                    <DiscountTypeRow>
+                                        {DISCOUNT_TYPES.map(({ type, label }) => (
+                                            <DiscountTypePill key={type} type="button" $selected={bulkDiscountType === type}
+                                                onClick={() => { setBulkDiscountType(type); setBulkDiscountValue(''); }}>
+                                                {label}
+                                            </DiscountTypePill>
+                                        ))}
+                                    </DiscountTypeRow>
+                                </div>
+
+                                <div>
+                                    <DiscountSectionLabel>Wartość rabatu</DiscountSectionLabel>
+                                    <DiscountValueRow>
+                                        <DiscountValueInput
+                                            type="text" inputMode="decimal" placeholder="0" autoFocus
+                                            value={bulkDiscountValue}
+                                            onChange={e => { if (MAX_2_DECIMALS.test(e.target.value)) setBulkDiscountValue(e.target.value); }}
+                                        />
+                                        <DiscountValueSuffix>{bulkDiscountType === 'PERCENT' ? '%' : 'zł'}</DiscountValueSuffix>
+                                    </DiscountValueRow>
+                                </div>
+                            </BulkControlsPanel>
+
+                            {/* Right: live preview */}
+                            <BulkPreviewPanel>
+                                <BulkPreviewHeader>
+                                    <BulkPreviewHeaderLabel>Podgląd zmian cen</BulkPreviewHeaderLabel>
+                                </BulkPreviewHeader>
+
+                                {previews.length === 0 ? (
+                                    <BulkPreviewEmptyState>
+                                        <BulkPreviewEmptyIcon>🏷️</BulkPreviewEmptyIcon>
+                                        <BulkPreviewEmptyText>Brak pozycji do rabatowania</BulkPreviewEmptyText>
+                                    </BulkPreviewEmptyState>
+                                ) : (
+                                    <>
+                                        <BulkPreviewList>
+                                            {previews.map(({ service, beforeGross, afterGross, discountGross }) => {
+                                                const isDiscounted = hasValidValue && discountGross > 0.001;
+                                                const chipLabel = bulkDiscountType === 'PERCENT'
+                                                    ? fmtPct(parsedVal)
+                                                    : fmtAmt(discountGross);
+                                                return (
+                                                    <BulkPreviewRow key={service.id}>
+                                                        <BulkPreviewRowName title={service.serviceName}>
+                                                            {service.serviceName}
+                                                        </BulkPreviewRowName>
+                                                        <BulkPreviewRowPrices>
+                                                            <BulkPreviewOriginalPrice $strikethrough={isDiscounted}>
+                                                                {beforeGross.toFixed(2)} zł
+                                                            </BulkPreviewOriginalPrice>
+                                                            <BulkPreviewArrow $active={isDiscounted}>→</BulkPreviewArrow>
+                                                            <BulkPreviewNewPrice $active={isDiscounted}>
+                                                                {afterGross.toFixed(2)} zł
+                                                            </BulkPreviewNewPrice>
+                                                            <BulkPreviewDiscountChip $visible={isDiscounted}>
+                                                                {chipLabel}
+                                                            </BulkPreviewDiscountChip>
+                                                        </BulkPreviewRowPrices>
+                                                    </BulkPreviewRow>
+                                                );
+                                            })}
+                                        </BulkPreviewList>
+
+                                        <BulkPreviewTotalsBar>
+                                            <BulkPreviewTotalsLabel>Łącznie</BulkPreviewTotalsLabel>
+                                            {hasValidValue && totalSavedGross > 0.001 ? (
+                                                <>
+                                                    <BulkPreviewTotalsBefore>{totalBeforeGross.toFixed(2)} zł</BulkPreviewTotalsBefore>
+                                                    <BulkPreviewTotalsArrow>→</BulkPreviewTotalsArrow>
+                                                    <BulkPreviewTotalsAfter>{totalAfterGross.toFixed(2)} zł</BulkPreviewTotalsAfter>
+                                                    <BulkPreviewTotalsSaved>oszczędność {totalSavedGross.toFixed(2)} zł</BulkPreviewTotalsSaved>
+                                                </>
+                                            ) : (
+                                                <BulkPreviewTotalsAfter style={{ color: '#0f172a' }}>{totalBeforeGross.toFixed(2)} zł</BulkPreviewTotalsAfter>
+                                            )}
+                                        </BulkPreviewTotalsBar>
+                                    </>
+                                )}
+                            </BulkPreviewPanel>
+                        </BulkModalLayout>
+
+                        <BulkModalFooter>
                             <DiscountCancelBtn type="button" onClick={() => setBulkDiscountOpen(false)}>Anuluj</DiscountCancelBtn>
                             <DiscountApplyBtn type="button" onClick={applyBulkDiscount}
-                                disabled={!bulkDiscountValue || parseFloat(bulkDiscountValue.replace(',', '.')) <= 0}>
-                                Zastosuj
+                                disabled={!hasValidValue}>
+                                Zastosuj rabat
                             </DiscountApplyBtn>
-                        </DiscountModalFooter>
-                    </DiscountModalCard>
+                        </BulkModalFooter>
+                    </BulkModalCard>
                 </DiscountModalOverlay>
             );
         })()}
