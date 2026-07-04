@@ -1075,7 +1075,7 @@ const BulkPreviewPanel = styled.div`
 `;
 
 const BulkPreviewHeader = styled.div`
-    padding: 14px 20px 11px;
+    padding: 14px 20px;
     border-bottom: 1px solid ${st.border};
     display: flex;
     align-items: center;
@@ -1084,12 +1084,41 @@ const BulkPreviewHeader = styled.div`
     flex-shrink: 0;
 `;
 
+const BulkPreviewHeaderMain = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+`;
+
+const BulkPreviewHeaderIcon = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border-radius: ${st.radiusSm};
+    background: ${BRAND_DIM};
+    color: ${BRAND_DARK};
+    svg { width: 14px; height: 14px; }
+`;
+
+const BulkPreviewHeaderText = styled.div`
+    min-width: 0;
+`;
+
 const BulkPreviewHeaderLabel = styled.div`
-    font-size: ${st.fontXs};
+    font-size: ${st.fontSm};
     font-weight: 700;
+    letter-spacing: -0.1px;
+    color: ${st.text};
+`;
+
+const BulkPreviewHeaderCaption = styled.div`
+    font-size: 11px;
     color: ${st.textMuted};
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    margin-top: 1px;
 `;
 
 const liveDotPulse = keyframes`
@@ -1104,8 +1133,13 @@ const LiveIndicator = styled.div`
     font-size: 10px;
     font-weight: 700;
     color: ${st.accentGreen};
+    background: ${st.accentGreenDim};
+    border: 1px solid rgba(16, 185, 129, 0.22);
+    border-radius: ${st.radiusFull};
+    padding: 4px 10px 4px 8px;
     text-transform: uppercase;
-    letter-spacing: 0.07em;
+    letter-spacing: 0.06em;
+    flex-shrink: 0;
 `;
 
 const LiveDot = styled.span`
@@ -1120,26 +1154,37 @@ const LiveDot = styled.span`
 const BulkPreviewList = styled.div`
     flex: 1;
     overflow-y: auto;
-    padding: 6px 0;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 
     &::-webkit-scrollbar { width: 5px; }
     &::-webkit-scrollbar-track { background: transparent; }
     &::-webkit-scrollbar-thumb { background: ${st.border}; border-radius: 99px; }
 `;
 
-const BulkPreviewRow = styled.div`
+const BulkPreviewCard = styled.div<{ $active: boolean }>`
+    background: ${st.bgCard};
+    border: 1px solid ${p => p.$active ? 'rgba(14, 165, 233, 0.35)' : st.border};
+    border-radius: ${st.radiusSm};
+    padding: 10px 14px;
+    transition: border-color 200ms ease, box-shadow 200ms ease;
+    box-shadow: ${p => p.$active ? '0 1px 6px rgba(14, 165, 233, 0.10)' : st.shadowXs};
+`;
+
+const BulkPreviewCardTop = styled.div`
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 10px;
-    padding: 9px 20px;
-    transition: background 150ms ease;
-    &:hover { background: ${st.bgCardAlt}; }
+    margin-bottom: 8px;
 `;
 
 const BulkPreviewRowName = styled.div`
     font-size: ${st.fontSm};
-    font-weight: 500;
-    color: ${st.textSecondary};
+    font-weight: 600;
+    color: ${st.text};
     flex: 1;
     min-width: 0;
     white-space: nowrap;
@@ -1147,35 +1192,63 @@ const BulkPreviewRowName = styled.div`
     text-overflow: ellipsis;
 `;
 
+const BulkPreviewPriceGrid = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+`;
+
+const BulkPreviewPriceCol = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+
+    &:last-child {
+        padding-left: 14px;
+        border-left: 1px solid ${st.border};
+    }
+`;
+
+const BulkPreviewPriceColLabel = styled.span`
+    font-size: 9px;
+    font-weight: 700;
+    color: ${st.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+`;
+
 const BulkPreviewRowPrices = styled.div`
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: 6px;
-    flex-shrink: 0;
+    flex-wrap: wrap;
 `;
 
 const BulkPreviewOriginalPrice = styled.span<{ $strikethrough: boolean }>`
-    font-size: ${st.fontSm};
+    font-size: 12px;
     font-variant-numeric: tabular-nums;
     color: ${p => p.$strikethrough ? st.textMuted : st.text};
     font-weight: ${p => p.$strikethrough ? 400 : 600};
     text-decoration: ${p => p.$strikethrough ? 'line-through' : 'none'};
     transition: color 200ms ease;
+    white-space: nowrap;
 `;
 
 const BulkPreviewArrow = styled.span<{ $active: boolean }>`
-    font-size: 11px;
+    font-size: 10px;
     color: ${p => p.$active ? BRAND : st.border};
     transition: color 200ms ease;
     flex-shrink: 0;
 `;
 
-const BulkPreviewNewPrice = styled.span<{ $active: boolean }>`
-    font-size: 14px;
+const BulkPreviewNewPrice = styled.span<{ $active: boolean; $primary?: boolean }>`
+    font-size: ${p => p.$primary ? '14px' : '12px'};
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     color: ${p => p.$active ? BRAND_DARK : st.text};
     transition: color 200ms ease;
+    white-space: nowrap;
 `;
 
 const BulkPreviewDiscountChip = styled.span<{ $visible: boolean }>`
@@ -1185,26 +1258,33 @@ const BulkPreviewDiscountChip = styled.span<{ $visible: boolean }>`
     background: ${BRAND_DIM};
     border: 1px solid rgba(14, 165, 233, 0.25);
     border-radius: ${st.radiusFull};
-    padding: 2px 7px;
+    padding: 2px 8px;
     white-space: nowrap;
-    opacity: ${p => p.$visible ? 1 : 0};
-    transform: translateX(${p => p.$visible ? '0' : '-4px'});
-    transition: opacity 200ms ease, transform 200ms ease;
     flex-shrink: 0;
+    opacity: ${p => p.$visible ? 1 : 0};
+    transform: scale(${p => p.$visible ? 1 : 0.85});
+    transition: opacity 200ms ease, transform 200ms ease;
 `;
 
 const BulkPreviewTotalsBar = styled.div`
     border-top: 1px solid ${st.border};
-    padding: 13px 20px;
+    padding: 12px 20px;
     display: flex;
-    align-items: center;
-    gap: 9px;
+    flex-direction: column;
+    gap: 5px;
     background: ${st.bgCard};
     flex-shrink: 0;
 `;
 
-const BulkPreviewTotalsLabel = styled.div`
-    font-size: ${st.fontXs};
+const BulkPreviewTotalsRow = styled.div<{ $secondary?: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    opacity: ${p => p.$secondary ? 0.75 : 1};
+`;
+
+const BulkPreviewTotalsLabel = styled.div<{ $secondary?: boolean }>`
+    font-size: ${p => p.$secondary ? '10px' : st.fontXs};
     font-weight: 700;
     color: ${st.textMuted};
     text-transform: uppercase;
@@ -1212,8 +1292,8 @@ const BulkPreviewTotalsLabel = styled.div`
     flex: 1;
 `;
 
-const BulkPreviewTotalsBefore = styled.span`
-    font-size: ${st.fontSm};
+const BulkPreviewTotalsBefore = styled.span<{ $secondary?: boolean }>`
+    font-size: ${p => p.$secondary ? '11px' : st.fontSm};
     font-variant-numeric: tabular-nums;
     color: ${st.textMuted};
     text-decoration: line-through;
@@ -1225,12 +1305,12 @@ const BulkPreviewTotalsArrow = styled.span`
     color: ${BRAND};
 `;
 
-const BulkPreviewTotalsAfter = styled.span<{ $active?: boolean }>`
-    font-size: ${st.fontLg};
+const BulkPreviewTotalsAfter = styled.span<{ $active?: boolean; $secondary?: boolean }>`
+    font-size: ${p => p.$secondary ? '12px' : st.fontLg};
     font-weight: 700;
     letter-spacing: -0.2px;
     font-variant-numeric: tabular-nums;
-    color: ${p => p.$active ? BRAND_DARK : st.text};
+    color: ${p => p.$active ? BRAND_DARK : (p.$secondary ? st.textSecondary : st.text)};
 `;
 
 const BulkPreviewTotalsSaved = styled.span`
@@ -2314,21 +2394,27 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
             const previews = eligible.map((s, i) => {
                 const base = allBases[i];
+                const beforeNet = base.basePriceNetCents / 100;
                 const beforeGross = netToGross(base.basePriceNetCents, base.vatRate) / 100;
                 if (!liveAdjustments) {
-                    return { service: s, beforeGross, afterGross: beforeGross, discountGross: 0 };
+                    return { service: s, beforeNet, afterNet: beforeNet, beforeGross, afterGross: beforeGross, discountGross: 0 };
                 }
-                const { finalGrossCents } = applyAdjustment(base.basePriceNetCents, base.vatRate, liveAdjustments[i]);
+                const { finalNetCents, finalGrossCents } = applyAdjustment(base.basePriceNetCents, base.vatRate, liveAdjustments[i]);
+                const afterNet = finalNetCents / 100;
                 const afterGross = finalGrossCents / 100;
-                return { service: s, beforeGross, afterGross, discountGross: beforeGross - afterGross };
+                return { service: s, beforeNet, afterNet, beforeGross, afterGross, discountGross: beforeGross - afterGross };
             });
 
+            const totalBeforeNet = previews.reduce((s, p) => s + p.beforeNet, 0);
+            const totalAfterNet = previews.reduce((s, p) => s + p.afterNet, 0);
             const totalBeforeGross = previews.reduce((s, p) => s + p.beforeGross, 0);
             const totalAfterGross = previews.reduce((s, p) => s + p.afterGross, 0);
             const totalSavedGross = totalBeforeGross - totalAfterGross;
+            const totalSavedNet = totalBeforeNet - totalAfterNet;
 
             const fmtPct = (v: number) => `${Math.round(Math.abs(v))}%`;
             const fmtAmt = (v: number) => `−${Math.abs(v).toFixed(2)} zł`;
+            const fmtZl = (v: number) => formatCurrency(v);
 
             return (
                 <DiscountModalOverlay onClick={() => setBulkDiscountOpen(false)}>
@@ -2388,7 +2474,15 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                             {/* Right: live preview */}
                             <BulkPreviewPanel>
                                 <BulkPreviewHeader>
-                                    <BulkPreviewHeaderLabel>Podgląd zmian cen</BulkPreviewHeaderLabel>
+                                    <BulkPreviewHeaderMain>
+                                        <BulkPreviewHeaderIcon>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="19" y1="5" x2="5" y2="19" /><circle cx="6.5" cy="6.5" r="2.5" /><circle cx="17.5" cy="17.5" r="2.5" /></svg>
+                                        </BulkPreviewHeaderIcon>
+                                        <BulkPreviewHeaderText>
+                                            <BulkPreviewHeaderLabel>Podgląd zmian cen</BulkPreviewHeaderLabel>
+                                            <BulkPreviewHeaderCaption>Rozkład rabatu na poszczególne usługi</BulkPreviewHeaderCaption>
+                                        </BulkPreviewHeaderText>
+                                    </BulkPreviewHeaderMain>
                                     <LiveIndicator><LiveDot />Na żywo</LiveIndicator>
                                 </BulkPreviewHeader>
 
@@ -2400,45 +2494,78 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                 ) : (
                                     <>
                                         <BulkPreviewList>
-                                            {previews.map(({ service, beforeGross, afterGross, discountGross }) => {
+                                            {previews.map(({ service, beforeNet, afterNet, beforeGross, afterGross, discountGross }) => {
                                                 const isDiscounted = hasValidValue && discountGross > 0.001;
                                                 const chipLabel = bulkDiscountType === 'PERCENT'
                                                     ? fmtPct(parsedVal)
                                                     : fmtAmt(discountGross);
                                                 return (
-                                                    <BulkPreviewRow key={service.id}>
-                                                        <BulkPreviewRowName title={service.serviceName}>
-                                                            {service.serviceName}
-                                                        </BulkPreviewRowName>
-                                                        <BulkPreviewRowPrices>
-                                                            <BulkPreviewOriginalPrice $strikethrough={isDiscounted}>
-                                                                {beforeGross.toFixed(2)} zł
-                                                            </BulkPreviewOriginalPrice>
-                                                            <BulkPreviewArrow $active={isDiscounted}>→</BulkPreviewArrow>
-                                                            <BulkPreviewNewPrice $active={isDiscounted}>
-                                                                {afterGross.toFixed(2)} zł
-                                                            </BulkPreviewNewPrice>
+                                                    <BulkPreviewCard key={service.id} $active={isDiscounted}>
+                                                        <BulkPreviewCardTop>
+                                                            <BulkPreviewRowName title={service.serviceName}>
+                                                                {service.serviceName}
+                                                            </BulkPreviewRowName>
                                                             <BulkPreviewDiscountChip $visible={isDiscounted}>
                                                                 {chipLabel}
                                                             </BulkPreviewDiscountChip>
-                                                        </BulkPreviewRowPrices>
-                                                    </BulkPreviewRow>
+                                                        </BulkPreviewCardTop>
+                                                        <BulkPreviewPriceGrid>
+                                                            <BulkPreviewPriceCol>
+                                                                <BulkPreviewPriceColLabel>Netto</BulkPreviewPriceColLabel>
+                                                                <BulkPreviewRowPrices>
+                                                                    <BulkPreviewOriginalPrice $strikethrough={isDiscounted}>
+                                                                        {fmtZl(beforeNet)}
+                                                                    </BulkPreviewOriginalPrice>
+                                                                    {isDiscounted && <>
+                                                                        <BulkPreviewArrow $active={isDiscounted}>→</BulkPreviewArrow>
+                                                                        <BulkPreviewNewPrice $active={isDiscounted}>{fmtZl(afterNet)}</BulkPreviewNewPrice>
+                                                                    </>}
+                                                                </BulkPreviewRowPrices>
+                                                            </BulkPreviewPriceCol>
+                                                            <BulkPreviewPriceCol>
+                                                                <BulkPreviewPriceColLabel>Brutto</BulkPreviewPriceColLabel>
+                                                                <BulkPreviewRowPrices>
+                                                                    <BulkPreviewOriginalPrice $strikethrough={isDiscounted}>
+                                                                        {fmtZl(beforeGross)}
+                                                                    </BulkPreviewOriginalPrice>
+                                                                    {isDiscounted && <>
+                                                                        <BulkPreviewArrow $active={isDiscounted}>→</BulkPreviewArrow>
+                                                                        <BulkPreviewNewPrice $active={isDiscounted} $primary>{fmtZl(afterGross)}</BulkPreviewNewPrice>
+                                                                    </>}
+                                                                </BulkPreviewRowPrices>
+                                                            </BulkPreviewPriceCol>
+                                                        </BulkPreviewPriceGrid>
+                                                    </BulkPreviewCard>
                                                 );
                                             })}
                                         </BulkPreviewList>
 
                                         <BulkPreviewTotalsBar>
-                                            <BulkPreviewTotalsLabel>Łącznie</BulkPreviewTotalsLabel>
-                                            {hasValidValue && totalSavedGross > 0.001 ? (
-                                                <>
-                                                    <BulkPreviewTotalsBefore>{totalBeforeGross.toFixed(2)} zł</BulkPreviewTotalsBefore>
-                                                    <BulkPreviewTotalsArrow>→</BulkPreviewTotalsArrow>
-                                                    <BulkPreviewTotalsAfter $active>{totalAfterGross.toFixed(2)} zł</BulkPreviewTotalsAfter>
-                                                    <BulkPreviewTotalsSaved>oszczędność {totalSavedGross.toFixed(2)} zł</BulkPreviewTotalsSaved>
-                                                </>
-                                            ) : (
-                                                <BulkPreviewTotalsAfter>{totalBeforeGross.toFixed(2)} zł</BulkPreviewTotalsAfter>
-                                            )}
+                                            <BulkPreviewTotalsRow>
+                                                <BulkPreviewTotalsLabel>Razem brutto</BulkPreviewTotalsLabel>
+                                                {hasValidValue && totalSavedGross > 0.001 ? (
+                                                    <>
+                                                        <BulkPreviewTotalsBefore>{fmtZl(totalBeforeGross)}</BulkPreviewTotalsBefore>
+                                                        <BulkPreviewTotalsArrow>→</BulkPreviewTotalsArrow>
+                                                        <BulkPreviewTotalsAfter $active>{fmtZl(totalAfterGross)}</BulkPreviewTotalsAfter>
+                                                        <BulkPreviewTotalsSaved>oszczędność {fmtZl(totalSavedGross)}</BulkPreviewTotalsSaved>
+                                                    </>
+                                                ) : (
+                                                    <BulkPreviewTotalsAfter>{fmtZl(totalBeforeGross)}</BulkPreviewTotalsAfter>
+                                                )}
+                                            </BulkPreviewTotalsRow>
+                                            <BulkPreviewTotalsRow $secondary>
+                                                <BulkPreviewTotalsLabel $secondary>Razem netto</BulkPreviewTotalsLabel>
+                                                {hasValidValue && totalSavedNet > 0.001 ? (
+                                                    <>
+                                                        <BulkPreviewTotalsBefore $secondary>{fmtZl(totalBeforeNet)}</BulkPreviewTotalsBefore>
+                                                        <BulkPreviewTotalsArrow>→</BulkPreviewTotalsArrow>
+                                                        <BulkPreviewTotalsAfter $secondary>{fmtZl(totalAfterNet)}</BulkPreviewTotalsAfter>
+                                                    </>
+                                                ) : (
+                                                    <BulkPreviewTotalsAfter $secondary>{fmtZl(totalBeforeNet)}</BulkPreviewTotalsAfter>
+                                                )}
+                                            </BulkPreviewTotalsRow>
                                         </BulkPreviewTotalsBar>
                                     </>
                                 )}
