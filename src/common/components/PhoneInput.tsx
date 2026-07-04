@@ -66,8 +66,11 @@ const COUNTRY_CODES: CountryCode[] = [
         code: '+48',
         flag: '🇵🇱',
         format: (digits: string) => {
-            // Format: XXX XXX XXX
-            const d = digits.replace(/\D/g, '').slice(0, 9);
+            // Format: XXX XXX XXX (extra digits beyond the standard length are
+            // appended to the last group instead of being dropped, so displaying
+            // an already-saved longer number never loses digits — only typing
+            // new digits is clamped, via maxDigits in the input handlers below)
+            const d = digits.replace(/\D/g, '');
             if (d.length <= 3) return d;
             if (d.length <= 6) return `${d.slice(0, 3)} ${d.slice(3)}`;
             return `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}`;
@@ -79,7 +82,7 @@ const COUNTRY_CODES: CountryCode[] = [
         flag: '🇩🇪',
         format: (digits: string) => {
             // Format: XXX XXXX XXXX
-            const d = digits.replace(/\D/g, '').slice(0, 11);
+            const d = digits.replace(/\D/g, '');
             if (d.length <= 3) return d;
             if (d.length <= 7) return `${d.slice(0, 3)} ${d.slice(3)}`;
             return `${d.slice(0, 3)} ${d.slice(3, 7)} ${d.slice(7)}`;
@@ -91,7 +94,7 @@ const COUNTRY_CODES: CountryCode[] = [
         flag: '🇨🇿',
         format: (digits: string) => {
             // Format: XXX XXX XXX
-            const d = digits.replace(/\D/g, '').slice(0, 9);
+            const d = digits.replace(/\D/g, '');
             if (d.length <= 3) return d;
             if (d.length <= 6) return `${d.slice(0, 3)} ${d.slice(3)}`;
             return `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}`;
@@ -103,7 +106,7 @@ const COUNTRY_CODES: CountryCode[] = [
         flag: '🇸🇰',
         format: (digits: string) => {
             // Format: XXX XXX XXX
-            const d = digits.replace(/\D/g, '').slice(0, 9);
+            const d = digits.replace(/\D/g, '');
             if (d.length <= 3) return d;
             if (d.length <= 6) return `${d.slice(0, 3)} ${d.slice(3)}`;
             return `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}`;
@@ -115,7 +118,7 @@ const COUNTRY_CODES: CountryCode[] = [
         flag: '🇺🇦',
         format: (digits: string) => {
             // Format: XX XXX XX XX
-            const d = digits.replace(/\D/g, '').slice(0, 9);
+            const d = digits.replace(/\D/g, '');
             if (d.length <= 2) return d;
             if (d.length <= 5) return `${d.slice(0, 2)} ${d.slice(2)}`;
             if (d.length <= 7) return `${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5)}`;
@@ -128,7 +131,7 @@ const COUNTRY_CODES: CountryCode[] = [
         flag: '🇧🇾',
         format: (digits: string) => {
             // Format: XX XXX XX XX
-            const d = digits.replace(/\D/g, '').slice(0, 9);
+            const d = digits.replace(/\D/g, '');
             if (d.length <= 2) return d;
             if (d.length <= 5) return `${d.slice(0, 2)} ${d.slice(2)}`;
             if (d.length <= 7) return `${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5)}`;
@@ -141,7 +144,7 @@ const COUNTRY_CODES: CountryCode[] = [
         flag: '🇱🇹',
         format: (digits: string) => {
             // Format: XXX XXXXX
-            const d = digits.replace(/\D/g, '').slice(0, 8);
+            const d = digits.replace(/\D/g, '');
             if (d.length <= 3) return d;
             return `${d.slice(0, 3)} ${d.slice(3)}`;
         },
@@ -152,7 +155,7 @@ const COUNTRY_CODES: CountryCode[] = [
         flag: '🇷🇺',
         format: (digits: string) => {
             // Format: XXX XXX XX XX
-            const d = digits.replace(/\D/g, '').slice(0, 10);
+            const d = digits.replace(/\D/g, '');
             if (d.length <= 3) return d;
             if (d.length <= 6) return `${d.slice(0, 3)} ${d.slice(3)}`;
             if (d.length <= 8) return `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}`;
