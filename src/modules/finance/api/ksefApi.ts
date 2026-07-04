@@ -10,6 +10,7 @@ import type {
   KsefExpenseListFilters,
   CreateExpenseRequest,
   UpdateExpensePaymentStatusRequest,
+  UpdateExpenseNoteRequest,
   KsefStatistics,
 } from '../types';
 
@@ -87,6 +88,18 @@ export const ksefApi = {
 
   deleteExpense: async (id: string): Promise<void> => {
     await apiClient.delete(`${BASE}/expenses/${id}`);
+  },
+
+  updateExpenseNote: async (
+    id: string,
+    data: UpdateExpenseNoteRequest,
+  ): Promise<KsefExpense> => {
+    const response = await apiClient.patch(`${BASE}/expenses/${id}/note`, data);
+    return response.data;
+  },
+
+  deleteExpenseNote: async (id: string): Promise<void> => {
+    await apiClient.delete(`${BASE}/expenses/${id}/note`);
   },
 
   // ── Statistics ─────────────────────────────────────────────────────────────

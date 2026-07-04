@@ -258,6 +258,7 @@ export interface KsefExpense {
   status:            ExpenseStatus;
   isCorrection:      boolean;
   fetchedAt:         string;
+  note:              string | null;
 }
 
 export interface KsefExpenseListResponse {
@@ -289,6 +290,10 @@ export interface CreateExpenseRequest {
 
 export interface UpdateExpensePaymentStatusRequest {
   paymentStatus: ExpensePaymentStatus;
+}
+
+export interface UpdateExpenseNoteRequest {
+  note: string;
 }
 
 // ─── KSeF: Statystyki kosztowe ────────────────────────────────────────────────

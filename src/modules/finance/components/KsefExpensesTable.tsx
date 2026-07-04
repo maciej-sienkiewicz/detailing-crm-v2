@@ -7,7 +7,9 @@ import {
   useRestoreExpense,
   useUpdateExpensePaymentStatus,
   useDeleteExpense,
+  useDeleteExpenseNote,
 } from '../hooks/useKsef';
+import { ExpenseNoteModal } from './ExpenseNoteModal';
 import { formatMoneyFloat, formatDate } from '../utils/formatters';
 
 // ─── Animations ──────────────────────────────────────────────────────────────
@@ -32,7 +34,7 @@ const Wrapper = styled.div`
 
 const Table = styled.table`
   width: 100%;
-  min-width: 960px;
+  min-width: 1080px;
   border-collapse: collapse;
 `;
 
@@ -214,7 +216,7 @@ const ActionsCell = styled.div`
   gap: 4px;
 `;
 
-const ActionBtn = styled.button<{ $variant: 'exclude' | 'restore' | 'delete' | 'pay' }>`
+const ActionBtn = styled.button<{ $variant: 'exclude' | 'restore' | 'delete' | 'pay' | 'edit' }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -233,10 +235,53 @@ const ActionBtn = styled.button<{ $variant: 'exclude' | 'restore' | 'delete' | '
       case 'restore': return `&:hover { background: #dcfce7; color: #16a34a; border-color: #86efac; }`;
       case 'delete':  return `&:hover { background: #fee2e2; color: #ef4444; border-color: #fca5a5; }`;
       case 'pay':     return `&:hover { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }`;
+      case 'edit':    return `&:hover { background: #eef2ff; color: #4f46e5; border-color: #c7d2fe; }`;
     }
   }}
 
   svg { width: 14px; height: 14px; }
+`;
+
+// ─── Note cell ────────────────────────────────────────────────────────────────
+
+const NoteCell = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+`;
+
+const NoteText = styled.span`
+  display: block;
+  max-width: 160px;
+  font-size: 13px;
+  color: ${(p) => p.theme.colors.text};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const AddNoteBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+
+  &:hover {
+    color: #4f46e5;
+    border-color: #c7d2fe;
+    background: #eef2ff;
+  }
+
+  svg { width: 11px; height: 11px; }
 `;
 
 // ─── Dropdown ─────────────────────────────────────────────────────────────────
@@ -325,6 +370,13 @@ const IconTrash = () => (
   </svg>
 );
 
+const IconPencil = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+  </svg>
+);
+
 const IconCheck = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="20 6 9 17 4 12" />
@@ -349,12 +401,14 @@ interface Props {
 export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
   const [openPaymentId, setOpenPaymentId]   = useState<string | null>(null);
   const [dropdownPos, setDropdownPos]       = useState<{ top: number; left: number } | null>(null);
+  const [noteExpense, setNoteExpense]       = useState<KsefExpense | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const excludeExpense = useExcludeExpense();
   const restoreExpense = useRestoreExpense();
   const updatePayment  = useUpdateExpensePaymentStatus();
   const deleteExpense  = useDeleteExpense();
+  const deleteNote     = useDeleteExpenseNote();
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -398,6 +452,18 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
     }
   };
 
+  const handleOpenNote = (exp: KsefExpense, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setNoteExpense(exp);
+  };
+
+  const handleDeleteNote = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm('Czy na pewno chcesz usunąć tę notatkę?')) {
+      deleteNote.mutate(id);
+    }
+  };
+
   // ── Loading skeleton ───────────────────────────────────────────────────────
 
   if (isLoading) {
@@ -406,7 +472,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
         <Table>
           <Thead>
             <tr>
-              <Th>Data sprzedaży</Th><Th>Numer dokumentu</Th><Th>Sprzedawca</Th>
+              <Th>Data sprzedaży</Th><Th>Numer dokumentu</Th><Th>Sprzedawca</Th><Th>Notatka</Th>
               <Th $align="right">Kwota</Th><Th>Płatność</Th><Th>Źródło</Th>
               <Th $width="80px" />
             </tr>
@@ -414,7 +480,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
           <tbody>
             {[1, 2, 3, 4, 5].map((i) => (
               <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                {[80, 110, 140, 90, 90, 70].map((w, j) => (
+                {[80, 110, 140, 100, 90, 90, 70].map((w, j) => (
                   <td key={j} style={{ padding: '13px 16px' }}>
                     <Skeleton $w={`${w}px`} />
                   </td>
@@ -445,6 +511,7 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
               <Th>Data sprzedaży</Th>
               <Th>Numer dokumentu</Th>
               <Th>Sprzedawca</Th>
+              <Th>Notatka</Th>
               <Th $align="right">Kwota</Th>
               <Th>Płatność</Th>
               <Th>Źródło</Th>
@@ -497,6 +564,26 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
                       </>
                     ) : (
                       <EmDash>—</EmDash>
+                    )}
+                  </Td>
+
+                  {/* Notatka */}
+                  <Td onClick={(e) => e.stopPropagation()}>
+                    {exp.note ? (
+                      <NoteCell>
+                        <NoteText title={exp.note}>{exp.note}</NoteText>
+                        <ActionBtn $variant="edit" onClick={(e) => handleOpenNote(exp, e)} title="Edytuj notatkę">
+                          <IconPencil />
+                        </ActionBtn>
+                        <ActionBtn $variant="delete" onClick={(e) => handleDeleteNote(exp.id, e)} title="Usuń notatkę">
+                          <IconTrash />
+                        </ActionBtn>
+                      </NoteCell>
+                    ) : (
+                      <AddNoteBtn onClick={(e) => handleOpenNote(exp, e)}>
+                        <IconPencil />
+                        Dodaj notatkę
+                      </AddNoteBtn>
                     )}
                   </Td>
 
@@ -598,6 +685,12 @@ export const KsefExpensesTable: React.FC<Props> = ({ expenses, isLoading }) => {
           </>,
           document.body
         )}
+
+      <ExpenseNoteModal
+        isOpen={noteExpense !== null}
+        onClose={() => setNoteExpense(null)}
+        expense={noteExpense}
+      />
     </>
   );
 };
