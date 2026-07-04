@@ -98,7 +98,12 @@ const TableHeaderCell = styled.th<{ $align?: 'left' | 'right' | 'center'; $width
 
 const TableBody = styled.tbody``;
 
-const TableRow = styled.tr<{ $isNew?: boolean; $requiresVerification?: boolean; $status?: LeadStatus }>`
+const TableRow = styled.tr<{
+  $isNew?: boolean;
+  $requiresVerification?: boolean;
+  $status?: LeadStatus;
+  $hasNewActivity?: boolean;
+}>`
   border-bottom: 1px solid ${props => props.theme.colors.border};
   transition: background-color 0.15s ease;
   cursor: pointer;
@@ -118,6 +123,11 @@ const TableRow = styled.tr<{ $isNew?: boolean; $requiresVerification?: boolean; 
   ${props => (props.$status === LeadStatus.LOST || props.$status === LeadStatus.NO_SHOW) && css`
     background: rgba(148, 163, 184, 0.08);
     opacity: 0.65;
+  `}
+
+  ${props => props.$hasNewActivity && css`
+    animation: ${fadeIn} 0.3s ease-out both,
+               ${rowActivityFlash} 3.5s ease-in-out 0.4s infinite;
   `}
 
   &:last-child {
@@ -244,6 +254,19 @@ const ActivityLabel = styled.span`
 const newActivityPulse = keyframes`
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.7; transform: scale(1.05); }
+`;
+
+// Row-level flash for leads with unread client replies.
+// Uses inset box-shadow so it doesn't interfere with hover background-color.
+const rowActivityFlash = keyframes`
+  0%, 100% {
+    box-shadow: inset 3px 0 0 rgba(234, 88, 12, 0),
+                inset 0 0 0 9999px rgba(234, 88, 12, 0);
+  }
+  50% {
+    box-shadow: inset 3px 0 0 rgba(234, 88, 12, 0.65),
+                inset 0 0 0 9999px rgba(234, 88, 12, 0.07);
+  }
 `;
 
 const NewActivityBadge = styled.span`
@@ -1050,6 +1073,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, isLoading, onRowCli
                     $isNew={isNew}
                     $requiresVerification={lead.requiresVerification}
                     $status={lead.status}
+                    $hasNewActivity={!!lead.newActivityAt}
                     onClick={() => handleRowClick(lead)}
                   >
                     {/* Indicator */}

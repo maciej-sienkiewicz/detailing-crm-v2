@@ -197,6 +197,7 @@ export enum LeadEventType {
   LEAD_UPDATED = 'LEAD_UPDATED',
   LEAD_STATUS_CHANGED = 'LEAD_STATUS_CHANGED',
   REPLY_APPENDED = 'REPLY_APPENDED',
+  LEAD_CLIENT_REPLIED = 'LEAD_CLIENT_REPLIED',
 }
 
 /**
@@ -206,6 +207,15 @@ export interface LeadEvent<T = unknown> {
   type: LeadEventType;
   payload: T;
   timestamp: string;
+}
+
+/**
+ * Payload for LEAD_CLIENT_REPLIED WebSocket event —
+ * a client replied to an existing open lead via email.
+ */
+export interface LeadClientRepliedPayload {
+  leadId: LeadId;
+  activityAt: string;
 }
 
 /**

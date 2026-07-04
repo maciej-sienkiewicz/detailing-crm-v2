@@ -33,6 +33,7 @@ import {
   useDeleteUserQuote,
   useLeads,
   useMergeLead,
+  useAcknowledgeLead,
 } from '../../hooks';
 import { OfferComposerModal } from '../OfferComposer/OfferComposerModal';
 import { LeadThread } from '../LeadThread';
@@ -2647,7 +2648,8 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
   const assignUser    = useAssignLeadUser(lead?.id ?? '');
   const addComment    = useAddComment(lead?.id ?? '');
   const setLostReason = useSetLostReason(lead?.id ?? '');
-  const mergeLead     = useMergeLead();
+  const mergeLead        = useMergeLead();
+  const acknowledgeLead  = useAcknowledgeLead();
   const { showSuccess } = useToast();
   const { user: authUser } = useAuth();
 
@@ -2678,6 +2680,15 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ lead, isOpen, 
       setStatusChangeComment('');
     }
   }, [isOpen]);
+
+  // Acknowledge unread activity when the modal opens for a lead with new activity,
+  // or when a real-time reply arrives while the modal is already open.
+  useEffect(() => {
+    if (isOpen && lead?.newActivityAt) {
+      acknowledgeLead.mutate(lead.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, lead?.id, lead?.newActivityAt]);
 
   // Close status menu on outside click
   useEffect(() => {

@@ -16,6 +16,7 @@ import type {
   Lead,
   LeadEvent,
   InboundCallPayload,
+  LeadClientRepliedPayload,
   LeadListResponse,
 } from '../types';
 import { LeadEventType, LeadStatus } from '../types';
@@ -144,6 +145,35 @@ export function useLeadSocket(): void {
     [queryClient, showInfo]
   );
 
+  const handleLeadClientReplied = useCallback(
+    (event: LeadEvent<LeadClientRepliedPayload>) => {
+      const { leadId, activityAt } = event.payload;
+      console.info('[LeadSocket] LEAD_CLIENT_REPLIED leadId:', leadId, 'activityAt:', activityAt);
+
+      // Mark the lead as having unread activity in the list cache
+      queryClient.setQueriesData<LeadListResponse>(
+        { queryKey: [...LEADS_KEY, 'list'] },
+        (old) => {
+          if (!old) return old;
+          const lead = old.leads.find((l) => l.id === leadId);
+          if (!lead) return old;
+          return {
+            ...old,
+            leads: old.leads.map((l) =>
+              l.id === leadId ? { ...l, newActivityAt: activityAt } : l
+            ),
+          };
+        }
+      );
+
+      // Also refresh the detail query if it's cached (modal might be open)
+      queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'detail', leadId] });
+
+      showInfo('Klient odpisał na lead', `ID leadu: ${leadId}`);
+    },
+    [queryClient, showInfo]
+  );
+
   const handleMessage = useCallback(
     (message: IMessage) => {
       console.info('[LeadSocket] Raw message received:', message.body);
@@ -163,6 +193,9 @@ export function useLeadSocket(): void {
           case LeadEventType.REPLY_APPENDED:
             handleReplyAppended(event as LeadEvent<Lead>);
             break;
+          case LeadEventType.LEAD_CLIENT_REPLIED:
+            handleLeadClientReplied(event as LeadEvent<LeadClientRepliedPayload>);
+            break;
           default:
             console.warn('[LeadSocket] Unknown event type:', event.type);
         }
@@ -175,7 +208,7 @@ export function useLeadSocket(): void {
         );
       }
     },
-    [handleNewInboundCall, handleLeadUpdated, handleReplyAppended]
+    [handleNewInboundCall, handleLeadUpdated, handleReplyAppended, handleLeadClientReplied]
   );
 
   useEffect(() => {
