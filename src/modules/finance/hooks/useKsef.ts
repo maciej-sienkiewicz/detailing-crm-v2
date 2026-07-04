@@ -5,6 +5,7 @@ import type {
   KsefExpenseListFilters,
   CreateExpenseRequest,
   UpdateExpensePaymentStatusRequest,
+  UpdateExpenseNoteRequest,
   SaveKsefCredentialsRequest,
   KsefSyncRangeRequest,
 } from '../types';
@@ -164,6 +165,29 @@ export const useDeleteExpense = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KSEF_EXPENSES_KEY });
       queryClient.invalidateQueries({ queryKey: KSEF_STATISTICS_KEY });
+    },
+  });
+};
+
+export const useUpdateExpenseNote = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateExpenseNoteRequest }) =>
+      ksefApi.updateExpenseNote(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KSEF_EXPENSES_KEY });
+    },
+  });
+};
+
+export const useDeleteExpenseNote = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => ksefApi.deleteExpenseNote(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KSEF_EXPENSES_KEY });
     },
   });
 };
