@@ -28,7 +28,7 @@ export const useCheckInValidation = (formData: CheckInFormData, currentStep: Che
                     if (hasEmail && !isValidEmail(formData.customerData.email)) {
                         validationErrors.email = t.customers.validation.emailInvalid;
                     }
-                    if (hasPhone && !isValidPolishPhone(formData.customerData.phone)) {
+                    if (hasPhone && !(isValidPolishPhone(formData.customerData.phone) && formData.customerData.phone.startsWith("+48"))) {
                         validationErrors.phone = t.customers.validation.phoneInvalid;
                     }
                 }
