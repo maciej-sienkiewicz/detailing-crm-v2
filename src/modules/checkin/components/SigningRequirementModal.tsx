@@ -189,7 +189,6 @@ export const SigningRequirementModal = ({
     };
 
     const tabletButtonTitle = (protocol: ProtocolResponse): string => {
-        if (!protocol.filledPdfUrl) return 'Dokument nie jest jeszcze gotowy';
         if (tablets.length === 0) return 'Brak sparowanego tabletu';
         if (sentProtocolIds.has(protocol.id)) return 'Wysłano na tablet';
         if (tablets.length === 1) return `Wyślij na tablet: ${tablets[0].deviceName}`;
@@ -250,7 +249,7 @@ export const SigningRequirementModal = ({
                                                     <IconButton
                                                         onClick={() => handleTabletButtonClick(protocol.id)}
                                                         title={tabletButtonTitle(protocol)}
-                                                        disabled={!hasTablets || !protocol.filledPdfUrl || isSending || isSent}
+                                                        disabled={!hasTablets || isSending || isSent}
                                                         $active={isSent || isPickerOpen}
                                                     >
                                                         {isSending ? (
