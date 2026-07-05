@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
     ModalShell,
@@ -9,6 +9,7 @@ import {
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { visitApi } from '@/modules/visits/api/visitApi';
+import { tabletApi } from '../api/tabletApi';
 import { DocumentPreview } from './DocumentPreview';
 import { NotificationSection, defaultNotificationOptions, toConfirmVisitOptions } from './NotificationSection';
 import type { NotificationOptions } from './NotificationSection';
@@ -29,6 +30,11 @@ import {
     Spinner,
     LoadingContainer,
     EmptyState,
+    TabletPickerWrapper,
+    TabletPickerDropdown,
+    TabletPickerLabel,
+    TabletPickerItem,
+    SpinningIconWrapper,
 } from './SigningRequirementModal.styles';
 
 /* ─── Icons ─────────────────────────────────────────────────────────────────── */
@@ -58,6 +64,12 @@ const TabletIcon = () => (
     </svg>
 );
 
+const CheckIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+    </svg>
+);
+
 /* ─── Props ──────────────────────────────────────────────────────────────────── */
 
 interface SigningRequirementModalProps {
@@ -80,17 +92,28 @@ export const SigningRequirementModal = ({
     onClose,
     onCancel,
     visitId,
+    customerName,
     protocols,
     onConfirm,
 }: SigningRequirementModalProps) => {
     const [previewProtocolId, setPreviewProtocolId] = useState<string | null>(null);
+    const [tabletPickerProtocolId, setTabletPickerProtocolId] = useState<string | null>(null);
+    const [sendingProtocolId, setSendingProtocolId] = useState<string | null>(null);
+    const [sentProtocolIds, setSentProtocolIds] = useState<Set<string>>(new Set());
+    const tabletPickerRef = useRef<HTMLDivElement>(null);
 
     const { data: emailConfig, isPending: emailConfigPending } = useQuery({
         queryKey: ['email-automation-config'],
         queryFn: () => import('@/modules/email-campaigns/api/emailCampaignsApi').then(m => m.fetchEmailAutomationConfig()),
     });
-    // Default to false while loading to avoid "on → off" flicker on first open
     const visitWelcomeEnabled = emailConfigPending ? false : (emailConfig?.visitWelcome?.enabled ?? true);
+
+    const { data: tablets = [] } = useQuery({
+        queryKey: ['tablets'],
+        queryFn: tabletApi.listTablets,
+        enabled: isOpen,
+        staleTime: 30_000,
+    });
 
     const [notifOptions, setNotifOptions] = useState<NotificationOptions>(() => defaultNotificationOptions(true, visitWelcomeEnabled));
 
@@ -121,16 +144,61 @@ export const SigningRequirementModal = ({
     useEffect(() => {
         if (isOpen) {
             setPreviewProtocolId(null);
+            setTabletPickerProtocolId(null);
+            setSendingProtocolId(null);
+            setSentProtocolIds(new Set());
             setNotifOptions(defaultNotificationOptions(hasProtocol, visitWelcomeEnabled));
         }
     }, [isOpen, hasProtocol, visitWelcomeEnabled]);
+
+    // Close tablet picker when clicking outside
+    useEffect(() => {
+        if (!tabletPickerProtocolId) return;
+        const handleClickOutside = (e: MouseEvent) => {
+            if (tabletPickerRef.current && !tabletPickerRef.current.contains(e.target as Node)) {
+                setTabletPickerProtocolId(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [tabletPickerProtocolId]);
 
     const handlePrint = (protocolId: string) => {
         const pdfUrl = protocols.find(p => p.id === protocolId)?.filledPdfUrl;
         if (pdfUrl) window.open(pdfUrl, '_blank');
     };
+
+    const handleSendToTablet = async (protocolId: string, tabletId: string) => {
+        if (!visitId || sendingProtocolId) return;
+        setTabletPickerProtocolId(null);
+        setSendingProtocolId(protocolId);
+        try {
+            await tabletApi.requestTabletSignature(visitId, protocolId, customerName, tabletId);
+            setSentProtocolIds(prev => new Set(prev).add(protocolId));
+        } finally {
+            setSendingProtocolId(null);
+        }
+    };
+
+    const handleTabletButtonClick = (protocolId: string) => {
+        if (tablets.length === 1) {
+            handleSendToTablet(protocolId, tablets[0].tabletId);
+        } else if (tablets.length > 1) {
+            setTabletPickerProtocolId(prev => prev === protocolId ? null : protocolId);
+        }
+    };
+
+    const tabletButtonTitle = (protocol: ProtocolResponse): string => {
+        if (!protocol.filledPdfUrl) return 'Dokument nie jest jeszcze gotowy';
+        if (tablets.length === 0) return 'Brak sparowanego tabletu';
+        if (sentProtocolIds.has(protocol.id)) return 'Wysłano na tablet';
+        if (tablets.length === 1) return `Wyślij na tablet: ${tablets[0].deviceName}`;
+        return 'Wybierz tablet do podpisu';
+    };
+
     const isProcessing = cancelVisitMutation.isPending || confirmVisitMutation.isPending;
     const canInteract = !isCreating && visitId !== null;
+    const hasTablets = tablets.length > 0;
 
     return (
         <>
@@ -153,31 +221,70 @@ export const SigningRequirementModal = ({
                             <EmptyState>Brak wymaganych protokołów dla tej wizyty</EmptyState>
                         ) : (
                             <DocumentList>
-                                {protocols.map(protocol => (
-                                    <DocumentRow key={protocol.id}>
-                                        <DocumentIcon>
-                                            <FileTextIcon />
-                                        </DocumentIcon>
+                                {protocols.map(protocol => {
+                                    const isSending = sendingProtocolId === protocol.id;
+                                    const isSent = sentProtocolIds.has(protocol.id);
+                                    const isPickerOpen = tabletPickerProtocolId === protocol.id;
 
-                                        <DocumentInfo>
-                                            <DocumentName>
-                                                {protocol.templateName || 'Protokół'}
-                                            </DocumentName>
-                                        </DocumentInfo>
+                                    return (
+                                        <DocumentRow key={protocol.id}>
+                                            <DocumentIcon>
+                                                <FileTextIcon />
+                                            </DocumentIcon>
 
-                                        <ActionButtons>
-                                            <IconButton onClick={() => setPreviewProtocolId(protocol.id)} title="Podgląd">
-                                                <EyeIcon />
-                                            </IconButton>
-                                            <IconButton onClick={() => handlePrint(protocol.id)} title="Drukuj" disabled={!protocol.filledPdfUrl}>
-                                                <PrintIcon />
-                                            </IconButton>
-                                            <IconButton disabled title="Podpisz na tablecie">
-                                                <TabletIcon />
-                                            </IconButton>
-                                        </ActionButtons>
-                                    </DocumentRow>
-                                ))}
+                                            <DocumentInfo>
+                                                <DocumentName>
+                                                    {protocol.templateName || 'Protokół'}
+                                                </DocumentName>
+                                            </DocumentInfo>
+
+                                            <ActionButtons>
+                                                <IconButton onClick={() => setPreviewProtocolId(protocol.id)} title="Podgląd">
+                                                    <EyeIcon />
+                                                </IconButton>
+                                                <IconButton onClick={() => handlePrint(protocol.id)} title="Drukuj" disabled={!protocol.filledPdfUrl}>
+                                                    <PrintIcon />
+                                                </IconButton>
+
+                                                <TabletPickerWrapper ref={isPickerOpen ? tabletPickerRef : undefined}>
+                                                    <IconButton
+                                                        onClick={() => handleTabletButtonClick(protocol.id)}
+                                                        title={tabletButtonTitle(protocol)}
+                                                        disabled={!hasTablets || !protocol.filledPdfUrl || isSending || isSent}
+                                                        $active={isSent || isPickerOpen}
+                                                    >
+                                                        {isSending ? (
+                                                            <SpinningIconWrapper>
+                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                                </svg>
+                                                            </SpinningIconWrapper>
+                                                        ) : isSent ? (
+                                                            <CheckIcon />
+                                                        ) : (
+                                                            <TabletIcon />
+                                                        )}
+                                                    </IconButton>
+
+                                                    {isPickerOpen && tablets.length > 1 && (
+                                                        <TabletPickerDropdown>
+                                                            <TabletPickerLabel>Wybierz tablet</TabletPickerLabel>
+                                                            {tablets.map(tablet => (
+                                                                <TabletPickerItem
+                                                                    key={tablet.tabletId}
+                                                                    onClick={() => handleSendToTablet(protocol.id, tablet.tabletId)}
+                                                                >
+                                                                    <TabletIcon />
+                                                                    {tablet.deviceName}
+                                                                </TabletPickerItem>
+                                                            ))}
+                                                        </TabletPickerDropdown>
+                                                    )}
+                                                </TabletPickerWrapper>
+                                            </ActionButtons>
+                                        </DocumentRow>
+                                    );
+                                })}
                             </DocumentList>
                         )}
 

@@ -208,3 +208,72 @@ export const EmptyState = styled.div`
     color: ${props => props.theme.colors.textMuted};
     font-size: ${st.fontSm};
 `;
+
+export const TabletPickerWrapper = styled.div`
+    position: relative;
+    display: inline-flex;
+`;
+
+export const TabletPickerDropdown = styled.div`
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 200;
+    min-width: 200px;
+    background: #fff;
+    border: 1px solid ${st.border};
+    border-radius: ${st.radiusSm};
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+`;
+
+export const TabletPickerLabel = styled.div`
+    padding: 8px 12px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: ${st.textMuted};
+    border-bottom: 1px solid ${st.border};
+`;
+
+export const SpinningIconWrapper = styled.span`
+    display: inline-flex;
+    animation: ${spin} 0.8s linear infinite;
+
+    svg {
+        width: 16px;
+        height: 16px;
+    }
+`;
+
+export const TabletPickerItem = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: ${st.fontSm};
+    color: ${st.text};
+    text-align: left;
+    transition: background ${st.transition};
+
+    &:hover {
+        background: ${st.accentBlueDim};
+        color: ${st.accentBlue};
+    }
+
+    svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        color: ${st.textMuted};
+    }
+
+    &:hover svg {
+        color: ${st.accentBlue};
+    }
+`;
