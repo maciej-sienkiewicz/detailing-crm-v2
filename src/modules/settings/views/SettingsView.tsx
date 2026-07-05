@@ -11,6 +11,7 @@ import { AutomationSettings } from '@/modules/sms-campaigns/components/Automatio
 import { EmailAutomationSettings } from '@/modules/email-campaigns/components/EmailAutomationSettings';
 import { SmsCreditSection } from '../components/SmsCreditSection';
 import { InvoicesSection } from '../components/InvoicesSection';
+import { TabletsSection } from '../components/TabletsSection';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { HelpModal } from '../components/shared/SettingsLayout';
 import type { HelpContent } from '../components/shared/SettingsLayout';
@@ -29,6 +30,7 @@ import {
 type SectionId =
     | 'company' | 'services' | 'team' | 'roles' | 'opening'
     | 'templates' | 'email-templates' | 'reminders' | 'documents'
+    | 'tablets'
     | 'plan' | 'credits' | 'invoices' | 'security'
     | 'integrations' | 'api';
 
@@ -65,6 +67,7 @@ const ReceiptIcon    = () => <Icon d="M4 2h16v20l-2-1-2 1-2-1-2 1-2-1-2 1-2-1V2z
 const ShieldIcon     = () => <Icon d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />;
 const PlugIcon       = () => <Icon d="M7 16.9A7 7 0 1 1 16.9 7M7 16.9l9-9M9 9l6 6" />;
 const TerminalIcon   = () => <Icon d="M4 17l6-6-6-6M12 19h8" />;
+const TabletIcon     = () => <Icon d="M5 2h14a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 15h.01" />;
 const QuestionIcon   = () => (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" />
@@ -94,6 +97,7 @@ const NAV_GROUPS: NavGroup[] = [
             { id: 'templates',       label: 'Szablony SMS',          icon: <MessageIcon /> },
             { id: 'email-templates', label: 'Szablony email',        icon: <MailIcon /> },
             { id: 'documents',       label: 'Dokumenty i podpisy',   icon: <FileSignIcon /> },
+            { id: 'tablets',         label: 'Tablety',               icon: <TabletIcon /> },
         ],
     },
     {
@@ -278,6 +282,7 @@ function ComingSoonSection({ label }: { label: string }) {
 const VALID_SECTIONS = new Set<SectionId>([
     'company', 'services', 'team', 'roles', 'opening',
     'templates', 'email-templates', 'reminders', 'documents',
+    'tablets',
     'plan', 'credits', 'invoices', 'security',
     'integrations', 'api',
 ]);
@@ -312,6 +317,8 @@ export function SettingsView() {
         content = <SubscriptionSettingsPage />;
     } else if (section === 'credits') {
         content = <SmsCreditSection />;
+    } else if (section === 'tablets') {
+        content = <TabletsSection />;
     } else if (section === 'invoices') {
         content = <InvoicesSection />;
     } else {
