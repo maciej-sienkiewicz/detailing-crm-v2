@@ -167,6 +167,49 @@ const ServiceTableFilterLabel = styled.span`
     font-style: italic;
 `;
 
+const ServiceFiltersBar = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    width: 100%;
+`;
+
+const ServiceFilterInput = styled.input`
+    flex: 1;
+    min-width: 150px;
+    padding: 6px 12px;
+    background: ${st.bg};
+    color: ${st.text};
+    border: 1.5px solid ${st.border};
+    border-radius: ${st.radiusFull};
+    font-family: inherit;
+    font-size: ${st.fontSm};
+    transition: border-color ${st.transition};
+
+    &::placeholder { color: ${st.textMuted}; }
+    &:focus { outline: none; border-color: ${st.accentBlue}; }
+`;
+
+const UnassignedFilterBtn = styled.button<{ $active: boolean }>`
+    padding: 5px 12px;
+    background: ${p => p.$active ? st.accentAmberDim : 'transparent'};
+    border: 1px solid ${p => p.$active ? st.accentAmber : st.border};
+    border-radius: ${st.radiusFull};
+    font-size: ${st.fontXs};
+    font-weight: 600;
+    color: ${p => p.$active ? '#92400E' : st.textSecondary};
+    cursor: pointer;
+    transition: all ${st.transition};
+    white-space: nowrap;
+
+    &:hover {
+        border-color: ${p => p.$active ? st.accentAmber : st.borderHover};
+        color: ${p => p.$active ? '#92400E' : st.text};
+        background: ${p => p.$active ? 'rgba(245,158,11,0.18)' : st.bg};
+    }
+`;
+
 const DragHint = styled.div`
     display: flex;
     align-items: center;
@@ -596,6 +639,8 @@ export const StatisticsView = () => {
     const [editingCategory, setEditingCategory] = useState<Category | undefined>();
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
     const [drillPeriod, setDrillPeriod] = useState<string | null>(null);
+    const [serviceNameFilter, setServiceNameFilter] = useState('');
+    const [showUnassignedOnly, setShowUnassignedOnly] = useState(false);
 
     const {
         breakdown,
@@ -691,8 +736,29 @@ export const StatisticsView = () => {
         return [...assigned, ...unassigned];
     }, [breakdown, selectedCategoryId, serviceCategoryColor]);
 
+    const filteredServiceRows = useMemo(() => {
+        let rows = serviceRows;
+        if (!selectedCategoryId && showUnassignedOnly) {
+            rows = rows.filter(r => r.isUnassigned);
+        }
+        const q = serviceNameFilter.trim().toLowerCase();
+        if (q) {
+            rows = rows.filter(r => r.name.toLowerCase().includes(q));
+        }
+        return rows;
+    }, [serviceRows, serviceNameFilter, showUnassignedOnly, selectedCategoryId]);
+
     const handleCategoryRowClick = (id: string) => {
-        setSelectedCategoryId(prev => prev === id ? null : id);
+        setSelectedCategoryId(prev => {
+            const next = prev === id ? null : id;
+            if (next !== null) setShowUnassignedOnly(false);
+            return next;
+        });
+    };
+
+    const handleShowUnassignedOnly = () => {
+        if (!showUnassignedOnly) setSelectedCategoryId(null);
+        setShowUnassignedOnly(prev => !prev);
     };
 
     const handleEditCategory = (category: Category) => {
@@ -814,25 +880,44 @@ export const StatisticsView = () => {
                         </AddButton>
                     </TableColumnHeader>
 
-                    <TableColumnHeader>
-                        <TableColumnTitle>
-                            {selectedCategory
-                                ? selectedCategory.name
-                                : t.statistics.breakdown.servicesTitle}
-                        </TableColumnTitle>
-                        <TableColumnControls>
-                            {selectedCategory && (
-                                <ServiceTableFilterLabel>
-                                    przypisane usługi
-                                </ServiceTableFilterLabel>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <TableColumnHeader>
+                            <TableColumnTitle>
+                                {selectedCategory
+                                    ? selectedCategory.name
+                                    : t.statistics.breakdown.servicesTitle}
+                            </TableColumnTitle>
+                            <TableColumnControls>
+                                {selectedCategory && (
+                                    <ServiceTableFilterLabel>
+                                        przypisane usługi
+                                    </ServiceTableFilterLabel>
+                                )}
+                                {selectedCategory && (
+                                    <ClearSelectionBtn onClick={() => setSelectedCategoryId(null)}>
+                                        ✕ Pokaż wszystkie
+                                    </ClearSelectionBtn>
+                                )}
+                            </TableColumnControls>
+                        </TableColumnHeader>
+
+                        <ServiceFiltersBar>
+                            <ServiceFilterInput
+                                type="text"
+                                placeholder="Szukaj po nazwie..."
+                                value={serviceNameFilter}
+                                onChange={e => setServiceNameFilter(e.target.value)}
+                            />
+                            {!selectedCategoryId && (
+                                <UnassignedFilterBtn
+                                    $active={showUnassignedOnly}
+                                    onClick={handleShowUnassignedOnly}
+                                >
+                                    {showUnassignedOnly ? '✕ ' : ''}Pokaż bez kategorii
+                                </UnassignedFilterBtn>
                             )}
-                            {selectedCategory && (
-                                <ClearSelectionBtn onClick={() => setSelectedCategoryId(null)}>
-                                    ✕ Pokaż wszystkie
-                                </ClearSelectionBtn>
-                            )}
-                        </TableColumnControls>
-                    </TableColumnHeader>
+                        </ServiceFiltersBar>
+                    </div>
                 </TablesHeaderRow>
 
                 {/* Tables in a matching grid below */}
@@ -893,11 +978,15 @@ export const StatisticsView = () => {
                         )}
 
                         <BreakdownTable
-                            rows={serviceRows}
+                            rows={filteredServiceRows}
                             isLoading={breakdownLoading}
                             showColorDot={!selectedCategoryId}
                             emptyText={
-                                selectedCategoryId
+                                serviceNameFilter.trim()
+                                    ? 'Brak usług pasujących do wyszukiwanej frazy'
+                                    : showUnassignedOnly
+                                    ? 'Brak usług bez kategorii'
+                                    : selectedCategoryId
                                     ? 'Brak usług przypisanych do tej kategorii'
                                     : t.statistics.breakdown.empty
                             }
