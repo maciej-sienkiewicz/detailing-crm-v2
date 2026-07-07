@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { useEntitlements } from '@/modules/subscription';
 import {
@@ -6,7 +6,7 @@ import {
     ModalBody, ModalFooter, FormField, FieldLabel, FieldInput, FieldTextarea,
     ErrorMsg, CancelBtn, SubmitBtn, CheckRow, CheckBox, Badge, SkeletonBox,
 } from '../rbacShared.styles';
-import type { PermissionCatalogItem, PermissionModuleGroup, Role, CreateRoleRequest } from '../../rbacTypes';
+import type { PermissionTreeNode, PermissionModuleTree, Role, CreateRoleRequest } from '../../rbacTypes';
 
 // ─── Styled ─────────────────────────────────────────────────────────────────────
 const PermsHeader = styled.div`
@@ -58,16 +58,55 @@ const ModuleCount = styled.span`
     flex-shrink: 0;
 `;
 
-const PermsGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px 16px;
-    padding: 14px;
+const TreeWrap = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+`;
+
+/* Children of a node: indented, with a vertical guide line visualizing that
+   everything below requires the parent above. */
+const TreeChildren = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-left: 8px;
+    padding-left: 18px;
+    border-left: 1.5px solid #e2e8f0;
+`;
+
+const NodeBlock = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+const SectionLabel = styled.div`
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-top: 4px;
+`;
+
+const PermTexts = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
 `;
 
 const PermLabel = styled.span<{ $dim?: boolean }>`
     font-size: 13px;
     color: ${p => (p.$dim ? '#94a3b8' : '#334155')};
+    line-height: 1.4;
+`;
+
+const PermDesc = styled.span`
+    font-size: 11px;
+    color: #94a3b8;
     line-height: 1.4;
 `;
 
@@ -80,115 +119,6 @@ const EmptyPerms = styled.div`
     border-radius: 10px;
 `;
 
-const RequiredBadge = styled.span`
-    margin-left: auto;
-    flex-shrink: 0;
-    font-size: 10px;
-    font-weight: 600;
-    color: #64748b;
-    background: #f1f5f9;
-    border: 1px solid #e2e8f0;
-    border-radius: 4px;
-    padding: 1px 5px;
-    display: flex;
-    align-items: center;
-    gap: 3px;
-`;
-
-const LockedCheckBox = styled(CheckBox)`
-    border-color: #94a3b8;
-    background: #e2e8f0;
-    color: #64748b;
-    cursor: default;
-`;
-
-// ─── Dependency confirmation dialog ──────────────────────────────────────────
-const ConfirmOverlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1100;
-`;
-
-const ConfirmCard = styled.div`
-    background: white;
-    border-radius: 14px;
-    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
-    padding: 28px 28px 24px;
-    width: 420px;
-    max-width: calc(100vw - 32px);
-`;
-
-const ConfirmTitle = styled.h3`
-    margin: 0 0 6px;
-    font-size: 16px;
-    font-weight: 700;
-    color: #0f172a;
-`;
-
-const ConfirmSubtitle = styled.p`
-    margin: 0 0 16px;
-    font-size: 13px;
-    color: #475569;
-    line-height: 1.5;
-`;
-
-const DepList = styled.ul`
-    margin: 0 0 20px;
-    padding: 0;
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-`;
-
-const DepItem = styled.li`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #0f172a;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 7px;
-    padding: 8px 12px;
-`;
-
-const DepModuleTag = styled.span`
-    margin-left: auto;
-    font-size: 10px;
-    font-weight: 600;
-    color: #64748b;
-    background: #e2e8f0;
-    border-radius: 4px;
-    padding: 2px 6px;
-    flex-shrink: 0;
-`;
-
-const ConfirmFooter = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-`;
-
-const ConfirmNote = styled.p`
-    font-size: 11px;
-    color: #94a3b8;
-    margin: 0 0 20px;
-    line-height: 1.5;
-`;
-
-interface DepConfirmState {
-    triggerCode: string;
-    triggerName: string;
-    missingDeps: Array<{ code: string; displayName: string; moduleDisplayName: string }>;
-    allDepsToAdd: Set<string>;
-}
-
 // ─── Icons ───────────────────────────────────────────────────────────────────────
 const CloseIcon = () => (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -200,33 +130,78 @@ const TinyCheck = () => (
         <polyline points="20 6 9 17 4 12" />
     </svg>
 );
-const LockIcon = () => (
-    <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
-    </svg>
-);
 
-// ─── Dependency graph helpers ─────────────────────────────────────────────────
-function getTransitiveDeps(code: string, map: Map<string, PermissionCatalogItem>): Set<string> {
-    const result = new Set<string>();
-    const visit = (c: string) => {
-        const perm = map.get(c);
-        (perm?.requires ?? []).forEach(dep => {
-            if (!result.has(dep)) {
-                result.add(dep);
-                visit(dep);
-            }
-        });
+// ─── Tree helpers ─────────────────────────────────────────────────────────────
+interface TreeIndex {
+    /** code → parent code (null for module roots). */
+    parentOf: Map<string, string | null>;
+    /** code → direct child codes. */
+    childrenOf: Map<string, string[]>;
+    /** All codes per module, in tree order. */
+    moduleCodes: Map<string, string[]>;
+}
+
+function buildTreeIndex(catalog: PermissionModuleTree[]): TreeIndex {
+    const parentOf = new Map<string, string | null>();
+    const childrenOf = new Map<string, string[]>();
+    const moduleCodes = new Map<string, string[]>();
+
+    const visit = (node: PermissionTreeNode, parent: string | null, codes: string[]) => {
+        parentOf.set(node.code, parent);
+        childrenOf.set(node.code, node.children.map(c => c.code));
+        codes.push(node.code);
+        node.children.forEach(child => visit(child, node.code, codes));
     };
-    visit(code);
+
+    catalog.forEach(module => {
+        const codes: string[] = [];
+        module.nodes.forEach(root => visit(root, null, codes));
+        moduleCodes.set(module.module, codes);
+    });
+
+    return { parentOf, childrenOf, moduleCodes };
+}
+
+function ancestorsOf(code: string, index: TreeIndex): string[] {
+    const result: string[] = [];
+    let current = index.parentOf.get(code) ?? null;
+    while (current) {
+        result.push(current);
+        current = index.parentOf.get(current) ?? null;
+    }
     return result;
+}
+
+function descendantsOf(code: string, index: TreeIndex): string[] {
+    const result: string[] = [];
+    const queue = [...(index.childrenOf.get(code) ?? [])];
+    while (queue.length > 0) {
+        const next = queue.shift()!;
+        result.push(next);
+        queue.push(...(index.childrenOf.get(next) ?? []));
+    }
+    return result;
+}
+
+/** Groups sibling nodes by their section label, preserving declaration order. */
+function groupBySection(nodes: PermissionTreeNode[]): Array<{ section: string | null; nodes: PermissionTreeNode[] }> {
+    const groups: Array<{ section: string | null; nodes: PermissionTreeNode[] }> = [];
+    nodes.forEach(node => {
+        const last = groups[groups.length - 1];
+        if (last && last.section === (node.section ?? null)) {
+            last.nodes.push(node);
+        } else {
+            groups.push({ section: node.section ?? null, nodes: [node] });
+        }
+    });
+    return groups;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────────
 export interface RoleEditorModalProps {
     mode: 'add' | 'edit';
     role?: Role | null;
-    catalog: PermissionModuleGroup[];
+    catalog: PermissionModuleTree[];
     catalogLoading?: boolean;
     isSaving: boolean;
     onClose: () => void;
@@ -244,158 +219,47 @@ export function RoleEditorModal({
         () => new Set((role?.permissions ?? []).map(p => p.code)),
     );
     const [nameError, setNameError] = useState<string | null>(null);
-    const [depConfirm, setDepConfirm] = useState<DepConfirmState | null>(null);
+
+    const index = useMemo(() => buildTreeIndex(catalog), [catalog]);
 
     const allCodes = useMemo(
-        () => catalog.flatMap(m => (m.permissions ?? []).map(p => p.code)),
-        [catalog],
+        () => catalog.flatMap(m => index.moduleCodes.get(m.module) ?? []),
+        [catalog, index],
     );
 
-    // Flat map of code → permission for graph traversal
-    const allPermsMap = useMemo(() => {
-        const map = new Map<string, PermissionCatalogItem>();
-        catalog.forEach(m => (m.permissions ?? []).forEach(p => map.set(p.code, p)));
-        return map;
-    }, [catalog]);
-
-    // Map code → module display name (for the confirmation dialog)
-    const codeToModule = useMemo(() => {
-        const map = new Map<string, string>();
-        catalog.forEach(m => (m.permissions ?? []).forEach(p => map.set(p.code, m.displayName || m.module)));
-        return map;
-    }, [catalog]);
-
-    // Set of permission codes that are auto-required by at least one selected permission.
-    // These cannot be deselected as long as their "dependant" remains selected.
-    const lockedCodes = useMemo(() => {
-        const locked = new Set<string>();
-        selected.forEach(code => {
-            getTransitiveDeps(code, allPermsMap).forEach(dep => locked.add(dep));
-        });
-        return locked;
-    }, [selected, allPermsMap]);
-
-    // ── Diagnostics: what did the modal actually receive to render? ──────────────
-    useEffect(() => {
-        console.log('[RoleEditorModal] catalog received:', {
-            catalogLoading,
-            moduleCount: catalog.length,
-            totalPermissions: catalog.reduce((n, m) => n + (m.permissions?.length ?? 0), 0),
-            sample: catalog.slice(0, 2).map(m => ({
-                module: m.module,
-                displayName: m.displayName,
-                permissionCount: m.permissions?.length ?? 0,
-                firstPermission: m.permissions?.[0],
-            })),
-        });
-    }, [catalog, catalogLoading]);
-
-    // Apply a confirmed cascade.
-    // When triggerCode is empty (bulk module toggle) allDepsToAdd already includes the module codes.
-    const applyAdd = useCallback((triggerCode: string, allDepsToAdd: Set<string>) => {
-        setSelected(prev => {
-            const next = new Set(prev);
-            if (triggerCode) next.add(triggerCode);
-            allDepsToAdd.forEach(dep => next.add(dep));
-            return next;
-        });
-        setDepConfirm(null);
-    }, []);
-
+    /**
+     * The single cascade rule of the tree:
+     * - checking a node also checks its whole ancestor chain (a child is
+     *   meaningless without its parent),
+     * - unchecking a node also unchecks its whole subtree.
+     * Both directions are immediately visible in the rendered hierarchy,
+     * so no confirmation dialog is needed.
+     */
     const toggle = useCallback((code: string) => {
         setSelected(prev => {
             const next = new Set(prev);
             if (next.has(code)) {
-                // Blocked if another selected permission requires this one
-                const currentLocked = new Set<string>();
-                next.forEach(c => { if (c !== code) getTransitiveDeps(c, allPermsMap).forEach(d => currentLocked.add(d)); });
-                if (currentLocked.has(code)) return prev;
                 next.delete(code);
-                return next;
+                descendantsOf(code, index).forEach(c => next.delete(c));
+            } else {
+                next.add(code);
+                ancestorsOf(code, index).forEach(c => next.add(c));
             }
-
-            // Enabling: check which transitive deps are not yet selected
-            const allDepsToAdd = getTransitiveDeps(code, allPermsMap);
-            const missingDeps = [...allDepsToAdd].filter(dep => !prev.has(dep));
-
-            if (missingDeps.length > 0) {
-                // Show confirmation dialog — do NOT mutate state here
-                const perm = allPermsMap.get(code);
-                setDepConfirm({
-                    triggerCode: code,
-                    triggerName: perm?.displayName ?? code,
-                    missingDeps: missingDeps.map(dep => ({
-                        code: dep,
-                        displayName: allPermsMap.get(dep)?.displayName ?? dep,
-                        moduleDisplayName: codeToModule.get(dep) ?? '',
-                    })),
-                    allDepsToAdd,
-                });
-                return prev; // no change yet
-            }
-
-            // No missing deps — apply immediately
-            next.add(code);
-            allDepsToAdd.forEach(dep => next.add(dep));
             return next;
         });
-    }, [allPermsMap, codeToModule]);
+    }, [index]);
 
-    const toggleModule = useCallback((module: PermissionModuleGroup) => {
-        const codes = (module.permissions ?? []).map(p => p.code);
-        const allOn = codes.length > 0 && codes.every(c => selected.has(c));
-
-        if (allOn) {
-            // Turn off: skip codes that are required by permissions outside this module
-            setSelected(prev => {
-                const next = new Set(prev);
-                const moduleSet = new Set(codes);
-                codes.forEach(c => {
-                    let requiredByOutside = false;
-                    next.forEach(sel => {
-                        if (!moduleSet.has(sel) && getTransitiveDeps(sel, allPermsMap).has(c)) {
-                            requiredByOutside = true;
-                        }
-                    });
-                    if (!requiredByOutside) next.delete(c);
-                });
-                return next;
-            });
-        } else {
-            // Turn on: collect all codes + their transitive deps
-            const moduleCodesSet = new Set(codes);
-            const allCodesToAdd = new Set(codes);
-            codes.forEach(c => {
-                getTransitiveDeps(c, allPermsMap).forEach(dep => allCodesToAdd.add(dep));
-            });
-
-            // External missing = not yet selected AND not part of this module
-            const externalMissing = [...allCodesToAdd].filter(
-                c => !selected.has(c) && !moduleCodesSet.has(c),
-            );
-
-            if (externalMissing.length > 0) {
-                // Show confirmation — pass allCodesToAdd as allDepsToAdd
-                // (triggerCode is empty to signal bulk mode in applyAdd)
-                setDepConfirm({
-                    triggerCode: '',
-                    triggerName: module.displayName || module.module,
-                    missingDeps: externalMissing.map(dep => ({
-                        code: dep,
-                        displayName: allPermsMap.get(dep)?.displayName ?? dep,
-                        moduleDisplayName: codeToModule.get(dep) ?? '',
-                    })),
-                    allDepsToAdd: allCodesToAdd,
-                });
-            } else {
-                setSelected(prev => {
-                    const next = new Set(prev);
-                    allCodesToAdd.forEach(c => next.add(c));
-                    return next;
-                });
-            }
-        }
-    }, [allPermsMap, selected, codeToModule]);
+    const toggleModule = useCallback((module: PermissionModuleTree) => {
+        const codes = index.moduleCodes.get(module.module) ?? [];
+        setSelected(prev => {
+            const next = new Set(prev);
+            const allOn = codes.length > 0 && codes.every(c => next.has(c));
+            // The tree never crosses module boundaries, so a bulk module toggle
+            // is self-contained: no ancestors or descendants live outside `codes`.
+            codes.forEach(c => (allOn ? next.delete(c) : next.add(c)));
+            return next;
+        });
+    }, [index]);
 
     const isFeatureEnabled = (featureKey: string | null): boolean => {
         if (!featureKey) return true;
@@ -413,6 +277,37 @@ export function RoleEditorModal({
         });
     };
 
+    const renderNodes = (nodes: PermissionTreeNode[], moduleFeatureOk: boolean) => (
+        groupBySection(nodes).map(group => (
+            <NodeBlock key={group.section ?? group.nodes[0].code}>
+                {group.section && <SectionLabel>{group.section}</SectionLabel>}
+                {group.nodes.map(node => {
+                    const checked = selected.has(node.code);
+                    const nodeFeatureOk = moduleFeatureOk && isFeatureEnabled(node.featureKey);
+                    return (
+                        <NodeBlock key={node.code}>
+                            <CheckRow onClick={() => toggle(node.code)}>
+                                <CheckBox $checked={checked}>{checked && <TinyCheck />}</CheckBox>
+                                <PermTexts>
+                                    <PermLabel $dim={!nodeFeatureOk}>{node.displayName}</PermLabel>
+                                    {node.description && <PermDesc>{node.description}</PermDesc>}
+                                </PermTexts>
+                                {!nodeFeatureOk && node.featureKey && (
+                                    <Badge $variant="amber">⚠ Wymaga modułu</Badge>
+                                )}
+                            </CheckRow>
+                            {node.children.length > 0 && (
+                                <TreeChildren>
+                                    {renderNodes(node.children, nodeFeatureOk)}
+                                </TreeChildren>
+                            )}
+                        </NodeBlock>
+                    );
+                })}
+            </NodeBlock>
+        ))
+    );
+
     return (
         <Overlay onClick={e => e.target === e.currentTarget && onClose()}>
             <ModalCard $maxWidth={680}>
@@ -422,7 +317,7 @@ export function RoleEditorModal({
                         <ModalSubtitle>
                             {mode === 'edit'
                                 ? 'Zmiana uprawnień natychmiast dotyczy wszystkich użytkowników z tą rolą.'
-                                : 'Nadaj nazwę i zaznacz uprawnienia w poszczególnych modułach.'}
+                                : 'Nadaj nazwę i zaznacz uprawnienia w drzewie — uprawnienie niżej wymaga uprawnienia nadrzędnego.'}
                         </ModalSubtitle>
                     </div>
                     <ModalCloseBtn onClick={onClose} aria-label="Zamknij">
@@ -463,18 +358,17 @@ export function RoleEditorModal({
                                 <ModuleHead as="div" style={{ cursor: 'default' }}>
                                     <SkeletonBox $w="140px" />
                                 </ModuleHead>
-                                <PermsGrid>
-                                    <SkeletonBox $w="80%" />
-                                    <SkeletonBox $w="70%" />
-                                </PermsGrid>
+                                <TreeWrap>
+                                    <SkeletonBox $w="60%" />
+                                    <SkeletonBox $w="50%" />
+                                </TreeWrap>
                             </ModuleCard>
                         ))
                     ) : catalog.length === 0 ? (
                         <EmptyPerms>Nie udało się załadować katalogu uprawnień.</EmptyPerms>
                     ) : (
                         catalog.map(module => {
-                            const perms = module.permissions ?? [];
-                            const codes = perms.map(p => p.code);
+                            const codes = index.moduleCodes.get(module.module) ?? [];
                             const selectedInModule = codes.filter(c => selected.has(c)).length;
                             const allOn = selectedInModule === codes.length && codes.length > 0;
                             const featureOk = isFeatureEnabled(module.featureKey);
@@ -490,30 +384,9 @@ export function RoleEditorModal({
                                         <ModuleCount>{selectedInModule}/{codes.length}</ModuleCount>
                                     </ModuleHead>
 
-                                    <PermsGrid>
-                                        {perms.map(perm => {
-                                            const checked = selected.has(perm.code);
-                                            const locked = lockedCodes.has(perm.code);
-                                            return (
-                                                <CheckRow
-                                                    key={perm.code}
-                                                    onClick={() => toggle(perm.code)}
-                                                    $disabled={locked}
-                                                    title={locked ? 'Wymagane przez inne zaznaczone uprawnienie' : undefined}
-                                                >
-                                                    {locked ? (
-                                                        <LockedCheckBox $checked={true}><TinyCheck /></LockedCheckBox>
-                                                    ) : (
-                                                        <CheckBox $checked={checked}>{checked && <TinyCheck />}</CheckBox>
-                                                    )}
-                                                    <PermLabel $dim={!featureOk}>{perm.displayName}</PermLabel>
-                                                    {locked && (
-                                                        <RequiredBadge><LockIcon />wymagane</RequiredBadge>
-                                                    )}
-                                                </CheckRow>
-                                            );
-                                        })}
-                                    </PermsGrid>
+                                    <TreeWrap>
+                                        {renderNodes(module.nodes, featureOk)}
+                                    </TreeWrap>
                                 </ModuleCard>
                             );
                         })
@@ -527,44 +400,6 @@ export function RoleEditorModal({
                     </SubmitBtn>
                 </ModalFooter>
             </ModalCard>
-
-            {depConfirm && (
-                <ConfirmOverlay onClick={e => e.target === e.currentTarget && setDepConfirm(null)}>
-                    <ConfirmCard>
-                        <ConfirmTitle>Wymagane dodatkowe uprawnienia</ConfirmTitle>
-                        <ConfirmSubtitle>
-                            {depConfirm.triggerCode
-                                ? <>Zaznaczenie uprawnienia <strong>„{depConfirm.triggerName}"</strong> wymaga również nadania poniższych uprawnień. Nie można zrobić wyjątku.</>
-                                : <>Zaznaczenie sekcji <strong>„{depConfirm.triggerName}"</strong> wymaga również nadania poniższych uprawnień z innych sekcji. Nie można zrobić wyjątku.</>
-                            }
-                        </ConfirmSubtitle>
-
-                        <DepList>
-                            {depConfirm.missingDeps.map(dep => (
-                                <DepItem key={dep.code}>
-                                    <TinyCheck />
-                                    {dep.displayName}
-                                    {dep.moduleDisplayName && (
-                                        <DepModuleTag>{dep.moduleDisplayName}</DepModuleTag>
-                                    )}
-                                </DepItem>
-                            ))}
-                        </DepList>
-
-                        <ConfirmNote>
-                            Uprawnienia te zostaną zaznaczone automatycznie i będą aktywne
-                            dopóki nie usuniesz {depConfirm.triggerCode ? `uprawnienia „${depConfirm.triggerName}"` : `uprawnień z sekcji „${depConfirm.triggerName}"`}.
-                        </ConfirmNote>
-
-                        <ConfirmFooter>
-                            <CancelBtn onClick={() => setDepConfirm(null)}>Anuluj</CancelBtn>
-                            <SubmitBtn onClick={() => applyAdd(depConfirm.triggerCode, depConfirm.allDepsToAdd)}>
-                                Tak, kontynuuj
-                            </SubmitBtn>
-                        </ConfirmFooter>
-                    </ConfirmCard>
-                </ConfirmOverlay>
-            )}
         </Overlay>
     );
 }

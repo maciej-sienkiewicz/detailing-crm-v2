@@ -51,8 +51,8 @@ export function RolesSection() {
         <Container>
             <Toolbar>
                 <Intro>
-                    Twórz role i przypisuj im uprawnienia w poszczególnych modułach. Role nadajesz
-                    użytkownikom w profilu pracownika.
+                    Twórz role i przypisuj im uprawnienia w drzewie zależności — uprawnienie
+                    podrzędne wymaga nadrzędnego. Role nadajesz użytkownikom w profilu pracownika.
                 </Intro>
                 <AddButton onClick={() => setEditor({ mode: 'add', role: null })}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">

@@ -1,5 +1,9 @@
 // ─── Roles & Permissions (RBAC, Settings) ──────────────────────────────────────
 // Types for the "Role i uprawnienia" settings tab.
+//
+// The permission catalog is a TREE (hardcoded on the backend): a node's children
+// require the node itself, so granting a permission implies granting its whole
+// ancestor chain. The editor renders the hierarchy and cascades selection along it.
 
 /** Permission modules grouping (hardcoded on the backend). */
 export type PermissionModuleKey =
@@ -7,8 +11,6 @@ export type PermissionModuleKey =
     | 'VISITS'
     | 'CUSTOMERS'
     | 'VEHICLES'
-    | 'DOCUMENTS'
-    | 'GALLERY'
     | 'FINANCE'
     | 'EMPLOYEES'
     | 'COMMUNICATION'
@@ -16,19 +18,25 @@ export type PermissionModuleKey =
     | 'LEADS'
     | 'TASKS';
 
-export interface PermissionCatalogItem {
+export interface PermissionTreeNode {
     code: string;
     displayName: string;
-    /** Permission codes that must be enabled alongside this one (direct prerequisites). */
-    requires: string[];
+    description: string | null;
+    /** Presentational group header among siblings (e.g. "Usługi"); null = ungrouped. */
+    section: string | null;
+    /** Non-null when the permission is gated by a different subscription feature than its module. */
+    featureKey: string | null;
+    /** Permissions that require this one. */
+    children: PermissionTreeNode[];
 }
 
-export interface PermissionModuleGroup {
+export interface PermissionModuleTree {
     module: PermissionModuleKey;
     displayName: string;
     /** Subscription feature key required for the module to work at runtime; null = always available. */
     featureKey: string | null;
-    permissions: PermissionCatalogItem[];
+    /** Root permissions of the module. */
+    nodes: PermissionTreeNode[];
 }
 
 export interface RolePermission {
