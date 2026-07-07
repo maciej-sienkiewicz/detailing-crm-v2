@@ -1,3 +1,4 @@
+import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
 import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import type { Customer, CustomerSortField, SortDirection } from '../types';
@@ -111,8 +112,10 @@ const pickGradient = (id: string) => {
     return GRADIENTS[h % GRADIENTS.length];
 };
 
-const getInitials = (first: string | null, last: string | null) =>
-    ((first?.[0] ?? '') + (last?.[0] ?? '')).toUpperCase() || '?';
+const getInitials = (first: string | null, last: string | null) => {
+    if (isPiiMasked(first) || isPiiMasked(last)) return '•';
+    return ((first?.[0] ?? '') + (last?.[0] ?? '')).toUpperCase() || '?';
+};
 
 const Avatar = styled.div<{ $bg: string }>`
     width: 36px;
@@ -214,7 +217,7 @@ const IconBtn = styled.button`
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const fullName = (c: Customer) =>
-    `${c.firstName?.trim() ?? ''} ${c.lastName?.trim() ?? ''}`.trim();
+    joinPiiName(c.firstName?.trim(), c.lastName?.trim()) ?? '';
 
 const vehicleLabel = (n: number) => {
     if (n === 1) return '1 pojazd';
@@ -293,7 +296,7 @@ export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort
                                 <Td>
                                     <CellStack>
                                         {name
-                                            ? <CellMain>{name}</CellMain>
+                                            ? <CellMain><PiiValue value={name} placeholder="Imię Nazwisko" /></CellMain>
                                             : <CellItalic>Nie wprowadzono danych</CellItalic>
                                         }
                                         {customer.company && (
@@ -305,10 +308,12 @@ export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort
                                 <Td>
                                     <CellStack>
                                         <CellMono>
-                                            {formatPhoneNumber(customer.contact.phone) || '—'}
+                                            {isPiiMasked(customer.contact.phone)
+                                                ? <PiiValue value={customer.contact.phone} placeholder="600 000 000" />
+                                                : (formatPhoneNumber(customer.contact.phone) || '—')}
                                         </CellMono>
                                         {customer.contact.email && (
-                                            <CellSub>{customer.contact.email}</CellSub>
+                                            <CellSub><PiiValue value={customer.contact.email} placeholder="adres@email.pl" /></CellSub>
                                         )}
                                     </CellStack>
                                 </Td>

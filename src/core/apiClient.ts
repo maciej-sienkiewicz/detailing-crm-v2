@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { setPiiAccessFromHeader } from '@/common/pii';
 
 export const apiClient = axios.create({
     baseURL: '/api',
@@ -23,6 +24,8 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
     response => {
         console.log('[apiClient] Response:', response.config.url, response.status);
+        // Presentational signal: does this session see real personal data or masks?
+        setPiiAccessFromHeader(response.headers?.['x-pii-access']);
         return response;
     },
     error => {

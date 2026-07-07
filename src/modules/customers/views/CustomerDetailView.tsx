@@ -1,3 +1,4 @@
+import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ReservationContextMenu } from '@/common/components/ReservationContextMenu';
@@ -143,6 +144,7 @@ const ToggleThumb = styled.span<{ $active: boolean }>`
 const MONTH_LABELS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
 
 function getInitials(firstName: string | null, lastName: string | null): string {
+    if (isPiiMasked(firstName) || isPiiMasked(lastName)) return '•';
     const f = firstName?.[0] ?? '';
     const l = lastName?.[0] ?? '';
     return (f + l).toUpperCase() || '?';
@@ -280,7 +282,7 @@ export const CustomerDetailView = () => {
     }
 
     const { customer, marketingConsents, loyaltyTier, lifetimeValue } = customerDetail;
-    const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || 'Nieznany klient';
+    const fullName = joinPiiName(customer.firstName, customer.lastName) ?? 'Nieznany klient';
     const initials = getInitials(customer.firstName, customer.lastName);
 
     const visitsTotalPages = Math.ceil(visits.length / VISITS_PAGE_SIZE);
@@ -294,7 +296,7 @@ export const CustomerDetailView = () => {
                 <BreadcrumbNav aria-label="Nawigacja">
                     <BreadcrumbLink to="/customers">Klienci</BreadcrumbLink>
                     <BreadcrumbSep>›</BreadcrumbSep>
-                    <BreadcrumbCurrent>{fullName}</BreadcrumbCurrent>
+                    <BreadcrumbCurrent><PiiValue value={fullName} placeholder="Imię Nazwisko" /></BreadcrumbCurrent>
                 </BreadcrumbNav>
 
                 {/* ─── Page header ───────────────────────────────── */}
@@ -363,27 +365,33 @@ export const CustomerDetailView = () => {
                                 <IdentityRow>
                                     <Avatar aria-hidden="true">{initials}</Avatar>
                                     <IdentityMeta>
-                                        <IdentityName>{fullName}</IdentityName>
+                                        <IdentityName><PiiValue value={fullName} placeholder="Imię Nazwisko" /></IdentityName>
                                         <IdentityId>ID: {customer.id.slice(0, 8).toUpperCase()}</IdentityId>
                                     </IdentityMeta>
                                 </IdentityRow>
 
                                 <ContactList>
                                     {customer.contact.phone && (
-                                        <ContactRow href={`tel:${customer.contact.phone}`}>
+                                        <ContactRow
+                                            as={isPiiMasked(customer.contact.phone) ? 'div' : undefined}
+                                            href={isPiiMasked(customer.contact.phone) ? undefined : `tel:${customer.contact.phone}`}
+                                        >
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.93a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 3h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 18"/>
                                             </svg>
-                                            {customer.contact.phone}
+                                            <PiiValue value={customer.contact.phone} placeholder="600 000 000" />
                                         </ContactRow>
                                     )}
                                     {customer.contact.email && (
-                                        <ContactRow href={`mailto:${customer.contact.email}`}>
+                                        <ContactRow
+                                            as={isPiiMasked(customer.contact.email) ? 'div' : undefined}
+                                            href={isPiiMasked(customer.contact.email) ? undefined : `mailto:${customer.contact.email}`}
+                                        >
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <rect x="2" y="4" width="20" height="16" rx="2"/>
                                                 <path d="M2 7l10 7 10-7"/>
                                             </svg>
-                                            {customer.contact.email}
+                                            <PiiValue value={customer.contact.email} placeholder="adres@email.pl" />
                                         </ContactRow>
                                     )}
                                     {customer.homeAddress && (

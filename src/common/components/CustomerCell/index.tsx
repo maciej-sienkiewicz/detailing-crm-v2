@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { PiiValue } from '@/common/pii';
 
 const Name = styled.span`
   font-size: 13px;
@@ -45,8 +46,8 @@ export const CustomerCell: React.FC<CustomerCellProps> = ({ customerId, name, su
       $clickable={!!customerId}
       onClick={customerId ? e => { e.stopPropagation(); navigate(`/customers/${customerId}`); } : undefined}
     >
-      <Name>{name}</Name>
-      {sub && <Sub>{sub}</Sub>}
+      <Name><PiiValue value={name} placeholder="Imię Nazwisko" /></Name>
+      {sub && <Sub><PiiValue value={sub} placeholder="kontakt" /></Sub>}
     </Block>
   );
 };
