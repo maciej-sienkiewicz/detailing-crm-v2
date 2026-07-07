@@ -296,7 +296,7 @@ export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort
                                 <Td>
                                     <CellStack>
                                         {name
-                                            ? <CellMain><PiiValue value={name} placeholder="Imię Nazwisko" /></CellMain>
+                                            ? <CellMain><PiiValue value={name} kind="name" /></CellMain>
                                             : <CellItalic>Nie wprowadzono danych</CellItalic>
                                         }
                                         {customer.company && (
@@ -309,11 +309,11 @@ export const CustomerTable = ({ customers, sortBy, sortDirection = 'asc', onSort
                                     <CellStack>
                                         <CellMono>
                                             {isPiiMasked(customer.contact.phone)
-                                                ? <PiiValue value={customer.contact.phone} placeholder="600 000 000" />
+                                                ? <PiiValue value={customer.contact.phone} kind="phone" />
                                                 : (formatPhoneNumber(customer.contact.phone) || '—')}
                                         </CellMono>
                                         {customer.contact.email && (
-                                            <CellSub><PiiValue value={customer.contact.email} placeholder="adres@email.pl" /></CellSub>
+                                            <CellSub><PiiValue value={customer.contact.email} kind="email" /></CellSub>
                                         )}
                                     </CellStack>
                                 </Td>

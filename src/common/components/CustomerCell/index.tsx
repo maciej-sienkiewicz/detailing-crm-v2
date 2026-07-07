@@ -46,8 +46,8 @@ export const CustomerCell: React.FC<CustomerCellProps> = ({ customerId, name, su
       $clickable={!!customerId}
       onClick={customerId ? e => { e.stopPropagation(); navigate(`/customers/${customerId}`); } : undefined}
     >
-      <Name><PiiValue value={name} placeholder="Imię Nazwisko" /></Name>
-      {sub && <Sub><PiiValue value={sub} placeholder="kontakt" /></Sub>}
+      <Name><PiiValue value={name} kind="name" /></Name>
+      {sub && <Sub><PiiValue value={sub} kind="phone" /></Sub>}
     </Block>
   );
 };
