@@ -17,6 +17,7 @@ import { formatCurrency, formatDate } from '@/common/utils';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import type { Operation, OperationType, OperationStatus, SmsSendStatus } from '../types';
 import { CustomerCell } from '@/common/components/CustomerCell';
+import { joinPiiName } from '@/common/pii';
 import { ReservationContextMenu } from '@/common/components/ReservationContextMenu';
 import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
 
@@ -870,7 +871,7 @@ export const OperationalDataTable = ({
                             const isVisit = op.type === 'VISIT';
                             const hasName = !!(op.customerFirstName?.trim() || op.customerLastName?.trim());
                             const customerLabel = hasName
-                                ? `${op.customerFirstName ?? ''} ${op.customerLastName ?? ''}`.trim()
+                                ? (joinPiiName(op.customerFirstName, op.customerLastName) ?? 'Brak danych klienta')
                                 : 'Brak danych klienta';
                             const phoneLabel = op.customerPhone ? ` · ${op.customerPhone}` : '';
                             const isReservationCreated = op.type === 'RESERVATION' && op.status === 'CREATED';

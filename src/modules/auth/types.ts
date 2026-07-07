@@ -43,6 +43,8 @@ export interface User {
     subscriptionStatus: string;
     trialDaysRemaining: number;
     mobileToken?: string | null;
+    /** null = owner (full access). List = user's effective permission codes. */
+    permissions?: string[] | null;
 }
 
 export interface CheckAuthResponse {

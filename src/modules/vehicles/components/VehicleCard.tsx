@@ -3,6 +3,7 @@ import type { VehicleListItem } from '../types';
 import { formatCurrency, formatDate } from '@/common/utils';
 import { t } from '@/common/i18n';
 import { CarLogoImage } from './CarLogoImage';
+import { PiiValue } from '@/common/pii';
 
 const Card = styled.article`
     background: ${props => props.theme.colors.surface};
@@ -118,7 +119,7 @@ export const VehicleCard = ({ vehicle, onCardClick }: VehicleCardProps) => (
         <OwnersSection>
             {vehicle.owners.map(owner => (
                 <OwnerTag key={owner.customerId} $role={owner.role}>
-                    {owner.customerName}
+                    <PiiValue value={owner.customerName} kind="name" />
                 </OwnerTag>
             ))}
         </OwnersSection>

@@ -49,13 +49,13 @@ apiClient.interceptors.response.use(
             }
         }
 
-        if (status !== undefined && status >= 400 && status < 500 && status !== 401) {
+        if (status !== undefined && status >= 400 && status < 500 && status !== 401 && status !== 403) {
             const message: string = error.response?.data?.message ?? 'Wystąpił nieoczekiwany błąd';
             window.dispatchEvent(new CustomEvent('api:error', { detail: { message } }));
         }
 
         if (status === 403) {
-            console.error('Access forbidden');
+            console.warn('[apiClient] Access forbidden:', error.config?.url);
         }
 
         if (status !== undefined && status >= 500) {

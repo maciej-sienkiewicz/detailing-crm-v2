@@ -7,8 +7,16 @@ export const customerDocumentsQueryKey = (customerId: string) => ['customer', cu
 export const useCustomerDocuments = (customerId: string) => {
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: customerDocumentsQueryKey(customerId),
-        queryFn: () => customerEditApi.getDocuments(customerId),
+        queryFn: async () => {
+            try {
+                return await customerEditApi.getDocuments(customerId);
+            } catch (err: any) {
+                if (err?.response?.status === 403) return [];
+                throw err;
+            }
+        },
         enabled: !!customerId,
+        retry: false,
     });
 
     return {

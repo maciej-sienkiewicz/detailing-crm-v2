@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { PiiValue } from '@/common/pii';
 import styled, { keyframes } from 'styled-components';
 import type { VehicleListItem } from '../types';
 import { formatCurrency, formatDate } from '@/common/utils';
@@ -400,9 +401,9 @@ export const VehicleTable = ({ vehicles, onRowClick, onDelete }: VehicleTablePro
                                     <OwnersList>
                                         {vehicle.owners.length > 0 && vehicle.owners[0].customerName?.trim() ? (
                                             <>
-                                                <OwnerName>{vehicle.owners[0].customerName}</OwnerName>
+                                                <OwnerName><PiiValue value={vehicle.owners[0].customerName} kind="name" /></OwnerName>
                                                 {vehicle.owners.length > 1 && (
-                                                    <OwnerSecondary>{vehicle.owners[1].customerName}</OwnerSecondary>
+                                                    <OwnerSecondary><PiiValue value={vehicle.owners[1].customerName} kind="name" /></OwnerSecondary>
                                                 )}
                                                 {vehicle.owners.length > 2 && (
                                                     <MoreOwners>+{vehicle.owners.length - 2} więcej</MoreOwners>

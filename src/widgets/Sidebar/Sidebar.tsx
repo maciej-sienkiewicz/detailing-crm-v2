@@ -56,13 +56,15 @@ import {
     SmsCreditsValue,
 } from './SidebarStyles';
 
-const buildMenuSections = (newLeadsCount: number): MenuSection[] => [
+const buildMenuSections = (newLeadsCount: number, canViewVisits: boolean): MenuSection[] => [
     {
         title: 'Główne',
         items: [
             { path: '/dashboard',  label: 'Tablica',   icon: LayoutDashboard },
-            { path: '/operations', label: 'Wizyty',    icon: CalendarCheck },
-            { path: '/calendar',   label: 'Kalendarz', icon: Calendar },
+            ...(canViewVisits ? [
+                { path: '/operations', label: 'Wizyty',    icon: CalendarCheck },
+                { path: '/calendar',   label: 'Kalendarz', icon: Calendar },
+            ] : []),
             { path: '/leads', label: 'Leady', icon: Inbox, badge: newLeadsCount > 0 ? newLeadsCount : undefined, alert: newLeadsCount > 0 },
         ],
     },
@@ -123,9 +125,12 @@ export const Sidebar = () => {
     const { data: creditBalance } = useSmsCreditBalance({ enabled: !isDetailer });
     const newLeadsCount = useNewLeadsCount();
 
+    // null permissions = owner (full access); otherwise check the list
+    const canViewVisits = !user?.permissions || user.permissions.includes('VISITS_VIEW');
+
     // Persistent WebSocket connection for the entire CRM session
     useLeadSocket();
-    const menuSections = buildMenuSections(newLeadsCount);
+    const menuSections = buildMenuSections(newLeadsCount, canViewVisits);
 
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
