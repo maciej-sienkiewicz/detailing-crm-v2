@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { useAuth } from '@/core/context/AuthContext';
 import { CompanySection } from '../components/CompanySection';
 import { DocumentsSection } from '../components/DocumentsSection';
 import { ServicesSection } from '../components/ServicesSection';
@@ -288,14 +289,24 @@ const VALID_SECTIONS = new Set<SectionId>([
 ]);
 
 export function SettingsView() {
+    const { user } = useAuth();
     const [searchParams] = useSearchParams();
+
+    // null permissions = owner (full access); array must include SERVICES_VIEW to show the tab
+    const canViewServices = !user?.permissions || user.permissions.includes('SERVICES_VIEW');
+
+    const visibleNavGroups = useMemo(() => NAV_GROUPS.map(g => ({
+        ...g,
+        items: g.items.filter(it => it.id !== 'services' || canViewServices),
+    })).filter(g => g.items.length > 0), [canViewServices]);
+
     const tabParam = searchParams.get('tab') as SectionId | null;
     const initialSection: SectionId = tabParam && VALID_SECTIONS.has(tabParam) ? tabParam : 'company';
     const [section, setSection] = useState<SectionId>(initialSection);
     const [helpOpen, setHelpOpen] = useState(false);
 
-    const activeGroup = NAV_GROUPS.find(g => g.items.some(i => i.id === section))?.group ?? '';
-    const activeLabel = NAV_GROUPS.flatMap(g => g.items).find(i => i.id === section)?.label ?? '';
+    const activeGroup = visibleNavGroups.find(g => g.items.some(i => i.id === section))?.group ?? '';
+    const activeLabel = visibleNavGroups.flatMap(g => g.items).find(i => i.id === section)?.label ?? '';
     const activeHelp  = SECTION_HELP[section] ?? null;
 
     let content: React.ReactNode;
@@ -349,7 +360,7 @@ export function SettingsView() {
 
             <GridMain>
                 <Nav>
-                    {NAV_GROUPS.map(g => (
+                    {visibleNavGroups.map(g => (
                         <NavGroupEl key={g.group}>
                             <NavTitle>{g.group}</NavTitle>
                             {g.items.map(it => (
