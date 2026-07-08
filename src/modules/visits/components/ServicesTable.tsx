@@ -1768,6 +1768,11 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         setTargetService(null);
     };
 
+    // Prices are hidden when the backend omits them (null) due to missing
+    // VISITS_SERVICE_PRICES_VIEW permission. In that case we suppress all
+    // price columns and calculations to avoid Dinero crashes.
+    const pricesHidden = services.length > 0 && services[0]?.basePriceNet === null;
+
     const totals = (() => {
         if (pricesHidden) return { totalFinalNet: 0, totalFinalGross: 0, totalVat: 0, hasTotalDiscount: false };
 
@@ -1822,11 +1827,6 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
 
     const { approveServiceChange, isApproving } = useApproveServiceChange(visitId || '');
     const { rejectServiceChange, isRejecting } = useRejectServiceChange(visitId || '');
-
-    // Prices are hidden when the backend omits them (null) due to missing
-    // VISITS_SERVICE_PRICES_VIEW permission. In that case we suppress all
-    // price columns and calculations to avoid Dinero crashes.
-    const pricesHidden = services.length > 0 && services[0]?.basePriceNet === null;
 
     const canEdit = !pricesHidden && (visitStatus === 'IN_PROGRESS' || visitStatus === 'READY_FOR_PICKUP');
     const hasPendingServices = services.some(s => (s.hasPendingChange ?? (s.status === 'PENDING')));
