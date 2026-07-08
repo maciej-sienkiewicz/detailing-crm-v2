@@ -242,7 +242,7 @@ export const ReadyToCompletedWizard = ({
                     <PaymentStep
                         netAmount={calculatedTotals.netAmount}
                         grossAmount={calculatedTotals.grossAmount}
-                        currency={visit.totalCost.currency}
+                        currency={visit.totalCost?.currency ?? 'PLN'}
                         onComplete={handlePaymentComplete}
                     />
                 );

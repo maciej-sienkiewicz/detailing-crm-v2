@@ -50,16 +50,16 @@ export interface ServiceLineItem {
     id: string;
     serviceId: string;
     serviceName: string;
-    basePriceNet: number;
-    vatRate: number;
+    basePriceNet: number | null;
+    vatRate: number | null;
     requireManualPrice: boolean;
     adjustment: {
         type: 'PERCENT' | 'FIXED_NET' | 'FIXED_GROSS' | 'SET_NET' | 'SET_GROSS';
         value: number;
-    };
+    } | null;
     note: string;
-    finalPriceNet: number;
-    finalPriceGross: number;
+    finalPriceNet: number | null;
+    finalPriceGross: number | null;
     status: ServiceStatus;
     isPackage?: boolean;
     packageItems?: PackageItemSnapshot[] | null;
@@ -119,7 +119,7 @@ export interface Visit {
     vehicle: VehicleInfo;
     customer: CustomerInfo;
     services: ServiceLineItem[];
-    totalCost: MoneyAmount;
+    totalCost: MoneyAmount | null;
     mileageAtArrival?: number;
     keysHandedOver: boolean;
     documentsHandedOver: boolean;

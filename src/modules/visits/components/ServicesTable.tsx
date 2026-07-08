@@ -1769,6 +1769,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     };
 
     const totals = (() => {
+        if (pricesHidden) return { totalFinalNet: 0, totalFinalGross: 0, totalVat: 0, hasTotalDiscount: false };
+
         let totalFinalNet = 0;
         let totalFinalGross = 0;
         let totalVat = 0;
@@ -1821,7 +1823,12 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     const { approveServiceChange, isApproving } = useApproveServiceChange(visitId || '');
     const { rejectServiceChange, isRejecting } = useRejectServiceChange(visitId || '');
 
-    const canEdit = visitStatus === 'IN_PROGRESS' || visitStatus === 'READY_FOR_PICKUP';
+    // Prices are hidden when the backend omits them (null) due to missing
+    // VISITS_SERVICE_PRICES_VIEW permission. In that case we suppress all
+    // price columns and calculations to avoid Dinero crashes.
+    const pricesHidden = services.length > 0 && services[0]?.basePriceNet === null;
+
+    const canEdit = !pricesHidden && (visitStatus === 'IN_PROGRESS' || visitStatus === 'READY_FOR_PICKUP');
     const hasPendingServices = services.some(s => (s.hasPendingChange ?? (s.status === 'PENDING')));
     const showActionsCol = canEdit || hasPendingServices;
 
@@ -1869,23 +1876,25 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 <Thead>
                     <Tr>
                         <Th>Usługa</Th>
-                        <Th>Cena netto</Th>
-                        <Th style={{ whiteSpace: 'nowrap' }}>
-                            VAT
-                            {canEdit && (
-                                <BulkVatTrigger
-                                    type="button"
-                                    onClick={() => setBulkVatOpen(true)}
-                                    disabled={isSaving || services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING'))).length === 0}
-                                    title="Zmień stawkę VAT dla wszystkich usług"
-                                >
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                                        <polyline points="6 9 12 15 18 9" />
-                                    </svg>
-                                </BulkVatTrigger>
-                            )}
-                        </Th>
-                        <Th>Cena brutto</Th>
+                        {!pricesHidden && <Th>Cena netto</Th>}
+                        {!pricesHidden && (
+                            <Th style={{ whiteSpace: 'nowrap' }}>
+                                VAT
+                                {canEdit && (
+                                    <BulkVatTrigger
+                                        type="button"
+                                        onClick={() => setBulkVatOpen(true)}
+                                        disabled={isSaving || services.filter(s => !deletedIds.has(s.id) && !(s.hasPendingChange ?? (s.status === 'PENDING'))).length === 0}
+                                        title="Zmień stawkę VAT dla wszystkich usług"
+                                    >
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="6 9 12 15 18 9" />
+                                        </svg>
+                                    </BulkVatTrigger>
+                                )}
+                            </Th>
+                        )}
+                        {!pricesHidden && <Th>Cena brutto</Th>}
                         {showActionsCol && <Th style={{ textAlign: 'right' }}>Akcje</Th>}
                     </Tr>
                 </Thead>
@@ -1893,8 +1902,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                     {services.map(service => {
                         const ep = editedPrices[service.id];
                         const effectiveService = ep ? { ...service, ...ep } : service;
-                        const pricing = calculateServicePrice(effectiveService);
-                        const showDiscount = pricing.hasDiscount && service.basePriceNet !== 0;
+                        const pricing = pricesHidden ? null : calculateServicePrice(effectiveService as Parameters<typeof calculateServicePrice>[0]);
+                        const showDiscount = !pricesHidden && !!pricing?.hasDiscount && service.basePriceNet !== 0;
                         const isMarkedForDelete = deletedIds.has(service.id);
                         const isPendingRow = service.hasPendingChange ?? (service.status === 'PENDING');
                         const canDelete = canEdit && !isPendingRow && !isMarkedForDelete;
@@ -1923,7 +1932,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                             </div>
                                             {service.note && <ServiceNote>{service.note}</ServiceNote>}
                                             {showDiscount && (
-                                                <DiscountBadge>{pricing.discountLabel}</DiscountBadge>
+                                                <DiscountBadge>{pricing!.discountLabel}</DiscountBadge>
                                             )}
                                         </div>
                                         <ServiceStatusBadge $status={service.status}>
@@ -1936,14 +1945,14 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                         </ServiceStatusBadge>
                                     </div>
                                 </Td>
-                                <Td>
+                                {!pricesHidden && <Td>
                                     <PriceStack>
                                         {(() => {
                                             const isPending = (service.hasPendingChange ?? (service.status === 'PENDING'));
                                             const isEditPending = isPending && service.pendingOperation === 'EDIT' && (service.previousPriceNet ?? null) !== null;
                                             if (isEditPending) {
                                                 const prevNet = service.previousPriceNet as number;
-                                                const proposedNet = pricing.finalPriceNet;
+                                                const proposedNet = pricing!.finalPriceNet;
                                                 const trendNet: 'up' | 'down' | 'neutral' = proposedNet > prevNet ? 'up' : proposedNet < prevNet ? 'down' : 'neutral';
                                                 return (
                                                     <>
@@ -1980,8 +1989,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                             if (hasEditedPrice) {
                                                 return (
                                                     <EditedPriceWrap>
-                                                        {showDiscount && <PriceValue $strikethrough>{formatCurrency(pricing.originalPriceNet / 100)}</PriceValue>}
-                                                        <PriceValue>{formatCurrency(pricing.finalPriceNet / 100)}</PriceValue>
+                                                        {showDiscount && <PriceValue $strikethrough>{formatCurrency(pricing!.originalPriceNet / 100)}</PriceValue>}
+                                                        <PriceValue>{formatCurrency(pricing!.finalPriceNet / 100)}</PriceValue>
                                                         <EditedBadge>Zmieniona</EditedBadge>
                                                     </EditedPriceWrap>
                                                 );
@@ -1990,31 +1999,31 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                                 <>
                                                     {showDiscount && (
                                                         <PriceValue $strikethrough>
-                                                            {formatCurrency(pricing.originalPriceNet / 100)}
+                                                            {formatCurrency(pricing!.originalPriceNet / 100)}
                                                         </PriceValue>
                                                     )}
                                                     <PriceValue>
-                                                        {formatCurrency(pricing.finalPriceNet / 100)}
+                                                        {formatCurrency(pricing!.finalPriceNet / 100)}
                                                     </PriceValue>
                                                 </>
                                             );
                                         })()}
                                     </PriceStack>
-                                </Td>
-                                <Td>
+                                </Td>}
+                                {!pricesHidden && <Td>
                                     <PriceValue>{editedPrices[service.id]?.vatRate !== undefined
                                         ? (editedPrices[service.id].vatRate === -1 ? 'zw.' : `${editedPrices[service.id].vatRate}%`)
                                         : (service.vatRate === -1 ? 'zw.' : `${service.vatRate}%`)
                                     }</PriceValue>
-                                </Td>
-                                <Td>
+                                </Td>}
+                                {!pricesHidden && <Td>
                                     <PriceStack>
                                         {(() => {
                                             const isPending = (service.hasPendingChange ?? (service.status === 'PENDING'));
                                             const isEditPending = isPending && service.pendingOperation === 'EDIT' && (service.previousPriceGross ?? null) !== null;
                                             if (isEditPending) {
                                                 const prevGross = service.previousPriceGross as number;
-                                                const proposedGross = pricing.finalPriceGross;
+                                                const proposedGross = pricing!.finalPriceGross;
                                                 const trendGross: 'up' | 'down' | 'neutral' = proposedGross > prevGross ? 'up' : proposedGross < prevGross ? 'down' : 'neutral';
                                                 return (
                                                     <>
@@ -2050,8 +2059,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                             if (hasEditedPrice) {
                                                 return (
                                                     <EditedPriceWrap>
-                                                        {showDiscount && <PriceValue $strikethrough>{formatCurrency(pricing.originalPriceGross / 100)}</PriceValue>}
-                                                        <PriceValue>{formatCurrency(pricing.finalPriceGross / 100)}</PriceValue>
+                                                        {showDiscount && <PriceValue $strikethrough>{formatCurrency(pricing!.originalPriceGross / 100)}</PriceValue>}
+                                                        <PriceValue>{formatCurrency(pricing!.finalPriceGross / 100)}</PriceValue>
                                                         <EditedBadge>Zmieniona</EditedBadge>
                                                     </EditedPriceWrap>
                                                 );
@@ -2060,17 +2069,17 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                                                 <>
                                                     {showDiscount && (
                                                         <PriceValue $strikethrough>
-                                                            {formatCurrency(pricing.originalPriceGross / 100)}
+                                                            {formatCurrency(pricing!.originalPriceGross / 100)}
                                                         </PriceValue>
                                                     )}
                                                     <PriceValue>
-                                                        {formatCurrency(pricing.finalPriceGross / 100)}
+                                                        {formatCurrency(pricing!.finalPriceGross / 100)}
                                                     </PriceValue>
                                                 </>
                                             );
                                         })()}
                                     </PriceStack>
-                                </Td>
+                                </Td>}
                                 {showActionsCol && (
                                     <ActionsCell>
                                         <RowActions>
@@ -2173,6 +2182,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                 </Tbody>
             </Table>
 
+            {!pricesHidden && (
             <TotalRow>
                 <div>
                     <TotalLabel>Razem do zapłaty</TotalLabel>
@@ -2188,6 +2198,7 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
                     <TotalValue>{formatCurrency(totals.totalFinalGross / 100)}</TotalValue>
                 </TotalBreakdown>
             </TotalRow>
+            )}
 
             {hasChanges && (
                 <DraftBar>
